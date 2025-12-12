@@ -73,7 +73,7 @@ echo "   - Tunnel Server: $TARGET_NAME (Port $TARGET_PORT)"
 echo "   - Web Server:    $TARGET_WEB_NAME (Port $TARGET_WEB_PORT)"
 
 # 1. Start Tunnel Server
-PORT=$TARGET_PORT pm2 start dist/server/src/server.js --name $TARGET_NAME --update-env --force
+BASE_DOMAIN="outray.dev" PORT=$TARGET_PORT pm2 start dist/server/src/server.js --name $TARGET_NAME --update-env --force
 
 # 2. Prepare and Start Web Server
 WEB_STAGING="/root/outray/web-staging"
