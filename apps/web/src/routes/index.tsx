@@ -198,7 +198,7 @@ function Home() {
       <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between w-full max-w-7xl mx-auto px-6 lg:px-12 pointer-events-none gap-12 lg:gap-0 pt-20 lg:pt-0">
         <div className="flex flex-col items-center lg:items-start gap-8 lg:gap-10 w-full lg:w-auto">
           <h1 className="text-7xl md:text-7xl lg:text-9xl font-bold opacity-80 tracking-tight text-center lg:text-left">
-            Like Ngrok, <br /> but cooler.
+            Like ngrok, <br /> but cooler.
           </h1>
           <WaitlistForm />
         </div>
