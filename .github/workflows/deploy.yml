@@ -38,7 +38,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           source: "web/dist/*"
-          target: "/root/outray/web"
+          target: "/root/outray/web-staging"
           strip_components: 2
 
       - name: Deploy Server Files
@@ -48,11 +48,11 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: "server/dist,server/package.json"
+          source: "server/dist,server/package.json,server/deploy.sh"
           target: "/root/outray/server"
           strip_components: 1
 
-      - name: Restart Server
+      - name: Restart Server (Blue/Green)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -60,9 +60,5 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd /root/outray/server
-            npm install --production
-            # Stop existing node process if it's not managed by PM2 yet
-            pkill -f "node /root/outray/server/dist/server/src/server.js" || true
-            pm2 restart outray-server || pm2 start dist/server/src/server.js --name outray-server
-            pm2 save
+            chmod +x /root/outray/server/deploy.sh
+            /root/outray/server/deploy.sh
