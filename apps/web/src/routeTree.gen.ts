@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as DashRouteImport } from './routes/dash'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashIndexRouteImport } from './routes/dash/index'
 import { Route as DashSettingsRouteImport } from './routes/dash/settings'
@@ -19,35 +18,30 @@ import { Route as ApiTunnelCheckSubdomainRouteImport } from './routes/api/tunnel
 import { Route as ApiTunnelAuthRouteImport } from './routes/api/tunnel/auth'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
-const DashRoute = DashRouteImport.update({
-  id: '/dash',
-  path: '/dash',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashIndexRoute = DashIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DashRoute,
+  id: '/dash/',
+  path: '/dash/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DashSettingsRoute = DashSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => DashRoute,
+  id: '/dash/settings',
+  path: '/dash/settings',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DashTunnelsIndexRoute = DashTunnelsIndexRouteImport.update({
-  id: '/tunnels/',
-  path: '/tunnels/',
-  getParentRoute: () => DashRoute,
+  id: '/dash/tunnels/',
+  path: '/dash/tunnels/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DashTunnelsTunnelIdRoute = DashTunnelsTunnelIdRouteImport.update({
-  id: '/tunnels/$tunnelId',
-  path: '/tunnels/$tunnelId',
-  getParentRoute: () => DashRoute,
+  id: '/dash/tunnels/$tunnelId',
+  path: '/dash/tunnels/$tunnelId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTunnelCheckSubdomainRoute = ApiTunnelCheckSubdomainRouteImport.update({
   id: '/api/tunnel/check-subdomain',
@@ -67,9 +61,8 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dash': typeof DashRouteWithChildren
   '/dash/settings': typeof DashSettingsRoute
-  '/dash/': typeof DashIndexRoute
+  '/dash': typeof DashIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
   '/api/tunnel/check-subdomain': typeof ApiTunnelCheckSubdomainRoute
@@ -89,7 +82,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dash': typeof DashRouteWithChildren
   '/dash/settings': typeof DashSettingsRoute
   '/dash/': typeof DashIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -102,9 +94,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/dash'
     | '/dash/settings'
-    | '/dash/'
+    | '/dash'
     | '/api/auth/$'
     | '/api/tunnel/auth'
     | '/api/tunnel/check-subdomain'
@@ -123,7 +114,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/dash'
     | '/dash/settings'
     | '/dash/'
     | '/api/auth/$'
@@ -135,21 +125,17 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashRoute: typeof DashRouteWithChildren
+  DashSettingsRoute: typeof DashSettingsRoute
+  DashIndexRoute: typeof DashIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiTunnelAuthRoute: typeof ApiTunnelAuthRoute
   ApiTunnelCheckSubdomainRoute: typeof ApiTunnelCheckSubdomainRoute
+  DashTunnelsTunnelIdRoute: typeof DashTunnelsTunnelIdRoute
+  DashTunnelsIndexRoute: typeof DashTunnelsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/dash': {
-      id: '/dash'
-      path: '/dash'
-      fullPath: '/dash'
-      preLoaderRoute: typeof DashRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -159,31 +145,31 @@ declare module '@tanstack/react-router' {
     }
     '/dash/': {
       id: '/dash/'
-      path: '/'
-      fullPath: '/dash/'
+      path: '/dash'
+      fullPath: '/dash'
       preLoaderRoute: typeof DashIndexRouteImport
-      parentRoute: typeof DashRoute
+      parentRoute: typeof rootRouteImport
     }
     '/dash/settings': {
       id: '/dash/settings'
-      path: '/settings'
+      path: '/dash/settings'
       fullPath: '/dash/settings'
       preLoaderRoute: typeof DashSettingsRouteImport
-      parentRoute: typeof DashRoute
+      parentRoute: typeof rootRouteImport
     }
     '/dash/tunnels/': {
       id: '/dash/tunnels/'
-      path: '/tunnels'
+      path: '/dash/tunnels'
       fullPath: '/dash/tunnels'
       preLoaderRoute: typeof DashTunnelsIndexRouteImport
-      parentRoute: typeof DashRoute
+      parentRoute: typeof rootRouteImport
     }
     '/dash/tunnels/$tunnelId': {
       id: '/dash/tunnels/$tunnelId'
-      path: '/tunnels/$tunnelId'
+      path: '/dash/tunnels/$tunnelId'
       fullPath: '/dash/tunnels/$tunnelId'
       preLoaderRoute: typeof DashTunnelsTunnelIdRouteImport
-      parentRoute: typeof DashRoute
+      parentRoute: typeof rootRouteImport
     }
     '/api/tunnel/check-subdomain': {
       id: '/api/tunnel/check-subdomain'
@@ -209,28 +195,15 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface DashRouteChildren {
-  DashSettingsRoute: typeof DashSettingsRoute
-  DashIndexRoute: typeof DashIndexRoute
-  DashTunnelsTunnelIdRoute: typeof DashTunnelsTunnelIdRoute
-  DashTunnelsIndexRoute: typeof DashTunnelsIndexRoute
-}
-
-const DashRouteChildren: DashRouteChildren = {
-  DashSettingsRoute: DashSettingsRoute,
-  DashIndexRoute: DashIndexRoute,
-  DashTunnelsTunnelIdRoute: DashTunnelsTunnelIdRoute,
-  DashTunnelsIndexRoute: DashTunnelsIndexRoute,
-}
-
-const DashRouteWithChildren = DashRoute._addFileChildren(DashRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashRoute: DashRouteWithChildren,
+  DashSettingsRoute: DashSettingsRoute,
+  DashIndexRoute: DashIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiTunnelAuthRoute: ApiTunnelAuthRoute,
   ApiTunnelCheckSubdomainRoute: ApiTunnelCheckSubdomainRoute,
+  DashTunnelsTunnelIdRoute: DashTunnelsTunnelIdRoute,
+  DashTunnelsIndexRoute: DashTunnelsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
