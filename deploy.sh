@@ -5,6 +5,10 @@ set -e
 APP_DIR="/root/outray/tunnel"
 CADDYFILE="/etc/caddy/Caddyfile"
 
+REDIS_URL="${REDIS_URL:-redis://127.0.0.1:6379}"
+REDIS_TUNNEL_TTL_SECONDS="${REDIS_TUNNEL_TTL_SECONDS:-120}"
+REDIS_HEARTBEAT_INTERVAL_MS="${REDIS_HEARTBEAT_INTERVAL_MS:-20000}"
+
 # Tunnel Server Config
 BLUE_PORT=3547
 GREEN_PORT=3548
@@ -49,7 +53,13 @@ echo "🔵 Current active: $CURRENT_COLOR (or none)"
 echo "🟢 Deploying to: $TARGET_COLOR (Tunnel Server: $TARGET_NAME on Port $TARGET_PORT)"
 
 # 1. Start Tunnel Server
-BASE_DOMAIN="outray.dev" WEB_API_URL="https://outray.dev/api" PORT=$TARGET_PORT pm2 start dist/server.js --name $TARGET_NAME --update-env --force
+BASE_DOMAIN="outray.dev" \
+WEB_API_URL="https://outray.dev/api" \
+PORT=$TARGET_PORT \
+REDIS_URL="$REDIS_URL" \
+REDIS_TUNNEL_TTL_SECONDS="$REDIS_TUNNEL_TTL_SECONDS" \
+REDIS_HEARTBEAT_INTERVAL_MS="$REDIS_HEARTBEAT_INTERVAL_MS" \
+pm2 start dist/server.js --name $TARGET_NAME --update-env --force
 
 echo "⏳ Waiting for tunnel server to be ready..."
 sleep 5
