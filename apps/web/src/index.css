@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url(https://fonts.googleapis.com/css?family=Geom:300,regular,500,600,700,800,900,300italic,italic,500italic,600italic,700italic,800italic,900italic);
+@import "tailwindcss";
 
 @theme {
   --font-family-sans: "Geom", sans-serif;
