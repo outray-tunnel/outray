@@ -48,11 +48,16 @@ jobs:
 
       - name: Restart Server (Blue/Green)
         uses: appleboy/ssh-action@master
+        env:
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          REDIS_TUNNEL_TTL_SECONDS: "120"
+          REDIS_HEARTBEAT_INTERVAL_MS: "20000"
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
+          envs: REDIS_URL,REDIS_TUNNEL_TTL_SECONDS,REDIS_HEARTBEAT_INTERVAL_MS
           script: |
             chmod +x /root/outray/deploy.sh
             /root/outray/deploy.sh
