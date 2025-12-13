@@ -15,6 +15,13 @@
       "when": 1765619151616,
       "tag": "0001_adorable_weapon_omega",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765669212615,
+      "tag": "0002_eminent_unus",
+      "breakpoints": true
     }
   ]
 }
