@@ -24,7 +24,7 @@ function TunnelDetailView() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-[#0F1115] border border-white/5 rounded-lg p-6">
+        <div className="bg-black border border-white/5 rounded-lg p-6">
           <h3 className="text-lg font-medium text-white mb-4">Overview</h3>
           <div className="space-y-4">
             <div>
@@ -45,7 +45,7 @@ function TunnelDetailView() {
           </div>
         </div>
 
-        <div className="bg-[#0F1115] border border-white/5 rounded-lg p-6">
+        <div className="bg-black border border-white/5 rounded-lg p-6">
           <h3 className="text-lg font-medium text-white mb-4">Metrics</h3>
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
