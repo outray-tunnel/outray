@@ -6,14 +6,13 @@ export const tunnels = pgTable(
   "tunnels",
   {
     id: text("id").primaryKey(),
-    subdomain: text("subdomain").notNull().unique(),
+    url: text("url").notNull().unique(),
     name: text("name"),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    organizationId: text("organization_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id").references(() => organizations.id, { onDelete: "cascade" }),
+    lastSeenAt: timestamp("last_seen_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .$onUpdate(() => new Date())
@@ -22,6 +21,23 @@ export const tunnels = pgTable(
   (table) => [
     index("tunnels_userId_idx").on(table.userId),
     index("tunnels_organizationId_idx").on(table.organizationId),
+    index("tunnels_lastSeenAt_idx").on(table.lastSeenAt),
+  ],
+);
+
+export const subdomains = pgTable(
+  "subdomains",
+  {
+    id: text("id").primaryKey(),
+    subdomain: text("subdomain").notNull().unique(),
+    tunnelId: text("tunnel_id")
+      .notNull()
+      .references(() => tunnels.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("subdomains_subdomain_idx").on(table.subdomain),
+    index("subdomains_tunnelId_idx").on(table.tunnelId),
   ],
 );
 
@@ -46,7 +62,7 @@ export const authTokens = pgTable(
   ],
 );
 
-export const tunnelsRelations = relations(tunnels, ({ one }) => ({
+export const tunnelsRelations = relations(tunnels, ({ one, many }) => ({
   user: one(users, {
     fields: [tunnels.userId],
     references: [users.id],
@@ -54,6 +70,14 @@ export const tunnelsRelations = relations(tunnels, ({ one }) => ({
   organization: one(organizations, {
     fields: [tunnels.organizationId],
     references: [organizations.id],
+  }),
+  subdomains: many(subdomains),
+}));
+
+export const subdomainsRelations = relations(subdomains, ({ one }) => ({
+  tunnel: one(tunnels, {
+    fields: [subdomains.tunnelId],
+    references: [tunnels.id],
   }),
 }));
 
