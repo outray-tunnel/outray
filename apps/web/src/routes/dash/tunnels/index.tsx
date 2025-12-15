@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Globe,
   Copy,
-  Terminal,
   MoreVertical,
   Filter,
   ArrowUpDown,
