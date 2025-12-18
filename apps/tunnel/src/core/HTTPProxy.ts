@@ -80,7 +80,7 @@ export class HTTPProxy {
           method: req.method || "GET",
           path: req.url || "/",
           status_code: response.statusCode,
-          latency_ms: Date.now() - start,
+          request_duration_ms: Date.now() - start,
           bytes_in: bodyBuffer.length,
           bytes_out: responseSize,
           client_ip: this.getClientIp(req),
