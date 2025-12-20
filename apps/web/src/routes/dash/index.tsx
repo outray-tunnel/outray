@@ -54,7 +54,11 @@ function OverviewView() {
   const { selectedOrganizationId } = useAppStore();
   const activeOrganization = selectedOrganizationId;
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    isPlaceholderData,
+  } = useQuery({
     queryKey: ["stats", "overview", activeOrganization, timeRange],
     queryFn: async () => {
       if (!activeOrganization) return null;
@@ -122,7 +126,7 @@ function OverviewView() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Overview</h1>
@@ -134,7 +138,7 @@ function OverviewView() {
         </button>
       </div>
 
-      {/* Stats Grid */}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <OverviewCard
           title="Total Requests"
@@ -161,8 +165,13 @@ function OverviewView() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Chart */}
-        <div className="lg:col-span-2 bg-white/2 border border-white/5 rounded-2xl p-6">
+
+        <div className="lg:col-span-2 bg-white/2 border border-white/5 rounded-2xl p-6 relative">
+          {isPlaceholderData && (
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm z-10 rounded-2xl flex items-center justify-center transition-all duration-200">
+              <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            </div>
+          )}
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-lg font-medium text-white flex items-center gap-2">
@@ -270,7 +279,7 @@ function OverviewView() {
           )}
         </div>
 
-        {/* Recent Tunnels / Quick Status */}
+
         <div className="bg-white/2 border border-white/5 rounded-2xl p-6 flex flex-col">
           <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
             <Server size={18} className="text-blue-400" />
