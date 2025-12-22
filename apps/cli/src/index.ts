@@ -1,67 +1,242 @@
 #!/usr/bin/env node
 
 import chalk from "chalk";
-import fs from "fs";
-import path from "path";
-import os from "os";
 import { OutRayClient } from "./client";
+import { ConfigManager, OutRayConfig } from "./config";
+import { AuthManager } from "./auth";
 
-const CONFIG_DIR = path.join(os.homedir(), ".outray");
-const PROD_CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
-const DEV_CONFIG_FILE = path.join(CONFIG_DIR, "config.dev.json");
-
-function getConfigFile(isDev: boolean): string {
-  return isDev ? DEV_CONFIG_FILE : PROD_CONFIG_FILE;
-}
-
-function saveConfig(config: { token: string }, isDev: boolean) {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
-  const configFile = getConfigFile(isDev);
-  fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+async function handleLogin(
+  configManager: ConfigManager,
+  webUrl: string,
+  isDev: boolean,
+) {
   const envLabel = isDev ? chalk.yellow("[DEV]") : chalk.blue("[PROD]");
-  console.log(chalk.green(`✅ ${envLabel} Auth token saved successfully!`));
-}
+  console.log(
+    chalk.cyan(`\n${envLabel} Opening browser for authentication...`),
+  );
 
-function loadConfig(isDev: boolean): { token?: string } {
-  const configFile = getConfigFile(isDev);
-  if (fs.existsSync(configFile)) {
-    try {
-      return JSON.parse(fs.readFileSync(configFile, "utf-8"));
-    } catch (e) {
-      return {};
-    }
-  }
-  return {};
-}
+  const authManager = new AuthManager(webUrl);
 
-async function validateToken(token: string, webUrl: string): Promise<boolean> {
   try {
-    const response = await fetch(`${webUrl}/api/tunnel/auth`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ token }),
-    });
+    // Step 1: Initiate login session
+    const session = await authManager.initiateLogin();
 
-    if (!response.ok) {
-      throw new Error(`Server returned ${response.status}`);
-    }
+    console.log(
+      chalk.dim(`\nIf browser doesn't open, visit:\n${session.loginUrl}\n`),
+    );
 
-    const data = (await response.json()) as {
-      valid: boolean;
-      error?: string;
+    authManager.openBrowser(session.loginUrl);
+
+    // Step 2: Poll for authentication
+    console.log(chalk.dim("Waiting for authentication..."));
+    const userToken = await authManager.pollLoginStatus(session.code);
+
+    console.log(chalk.green("✓ Authenticated successfully"));
+
+    // Step 3: Fetch organizations
+    const authManagerWithToken = new AuthManager(webUrl, userToken);
+    const orgs = await authManagerWithToken.fetchOrganizations();
+
+    // Step 4: Select organization
+    const selectedOrg = await authManagerWithToken.selectOrganization(orgs);
+
+    // Step 5: Exchange token
+    const { orgToken, expiresAt } = await authManagerWithToken.exchangeToken(
+      selectedOrg.id,
+    );
+
+    // Step 6: Save config
+    const config: OutRayConfig = {
+      authType: "user",
+      userToken,
+      activeOrgId: selectedOrg.id,
+      orgToken,
+      orgTokenExpiresAt: expiresAt,
     };
 
-    if (!data.valid) {
-      throw new Error(data.error || "Invalid token");
+    configManager.save(config);
+
+    console.log(chalk.green(`\n✔ Logged in successfully`));
+    console.log(chalk.dim(`✔ Active org: ${selectedOrg.slug}`));
+  } catch (error) {
+    console.log(
+      chalk.red(
+        `\n❌ Login failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      ),
+    );
+    process.exit(1);
+  }
+}
+
+async function handleSwitch(
+  configManager: ConfigManager,
+  config: OutRayConfig,
+  webUrl: string,
+  orgSlugArg?: string,
+) {
+  if (config.authType !== "user" || !config.userToken) {
+    console.log(chalk.red("❌ Please login first with: outray login"));
+    process.exit(1);
+  }
+
+  const authManager = new AuthManager(webUrl, config.userToken);
+
+  try {
+    const orgs = await authManager.fetchOrganizations();
+
+    let selectedOrg;
+
+    if (orgSlugArg) {
+      // Find org by slug
+      selectedOrg = orgs.find((org) => org.slug === orgSlugArg);
+      if (!selectedOrg) {
+        console.log(chalk.red(`❌ Organization "${orgSlugArg}" not found`));
+        process.exit(1);
+      }
+    } else {
+      // Interactive selection
+      selectedOrg = await authManager.selectOrganization(orgs);
     }
 
-    return true;
+    // Exchange token for new org
+    const { orgToken, expiresAt } = await authManager.exchangeToken(
+      selectedOrg.id,
+    );
+
+    // Update config
+    config.activeOrgId = selectedOrg.id;
+    config.orgToken = orgToken;
+    config.orgTokenExpiresAt = expiresAt;
+
+    configManager.save(config);
+
+    console.log(chalk.green(`\n✔ Switched to: ${selectedOrg.slug}`));
   } catch (error) {
-    throw error;
+    console.log(
+      chalk.red(
+        `\n❌ Switch failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      ),
+    );
+    process.exit(1);
+  }
+}
+
+async function handleWhoami(
+  config: OutRayConfig,
+  webUrl: string,
+  isDev: boolean,
+) {
+  const envLabel = isDev ? chalk.yellow("[DEV]") : chalk.blue("[PROD]");
+
+  if (config.authType === "legacy") {
+    console.log(chalk.dim(`${envLabel} Using legacy token authentication`));
+    return;
+  }
+
+  if (!config.userToken || !config.activeOrgId) {
+    console.log(chalk.red("❌ Not logged in"));
+    process.exit(1);
+  }
+
+  try {
+    const authManager = new AuthManager(webUrl, config.userToken);
+    const orgs = await authManager.fetchOrganizations();
+    const activeOrg = orgs.find((org) => org.id === config.activeOrgId);
+
+    if (!activeOrg) {
+      console.log(chalk.red("❌ Active organization not found"));
+      process.exit(1);
+    }
+
+    console.log(chalk.cyan(`\n${envLabel} Authentication Status\n`));
+    console.log(chalk.dim("Active Organization:"));
+    console.log(`  ${activeOrg.name} (${activeOrg.slug})`);
+    console.log(chalk.dim(`\nRole: ${activeOrg.role}`));
+
+    if (orgs.length > 1) {
+      console.log(
+        chalk.dim(
+          `\nYou have access to ${orgs.length} organizations. Use 'outray switch' to change.`,
+        ),
+      );
+    }
+  } catch (error) {
+    console.log(
+      chalk.red(
+        `\n❌ Failed to fetch info: ${error instanceof Error ? error.message : "Unknown error"}`,
+      ),
+    );
+    process.exit(1);
+  }
+}
+
+async function handleLogout(configManager: ConfigManager, isDev: boolean) {
+  const config = configManager.load();
+
+  if (!config) {
+    console.log(chalk.yellow("⚠️  Not logged in"));
+    return;
+  }
+
+  configManager.clear();
+
+  const envLabel = isDev ? chalk.yellow("[DEV]") : chalk.blue("[PROD]");
+  console.log(chalk.green(`✔ ${envLabel} Logged out successfully`));
+}
+
+async function ensureValidToken(
+  configManager: ConfigManager,
+  config: OutRayConfig,
+  webUrl: string,
+): Promise<string> {
+  // Legacy token - use as-is
+  if (config.authType === "legacy" && config.token) {
+    return config.token;
+  }
+
+  // User auth - ensure org token is valid
+  if (config.authType === "user") {
+    if (!config.userToken || !config.activeOrgId) {
+      throw new Error("Invalid config state");
+    }
+
+    // Check if org token is still valid
+    if (configManager.isOrgTokenValid(config)) {
+      return config.orgToken!;
+    }
+
+    // Token expired - silently re-exchange
+    console.log(chalk.dim("Refreshing authentication..."));
+    const authManager = new AuthManager(webUrl, config.userToken);
+    const { orgToken, expiresAt } = await authManager.exchangeToken(
+      config.activeOrgId,
+    );
+
+    config.orgToken = orgToken;
+    config.orgTokenExpiresAt = expiresAt;
+    configManager.save(config);
+
+    return orgToken;
+  }
+
+  throw new Error("No valid authentication found");
+}
+
+async function getOrgSlugForDisplay(
+  config: OutRayConfig,
+  webUrl: string,
+): Promise<string | null> {
+  if (config.authType !== "user" || !config.userToken || !config.activeOrgId) {
+    return null;
+  }
+
+  try {
+    const authManager = new AuthManager(webUrl, config.userToken);
+    const orgs = await authManager.fetchOrganizations();
+    const activeOrg = orgs.find((org) => org.id === config.activeOrgId);
+    return activeOrg?.slug || null;
+  } catch {
+    return null;
   }
 }
 
@@ -77,48 +252,57 @@ async function main() {
     process.env.OUTRAY_WEB_URL ||
     (isDev ? "http://localhost:3000" : "https://console.outray.dev");
 
-  if (!command) {
-    console.log(chalk.red("❌ Please specify a command"));
-    console.log(chalk.cyan("Usage:"));
-    console.log(
-      chalk.cyan("  outray login <token>    Save your authentication token"),
-    );
-    console.log(chalk.cyan("  outray http <port>      Start an HTTP tunnel"));
-    console.log(
-      chalk.cyan("  outray <port>           Start an HTTP tunnel (shorthand)"),
-    );
-    console.log(chalk.cyan("\nOptions:"));
-    console.log(
-      chalk.cyan("  --dev                   Use development environment"),
-    );
-    process.exit(1);
-  }
+  const configManager = new ConfigManager(isDev);
 
+  // Handle commands that don't require a tunnel
   if (command === "login") {
-    const token = args[1];
-    if (!token) {
-      console.log(chalk.red("❌ Please provide an auth token"));
-      console.log(chalk.cyan("Usage: outray login <token> [--dev]"));
-      process.exit(1);
-    }
-
-    const envLabel = isDev ? chalk.yellow("[DEV]") : chalk.blue("[PROD]");
-    console.log(chalk.cyan(`${envLabel} Validating token...`));
-    console.log(chalk.gray(`  Connecting to ${webUrl}`));
-    try {
-      await validateToken(token, webUrl);
-      saveConfig({ token }, isDev);
-    } catch (err) {
-      console.log(
-        chalk.red(
-          `❌ Validation failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-        ),
-      );
-      process.exit(1);
-    }
+    await handleLogin(configManager, webUrl, isDev);
     return;
   }
 
+  if (command === "logout") {
+    await handleLogout(configManager, isDev);
+    return;
+  }
+
+  if (command === "switch") {
+    const config = configManager.load();
+    if (!config) {
+      console.log(chalk.red("❌ Not logged in. Run: outray login"));
+      process.exit(1);
+    }
+    const orgSlug = args[1];
+    await handleSwitch(configManager, config, webUrl, orgSlug);
+    return;
+  }
+
+  if (command === "whoami") {
+    const config = configManager.load();
+    if (!config) {
+      console.log(chalk.red("❌ Not logged in. Run: outray login"));
+      process.exit(1);
+    }
+    await handleWhoami(config, webUrl, isDev);
+    return;
+  }
+
+  if (!command) {
+    console.log(chalk.red("❌ Please specify a command"));
+    console.log(chalk.cyan("\nUsage:"));
+    console.log(chalk.cyan("  outray login           Login via browser"));
+    console.log(chalk.cyan("  outray <port>          Start tunnel"));
+    console.log(chalk.cyan("  outray switch [org]    Switch organization"));
+    console.log(chalk.cyan("  outray whoami          Show current user"));
+    console.log(chalk.cyan("  outray logout          Logout"));
+    console.log(chalk.cyan("\nOptions:"));
+    console.log(chalk.cyan("  --org <slug>           Use specific org"));
+    console.log(chalk.cyan("  --subdomain <name>     Custom subdomain"));
+    console.log(chalk.cyan("  --key <token>          Override auth token"));
+    console.log(chalk.cyan("  --dev                  Use dev environment"));
+    process.exit(1);
+  }
+
+  // Parse tunnel command
   let localPort: number;
   let remainingArgs: string[];
 
@@ -151,10 +335,8 @@ async function main() {
   );
   if (subdomainArg) {
     if (subdomainArg.includes("=")) {
-      // Format: --subdomain=value
       subdomain = subdomainArg.split("=")[1];
     } else {
-      // Format: --subdomain value
       const subdomainIndex = remainingArgs.indexOf(subdomainArg);
       if (subdomainIndex !== -1 && remainingArgs[subdomainIndex + 1]) {
         subdomain = remainingArgs[subdomainIndex + 1];
@@ -162,20 +344,83 @@ async function main() {
     }
   }
 
-  const config = loadConfig(isDev);
-  let apiKey = process.env.OUTRAY_API_KEY || config.token;
+  // Handle --org flag for temporary org override
+  const orgArg = remainingArgs.find((arg) => arg.startsWith("--org"));
+  let tempOrgSlug: string | undefined;
+  if (orgArg) {
+    if (orgArg.includes("=")) {
+      tempOrgSlug = orgArg.split("=")[1];
+    } else {
+      const orgIndex = remainingArgs.indexOf(orgArg);
+      if (orgIndex !== -1 && remainingArgs[orgIndex + 1]) {
+        tempOrgSlug = remainingArgs[orgIndex + 1];
+      }
+    }
+  }
+
+  // Load and validate config
+  let config = configManager.load();
+
+  if (!config) {
+    console.log(chalk.red("❌ Not logged in. Run: outray login"));
+    process.exit(1);
+  }
+
+  // Handle temporary org override
+  if (tempOrgSlug && config.authType === "user" && config.userToken) {
+    const authManager = new AuthManager(webUrl, config.userToken);
+    const orgs = await authManager.fetchOrganizations();
+    const tempOrg = orgs.find((org) => org.slug === tempOrgSlug);
+
+    if (!tempOrg) {
+      console.log(chalk.red(`❌ Organization "${tempOrgSlug}" not found`));
+      process.exit(1);
+    }
+
+    // Exchange token for temporary org (don't save to config)
+    const { orgToken } = await authManager.exchangeToken(tempOrg.id);
+    config = {
+      ...config,
+      orgToken,
+      activeOrgId: tempOrg.id,
+    };
+
+    console.log(chalk.dim(`Using organization: ${tempOrg.slug} (temporary)\n`));
+  }
+
+  // Get API key/token
+  let apiKey: string | undefined;
 
   const keyArg = remainingArgs.find((arg) => arg.startsWith("--key"));
   if (keyArg) {
     if (keyArg.includes("=")) {
-      // Format: --key=value
       apiKey = keyArg.split("=")[1];
     } else {
-      // Format: --key value
       const keyIndex = remainingArgs.indexOf(keyArg);
       if (keyIndex !== -1 && remainingArgs[keyIndex + 1]) {
         apiKey = remainingArgs[keyIndex + 1];
       }
+    }
+  } else {
+    // Ensure we have a valid token
+    try {
+      apiKey = await ensureValidToken(configManager, config, webUrl);
+    } catch (error) {
+      console.log(
+        chalk.red(
+          `❌ Authentication error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        ),
+      );
+      console.log(chalk.cyan("Try running: outray login"));
+      process.exit(1);
+    }
+  }
+
+  // Show active org (unless using --org override)
+  if (!tempOrgSlug) {
+    const orgSlug = await getOrgSlugForDisplay(config, webUrl);
+    if (orgSlug) {
+      console.log(chalk.dim(`Org: ${orgSlug}`));
     }
   }
 
