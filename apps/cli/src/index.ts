@@ -7,20 +7,28 @@ import os from "os";
 import { OutRayClient } from "./client";
 
 const CONFIG_DIR = path.join(os.homedir(), ".outray");
-const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
+const PROD_CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
+const DEV_CONFIG_FILE = path.join(CONFIG_DIR, "config.dev.json");
 
-function saveConfig(config: { token: string }) {
+function getConfigFile(isDev: boolean): string {
+  return isDev ? DEV_CONFIG_FILE : PROD_CONFIG_FILE;
+}
+
+function saveConfig(config: { token: string }, isDev: boolean) {
   if (!fs.existsSync(CONFIG_DIR)) {
     fs.mkdirSync(CONFIG_DIR, { recursive: true });
   }
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
-  console.log(chalk.green("✅ Auth token saved successfully!"));
+  const configFile = getConfigFile(isDev);
+  fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+  const envLabel = isDev ? chalk.yellow("[DEV]") : chalk.blue("[PROD]");
+  console.log(chalk.green(`✅ ${envLabel} Auth token saved successfully!`));
 }
 
-function loadConfig(): { token?: string } {
-  if (fs.existsSync(CONFIG_FILE)) {
+function loadConfig(isDev: boolean): { token?: string } {
+  const configFile = getConfigFile(isDev);
+  if (fs.existsSync(configFile)) {
     try {
-      return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+      return JSON.parse(fs.readFileSync(configFile, "utf-8"));
     } catch (e) {
       return {};
     }
@@ -79,6 +87,10 @@ async function main() {
     console.log(
       chalk.cyan("  outray <port>           Start an HTTP tunnel (shorthand)"),
     );
+    console.log(chalk.cyan("\nOptions:"));
+    console.log(
+      chalk.cyan("  --dev                   Use development environment"),
+    );
     process.exit(1);
   }
 
@@ -86,15 +98,16 @@ async function main() {
     const token = args[1];
     if (!token) {
       console.log(chalk.red("❌ Please provide an auth token"));
-      console.log(chalk.cyan("Usage: outray login <token>"));
+      console.log(chalk.cyan("Usage: outray login <token> [--dev]"));
       process.exit(1);
     }
 
-    console.log(chalk.cyan("Validating token..."));
+    const envLabel = isDev ? chalk.yellow("[DEV]") : chalk.blue("[PROD]");
+    console.log(chalk.cyan(`${envLabel} Validating token...`));
     console.log(chalk.gray(`  Connecting to ${webUrl}`));
     try {
       await validateToken(token, webUrl);
-      saveConfig({ token });
+      saveConfig({ token }, isDev);
     } catch (err) {
       console.log(
         chalk.red(
@@ -149,7 +162,7 @@ async function main() {
     }
   }
 
-  const config = loadConfig();
+  const config = loadConfig(isDev);
   let apiKey = process.env.OUTRAY_API_KEY || config.token;
 
   const keyArg = remainingArgs.find((arg) => arg.startsWith("--key"));
