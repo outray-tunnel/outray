@@ -3,9 +3,9 @@ set -e
 
 # Variables
 # You should change this password!
-CLICKHOUSE_PASSWORD="${CLICKHOUSE_PASSWORD:password}"
-CLICKHOUSE_USER="user"
-CLICKHOUSE_DB="db"
+CLICKHOUSE_PASSWORD="${CLICKHOUSE_PASSWORD:-password}"
+CLICKHOUSE_USER="${CLICKHOUSE_USER:-user}"
+CLICKHOUSE_DB="${CLICKHOUSE_DB:-db}"
 
 echo "Deploying ClickHouse..."
 
@@ -57,7 +57,7 @@ echo "ClickHouse is ready."
 # Apply Schema
 if [ -f "setup_clickhouse.sql" ]; then
     echo "Applying schema from setup_clickhouse.sql..."
-    cat setup_clickhouse.sql | docker exec -i clickhouse-server clickhouse-client --password "$CLICKHOUSE_PASSWORD" --multiquery
+    cat setup_clickhouse.sql | docker exec -i clickhouse-server clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --database "$CLICKHOUSE_DB" --multiquery
     echo "Schema applied."
 else
     echo "Warning: setup_clickhouse.sql not found. Skipping schema application."
