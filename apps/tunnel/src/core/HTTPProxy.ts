@@ -27,7 +27,18 @@ export class HTTPProxy {
   ): Promise<void> {
     const start = Date.now();
     const host = req.headers.host || "";
-    const tunnelId = extractSubdomain(host, this.baseDomain);
+
+    // First try to extract subdomain from base domain (e.g., subdomain.outray.app)
+    let tunnelId = extractSubdomain(host, this.baseDomain);
+
+    // If not a subdomain of base domain, treat the full hostname as a custom domain
+    if (!tunnelId) {
+      const cleanHost = host.split(":")[0].toLowerCase();
+      // Check if it's not the base domain itself
+      if (cleanHost !== this.baseDomain.toLowerCase()) {
+        tunnelId = cleanHost;
+      }
+    }
 
     if (!tunnelId) {
       res.writeHead(404, { "Content-Type": "text/plain" });
