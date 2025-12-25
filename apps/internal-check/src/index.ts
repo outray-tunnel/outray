@@ -85,14 +85,13 @@ app.get("/internal/domain-check", async (req, res) => {
     }
 
     // 2. Check if it's a custom domain
-    const customDomain = await db
+    const [customDomain] = await db
       .select()
       .from(domains)
       .where(eq(domains.domain, domain))
       .limit(1);
 
-    if (customDomain.length > 0) {
-      // We allow it if it exists, so Caddy can provision the cert
+    if (customDomain?.status === "active") {
       return res.status(200).send();
     }
 
