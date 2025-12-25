@@ -4,16 +4,14 @@ import chalk from "chalk";
 import { OutRayClient } from "./client";
 import { ConfigManager, OutRayConfig } from "./config";
 import { AuthManager } from "./auth";
+import { version } from "../package.json";
 
 async function handleLogin(
   configManager: ConfigManager,
   webUrl: string,
   isDev: boolean,
 ) {
-  const envLabel = isDev ? chalk.yellow("[DEV]") : chalk.blue("[PROD]");
-  console.log(
-    chalk.cyan(`\n${envLabel} Opening browser for authentication...`),
-  );
+  console.log(chalk.cyan(`\nOpening browser for authentication...`));
 
   const authManager = new AuthManager(webUrl);
 
@@ -126,13 +124,6 @@ async function handleWhoami(
   webUrl: string,
   isDev: boolean,
 ) {
-  const envLabel = isDev ? chalk.yellow("[DEV]") : chalk.blue("[PROD]");
-
-  if (config.authType === "legacy") {
-    console.log(chalk.dim(`${envLabel} Using legacy token authentication`));
-    return;
-  }
-
   if (!config.userToken || !config.activeOrgId) {
     console.log(chalk.red("❌ Not logged in"));
     process.exit(1);
@@ -148,7 +139,7 @@ async function handleWhoami(
       process.exit(1);
     }
 
-    console.log(chalk.cyan(`\n${envLabel} Authentication Status\n`));
+    console.log(chalk.cyan(`\nAuthentication Status\n`));
     console.log(chalk.dim("Active Organization:"));
     console.log(`  ${activeOrg.name} (${activeOrg.slug})`);
     console.log(chalk.dim(`\nRole: ${activeOrg.role}`));
@@ -180,8 +171,7 @@ async function handleLogout(configManager: ConfigManager, isDev: boolean) {
 
   configManager.clear();
 
-  const envLabel = isDev ? chalk.yellow("[DEV]") : chalk.blue("[PROD]");
-  console.log(chalk.green(`✔ ${envLabel} Logged out successfully`));
+  console.log(chalk.green(`✔ Logged out successfully`));
 }
 
 async function ensureValidToken(
@@ -189,11 +179,6 @@ async function ensureValidToken(
   config: OutRayConfig,
   webUrl: string,
 ): Promise<string> {
-  // Legacy token - use as-is
-  if (config.authType === "legacy" && config.token) {
-    return config.token;
-  }
-
   // User auth - ensure org token is valid
   if (config.authType === "user") {
     if (!config.userToken || !config.activeOrgId) {
@@ -240,6 +225,25 @@ async function getOrgSlugForDisplay(
   }
 }
 
+function printHelp() {
+  console.log(chalk.cyan("\nUsage:"));
+  console.log(chalk.cyan("  outray login           Login via browser"));
+  console.log(chalk.cyan("  outray <port>          Start tunnel"));
+  console.log(chalk.cyan("  outray switch [org]    Switch organization"));
+  console.log(chalk.cyan("  outray whoami          Show current user"));
+  console.log(chalk.cyan("  outray logout          Logout"));
+  console.log(chalk.cyan("  outray version         Show version"));
+  console.log(chalk.cyan("  outray help            Show this help message"));
+  console.log(chalk.cyan("\nOptions:"));
+  console.log(chalk.cyan("  --org <slug>           Use specific org"));
+  console.log(chalk.cyan("  --subdomain <name>     Custom subdomain"));
+  console.log(chalk.cyan("  --domain <domain>      Custom domain"));
+  console.log(chalk.cyan("  --key <token>          Override auth token"));
+  console.log(chalk.cyan("  --dev                  Use dev environment"));
+  console.log(chalk.cyan("  -v, --version          Show version"));
+  console.log(chalk.cyan("  -h, --help             Show this help message"));
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
@@ -253,6 +257,16 @@ async function main() {
     (isDev ? "http://localhost:3000" : "https://console.outray.dev");
 
   const configManager = new ConfigManager(isDev);
+
+  if (command === "version" || command === "-v" || command === "--version") {
+    console.log(`outray version ${version}`);
+    return;
+  }
+
+  if (command === "help" || command === "-h" || command === "--help") {
+    printHelp();
+    return;
+  }
 
   // Handle commands that don't require a tunnel
   if (command === "login") {
@@ -288,18 +302,7 @@ async function main() {
 
   if (!command) {
     console.log(chalk.red("❌ Please specify a command"));
-    console.log(chalk.cyan("\nUsage:"));
-    console.log(chalk.cyan("  outray login           Login via browser"));
-    console.log(chalk.cyan("  outray <port>          Start tunnel"));
-    console.log(chalk.cyan("  outray switch [org]    Switch organization"));
-    console.log(chalk.cyan("  outray whoami          Show current user"));
-    console.log(chalk.cyan("  outray logout          Logout"));
-    console.log(chalk.cyan("\nOptions:"));
-    console.log(chalk.cyan("  --org <slug>           Use specific org"));
-    console.log(chalk.cyan("  --subdomain <name>     Custom subdomain"));
-    console.log(chalk.cyan("  --domain <domain>      Custom domain"));
-    console.log(chalk.cyan("  --key <token>          Override auth token"));
-    console.log(chalk.cyan("  --dev                  Use dev environment"));
+    printHelp();
     process.exit(1);
   }
 
