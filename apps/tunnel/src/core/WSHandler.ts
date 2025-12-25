@@ -383,7 +383,7 @@ export class WSHandler {
             );
 
             if (!registered) {
-              await this.router.unregisterTunnel(fullHostname);
+              await this.router.unregisterTunnel(fullHostname, ws);
               tunnelId = null;
               ws.send(
                 Protocol.encode({
@@ -415,10 +415,12 @@ export class WSHandler {
         }
       });
 
-      ws.on("close", () => {
+      ws.on("close", (code, reason) => {
         if (tunnelId) {
-          void this.router.unregisterTunnel(tunnelId);
-          console.log(`Tunnel closed: ${tunnelId}`);
+          void this.router.unregisterTunnel(tunnelId, ws);
+          console.log(
+            `Tunnel closed: ${tunnelId} (Code: ${code}, Reason: ${reason})`,
+          );
           tunnelId = null;
         }
       });
