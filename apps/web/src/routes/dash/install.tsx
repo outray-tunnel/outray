@@ -1,9 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Copy, Check, Download, Key, Play } from "lucide-react";
-import { useAppStore } from "../../lib/store";
-import { appClient } from "../../lib/app-client";
 
 export const Route = createFileRoute("/dash/install")({
   component: Install,
@@ -11,20 +8,6 @@ export const Route = createFileRoute("/dash/install")({
 
 function Install() {
   const [copied, setCopied] = useState(false);
-  const { selectedOrganizationId } = useAppStore();
-
-  const { data: token } = useQuery({
-    queryKey: ["authTokens", selectedOrganizationId],
-    queryFn: async () => {
-      if (!selectedOrganizationId) return null;
-      const res = await appClient.authTokens.list(selectedOrganizationId);
-      if ("tokens" in res && res.tokens.length > 0) {
-        return res.tokens[0].token;
-      }
-      return null;
-    },
-    enabled: !!selectedOrganizationId,
-  });
 
   return (
     <div className="mx-auto max-w-5xl p-8">
@@ -81,41 +64,24 @@ function Install() {
               <h2 className="text-2xl font-bold text-white">Authenticate</h2>
             </div>
             <p className="text-gray-400 mb-6 max-w-xl">
-              Link your CLI to your organization using your unique
-              authentication token.
+              Link your CLI to your organization.
             </p>
 
-            {token ? (
-              <div className="space-y-4">
-                <div className="bg-black/50 rounded-xl border border-white/10 p-1">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 gap-3">
-                    <code className="font-mono text-sm text-gray-300 break-all">
-                      outray login {token}
-                    </code>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(`outray login ${token}`);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
-                      }}
-                      className="shrink-0 flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-bold text-black hover:bg-accent/90 transition-colors"
-                    >
-                      {copied ? <Check size={16} /> : <Copy size={16} />}
-                      {copied ? "Copied" : "Copy"}
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2 text-sm text-yellow-500/80 bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/20">
-                  <Key size={16} className="mt-0.5 shrink-0" />
-                  <p>
-                    Keep this token secret. It grants access to your
-                    organization's tunnels.
-                  </p>
-                </div>
+            <div className="space-y-4">
+              <div className="bg-black/50 rounded-xl border border-white/10 p-4 flex items-center justify-between group/code">
+                <code className="font-mono text-accent">outray login</code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText("outray login");
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors opacity-0 group-hover/code:opacity-100"
+                >
+                  {copied ? <Check size={18} /> : <Copy size={18} />}
+                </button>
               </div>
-            ) : (
-              <div className="h-16 bg-white/5 animate-pulse rounded-xl" />
-            )}
+            </div>
           </div>
         </div>
 
