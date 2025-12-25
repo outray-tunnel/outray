@@ -51,6 +51,7 @@ import { Route as ApiCliExchangeRouteImport } from './routes/api/cli/exchange'
 import { Route as ApiCliCompleteRouteImport } from './routes/api/cli/complete'
 import { Route as ApiCheckoutPolarRouteImport } from './routes/api/checkout/polar'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiTunnelsTunnelIdStopRouteImport } from './routes/api/tunnels/$tunnelId.stop'
 import { Route as ApiDomainsDomainIdVerifyRouteImport } from './routes/api/domains/$domainId.verify'
 import { Route as ApiCliLoginStatusRouteImport } from './routes/api/cli/login/status'
 
@@ -267,6 +268,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTunnelsTunnelIdStopRoute = ApiTunnelsTunnelIdStopRouteImport.update({
+  id: '/stop',
+  path: '/stop',
+  getParentRoute: () => ApiTunnelsTunnelIdRoute,
+} as any)
 const ApiDomainsDomainIdVerifyRoute =
   ApiDomainsDomainIdVerifyRouteImport.update({
     id: '/verify',
@@ -316,7 +322,7 @@ export interface FileRoutesByFullPath {
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
   '/api/tunnel/check-subdomain': typeof ApiTunnelCheckSubdomainRoute
   '/api/tunnel/register': typeof ApiTunnelRegisterRoute
-  '/api/tunnels/$tunnelId': typeof ApiTunnelsTunnelIdRoute
+  '/api/tunnels/$tunnelId': typeof ApiTunnelsTunnelIdRouteWithChildren
   '/api/webhooks/polar': typeof ApiWebhooksPolarRoute
   '/dash/tunnels/$tunnelId': typeof DashTunnelsTunnelIdRoute
   '/api/domains': typeof ApiDomainsIndexRoute
@@ -324,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/dash/tunnels': typeof DashTunnelsIndexRoute
   '/api/cli/login/status': typeof ApiCliLoginStatusRoute
   '/api/domains/$domainId/verify': typeof ApiDomainsDomainIdVerifyRoute
+  '/api/tunnels/$tunnelId/stop': typeof ApiTunnelsTunnelIdStopRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -361,7 +368,7 @@ export interface FileRoutesByTo {
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
   '/api/tunnel/check-subdomain': typeof ApiTunnelCheckSubdomainRoute
   '/api/tunnel/register': typeof ApiTunnelRegisterRoute
-  '/api/tunnels/$tunnelId': typeof ApiTunnelsTunnelIdRoute
+  '/api/tunnels/$tunnelId': typeof ApiTunnelsTunnelIdRouteWithChildren
   '/api/webhooks/polar': typeof ApiWebhooksPolarRoute
   '/dash/tunnels/$tunnelId': typeof DashTunnelsTunnelIdRoute
   '/api/domains': typeof ApiDomainsIndexRoute
@@ -369,6 +376,7 @@ export interface FileRoutesByTo {
   '/dash/tunnels': typeof DashTunnelsIndexRoute
   '/api/cli/login/status': typeof ApiCliLoginStatusRoute
   '/api/domains/$domainId/verify': typeof ApiDomainsDomainIdVerifyRoute
+  '/api/tunnels/$tunnelId/stop': typeof ApiTunnelsTunnelIdStopRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -408,7 +416,7 @@ export interface FileRoutesById {
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
   '/api/tunnel/check-subdomain': typeof ApiTunnelCheckSubdomainRoute
   '/api/tunnel/register': typeof ApiTunnelRegisterRoute
-  '/api/tunnels/$tunnelId': typeof ApiTunnelsTunnelIdRoute
+  '/api/tunnels/$tunnelId': typeof ApiTunnelsTunnelIdRouteWithChildren
   '/api/webhooks/polar': typeof ApiWebhooksPolarRoute
   '/dash/tunnels/$tunnelId': typeof DashTunnelsTunnelIdRoute
   '/api/domains/': typeof ApiDomainsIndexRoute
@@ -416,6 +424,7 @@ export interface FileRoutesById {
   '/dash/tunnels/': typeof DashTunnelsIndexRoute
   '/api/cli/login/status': typeof ApiCliLoginStatusRoute
   '/api/domains/$domainId/verify': typeof ApiDomainsDomainIdVerifyRoute
+  '/api/tunnels/$tunnelId/stop': typeof ApiTunnelsTunnelIdStopRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -464,6 +473,7 @@ export interface FileRouteTypes {
     | '/dash/tunnels'
     | '/api/cli/login/status'
     | '/api/domains/$domainId/verify'
+    | '/api/tunnels/$tunnelId/stop'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -509,6 +519,7 @@ export interface FileRouteTypes {
     | '/dash/tunnels'
     | '/api/cli/login/status'
     | '/api/domains/$domainId/verify'
+    | '/api/tunnels/$tunnelId/stop'
   id:
     | '__root__'
     | '/'
@@ -555,6 +566,7 @@ export interface FileRouteTypes {
     | '/dash/tunnels/'
     | '/api/cli/login/status'
     | '/api/domains/$domainId/verify'
+    | '/api/tunnels/$tunnelId/stop'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -584,7 +596,7 @@ export interface RootRouteChildren {
   ApiTunnelAuthRoute: typeof ApiTunnelAuthRoute
   ApiTunnelCheckSubdomainRoute: typeof ApiTunnelCheckSubdomainRoute
   ApiTunnelRegisterRoute: typeof ApiTunnelRegisterRoute
-  ApiTunnelsTunnelIdRoute: typeof ApiTunnelsTunnelIdRoute
+  ApiTunnelsTunnelIdRoute: typeof ApiTunnelsTunnelIdRouteWithChildren
   ApiWebhooksPolarRoute: typeof ApiWebhooksPolarRoute
   ApiDomainsIndexRoute: typeof ApiDomainsIndexRoute
   ApiTunnelsIndexRoute: typeof ApiTunnelsIndexRoute
@@ -886,6 +898,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tunnels/$tunnelId/stop': {
+      id: '/api/tunnels/$tunnelId/stop'
+      path: '/stop'
+      fullPath: '/api/tunnels/$tunnelId/stop'
+      preLoaderRoute: typeof ApiTunnelsTunnelIdStopRouteImport
+      parentRoute: typeof ApiTunnelsTunnelIdRoute
+    }
     '/api/domains/$domainId/verify': {
       id: '/api/domains/$domainId/verify'
       path: '/verify'
@@ -968,6 +987,17 @@ const ApiDomainsDomainIdRouteChildren: ApiDomainsDomainIdRouteChildren = {
 const ApiDomainsDomainIdRouteWithChildren =
   ApiDomainsDomainIdRoute._addFileChildren(ApiDomainsDomainIdRouteChildren)
 
+interface ApiTunnelsTunnelIdRouteChildren {
+  ApiTunnelsTunnelIdStopRoute: typeof ApiTunnelsTunnelIdStopRoute
+}
+
+const ApiTunnelsTunnelIdRouteChildren: ApiTunnelsTunnelIdRouteChildren = {
+  ApiTunnelsTunnelIdStopRoute: ApiTunnelsTunnelIdStopRoute,
+}
+
+const ApiTunnelsTunnelIdRouteWithChildren =
+  ApiTunnelsTunnelIdRoute._addFileChildren(ApiTunnelsTunnelIdRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashRoute: DashRouteWithChildren,
@@ -995,7 +1025,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTunnelAuthRoute: ApiTunnelAuthRoute,
   ApiTunnelCheckSubdomainRoute: ApiTunnelCheckSubdomainRoute,
   ApiTunnelRegisterRoute: ApiTunnelRegisterRoute,
-  ApiTunnelsTunnelIdRoute: ApiTunnelsTunnelIdRoute,
+  ApiTunnelsTunnelIdRoute: ApiTunnelsTunnelIdRouteWithChildren,
   ApiWebhooksPolarRoute: ApiWebhooksPolarRoute,
   ApiDomainsIndexRoute: ApiDomainsIndexRoute,
   ApiTunnelsIndexRoute: ApiTunnelsIndexRoute,
