@@ -80,6 +80,28 @@ jobs:
           source: "deploy.sh,deploy/setup_clickhouse.sql"
           target: "/root/outray"
 
+      - name: Deploy ClickHouse Schema File
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.CLICKHOUSE_SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "deploy/setup_clickhouse.sql"
+          target: "/root"
+
+      - name: Apply ClickHouse Schema
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.CLICKHOUSE_SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            echo "📊 Applying ClickHouse schema updates..."
+            clickhouse-client --multiquery < /root/deploy/setup_clickhouse.sql
+            echo "✅ ClickHouse schema applied."
+
       - name: Restart Server (Blue/Green)
         uses: appleboy/ssh-action@master
         env:
