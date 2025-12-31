@@ -116,11 +116,13 @@ export class TunnelRouter {
     if (this.redis) {
       try {
         await this.redis.del(this.redisKey(tunnelId));
-        if (metadata?.organizationId) {
-          await this.redis.zrem(
-            `org:${metadata.organizationId}:active_tunnels`,
-            tunnelId,
+        if (metadata?.organizationId && metadata?.dbTunnelId) {
+          // Remove from online set and delete last_seen
+          await this.redis.srem(
+            `org:${metadata.organizationId}:online_tunnels`,
+            metadata.dbTunnelId,
           );
+          await this.redis.del(`tunnel:last_seen:${metadata.dbTunnelId}`);
         }
       } catch (error) {
         console.error("Failed to remove tunnel reservation", error);
@@ -130,14 +132,34 @@ export class TunnelRouter {
 
   async reserveTunnel(
     tunnelId: string,
+    ws: WebSocket,
     metadata?: TunnelMetadata,
     forceTakeover = false,
   ): Promise<boolean> {
     if (!this.redis) {
-      return !this.tunnels.has(tunnelId);
+      const canReserve = !this.tunnels.has(tunnelId);
+      if (canReserve) {
+        this.tunnels.set(tunnelId, ws);
+        if (metadata) {
+          this.tunnelMetadata.set(tunnelId, metadata);
+        }
+      }
+      return canReserve;
     }
 
-    return this.persistTunnelState(tunnelId, "NX", metadata, forceTakeover);
+    const persisted = await this.persistTunnelState(
+      tunnelId,
+      "NX",
+      metadata,
+      forceTakeover,
+    );
+    if (persisted) {
+      this.tunnels.set(tunnelId, ws);
+      if (metadata) {
+        this.tunnelMetadata.set(tunnelId, metadata);
+      }
+    }
+    return persisted;
   }
 
   async shutdown(): Promise<void> {
@@ -154,14 +176,15 @@ export class TunnelRouter {
         try {
           await this.redis.del(...keys);
 
-          // Remove from organization active tunnels sets
+          // Remove from organization online tunnels sets
           const pipeline = this.redis.pipeline();
-          for (const [tunnelId, metadata] of this.tunnelMetadata) {
-            if (metadata.organizationId) {
-              pipeline.zrem(
-                `org:${metadata.organizationId}:active_tunnels`,
-                tunnelId,
+          for (const [, metadata] of this.tunnelMetadata) {
+            if (metadata.organizationId && metadata.dbTunnelId) {
+              pipeline.srem(
+                `org:${metadata.organizationId}:online_tunnels`,
+                metadata.dbTunnelId,
               );
+              pipeline.del(`tunnel:last_seen:${metadata.dbTunnelId}`);
             }
           }
           await pipeline.exec();
@@ -274,11 +297,17 @@ export class TunnelRouter {
           "NX",
         );
         if (result === "OK") {
-          if (metadata?.organizationId) {
-            await this.redis.zadd(
-              `org:${metadata.organizationId}:active_tunnels`,
-              Date.now() + this.ttlSeconds * 1000,
-              tunnelId,
+          // Add to org's online tunnels set using dbTunnelId
+          if (metadata?.organizationId && metadata?.dbTunnelId) {
+            await this.redis.sadd(
+              `org:${metadata.organizationId}:online_tunnels`,
+              metadata.dbTunnelId,
+            );
+            await this.redis.set(
+              `tunnel:last_seen:${metadata.dbTunnelId}`,
+              Date.now().toString(),
+              "EX",
+              this.ttlSeconds,
             );
           }
           return true;
@@ -300,22 +329,32 @@ export class TunnelRouter {
                     this.tunnels.delete(tunnelId);
                   }
                   await this.redis.set(key, redisValue, "EX", this.ttlSeconds);
-                  if (metadata?.organizationId) {
-                    await this.redis.zadd(
-                      `org:${metadata.organizationId}:active_tunnels`,
-                      Date.now() + this.ttlSeconds * 1000,
-                      tunnelId,
+                  if (metadata?.organizationId && metadata?.dbTunnelId) {
+                    await this.redis.sadd(
+                      `org:${metadata.organizationId}:online_tunnels`,
+                      metadata.dbTunnelId,
+                    );
+                    await this.redis.set(
+                      `tunnel:last_seen:${metadata.dbTunnelId}`,
+                      Date.now().toString(),
+                      "EX",
+                      this.ttlSeconds,
                     );
                   }
                   return true;
                 } else if (!this.tunnels.has(tunnelId)) {
                   // Tunnel is not active, allow takeover
                   await this.redis.set(key, redisValue, "EX", this.ttlSeconds);
-                  if (metadata?.organizationId) {
-                    await this.redis.zadd(
-                      `org:${metadata.organizationId}:active_tunnels`,
-                      Date.now() + this.ttlSeconds * 1000,
-                      tunnelId,
+                  if (metadata?.organizationId && metadata?.dbTunnelId) {
+                    await this.redis.sadd(
+                      `org:${metadata.organizationId}:online_tunnels`,
+                      metadata.dbTunnelId,
+                    );
+                    await this.redis.set(
+                      `tunnel:last_seen:${metadata.dbTunnelId}`,
+                      Date.now().toString(),
+                      "EX",
+                      this.ttlSeconds,
                     );
                   }
                   return true;
@@ -330,7 +369,7 @@ export class TunnelRouter {
         }
         return false;
       } else {
-        // XX mode
+        // XX mode (heartbeat refresh)
         const result = await this.redis.set(
           key,
           redisValue,
@@ -343,11 +382,17 @@ export class TunnelRouter {
           return this.persistTunnelState(tunnelId, "NX", metadata);
         }
 
-        if (metadata?.organizationId) {
-          await this.redis.zadd(
-            `org:${metadata.organizationId}:active_tunnels`,
-            Date.now() + this.ttlSeconds * 1000,
-            tunnelId,
+        // Add to online_tunnels SET and refresh last_seen timestamp
+        if (metadata?.organizationId && metadata?.dbTunnelId) {
+          await this.redis.sadd(
+            `org:${metadata.organizationId}:online_tunnels`,
+            metadata.dbTunnelId,
+          );
+          await this.redis.set(
+            `tunnel:last_seen:${metadata.dbTunnelId}`,
+            Date.now().toString(),
+            "EX",
+            this.ttlSeconds,
           );
         }
 
