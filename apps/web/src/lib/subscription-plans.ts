@@ -8,7 +8,7 @@ export const SUBSCRIPTION_PLANS = {
       maxDomains: 0,
       maxSubdomains: 1,
       maxMembers: 1,
-      bandwidthPerMonth: 1024 * 1024 * 1024 * 1, // 1GB
+      bandwidthPerMonth: 1024 * 1024 * 1024 * 2, // 2GB
       retentionDays: 3,
       customDomains: false,
       prioritySupport: false,
@@ -23,7 +23,7 @@ export const SUBSCRIPTION_PLANS = {
       maxDomains: 1,
       maxSubdomains: 5,
       maxMembers: 3,
-      bandwidthPerMonth: 1024 * 1024 * 1024 * 5, // 5GB
+      bandwidthPerMonth: 1024 * 1024 * 1024 * 25, // 25GB
       retentionDays: 14,
       customDomains: true,
       prioritySupport: false,
@@ -38,7 +38,7 @@ export const SUBSCRIPTION_PLANS = {
       maxDomains: 5,
       maxSubdomains: 20,
       maxMembers: 5,
-      bandwidthPerMonth: 1024 * 1024 * 1024 * 15, // 15GB
+      bandwidthPerMonth: 1024 * 1024 * 1024 * 100, // 100GB
       retentionDays: 30,
       customDomains: true,
       prioritySupport: true,
@@ -53,7 +53,7 @@ export const SUBSCRIPTION_PLANS = {
       maxDomains: 25,
       maxSubdomains: 200,
       maxMembers: -1, // Unlimited
-      bandwidthPerMonth: 1024 * 1024 * 1024 * 100, // 100GB
+      bandwidthPerMonth: 1024 * 1024 * 1024 * 1024, // 1TB
       retentionDays: 90,
       customDomains: true,
       prioritySupport: true,
