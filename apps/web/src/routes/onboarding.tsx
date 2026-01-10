@@ -131,15 +131,6 @@ function Onboarding() {
       }
 
       if (data) {
-        const tokenRes = await appClient.authTokens.create({
-          name: "Default Token",
-          orgSlug: data.slug,
-        });
-
-        if ("error" in tokenRes) {
-          console.error(tokenRes.error);
-        }
-
         await authClient.organization.setActive({
           organizationId: data.id,
         });
@@ -163,7 +154,6 @@ function Onboarding() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black text-white relative overflow-hidden selection:bg-white/20">
-      {/* Background Gradients */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-white/5 blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-white/5 blur-[120px]" />
