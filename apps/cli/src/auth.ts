@@ -148,7 +148,7 @@ export class AuthManager {
       platform === "darwin"
         ? `open "${url}"`
         : platform === "win32"
-          ? `start "${url}"`
+          ? `cmd /c start "" "${url}"`
           : `xdg-open "${url}"`;
 
     exec(command, (error) => {
