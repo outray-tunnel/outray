@@ -9,7 +9,6 @@ import {
   type TimeRange,
   formatBytes,
   RequestInspectorDrawer,
-  ReplayModal,
 } from "@/components/requests";
 
 export const Route = createFileRoute("/$orgSlug/requests")({
@@ -30,7 +29,6 @@ function RequestsView() {
   const [timeRange, setTimeRange] = useState<TimeRange>("live");
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<TunnelEvent | null>(null);
-  const [isReplayModalOpen, setIsReplayModalOpen] = useState(false);
   const { orgSlug } = Route.useParams();
   const { data: organizations = [] } = authClient.useListOrganizations();
   const activeOrgId = organizations?.find((org) => org.slug === orgSlug)?.id;
@@ -283,15 +281,8 @@ function RequestsView() {
       <RequestInspectorDrawer
         request={selectedRequest}
         onClose={() => setSelectedRequest(null)}
-        onReplay={() => setIsReplayModalOpen(true)}
         fullCaptureEnabled={fullCaptureEnabled}
         orgSlug={orgSlug}
-      />
-
-      <ReplayModal
-        isOpen={isReplayModalOpen}
-        onClose={() => setIsReplayModalOpen(false)}
-        request={selectedRequest}
       />
     </div>
   );
