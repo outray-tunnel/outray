@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { json } from "@tanstack/react-start";
 import { eq, and, gt } from "drizzle-orm";
 import { db } from "../../../db";
-import { authTokens } from "../../../db/app-schema";
+import { authTokens, organizationSettings } from "../../../db/app-schema";
 import { cliOrgTokens } from "../../../db/auth-schema";
 import { subscriptions } from "../../../db/subscription-schema";
 import { SUBSCRIPTION_PLANS } from "../../../lib/subscription-plans";
@@ -83,11 +83,17 @@ export const Route = createFileRoute("/api/tunnel/auth")({
             where: eq(subscriptions.organizationId, organizationId),
           });
 
+          // Fetch organization settings for full capture
+          const orgSettings = await db.query.organizationSettings.findFirst({
+            where: eq(organizationSettings.organizationId, organizationId),
+          });
+
           const plan = (subscription?.plan ||
             "free") as keyof typeof SUBSCRIPTION_PLANS;
           const bandwidthLimit =
             SUBSCRIPTION_PLANS[plan].features.bandwidthPerMonth;
           const retentionDays = SUBSCRIPTION_PLANS[plan].features.retentionDays;
+          const fullCaptureEnabled = orgSettings?.fullCaptureEnabled ?? false;
 
           return json({
             valid: true,
@@ -102,6 +108,7 @@ export const Route = createFileRoute("/api/tunnel/auth")({
             bandwidthLimit,
             retentionDays,
             plan,
+            fullCaptureEnabled,
           });
         } catch (error) {
           console.error("Error in /api/tunnel/auth:", error);
