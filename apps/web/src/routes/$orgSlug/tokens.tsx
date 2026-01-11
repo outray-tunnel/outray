@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Key, Plus, Trash2 } from "lucide-react";
-import { useAppStore } from "@/lib/store";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
