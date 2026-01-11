@@ -3,6 +3,7 @@ import { Search, Radio } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { appClient } from "@/lib/app-client";
 import { authClient } from "@/lib/auth-client";
+import { useFeatureFlag } from "@/lib/feature-flags";
 import {
   type TunnelEvent,
   type TimeRange,
@@ -34,6 +35,9 @@ function RequestsView() {
   const { data: organizations = [] } = authClient.useListOrganizations();
   const activeOrgId = organizations?.find((org) => org.slug === orgSlug)?.id;
   const wsRef = useRef<WebSocket | null>(null);
+
+  const inspectorEnabled = useFeatureFlag("request_inspector");
+  const fullCaptureEnabled = useFeatureFlag("full_capture");
 
   const activeIndex = TIME_RANGES.findIndex((r) => r.value === timeRange);
 
@@ -232,8 +236,8 @@ function RequestsView() {
                 filteredRequests.map((req, i) => (
                   <tr
                     key={`${req.tunnel_id}-${req.timestamp}-${i}`}
-                    onClick={() => setSelectedRequest(req)}
-                    className="hover:bg-white/5 transition-colors group cursor-pointer"
+                    onClick={() => inspectorEnabled && setSelectedRequest(req)}
+                    className={`hover:bg-white/5 transition-colors group ${inspectorEnabled ? "cursor-pointer" : ""}`}
                   >
                     <td className="px-4 py-3">
                       <div
@@ -280,7 +284,7 @@ function RequestsView() {
         request={selectedRequest}
         onClose={() => setSelectedRequest(null)}
         onReplay={() => setIsReplayModalOpen(true)}
-        fullCaptureEnabled={false} // TODO: wire up to org settings
+        fullCaptureEnabled={fullCaptureEnabled}
         orgSlug={orgSlug}
       />
 
