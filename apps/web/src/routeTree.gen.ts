@@ -66,6 +66,7 @@ import { Route as ApiOrgSlugStatsTunnelRouteImport } from './routes/api/$orgSlug
 import { Route as ApiOrgSlugStatsProtocolRouteImport } from './routes/api/$orgSlug/stats/protocol'
 import { Route as ApiOrgSlugStatsOverviewRouteImport } from './routes/api/$orgSlug/stats/overview'
 import { Route as ApiOrgSlugStatsBandwidthRouteImport } from './routes/api/$orgSlug/stats/bandwidth'
+import { Route as ApiOrgSlugRequestsReplayRouteImport } from './routes/api/$orgSlug/requests/replay'
 import { Route as ApiOrgSlugRequestsCaptureRouteImport } from './routes/api/$orgSlug/requests/capture'
 import { Route as ApiOrgSlugPortalPolarRouteImport } from './routes/api/$orgSlug/portal/polar'
 import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$orgSlug/domains/$domainId'
@@ -365,6 +366,12 @@ const ApiOrgSlugStatsBandwidthRoute =
     path: '/api/$orgSlug/stats/bandwidth',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiOrgSlugRequestsReplayRoute =
+  ApiOrgSlugRequestsReplayRouteImport.update({
+    id: '/replay',
+    path: '/replay',
+    getParentRoute: () => ApiOrgSlugRequestsRoute,
+  } as any)
 const ApiOrgSlugRequestsCaptureRoute =
   ApiOrgSlugRequestsCaptureRouteImport.update({
     id: '/capture',
@@ -446,6 +453,7 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
+  '/api/$orgSlug/requests/replay': typeof ApiOrgSlugRequestsReplayRoute
   '/api/$orgSlug/stats/bandwidth': typeof ApiOrgSlugStatsBandwidthRoute
   '/api/$orgSlug/stats/overview': typeof ApiOrgSlugStatsOverviewRoute
   '/api/$orgSlug/stats/protocol': typeof ApiOrgSlugStatsProtocolRoute
@@ -508,6 +516,7 @@ export interface FileRoutesByTo {
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
+  '/api/$orgSlug/requests/replay': typeof ApiOrgSlugRequestsReplayRoute
   '/api/$orgSlug/stats/bandwidth': typeof ApiOrgSlugStatsBandwidthRoute
   '/api/$orgSlug/stats/overview': typeof ApiOrgSlugStatsOverviewRoute
   '/api/$orgSlug/stats/protocol': typeof ApiOrgSlugStatsProtocolRoute
@@ -573,6 +582,7 @@ export interface FileRoutesById {
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
+  '/api/$orgSlug/requests/replay': typeof ApiOrgSlugRequestsReplayRoute
   '/api/$orgSlug/stats/bandwidth': typeof ApiOrgSlugStatsBandwidthRoute
   '/api/$orgSlug/stats/overview': typeof ApiOrgSlugStatsOverviewRoute
   '/api/$orgSlug/stats/protocol': typeof ApiOrgSlugStatsProtocolRoute
@@ -639,6 +649,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
+    | '/api/$orgSlug/requests/replay'
     | '/api/$orgSlug/stats/bandwidth'
     | '/api/$orgSlug/stats/overview'
     | '/api/$orgSlug/stats/protocol'
@@ -701,6 +712,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
+    | '/api/$orgSlug/requests/replay'
     | '/api/$orgSlug/stats/bandwidth'
     | '/api/$orgSlug/stats/overview'
     | '/api/$orgSlug/stats/protocol'
@@ -765,6 +777,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
+    | '/api/$orgSlug/requests/replay'
     | '/api/$orgSlug/stats/bandwidth'
     | '/api/$orgSlug/stats/overview'
     | '/api/$orgSlug/stats/protocol'
@@ -1227,6 +1240,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugStatsBandwidthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/$orgSlug/requests/replay': {
+      id: '/api/$orgSlug/requests/replay'
+      path: '/replay'
+      fullPath: '/api/$orgSlug/requests/replay'
+      preLoaderRoute: typeof ApiOrgSlugRequestsReplayRouteImport
+      parentRoute: typeof ApiOrgSlugRequestsRoute
+    }
     '/api/$orgSlug/requests/capture': {
       id: '/api/$orgSlug/requests/capture'
       path: '/capture'
@@ -1314,10 +1334,12 @@ const OrgSlugRouteWithChildren =
 
 interface ApiOrgSlugRequestsRouteChildren {
   ApiOrgSlugRequestsCaptureRoute: typeof ApiOrgSlugRequestsCaptureRoute
+  ApiOrgSlugRequestsReplayRoute: typeof ApiOrgSlugRequestsReplayRoute
 }
 
 const ApiOrgSlugRequestsRouteChildren: ApiOrgSlugRequestsRouteChildren = {
   ApiOrgSlugRequestsCaptureRoute: ApiOrgSlugRequestsCaptureRoute,
+  ApiOrgSlugRequestsReplayRoute: ApiOrgSlugRequestsReplayRoute,
 }
 
 const ApiOrgSlugRequestsRouteWithChildren =
