@@ -6,7 +6,7 @@
 
 - **HTTP Tunnels** - Expose web servers with custom subdomains
 - **TCP Tunnels** - Tunnel any TCP service (databases, game servers, etc.)
-- **UDP Tunnels** - Tunnel UDP traffic (DNS, VoIP,TFTP etc.)
+- **UDP Tunnels** - Tunnel UDP traffic (DNS, VoIP, TFTP etc.)
 - **Custom Domains** - Bring your own domain with automatic TLS
 - **Dashboard** - Monitor traffic, view analytics, manage tunnels
 - **Team Support** - Collaborate with organizations and role-based access

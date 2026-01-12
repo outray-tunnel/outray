@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Navbar } from "@/components/landing/navbar";
 import { SUBSCRIPTION_PLANS } from "@/lib/subscription-plans";
-import { Check, X } from "lucide-react";
+import { Check, X, Zap, Globe, Cpu } from "lucide-react";
 
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
@@ -51,16 +51,15 @@ function PricingPage() {
               return (
                 <div
                   key={plan.id}
-                  className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 ${
-                    plan.id === "beam"
-                      ? "bg-linear-to-br from-accent/10 via-white/5 to-purple-500/10 border-accent shadow-[0_0_60px_rgba(255,255,255,0.15)] ring-2 ring-accent/30 scale-[1.02]"
-                      : "bg-[#0c0c0c] border-white/10 hover:border-white/20"
-                  }`}
+                  className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 ${plan.id === "beam"
+                    ? "bg-accent/10 border-accent shadow-[0_0_60px_rgba(255,255,255,0.15)] ring-2 ring-accent/30 scale-[1.02]"
+                    : "bg-[#0c0c0c] border-white/10 hover:border-white/20"
+                    }`}
                 >
                   {plan.id === "beam" && (
                     <>
-                      <div className="absolute inset-0 rounded-3xl bg-linear-to-br from-accent/5 via-transparent to-purple-500/5 pointer-events-none" />
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-linear-to-r from-accent to-yellow-400 text-black text-xs font-bold rounded-full uppercase tracking-wider shadow-lg shadow-accent/30 flex items-center gap-1.5">
+                      <div className="absolute inset-0 rounded-3xl bg-white/5 pointer-events-none" />
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-accent text-black text-xs font-bold rounded-full uppercase tracking-wider shadow-lg shadow-accent/30 flex items-center gap-1.5">
                         <span className="animate-pulse">✨</span>
                         Recommended
                         <span className="animate-pulse">✨</span>
@@ -82,20 +81,17 @@ function PricingPage() {
 
                   <div className="flex-1 space-y-4 mb-8">
                     <FeatureItem
-                      label={`${
-                        f.maxTunnels === -1 ? "Unlimited" : f.maxTunnels
-                      } Tunnel${f.maxTunnels === 1 ? "" : "s"}`}
+                      label={`${f.maxTunnels === -1 ? "Unlimited" : f.maxTunnels
+                        } Tunnel${f.maxTunnels === 1 ? "" : "s"}`}
                     />
                     <FeatureItem
-                      label={`${
-                        f.maxDomains === -1 ? "Unlimited" : f.maxDomains
-                      } Custom Domain${f.maxDomains === 1 ? "" : "s"}`}
+                      label={`${f.maxDomains === -1 ? "Unlimited" : f.maxDomains
+                        } Custom Domain${f.maxDomains === 1 ? "" : "s"}`}
                       included={f.maxDomains !== 0}
                     />
                     <FeatureItem
-                      label={`${
-                        f.maxSubdomains === -1 ? "Unlimited" : f.maxSubdomains
-                      } Subdomain${f.maxSubdomains === 1 ? "" : "s"}`}
+                      label={`${f.maxSubdomains === -1 ? "Unlimited" : f.maxSubdomains
+                        } Subdomain${f.maxSubdomains === 1 ? "" : "s"}`}
                     />
                     <FeatureItem
                       label={`${formatBandwidth(f.bandwidthPerMonth)} Bandwidth`}
@@ -111,11 +107,10 @@ function PricingPage() {
 
                   <Link
                     to="/login"
-                    className={`w-full py-3 rounded-full font-bold text-center transition-all ${
-                      plan.id === "beam"
-                        ? "bg-white text-black hover:bg-gray-200"
-                        : "bg-white/10 text-white hover:bg-white/20"
-                    }`}
+                    className={`w-full py-3 rounded-full font-bold text-center transition-all ${plan.id === "beam"
+                      ? "bg-white text-black hover:bg-gray-200"
+                      : "bg-white/10 text-white hover:bg-white/20"
+                      }`}
                   >
                     {plan.price === 0 ? "Get Started" : "Subscribe"}
                   </Link>
@@ -123,6 +118,61 @@ function PricingPage() {
               );
             })}
           </div>
+
+          <div className="mt-20 bg-[#0c0c0c] border border-white/10 p-8 md:p-12">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className="pb-6 px-4 text-white/40 font-medium">Feature</th>
+                    <th className="pb-6 px-4 text-white font-bold">OutRay</th>
+                    <th className="pb-6 px-4 text-white/40 font-medium">ngrok</th>
+                    <th className="pb-6 px-4 text-white/40 font-medium">zrok</th>
+                    <th className="pb-6 px-4 text-white/40 font-medium">Cloudflare Tunnel</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  <tr>
+                    <td className="py-6 px-4 text-white/80">Stay online forever (free)</td>
+                    <td className="py-6 px-4 text-white font-bold">YES</td>
+                    <td className="py-6 px-4 text-white/40">No (1hr timeout)</td>
+                    <td className="py-6 px-4 text-white/40">Limited</td>
+                    <td className="py-6 px-4 text-white/40">Yes</td>
+                  </tr>
+                  <tr>
+                    <td className="py-6 px-4 text-white/80">Free custom subdomains</td>
+                    <td className="py-6 px-4 text-white font-bold">YES</td>
+                    <td className="py-6 px-4 text-white/40">Paid only</td>
+                    <td className="py-6 px-4 text-white/40">No</td>
+                    <td className="py-6 px-4 text-white/40">No</td>
+                  </tr>
+                  <tr>
+                    <td className="py-6 px-4 text-white/80">HTTP/HTTPS Tunnels</td>
+                    <td className="py-6 px-4 text-white font-bold">YES</td>
+                    <td className="py-6 px-4 text-white/40">Yes</td>
+                    <td className="py-6 px-4 text-white/40">Yes</td>
+                    <td className="py-6 px-4 text-white/40">Yes</td>
+                  </tr>
+                  <tr>
+                    <td className="py-6 px-4 text-white/80">TCP Tunnels</td>
+                    <td className="py-6 px-4 text-white font-bold">YES</td>
+                    <td className="py-6 px-4 text-white/40">Paid only</td>
+                    <td className="py-6 px-4 text-white/40">Yes</td>
+                    <td className="py-6 px-4 text-white/40">Limited</td>
+                  </tr>
+                  <tr>
+                    <td className="py-6 px-4 text-white/80">UDP Tunnels</td>
+                    <td className="py-6 px-4 text-white font-bold">YES</td>
+                    <td className="py-6 px-4 text-white/40">No</td>
+                    <td className="py-6 px-4 text-white/40">No</td>
+                    <td className="py-6 px-4 text-white/40">No</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+
         </div>
       </div>
 
