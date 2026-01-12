@@ -29,19 +29,22 @@ export class UDPProxy {
   private tunnels = new Map<string, UDPTunnel>();
   private packetToClient = new Map<
     string,
-    { tunnelId: string; clientKey: string }
+    { tunnelId: string; clientKey: string; createdAt: number }
   >();
   private portAllocator: PortAllocator;
   private clientTimeout = 60000; // 60 seconds
+  private packetTtl: number;
   private redis?: Redis;
 
   constructor(
     portRangeMin: number = 30001,
     portRangeMax: number = 40000,
     redis?: Redis,
+    packetTtl: number = 30000, // Default 30s
   ) {
     this.portAllocator = new PortAllocator(portRangeMin, portRangeMax);
     this.redis = redis;
+    this.packetTtl = packetTtl;
     // Periodically clean up stale clients
     setInterval(() => this.cleanupStaleClients(), 30000);
   }
@@ -151,7 +154,11 @@ export class UDPProxy {
     }
 
     const packetId = generateId("udp");
-    this.packetToClient.set(packetId, { tunnelId, clientKey });
+    this.packetToClient.set(packetId, {
+      tunnelId,
+      clientKey,
+      createdAt: Date.now(),
+    });
 
     // Forward to client via WebSocket
     const dataMsg: UDPDataMessage = {
@@ -258,19 +265,21 @@ export class UDPProxy {
       }
     }
 
-    // Also clean up old packet mappings
-    // Simple cleanup, I'd implement a better approach later. TODO.
-    if (this.packetToClient.size > 10000) {
-      const toDelete: string[] = [];
-      let count = 0;
-      for (const key of this.packetToClient.keys()) {
-        if (count++ < this.packetToClient.size / 2) {
-          toDelete.push(key);
-        }
+    // Clean up old packet mappings using insertion order
+    let cleaned = 0;
+    for (const [packetId, mapping] of this.packetToClient) {
+      if (now - mapping.createdAt > this.packetTtl) {
+        this.packetToClient.delete(packetId);
+        cleaned++;
+      } else {
+        // Map iterates in insertion order. If we hit a packet that is not expired,
+        // all subsequent packets are also not expired... so we can just break here...
+        break;
       }
-      for (const key of toDelete) {
-        this.packetToClient.delete(key);
-      }
+    }
+
+    if (cleaned > 100) {
+      console.debug(`Cleaned ${cleaned} stale UDP packet mappings`);
     }
   }
 
