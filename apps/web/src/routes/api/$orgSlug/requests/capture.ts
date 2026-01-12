@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { json } from "@tanstack/react-start";
 import { requireOrgFromSlug } from "../../../../lib/org";
-import { pool } from "../../../../lib/tigerdata";
+import { tigerData } from "../../../../lib/tigerdata";
 
 export const Route = createFileRoute("/api/$orgSlug/requests/capture")({
   server: {
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests/capture")({
           const beforeTime = new Date(timestampDate.getTime() - 5000); // 5 seconds before
           const afterTime = new Date(timestampDate.getTime() + 5000); // 5 seconds after
 
-          const result = await pool.query(
+          const result = await tigerData.query(
             `SELECT 
               id,
               timestamp,

@@ -1,19 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { json } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
-import pg from "pg";
 import { db } from "../../../../db";
 import { tunnels } from "../../../../db/app-schema";
 import { requireOrgFromSlug } from "../../../../lib/org";
-
-const { Pool } = pg;
-
-const pool = new Pool({
-  connectionString: process.env.TIGER_DATA_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
+import { tigerData } from "../../../../lib/tigerdata";
 
 export const Route = createFileRoute("/api/$orgSlug/stats/protocol")({
   server: {
@@ -57,7 +48,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/protocol")({
 
         try {
           // Connections stats
-          const connectionsResult = await pool.query(
+          const connectionsResult = await tigerData.query(
             `SELECT 
               COUNT(*) FILTER (WHERE event_type = 'connection') as total_connections,
               COUNT(DISTINCT connection_id) as unique_connections,
@@ -69,7 +60,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/protocol")({
           const connectionsData = connectionsResult.rows[0];
 
           // Bandwidth stats
-          const bandwidthResult = await pool.query(
+          const bandwidthResult = await tigerData.query(
             `SELECT 
               COALESCE(SUM(bytes_in), 0) as total_bytes_in,
               COALESCE(SUM(bytes_out), 0) as total_bytes_out
@@ -80,7 +71,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/protocol")({
           const bandwidthData = bandwidthResult.rows[0];
 
           // Packets stats
-          const packetsResult = await pool.query(
+          const packetsResult = await tigerData.query(
             `SELECT 
               COUNT(*) FILTER (WHERE event_type IN ('data', 'packet')) as total_packets,
               COUNT(*) FILTER (WHERE event_type = 'close') as total_closes
@@ -91,7 +82,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/protocol")({
           const packetsData = packetsResult.rows[0];
 
           // Duration stats
-          const durationResult = await pool.query(
+          const durationResult = await tigerData.query(
             `SELECT AVG(duration_ms) as avg_duration_ms
             FROM protocol_events
             WHERE tunnel_id = $1
@@ -173,11 +164,11 @@ export const Route = createFileRoute("/api/$orgSlug/stats/protocol")({
             chartParams = [tunnelId, `${days} days`];
           }
 
-          const chartResult = await pool.query(chartQuery, chartParams);
+          const chartResult = await tigerData.query(chartQuery, chartParams);
           const chartData = chartResult.rows;
 
           // Recent events
-          const recentResult = await pool.query(
+          const recentResult = await tigerData.query(
             `SELECT 
               timestamp,
               event_type,

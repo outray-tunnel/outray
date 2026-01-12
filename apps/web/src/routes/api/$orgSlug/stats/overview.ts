@@ -1,18 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { json } from "@tanstack/react-start";
-import pg from "pg";
 
 import { redis } from "../../../../lib/redis";
 import { requireOrgFromSlug } from "../../../../lib/org";
-
-const { Pool } = pg;
-
-const pool = new Pool({
-  connectionString: process.env.TIGER_DATA_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
+import { tigerData } from "../../../../lib/tigerdata";
 
 export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
   server: {
@@ -50,7 +41,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
           }
 
           // Total requests (current period)
-          const totalRequestsResult = await pool.query(
+          const totalRequestsResult = await tigerData.query(
             `SELECT 
               (SELECT COUNT(*) FROM tunnel_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval) +
               (SELECT COUNT(*) FROM protocol_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval) as total`,
@@ -61,7 +52,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
           );
 
           // Requests from previous period
-          const requestsYesterdayResult = await pool.query(
+          const requestsYesterdayResult = await tigerData.query(
             `SELECT 
               (SELECT COUNT(*) FROM tunnel_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval AND timestamp < NOW() - $3::interval) +
               (SELECT COUNT(*) FROM protocol_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval AND timestamp < NOW() - $3::interval) as total`,
@@ -82,7 +73,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
             : 0;
 
           // Data transfer (current period)
-          const dataTransferResult = await pool.query(
+          const dataTransferResult = await tigerData.query(
             `SELECT 
               COALESCE((SELECT SUM(bytes_in) + SUM(bytes_out) FROM tunnel_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval), 0) +
               COALESCE((SELECT SUM(bytes_in) + SUM(bytes_out) FROM protocol_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval), 0) as total`,
@@ -91,7 +82,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
           const totalBytes = Number(dataTransferResult.rows[0]?.total || 0);
 
           // Data transfer (previous period)
-          const dataYesterdayResult = await pool.query(
+          const dataYesterdayResult = await tigerData.query(
             `SELECT 
               COALESCE((SELECT SUM(bytes_in) + SUM(bytes_out) FROM tunnel_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval AND timestamp < NOW() - $3::interval), 0) +
               COALESCE((SELECT SUM(bytes_in) + SUM(bytes_out) FROM protocol_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval AND timestamp < NOW() - $3::interval), 0) as total`,
@@ -210,7 +201,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
             chartParams = [organizationId, `${days} days`];
           }
 
-          const chartDataResult = await pool.query(chartQuery, chartParams);
+          const chartDataResult = await tigerData.query(chartQuery, chartParams);
           const chartData = chartDataResult.rows;
 
           return json({

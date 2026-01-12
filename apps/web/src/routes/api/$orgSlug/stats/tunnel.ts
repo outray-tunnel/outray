@@ -1,19 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { json } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
-import pg from "pg";
 import { db } from "../../../../db";
 import { tunnels } from "../../../../db/app-schema";
 import { requireOrgFromSlug } from "../../../../lib/org";
-
-const { Pool } = pg;
-
-const pool = new Pool({
-  connectionString: process.env.TIGER_DATA_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
+import { tigerData } from "../../../../lib/tigerdata";
 
 export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
   server: {
@@ -57,7 +48,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
 
         try {
           // Total requests
-          const totalRequestsResult = await pool.query(
+          const totalRequestsResult = await tigerData.query(
             `SELECT COUNT(*) as total FROM tunnel_events WHERE tunnel_id = $1`,
             [tunnelId],
           );
@@ -66,7 +57,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
           );
 
           // Average duration
-          const durationResult = await pool.query(
+          const durationResult = await tigerData.query(
             `SELECT AVG(request_duration_ms) as avg_duration
              FROM tunnel_events
              WHERE tunnel_id = $1 AND timestamp >= NOW() - $2::interval`,
@@ -77,7 +68,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
           );
 
           // Total bandwidth
-          const bandwidthResult = await pool.query(
+          const bandwidthResult = await tigerData.query(
             `SELECT SUM(bytes_in + bytes_out) as total_bytes
              FROM tunnel_events WHERE tunnel_id = $1`,
             [tunnelId],
@@ -87,7 +78,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
           );
 
           // Error rate
-          const errorRateResult = await pool.query(
+          const errorRateResult = await tigerData.query(
             `SELECT 
                COUNT(*) FILTER (WHERE status_code >= 400) as errors,
                COUNT(*) as total
@@ -165,11 +156,11 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
             chartParams = [tunnelId, `${days} days`];
           }
 
-          const chartResult = await pool.query(chartQuery, chartParams);
+          const chartResult = await tigerData.query(chartQuery, chartParams);
           const chartData = chartResult.rows;
 
           // Recent requests
-          const requestsResult = await pool.query(
+          const requestsResult = await tigerData.query(
             `SELECT 
                timestamp,
                method,

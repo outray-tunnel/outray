@@ -4,14 +4,7 @@ import { db } from "../../../db";
 import { users, organizations, tunnels, subscriptions } from "../../../db/schema";
 import { redis } from "../../../lib/redis";
 import { sql, count, gte, desc, eq } from "drizzle-orm";
-import pg from "pg";
-
-const { Pool } = pg;
-
-const pool = new Pool({
-  connectionString: process.env.TIGER_DATA_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { tigerData } from "../../../lib/tigerdata";
 
 export const Route = createFileRoute("/api/admin/charts")({
   server: {
@@ -82,7 +75,7 @@ export const Route = createFileRoute("/api/admin/charts")({
           // Hourly request activity (from TimescaleDB if available)
           let hourlyRequests: { hour: string; requests: number }[] = [];
           try {
-            const result = await pool.query(`
+            const result = await tigerData.query(`
               SELECT 
                 time_bucket('1 hour', ts) as hour,
                 SUM(active_tunnels) as requests
@@ -133,7 +126,7 @@ export const Route = createFileRoute("/api/admin/charts")({
           // Weekly active tunnels trend (from TimescaleDB)
           let weeklyTunnelTrend: { day: string; avg: number; max: number }[] = [];
           try {
-            const result = await pool.query(`
+            const result = await tigerData.query(`
               SELECT 
                 time_bucket('1 day', ts) as day,
                 AVG(active_tunnels)::int as avg,

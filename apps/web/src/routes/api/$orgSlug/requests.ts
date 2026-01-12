@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { json } from "@tanstack/react-start";
 import { requireOrgFromSlug } from "../../../lib/org";
-import { pool } from "../../../lib/tigerdata";
+import { tigerData } from "../../../lib/tigerdata";
 
 export const Route = createFileRoute("/api/$orgSlug/requests")({
   server: {
@@ -66,7 +66,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests")({
           query += ` ORDER BY timestamp DESC LIMIT $${paramIndex}`;
           queryParams.push(limit);
 
-          const requestsResult = await pool.query(query, queryParams);
+          const requestsResult = await tigerData.query(query, queryParams);
           const requests = requestsResult.rows;
 
           return json({
