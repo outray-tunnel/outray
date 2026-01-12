@@ -1,0 +1,177 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { json } from "@tanstack/react-start";
+import { db } from "../../../db";
+import { users, organizations, tunnels, subscriptions } from "../../../db/schema";
+import { redis } from "../../../lib/redis";
+import { SUBSCRIPTION_PLANS } from "../../../lib/subscription-plans";
+import { sql, count, gte, and } from "drizzle-orm";
+
+export const Route = createFileRoute("/api/admin/overview")({
+  server: {
+    handlers: {
+      GET: async ({ request }) => {
+        // Admin token check
+        const authHeader = request.headers.get("authorization") || "";
+        const token = authHeader.startsWith("Bearer ")
+          ? authHeader.slice("Bearer ".length)
+          : "";
+
+        if (!token) {
+          return json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const tokenKey = `admin:token:${token}`;
+        const exists = await redis.get(tokenKey);
+        if (!exists) {
+          return json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        try {
+          const now = new Date();
+          const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+          // Get user stats
+          const [totalUsers] = await db
+            .select({ count: count() })
+            .from(users);
+
+          const [newUsersToday] = await db
+            .select({ count: count() })
+            .from(users)
+            .where(gte(users.createdAt, oneDayAgo));
+
+          const [newUsersLastWeek] = await db
+            .select({ count: count() })
+            .from(users)
+            .where(
+              and(
+                gte(users.createdAt, oneWeekAgo),
+                sql`${users.createdAt} < ${oneDayAgo}`
+              )
+            );
+
+          // Calculate user growth (comparing today vs same period last week)
+          const userGrowth =
+            newUsersLastWeek.count > 0
+              ? ((newUsersToday.count - newUsersLastWeek.count / 7) /
+                  (newUsersLastWeek.count / 7)) *
+                100
+              : 0;
+
+          // Get organization stats
+          const [totalOrgs] = await db
+            .select({ count: count() })
+            .from(organizations);
+
+          const [newOrgsToday] = await db
+            .select({ count: count() })
+            .from(organizations)
+            .where(gte(organizations.createdAt, oneDayAgo));
+
+          const [newOrgsLastWeek] = await db
+            .select({ count: count() })
+            .from(organizations)
+            .where(
+              and(
+                gte(organizations.createdAt, oneWeekAgo),
+                sql`${organizations.createdAt} < ${oneDayAgo}`
+              )
+            );
+
+          const orgGrowth =
+            newOrgsLastWeek.count > 0
+              ? ((newOrgsToday.count - newOrgsLastWeek.count / 7) /
+                  (newOrgsLastWeek.count / 7)) *
+                100
+              : 0;
+
+          // Get tunnel stats
+          const [totalTunnels] = await db
+            .select({ count: count() })
+            .from(tunnels);
+
+          // Get active tunnels from Redis (scan all org sets)
+          let activeTunnelCount = 0;
+          let cursor = "0";
+          do {
+            const [nextCursor, keys] = await redis.scan(
+              cursor,
+              "MATCH",
+              "org:*:online_tunnels",
+              "COUNT",
+              100
+            );
+            cursor = nextCursor;
+            for (const key of keys) {
+              const count = await redis.scard(key);
+              activeTunnelCount += count;
+            }
+          } while (cursor !== "0");
+
+          // Get subscription stats
+          const subscriptionStats = await db
+            .select({
+              plan: subscriptions.plan,
+              count: count(),
+            })
+            .from(subscriptions)
+            .where(sql`${subscriptions.status} = 'active'`)
+            .groupBy(subscriptions.plan);
+
+          // Count orgs with subscriptions
+          const [orgsWithSubs] = await db
+            .select({ count: count() })
+            .from(subscriptions);
+
+          const byPlan: Record<string, number> = {
+            free: 0,
+            ray: 0,
+            beam: 0,
+            pulse: 0,
+          };
+
+          subscriptionStats.forEach((stat) => {
+            byPlan[stat.plan] = stat.count;
+          });
+
+          // Orgs without subscription records are considered "free"
+          const orgsWithoutSubs = totalOrgs.count - orgsWithSubs.count;
+          byPlan.free += orgsWithoutSubs;
+
+          // Calculate MRR using actual plan prices
+          const mrr = Object.entries(byPlan).reduce(
+            (total, [plan, planCount]) => {
+              const planConfig = SUBSCRIPTION_PLANS[plan as keyof typeof SUBSCRIPTION_PLANS];
+              return total + (planConfig?.price || 0) * planCount;
+            },
+            0
+          );
+
+          return json({
+            users: {
+              total: totalUsers.count,
+              growth: Math.round(userGrowth * 10) / 10,
+              newToday: newUsersToday.count,
+            },
+            organizations: {
+              total: totalOrgs.count,
+              growth: Math.round(orgGrowth * 10) / 10,
+            },
+            tunnels: {
+              active: activeTunnelCount,
+              total: totalTunnels.count,
+            },
+            subscriptions: {
+              byPlan,
+              mrr,
+            },
+          });
+        } catch (error) {
+          console.error("Admin overview error:", error);
+          return json({ error: "Failed to fetch overview" }, { status: 500 });
+        }
+      },
+    },
+  },
+});
