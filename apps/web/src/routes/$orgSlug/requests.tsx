@@ -95,6 +95,10 @@ function RequestsView() {
 
         if (!tokenResponse.ok) {
           console.error("Failed to get WebSocket token:", tokenResponse.status);
+          if (!cancelled && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            reconnectAttempts++;
+            reconnectTimeout = setTimeout(connectWebSocket, RECONNECT_DELAY_MS);
+          }
           return;
         }
 
