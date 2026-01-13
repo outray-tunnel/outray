@@ -83,12 +83,14 @@ export async function rateLimit(
         };
     } catch (error) {
         console.error("Rate limit error:", error);
+        // SECURITY: Fail closed - deny requests when rate limiting is unavailable
+        // This prevents bypass attacks when Redis is down or experiencing errors
         return {
-            allowed: true,
-            current: 0,
+            allowed: false,
+            current: config.maxRequests,
             limit: config.maxRequests,
             resetIn: config.windowSeconds,
-            remaining: config.maxRequests,
+            remaining: 0,
         };
     }
 }

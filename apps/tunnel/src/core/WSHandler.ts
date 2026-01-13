@@ -19,6 +19,7 @@ export class WSHandler {
   private tcpProxy: TCPProxy;
   private udpProxy: UDPProxy;
   private webApiUrl: string;
+  private internalApiSecret: string;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private readonly HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds
   private readonly HEARTBEAT_TIMEOUT_MS = 35000; // 35 seconds (slightly longer than interval)
@@ -33,7 +34,8 @@ export class WSHandler {
     this.wss = wss;
     this.tcpProxy = tcpProxy || new TCPProxy();
     this.udpProxy = udpProxy || new UDPProxy();
-    this.webApiUrl = process.env.WEB_API_URL || "http://localhost:3000/api";
+    this.webApiUrl = config.webApiUrl;
+    this.internalApiSecret = config.internalApiSecret;
     this.setupWebSocketServer();
     this.startHeartbeatCheck();
   }
@@ -187,11 +189,20 @@ export class WSHandler {
     organizationId: string,
   ): Promise<{ valid: boolean; error?: string }> {
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Include internal API secret for server-to-server authentication
+      if (this.internalApiSecret) {
+        headers["x-internal-secret"] = this.internalApiSecret;
+      }
+
       const response = await fetch(
         `${this.webApiUrl}/domain/verify-ownership`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({
             domain,
             organizationId,

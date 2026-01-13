@@ -1,6 +1,3 @@
-// Allow self-signed certificates for Tiger Data cloud
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 import { redis } from "./lib/redis";
 import { pool, execute } from "./lib/tigerdata";
 

@@ -225,7 +225,23 @@ export class HTTPProxy {
     return ip;
   }
 
+  /**
+   * Escape HTML special characters to prevent XSS attacks.
+   * The tunnelId comes from user-controlled hostnames (custom domains).
+   */
+  private escapeHtml(unsafe: string): string {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   private getOfflineHtml(tunnelId: string): string {
+    // Escape tunnelId to prevent XSS attacks from malicious custom domains
+    const safeTunnelId = this.escapeHtml(tunnelId);
+
     try {
       const paths = [
         path.join(__dirname, "../offline.html"), // Dev: src/core/../offline.html -> src/offline.html
@@ -242,17 +258,20 @@ export class HTTPProxy {
       }
 
       if (!template) {
-        return `<h1>${tunnelId} is offline</h1>`;
+        return `<h1>${safeTunnelId} is offline</h1>`;
       }
 
-      return template.replace(/{{TUNNEL_ID}}/g, tunnelId);
+      return template.replace(/{{TUNNEL_ID}}/g, safeTunnelId);
     } catch (error) {
       console.error("Failed to load offline page template", error);
-      return `<h1>${tunnelId} is offline</h1>`;
+      return `<h1>${safeTunnelId} is offline</h1>`;
     }
   }
 
   private getBandwidthExceededHtml(tunnelId: string): string {
+    // Escape tunnelId to prevent XSS attacks from malicious custom domains
+    const safeTunnelId = this.escapeHtml(tunnelId);
+
     try {
       const paths = [
         path.join(__dirname, "../bandwidth_exceeded.html"),
@@ -269,13 +288,13 @@ export class HTTPProxy {
       }
 
       if (!template) {
-        return `<h1>Bandwidth Limit Exceeded for ${tunnelId}</h1>`;
+        return `<h1>Bandwidth Limit Exceeded for ${safeTunnelId}</h1>`;
       }
 
-      return template.replace(/{{TUNNEL_ID}}/g, tunnelId);
+      return template.replace(/{{TUNNEL_ID}}/g, safeTunnelId);
     } catch (error) {
       console.error("Failed to load bandwidth exceeded page template", error);
-      return `<h1>Bandwidth Limit Exceeded for ${tunnelId}</h1>`;
+      return `<h1>Bandwidth Limit Exceeded for ${safeTunnelId}</h1>`;
     }
   }
 }
