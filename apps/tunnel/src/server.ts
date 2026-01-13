@@ -98,6 +98,23 @@ async function validateDashboardToken(token: string): Promise<{
       },
       body: JSON.stringify({ token }),
     });
+
+    if (!response.ok) {
+      let errorMessage = `Failed to validate dashboard token: ${response.status} ${response.statusText}`;
+      try {
+        const errorBody = await response.json();
+        if (errorBody && typeof errorBody.error === "string") {
+          errorMessage = errorBody.error;
+        }
+      } catch {
+        // Ignore JSON parsing errors for non-2xx responses
+      }
+      console.error(
+        "Dashboard token validation failed with non-2xx response:",
+        errorMessage,
+      );
+      return { valid: false, error: errorMessage };
+    }
     return (await response.json()) as {
       valid: boolean;
       orgId?: string;
