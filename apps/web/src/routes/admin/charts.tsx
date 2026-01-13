@@ -91,8 +91,6 @@ function AdminChartsPage() {
         setIsLoading(false);
       }
     };
-      setIsLoading(false);
-    };
 
     fetchData();
   }, [token]);
