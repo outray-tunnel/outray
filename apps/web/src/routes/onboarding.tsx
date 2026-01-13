@@ -265,9 +265,6 @@ function Onboarding() {
                 {error && (
                   <p className="mt-1.5 text-xs text-red-400">{error}</p>
                 )}
-                <p className="mt-1.5 text-xs text-gray-500">
-                  This will be used in your tunnel URLs
-                </p>
               </div>
             </div>
 
