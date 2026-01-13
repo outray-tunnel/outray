@@ -74,34 +74,85 @@ function RequestsView() {
       return;
     }
 
-    const wsUrl = import.meta.env.VITE_TUNNEL_URL;
-    const ws = new WebSocket(`${wsUrl}/dashboard/events?orgId=${activeOrgId}`);
+    let ws: WebSocket | null = null;
+    let cancelled = false;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    const RECONNECT_DELAY_MS = 2000;
 
-    ws.onopen = () => {
-      wsRef.current = ws;
-    };
+    const connectWebSocket = async () => {
+      if (cancelled) return;
 
-    ws.onmessage = (event) => {
       try {
-        const message = JSON.parse(event.data);
-        if (message.type === "history") {
-          setRequests(message.data);
-        } else if (message.type === "log") {
-          setRequests((prev) => [message.data, ...prev].slice(0, 100));
+        // Fetch a fresh auth token for WebSocket connection
+        const tokenResponse = await fetch("/api/dashboard/ws-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ orgId: activeOrgId }),
+        });
+
+        if (!tokenResponse.ok) {
+          console.error("Failed to get WebSocket token:", tokenResponse.status);
+          return;
         }
-      } catch (e) {
-        console.error("Failed to parse WebSocket message", e);
+
+        const { token } = await tokenResponse.json();
+        
+        if (cancelled) return;
+
+        const wsUrl = import.meta.env.VITE_TUNNEL_URL;
+        ws = new WebSocket(`${wsUrl}/dashboard/events?token=${token}`);
+
+        ws.onopen = () => {
+          wsRef.current = ws;
+          reconnectAttempts = 0; // Reset on successful connection
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            if (message.type === "history") {
+              setRequests(message.data);
+            } else if (message.type === "log") {
+              setRequests((prev) => [message.data, ...prev].slice(0, 100));
+            }
+          } catch (e) {
+            console.error("Failed to parse WebSocket message", e);
+          }
+        };
+
+        ws.onclose = () => {
+          if (wsRef.current === ws) {
+            wsRef.current = null;
+          }
+          // Auto-reconnect if not intentionally cancelled
+          if (!cancelled && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            reconnectAttempts++;
+            reconnectTimeout = setTimeout(connectWebSocket, RECONNECT_DELAY_MS);
+          }
+        };
+      } catch (error) {
+        console.error("Failed to connect to WebSocket:", error);
+        // Retry on error
+        if (!cancelled && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          reconnectAttempts++;
+          reconnectTimeout = setTimeout(connectWebSocket, RECONNECT_DELAY_MS);
+        }
       }
     };
 
-    ws.onclose = () => {
-      if (wsRef.current === ws) {
-        wsRef.current = null;
-      }
-    };
+    void connectWebSocket();
 
     return () => {
-      ws.close();
+      cancelled = true;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (ws) {
+        ws.close();
+      }
     };
   }, [activeOrgId, timeRange]);
 
