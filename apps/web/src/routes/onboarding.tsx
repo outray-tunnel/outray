@@ -68,7 +68,11 @@ function Onboarding() {
           setError(null);
         } else {
           setIsSlugAvailable(false);
-          setError("This slug is already taken.");
+          setError(
+            data.reason === "reserved"
+              ? "This slug is reserved and cannot be used."
+              : "This slug is already taken."
+          );
         }
       } catch (error) {
         console.error("Failed to check slug:", error);
