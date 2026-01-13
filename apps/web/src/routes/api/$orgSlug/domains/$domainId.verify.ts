@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 import { resolveCname, resolveTxt } from "dns/promises";
 import { db } from "../../../../db";
@@ -22,11 +21,11 @@ export const Route = createFileRoute("/api/$orgSlug/domains/$domainId/verify")({
         });
 
         if (!domain) {
-          return json({ error: "Domain not found" }, { status: 404 });
+          return Response.json({ error: "Domain not found" }, { status: 404 });
         }
 
         if (domain.organizationId !== orgContext.organization.id) {
-          return json({ error: "Unauthorized" }, { status: 403 });
+          return Response.json({ error: "Unauthorized" }, { status: 403 });
         }
 
         try {
@@ -38,7 +37,7 @@ export const Route = createFileRoute("/api/$orgSlug/domains/$domainId/verify")({
           );
 
           if (!hasValidTxt) {
-            return json(
+            return Response.json(
               {
                 error: `TXT record verification failed. Expected "${domain.id}" at "_outray-challenge.${domain.domain}"`,
               },
@@ -58,10 +57,10 @@ export const Route = createFileRoute("/api/$orgSlug/domains/$domainId/verify")({
             .set({ status: "active", updatedAt: new Date() })
             .where(eq(domains.id, domainId));
 
-          return json({ verified: true });
+          return Response.json({ verified: true });
         } catch (error) {
           console.error("Verification error:", error);
-          return json(
+          return Response.json(
             { error: "Verification failed. Please check your DNS records." },
             { status: 400 },
           );

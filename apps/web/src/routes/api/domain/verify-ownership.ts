@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../../db";
 import { domains } from "../../../db/app-schema";
@@ -17,14 +16,14 @@ export const Route = createFileRoute("/api/domain/verify-ownership")({
           const { domain, organizationId } = body;
 
           if (!domain) {
-            return json(
+            return Response.json(
               { valid: false, error: "Missing required fields" },
               { status: 400 },
             );
           }
 
           if (!organizationId) {
-            return json(
+            return Response.json(
               { valid: false, error: "Missing required fields" },
               { status: 400 },
             );
@@ -41,23 +40,23 @@ export const Route = createFileRoute("/api/domain/verify-ownership")({
             );
 
           if (!existingDomain) {
-            return json({
+            return Response.json({
               valid: false,
               error: "Domain not found or does not belong to your organization",
             });
           }
 
           if (existingDomain.status !== "active") {
-            return json({
+            return Response.json({
               valid: false,
               error: "Domain is not verified. Please verify DNS records first.",
             });
           }
 
-          return json({ valid: true });
+          return Response.json({ valid: true });
         } catch (error) {
           console.error("Domain verification error:", error);
-          return json(
+          return Response.json(
             { valid: false, error: "Internal server error" },
             { status: 500 },
           );

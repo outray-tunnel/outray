@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { db } from "../../../../db";
 import { cliLoginSessions } from "../../../../db/auth-schema";
 import { eq, and, gt } from "drizzle-orm";
@@ -22,7 +21,7 @@ export const Route = createFileRoute("/api/cli/login/status")({
           const code = url.searchParams.get("code");
 
           if (!code) {
-            return json({ status: "expired" }, { status: 400 });
+            return Response.json({ status: "expired" }, { status: 400 });
           }
 
           const session = await db.query.cliLoginSessions.findFirst({
@@ -33,20 +32,20 @@ export const Route = createFileRoute("/api/cli/login/status")({
           });
 
           if (!session) {
-            return json({ status: "expired" });
+            return Response.json({ status: "expired" });
           }
 
           if (session.status === "authenticated" && session.userToken) {
-            return json({
+            return Response.json({
               status: "authenticated",
               userToken: session.userToken,
             });
           }
 
-          return json({ status: "pending" });
+          return Response.json({ status: "pending" });
         } catch (error) {
           console.error("CLI login status error:", error);
-          return json({ error: "Failed to check status" }, { status: 500 });
+          return Response.json({ error: "Failed to check status" }, { status: 500 });
         }
       },
     },

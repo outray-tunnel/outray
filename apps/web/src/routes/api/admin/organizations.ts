@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { db } from "../../../db";
 import { organizations, members, tunnels, subscriptions } from "../../../db/schema";
 import { redis } from "../../../lib/redis";
@@ -17,13 +16,13 @@ export const Route = createFileRoute("/api/admin/organizations")({
           : "";
 
         if (!token) {
-          return json({ error: "Unauthorized" }, { status: 401 });
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const tokenKey = `admin:token:${hashToken(token)}`;
         const exists = await redis.get(tokenKey);
         if (!exists) {
-          return json({ error: "Forbidden" }, { status: 403 });
+          return Response.json({ error: "Forbidden" }, { status: 403 });
         }
 
         try {
@@ -136,7 +135,7 @@ export const Route = createFileRoute("/api/admin/organizations")({
             },
           }));
 
-          return json({
+          return Response.json({
             organizations: orgsWithMeta,
             total: totalResult.count,
             page,
@@ -144,7 +143,7 @@ export const Route = createFileRoute("/api/admin/organizations")({
           });
         } catch (error) {
           console.error("Admin organizations error:", error);
-          return json(
+          return Response.json(
             { error: "Failed to fetch organizations" },
             { status: 500 }
           );

@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { requireOrgFromSlug } from "../../../lib/org";
 import { tigerData } from "../../../lib/tigerdata";
 
@@ -69,7 +68,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests")({
           const requestsResult = await tigerData.query(query, queryParams);
           const requests = requestsResult.rows;
 
-          return json({
+          return Response.json({
             requests,
             timeRange,
             count: requests.length,
@@ -89,7 +88,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests")({
             }
           }
           
-          return json({ error: errorMessage }, { status: 500 });
+          return Response.json({ error: errorMessage }, { status: 500 });
         }
       },
     },

@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { db } from "../../../db";
@@ -19,7 +18,7 @@ export const Route = createFileRoute("/api/$orgSlug/auth-tokens")({
           .from(authTokens)
           .where(eq(authTokens.organizationId, organization.id));
 
-        return json({ tokens });
+        return Response.json({ tokens });
       },
       POST: async ({ request, params }) => {
         const orgResult = await requireOrgFromSlug(request, params.orgSlug);
@@ -27,14 +26,14 @@ export const Route = createFileRoute("/api/$orgSlug/auth-tokens")({
         const { organization, session } = orgResult;
 
         if (!session) {
-          return json({ error: "Unauthorized" }, { status: 401 });
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const body = await request.json();
         const { name } = body as { name?: string };
 
         if (!name) {
-          return json({ error: "Name is required" }, { status: 400 });
+          return Response.json({ error: "Name is required" }, { status: 400 });
         }
 
         const token = `outray_${randomBytes(32).toString("hex")}`;
@@ -50,7 +49,7 @@ export const Route = createFileRoute("/api/$orgSlug/auth-tokens")({
           })
           .returning();
 
-        return json({ token: newToken.token });
+        return Response.json({ token: newToken.token });
       },
       DELETE: async ({ request, params }) => {
         const orgResult = await requireOrgFromSlug(request, params.orgSlug);
@@ -61,7 +60,7 @@ export const Route = createFileRoute("/api/$orgSlug/auth-tokens")({
         const { id } = body as { id?: string };
 
         if (!id) {
-          return json({ error: "Token ID is required" }, { status: 400 });
+          return Response.json({ error: "Token ID is required" }, { status: 400 });
         }
 
         await db
@@ -73,7 +72,7 @@ export const Route = createFileRoute("/api/$orgSlug/auth-tokens")({
             ),
           );
 
-        return json({ success: true });
+        return Response.json({ success: true });
       },
     },
   },

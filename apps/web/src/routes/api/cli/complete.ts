@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { db } from "../../../db";
 import { cliLoginSessions, cliUserTokens } from "../../../db/auth-schema";
 import { eq, and, gt } from "drizzle-orm";
@@ -16,14 +15,14 @@ export const Route = createFileRoute("/api/cli/complete")({
           });
 
           if (!session) {
-            return json({ error: "Unauthorized" }, { status: 401 });
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
           }
 
           const body = await request.json();
           const { code } = body;
 
           if (!code) {
-            return json({ error: "Missing required fields" }, { status: 400 });
+            return Response.json({ error: "Missing required fields" }, { status: 400 });
           }
 
           // Verify session exists and is pending
@@ -36,7 +35,7 @@ export const Route = createFileRoute("/api/cli/complete")({
           });
 
           if (!loginSession) {
-            return json(
+            return Response.json(
               { error: "Invalid or expired session" },
               { status: 400 },
             );
@@ -64,10 +63,10 @@ export const Route = createFileRoute("/api/cli/complete")({
             })
             .where(eq(cliLoginSessions.id, loginSession.id));
 
-          return json({ success: true });
+          return Response.json({ success: true });
         } catch (error) {
           console.error("CLI complete error:", error);
-          return json(
+          return Response.json(
             { error: "Failed to complete authentication" },
             { status: 500 },
           );

@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { db } from "../../../db";
 import { cliLoginSessions } from "../../../db/auth-schema";
 import { randomUUID, randomBytes } from "crypto";
@@ -36,14 +35,14 @@ export const Route = createFileRoute("/api/cli/login")({
               ? "http://localhost:3000"
               : "https://outray.dev";
 
-          return json({
+          return Response.json({
             loginUrl: `${baseUrl}/cli/login?code=${code}`,
             code,
             expiresIn: 300,
           });
         } catch (error) {
           console.error("CLI login error:", error);
-          return json(
+          return Response.json(
             { error: "Failed to create login session" },
             { status: 500 },
           );

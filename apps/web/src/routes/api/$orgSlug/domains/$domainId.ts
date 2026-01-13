@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 import { db } from "../../../../db";
 import { domains } from "../../../../db/app-schema";
@@ -19,7 +18,7 @@ export const Route = createFileRoute(
         }
 
         if (!domainId) {
-          return json({ error: "Domain ID required" }, { status: 400 });
+          return Response.json({ error: "Domain ID required" }, { status: 400 });
         }
 
         const domain = await db.query.domains.findFirst({
@@ -27,16 +26,16 @@ export const Route = createFileRoute(
         });
 
         if (!domain) {
-          return json({ error: "Domain not found" }, { status: 404 });
+          return Response.json({ error: "Domain not found" }, { status: 404 });
         }
 
         if (domain.organizationId !== orgContext.organization.id) {
-          return json({ error: "Unauthorized" }, { status: 403 });
+          return Response.json({ error: "Unauthorized" }, { status: 403 });
         }
 
         await db.delete(domains).where(eq(domains.id, domainId)).returning();
 
-        return json({ message: "Domain deleted successfully" });
+        return Response.json({ message: "Domain deleted successfully" });
       },
     },
   },

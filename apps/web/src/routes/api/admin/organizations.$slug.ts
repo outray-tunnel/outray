@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { db } from "../../../db";
 import { organizations, members, subscriptions, tunnels, subdomains, domains } from "../../../db/schema";
 import { redis } from "../../../lib/redis";
@@ -12,16 +11,16 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
       GET: async ({ request, params }) => {
         const authHeader = request.headers.get("authorization") || "";
         const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-        if (!token) return json({ error: "Unauthorized" }, { status: 401 });
+        if (!token) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
         const tokenKey = `admin:token:${hashToken(token)}`;
         const exists = await redis.get(tokenKey);
-        if (!exists) return json({ error: "Forbidden" }, { status: 403 });
+        if (!exists) return Response.json({ error: "Forbidden" }, { status: 403 });
 
         try {
           const { slug } = params;
           const [org] = await db.select().from(organizations).where(eq(organizations.slug, slug)).limit(1);
-          if (!org) return json({ error: "Organization not found" }, { status: 404 });
+          if (!org) return Response.json({ error: "Organization not found" }, { status: 404 });
 
           const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.organizationId, org.id)).limit(1);
           const [memberCount] = await db.select({ count: count() }).from(members).where(eq(members.organizationId, org.id));
@@ -39,7 +38,7 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
             createdAt: members.createdAt,
           }).from(members).where(eq(members.organizationId, org.id));
 
-          return json({
+          return Response.json({
             organization: org,
             subscription: sub || { plan: "free", status: "active" },
             stats: {
@@ -53,24 +52,24 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
           });
         } catch (error) {
           console.error("Admin org detail error:", error);
-          return json({ error: "Failed to fetch organization" }, { status: 500 });
+          return Response.json({ error: "Failed to fetch organization" }, { status: 500 });
         }
       },
 
       PATCH: async ({ request, params }) => {
         const authHeader = request.headers.get("authorization") || "";
         const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-        if (!token) return json({ error: "Unauthorized" }, { status: 401 });
+        if (!token) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
         const tokenKey = `admin:token:${hashToken(token)}`;
         const exists = await redis.get(tokenKey);
-        if (!exists) return json({ error: "Forbidden" }, { status: 403 });
+        if (!exists) return Response.json({ error: "Forbidden" }, { status: 403 });
 
         try {
           const { slug } = params;
           const body = await request.json();
           const [org] = await db.select().from(organizations).where(eq(organizations.slug, slug)).limit(1);
-          if (!org) return json({ error: "Organization not found" }, { status: 404 });
+          if (!org) return Response.json({ error: "Organization not found" }, { status: 404 });
 
           // Update organization fields
           if (body.name || body.slug) {
@@ -99,10 +98,10 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
             }
           }
 
-          return json({ success: true });
+          return Response.json({ success: true });
         } catch (error) {
           console.error("Admin org update error:", error);
-          return json({ error: "Failed to update organization" }, { status: 500 });
+          return Response.json({ error: "Failed to update organization" }, { status: 500 });
         }
       },
     },

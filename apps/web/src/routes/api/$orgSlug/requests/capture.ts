@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { requireOrgFromSlug } from "../../../../lib/org";
 import { tigerData } from "../../../../lib/tigerdata";
 
@@ -19,7 +18,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests/capture")({
           const { tunnelId, timestamp } = body;
 
           if (!tunnelId || !timestamp) {
-            return json({ error: "tunnelId and timestamp are required" }, { status: 400 });
+            return Response.json({ error: "tunnelId and timestamp are required" }, { status: 400 });
           }
 
           // Query TimescaleDB for request capture data
@@ -50,7 +49,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests/capture")({
           );
 
           if (result.rows.length === 0) {
-            return json({ error: "Request capture not found" }, { status: 404 });
+            return Response.json({ error: "Request capture not found" }, { status: 404 });
           }
 
           const capture = result.rows[0];
@@ -84,7 +83,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests/capture")({
             }
           }
 
-          return json({
+          return Response.json({
             capture: {
               id: capture.id,
               timestamp: capture.timestamp,
@@ -116,7 +115,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests/capture")({
             }
           }
           
-          return json(
+          return Response.json(
             { error: errorMessage },
             { status: 500 }
           );

@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { eq, and, gt } from "drizzle-orm";
 import { db } from "../../../db";
 import { authTokens, organizationSettings } from "../../../db/app-schema";
@@ -25,7 +24,7 @@ export const Route = createFileRoute("/api/tunnel/auth")({
           const { token } = body;
 
           if (!token) {
-            return json(
+            return Response.json(
               { valid: false, error: "Missing Auth Token" },
               { status: 400 },
             );
@@ -81,7 +80,7 @@ export const Route = createFileRoute("/api/tunnel/auth")({
           }
 
           if (!organizationId || !organization) {
-            return json(
+            return Response.json(
               { valid: false, error: "Invalid Auth Token" },
               { status: 401 },
             );
@@ -104,7 +103,7 @@ export const Route = createFileRoute("/api/tunnel/auth")({
           const retentionDays = SUBSCRIPTION_PLANS[plan].features.retentionDays;
           const fullCaptureEnabled = orgSettings?.fullCaptureEnabled ?? false;
 
-          return json({
+          return Response.json({
             valid: true,
             userId,
             organizationId,
@@ -121,7 +120,7 @@ export const Route = createFileRoute("/api/tunnel/auth")({
           });
         } catch (error) {
           console.error("Error in /api/tunnel/auth:", error);
-          return json(
+          return Response.json(
             {
               valid: false,
               error: error instanceof Error ? error.message : "Unknown error",

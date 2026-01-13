@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "../../../db";
 import { tunnels } from "../../../db/app-schema";
@@ -43,12 +42,12 @@ export const Route = createFileRoute("/api/tunnel/register")({
           } = body;
 
           if (!userId || !organizationId) {
-            return json({ error: "Missing required fields" }, { status: 400 });
+            return Response.json({ error: "Missing required fields" }, { status: 400 });
           }
 
           // For all protocols, we need url
           if (!url) {
-            return json({ error: "Missing URL for tunnel" }, { status: 400 });
+            return Response.json({ error: "Missing URL for tunnel" }, { status: 400 });
           }
 
           // For TCP/UDP, we also need tunnelId and remotePort
@@ -56,7 +55,7 @@ export const Route = createFileRoute("/api/tunnel/register")({
             (protocol === "tcp" || protocol === "udp") &&
             (!providedTunnelId || !remotePort)
           ) {
-            return json(
+            return Response.json(
               { error: "Missing tunnelId or remotePort for TCP/UDP tunnel" },
               { status: 400 },
             );
@@ -166,13 +165,13 @@ export const Route = createFileRoute("/api/tunnel/register")({
           });
 
           if ("error" in result) {
-            return json({ error: result.error }, { status: result.status });
+            return Response.json({ error: result.error }, { status: result.status });
           }
 
-          return json({ success: true, tunnelId: result.tunnelId });
+          return Response.json({ success: true, tunnelId: result.tunnelId });
         } catch (error) {
           console.error("Tunnel registration error:", error);
-          return json({ error: "Internal server error" }, { status: 500 });
+          return Response.json({ error: "Internal server error" }, { status: 500 });
         }
       },
     },

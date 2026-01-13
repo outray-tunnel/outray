@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { db } from "../../../db";
 import { users, organizations, tunnels, subscriptions } from "../../../db/schema";
 import { redis } from "../../../lib/redis";
@@ -18,13 +17,13 @@ export const Route = createFileRoute("/api/admin/overview")({
           : "";
 
         if (!token) {
-          return json({ error: "Unauthorized" }, { status: 401 });
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const tokenKey = `admin:token:${hashToken(token)}`;
         const exists = await redis.get(tokenKey);
         if (!exists) {
-          return json({ error: "Forbidden" }, { status: 403 });
+          return Response.json({ error: "Forbidden" }, { status: 403 });
         }
 
         try {
@@ -149,7 +148,7 @@ export const Route = createFileRoute("/api/admin/overview")({
             0
           );
 
-          return json({
+          return Response.json({
             users: {
               total: totalUsers.count,
               growth: Math.round(userGrowth * 10) / 10,
@@ -170,7 +169,7 @@ export const Route = createFileRoute("/api/admin/overview")({
           });
         } catch (error) {
           console.error("Admin overview error:", error);
-          return json({ error: "Failed to fetch overview" }, { status: 500 });
+          return Response.json({ error: "Failed to fetch overview" }, { status: 500 });
         }
       },
     },

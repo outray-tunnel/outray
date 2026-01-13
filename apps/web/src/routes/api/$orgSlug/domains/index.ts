@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
@@ -21,7 +20,7 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
           .where(eq(domains.organizationId, organization.id))
           .orderBy(desc(domains.createdAt));
 
-        return json({ domains: result });
+        return Response.json({ domains: result });
       },
       POST: async ({ request, params }) => {
         const orgResult = await requireOrgFromSlug(request, params.orgSlug);
@@ -32,12 +31,12 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
         const { domain } = body as { domain?: string };
 
         if (!domain) {
-          return json({ error: "Domain is required" }, { status: 400 });
+          return Response.json({ error: "Domain is required" }, { status: 400 });
         }
 
         const domainParts = domain.trim().split(".");
         if (domainParts.length < 3) {
-          return json(
+          return Response.json(
             {
               error:
                 "Only subdomains are allowed. Please enter a subdomain like api.myapp.com",
@@ -49,7 +48,7 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
         const domainRegex =
           /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/;
         if (!domainRegex.test(domain.trim())) {
-          return json(
+          return Response.json(
             { error: "Please enter a valid domain name" },
             { status: 400 },
           );
@@ -60,7 +59,7 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
         });
 
         if (existingDomain) {
-          return json({ error: "Domain already exists" }, { status: 400 });
+          return Response.json({ error: "Domain already exists" }, { status: 400 });
         }
 
         const [newDomain] = await db
@@ -74,7 +73,7 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
           })
           .returning();
 
-        return json({ domain: newDomain });
+        return Response.json({ domain: newDomain });
       },
     },
   },

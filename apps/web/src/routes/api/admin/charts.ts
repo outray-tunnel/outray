@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { db } from "../../../db";
 import { users, organizations, tunnels, subscriptions } from "../../../db/schema";
 import { redis } from "../../../lib/redis";
@@ -17,13 +16,13 @@ export const Route = createFileRoute("/api/admin/charts")({
           : "";
 
         if (!token) {
-          return json({ error: "Unauthorized" }, { status: 401 });
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const tokenKey = `admin:token:${hashToken(token)}`;
         const exists = await redis.get(tokenKey);
         if (!exists) {
-          return json({ error: "Forbidden" }, { status: 403 });
+          return Response.json({ error: "Forbidden" }, { status: 403 });
         }
 
         try {
@@ -165,7 +164,7 @@ export const Route = createFileRoute("/api/admin/charts")({
             return { date: row.date, total: cumulative };
           });
 
-          return json({
+          return Response.json({
             userSignups,
             orgGrowth,
             subChanges,
@@ -179,7 +178,7 @@ export const Route = createFileRoute("/api/admin/charts")({
           });
         } catch (error) {
           console.error("Admin charts error:", error);
-          return json({ error: "Failed to fetch chart data" }, { status: 500 });
+          return Response.json({ error: "Failed to fetch chart data" }, { status: 500 });
         }
       },
     },

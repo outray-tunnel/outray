@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { db } from "../../../db";
 import { tunnels, users, organizations } from "../../../db/schema";
 import { redis } from "../../../lib/redis";
@@ -17,13 +16,13 @@ export const Route = createFileRoute("/api/admin/tunnels")({
           : "";
 
         if (!token) {
-          return json({ error: "Unauthorized" }, { status: 401 });
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const tokenKey = `admin:token:${hashToken(token)}`;
         const exists = await redis.get(tokenKey);
         if (!exists) {
-          return json({ error: "Forbidden" }, { status: 403 });
+          return Response.json({ error: "Forbidden" }, { status: 403 });
         }
 
         try {
@@ -72,7 +71,7 @@ export const Route = createFileRoute("/api/admin/tunnels")({
           if (activeOnly) {
             if (onlineTunnelIds.size === 0) {
               // No online tunnels, return empty
-              return json({
+              return Response.json({
                 tunnels: [],
                 total: 0,
                 page,
@@ -143,7 +142,7 @@ export const Route = createFileRoute("/api/admin/tunnels")({
             .from(tunnels)
             .groupBy(tunnels.protocol);
 
-          return json({
+          return Response.json({
             tunnels: tunnelsWithStatus,
             total: totalResult.count,
             page,
@@ -158,7 +157,7 @@ export const Route = createFileRoute("/api/admin/tunnels")({
           });
         } catch (error) {
           console.error("Admin tunnels error:", error);
-          return json({ error: "Failed to fetch tunnels" }, { status: 500 });
+          return Response.json({ error: "Failed to fetch tunnels" }, { status: 500 });
         }
       },
     },

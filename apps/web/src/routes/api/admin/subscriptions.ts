@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { db } from "../../../db";
 import { subscriptions, organizations } from "../../../db/schema";
 import { redis } from "../../../lib/redis";
@@ -18,13 +17,13 @@ export const Route = createFileRoute("/api/admin/subscriptions")({
           : "";
 
         if (!token) {
-          return json({ error: "Unauthorized" }, { status: 401 });
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const tokenKey = `admin:token:${hashToken(token)}`;
         const exists = await redis.get(tokenKey);
         if (!exists) {
-          return json({ error: "Forbidden" }, { status: 403 });
+          return Response.json({ error: "Forbidden" }, { status: 403 });
         }
 
         try {
@@ -116,7 +115,7 @@ export const Route = createFileRoute("/api/admin/subscriptions")({
             .from(subscriptions)
             .where(gte(subscriptions.updatedAt, thirtyDaysAgo));
 
-          return json({
+          return Response.json({
             subscriptions: subscriptionList,
             total: totalResult.count,
             page,
@@ -132,7 +131,7 @@ export const Route = createFileRoute("/api/admin/subscriptions")({
           });
         } catch (error) {
           console.error("Admin subscriptions error:", error);
-          return json(
+          return Response.json(
             { error: "Failed to fetch subscriptions" },
             { status: 500 }
           );

@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { db } from "../../../db";
 import { members, cliUserTokens, organizations } from "../../../db/auth-schema";
 import { eq } from "drizzle-orm";
@@ -11,7 +10,7 @@ export const Route = createFileRoute("/api/me/orgs")({
         try {
           const authHeader = request.headers.get("Authorization");
           if (!authHeader?.startsWith("Bearer ")) {
-            return json({ error: "Unauthorized" }, { status: 401 });
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
           }
 
           const token = authHeader.substring(7);
@@ -26,7 +25,7 @@ export const Route = createFileRoute("/api/me/orgs")({
           });
 
           if (!userToken) {
-            return json({ error: "Invalid token" }, { status: 401 });
+            return Response.json({ error: "Invalid token" }, { status: 401 });
           }
 
           // Update last used
@@ -59,10 +58,10 @@ export const Route = createFileRoute("/api/me/orgs")({
             role: row.role,
           }));
 
-          return json(orgs);
+          return Response.json(orgs);
         } catch (error) {
           console.error("Get orgs error:", error);
-          return json(
+          return Response.json(
             { error: "Failed to fetch organizations" },
             { status: 500 },
           );

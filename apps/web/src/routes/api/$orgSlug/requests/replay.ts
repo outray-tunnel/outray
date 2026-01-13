@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { requireOrgFromSlug } from "../../../../lib/org";
 import { validateUrl } from "../../../../lib/url-validator";
 
@@ -17,7 +16,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests/replay")({
           // Check Content-Length header to prevent DoS attacks
           const contentLength = request.headers.get("content-length");
           if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
-            return json(
+            return Response.json(
               { error: `Request body too large. Maximum size is ${MAX_BODY_SIZE / 1024 / 1024}MB` },
               { status: 413 }
             );
@@ -27,7 +26,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests/replay")({
           const { url, method, headers, requestBody } = body;
 
           if (!url || !method) {
-            return json(
+            return Response.json(
               { error: "url and method are required" },
               { status: 400 }
             );
@@ -36,7 +35,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests/replay")({
           // Validate URL to prevent SSRF attacks
           const urlValidation = validateUrl(url);
           if (!urlValidation.valid) {
-            return json(
+            return Response.json(
               { error: urlValidation.error || "Invalid URL" },
               { status: 400 }
             );
@@ -48,7 +47,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests/replay")({
               ? Buffer.byteLength(requestBody, 'utf8')
               : Buffer.byteLength(JSON.stringify(requestBody), 'utf8');
             if (bodySize > MAX_BODY_SIZE) {
-              return json(
+              return Response.json(
                 { error: `Request body too large. Maximum size is ${MAX_BODY_SIZE / 1024 / 1024}MB` },
                 { status: 413 }
               );
@@ -88,7 +87,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests/replay")({
             responseBody = null;
           }
 
-          return json({
+          return Response.json({
             status: response.status,
             statusText: response.statusText,
             headers: responseHeaders,
@@ -97,7 +96,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests/replay")({
           });
         } catch (error) {
           console.error("Error replaying request:", error);
-          return json(
+          return Response.json(
             { 
               error: error instanceof Error ? error.message : "Failed to replay request" 
             },

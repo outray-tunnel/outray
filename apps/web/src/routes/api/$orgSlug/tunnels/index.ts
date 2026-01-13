@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { inArray } from "drizzle-orm";
 
 import { db } from "../../../../db";
@@ -20,7 +19,7 @@ export const Route = createFileRoute("/api/$orgSlug/tunnels/")({
         );
 
         if (onlineIds.length === 0) {
-          return json({ tunnels: [] });
+          return Response.json({ tunnels: [] });
         }
 
         const dbTunnels = await db
@@ -47,7 +46,7 @@ export const Route = createFileRoute("/api/$orgSlug/tunnels/")({
           updatedAt: t.updatedAt,
         }));
 
-        return json({ tunnels: result });
+        return Response.json({ tunnels: result });
       },
     },
   },

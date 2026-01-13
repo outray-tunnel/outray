@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 import { db } from "../../../../db";
 import { subdomains } from "../../../../db/app-schema";
@@ -22,16 +21,16 @@ export const Route = createFileRoute("/api/$orgSlug/subdomains/$subdomainId")({
           .where(eq(subdomains.id, subdomainId));
 
         if (!subdomain) {
-          return json({ error: "Subdomain not found" }, { status: 404 });
+          return Response.json({ error: "Subdomain not found" }, { status: 404 });
         }
 
         if (subdomain.organizationId !== orgContext.organization.id) {
-          return json({ error: "Unauthorized" }, { status: 403 });
+          return Response.json({ error: "Unauthorized" }, { status: 403 });
         }
 
         await db.delete(subdomains).where(eq(subdomains.id, subdomainId));
 
-        return json({ success: true });
+        return Response.json({ success: true });
       },
     },
   },

@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { eq, count } from "drizzle-orm";
 import { db } from "../../../db";
 import { subdomains } from "../../../db/app-schema";
@@ -15,7 +14,7 @@ export const Route = createFileRoute("/api/tunnel/check-subdomain")({
           const { subdomain, organizationId, checkLimit = false } = body;
 
           if (!subdomain) {
-            return json(
+            return Response.json(
               { allowed: false, error: "Missing subdomain" },
               { status: 400 },
             );
@@ -33,9 +32,9 @@ export const Route = createFileRoute("/api/tunnel/check-subdomain")({
           if (existingSubdomain.length > 0) {
             const record = existingSubdomain[0];
             if (organizationId && record.organizationId === organizationId) {
-              return json({ allowed: true, type: "owned" });
+              return Response.json({ allowed: true, type: "owned" });
             }
-            return json({ allowed: false, error: "Subdomain already taken" });
+            return Response.json({ allowed: false, error: "Subdomain already taken" });
           }
 
           // Only check limits if explicitly requested (for subdomain reservation, not tunnel use)
@@ -58,17 +57,17 @@ export const Route = createFileRoute("/api/tunnel/check-subdomain")({
               .where(eq(subdomains.organizationId, organizationId));
 
             if (subdomainCount.count >= maxSubdomains) {
-              return json({
+              return Response.json({
                 allowed: false,
                 error: `Subdomain limit reached for ${plan.name} plan. Upgrade to add more.`,
               });
             }
           }
 
-          return json({ allowed: true, type: "available" });
+          return Response.json({ allowed: true, type: "available" });
         } catch (error) {
           console.error("Error in /api/tunnel/check-subdomain:", error);
-          return json(
+          return Response.json(
             {
               allowed: false,
               error: error instanceof Error ? error.message : "Unknown error",

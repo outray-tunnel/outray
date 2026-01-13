@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { subscriptions } from "@/db/subscription-schema";
@@ -31,7 +30,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/bandwidth")({
           SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS];
         const limit = plan.features.bandwidthPerMonth;
 
-        return json({
+        return Response.json({
           usage,
           limit,
           percentage: Math.min((usage / limit) * 100, 100),

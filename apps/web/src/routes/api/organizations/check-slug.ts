@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 import { auth } from "../../../lib/auth";
 import { db } from "../../../db";
@@ -12,26 +11,26 @@ export const Route = createFileRoute("/api/organizations/check-slug")({
       POST: async ({ request }) => {
         const session = await auth.api.getSession({ headers: request.headers });
         if (!session) {
-          return json({ error: "Unauthorized" }, { status: 401 });
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const body = await request.json();
         const { slug } = body;
 
         if (!slug) {
-          return json({ error: "Slug is required" }, { status: 400 });
+          return Response.json({ error: "Slug is required" }, { status: 400 });
         }
 
         // Check if slug is reserved
         if (isReservedSlug(slug)) {
-          return json({ available: false, reason: "reserved" });
+          return Response.json({ available: false, reason: "reserved" });
         }
 
         const existingOrg = await db.query.organizations.findFirst({
           where: eq(organizations.slug, slug),
         });
 
-        return json({ available: !existingOrg });
+        return Response.json({ available: !existingOrg });
       },
     },
   },

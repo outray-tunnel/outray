@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { db } from "../../../db";
 import { cliOrgTokens, members, cliUserTokens } from "../../../db/auth-schema";
 import { eq, and, gt } from "drizzle-orm";
@@ -21,7 +20,7 @@ export const Route = createFileRoute("/api/cli/exchange")({
 
           const authHeader = request.headers.get("Authorization");
           if (!authHeader?.startsWith("Bearer ")) {
-            return json({ error: "Unauthorized" }, { status: 401 });
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
           }
 
           const token = authHeader.substring(7);
@@ -29,7 +28,7 @@ export const Route = createFileRoute("/api/cli/exchange")({
           const { orgId } = body;
 
           if (!orgId) {
-            return json({ error: "orgId is required" }, { status: 400 });
+            return Response.json({ error: "orgId is required" }, { status: 400 });
           }
 
           // Verify user token
@@ -41,7 +40,7 @@ export const Route = createFileRoute("/api/cli/exchange")({
           });
 
           if (!userToken) {
-            return json({ error: "Invalid user token" }, { status: 401 });
+            return Response.json({ error: "Invalid user token" }, { status: 401 });
           }
 
           // Verify user has access to org
@@ -53,7 +52,7 @@ export const Route = createFileRoute("/api/cli/exchange")({
           });
 
           if (!membership) {
-            return json(
+            return Response.json(
               { error: "Access denied to organization" },
               { status: 403 },
             );
@@ -72,13 +71,13 @@ export const Route = createFileRoute("/api/cli/exchange")({
             expiresAt,
           });
 
-          return json({
+          return Response.json({
             orgToken,
             expiresAt: expiresAt.toISOString(),
           });
         } catch (error) {
           console.error("Token exchange error:", error);
-          return json({ error: "Failed to exchange token" }, { status: 500 });
+          return Response.json({ error: "Failed to exchange token" }, { status: 500 });
         }
       },
     },

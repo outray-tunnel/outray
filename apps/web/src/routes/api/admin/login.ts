@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { randomUUID } from "crypto";
 import { redis } from "../../../lib/redis";
 import { hashToken } from "../../../lib/hash";
@@ -12,7 +11,7 @@ export const Route = createFileRoute("/api/admin/login")({
     handlers: {
       POST: async ({ request }) => {
         if (!PASSPHRASE) {
-          return json(
+          return Response.json(
             { error: "Admin passphrase not configured" },
             { status: 500 },
           );
@@ -22,23 +21,23 @@ export const Route = createFileRoute("/api/admin/login")({
         try {
           body = await request.json();
         } catch (e) {
-          return json({ error: "Invalid JSON" }, { status: 400 });
+          return Response.json({ error: "Invalid JSON" }, { status: 400 });
         }
 
         const phrase = (body.phrase || "").trim();
         if (!phrase) {
-          return json({ error: "Phrase required" }, { status: 400 });
+          return Response.json({ error: "Phrase required" }, { status: 400 });
         }
 
         if (phrase !== PASSPHRASE) {
-          return json({ error: "Unauthorized" }, { status: 401 });
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const token = randomUUID();
         const tokenHash = hashToken(token);
         await redis.set(`admin:token:${tokenHash}`, "1", "EX", TOKEN_TTL_SECONDS);
 
-        return json({ token, expiresIn: TOKEN_TTL_SECONDS });
+        return Response.json({ token, expiresIn: TOKEN_TTL_SECONDS });
       },
     },
   },

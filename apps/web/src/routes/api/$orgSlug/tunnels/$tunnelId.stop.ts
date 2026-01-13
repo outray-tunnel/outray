@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 import { db } from "../../../../db";
 import { tunnels } from "../../../../db/app-schema";
@@ -23,11 +22,11 @@ export const Route = createFileRoute("/api/$orgSlug/tunnels/$tunnelId/stop")({
           .where(eq(tunnels.id, tunnelId));
 
         if (!tunnel) {
-          return json({ error: "Tunnel not found" }, { status: 404 });
+          return Response.json({ error: "Tunnel not found" }, { status: 404 });
         }
 
         if (tunnel.organizationId !== orgContext.organization.id) {
-          return json({ error: "Unauthorized" }, { status: 403 });
+          return Response.json({ error: "Unauthorized" }, { status: 403 });
         }
 
         let tunnelIdentifier = tunnel.url;
@@ -52,7 +51,7 @@ export const Route = createFileRoute("/api/$orgSlug/tunnels/$tunnelId/stop")({
 
         await redis.publish("tunnel:control", `kill:${tunnelIdentifier}`);
 
-        return json({ message: "Tunnel stopped" });
+        return Response.json({ message: "Tunnel stopped" });
       },
     },
   },

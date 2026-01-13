@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 import { db } from "../../../db";
 import { organizationSettings } from "../../../db/app-schema";
@@ -19,12 +18,12 @@ export const Route = createFileRoute("/api/$orgSlug/settings")({
             where: eq(organizationSettings.organizationId, organization.id),
           });
 
-          return json({
+          return Response.json({
             fullCaptureEnabled: settings?.fullCaptureEnabled ?? false,
           });
         } catch (error) {
           console.error("Error fetching organization settings:", error);
-          return json(
+          return Response.json(
             { error: "Failed to fetch settings" },
             { status: 500 }
           );
@@ -40,7 +39,7 @@ export const Route = createFileRoute("/api/$orgSlug/settings")({
           const { fullCaptureEnabled } = body;
 
           if (typeof fullCaptureEnabled !== "boolean") {
-            return json(
+            return Response.json(
               { error: "fullCaptureEnabled must be a boolean" },
               { status: 400 }
             );
@@ -61,10 +60,10 @@ export const Route = createFileRoute("/api/$orgSlug/settings")({
               },
             });
 
-          return json({ success: true, fullCaptureEnabled });
+          return Response.json({ success: true, fullCaptureEnabled });
         } catch (error) {
           console.error("Error updating organization settings:", error);
-          return json(
+          return Response.json(
             { error: "Failed to update settings" },
             { status: 500 }
           );

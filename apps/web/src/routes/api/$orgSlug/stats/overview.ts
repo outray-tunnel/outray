@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 
 import { redis } from "../../../../lib/redis";
 import { requireOrgFromSlug } from "../../../../lib/org";
@@ -204,7 +203,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
           const chartDataResult = await tigerData.query(chartQuery, chartParams);
           const chartData = chartDataResult.rows;
 
-          return json({
+          return Response.json({
             totalRequests,
             requestsChange,
             activeTunnels: activeTunnelsCount,
@@ -218,7 +217,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
           });
         } catch (error) {
           console.error("Failed to fetch stats overview:", error);
-          return json({ error: "Failed to fetch stats" }, { status: 500 });
+          return Response.json({ error: "Failed to fetch stats" }, { status: 500 });
         }
       },
     },

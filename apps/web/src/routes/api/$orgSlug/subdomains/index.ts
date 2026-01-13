@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start";
 import { eq, sql } from "drizzle-orm";
 
 import { db } from "../../../../db";
@@ -21,7 +20,7 @@ export const Route = createFileRoute("/api/$orgSlug/subdomains/")({
           .from(subdomains)
           .where(eq(subdomains.organizationId, organization.id));
 
-        return json({ subdomains: results });
+        return Response.json({ subdomains: results });
       },
       POST: async ({ request, params }) => {
         const orgResult = await requireOrgFromSlug(request, params.orgSlug);
@@ -29,19 +28,19 @@ export const Route = createFileRoute("/api/$orgSlug/subdomains/")({
         const { organization, session } = orgResult;
 
         if (!session) {
-          return json({ error: "Unauthorized" }, { status: 401 });
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const body = await request.json();
         const { subdomain } = body as { subdomain?: string };
 
         if (!subdomain) {
-          return json({ error: "Subdomain is required" }, { status: 400 });
+          return Response.json({ error: "Subdomain is required" }, { status: 400 });
         }
 
         const subdomainRegex = /^[a-z0-9-]+$/;
         if (!subdomainRegex.test(subdomain)) {
-          return json(
+          return Response.json(
             {
               error:
                 "Invalid subdomain format. Use lowercase letters, numbers, and hyphens.",
@@ -107,14 +106,14 @@ export const Route = createFileRoute("/api/$orgSlug/subdomains/")({
           });
 
           if ("error" in result) {
-            return json({ error: result.error }, { status: result.status });
+            return Response.json({ error: result.error }, { status: result.status });
           }
 
-          return json({ subdomain: result.subdomain });
+          return Response.json({ subdomain: result.subdomain });
         } catch (error: any) {
           // Handle unique constraint violation (race condition fallback)
           if (error?.code === "23505") {
-            return json({ error: "Subdomain already taken" }, { status: 409 });
+            return Response.json({ error: "Subdomain already taken" }, { status: 409 });
           }
           throw error;
         }
