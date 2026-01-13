@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { ArrowRight, Copy, Check } from "lucide-react";
+import { ArrowRight, Copy, Check, LayoutDashboard } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { authClient } from "@/lib/auth-client";
 import { usePostHog } from "posthog-js/react";
 import { Terminal } from "./Terminal";
 import { BeamGroup } from "./beam-group";
@@ -9,6 +10,8 @@ import { BeamGroup } from "./beam-group";
 export const Hero = () => {
   const [copied, setCopied] = useState(false);
   const posthog = usePostHog();
+  const { data: session } = authClient.useSession();
+  const { data: organizations } = authClient.useListOrganizations();
 
   const copyCommand = () => {
     navigator.clipboard.writeText("npm install -g outray");
@@ -54,12 +57,27 @@ export const Hero = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
-          <Link
-            to="/signup"
-            className="w-full sm:w-auto px-8 py-4 bg-white text-black hover:bg-gray-200 rounded-full font-bold text-lg transition-all hover:scale-105 flex items-center justify-center gap-2"
-          >
-            Get Started Free <ArrowRight size={20} />
-          </Link>
+          {session ? (
+            <Link
+              to={organizations?.length ? "/$orgSlug" : "/select"}
+              params={{
+                orgSlug:
+                  organizations && organizations.length
+                    ? organizations[0].slug
+                    : "",
+              }}
+              className="w-full sm:w-auto px-8 py-4 bg-white text-black hover:bg-gray-200 rounded-full font-bold text-lg transition-all hover:scale-105 flex items-center justify-center gap-2"
+            >
+              Dashboard <LayoutDashboard size={20} />
+            </Link>
+          ) : (
+            <Link
+              to="/signup"
+              className="w-full sm:w-auto px-8 py-4 bg-white text-black hover:bg-gray-200 rounded-full font-bold text-lg transition-all hover:scale-105 flex items-center justify-center gap-2"
+            >
+              Get Started Free <ArrowRight size={20} />
+            </Link>
+          )}
           <button
             onClick={copyCommand}
             className="w-full sm:w-auto flex items-center gap-3 text-white/60 px-8 py-4 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 font-mono text-sm backdrop-blur-sm transition-all group cursor-pointer"

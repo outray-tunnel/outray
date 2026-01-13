@@ -120,7 +120,7 @@ export const DeveloperExperience = () => {
             <p className="text-white/40 mb-6">
               Use our SDKs to embed OutRay directly into your app.
             </p>
-            <div className="bg-black/40 rounded-2xl border border-white/5 p-4 font-mono text-sm overflow-x-auto mt-auto">
+            <div className="bg-black/40 rounded-2xl border border-white/5 p-4 font-mono text-sm overflow-x-auto mt-auto whitespace-pre-wrap">
               <span className="text-accent">import</span> outray{" "}
               <span className="text-accent">from</span>{" "}
               <span className="text-white/60">"outray"</span>;{"\n"}
