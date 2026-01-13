@@ -1,0 +1,98 @@
+name: Release CLI
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        working-directory: apps/cli
+        run: npm ci
+
+      - name: Build TypeScript
+        working-directory: apps/cli
+        run: npm run build
+
+      - name: Build binaries
+        working-directory: apps/cli
+        run: npx pkg . --compress GZip
+
+      - name: Prepare release assets
+        working-directory: apps/cli/bin
+        run: |
+          # Rename binaries to just "outray" for packaging
+          mv outray-macos-arm64 outray && tar -czvf outray-macos-arm64.tar.gz outray && rm outray
+          mv outray-macos-x64 outray && tar -czvf outray-macos-x64.tar.gz outray && rm outray
+          mv outray-linux-x64 outray && tar -czvf outray-linux-x64.tar.gz outray && rm outray
+          zip outray-win-x64.zip outray-win-x64.exe && rm outray-win-x64.exe
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            apps/cli/bin/outray-macos-arm64.tar.gz
+            apps/cli/bin/outray-macos-x64.tar.gz
+            apps/cli/bin/outray-linux-x64.tar.gz
+            apps/cli/bin/outray-win-x64.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-npm:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        working-directory: apps/cli
+        run: npm ci
+
+      - name: Build
+        working-directory: apps/cli
+        run: npm run build
+
+      - name: Publish to npm
+        working-directory: apps/cli
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  update-homebrew:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Homebrew tap
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.TAP_GITHUB_TOKEN }}
+          repository: outray-tunnel/homebrew-tap
+          event-type: update-formula
+          client-payload: '{"version": "${{ github.ref_name }}"}'
+
+  update-scoop:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Scoop bucket
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.TAP_GITHUB_TOKEN }}
+          repository: outray-tunnel/scoop-bucket
+          event-type: update-manifest
+          client-payload: '{"version": "${{ github.ref_name }}"}'
