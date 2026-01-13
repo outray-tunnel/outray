@@ -21,6 +21,7 @@ export class TCPTunnelClient {
   private shouldReconnect = true;
   private assignedPort: number | null = null;
   private connections = new Map<string, net.Socket>();
+  private ipAllowlist?: string[];
   private noLog: boolean;
 
   constructor(
@@ -29,6 +30,7 @@ export class TCPTunnelClient {
     apiKey?: string,
     localHost: string = "localhost",
     remotePort?: number,
+    ipAllowlist?: string[],
     noLog: boolean = false,
   ) {
     this.localPort = localPort;
@@ -37,6 +39,7 @@ export class TCPTunnelClient {
     this.apiKey = apiKey;
     this.remotePort = remotePort;
     this.noLog = noLog;
+    this.ipAllowlist = ipAllowlist;
   }
 
   public start(): void {
@@ -90,6 +93,7 @@ export class TCPTunnelClient {
       apiKey: this.apiKey,
       protocol: "tcp" as TunnelProtocol,
       remotePort: this.remotePort,
+      ipAllowlist: this.ipAllowlist,
     });
     this.ws?.send(handshake);
   }

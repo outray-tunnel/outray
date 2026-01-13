@@ -1,6 +1,7 @@
 import net from "net";
 import WebSocket from "ws";
 import Redis from "ioredis";
+import { IpGuard } from "../lib/IpGuard";
 import {
   Protocol,
   TCPConnectionMessage,
@@ -31,6 +32,7 @@ interface TCPTunnel {
   bandwidthLimit?: number;
   port: number;
   connections: Map<string, TCPConnection>;
+  ipAllowlist?: string[];
 }
 
 export class TCPProxy {
@@ -54,6 +56,7 @@ export class TCPProxy {
     organizationId: string,
     requestedPort?: number,
     bandwidthLimit?: number,
+    ipAllowlist?: string[],
   ): Promise<{ success: boolean; port?: number; error?: string }> {
     // Clean up existing tunnel if any
     await this.closeTunnel(tunnelId);
@@ -86,6 +89,7 @@ export class TCPProxy {
           bandwidthLimit,
           port,
           connections: new Map(),
+          ipAllowlist,
         };
 
         this.tunnels.set(tunnelId, tunnel);
@@ -110,8 +114,17 @@ export class TCPProxy {
       return;
     }
 
+    const rawIp = socket.remoteAddress || "0.0.0.0";
+    const clientIp = IpGuard.normalizeIp(rawIp);
+
+    if (tunnel.ipAllowlist && tunnel.ipAllowlist.length > 0) {
+      if (!IpGuard.isAllowed(clientIp, tunnel.ipAllowlist)) {
+        socket.destroy();
+        return;
+      }
+    }
+
     const connectionId = generateId("tcp");
-    const clientIp = socket.remoteAddress || "unknown";
     const clientPort = socket.remotePort || 0;
 
     const connection: TCPConnection = {

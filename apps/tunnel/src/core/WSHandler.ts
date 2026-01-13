@@ -285,6 +285,7 @@ export class WSHandler {
                   organizationId || "",
                   message.remotePort,
                   bandwidthLimit,
+                  message.ipAllowlist,
                 );
 
                 if (!result.success) {
@@ -362,6 +363,7 @@ export class WSHandler {
                   organizationId || "",
                   message.remotePort,
                   bandwidthLimit,
+                  message.ipAllowlist,
                 );
 
                 if (!result.success) {
@@ -507,6 +509,7 @@ export class WSHandler {
                   bandwidthLimit,
                   plan,
                   fullCaptureEnabled,
+                  ipAllowlist: message.ipAllowlist,
                 },
               );
 
@@ -574,6 +577,7 @@ export class WSHandler {
                     bandwidthLimit,
                     retentionDays,
                     fullCaptureEnabled,
+                    ipAllowlist: message.ipAllowlist,
                   },
                   message.forceTakeover || false,
                 );
@@ -611,6 +615,7 @@ export class WSHandler {
                       bandwidthLimit,
                       retentionDays,
                       fullCaptureEnabled,
+                      ipAllowlist: message.ipAllowlist,
                     },
                   );
                   if (reservationAcquired) {
@@ -633,6 +638,7 @@ export class WSHandler {
                     bandwidthLimit,
                     retentionDays,
                     fullCaptureEnabled,
+                    ipAllowlist: message.ipAllowlist,
                   },
                 );
                 if (reservationAcquired) {
@@ -712,6 +718,7 @@ export class WSHandler {
                 retentionDays,
                 plan,
                 fullCaptureEnabled,
+                ipAllowlist: message.ipAllowlist,
               },
             );
 

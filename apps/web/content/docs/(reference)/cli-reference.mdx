@@ -68,6 +68,7 @@ outray 3000
 
 - `--subdomain <name>`: Request a specific subdomain.
 - `--domain <domain>`: Use a custom domain.
+- `--ip <ip/cidr>`: Restrict access to specific IP addresses or CIDR ranges (can be used multiple times).
 - `--org <slug>`: Run the tunnel under a specific organization.
 - `--key <token>`: Use a specific API key instead of the logged-in user.
 - `--no-logs`: Disable tunnel request logs.
@@ -152,6 +153,7 @@ remote_port = 30000
 - `subdomain`: Custom subdomain for HTTP tunnels (optional, HTTP only)
 - `custom_domain`: Custom domain for HTTP tunnels (optional, HTTP only)
 - `remote_port`: Remote port for TCP/UDP tunnels (optional, TCP/UDP only)
+- `ip_allowlist`: List of allowed IPs or CIDR ranges (optional, e.g., `["1.2.3.4", "10.0.0.0/8"]`)
 - `org`: Organization slug for this tunnel (optional, overrides global setting)
 
 ### Example Usage

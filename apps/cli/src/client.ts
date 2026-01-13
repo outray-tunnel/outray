@@ -22,6 +22,7 @@ export class OutRayClient {
   private forceTakeover = false;
   private reconnectAttempts = 0;
   private lastPongReceived = Date.now();
+  private ipAllowlist?: string[];
   private noLog: boolean;
   private readonly PING_INTERVAL_MS = 25000; // 25 seconds
   private readonly PONG_TIMEOUT_MS = 10000; // 10 seconds to wait for pong
@@ -32,6 +33,7 @@ export class OutRayClient {
     apiKey?: string,
     subdomain?: string,
     customDomain?: string,
+    ipAllowlist?: string[],
     noLog: boolean = false,
   ) {
     this.localPort = localPort;
@@ -41,6 +43,7 @@ export class OutRayClient {
     this.customDomain = customDomain;
     this.requestedSubdomain = subdomain;
     this.noLog = noLog;
+    this.ipAllowlist = ipAllowlist;
   }
 
   public start(): void {
@@ -99,6 +102,7 @@ export class OutRayClient {
       subdomain: this.subdomain,
       customDomain: this.customDomain,
       forceTakeover: this.forceTakeover,
+      ipAllowlist: this.ipAllowlist,
     });
     this.ws?.send(handshake);
   }
@@ -213,7 +217,7 @@ export class OutRayClient {
         if (!this.noLog) {
           console.log(
             chalk.dim("←") +
-              ` ${chalk.bold(message.method)} ${message.path} ${statusColor(statusCode)} ${chalk.dim(`${duration}ms`)}`,
+            ` ${chalk.bold(message.method)} ${message.path} ${statusColor(statusCode)} ${chalk.dim(`${duration}ms`)}`,
           );
         }
 
@@ -238,7 +242,7 @@ export class OutRayClient {
       if (!this.noLog) {
         console.log(
           chalk.dim("←") +
-            ` ${chalk.bold(message.method)} ${message.path} ${chalk.red("502")} ${chalk.dim(`${duration}ms`)} ${chalk.red(err.message)}`,
+          ` ${chalk.bold(message.method)} ${message.path} ${chalk.red("502")} ${chalk.dim(`${duration}ms`)} ${chalk.red(err.message)}`,
         );
       }
 

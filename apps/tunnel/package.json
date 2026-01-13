@@ -5,12 +5,14 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsup && cp src/offline.html src/bandwidth_exceeded.html dist/",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test": "vitest run"
   },
   "dependencies": {
-    "pg": "^8.13.1",
     "dotenv": "^17.2.3",
     "ioredis": "^5.4.1",
+    "ip-range-check": "^0.2.0",
+    "pg": "^8.13.1",
     "ws": "^8.18.0"
   },
   "devDependencies": {
@@ -19,6 +21,7 @@
     "@types/ws": "^8.5.13",
     "tsup": "^8.5.1",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.17"
   }
 }

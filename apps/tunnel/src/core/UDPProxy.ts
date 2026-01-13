@@ -1,6 +1,7 @@
 import dgram from "dgram";
 import WebSocket from "ws";
 import Redis from "ioredis";
+import { IpGuard } from "../lib/IpGuard";
 import { Protocol, UDPDataMessage, UDPResponseMessage } from "./Protocol";
 import { generateId, getBandwidthKey } from "../../../../shared/utils";
 import { protocolLogger } from "../lib/tigerdata";
@@ -23,6 +24,7 @@ interface UDPTunnel {
   bandwidthLimit?: number;
   port: number;
   clients: Map<string, UDPClient>;
+  ipAllowlist?: string[];
 }
 
 export class UDPProxy {
@@ -55,6 +57,7 @@ export class UDPProxy {
     organizationId: string,
     requestedPort?: number,
     bandwidthLimit?: number,
+    ipAllowlist?: string[],
   ): Promise<{ success: boolean; port?: number; error?: string }> {
     // Clean up existing tunnel if any
     await this.closeTunnel(tunnelId);
@@ -93,6 +96,7 @@ export class UDPProxy {
           bandwidthLimit,
           port,
           clients: new Map(),
+          ipAllowlist,
         };
 
         this.tunnels.set(tunnelId, tunnel);
@@ -118,6 +122,12 @@ export class UDPProxy {
     const tunnel = this.tunnels.get(tunnelId);
     if (!tunnel || tunnel.ws.readyState !== WebSocket.OPEN) {
       return;
+    }
+
+    if (tunnel.ipAllowlist && tunnel.ipAllowlist.length > 0) {
+      if (!IpGuard.isAllowed(rinfo.address, tunnel.ipAllowlist)) {
+        return;
+      }
     }
 
     if (await this.checkBandwidthExceeded(tunnel, msg.length)) {

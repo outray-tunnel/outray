@@ -13,6 +13,7 @@ export interface TunnelConfig {
   custom_domain?: string;
   remote_port?: number;
   org?: string;
+  ip_allowlist?: string[];
 }
 
 export interface GlobalConfig {
@@ -33,6 +34,7 @@ export interface ParsedTunnelConfig {
   customDomain?: string;
   remotePort?: number;
   org?: string;
+  ipAllowlist?: string[];
 }
 
 const portSchema = Joi.number().integer().min(1).max(65535).required();
@@ -61,6 +63,7 @@ const tunnelConfigSchema = Joi.object({
   custom_domain: Joi.string().hostname().optional(),
   remote_port: Joi.number().integer().min(1).max(65535).optional(),
   org: Joi.string().optional(),
+  ip_allowlist: Joi.array().items(Joi.string()).optional(),
 }).custom((value: TunnelConfig, helpers: Joi.CustomHelpers) => {
   const protocol = value.protocol;
 
@@ -146,18 +149,18 @@ export class TomlConfigParser {
             }
           }
 
-            if (fieldName) {
-              const fieldDisplayName = fieldName.replace(/_/g, " ");
-              const fullPath = detail.path.join(".");
-              
-              if (message.includes(`"${fullPath}"`)) {
-                message = message.replace(`"${fullPath}"`, fieldDisplayName);
-              } else if (message.includes(fieldName)) {
-                message = message.replace(new RegExp(fieldName, "g"), fieldDisplayName);
-              }
-            }
+          if (fieldName) {
+            const fieldDisplayName = fieldName.replace(/_/g, " ");
+            const fullPath = detail.path.join(".");
 
-            message = message.replace(/^"/, "").replace(/"$/, "");
+            if (message.includes(`"${fullPath}"`)) {
+              message = message.replace(`"${fullPath}"`, fieldDisplayName);
+            } else if (message.includes(fieldName)) {
+              message = message.replace(new RegExp(fieldName, "g"), fieldDisplayName);
+            }
+          }
+
+          message = message.replace(/^"/, "").replace(/"$/, "");
 
           if (tunnelName && typeof tunnelName === "string") {
             const capitalizedMessage = message.charAt(0).toUpperCase() + message.slice(1);
@@ -189,6 +192,7 @@ export class TomlConfigParser {
         customDomain: tunnel.custom_domain,
         remotePort: tunnel.remote_port,
         org: tunnel.org || globalConfig?.org,
+        ipAllowlist: tunnel.ip_allowlist,
       });
     }
 
