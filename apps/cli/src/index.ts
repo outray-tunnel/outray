@@ -308,6 +308,7 @@ async function handleStartFromConfig(
         apiKey,
         tunnel.localHost,
         tunnel.remotePort,
+        tunnel.ipAllowlist
       );
     } else if (tunnel.protocol === "udp") {
       client = new UDPTunnelClient(
@@ -316,6 +317,7 @@ async function handleStartFromConfig(
         apiKey,
         tunnel.localHost,
         tunnel.remotePort,
+        tunnel.ipAllowlist
       );
     } else {
       client = new OutRayClient(
@@ -324,6 +326,7 @@ async function handleStartFromConfig(
         apiKey,
         tunnel.subdomain,
         tunnel.customDomain,
+        tunnel.ipAllowlist
       );
     }
 
@@ -385,6 +388,7 @@ function printHelp() {
     chalk.cyan("  --no-logs              Disable tunnel request logs"),
   );
   console.log(chalk.cyan("  --dev                  Use dev environment"));
+  console.log(chalk.cyan("  --ip <ip/cidr>         Allow IP or CIDR (repeatable)"));
   console.log(chalk.cyan("  -v, --version          Show version"));
   console.log(chalk.cyan("  -h, --help             Show this help message"));
 }
@@ -630,6 +634,22 @@ async function main() {
   // Handle --no-logs flag to disable tunnel request logs
   const noLogs = remainingArgs.includes("--no-logs");
 
+  // Handle --ip flag for IP allowlisting (repeatable)
+  const ipAllowlist: string[] = [];
+  for (let i = 0; i < remainingArgs.length; i++) {
+    const arg = remainingArgs[i];
+
+    if (arg === "--ip" && remainingArgs[i + 1]) {
+      ipAllowlist.push(remainingArgs[i + 1]);
+      i++;
+    } else if (arg.startsWith("--ip=")) {
+      const value = arg.split("=")[1];
+      if (value) {
+        ipAllowlist.push(value);
+      }
+    }
+  }
+
   // Load and validate config
   let config = configManager.load();
 
@@ -705,7 +725,8 @@ async function main() {
       apiKey,
       "localhost",
       remotePort,
-      noLogs,
+      ipAllowlist,
+      noLogs
     );
   } else if (tunnelProtocol === "udp") {
     client = new UDPTunnelClient(
@@ -714,7 +735,8 @@ async function main() {
       apiKey,
       "localhost",
       remotePort,
-      noLogs,
+      ipAllowlist,
+      noLogs
     );
   } else {
     client = new OutRayClient(
@@ -723,7 +745,8 @@ async function main() {
       apiKey,
       subdomain,
       customDomain,
-      noLogs,
+      ipAllowlist,
+      noLogs
     );
   }
 

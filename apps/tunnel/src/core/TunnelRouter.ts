@@ -26,6 +26,7 @@ export interface TunnelMetadata {
   retentionDays?: number;
   plan?: string;
   fullCaptureEnabled?: boolean;
+  ipAllowlist?: string[];
 }
 
 export class TunnelRouter {

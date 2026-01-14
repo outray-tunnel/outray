@@ -7,6 +7,7 @@ local_port = 3000
 local_host = "localhost"
 subdomain = "my-app"
 custom_domain = "app.example.com"
+ip_allowlist = ["1.2.3.4/32"]
 
 [tunnel.api]
 protocol = "http"

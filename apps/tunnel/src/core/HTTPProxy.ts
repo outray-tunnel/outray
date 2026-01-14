@@ -5,6 +5,7 @@ import { TunnelRouter } from "./TunnelRouter";
 import { getBandwidthKey, generateId } from "../../../../shared/utils";
 import { logger, requestCaptureLogger } from "../lib/tigerdata";
 import { LogManager } from "./LogManager";
+import { IpGuard } from "../lib/IpGuard";
 
 export class HTTPProxy {
   private router: TunnelRouter;
@@ -60,6 +61,16 @@ export class HTTPProxy {
       });
 
       const metadata = this.router.getTunnelMetadata(tunnelId);
+
+      if (metadata?.ipAllowlist && metadata.ipAllowlist.length > 0) {
+        const clientIp = this.getClientIp(req);
+        if (!IpGuard.isAllowed(clientIp, metadata.ipAllowlist)) {
+          res.writeHead(403, { "Content-Type": "text/html" });
+          res.end("<h1>403 Forbidden</h1><p>Access denied by IP Allowlist.</p>");
+          return;
+        }
+      }
+
       const redis = this.router.getRedis();
       const bandwidthKey =
         metadata?.organizationId && redis
@@ -157,7 +168,7 @@ export class HTTPProxy {
         if (metadata.fullCaptureEnabled) {
           const captureId = generateId("capture");
           const maxBodySize = 1024 * 1024; // 1MB limit
-          
+
           // Prepare request body (truncate if too large)
           let requestBody: string | null = null;
           let requestBodySize = bodyBuffer.length;
@@ -210,27 +221,12 @@ export class HTTPProxy {
   }
 
   private getClientIp(req: IncomingMessage): string {
-    let ip =
+    const rawIp =
       (req.headers["x-forwarded-for"] as string) ||
       req.socket.remoteAddress ||
       "0.0.0.0";
 
-    // Handle comma-separated list in x-forwarded-for
-    if (ip.includes(",")) {
-      ip = ip.split(",")[0].trim();
-    }
-
-    // Handle IPv4-mapped IPv6 addresses
-    if (ip.startsWith("::ffff:")) {
-      ip = ip.substring(7);
-    }
-
-    // Handle localhost IPv6
-    if (ip === "::1") {
-      ip = "127.0.0.1";
-    }
-
-    return ip;
+    return IpGuard.normalizeIp(rawIp);
   }
 
   private getOfflineHtml(tunnelId: string): string {

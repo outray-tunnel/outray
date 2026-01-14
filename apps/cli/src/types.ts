@@ -8,6 +8,7 @@ export interface OpenTunnelMessage {
   forceTakeover?: boolean;
   protocol?: TunnelProtocol;
   remotePort?: number; // For TCP/UDP: the port to expose on the server
+  ipAllowlist?: string[]; // List of allowed IPs or CIDR ranges
 }
 
 export interface TunnelOpenedMessage {

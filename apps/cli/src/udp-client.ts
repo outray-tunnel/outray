@@ -16,6 +16,7 @@ export class UDPTunnelClient {
   private shouldReconnect = true;
   private assignedPort: number | null = null;
   private socket: dgram.Socket | null = null;
+  private ipAllowlist?: string[];
   private noLog: boolean;
 
   constructor(
@@ -24,6 +25,7 @@ export class UDPTunnelClient {
     apiKey?: string,
     localHost: string = "localhost",
     remotePort?: number,
+    ipAllowlist?: string[],
     noLog: boolean = false,
   ) {
     this.localPort = localPort;
@@ -32,6 +34,7 @@ export class UDPTunnelClient {
     this.apiKey = apiKey;
     this.remotePort = remotePort;
     this.noLog = noLog;
+    this.ipAllowlist = ipAllowlist;
   }
 
   public start(): void {
@@ -87,6 +90,7 @@ export class UDPTunnelClient {
       apiKey: this.apiKey,
       protocol: "udp" as TunnelProtocol,
       remotePort: this.remotePort,
+      ipAllowlist: this.ipAllowlist,
     });
     this.ws?.send(handshake);
   }
