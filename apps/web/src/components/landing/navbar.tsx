@@ -3,6 +3,7 @@ import { LayoutDashboard, LogIn, Menu, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
 import { SiGithub } from "react-icons/si";
+import { GitHubButton } from "./github-button";
 
 export const Navbar = () => {
   const { data: session } = authClient.useSession();
@@ -61,14 +62,9 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <a
-            href="https://github.com/akinloluwami/outray"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden sm:flex md:flex items-center gap-2 text-white/60 hover:text-white transition-colors"
-          >
-            <SiGithub size={20} />
-          </a>
+          <div className="hidden sm:block">
+            <GitHubButton size="sm" />
+          </div>
           {session ? (
             <Link
               to={organizations?.length ? "/$orgSlug" : "/select"}
