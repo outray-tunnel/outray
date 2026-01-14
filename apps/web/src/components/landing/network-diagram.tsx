@@ -115,7 +115,7 @@ export function NetworkDiagram() {
                 <Server className="w-8 h-8 text-purple-400" />
                 <motion.div
                   className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full"
-                  animate={{ opacity: [0, 0, 1, 0, 0] }}
+                  animate={{ opacity: [0, 0, 0, 1, 0] }}
                   transition={{
                     duration: 2,
                     repeat: Infinity,
@@ -139,7 +139,7 @@ export function NetworkDiagram() {
                 <Globe className="w-8 h-8 text-blue-400" />
                 <motion.div
                   className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full"
-                  animate={{ opacity: [0, 0, 1, 0] }}
+                  animate={{ opacity: [0, 0, 0, 1] }}
                   transition={{
                     duration: 2,
                     repeat: Infinity,
