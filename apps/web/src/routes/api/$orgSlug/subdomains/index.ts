@@ -35,7 +35,10 @@ export const Route = createFileRoute("/api/$orgSlug/subdomains/")({
         const { subdomain } = body as { subdomain?: string };
 
         if (!subdomain) {
-          return Response.json({ error: "Subdomain is required" }, { status: 400 });
+          return Response.json(
+            { error: "Subdomain is required" },
+            { status: 400 },
+          );
         }
 
         const subdomainRegex = /^[a-z0-9-]+$/;
@@ -106,14 +109,20 @@ export const Route = createFileRoute("/api/$orgSlug/subdomains/")({
           });
 
           if ("error" in result) {
-            return Response.json({ error: result.error }, { status: result.status });
+            return Response.json(
+              { error: result.error },
+              { status: result.status },
+            );
           }
 
           return Response.json({ subdomain: result.subdomain });
         } catch (error: any) {
           // Handle unique constraint violation (race condition fallback)
           if (error?.code === "23505") {
-            return Response.json({ error: "Subdomain already taken" }, { status: 409 });
+            return Response.json(
+              { error: "Subdomain already taken" },
+              { status: 409 },
+            );
           }
           throw error;
         }

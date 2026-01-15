@@ -3,7 +3,10 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Users, Mail, Building2, Calendar } from "lucide-react";
 import { appClient } from "@/lib/app-client";
-import { AdminDataTable, type Column } from "@/components/admin/admin-data-table";
+import {
+  AdminDataTable,
+  type Column,
+} from "@/components/admin/admin-data-table";
 import { UsersSkeleton } from "@/components/admin/admin-skeleton";
 import { useAdminStore } from "@/lib/admin-store";
 
@@ -143,7 +146,9 @@ function AdminUsersPage() {
       key: "lastActive",
       header: "Last Active",
       render: (user) => (
-        <span className="text-gray-400">{formatRelativeTime(user.lastActive)}</span>
+        <span className="text-gray-400">
+          {formatRelativeTime(user.lastActive)}
+        </span>
       ),
     },
   ];
@@ -152,7 +157,9 @@ function AdminUsersPage() {
     <div className="max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Users</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Users
+          </h1>
           <p className="text-sm text-gray-500 mt-1">
             {total.toLocaleString()} total users
           </p>

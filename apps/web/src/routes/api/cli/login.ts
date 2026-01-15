@@ -2,7 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { db } from "../../../db";
 import { cliLoginSessions } from "../../../db/auth-schema";
 import { randomUUID, randomBytes } from "crypto";
-import {rateLimiters, getClientIdentifier, createRateLimitResponse,} from "../../../lib/rate-limiter";
+import {
+  rateLimiters,
+  getClientIdentifier,
+  createRateLimitResponse,
+} from "../../../lib/rate-limiter";
 
 export const Route = createFileRoute("/api/cli/login")({
   server: {
@@ -51,4 +55,3 @@ export const Route = createFileRoute("/api/cli/login")({
     },
   },
 });
-

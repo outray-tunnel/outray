@@ -53,7 +53,10 @@ function SubdomainsView() {
         orgSlug,
       });
       if ("error" in response || "message" in response) {
-        const errorMsg = (response as any).error || (response as any).message || "Failed to create subdomain";
+        const errorMsg =
+          (response as any).error ||
+          (response as any).message ||
+          "Failed to create subdomain";
         throw new Error(errorMsg);
       }
       return response;
@@ -69,7 +72,9 @@ function SubdomainsView() {
   });
 
   // Keep modal open when there's an error
-  const modalError = createMutation.isError ? (createMutation.error?.message || "Failed to create subdomain") : error;
+  const modalError = createMutation.isError
+    ? createMutation.error?.message || "Failed to create subdomain"
+    : error;
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {

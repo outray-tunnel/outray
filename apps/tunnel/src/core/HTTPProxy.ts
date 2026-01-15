@@ -157,7 +157,7 @@ export class HTTPProxy {
         if (metadata.fullCaptureEnabled) {
           const captureId = generateId("capture");
           const maxBodySize = 1024 * 1024; // 1MB limit
-          
+
           // Prepare request body (truncate if too large)
           let requestBody: string | null = null;
           let requestBodySize = bodyBuffer.length;
@@ -165,7 +165,9 @@ export class HTTPProxy {
             if (bodyBuffer.length <= maxBodySize) {
               requestBody = bodyBuffer.toString("base64");
             } else {
-              requestBody = bodyBuffer.subarray(0, maxBodySize).toString("base64");
+              requestBody = bodyBuffer
+                .subarray(0, maxBodySize)
+                .toString("base64");
             }
           }
 
@@ -176,7 +178,9 @@ export class HTTPProxy {
             if (responseBuffer.length <= maxBodySize) {
               responseBody = responseBuffer.toString("base64");
             } else {
-              responseBody = responseBuffer.subarray(0, maxBodySize).toString("base64");
+              responseBody = responseBuffer
+                .subarray(0, maxBodySize)
+                .toString("base64");
               responseBodySize = responseBuffer.subarray(0, maxBodySize).length;
             }
           }

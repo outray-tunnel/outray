@@ -3,7 +3,11 @@ import { db } from "../../../db";
 import { cliOrgTokens, members, cliUserTokens } from "../../../db/auth-schema";
 import { eq, and, gt } from "drizzle-orm";
 import { randomUUID, randomBytes } from "crypto";
-import {rateLimiters, getClientIdentifier, createRateLimitResponse,} from "../../../lib/rate-limiter";
+import {
+  rateLimiters,
+  getClientIdentifier,
+  createRateLimitResponse,
+} from "../../../lib/rate-limiter";
 
 export const Route = createFileRoute("/api/cli/exchange")({
   server: {
@@ -28,7 +32,10 @@ export const Route = createFileRoute("/api/cli/exchange")({
           const { orgId } = body;
 
           if (!orgId) {
-            return Response.json({ error: "orgId is required" }, { status: 400 });
+            return Response.json(
+              { error: "orgId is required" },
+              { status: 400 },
+            );
           }
 
           // Verify user token
@@ -40,7 +47,10 @@ export const Route = createFileRoute("/api/cli/exchange")({
           });
 
           if (!userToken) {
-            return Response.json({ error: "Invalid user token" }, { status: 401 });
+            return Response.json(
+              { error: "Invalid user token" },
+              { status: 401 },
+            );
           }
 
           // Verify user has access to org
@@ -77,7 +87,10 @@ export const Route = createFileRoute("/api/cli/exchange")({
           });
         } catch (error) {
           console.error("Token exchange error:", error);
-          return Response.json({ error: "Failed to exchange token" }, { status: 500 });
+          return Response.json(
+            { error: "Failed to exchange token" },
+            { status: 500 },
+          );
         }
       },
     },

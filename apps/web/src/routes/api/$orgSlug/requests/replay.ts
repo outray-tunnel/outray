@@ -17,8 +17,10 @@ export const Route = createFileRoute("/api/$orgSlug/requests/replay")({
           const contentLength = request.headers.get("content-length");
           if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
             return Response.json(
-              { error: `Request body too large. Maximum size is ${MAX_BODY_SIZE / 1024 / 1024}MB` },
-              { status: 413 }
+              {
+                error: `Request body too large. Maximum size is ${MAX_BODY_SIZE / 1024 / 1024}MB`,
+              },
+              { status: 413 },
             );
           }
 
@@ -28,7 +30,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests/replay")({
           if (!url || !method) {
             return Response.json(
               { error: "url and method are required" },
-              { status: 400 }
+              { status: 400 },
             );
           }
 
@@ -37,19 +39,22 @@ export const Route = createFileRoute("/api/$orgSlug/requests/replay")({
           if (!urlValidation.valid) {
             return Response.json(
               { error: urlValidation.error || "Invalid URL" },
-              { status: 400 }
+              { status: 400 },
             );
           }
 
           // Validate requestBody size to prevent memory exhaustion
           if (requestBody) {
-            const bodySize = typeof requestBody === 'string' 
-              ? Buffer.byteLength(requestBody, 'utf8')
-              : Buffer.byteLength(JSON.stringify(requestBody), 'utf8');
+            const bodySize =
+              typeof requestBody === "string"
+                ? Buffer.byteLength(requestBody, "utf8")
+                : Buffer.byteLength(JSON.stringify(requestBody), "utf8");
             if (bodySize > MAX_BODY_SIZE) {
               return Response.json(
-                { error: `Request body too large. Maximum size is ${MAX_BODY_SIZE / 1024 / 1024}MB` },
-                { status: 413 }
+                {
+                  error: `Request body too large. Maximum size is ${MAX_BODY_SIZE / 1024 / 1024}MB`,
+                },
+                { status: 413 },
               );
             }
           }
@@ -97,10 +102,13 @@ export const Route = createFileRoute("/api/$orgSlug/requests/replay")({
         } catch (error) {
           console.error("Error replaying request:", error);
           return Response.json(
-            { 
-              error: error instanceof Error ? error.message : "Failed to replay request" 
+            {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to replay request",
             },
-            { status: 500 }
+            { status: 500 },
           );
         }
       },

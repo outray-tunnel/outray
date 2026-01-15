@@ -10,7 +10,8 @@ const TOKEN_STORAGE_KEY = "admin_token";
 const TOKEN_ISSUED_AT_KEY = "admin_token_issued_at";
 const TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-const isBrowser = typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
+const isBrowser =
+  typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
 
 let tokenExpirationTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -37,7 +38,10 @@ const clearPersistedToken = () => {
   window.sessionStorage.removeItem(TOKEN_ISSUED_AT_KEY);
 };
 
-const loadPersistedToken = (): { token: string | null; issuedAt: number | null } => {
+const loadPersistedToken = (): {
+  token: string | null;
+  issuedAt: number | null;
+} => {
   if (!isBrowser) {
     return { token: null, issuedAt: null };
   }

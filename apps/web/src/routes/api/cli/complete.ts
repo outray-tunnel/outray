@@ -22,7 +22,10 @@ export const Route = createFileRoute("/api/cli/complete")({
           const { code } = body;
 
           if (!code) {
-            return Response.json({ error: "Missing required fields" }, { status: 400 });
+            return Response.json(
+              { error: "Missing required fields" },
+              { status: 400 },
+            );
           }
 
           // Verify session exists and is pending

@@ -27,8 +27,14 @@ export const Route = createFileRoute("/api/admin/tunnels")({
 
         try {
           const url = new URL(request.url);
-          const page = Math.max(1, parseInt(url.searchParams.get("page") || "1") || 1);
-          const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "20") || 20));
+          const page = Math.max(
+            1,
+            parseInt(url.searchParams.get("page") || "1") || 1,
+          );
+          const limit = Math.min(
+            100,
+            Math.max(1, parseInt(url.searchParams.get("limit") || "20") || 20),
+          );
           const search = url.searchParams.get("search") || "";
           const protocol = url.searchParams.get("protocol") || "";
           const activeOnly = url.searchParams.get("active") === "true";
@@ -43,7 +49,7 @@ export const Route = createFileRoute("/api/admin/tunnels")({
               "MATCH",
               "org:*:online_tunnels",
               "COUNT",
-              100
+              100,
             );
             cursor = nextCursor;
             for (const key of keys) {
@@ -59,8 +65,8 @@ export const Route = createFileRoute("/api/admin/tunnels")({
             conditions.push(
               or(
                 like(tunnels.url, `%${search}%`),
-                like(tunnels.name, `%${search}%`)
-              )
+                like(tunnels.name, `%${search}%`),
+              ),
             );
           }
 
@@ -90,7 +96,7 @@ export const Route = createFileRoute("/api/admin/tunnels")({
             conditions.length > 0
               ? sql`${sql.join(
                   conditions.map((c) => sql`(${c})`),
-                  sql` AND `
+                  sql` AND `,
                 )}`
               : undefined;
 
@@ -118,7 +124,10 @@ export const Route = createFileRoute("/api/admin/tunnels")({
             })
             .from(tunnels)
             .leftJoin(users, eq(tunnels.userId, users.id))
-            .leftJoin(organizations, eq(tunnels.organizationId, organizations.id))
+            .leftJoin(
+              organizations,
+              eq(tunnels.organizationId, organizations.id),
+            )
             .orderBy(desc(tunnels.lastSeenAt))
             .limit(limit)
             .offset(offset);
@@ -151,13 +160,16 @@ export const Route = createFileRoute("/api/admin/tunnels")({
               total: totalResult.count,
               active: onlineTunnelIds.size,
               byProtocol: Object.fromEntries(
-                protocolStats.map((p) => [p.protocol, p.count])
+                protocolStats.map((p) => [p.protocol, p.count]),
               ),
             },
           });
         } catch (error) {
           console.error("Admin tunnels error:", error);
-          return Response.json({ error: "Failed to fetch tunnels" }, { status: 500 });
+          return Response.json(
+            { error: "Failed to fetch tunnels" },
+            { status: 500 },
+          );
         }
       },
     },

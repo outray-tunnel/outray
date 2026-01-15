@@ -5,7 +5,11 @@ import { authTokens, organizationSettings } from "../../../db/app-schema";
 import { cliOrgTokens } from "../../../db/auth-schema";
 import { subscriptions } from "../../../db/subscription-schema";
 import { SUBSCRIPTION_PLANS } from "../../../lib/subscription-plans";
-import {rateLimiters, getClientIdentifier, createRateLimitResponse,} from "../../../lib/rate-limiter";
+import {
+  rateLimiters,
+  getClientIdentifier,
+  createRateLimitResponse,
+} from "../../../lib/rate-limiter";
 
 export const Route = createFileRoute("/api/tunnel/auth")({
   server: {

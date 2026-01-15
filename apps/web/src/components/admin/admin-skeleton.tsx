@@ -1,9 +1,5 @@
 export function SkeletonBox({ className = "" }: { className?: string }) {
-  return (
-    <div
-      className={`bg-white/5 rounded-lg animate-pulse ${className}`}
-    />
-  );
+  return <div className={`bg-white/5 rounded-lg animate-pulse ${className}`} />;
 }
 
 export function StatsCardSkeleton() {

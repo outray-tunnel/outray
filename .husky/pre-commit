@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Get staged files matching Prettier patterns
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|json|md|mdx|css|html)$' || true)
+
+# If there are no matching files, exit successfully
+if [ -z "$STAGED_FILES" ]; then
+  exit 0
+fi
+
+# Format staged files with Prettier
+echo "$STAGED_FILES" | xargs npx prettier --write || {
+  echo "Prettier formatting failed. Please run 'npm run format' to fix formatting issues."
+  exit 1
+}
+
+# Re-stage formatted files
+echo "$STAGED_FILES" | xargs git add

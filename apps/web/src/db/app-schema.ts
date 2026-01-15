@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, index, integer, boolean } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  index,
+  integer,
+  boolean,
+} from "drizzle-orm/pg-core";
 import { users, organizations } from "./auth-schema";
 
 export const tunnels = pgTable(
@@ -102,7 +109,9 @@ export const organizationSettings = pgTable(
       .notNull()
       .unique()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    fullCaptureEnabled: boolean("full_capture_enabled").notNull().default(false),
+    fullCaptureEnabled: boolean("full_capture_enabled")
+      .notNull()
+      .default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .$onUpdate(() => new Date())
@@ -157,12 +166,15 @@ export const domainsRelations = relations(domains, ({ one }) => ({
   }),
 }));
 
-export const organizationSettingsRelations = relations(organizationSettings, ({ one }) => ({
-  organization: one(organizations, {
-    fields: [organizationSettings.organizationId],
-    references: [organizations.id],
+export const organizationSettingsRelations = relations(
+  organizationSettings,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [organizationSettings.organizationId],
+      references: [organizations.id],
+    }),
   }),
-}));
+);
 
 export const usersAppRelations = relations(users, ({ many }) => ({
   tunnels: many(tunnels),

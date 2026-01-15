@@ -6,7 +6,9 @@ interface JsonViewerProps {
   initialExpanded?: boolean;
 }
 
-const ExpandAllContext = createContext<{ expandAll: boolean; version: number }>({ expandAll: false, version: 0 });
+const ExpandAllContext = createContext<{ expandAll: boolean; version: number }>(
+  { expandAll: false, version: 0 },
+);
 
 function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
   const { expandAll, version } = useContext(ExpandAllContext);
@@ -86,7 +88,9 @@ function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
               <span className="text-gray-600 mr-2 select-none">{index}:</span>
               <span className="flex-1">
                 <JsonValue value={item} depth={depth + 1} />
-                {index < value.length - 1 && <span className="text-gray-500">,</span>}
+                {index < value.length - 1 && (
+                  <span className="text-gray-500">,</span>
+                )}
               </span>
             </div>
           ))}
@@ -136,7 +140,9 @@ function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
               <span className="text-gray-500 mx-1">:</span>
               <span className="flex-1">
                 <JsonValue value={val} depth={depth + 1} />
-                {index < entries.length - 1 && <span className="text-gray-500">,</span>}
+                {index < entries.length - 1 && (
+                  <span className="text-gray-500">,</span>
+                )}
               </span>
             </div>
           ))}
@@ -155,7 +161,7 @@ export function JsonViewer({ data }: JsonViewerProps) {
 
   const toggleExpandAll = () => {
     setExpandAll(!expandAll);
-    setVersion(v => v + 1);
+    setVersion((v) => v + 1);
   };
 
   return (
@@ -178,7 +184,11 @@ export function JsonViewer({ data }: JsonViewerProps) {
   );
 }
 
-export function formatBody(body: string | null): { isJson: boolean; parsed: unknown; formatted: string } {
+export function formatBody(body: string | null): {
+  isJson: boolean;
+  parsed: unknown;
+  formatted: string;
+} {
   if (!body) {
     return { isJson: false, parsed: null, formatted: "" };
   }

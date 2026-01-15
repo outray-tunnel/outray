@@ -4,9 +4,7 @@ import { db } from "../../../../db";
 import { domains } from "../../../../db/app-schema";
 import { requireOrgFromSlug } from "../../../../lib/org";
 
-export const Route = createFileRoute(
-  "/api/$orgSlug/domains/$domainId",
-)({
+export const Route = createFileRoute("/api/$orgSlug/domains/$domainId")({
   server: {
     handlers: {
       DELETE: async ({ request, params }) => {
@@ -18,7 +16,10 @@ export const Route = createFileRoute(
         }
 
         if (!domainId) {
-          return Response.json({ error: "Domain ID required" }, { status: 400 });
+          return Response.json(
+            { error: "Domain ID required" },
+            { status: 400 },
+          );
         }
 
         const domain = await db.query.domains.findFirst({

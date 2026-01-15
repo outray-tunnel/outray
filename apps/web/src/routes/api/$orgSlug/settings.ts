@@ -25,7 +25,7 @@ export const Route = createFileRoute("/api/$orgSlug/settings")({
           console.error("Error fetching organization settings:", error);
           return Response.json(
             { error: "Failed to fetch settings" },
-            { status: 500 }
+            { status: 500 },
           );
         }
       },
@@ -41,7 +41,7 @@ export const Route = createFileRoute("/api/$orgSlug/settings")({
           if (typeof fullCaptureEnabled !== "boolean") {
             return Response.json(
               { error: "fullCaptureEnabled must be a boolean" },
-              { status: 400 }
+              { status: 400 },
             );
           }
 
@@ -65,7 +65,7 @@ export const Route = createFileRoute("/api/$orgSlug/settings")({
           console.error("Error updating organization settings:", error);
           return Response.json(
             { error: "Failed to update settings" },
-            { status: 500 }
+            { status: 500 },
           );
         }
       },

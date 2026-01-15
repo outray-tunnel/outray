@@ -12,13 +12,16 @@ export function getMockRequestDetails(req: TunnelEvent): RequestDetails {
       "X-Forwarded-For": req.client_ip,
       "X-Request-ID": `req_${req.tunnel_id.slice(0, 8)}`,
     },
-    queryParams:
-      req.path.includes("?")
-        ? Object.fromEntries(new URLSearchParams(req.path.split("?")[1]))
-        : {},
+    queryParams: req.path.includes("?")
+      ? Object.fromEntries(new URLSearchParams(req.path.split("?")[1]))
+      : {},
     body:
       req.method !== "GET" && req.method !== "HEAD"
-        ? JSON.stringify({ example: "request body", timestamp: req.timestamp }, null, 2)
+        ? JSON.stringify(
+            { example: "request body", timestamp: req.timestamp },
+            null,
+            2,
+          )
         : null,
   };
 }
@@ -36,11 +39,12 @@ export function getMockResponseDetails(req: TunnelEvent): ResponseDetails {
     body: JSON.stringify(
       {
         success: req.status_code < 400,
-        data: req.status_code < 400 ? { id: 1, message: "Sample response" } : null,
+        data:
+          req.status_code < 400 ? { id: 1, message: "Sample response" } : null,
         error: req.status_code >= 400 ? "An error occurred" : null,
       },
       null,
-      2
+      2,
     ),
   };
 }
@@ -54,7 +58,10 @@ export function formatBytes(bytes: number, decimals = 0) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
-export function generateCurl(req: TunnelEvent, requestDetails?: RequestDetails): string {
+export function generateCurl(
+  req: TunnelEvent,
+  requestDetails?: RequestDetails,
+): string {
   // Use real request details if available, otherwise fall back to basic info
   const details = requestDetails || {
     headers: {
@@ -62,26 +69,26 @@ export function generateCurl(req: TunnelEvent, requestDetails?: RequestDetails):
       "User-Agent": req.user_agent,
       "X-Forwarded-For": req.client_ip,
     },
-    queryParams: req.path.includes("?") 
+    queryParams: req.path.includes("?")
       ? Object.fromEntries(new URLSearchParams(req.path.split("?")[1]))
       : {},
     body: null,
   };
 
-  const protocol = req.host.includes('localhost') ? 'http' : 'https';
+  const protocol = req.host.includes("localhost") ? "http" : "https";
   let curl = `curl -X ${req.method} '${protocol}://${req.host}${req.path}'`;
-  
+
   // Add headers
   Object.entries(details.headers).forEach(([key, value]) => {
     // Handle both string and string[] values
-    const headerValue = Array.isArray(value) ? value.join(', ') : value;
+    const headerValue = Array.isArray(value) ? value.join(", ") : value;
     curl += ` \\\n  -H '${key}: ${headerValue}'`;
   });
-  
+
   // Add body if present
   if (details.body) {
     curl += ` \\\n  -d '${details.body.replace(/'/g, "'\\''")}'`;
   }
-  
+
   return curl;
 }

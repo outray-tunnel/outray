@@ -20,7 +20,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
         }
 
         if (!tunnelId) {
-          return Response.json({ error: "Tunnel ID required" }, { status: 400 });
+          return Response.json(
+            { error: "Tunnel ID required" },
+            { status: 400 },
+          );
         }
 
         const [tunnel] = await db
@@ -199,7 +202,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
           });
         } catch (error) {
           console.error("Failed to fetch tunnel stats:", error);
-          return Response.json({ error: "Failed to fetch stats" }, { status: 500 });
+          return Response.json(
+            { error: "Failed to fetch stats" },
+            { status: 500 },
+          );
         }
       },
     },

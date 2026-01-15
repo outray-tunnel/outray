@@ -1,4 +1,9 @@
-import { createFileRoute, Outlet, useLocation, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  useLocation,
+  useRouter,
+} from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { appClient } from "@/lib/app-client";
@@ -129,13 +134,19 @@ function AdminOverview({ token }: { token: string }) {
 
         // Check for auth errors and clear token if unauthorized
         if ("error" in overviewRes) {
-          if (overviewRes.error === "Unauthorized" || overviewRes.error === "Forbidden") {
+          if (
+            overviewRes.error === "Unauthorized" ||
+            overviewRes.error === "Forbidden"
+          ) {
             clearToken();
             return;
           }
         }
         if ("error" in statsRes) {
-          if (statsRes.error === "Unauthorized" || statsRes.error === "Forbidden") {
+          if (
+            statsRes.error === "Unauthorized" ||
+            statsRes.error === "Forbidden"
+          ) {
             clearToken();
             return;
           }
@@ -149,7 +160,7 @@ function AdminOverview({ token }: { token: string }) {
             statsRes.map((d: any) => ({
               ...d,
               time: new Date(d.time.replace(" ", "T")).getTime(),
-            }))
+            })),
           );
         }
       } catch (error) {
@@ -249,9 +260,7 @@ function AdminOverview({ token }: { token: string }) {
                 <Activity size={18} className="text-accent" />
                 Active Tunnels
               </h3>
-              <p className="text-sm text-gray-500">
-                Tunnel activity over time
-              </p>
+              <p className="text-sm text-gray-500">Tunnel activity over time</p>
             </div>
             <div className="flex bg-white/5 rounded-lg p-1">
               {["1h", "24h", "7d", "30d"].map((p) => (
@@ -371,7 +380,11 @@ function AdminOverview({ token }: { token: string }) {
                     }}
                     itemStyle={{ color: "#fff" }}
                     labelStyle={{ color: "#9ca3af" }}
-                    formatter={(value, name) => [value, String(name).charAt(0).toUpperCase() + String(name).slice(1)]}
+                    formatter={(value, name) => [
+                      value,
+                      String(name).charAt(0).toUpperCase() +
+                        String(name).slice(1),
+                    ]}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -396,7 +409,9 @@ function AdminOverview({ token }: { token: string }) {
                   <span className="text-gray-400 capitalize">{plan}</span>
                 </div>
                 <span className="text-white font-medium">
-                  {(overview?.subscriptions?.byPlan?.[plan] || 0).toLocaleString()}
+                  {(
+                    overview?.subscriptions?.byPlan?.[plan] || 0
+                  ).toLocaleString()}
                 </span>
               </div>
             ))}

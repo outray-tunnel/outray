@@ -136,7 +136,7 @@ export const appClient = {
 
     users: async (
       token: string,
-      params: { page?: number; limit?: number; search?: string }
+      params: { page?: number; limit?: number; search?: string },
     ) =>
       apiCall<{
         users: Array<{
@@ -159,7 +159,7 @@ export const appClient = {
 
     organizations: async (
       token: string,
-      params: { page?: number; limit?: number; search?: string }
+      params: { page?: number; limit?: number; search?: string },
     ) =>
       apiCall<{
         organizations: Array<{
@@ -182,7 +182,7 @@ export const appClient = {
 
     subscriptions: async (
       token: string,
-      params: { page?: number; limit?: number; plan?: string }
+      params: { page?: number; limit?: number; plan?: string },
     ) =>
       apiCall<{
         subscriptions: Array<{
@@ -221,7 +221,7 @@ export const appClient = {
         search?: string;
         protocol?: string;
         active?: boolean;
-      }
+      },
     ) =>
       apiCall<{
         tunnels: Array<{
@@ -260,7 +260,11 @@ export const appClient = {
         hourlyRequests: Array<{ hour: string; requests: number }>;
         verificationStatus: Array<{ verified: boolean; count: number }>;
         subStatus: Array<{ status: string; count: number }>;
-        topOrgsByTunnels: Array<{ orgId: string; orgName: string; tunnelCount: number }>;
+        topOrgsByTunnels: Array<{
+          orgId: string;
+          orgName: string;
+          tunnelCount: number;
+        }>;
         weeklyTunnelTrend: Array<{ day: string; avg: number; max: number }>;
         cumulativeGrowth: Array<{ date: string; total: number }>;
       }>("get", `/api/admin/charts`, {
@@ -292,7 +296,12 @@ export const appClient = {
           subdomains: number;
           domains: number;
         };
-        members: Array<{ id: string; userId: string; role: string; createdAt: Date }>;
+        members: Array<{
+          id: string;
+          userId: string;
+          role: string;
+          createdAt: Date;
+        }>;
       }>("get", `/api/admin/organizations/${slug}`, {
         headers: { Authorization: `Bearer ${token}` },
       }),
@@ -300,12 +309,16 @@ export const appClient = {
     updateOrganization: async (
       token: string,
       slug: string,
-      data: { name?: string; slug?: string; plan?: string; status?: string }
+      data: { name?: string; slug?: string; plan?: string; status?: string },
     ) =>
-      apiCall<{ success: boolean }>("patch", `/api/admin/organizations/${slug}`, {
-        data,
-        headers: { Authorization: `Bearer ${token}` },
-      }),
+      apiCall<{ success: boolean }>(
+        "patch",
+        `/api/admin/organizations/${slug}`,
+        {
+          data,
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      ),
   },
 
   cli: {
@@ -317,9 +330,13 @@ export const appClient = {
 
   organizations: {
     checkSlug: async (slug: string) =>
-      apiCall<{ available: boolean; reason?: "reserved" | "taken" }>("post", `/api/organizations/check-slug`, {
-        data: { slug },
-      }),
+      apiCall<{ available: boolean; reason?: "reserved" | "taken" }>(
+        "post",
+        `/api/organizations/check-slug`,
+        {
+          data: { slug },
+        },
+      ),
   },
 
   tunnels: {

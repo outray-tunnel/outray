@@ -34,7 +34,10 @@ export const Route = createFileRoute("/api/tunnel/check-subdomain")({
             if (organizationId && record.organizationId === organizationId) {
               return Response.json({ allowed: true, type: "owned" });
             }
-            return Response.json({ allowed: false, error: "Subdomain already taken" });
+            return Response.json({
+              allowed: false,
+              error: "Subdomain already taken",
+            });
           }
 
           // Only check limits if explicitly requested (for subdomain reservation, not tunnel use)

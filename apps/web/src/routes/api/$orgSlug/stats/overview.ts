@@ -200,7 +200,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
             chartParams = [organizationId, `${days} days`];
           }
 
-          const chartDataResult = await tigerData.query(chartQuery, chartParams);
+          const chartDataResult = await tigerData.query(
+            chartQuery,
+            chartParams,
+          );
           const chartData = chartDataResult.rows;
 
           return Response.json({
@@ -217,7 +220,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
           });
         } catch (error) {
           console.error("Failed to fetch stats overview:", error);
-          return Response.json({ error: "Failed to fetch stats" }, { status: 500 });
+          return Response.json(
+            { error: "Failed to fetch stats" },
+            { status: 500 },
+          );
         }
       },
     },

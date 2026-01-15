@@ -60,7 +60,10 @@ export const Route = createFileRoute("/api/$orgSlug/auth-tokens")({
         const { id } = body as { id?: string };
 
         if (!id) {
-          return Response.json({ error: "Token ID is required" }, { status: 400 });
+          return Response.json(
+            { error: "Token ID is required" },
+            { status: 400 },
+          );
         }
 
         await db

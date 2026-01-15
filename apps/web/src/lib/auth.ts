@@ -120,6 +120,5 @@ export const auth = betterAuth({
         }
       }
     }),
-    
   },
 });

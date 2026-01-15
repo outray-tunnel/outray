@@ -28,7 +28,9 @@ function RequestsView() {
   const [requests, setRequests] = useState<TunnelEvent[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>("live");
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<TunnelEvent | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<TunnelEvent | null>(
+    null,
+  );
   const { orgSlug } = Route.useParams();
   const { data: organizations = [] } = authClient.useListOrganizations();
   const activeOrgId = organizations?.find((org) => org.slug === orgSlug)?.id;
@@ -103,7 +105,7 @@ function RequestsView() {
         }
 
         const { token } = await tokenResponse.json();
-        
+
         if (cancelled) return;
 
         const wsUrl = import.meta.env.VITE_TUNNEL_URL;
@@ -166,7 +168,7 @@ function RequestsView() {
           (req) =>
             req.path.toLowerCase().includes(searchTerm.toLowerCase()) ||
             req.method.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            req.host.toLowerCase().includes(searchTerm.toLowerCase())
+            req.host.toLowerCase().includes(searchTerm.toLowerCase()),
         )
       : requests;
 
@@ -270,7 +272,10 @@ function RequestsView() {
             <tbody className="divide-y divide-white/5">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  <td
+                    colSpan={8}
+                    className="px-4 py-8 text-center text-gray-500"
+                  >
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                       Loading requests...
@@ -279,7 +284,10 @@ function RequestsView() {
                 </tr>
               ) : filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  <td
+                    colSpan={8}
+                    className="px-4 py-8 text-center text-gray-500"
+                  >
                     {timeRange === "live"
                       ? "Waiting for requests..."
                       : "No requests found in this time range"}
@@ -305,7 +313,9 @@ function RequestsView() {
                         {req.status_code}
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-mono text-gray-300">{req.method}</td>
+                    <td className="px-4 py-3 font-mono text-gray-300">
+                      {req.method}
+                    </td>
                     <td
                       className="px-4 py-3 text-gray-300 max-w-xs truncate"
                       title={req.path}

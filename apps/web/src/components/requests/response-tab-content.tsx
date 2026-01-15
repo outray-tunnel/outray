@@ -8,9 +8,13 @@ interface ResponseTabContentProps {
   onCopy: (text: string, field: string) => void;
 }
 
-export function ResponseTabContent({ details, copiedField, onCopy }: ResponseTabContentProps) {
+export function ResponseTabContent({
+  details,
+  copiedField,
+  onCopy,
+}: ResponseTabContentProps) {
   const formatHeaderValue = (value: string | string[]): string => {
-    return Array.isArray(value) ? value.join(', ') : value;
+    return Array.isArray(value) ? value.join(", ") : value;
   };
 
   const bodyInfo = formatBody(details.body);
@@ -22,17 +26,25 @@ export function ResponseTabContent({ details, copiedField, onCopy }: ResponseTab
         <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
           <span className="text-sm font-medium text-white">Headers</span>
           <button
-            onClick={() => onCopy(JSON.stringify(details.headers, null, 2), "res-headers")}
+            onClick={() =>
+              onCopy(JSON.stringify(details.headers, null, 2), "res-headers")
+            }
             className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
           >
-            {copiedField === "res-headers" ? <Check size={14} /> : <Copy size={14} />}
+            {copiedField === "res-headers" ? (
+              <Check size={14} />
+            ) : (
+              <Copy size={14} />
+            )}
           </button>
         </div>
         <div className="p-4 space-y-2 text-sm font-mono">
           {Object.entries(details.headers).map(([key, value]) => (
             <div key={key} className="flex gap-2">
               <span className="text-accent">{key}:</span>
-              <span className="text-gray-300 break-all">{formatHeaderValue(value)}</span>
+              <span className="text-gray-300 break-all">
+                {formatHeaderValue(value)}
+              </span>
             </div>
           ))}
         </div>
@@ -45,21 +57,34 @@ export function ResponseTabContent({ details, copiedField, onCopy }: ResponseTab
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-white">Body</span>
               {bodyInfo.isJson && (
-                <span className="text-xs px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded">JSON</span>
+                <span className="text-xs px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded">
+                  JSON
+                </span>
               )}
             </div>
             <button
-              onClick={() => onCopy(bodyInfo.isJson ? bodyInfo.formatted : details.body!, "res-body")}
+              onClick={() =>
+                onCopy(
+                  bodyInfo.isJson ? bodyInfo.formatted : details.body!,
+                  "res-body",
+                )
+              }
               className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
             >
-              {copiedField === "res-body" ? <Check size={14} /> : <Copy size={14} />}
+              {copiedField === "res-body" ? (
+                <Check size={14} />
+              ) : (
+                <Copy size={14} />
+              )}
             </button>
           </div>
           <div className="p-4 overflow-x-auto">
             {bodyInfo.isJson ? (
               <JsonViewer data={bodyInfo.parsed} />
             ) : (
-              <pre className="text-sm font-mono text-gray-300">{details.body}</pre>
+              <pre className="text-sm font-mono text-gray-300">
+                {details.body}
+              </pre>
             )}
           </div>
         </div>

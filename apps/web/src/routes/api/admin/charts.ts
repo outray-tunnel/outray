@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { db } from "../../../db";
-import { users, organizations, tunnels, subscriptions } from "../../../db/schema";
+import {
+  users,
+  organizations,
+  tunnels,
+  subscriptions,
+} from "../../../db/schema";
 import { redis } from "../../../lib/redis";
 import { hashToken } from "../../../lib/hash";
 import { sql, count, gte, desc, eq } from "drizzle-orm";
@@ -29,7 +34,9 @@ export const Route = createFileRoute("/api/admin/charts")({
           const now = new Date();
 
           // User signups over time (last 30 days, daily)
-          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          const thirtyDaysAgo = new Date(
+            now.getTime() - 30 * 24 * 60 * 60 * 1000,
+          );
           const userSignups = await db
             .select({
               date: sql<string>`DATE(${users.createdAt})`.as("date"),
@@ -91,7 +98,10 @@ export const Route = createFileRoute("/api/admin/charts")({
           } catch (e) {
             // TimescaleDB might not be available; log in non-production for debugging
             if (process.env.NODE_ENV !== "production") {
-              console.error("Failed to fetch hourly request activity from TimescaleDB:", e);
+              console.error(
+                "Failed to fetch hourly request activity from TimescaleDB:",
+                e,
+              );
             }
           }
 
@@ -121,13 +131,17 @@ export const Route = createFileRoute("/api/admin/charts")({
               tunnelCount: count(),
             })
             .from(tunnels)
-            .leftJoin(organizations, eq(tunnels.organizationId, organizations.id))
+            .leftJoin(
+              organizations,
+              eq(tunnels.organizationId, organizations.id),
+            )
             .groupBy(tunnels.organizationId, organizations.name)
             .orderBy(desc(count()))
             .limit(10);
 
           // Weekly active tunnels trend (from TimescaleDB)
-          let weeklyTunnelTrend: { day: string; avg: number; max: number }[] = [];
+          let weeklyTunnelTrend: { day: string; avg: number; max: number }[] =
+            [];
           try {
             const result = await tigerData.query(`
               SELECT 
@@ -178,7 +192,10 @@ export const Route = createFileRoute("/api/admin/charts")({
           });
         } catch (error) {
           console.error("Admin charts error:", error);
-          return Response.json({ error: "Failed to fetch chart data" }, { status: 500 });
+          return Response.json(
+            { error: "Failed to fetch chart data" },
+            { status: 500 },
+          );
         }
       },
     },

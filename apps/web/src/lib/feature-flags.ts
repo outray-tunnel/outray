@@ -1,7 +1,4 @@
-type FeatureFlag =
-  | "request_inspector"
-  | "request_replay"
-  | "full_capture";
+type FeatureFlag = "request_inspector" | "request_replay" | "full_capture";
 
 const FLAGS: Record<FeatureFlag, boolean> = {
   request_inspector: false,

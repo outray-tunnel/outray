@@ -167,7 +167,7 @@ class RequestCaptureLogger {
       captures.forEach((capture, i) => {
         const offset = i * 11;
         placeholders.push(
-          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11})`
+          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11})`,
         );
         values.push(
           capture.id,
@@ -180,7 +180,7 @@ class RequestCaptureLogger {
           capture.request_body_size,
           JSON.stringify(capture.response_headers),
           capture.response_body,
-          capture.response_body_size
+          capture.response_body_size,
         );
       });
 

@@ -1,7 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Building2, Users, Network, Globe, Crown, Save, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  Users,
+  Network,
+  Globe,
+  Crown,
+  Save,
+  Loader2,
+} from "lucide-react";
 import { appClient } from "@/lib/app-client";
 import { useAdminStore } from "@/lib/admin-store";
 
@@ -52,16 +61,30 @@ function AdminOrganizationDetailPage() {
   }
 
   const updateMutation = useMutation({
-    mutationFn: async (updates: { name?: string; slug?: string; plan?: string; status?: string }) => {
-      const res = await appClient.admin.updateOrganization(token!, slug, updates);
+    mutationFn: async (updates: {
+      name?: string;
+      slug?: string;
+      plan?: string;
+      status?: string;
+    }) => {
+      const res = await appClient.admin.updateOrganization(
+        token!,
+        slug,
+        updates,
+      );
       if ("error" in res) throw new Error(res.error);
       return res;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "organization", slug] });
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "organization", slug],
+      });
       queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
       if (orgSlug !== slug) {
-        navigate({ to: "/admin/organizations/$slug", params: { slug: orgSlug } });
+        navigate({
+          to: "/admin/organizations/$slug",
+          params: { slug: orgSlug },
+        });
       }
     },
   });
@@ -77,12 +100,12 @@ function AdminOrganizationDetailPage() {
     }
   };
 
-  const hasChanges = data && (
-    name !== data.organization.name ||
-    orgSlug !== data.organization.slug ||
-    plan !== data.subscription.plan ||
-    status !== data.subscription.status
-  );
+  const hasChanges =
+    data &&
+    (name !== data.organization.name ||
+      orgSlug !== data.organization.slug ||
+      plan !== data.subscription.plan ||
+      status !== data.subscription.status);
 
   if (!token || isLoading) {
     return (
@@ -107,7 +130,11 @@ function AdminOrganizationDetailPage() {
   const formatDate = (date: Date | string | null) => {
     if (!date) return "-";
     return new Date(date).toLocaleDateString("en-US", {
-      month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -124,18 +151,26 @@ function AdminOrganizationDetailPage() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           {data.organization.logo ? (
-            <img src={data.organization.logo} alt={data.organization.name} className="w-12 h-12 rounded-xl" />
+            <img
+              src={data.organization.logo}
+              alt={data.organization.name}
+              className="w-12 h-12 rounded-xl"
+            />
           ) : (
             <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
               <Building2 size={24} className="text-gray-400" />
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-white">{data.organization.name}</h1>
+            <h1 className="text-2xl font-bold text-white">
+              {data.organization.name}
+            </h1>
             <p className="text-sm text-gray-500">/{data.organization.slug}</p>
           </div>
         </div>
-        <span className={`px-3 py-1.5 rounded-lg text-sm font-medium border capitalize ${planColors[data.subscription.plan] || planColors.free}`}>
+        <span
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium border capitalize ${planColors[data.subscription.plan] || planColors.free}`}
+        >
           {data.subscription.plan}
         </span>
       </div>
@@ -144,12 +179,23 @@ function AdminOrganizationDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         {[
           { label: "Members", value: data.stats.members, icon: Users },
-          { label: "Active Tunnels", value: data.stats.activeTunnels, icon: Network },
-          { label: "Total Tunnels", value: data.stats.totalTunnels, icon: Network },
+          {
+            label: "Active Tunnels",
+            value: data.stats.activeTunnels,
+            icon: Network,
+          },
+          {
+            label: "Total Tunnels",
+            value: data.stats.totalTunnels,
+            icon: Network,
+          },
           { label: "Subdomains", value: data.stats.subdomains, icon: Globe },
           { label: "Domains", value: data.stats.domains, icon: Globe },
         ].map((stat) => (
-          <div key={stat.label} className="bg-white/2 border border-white/5 rounded-xl p-4">
+          <div
+            key={stat.label}
+            className="bg-white/2 border border-white/5 rounded-xl p-4"
+          >
             <div className="flex items-center gap-2 text-gray-500 mb-1">
               <stat.icon size={14} />
               <span className="text-xs">{stat.label}</span>
@@ -168,13 +214,25 @@ function AdminOrganizationDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm text-gray-400 mb-2">Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20" />
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20"
+            />
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-2">Slug</label>
-            <input type="text" value={orgSlug} onChange={(e) => setOrgSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20" />
+            <input
+              type="text"
+              value={orgSlug}
+              onChange={(e) =>
+                setOrgSlug(
+                  e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+                )
+              }
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20"
+            />
           </div>
         </div>
       </div>
@@ -188,28 +246,48 @@ function AdminOrganizationDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm text-gray-400 mb-2">Plan</label>
-            <select value={plan} onChange={(e) => setPlan(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20">
+            <select
+              value={plan}
+              onChange={(e) => setPlan(e.target.value)}
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20"
+            >
               {PLANS.map((p) => (
-                <option key={p} value={p} className="bg-[#0a0a0a]">{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                <option key={p} value={p} className="bg-[#0a0a0a]">
+                  {p.charAt(0).toUpperCase() + p.slice(1)}
+                </option>
               ))}
             </select>
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-2">Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20">
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20"
+            >
               {STATUSES.map((s) => (
-                <option key={s} value={s} className="bg-[#0a0a0a]">{s.charAt(0).toUpperCase() + s.slice(1).replace("_", " ")}</option>
+                <option key={s} value={s} className="bg-[#0a0a0a]">
+                  {s.charAt(0).toUpperCase() + s.slice(1).replace("_", " ")}
+                </option>
               ))}
             </select>
           </div>
         </div>
         {data.subscription.polarSubscriptionId && (
           <div className="mt-4 pt-4 border-t border-white/5">
-            <p className="text-xs text-gray-500">Polar Subscription: <span className="text-gray-400">{data.subscription.polarSubscriptionId}</span></p>
+            <p className="text-xs text-gray-500">
+              Polar Subscription:{" "}
+              <span className="text-gray-400">
+                {data.subscription.polarSubscriptionId}
+              </span>
+            </p>
             {data.subscription.currentPeriodEnd && (
-              <p className="text-xs text-gray-500 mt-1">Current Period Ends: <span className="text-gray-400">{formatDate(data.subscription.currentPeriodEnd)}</span></p>
+              <p className="text-xs text-gray-500 mt-1">
+                Current Period Ends:{" "}
+                <span className="text-gray-400">
+                  {formatDate(data.subscription.currentPeriodEnd)}
+                </span>
+              </p>
             )}
           </div>
         )}
@@ -218,9 +296,16 @@ function AdminOrganizationDetailPage() {
       {/* Save Button */}
       {hasChanges && (
         <div className="flex justify-end">
-          <button onClick={handleSave} disabled={updateMutation.isPending}
-            className="flex items-center gap-2 px-6 py-2.5 bg-accent text-black rounded-xl font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
-            {updateMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          <button
+            onClick={handleSave}
+            disabled={updateMutation.isPending}
+            className="flex items-center gap-2 px-6 py-2.5 bg-accent text-black rounded-xl font-medium hover:bg-accent/90 transition-all disabled:opacity-50"
+          >
+            {updateMutation.isPending ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Save size={16} />
+            )}
             Save Changes
           </button>
         </div>

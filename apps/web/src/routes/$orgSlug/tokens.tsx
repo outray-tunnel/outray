@@ -59,8 +59,6 @@ function TokensSettingsView() {
     },
   });
 
-
-
   return (
     <div className="space-y-6">
       <div className="bg-white/2 border border-white/5 rounded-2xl overflow-hidden">

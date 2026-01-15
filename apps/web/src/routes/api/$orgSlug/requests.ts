@@ -75,19 +75,31 @@ export const Route = createFileRoute("/api/$orgSlug/requests")({
           });
         } catch (error) {
           console.error("Failed to fetch requests:", error);
-          
+
           // Provide more specific error messages
           let errorMessage = "Failed to fetch requests";
           if (error instanceof Error) {
-            if (error.message.includes('SSL') || error.message.includes('ssl')) {
-              errorMessage = "Database SSL connection error. Please check TimescaleDB configuration.";
-            } else if (error.message.includes('connect') || error.message.includes('connection')) {
-              errorMessage = "Unable to connect to TimescaleDB. Please check database URL and network connectivity.";
-            } else if (error.message.includes('authentication') || error.message.includes('password')) {
-              errorMessage = "Database authentication failed. Please check credentials.";
+            if (
+              error.message.includes("SSL") ||
+              error.message.includes("ssl")
+            ) {
+              errorMessage =
+                "Database SSL connection error. Please check TimescaleDB configuration.";
+            } else if (
+              error.message.includes("connect") ||
+              error.message.includes("connection")
+            ) {
+              errorMessage =
+                "Unable to connect to TimescaleDB. Please check database URL and network connectivity.";
+            } else if (
+              error.message.includes("authentication") ||
+              error.message.includes("password")
+            ) {
+              errorMessage =
+                "Database authentication failed. Please check credentials.";
             }
           }
-          
+
           return Response.json({ error: errorMessage }, { status: 500 });
         }
       },

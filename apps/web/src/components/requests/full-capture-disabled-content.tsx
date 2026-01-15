@@ -6,7 +6,10 @@ interface FullCaptureDisabledContentProps {
   orgSlug: string;
 }
 
-export function FullCaptureDisabledContent({ request, orgSlug }: FullCaptureDisabledContentProps) {
+export function FullCaptureDisabledContent({
+  request,
+  orgSlug,
+}: FullCaptureDisabledContentProps) {
   return (
     <div className="space-y-6">
       {/* Info banner */}
@@ -16,9 +19,12 @@ export function FullCaptureDisabledContent({ request, orgSlug }: FullCaptureDisa
             <span className="text-accent text-xs">i</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white mb-1">Full capture is disabled</p>
+            <p className="text-sm font-medium text-white mb-1">
+              Full capture is disabled
+            </p>
             <p className="text-sm text-gray-400 mb-3">
-              Only basic request metadata is available. Enable full capture to inspect headers, body, and replay requests.
+              Only basic request metadata is available. Enable full capture to
+              inspect headers, body, and replay requests.
             </p>
             <div className="flex items-center gap-4 flex-wrap">
               <a
@@ -48,7 +54,8 @@ export function FullCaptureDisabledContent({ request, orgSlug }: FullCaptureDisa
           <div className="flex justify-between">
             <span className="text-gray-500">URL</span>
             <span className="text-gray-300 font-mono">
-              https://{request.host}{request.path}
+              https://{request.host}
+              {request.path}
             </span>
           </div>
           <div className="flex justify-between">
@@ -57,7 +64,9 @@ export function FullCaptureDisabledContent({ request, orgSlug }: FullCaptureDisa
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Status</span>
-            <span className="text-gray-300 font-mono">{request.status_code}</span>
+            <span className="text-gray-300 font-mono">
+              {request.status_code}
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Client IP</span>
@@ -65,11 +74,15 @@ export function FullCaptureDisabledContent({ request, orgSlug }: FullCaptureDisa
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Duration</span>
-            <span className="text-gray-300 font-mono">{request.request_duration_ms}ms</span>
+            <span className="text-gray-300 font-mono">
+              {request.request_duration_ms}ms
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Size</span>
-            <span className="text-gray-300 font-mono">{formatBytes(request.bytes_in + request.bytes_out)}</span>
+            <span className="text-gray-300 font-mono">
+              {formatBytes(request.bytes_in + request.bytes_out)}
+            </span>
           </div>
         </div>
       </div>
@@ -96,7 +109,11 @@ export function FullCaptureDisabledContent({ request, orgSlug }: FullCaptureDisa
         </div>
         <div className="p-4 space-y-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-4 bg-white/10 rounded" style={{ width: `${80 - i * 15}%` }} />
+            <div
+              key={i}
+              className="h-4 bg-white/10 rounded"
+              style={{ width: `${80 - i * 15}%` }}
+            />
           ))}
         </div>
       </div>

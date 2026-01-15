@@ -17,7 +17,7 @@ export const RESERVED_SLUGS = [
   "callback",
   "oauth",
   "sso",
-  
+
   // Account & user management
   "account",
   "accounts",
@@ -28,7 +28,7 @@ export const RESERVED_SLUGS = [
   "preferences",
   "dashboard",
   "onboarding",
-  
+
   // Organization-related
   "org",
   "orgs",
@@ -38,7 +38,7 @@ export const RESERVED_SLUGS = [
   "teams",
   "workspace",
   "workspaces",
-  
+
   // Billing & subscriptions
   "billing",
   "subscription",
@@ -50,7 +50,7 @@ export const RESERVED_SLUGS = [
   "payments",
   "invoice",
   "invoices",
-  
+
   // Support & help
   "help",
   "support",
@@ -59,7 +59,7 @@ export const RESERVED_SLUGS = [
   "faq",
   "contact",
   "feedback",
-  
+
   // Legal & compliance
   "terms",
   "privacy",
@@ -68,7 +68,7 @@ export const RESERVED_SLUGS = [
   "compliance",
   "gdpr",
   "cookies",
-  
+
   // Marketing & public pages
   "about",
   "blog",
@@ -82,7 +82,7 @@ export const RESERVED_SLUGS = [
   "features",
   "home",
   "landing",
-  
+
   // Product & branding
   "outray",
   "tunnel",
@@ -93,7 +93,7 @@ export const RESERVED_SLUGS = [
   "status",
   "health",
   "healthcheck",
-  
+
   // Infrastructure & technical
   "www",
   "mail",
@@ -108,7 +108,7 @@ export const RESERVED_SLUGS = [
   "uploads",
   "download",
   "downloads",
-  
+
   // Common reserved words
   "root",
   "system",
@@ -125,7 +125,7 @@ export const RESERVED_SLUGS = [
   "production",
   "dev",
   "development",
-  
+
   // Webhooks & integrations
   "webhook",
   "webhooks",
@@ -133,7 +133,7 @@ export const RESERVED_SLUGS = [
   "integrations",
   "connect",
   "callback",
-  
+
   // Misc reserved
   "new",
   "create",
@@ -159,7 +159,7 @@ export const RESERVED_SLUGS = [
   "audit",
   "cli",
   "cron",
-  
+
   // Programming languages
   "javascript",
   "typescript",
@@ -206,7 +206,7 @@ export const RESERVED_SLUGS = [
   "graphql",
   "wasm",
   "webassembly",
-  
+
   // Frontend frameworks & libraries
   "react",
   "reactjs",
@@ -230,7 +230,7 @@ export const RESERVED_SLUGS = [
   "stencil",
   "qwik",
   "astro",
-  
+
   // Backend frameworks
   "express",
   "expressjs",
@@ -276,7 +276,7 @@ export const RESERVED_SLUGS = [
   "redwoodjs",
   "blitz",
   "blitzjs",
-  
+
   // Mobile frameworks
   "flutter",
   "reactnative",
@@ -291,7 +291,7 @@ export const RESERVED_SLUGS = [
   "compose",
   "nativescript",
   "expo",
-  
+
   // CSS frameworks & tools
   "tailwind",
   "tailwindcss",
@@ -320,7 +320,7 @@ export const RESERVED_SLUGS = [
   "shadcn",
   "daisyui",
   "headlessui",
-  
+
   // Build tools & bundlers
   "webpack",
   "vite",
@@ -343,7 +343,7 @@ export const RESERVED_SLUGS = [
   "npm",
   "yarn",
   "pnpm",
-  
+
   // Testing frameworks
   "jest",
   "mocha",
@@ -371,7 +371,7 @@ export const RESERVED_SLUGS = [
   "supertest",
   "storybook",
   "chromatic",
-  
+
   // Databases
   "postgres",
   "postgresql",
@@ -416,7 +416,7 @@ export const RESERVED_SLUGS = [
   "tigerdata",
   "clickhouse",
   "duckdb",
-  
+
   // Cloud & infrastructure
   "aws",
   "amazon",
@@ -457,7 +457,7 @@ export const RESERVED_SLUGS = [
   "consul",
   "vault",
   "nomad",
-  
+
   // DevOps & CI/CD
   "github",
   "gitlab",
@@ -477,7 +477,7 @@ export const RESERVED_SLUGS = [
   "octopus",
   "flux",
   "fluxcd",
-  
+
   // API & communication
   "rest",
   "restful",
@@ -512,7 +512,7 @@ export const RESERVED_SLUGS = [
   "langchain",
   "llamaindex",
   "huggingface",
-  
+
   // State management
   "redux",
   "mobx",
@@ -527,7 +527,7 @@ export const RESERVED_SLUGS = [
   "akita",
   "effector",
   "nanostores",
-  
+
   // Auth & identity
   "oauth",
   "oauth2",
@@ -544,7 +544,7 @@ export const RESERVED_SLUGS = [
   "keycloak",
   "cognito",
   "firebase-auth",
-  
+
   // Monitoring & observability
   "datadog",
   "newrelic",
@@ -570,7 +570,7 @@ export const RESERVED_SLUGS = [
   "matomo",
   "pagerduty",
   "opsgenie",
-  
+
   // SDKs & platforms
   "sdk",
   "sdks",

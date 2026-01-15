@@ -8,10 +8,7 @@ import { TCPProxy } from "./core/TCPProxy";
 import { UDPProxy } from "./core/UDPProxy";
 import { LogManager } from "./core/LogManager";
 import { config } from "./config";
-import {
-  checkTimescaleDBConnection,
-  shutdownLoggers,
-} from "./lib/tigerdata";
+import { checkTimescaleDBConnection, shutdownLoggers } from "./lib/tigerdata";
 
 const redis = new Redis(config.redisUrl, {
   lazyConnect: true,
@@ -94,7 +91,7 @@ async function validateDashboardToken(token: string): Promise<{
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${internalApiSecret}`,
+        Authorization: `Bearer ${internalApiSecret}`,
       },
       body: JSON.stringify({ token }),
     });
@@ -183,10 +180,10 @@ const shutdown = async () => {
   wsHandler.shutdown();
   await router.shutdown();
   await redis.quit();
-  
+
   // Flush buffered logs and close database connection
   await shutdownLoggers();
-  
+
   httpServer.close(() => process.exit(0));
 };
 

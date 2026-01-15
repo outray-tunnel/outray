@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { db } from "../../../db";
-import { organizations, members, tunnels, subscriptions } from "../../../db/schema";
+import {
+  organizations,
+  members,
+  tunnels,
+  subscriptions,
+} from "../../../db/schema";
 import { redis } from "../../../lib/redis";
 import { hashToken } from "../../../lib/hash";
 import { count, desc, like, or, inArray, gte, and } from "drizzle-orm";
@@ -30,7 +35,10 @@ export const Route = createFileRoute("/api/admin/organizations")({
           const pageParam = parseInt(url.searchParams.get("page") || "1");
           const limitParam = parseInt(url.searchParams.get("limit") || "20");
           const page = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
-          const limit = Number.isNaN(limitParam) || limitParam < 1 ? 20 : Math.min(limitParam, 100);
+          const limit =
+            Number.isNaN(limitParam) || limitParam < 1
+              ? 20
+              : Math.min(limitParam, 100);
           const search = url.searchParams.get("search") || "";
           const offset = (page - 1) * limit;
 
@@ -38,7 +46,7 @@ export const Route = createFileRoute("/api/admin/organizations")({
           const searchCondition = search
             ? or(
                 like(organizations.name, `%${search}%`),
-                like(organizations.slug, `%${search}%`)
+                like(organizations.slug, `%${search}%`),
               )
             : undefined;
 
@@ -79,7 +87,7 @@ export const Route = createFileRoute("/api/admin/organizations")({
               : [];
 
           const memberCountMap = new Map(
-            memberCounts.map((mc) => [mc.organizationId, mc.count])
+            memberCounts.map((mc) => [mc.organizationId, mc.count]),
           );
 
           // Get tunnel counts (active tunnels - seen in last 5 minutes)
@@ -95,14 +103,14 @@ export const Route = createFileRoute("/api/admin/organizations")({
                   .where(
                     and(
                       inArray(tunnels.organizationId, orgIds),
-                      gte(tunnels.lastSeenAt, fiveMinutesAgo)
-                    )
+                      gte(tunnels.lastSeenAt, fiveMinutesAgo),
+                    ),
                   )
                   .groupBy(tunnels.organizationId)
               : [];
 
           const tunnelCountMap = new Map(
-            tunnelCounts.map((tc) => [tc.organizationId, tc.count])
+            tunnelCounts.map((tc) => [tc.organizationId, tc.count]),
           );
 
           // Get subscription plans
@@ -122,7 +130,7 @@ export const Route = createFileRoute("/api/admin/organizations")({
             subscriptionPlans.map((s) => [
               s.organizationId,
               { plan: s.plan, status: s.status },
-            ])
+            ]),
           );
 
           const orgsWithMeta = orgList.map((org) => ({
@@ -145,7 +153,7 @@ export const Route = createFileRoute("/api/admin/organizations")({
           console.error("Admin organizations error:", error);
           return Response.json(
             { error: "Failed to fetch organizations" },
-            { status: 500 }
+            { status: 500 },
           );
         }
       },

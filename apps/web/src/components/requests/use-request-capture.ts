@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import type { RequestCapture, TunnelEvent } from "./types";
 
-export function useRequestCapture(orgSlug: string, request: TunnelEvent | null) {
+export function useRequestCapture(
+  orgSlug: string,
+  request: TunnelEvent | null,
+) {
   const [capture, setCapture] = useState<RequestCapture | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,19 +19,19 @@ export function useRequestCapture(orgSlug: string, request: TunnelEvent | null) 
     const fetchCapture = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         const response = await fetch(`/api/${orgSlug}/requests/capture`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             tunnelId: request.tunnel_id,
             timestamp: request.timestamp,
           }),
         });
-        
+
         if (!response.ok) {
           if (response.status === 404) {
             setError("Request capture not found");

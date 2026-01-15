@@ -1,9 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CreditCard, Building2, Calendar, DollarSign, TrendingUp } from "lucide-react";
+import {
+  CreditCard,
+  Building2,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+} from "lucide-react";
 import { appClient } from "@/lib/app-client";
-import { AdminDataTable, type Column } from "@/components/admin/admin-data-table";
+import {
+  AdminDataTable,
+  type Column,
+} from "@/components/admin/admin-data-table";
 import { AdminStatsCard } from "@/components/admin/admin-stats-card";
 import { SubscriptionsSkeleton } from "@/components/admin/admin-skeleton";
 import { useAdminStore } from "@/lib/admin-store";
@@ -47,7 +56,10 @@ function AdminSubscriptionsPage() {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["admin", "subscriptions", page, planFilter],
     queryFn: async () => {
-      const res = await appClient.admin.subscriptions(token!, { page, plan: planFilter });
+      const res = await appClient.admin.subscriptions(token!, {
+        page,
+        plan: planFilter,
+      });
       if ("error" in res) throw new Error(res.error);
       return res;
     },
@@ -82,7 +94,9 @@ function AdminSubscriptionsPage() {
             <Building2 size={14} className="text-gray-400" />
           </div>
           <div>
-            <div className="font-medium text-white">{sub.orgName || "Unknown"}</div>
+            <div className="font-medium text-white">
+              {sub.orgName || "Unknown"}
+            </div>
             <div className="text-xs text-gray-500">/{sub.orgSlug || "-"}</div>
           </div>
         </div>
@@ -193,7 +207,9 @@ function AdminSubscriptionsPage() {
                   : "text-gray-500 hover:text-white hover:bg-white/5"
               }`}
             >
-              {plan === "" ? "All" : plan.charAt(0).toUpperCase() + plan.slice(1)}
+              {plan === ""
+                ? "All"
+                : plan.charAt(0).toUpperCase() + plan.slice(1)}
             </button>
           ))}
         </div>

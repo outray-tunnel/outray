@@ -1,5 +1,19 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Play, Loader2, Clock, ArrowRight, CheckCircle2, XCircle, AlertCircle, Plus, Trash2, Edit3, FileText, ListTree } from "lucide-react";
+import {
+  X,
+  Play,
+  Loader2,
+  Clock,
+  ArrowRight,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Plus,
+  Trash2,
+  Edit3,
+  FileText,
+  ListTree,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { TunnelEvent, RequestCapture } from "./types";
 import { JsonViewer, formatBody } from "./json-viewer";
@@ -22,19 +36,27 @@ interface ReplayModalProps {
   orgSlug: string;
 }
 
-export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: ReplayModalProps) {
+export function ReplayModal({
+  isOpen,
+  onClose,
+  request,
+  capture,
+  orgSlug,
+}: ReplayModalProps) {
   const [replaying, setReplaying] = useState(false);
   const [result, setResult] = useState<ReplayResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<RequestTab>("headers");
-  
+
   // Editable request state
   const [url, setUrl] = useState("");
   const [method, setMethod] = useState(request.method);
-  const [headers, setHeaders] = useState<Array<{ key: string; value: string; enabled: boolean }>>([]);
+  const [headers, setHeaders] = useState<
+    Array<{ key: string; value: string; enabled: boolean }>
+  >([]);
   const [body, setBody] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  
+
   // Store original values for reset
   const [originalState, setOriginalState] = useState<{
     url: string;
@@ -43,7 +65,7 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
     body: string;
   } | null>(null);
 
-  const hasBody = !['GET', 'HEAD'].includes(method);
+  const hasBody = !["GET", "HEAD"].includes(method);
 
   // Ref for scrolling to result
   const resultRef = useRef<HTMLDivElement>(null);
@@ -51,17 +73,22 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
   // Initialize editable state from capture
   useEffect(() => {
     if (isOpen && capture) {
-      const protocol = request.host.includes('localhost') ? 'http' : 'https';
+      const protocol = request.host.includes("localhost") ? "http" : "https";
       const initialUrl = `${protocol}://${request.host}${request.path}`;
       setUrl(initialUrl);
       setMethod(request.method);
-      
-      const excludeHeaders = ['host', 'content-length', 'transfer-encoding', 'connection'];
+
+      const excludeHeaders = [
+        "host",
+        "content-length",
+        "transfer-encoding",
+        "connection",
+      ];
       const headerList = Object.entries(capture.request.headers)
         .filter(([key]) => !excludeHeaders.includes(key.toLowerCase()))
         .map(([key, value]) => ({
           key,
-          value: Array.isArray(value) ? value.join(', ') : value,
+          value: Array.isArray(value) ? value.join(", ") : value,
           enabled: true,
         }));
       setHeaders(headerList);
@@ -71,7 +98,7 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
       setError(null);
       setIsEditing(false);
       setActiveTab("headers");
-      
+
       // Store original state for reset
       setOriginalState({
         url: initialUrl,
@@ -86,7 +113,7 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
     if (originalState) {
       setUrl(originalState.url);
       setMethod(originalState.method);
-      setHeaders(originalState.headers.map(h => ({ ...h })));
+      setHeaders(originalState.headers.map((h) => ({ ...h })));
       setBody(originalState.body);
     }
     setIsEditing(false);
@@ -99,23 +126,30 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
 
     try {
       const requestHeaders: Record<string, string> = {};
-      headers.filter(h => h.enabled && h.key).forEach(h => {
-        requestHeaders[h.key] = h.value;
-      });
+      headers
+        .filter((h) => h.enabled && h.key)
+        .forEach((h) => {
+          requestHeaders[h.key] = h.value;
+        });
 
       // Use the proxy endpoint to avoid CORS issues
-      const response = await fetch(`/api/${encodeURIComponent(orgSlug)}/requests/replay`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `/api/${encodeURIComponent(orgSlug)}/requests/replay`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url,
+            method,
+            headers: requestHeaders,
+            requestBody: ["GET", "HEAD"].includes(method)
+              ? undefined
+              : body || undefined,
+          }),
         },
-        body: JSON.stringify({
-          url,
-          method,
-          headers: requestHeaders,
-          requestBody: ['GET', 'HEAD'].includes(method) ? undefined : body || undefined,
-        }),
-      });
+      );
 
       const data = await response.json();
 
@@ -133,10 +167,13 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
 
       // Scroll to result after a short delay to let it render
       setTimeout(() => {
-        resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        resultRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
       }, 100);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to replay request');
+      setError(err instanceof Error ? err.message : "Failed to replay request");
     } finally {
       setReplaying(false);
     }
@@ -150,7 +187,11 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
     setHeaders(headers.filter((_, i) => i !== index));
   };
 
-  const updateHeader = (index: number, field: "key" | "value" | "enabled", value: string | boolean) => {
+  const updateHeader = (
+    index: number,
+    field: "key" | "value" | "enabled",
+    value: string | boolean,
+  ) => {
     const newHeaders = [...headers];
     newHeaders[index] = { ...newHeaders[index], [field]: value };
     setHeaders(newHeaders);
@@ -158,7 +199,8 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
 
   const getStatusColor = (status: number) => {
     if (status >= 500) return "text-red-400 bg-red-500/10 border-red-500/20";
-    if (status >= 400) return "text-orange-400 bg-orange-500/10 border-orange-500/20";
+    if (status >= 400)
+      return "text-orange-400 bg-orange-500/10 border-orange-500/20";
     if (status >= 300) return "text-blue-400 bg-blue-500/10 border-blue-500/20";
     return "text-green-400 bg-green-500/10 border-green-500/20";
   };
@@ -166,8 +208,18 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
   const bodyInfo = result?.body ? formatBody(result.body) : null;
 
   const tabs = [
-    { id: "headers" as RequestTab, label: "Headers", icon: ListTree, count: headers.filter(h => h.enabled).length },
-    { id: "body" as RequestTab, label: "Body", icon: FileText, count: body ? 1 : 0 },
+    {
+      id: "headers" as RequestTab,
+      label: "Headers",
+      icon: ListTree,
+      count: headers.filter((h) => h.enabled).length,
+    },
+    {
+      id: "body" as RequestTab,
+      label: "Body",
+      icon: FileText,
+      count: body ? 1 : 0,
+    },
   ];
 
   if (!isOpen) return null;
@@ -195,7 +247,9 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
             </div>
             <div>
               <h2 className="text-white font-medium">Replay Request</h2>
-              <p className="text-gray-500 text-sm">Modify and resend the request</p>
+              <p className="text-gray-500 text-sm">
+                Modify and resend the request
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -241,8 +295,18 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
                 onChange={(e) => setMethod(e.target.value)}
                 className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-accent/50"
               >
-                {['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'].map(m => (
-                  <option key={m} value={m}>{m}</option>
+                {[
+                  "GET",
+                  "POST",
+                  "PUT",
+                  "PATCH",
+                  "DELETE",
+                  "HEAD",
+                  "OPTIONS",
+                ].map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
                 ))}
               </select>
             ) : (
@@ -284,9 +348,11 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
               <Icon size={16} />
               {label}
               {count > 0 && (
-                <span className={`text-xs px-1.5 py-0.5 rounded ${
-                  activeTab === id ? "bg-white/20" : "bg-white/10"
-                }`}>
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded ${
+                    activeTab === id ? "bg-white/20" : "bg-white/10"
+                  }`}
+                >
                   {count}
                 </span>
               )}
@@ -323,12 +389,17 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
                 </div>
               ) : (
                 headers.map((header, index) => (
-                  <div key={index} className="flex items-center gap-2 bg-white/5 rounded-lg p-2 border border-white/10">
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 bg-white/5 rounded-lg p-2 border border-white/10"
+                  >
                     {isEditing && (
                       <input
                         type="checkbox"
                         checked={header.enabled}
-                        onChange={(e) => updateHeader(index, "enabled", e.target.checked)}
+                        onChange={(e) =>
+                          updateHeader(index, "enabled", e.target.checked)
+                        }
                         className="rounded border-white/20 bg-white/5 text-accent focus:ring-accent/50"
                       />
                     )}
@@ -337,14 +408,18 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
                         <input
                           type="text"
                           value={header.key}
-                          onChange={(e) => updateHeader(index, "key", e.target.value)}
+                          onChange={(e) =>
+                            updateHeader(index, "key", e.target.value)
+                          }
                           placeholder="Header name"
                           className="w-1/3 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-accent font-mono focus:outline-none focus:border-accent/50"
                         />
                         <input
                           type="text"
                           value={header.value}
-                          onChange={(e) => updateHeader(index, "value", e.target.value)}
+                          onChange={(e) =>
+                            updateHeader(index, "value", e.target.value)
+                          }
                           placeholder="Value"
                           className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-gray-300 font-mono focus:outline-none focus:border-accent/50"
                         />
@@ -356,9 +431,13 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
                         </button>
                       </>
                     ) : (
-                      <div className={`flex gap-2 text-sm font-mono flex-1 ${!header.enabled ? 'opacity-40' : ''}`}>
+                      <div
+                        className={`flex gap-2 text-sm font-mono flex-1 ${!header.enabled ? "opacity-40" : ""}`}
+                      >
                         <span className="text-accent">{header.key}:</span>
-                        <span className="text-gray-300 break-all">{header.value}</span>
+                        <span className="text-gray-300 break-all">
+                          {header.value}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -386,7 +465,9 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
                       {bodyFormatted.isJson ? (
                         <JsonViewer data={bodyFormatted.parsed} />
                       ) : (
-                        <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap">{body}</pre>
+                        <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap">
+                          {body}
+                        </pre>
                       )}
                     </div>
                   );
@@ -419,22 +500,34 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
               {/* Response summary */}
               <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
                 <div className="flex-1">
-                  <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Original</p>
+                  <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">
+                    Original
+                  </p>
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded text-sm font-medium border ${getStatusColor(request.status_code)}`}>
+                    <span
+                      className={`px-2 py-0.5 rounded text-sm font-medium border ${getStatusColor(request.status_code)}`}
+                    >
                       {request.status_code}
                     </span>
-                    <span className="text-gray-400 text-sm">{request.request_duration_ms}ms</span>
+                    <span className="text-gray-400 text-sm">
+                      {request.request_duration_ms}ms
+                    </span>
                   </div>
                 </div>
                 <ArrowRight size={20} className="text-gray-600" />
                 <div className="flex-1">
-                  <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Replay</p>
+                  <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">
+                    Replay
+                  </p>
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded text-sm font-medium border ${getStatusColor(result.status)}`}>
+                    <span
+                      className={`px-2 py-0.5 rounded text-sm font-medium border ${getStatusColor(result.status)}`}
+                    >
                       {result.status}
                     </span>
-                    <span className="text-gray-400 text-sm">{result.duration}ms</span>
+                    <span className="text-gray-400 text-sm">
+                      {result.duration}ms
+                    </span>
                     {result.status === request.status_code ? (
                       <CheckCircle2 size={16} className="text-green-400" />
                     ) : (
@@ -450,9 +543,12 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
                   <div className="flex items-start gap-3">
                     <AlertCircle size={20} className="text-orange-400 mt-0.5" />
                     <div>
-                      <p className="text-orange-300 font-medium">Status Code Changed</p>
+                      <p className="text-orange-300 font-medium">
+                        Status Code Changed
+                      </p>
                       <p className="text-orange-400/80 text-sm mt-1">
-                        Original returned {request.status_code}, replay returned {result.status}
+                        Original returned {request.status_code}, replay returned{" "}
+                        {result.status}
                       </p>
                     </div>
                   </div>
@@ -462,7 +558,9 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
               {/* Response Headers */}
               <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
                 <div className="px-4 py-3 border-b border-white/10">
-                  <span className="text-sm font-medium text-white">Response Headers</span>
+                  <span className="text-sm font-medium text-white">
+                    Response Headers
+                  </span>
                 </div>
                 <div className="p-4 space-y-2 text-sm font-mono max-h-48 overflow-y-auto">
                   {Object.entries(result.headers).map(([key, value]) => (
@@ -478,16 +576,22 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
               {result.body && (
                 <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
                   <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
-                    <span className="text-sm font-medium text-white">Response Body</span>
+                    <span className="text-sm font-medium text-white">
+                      Response Body
+                    </span>
                     {bodyInfo?.isJson && (
-                      <span className="text-xs px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded">JSON</span>
+                      <span className="text-xs px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded">
+                        JSON
+                      </span>
                     )}
                   </div>
                   <div className="p-4 overflow-x-auto max-h-64 overflow-y-auto">
                     {bodyInfo?.isJson ? (
                       <JsonViewer data={bodyInfo.parsed} />
                     ) : (
-                      <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap">{result.body}</pre>
+                      <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap">
+                        {result.body}
+                      </pre>
                     )}
                   </div>
                 </div>

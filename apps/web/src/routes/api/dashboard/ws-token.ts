@@ -15,7 +15,9 @@ export const Route = createFileRoute("/api/dashboard/ws-token")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const session = await auth.api.getSession({ headers: request.headers });
+          const session = await auth.api.getSession({
+            headers: request.headers,
+          });
           if (!session) {
             return Response.json({ error: "Unauthorized" }, { status: 401 });
           }
@@ -24,7 +26,10 @@ export const Route = createFileRoute("/api/dashboard/ws-token")({
           const { orgId } = body;
 
           if (!orgId) {
-            return Response.json({ error: "Organization ID required" }, { status: 400 });
+            return Response.json(
+              { error: "Organization ID required" },
+              { status: 400 },
+            );
           }
 
           // Verify user has access to this organization
@@ -34,9 +39,12 @@ export const Route = createFileRoute("/api/dashboard/ws-token")({
 
           const hasAccess = organizations.some((org) => org.id === orgId);
           if (!hasAccess) {
-            return Response.json({ error: "Access denied to organization" }, { status: 403 });
+            return Response.json(
+              { error: "Access denied to organization" },
+              { status: 403 },
+            );
           }
-         
+
           const token = generateSecureToken();
           const tokenData = JSON.stringify({
             orgId,
@@ -47,13 +55,16 @@ export const Route = createFileRoute("/api/dashboard/ws-token")({
             `${TOKEN_PREFIX}${token}`,
             tokenData,
             "EX",
-            TOKEN_TTL_SECONDS
+            TOKEN_TTL_SECONDS,
           );
 
           return Response.json({ token, expiresIn: TOKEN_TTL_SECONDS });
         } catch (error) {
           console.error("Error generating dashboard token:", error);
-          return Response.json({ error: "Internal server error" }, { status: 500 });
+          return Response.json(
+            { error: "Internal server error" },
+            { status: 500 },
+          );
         }
       },
     },

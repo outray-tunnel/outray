@@ -74,7 +74,10 @@ export const Route = createFileRoute("/api/admin/stats")({
           return Response.json(result.rows);
         } catch (error) {
           console.error("TimescaleDB query error:", error);
-          return Response.json({ error: "Failed to fetch stats" }, { status: 500 });
+          return Response.json(
+            { error: "Failed to fetch stats" },
+            { status: 500 },
+          );
         }
       },
     },

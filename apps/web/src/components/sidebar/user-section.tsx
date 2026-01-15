@@ -19,7 +19,9 @@ export function UserSection({ user, isCollapsed }: UserSectionProps) {
   };
 
   return (
-    <div className={`${isCollapsed ? "p-2" : "p-3"} border-t border-white/5 space-y-2 bg-black/20`}>
+    <div
+      className={`${isCollapsed ? "p-2" : "p-3"} border-t border-white/5 space-y-2 bg-black/20`}
+    >
       <button
         onClick={() => setIsReportBugModalOpen(true)}
         className={`flex items-center ${isCollapsed ? "justify-center w-10 h-10" : "gap-3 w-full px-3 py-2.5"} text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors group relative`}

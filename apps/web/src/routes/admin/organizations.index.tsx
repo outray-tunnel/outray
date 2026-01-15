@@ -3,7 +3,10 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Building2, Users, Network } from "lucide-react";
 import { appClient } from "@/lib/app-client";
-import { AdminDataTable, type Column } from "@/components/admin/admin-data-table";
+import {
+  AdminDataTable,
+  type Column,
+} from "@/components/admin/admin-data-table";
 import { UsersSkeleton } from "@/components/admin/admin-skeleton";
 import { useAdminStore } from "@/lib/admin-store";
 
@@ -79,18 +82,16 @@ function AdminOrganizationsPage() {
           className="flex items-center gap-3 hover:opacity-80 transition-opacity"
         >
           {org.logo ? (
-            <img
-              src={org.logo}
-              alt={org.name}
-              className="w-8 h-8 rounded-lg"
-            />
+            <img src={org.logo} alt={org.name} className="w-8 h-8 rounded-lg" />
           ) : (
             <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
               <Building2 size={14} className="text-gray-400" />
             </div>
           )}
           <div>
-            <div className="font-medium text-white hover:text-accent">{org.name}</div>
+            <div className="font-medium text-white hover:text-accent">
+              {org.name}
+            </div>
             <div className="text-xs text-gray-500">/{org.slug}</div>
           </div>
         </Link>
@@ -124,8 +125,17 @@ function AdminOrganizationsPage() {
       header: "Active Tunnels",
       render: (org) => (
         <div className="flex items-center gap-2">
-          <Network size={14} className={org.activeTunnels > 0 ? "text-green-400" : "text-gray-500"} />
-          <span className={org.activeTunnels > 0 ? "text-green-400" : "text-gray-400"}>
+          <Network
+            size={14}
+            className={
+              org.activeTunnels > 0 ? "text-green-400" : "text-gray-500"
+            }
+          />
+          <span
+            className={
+              org.activeTunnels > 0 ? "text-green-400" : "text-gray-400"
+            }
+          >
             {org.activeTunnels}
           </span>
         </div>

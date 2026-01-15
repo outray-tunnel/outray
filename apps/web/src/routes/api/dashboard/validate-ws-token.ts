@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { redis } from "../../../lib/redis";
-import { rateLimit, getClientIdentifier, createRateLimitResponse } from "../../../lib/rate-limiter";
+import {
+  rateLimit,
+  getClientIdentifier,
+  createRateLimitResponse,
+} from "../../../lib/rate-limiter";
 import { timingSafeEqual } from "crypto";
 
 const TOKEN_PREFIX = "dashboard:ws:";
@@ -32,11 +36,17 @@ export const Route = createFileRoute("/api/dashboard/validate-ws-token")({
 
           if (!INTERNAL_API_SECRET) {
             console.error("INTERNAL_API_SECRET not configured");
-            return Response.json({ valid: false, error: "Server misconfigured" }, { status: 500 });
+            return Response.json(
+              { valid: false, error: "Server misconfigured" },
+              { status: 500 },
+            );
           }
 
           if (!secureCompare(providedSecret || "", INTERNAL_API_SECRET)) {
-            return Response.json({ valid: false, error: "Unauthorized" }, { status: 401 });
+            return Response.json(
+              { valid: false, error: "Unauthorized" },
+              { status: 401 },
+            );
           }
 
           // Rate limit by client IP (protects against brute force even with valid secret)
@@ -55,27 +65,43 @@ export const Route = createFileRoute("/api/dashboard/validate-ws-token")({
           const { token } = body;
 
           if (!token || typeof token !== "string" || token.length !== 64) {
-            return Response.json({ valid: false, error: "Invalid token" }, { status: 401 });
+            return Response.json(
+              { valid: false, error: "Invalid token" },
+              { status: 401 },
+            );
           }
 
           const key = `${TOKEN_PREFIX}${token}`;
-          
+
           // Get and delete atomically (single-use token)
           const tokenData = await redis.getdel(key);
 
           if (!tokenData) {
-            return Response.json({ valid: false, error: "Invalid or expired token" }, { status: 401 });
+            return Response.json(
+              { valid: false, error: "Invalid or expired token" },
+              { status: 401 },
+            );
           }
 
           let parsedTokenData;
           try {
             parsedTokenData = JSON.parse(tokenData);
           } catch (parseError) {
-            console.error("Malformed dashboard token data in Redis for key:", key, parseError);
-            return Response.json({ valid: false, error: "Invalid or expired token" }, { status: 401 });
+            console.error(
+              "Malformed dashboard token data in Redis for key:",
+              key,
+              parseError,
+            );
+            return Response.json(
+              { valid: false, error: "Invalid or expired token" },
+              { status: 401 },
+            );
           }
 
-          const { orgId, userId } = parsedTokenData as { orgId: string; userId: string };
+          const { orgId, userId } = parsedTokenData as {
+            orgId: string;
+            userId: string;
+          };
           return Response.json({
             valid: true,
             orgId,
@@ -83,7 +109,10 @@ export const Route = createFileRoute("/api/dashboard/validate-ws-token")({
           });
         } catch (error) {
           console.error("Error validating dashboard token:", error);
-          return Response.json({ valid: false, error: "Internal server error" }, { status: 500 });
+          return Response.json(
+            { valid: false, error: "Internal server error" },
+            { status: 500 },
+          );
         }
       },
     },

@@ -31,7 +31,10 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
         const { domain } = body as { domain?: string };
 
         if (!domain) {
-          return Response.json({ error: "Domain is required" }, { status: 400 });
+          return Response.json(
+            { error: "Domain is required" },
+            { status: 400 },
+          );
         }
 
         const domainParts = domain.trim().split(".");
@@ -59,7 +62,10 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
         });
 
         if (existingDomain) {
-          return Response.json({ error: "Domain already exists" }, { status: 400 });
+          return Response.json(
+            { error: "Domain already exists" },
+            { status: 400 },
+          );
         }
 
         const [newDomain] = await db

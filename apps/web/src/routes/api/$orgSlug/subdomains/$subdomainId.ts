@@ -21,7 +21,10 @@ export const Route = createFileRoute("/api/$orgSlug/subdomains/$subdomainId")({
           .where(eq(subdomains.id, subdomainId));
 
         if (!subdomain) {
-          return Response.json({ error: "Subdomain not found" }, { status: 404 });
+          return Response.json(
+            { error: "Subdomain not found" },
+            { status: 404 },
+          );
         }
 
         if (subdomain.organizationId !== orgContext.organization.id) {

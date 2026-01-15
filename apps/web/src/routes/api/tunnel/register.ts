@@ -6,7 +6,11 @@ import { tunnels } from "../../../db/app-schema";
 import { subscriptions } from "../../../db/subscription-schema";
 import { getPlanLimits } from "../../../lib/subscription-plans";
 import { redis } from "../../../lib/redis";
-import {rateLimiters, getClientIdentifier, createRateLimitResponse,} from "../../../lib/rate-limiter";
+import {
+  rateLimiters,
+  getClientIdentifier,
+  createRateLimitResponse,
+} from "../../../lib/rate-limiter";
 
 export const Route = createFileRoute("/api/tunnel/register")({
   server: {
@@ -42,12 +46,18 @@ export const Route = createFileRoute("/api/tunnel/register")({
           } = body;
 
           if (!userId || !organizationId) {
-            return Response.json({ error: "Missing required fields" }, { status: 400 });
+            return Response.json(
+              { error: "Missing required fields" },
+              { status: 400 },
+            );
           }
 
           // For all protocols, we need url
           if (!url) {
-            return Response.json({ error: "Missing URL for tunnel" }, { status: 400 });
+            return Response.json(
+              { error: "Missing URL for tunnel" },
+              { status: 400 },
+            );
           }
 
           // For TCP/UDP, we also need tunnelId and remotePort
@@ -132,7 +142,9 @@ export const Route = createFileRoute("/api/tunnel/register")({
                 `[TUNNEL LIMIT CHECK] ALLOWED - ${activeCount} < ${tunnelLimit}`,
               );
             } else {
-              console.log(`[TUNNEL LIMIT CHECK] SKIPPED - Reconnection detected`);
+              console.log(
+                `[TUNNEL LIMIT CHECK] SKIPPED - Reconnection detected`,
+              );
             }
 
             if (existingTunnel) {
@@ -165,13 +177,19 @@ export const Route = createFileRoute("/api/tunnel/register")({
           });
 
           if ("error" in result) {
-            return Response.json({ error: result.error }, { status: result.status });
+            return Response.json(
+              { error: result.error },
+              { status: result.status },
+            );
           }
 
           return Response.json({ success: true, tunnelId: result.tunnelId });
         } catch (error) {
           console.error("Tunnel registration error:", error);
-          return Response.json({ error: "Internal server error" }, { status: 500 });
+          return Response.json(
+            { error: "Internal server error" },
+            { status: 500 },
+          );
         }
       },
     },

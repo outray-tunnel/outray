@@ -28,8 +28,14 @@ export const Route = createFileRoute("/api/admin/subscriptions")({
 
         try {
           const url = new URL(request.url);
-          const page = Math.max(1, parseInt(url.searchParams.get("page") || "1") || 1);
-          const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "20") || 20));
+          const page = Math.max(
+            1,
+            parseInt(url.searchParams.get("page") || "1") || 1,
+          );
+          const limit = Math.min(
+            100,
+            Math.max(1, parseInt(url.searchParams.get("limit") || "20") || 20),
+          );
           const planFilter = url.searchParams.get("plan") || "";
           const offset = (page - 1) * limit;
 
@@ -61,7 +67,7 @@ export const Route = createFileRoute("/api/admin/subscriptions")({
             .from(subscriptions)
             .leftJoin(
               organizations,
-              eq(subscriptions.organizationId, organizations.id)
+              eq(subscriptions.organizationId, organizations.id),
             )
             .where(filterCondition)
             .orderBy(desc(subscriptions.updatedAt))
@@ -83,7 +89,8 @@ export const Route = createFileRoute("/api/admin/subscriptions")({
 
           planDistribution.forEach((item) => {
             if (item.status === "active") {
-              activeByPlan[item.plan] = (activeByPlan[item.plan] || 0) + item.count;
+              activeByPlan[item.plan] =
+                (activeByPlan[item.plan] || 0) + item.count;
             } else if (item.status === "cancelled") {
               cancelledByPlan[item.plan] =
                 (cancelledByPlan[item.plan] || 0) + item.count;
@@ -93,19 +100,20 @@ export const Route = createFileRoute("/api/admin/subscriptions")({
           // Calculate stats using actual plan prices
           const mrr = Object.entries(activeByPlan).reduce(
             (total, [plan, planCount]) => {
-              const planConfig = SUBSCRIPTION_PLANS[plan as keyof typeof SUBSCRIPTION_PLANS];
+              const planConfig =
+                SUBSCRIPTION_PLANS[plan as keyof typeof SUBSCRIPTION_PLANS];
               return total + (planConfig?.price || 0) * planCount;
             },
-            0
+            0,
           );
 
           const totalActive = Object.values(activeByPlan).reduce(
             (a, b) => a + b,
-            0
+            0,
           );
           const totalCancelled = Object.values(cancelledByPlan).reduce(
             (a, b) => a + b,
-            0
+            0,
           );
 
           // Get recent changes (last 30 days)
@@ -133,7 +141,7 @@ export const Route = createFileRoute("/api/admin/subscriptions")({
           console.error("Admin subscriptions error:", error);
           return Response.json(
             { error: "Failed to fetch subscriptions" },
-            { status: 500 }
+            { status: 500 },
           );
         }
       },

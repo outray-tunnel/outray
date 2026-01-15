@@ -26,8 +26,8 @@ export const Route = createFileRoute("/$orgSlug/billing")({
 
 function BillingView() {
   const { orgSlug } = Route.useParams();
-const {data:orgs}=authClient.useListOrganizations();
-  const selectedOrganizationId = orgs?.find((org)=>org.slug==orgSlug)?.id
+  const { data: orgs } = authClient.useListOrganizations();
+  const selectedOrganizationId = orgs?.find((org) => org.slug == orgSlug)?.id;
   const { success } = Route.useSearch();
   const [alertState, setAlertState] = useState<{
     isOpen: boolean;
@@ -253,7 +253,7 @@ const {data:orgs}=authClient.useListOrganizations();
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
               {(
                 Object.entries(SUBSCRIPTION_PLANS).filter(
-                  ([_, plan]) => !("hidden" in plan && plan.hidden)
+                  ([_, plan]) => !("hidden" in plan && plan.hidden),
                 ) as [
                   keyof typeof SUBSCRIPTION_PLANS,
                   (typeof SUBSCRIPTION_PLANS)[keyof typeof SUBSCRIPTION_PLANS],

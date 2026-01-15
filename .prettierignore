@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+.output/
+*.tsbuildinfo
+
+# Generated files
+**/routeTree.gen.ts
+**/*.gen.ts
+**/drizzle/
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Database files
+*.db
+*.sqlite
+
+# OS files
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

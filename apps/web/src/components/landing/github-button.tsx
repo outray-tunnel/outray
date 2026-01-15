@@ -13,7 +13,7 @@ export const GitHubButton = ({ size = "md" }: GitHubButtonProps) => {
     const fetchStars = async () => {
       try {
         const res = await fetch(
-          "https://api.github.com/repos/outray-tunnel/outray"
+          "https://api.github.com/repos/outray-tunnel/outray",
         );
         if (res.ok) {
           const data = await res.json();

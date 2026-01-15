@@ -9,7 +9,6 @@ export function PlanUsage({
   limit,
   currentPlan,
 }: PlanUsageProps) {
-
   const percentage =
     limit === -1 ? 0 : Math.min(100, (activeTunnelsCount / limit) * 100);
 

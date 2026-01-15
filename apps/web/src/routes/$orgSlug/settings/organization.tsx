@@ -10,7 +10,6 @@ export const Route = createFileRoute("/$orgSlug/settings/organization")({
 });
 
 function OrganizationSettingsView() {
-
   const { orgSlug } = Route.useParams();
   const [fullCaptureEnabled, setFullCaptureEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -19,8 +18,7 @@ function OrganizationSettingsView() {
   const { data: organizations } = authClient.useListOrganizations();
   const isFullCaptureFeatureEnabled = useFeatureFlag("full_capture");
 
-  const currentOrg = organizations?.find((org)=>org.slug===orgSlug)
-
+  const currentOrg = organizations?.find((org) => org.slug === orgSlug);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -58,7 +56,7 @@ function OrganizationSettingsView() {
         toast.success(
           enabled
             ? "Full request capture enabled"
-            : "Full request capture disabled"
+            : "Full request capture disabled",
         );
       } else {
         throw new Error("Failed to update settings");
@@ -135,7 +133,9 @@ function OrganizationSettingsView() {
                 <Database className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <h3 className="text-lg font-medium text-white">Request Capture</h3>
+                <h3 className="text-lg font-medium text-white">
+                  Request Capture
+                </h3>
                 <p className="text-sm text-gray-500">
                   Configure request and response data capture
                 </p>
@@ -152,15 +152,16 @@ function OrganizationSettingsView() {
                   </h4>
                 </div>
                 <p className="text-sm text-gray-500 mb-4">
-                  When enabled, we'll capture and store complete request and response data 
-                  including headers and body content. This allows for detailed request 
-                  inspection and replay functionality.
+                  When enabled, we'll capture and store complete request and
+                  response data including headers and body content. This allows
+                  for detailed request inspection and replay functionality.
                 </p>
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
                   <p className="text-xs text-amber-300">
-                    <strong>Privacy Notice:</strong> Enabling this feature will store 
-                    request/response bodies which may contain sensitive data. Only enable 
-                    if you consent to storing this traffic data.
+                    <strong>Privacy Notice:</strong> Enabling this feature will
+                    store request/response bodies which may contain sensitive
+                    data. Only enable if you consent to storing this traffic
+                    data.
                   </p>
                 </div>
               </div>
@@ -172,9 +173,7 @@ function OrganizationSettingsView() {
                     onClick={() => handleFullCaptureToggle(!fullCaptureEnabled)}
                     disabled={updating}
                     className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
-                      fullCaptureEnabled
-                        ? "bg-blue-600"
-                        : "bg-gray-600"
+                      fullCaptureEnabled ? "bg-blue-600" : "bg-gray-600"
                     } ${updating ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     <span

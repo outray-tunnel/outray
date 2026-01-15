@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { X, Copy, Play, ArrowDownToLine, ArrowUpFromLine, Check } from "lucide-react";
+import {
+  X,
+  Copy,
+  Play,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Check,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { TunnelEvent, InspectorTab } from "./types";
 import { generateCurl } from "./utils";
@@ -43,7 +50,10 @@ function SkeletonLoader() {
           {[...Array(6)].map((_, i) => (
             <div key={i} className="flex gap-2">
               <div className="h-3 w-24 bg-white/10 rounded" />
-              <div className="h-3 flex-1 bg-white/10 rounded" style={{ maxWidth: `${60 + Math.random() * 40}%` }} />
+              <div
+                className="h-3 flex-1 bg-white/10 rounded"
+                style={{ maxWidth: `${60 + Math.random() * 40}%` }}
+              />
             </div>
           ))}
         </div>
@@ -57,7 +67,11 @@ function SkeletonLoader() {
         </div>
         <div className="p-4 space-y-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-3 bg-white/10 rounded" style={{ width: `${70 + Math.random() * 30}%` }} />
+            <div
+              key={i}
+              className="h-3 bg-white/10 rounded"
+              style={{ width: `${70 + Math.random() * 30}%` }}
+            />
           ))}
         </div>
       </div>
@@ -81,7 +95,7 @@ export function RequestInspectorDrawer({
   const [activeTab, setActiveTab] = useState<InspectorTab>("request");
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showReplayModal, setShowReplayModal] = useState(false);
-  
+
   const { capture, loading, error } = useRequestCapture(orgSlug, request);
 
   const copyToClipboard = async (text: string, field: string) => {
@@ -104,28 +118,36 @@ export function RequestInspectorDrawer({
   };
 
   // Create request details from real data or fallback to basic info
-  const requestDetails = capture ? {
-    headers: capture.request.headers,
-    queryParams: getQueryParams(request.path),
-    body: capture.request.body,
-  } : {
-    headers: {
-      Host: request.host,
-      "User-Agent": request.user_agent,
-      "X-Forwarded-For": request.client_ip,
-    },
-    queryParams: getQueryParams(request.path),
-    body: null,
-  };
+  const requestDetails = capture
+    ? {
+        headers: capture.request.headers,
+        queryParams: getQueryParams(request.path),
+        body: capture.request.body,
+      }
+    : {
+        headers: {
+          Host: request.host,
+          "User-Agent": request.user_agent,
+          "X-Forwarded-For": request.client_ip,
+        },
+        queryParams: getQueryParams(request.path),
+        body: null,
+      };
 
-  const responseDetails = capture ? {
-    headers: capture.response.headers,
-    body: capture.response.body,
-  } : null;
+  const responseDetails = capture
+    ? {
+        headers: capture.response.headers,
+        body: capture.response.body,
+      }
+    : null;
 
   const tabs = [
     { id: "request" as InspectorTab, label: "Request", icon: ArrowUpFromLine },
-    { id: "response" as InspectorTab, label: "Response", icon: ArrowDownToLine },
+    {
+      id: "response" as InspectorTab,
+      label: "Response",
+      icon: ArrowDownToLine,
+    },
   ];
 
   return (
@@ -160,8 +182,13 @@ export function RequestInspectorDrawer({
                 >
                   {request.status_code}
                 </div>
-                <span className="font-mono text-white font-medium">{request.method}</span>
-                <span className="text-gray-400 truncate max-w-xs" title={request.path}>
+                <span className="font-mono text-white font-medium">
+                  {request.method}
+                </span>
+                <span
+                  className="text-gray-400 truncate max-w-xs"
+                  title={request.path}
+                >
                   {request.path}
                 </span>
               </div>
@@ -192,10 +219,16 @@ export function RequestInspectorDrawer({
                       Replay Request
                     </button>
                     <button
-                      onClick={() => copyToClipboard(generateCurl(request), "curl")}
+                      onClick={() =>
+                        copyToClipboard(generateCurl(request), "curl")
+                      }
                       className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-xl text-sm font-medium transition-colors border border-white/10"
                     >
-                      {copiedField === "curl" ? <Check size={16} /> : <Copy size={16} />}
+                      {copiedField === "curl" ? (
+                        <Check size={16} />
+                      ) : (
+                        <Copy size={16} />
+                      )}
                       {copiedField === "curl" ? "Copied!" : "Copy as cURL"}
                     </button>
                   </>
@@ -233,7 +266,10 @@ export function RequestInspectorDrawer({
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {!fullCaptureEnabled ? (
-                <FullCaptureDisabledContent request={request} orgSlug={orgSlug} />
+                <FullCaptureDisabledContent
+                  request={request}
+                  orgSlug={orgSlug}
+                />
               ) : loading ? (
                 <SkeletonLoader />
               ) : error ? (
@@ -274,9 +310,12 @@ export function RequestInspectorDrawer({
               ) : (
                 <div className="py-8">
                   <div className="bg-gray-500/10 border border-gray-500/20 rounded-lg p-4">
-                    <p className="text-gray-300">No detailed request data available.</p>
+                    <p className="text-gray-300">
+                      No detailed request data available.
+                    </p>
                     <p className="text-gray-400 text-sm mt-2">
-                      This request may have occurred before full capture was enabled.
+                      This request may have occurred before full capture was
+                      enabled.
                     </p>
                   </div>
                 </div>
@@ -288,7 +327,9 @@ export function RequestInspectorDrawer({
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-500">Tunnel ID</span>
-                  <p className="text-gray-300 font-mono text-xs mt-1">{request.tunnel_id}</p>
+                  <p className="text-gray-300 font-mono text-xs mt-1">
+                    {request.tunnel_id}
+                  </p>
                 </div>
                 <div>
                   <span className="text-gray-500">Timestamp</span>

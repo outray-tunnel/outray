@@ -27,8 +27,14 @@ export const Route = createFileRoute("/api/admin/users")({
 
         try {
           const url = new URL(request.url);
-          const page = Math.max(1, parseInt(url.searchParams.get("page") || "1") || 1);
-          const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "20") || 20));
+          const page = Math.max(
+            1,
+            parseInt(url.searchParams.get("page") || "1") || 1,
+          );
+          const limit = Math.min(
+            100,
+            Math.max(1, parseInt(url.searchParams.get("limit") || "20") || 20),
+          );
           const search = url.searchParams.get("search") || "";
           const offset = (page - 1) * limit;
 
@@ -36,7 +42,7 @@ export const Route = createFileRoute("/api/admin/users")({
           const searchCondition = search
             ? or(
                 like(users.email, `%${search}%`),
-                like(users.name, `%${search}%`)
+                like(users.name, `%${search}%`),
               )
             : sql`1=1`;
 
@@ -77,7 +83,7 @@ export const Route = createFileRoute("/api/admin/users")({
               : [];
 
           const orgCountMap = new Map(
-            orgCounts.map((oc) => [oc.userId, oc.count])
+            orgCounts.map((oc) => [oc.userId, oc.count]),
           );
 
           // Get last active (most recent session) for each user
@@ -87,7 +93,7 @@ export const Route = createFileRoute("/api/admin/users")({
                   .select({
                     userId: sessions.userId,
                     lastActive: sql<Date>`MAX(${sessions.updatedAt})`.as(
-                      "lastActive"
+                      "lastActive",
                     ),
                   })
                   .from(sessions)
@@ -96,7 +102,7 @@ export const Route = createFileRoute("/api/admin/users")({
               : [];
 
           const lastActiveMap = new Map(
-            lastActiveSessions.map((s) => [s.userId, s.lastActive])
+            lastActiveSessions.map((s) => [s.userId, s.lastActive]),
           );
 
           const usersWithMeta = userList.map((user) => ({
@@ -113,7 +119,10 @@ export const Route = createFileRoute("/api/admin/users")({
           });
         } catch (error) {
           console.error("Admin users error:", error);
-          return Response.json({ error: "Failed to fetch users" }, { status: 500 });
+          return Response.json(
+            { error: "Failed to fetch users" },
+            { status: 500 },
+          );
         }
       },
     },

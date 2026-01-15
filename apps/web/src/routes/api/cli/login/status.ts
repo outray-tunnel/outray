@@ -2,7 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { db } from "../../../../db";
 import { cliLoginSessions } from "../../../../db/auth-schema";
 import { eq, and, gt } from "drizzle-orm";
-import {rateLimiters, getClientIdentifier, createRateLimitResponse,} from "../../../../lib/rate-limiter";
+import {
+  rateLimiters,
+  getClientIdentifier,
+  createRateLimitResponse,
+} from "../../../../lib/rate-limiter";
 
 export const Route = createFileRoute("/api/cli/login/status")({
   server: {
@@ -45,7 +49,10 @@ export const Route = createFileRoute("/api/cli/login/status")({
           return Response.json({ status: "pending" });
         } catch (error) {
           console.error("CLI login status error:", error);
-          return Response.json({ error: "Failed to check status" }, { status: 500 });
+          return Response.json(
+            { error: "Failed to check status" },
+            { status: 500 },
+          );
         }
       },
     },

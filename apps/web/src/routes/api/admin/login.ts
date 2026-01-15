@@ -35,7 +35,12 @@ export const Route = createFileRoute("/api/admin/login")({
 
         const token = randomUUID();
         const tokenHash = hashToken(token);
-        await redis.set(`admin:token:${tokenHash}`, "1", "EX", TOKEN_TTL_SECONDS);
+        await redis.set(
+          `admin:token:${tokenHash}`,
+          "1",
+          "EX",
+          TOKEN_TTL_SECONDS,
+        );
 
         return Response.json({ token, expiresIn: TOKEN_TTL_SECONDS });
       },
