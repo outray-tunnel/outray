@@ -29,7 +29,6 @@ import { Route as AdminTunnelsRouteImport } from './routes/admin/tunnels'
 import { Route as AdminSubscriptionsRouteImport } from './routes/admin/subscriptions'
 import { Route as AdminChartsRouteImport } from './routes/admin/charts'
 import { Route as OrgSlugTokensRouteImport } from './routes/$orgSlug/tokens'
-import { Route as OrgSlugSubscribedRouteImport } from './routes/$orgSlug/subscribed'
 import { Route as OrgSlugSubdomainsRouteImport } from './routes/$orgSlug/subdomains'
 import { Route as OrgSlugSettingsRouteImport } from './routes/$orgSlug/settings'
 import { Route as OrgSlugRequestsRouteImport } from './routes/$orgSlug/requests'
@@ -187,11 +186,6 @@ const AdminChartsRoute = AdminChartsRouteImport.update({
 const OrgSlugTokensRoute = OrgSlugTokensRouteImport.update({
   id: '/tokens',
   path: '/tokens',
-  getParentRoute: () => OrgSlugRoute,
-} as any)
-const OrgSlugSubscribedRoute = OrgSlugSubscribedRouteImport.update({
-  id: '/subscribed',
-  path: '/subscribed',
   getParentRoute: () => OrgSlugRoute,
 } as any)
 const OrgSlugSubdomainsRoute = OrgSlugSubdomainsRouteImport.update({
@@ -517,7 +511,6 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
   '/$orgSlug/settings': typeof OrgSlugSettingsRouteWithChildren
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
-  '/$orgSlug/subscribed': typeof OrgSlugSubscribedRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
   '/admin/charts': typeof AdminChartsRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
@@ -596,7 +589,6 @@ export interface FileRoutesByTo {
   '/$orgSlug/members': typeof OrgSlugMembersRoute
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
-  '/$orgSlug/subscribed': typeof OrgSlugSubscribedRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
   '/admin/charts': typeof AdminChartsRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
@@ -678,7 +670,6 @@ export interface FileRoutesById {
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
   '/$orgSlug/settings': typeof OrgSlugSettingsRouteWithChildren
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
-  '/$orgSlug/subscribed': typeof OrgSlugSubscribedRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
   '/admin/charts': typeof AdminChartsRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
@@ -761,7 +752,6 @@ export interface FileRouteTypes {
     | '/$orgSlug/requests'
     | '/$orgSlug/settings'
     | '/$orgSlug/subdomains'
-    | '/$orgSlug/subscribed'
     | '/$orgSlug/tokens'
     | '/admin/charts'
     | '/admin/subscriptions'
@@ -840,7 +830,6 @@ export interface FileRouteTypes {
     | '/$orgSlug/members'
     | '/$orgSlug/requests'
     | '/$orgSlug/subdomains'
-    | '/$orgSlug/subscribed'
     | '/$orgSlug/tokens'
     | '/admin/charts'
     | '/admin/subscriptions'
@@ -921,7 +910,6 @@ export interface FileRouteTypes {
     | '/$orgSlug/requests'
     | '/$orgSlug/settings'
     | '/$orgSlug/subdomains'
-    | '/$orgSlug/subscribed'
     | '/$orgSlug/tokens'
     | '/admin/charts'
     | '/admin/subscriptions'
@@ -1181,13 +1169,6 @@ declare module '@tanstack/react-router' {
       path: '/tokens'
       fullPath: '/$orgSlug/tokens'
       preLoaderRoute: typeof OrgSlugTokensRouteImport
-      parentRoute: typeof OrgSlugRoute
-    }
-    '/$orgSlug/subscribed': {
-      id: '/$orgSlug/subscribed'
-      path: '/subscribed'
-      fullPath: '/$orgSlug/subscribed'
-      preLoaderRoute: typeof OrgSlugSubscribedRouteImport
       parentRoute: typeof OrgSlugRoute
     }
     '/$orgSlug/subdomains': {
@@ -1623,7 +1604,6 @@ interface OrgSlugRouteChildren {
   OrgSlugRequestsRoute: typeof OrgSlugRequestsRoute
   OrgSlugSettingsRoute: typeof OrgSlugSettingsRouteWithChildren
   OrgSlugSubdomainsRoute: typeof OrgSlugSubdomainsRoute
-  OrgSlugSubscribedRoute: typeof OrgSlugSubscribedRoute
   OrgSlugTokensRoute: typeof OrgSlugTokensRoute
   OrgSlugIndexRoute: typeof OrgSlugIndexRoute
   OrgSlugTunnelsTunnelIdRoute: typeof OrgSlugTunnelsTunnelIdRoute
@@ -1638,7 +1618,6 @@ const OrgSlugRouteChildren: OrgSlugRouteChildren = {
   OrgSlugRequestsRoute: OrgSlugRequestsRoute,
   OrgSlugSettingsRoute: OrgSlugSettingsRouteWithChildren,
   OrgSlugSubdomainsRoute: OrgSlugSubdomainsRoute,
-  OrgSlugSubscribedRoute: OrgSlugSubscribedRoute,
   OrgSlugTokensRoute: OrgSlugTokensRoute,
   OrgSlugIndexRoute: OrgSlugIndexRoute,
   OrgSlugTunnelsTunnelIdRoute: OrgSlugTunnelsTunnelIdRoute,
