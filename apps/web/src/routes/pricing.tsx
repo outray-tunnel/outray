@@ -100,6 +100,11 @@ function PricingPage() {
                       } Subdomain${f.maxSubdomains === 1 ? "" : "s"}`}
                     />
                     <FeatureItem
+                      label={`${
+                        f.maxMembers === -1 ? "Unlimited" : f.maxMembers
+                      } Team Member${f.maxMembers === 1 ? "" : "s"}`}
+                    />
+                    <FeatureItem
                       label={`${formatBandwidth(f.bandwidthPerMonth)} Bandwidth`}
                     />
                     <FeatureItem
