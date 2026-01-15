@@ -102,7 +102,9 @@ outray/
 
 - Use TypeScript
 - Follow existing code patterns
-- Run `npm run lint` before committing
+- Code formatting is enforced with Prettier
+- Run `npm run format` to format all files, or `npm run format:check` to check formatting
+- Pre-commit hooks will automatically format staged files before commits
 
 ## Pull Requests
 
