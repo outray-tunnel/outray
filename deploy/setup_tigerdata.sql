@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS tunnel_events (
     bytes_out INTEGER NOT NULL,
     client_ip TEXT NOT NULL,
     user_agent TEXT NOT NULL,
-    request_id TEXT  -- Links to request_captures.id when full capture is enabled
+    request_id UUID  -- Links to request_captures.id when full capture is enabled
 );
 
 -- Convert to hypertable if not already
