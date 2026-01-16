@@ -22,6 +22,10 @@ export class OutRayClient {
   private forceTakeover = false;
   private reconnectAttempts = 0;
   private lastPongReceived = Date.now();
+  private lastPingSent = 0;
+  private latencyMs: number | null = null;
+  private latencyHistory: number[] = [];
+  private readonly MAX_LATENCY_SAMPLES = 5;
   private noLog: boolean;
   private readonly PING_INTERVAL_MS = 25000; // 25 seconds
   private readonly PONG_TIMEOUT_MS = 10000; // 10 seconds to wait for pong
@@ -86,6 +90,19 @@ export class OutRayClient {
       // Received pong, connection is alive
       this.lastPongReceived = Date.now();
       this.stopPongTimeout();
+
+      // Calculate latency
+      if (this.lastPingSent > 0) {
+        const latency = Date.now() - this.lastPingSent;
+        this.latencyHistory.push(latency);
+        if (this.latencyHistory.length > this.MAX_LATENCY_SAMPLES) {
+          this.latencyHistory.shift();
+        }
+        // Calculate average latency
+        this.latencyMs = Math.round(
+          this.latencyHistory.reduce((a, b) => a + b, 0) / this.latencyHistory.length
+        );
+      }
     });
   }
 
@@ -121,6 +138,8 @@ export class OutRayClient {
         console.log(
           chalk.yellow("Keep this running to keep your tunnel active."),
         );
+        // Show initial latency after a short delay
+        setTimeout(() => this.displayLatency(), 3000);
       } else if (message.type === "error") {
         if (message.code === "SUBDOMAIN_IN_USE") {
           if (this.assignedUrl) {
@@ -213,7 +232,7 @@ export class OutRayClient {
         if (!this.noLog) {
           console.log(
             chalk.dim("←") +
-              ` ${chalk.bold(message.method)} ${message.path} ${statusColor(statusCode)} ${chalk.dim(`${duration}ms`)}`,
+            ` ${chalk.bold(message.method)} ${message.path} ${statusColor(statusCode)} ${chalk.dim(`${duration}ms`)}`,
           );
         }
 
@@ -238,7 +257,7 @@ export class OutRayClient {
       if (!this.noLog) {
         console.log(
           chalk.dim("←") +
-            ` ${chalk.bold(message.method)} ${message.path} ${chalk.red("502")} ${chalk.dim(`${duration}ms`)} ${chalk.red(err.message)}`,
+          ` ${chalk.bold(message.method)} ${message.path} ${chalk.red("502")} ${chalk.dim(`${duration}ms`)} ${chalk.red(err.message)}`,
         );
       }
 
@@ -279,9 +298,18 @@ export class OutRayClient {
   private startPing(): void {
     this.stopPing();
     this.lastPongReceived = Date.now();
+    this.latencyHistory = [];
+    this.latencyMs = null;
+
+    // Send immediate ping to measure initial latency
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.lastPingSent = Date.now();
+      this.ws.ping();
+    }
 
     this.pingInterval = setInterval(() => {
       if (this.ws?.readyState === WebSocket.OPEN) {
+        this.lastPingSent = Date.now();
         this.ws.ping();
 
         // Set a timeout to detect if pong is not received
@@ -303,6 +331,24 @@ export class OutRayClient {
       clearInterval(this.pingInterval);
       this.pingInterval = null;
     }
+  }
+
+  private displayLatency(): void {
+    if (this.latencyMs !== null && this.ws?.readyState === WebSocket.OPEN) {
+      const latencyColor =
+        this.latencyMs < 100
+          ? chalk.green
+          : this.latencyMs < 300
+            ? chalk.yellow
+            : chalk.red;
+      console.log(
+        chalk.dim("📡 Latency: ") + latencyColor(`${this.latencyMs}ms`)
+      );
+    }
+  }
+
+  public getLatency(): number | null {
+    return this.latencyMs;
   }
 
   private async handleSubdomainConflict(): Promise<void> {
