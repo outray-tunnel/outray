@@ -43,7 +43,6 @@ import { Route as ApiWebhooksPolarRouteImport } from './routes/api/webhooks/pola
 import { Route as ApiTunnelRegisterRouteImport } from './routes/api/tunnel/register'
 import { Route as ApiTunnelCheckSubdomainRouteImport } from './routes/api/tunnel/check-subdomain'
 import { Route as ApiTunnelAuthRouteImport } from './routes/api/tunnel/auth'
-import { Route as ApiSubscriptionsOrganizationIdRouteImport } from './routes/api/subscriptions/$organizationId'
 import { Route as ApiOrganizationsCheckSlugRouteImport } from './routes/api/organizations/check-slug'
 import { Route as ApiMeOrgsRouteImport } from './routes/api/me/orgs'
 import { Route as ApiDomainVerifyOwnershipRouteImport } from './routes/api/domain/verify-ownership'
@@ -258,12 +257,6 @@ const ApiTunnelAuthRoute = ApiTunnelAuthRouteImport.update({
   path: '/api/tunnel/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiSubscriptionsOrganizationIdRoute =
-  ApiSubscriptionsOrganizationIdRouteImport.update({
-    id: '/api/subscriptions/$organizationId',
-    path: '/api/subscriptions/$organizationId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiOrganizationsCheckSlugRoute =
   ApiOrganizationsCheckSlugRouteImport.update({
     id: '/api/organizations/check-slug',
@@ -548,7 +541,6 @@ export interface FileRoutesByFullPath {
   '/api/domain/verify-ownership': typeof ApiDomainVerifyOwnershipRoute
   '/api/me/orgs': typeof ApiMeOrgsRoute
   '/api/organizations/check-slug': typeof ApiOrganizationsCheckSlugRoute
-  '/api/subscriptions/$organizationId': typeof ApiSubscriptionsOrganizationIdRoute
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
   '/api/tunnel/check-subdomain': typeof ApiTunnelCheckSubdomainRoute
   '/api/tunnel/register': typeof ApiTunnelRegisterRoute
@@ -626,7 +618,6 @@ export interface FileRoutesByTo {
   '/api/domain/verify-ownership': typeof ApiDomainVerifyOwnershipRoute
   '/api/me/orgs': typeof ApiMeOrgsRoute
   '/api/organizations/check-slug': typeof ApiOrganizationsCheckSlugRoute
-  '/api/subscriptions/$organizationId': typeof ApiSubscriptionsOrganizationIdRoute
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
   '/api/tunnel/check-subdomain': typeof ApiTunnelCheckSubdomainRoute
   '/api/tunnel/register': typeof ApiTunnelRegisterRoute
@@ -707,7 +698,6 @@ export interface FileRoutesById {
   '/api/domain/verify-ownership': typeof ApiDomainVerifyOwnershipRoute
   '/api/me/orgs': typeof ApiMeOrgsRoute
   '/api/organizations/check-slug': typeof ApiOrganizationsCheckSlugRoute
-  '/api/subscriptions/$organizationId': typeof ApiSubscriptionsOrganizationIdRoute
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
   '/api/tunnel/check-subdomain': typeof ApiTunnelCheckSubdomainRoute
   '/api/tunnel/register': typeof ApiTunnelRegisterRoute
@@ -789,7 +779,6 @@ export interface FileRouteTypes {
     | '/api/domain/verify-ownership'
     | '/api/me/orgs'
     | '/api/organizations/check-slug'
-    | '/api/subscriptions/$organizationId'
     | '/api/tunnel/auth'
     | '/api/tunnel/check-subdomain'
     | '/api/tunnel/register'
@@ -867,7 +856,6 @@ export interface FileRouteTypes {
     | '/api/domain/verify-ownership'
     | '/api/me/orgs'
     | '/api/organizations/check-slug'
-    | '/api/subscriptions/$organizationId'
     | '/api/tunnel/auth'
     | '/api/tunnel/check-subdomain'
     | '/api/tunnel/register'
@@ -947,7 +935,6 @@ export interface FileRouteTypes {
     | '/api/domain/verify-ownership'
     | '/api/me/orgs'
     | '/api/organizations/check-slug'
-    | '/api/subscriptions/$organizationId'
     | '/api/tunnel/auth'
     | '/api/tunnel/check-subdomain'
     | '/api/tunnel/register'
@@ -1011,7 +998,6 @@ export interface RootRouteChildren {
   ApiDomainVerifyOwnershipRoute: typeof ApiDomainVerifyOwnershipRoute
   ApiMeOrgsRoute: typeof ApiMeOrgsRoute
   ApiOrganizationsCheckSlugRoute: typeof ApiOrganizationsCheckSlugRoute
-  ApiSubscriptionsOrganizationIdRoute: typeof ApiSubscriptionsOrganizationIdRoute
   ApiTunnelAuthRoute: typeof ApiTunnelAuthRoute
   ApiTunnelCheckSubdomainRoute: typeof ApiTunnelCheckSubdomainRoute
   ApiTunnelRegisterRoute: typeof ApiTunnelRegisterRoute
@@ -1267,13 +1253,6 @@ declare module '@tanstack/react-router' {
       path: '/api/tunnel/auth'
       fullPath: '/api/tunnel/auth'
       preLoaderRoute: typeof ApiTunnelAuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/subscriptions/$organizationId': {
-      id: '/api/subscriptions/$organizationId'
-      path: '/api/subscriptions/$organizationId'
-      fullPath: '/api/subscriptions/$organizationId'
-      preLoaderRoute: typeof ApiSubscriptionsOrganizationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/organizations/check-slug': {
@@ -1750,7 +1729,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiDomainVerifyOwnershipRoute: ApiDomainVerifyOwnershipRoute,
   ApiMeOrgsRoute: ApiMeOrgsRoute,
   ApiOrganizationsCheckSlugRoute: ApiOrganizationsCheckSlugRoute,
-  ApiSubscriptionsOrganizationIdRoute: ApiSubscriptionsOrganizationIdRoute,
   ApiTunnelAuthRoute: ApiTunnelAuthRoute,
   ApiTunnelCheckSubdomainRoute: ApiTunnelCheckSubdomainRoute,
   ApiTunnelRegisterRoute: ApiTunnelRegisterRoute,
@@ -1770,12 +1748,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
