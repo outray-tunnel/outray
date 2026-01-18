@@ -10,6 +10,29 @@ import { AuthManager } from "./auth";
 import { TomlConfigParser, ParsedTunnelConfig } from "./toml-config";
 import { version } from "../package.json";
 
+function getFlagValue(args: string[], flag: string): string | undefined {
+  const match = args.find(
+    (arg) => arg === flag || arg.startsWith(`${flag}=`),
+  );
+  if (!match) {
+    return undefined;
+  }
+  if (match.includes("=")) {
+    const [, value] = match.split("=", 2);
+    return value;
+  }
+  const index = args.indexOf(match);
+  const next = args[index + 1];
+  if (!next || next.startsWith("--")) {
+    return undefined;
+  }
+  return next;
+}
+
+function hasFlag(args: string[], flag: string): boolean {
+  return args.includes(flag);
+}
+
 async function handleLogin(
   configManager: ConfigManager,
   webUrl: string,
@@ -446,35 +469,13 @@ async function main() {
   }
 
   if (command === "start") {
-    const configArg = args.find((arg) => arg.startsWith("--config"));
-    let configPath: string | undefined;
-    if (configArg) {
-      if (configArg.includes("=")) {
-        configPath = configArg.split("=")[1];
-      } else {
-        const configIndex = args.indexOf(configArg);
-        if (configIndex !== -1 && args[configIndex + 1]) {
-          configPath = args[configIndex + 1];
-        }
-      }
-    }
+    const configPath = getFlagValue(args, "--config");
     await handleStartFromConfig(configManager, webUrl, serverUrl, configPath);
     return;
   }
 
   if (command === "validate-config" || command === "validate") {
-    const configArg = args.find((arg) => arg.startsWith("--config"));
-    let configPath: string | undefined;
-    if (configArg) {
-      if (configArg.includes("=")) {
-        configPath = configArg.split("=")[1];
-      } else {
-        const configIndex = args.indexOf(configArg);
-        if (configIndex !== -1 && args[configIndex + 1]) {
-          configPath = args[configIndex + 1];
-        }
-      }
-    }
+    const configPath = getFlagValue(args, "--config");
 
     const defaultConfigPath = path.join(process.cwd(), "outray", "config.toml");
     const tomlConfigPath = configPath || defaultConfigPath;
@@ -569,66 +570,22 @@ async function main() {
     process.exit(1);
   }
 
-  let subdomain: string | undefined;
-  const subdomainArg = remainingArgs.find((arg) =>
-    arg.startsWith("--subdomain"),
-  );
-  if (subdomainArg) {
-    if (subdomainArg.includes("=")) {
-      subdomain = subdomainArg.split("=")[1];
-    } else {
-      const subdomainIndex = remainingArgs.indexOf(subdomainArg);
-      if (subdomainIndex !== -1 && remainingArgs[subdomainIndex + 1]) {
-        subdomain = remainingArgs[subdomainIndex + 1];
-      }
-    }
-  }
-
-  let customDomain: string | undefined;
-  const domainArg = remainingArgs.find((arg) => arg.startsWith("--domain"));
-  if (domainArg) {
-    if (domainArg.includes("=")) {
-      customDomain = domainArg.split("=")[1];
-    } else {
-      const domainIndex = remainingArgs.indexOf(domainArg);
-      if (domainIndex !== -1 && remainingArgs[domainIndex + 1]) {
-        customDomain = remainingArgs[domainIndex + 1];
-      }
-    }
-  }
+  const subdomain = getFlagValue(remainingArgs, "--subdomain");
+  const customDomain = getFlagValue(remainingArgs, "--domain");
 
   // Handle --remote-port flag for TCP/UDP tunnels
-  let remotePort: number | undefined;
-  const remotePortArg = remainingArgs.find((arg) =>
-    arg.startsWith("--remote-port"),
-  );
-  if (remotePortArg) {
-    if (remotePortArg.includes("=")) {
-      remotePort = parseInt(remotePortArg.split("=")[1], 10);
-    } else {
-      const remotePortIndex = remainingArgs.indexOf(remotePortArg);
-      if (remotePortIndex !== -1 && remainingArgs[remotePortIndex + 1]) {
-        remotePort = parseInt(remainingArgs[remotePortIndex + 1], 10);
-      }
-    }
-  }
+  const remotePortValue = getFlagValue(remainingArgs, "--remote-port");
+  const remotePort = remotePortValue ? parseInt(remotePortValue, 10) : undefined;
 
   // Handle --org flag for temporary org override
-  const orgArg = remainingArgs.find((arg) => arg.startsWith("--org"));
   let tempOrgSlug: string | undefined;
-  if (orgArg) {
-    if (orgArg.includes("=")) {
-      tempOrgSlug = orgArg.split("=")[1];
-    } else {
-      const orgIndex = remainingArgs.indexOf(orgArg);
-      if (orgIndex !== -1 && remainingArgs[orgIndex + 1]) {
-        tempOrgSlug = remainingArgs[orgIndex + 1];
-      }
-    }
+  const orgValue = getFlagValue(remainingArgs, "--org");
+  if (orgValue) {
+    tempOrgSlug = orgValue;
   }
 
   // Handle --no-logs flag to disable tunnel request logs
-  const noLogs = remainingArgs.includes("--no-logs");
+  const noLogs = hasFlag(remainingArgs, "--no-logs");
 
   // Load and validate config
   let config = configManager.load();
@@ -663,16 +620,9 @@ async function main() {
   // Get API key/token
   let apiKey: string | undefined;
 
-  const keyArg = remainingArgs.find((arg) => arg.startsWith("--key"));
-  if (keyArg) {
-    if (keyArg.includes("=")) {
-      apiKey = keyArg.split("=")[1];
-    } else {
-      const keyIndex = remainingArgs.indexOf(keyArg);
-      if (keyIndex !== -1 && remainingArgs[keyIndex + 1]) {
-        apiKey = remainingArgs[keyIndex + 1];
-      }
-    }
+  const keyValue = getFlagValue(remainingArgs, "--key");
+  if (keyValue) {
+    apiKey = keyValue;
   } else {
     // Ensure we have a valid token
     try {
@@ -689,7 +639,7 @@ async function main() {
   }
 
   // Show active org (unless using --org override or --key override)
-  if (!tempOrgSlug && !keyArg) {
+  if (!tempOrgSlug && !keyValue) {
     const orgSlug = await getOrgSlugForDisplay(config, webUrl);
     if (orgSlug) {
       console.log(chalk.dim(`Org: ${orgSlug}`));
