@@ -38,6 +38,7 @@ export class TunnelRouter {
   private readonly heartbeatIntervalMs: number;
   private readonly requestTimeoutMs: number;
   private heartbeatTimer?: NodeJS.Timeout;
+  private static readonly GLOBAL_ONLINE_COUNT_KEY = "tunnel:global:online_count";
 
   constructor(options: TunnelRouterOptions = {}) {
     this.redis = options.redis;
@@ -117,6 +118,8 @@ export class TunnelRouter {
     if (this.redis) {
       try {
         await this.redis.del(this.redisKey(tunnelId));
+        // Decrement global online count
+        await this.redis.decr(TunnelRouter.GLOBAL_ONLINE_COUNT_KEY);
         if (metadata?.organizationId && metadata?.dbTunnelId) {
           // Remove from online set and delete last_seen
           await this.redis.srem(
@@ -298,6 +301,8 @@ export class TunnelRouter {
           "NX",
         );
         if (result === "OK") {
+          // Increment global online count
+          await this.redis.incr(TunnelRouter.GLOBAL_ONLINE_COUNT_KEY);
           // Add to org's online tunnels set using dbTunnelId
           if (metadata?.organizationId && metadata?.dbTunnelId) {
             await this.redis.sadd(
