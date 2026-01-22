@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { db } from "../../../db";
-import { organizations, members, subscriptions, tunnels, subdomains, domains } from "../../../db/schema";
+import { organizations, members, subscriptions, tunnels, subdomains, domains, users } from "../../../db/schema";
 import { redis } from "../../../lib/redis";
 import { hashToken } from "../../../lib/hash";
-import { eq, count, gte, and } from "drizzle-orm";
+import { eq, count, gte, and, desc } from "drizzle-orm";
 
 export const Route = createFileRoute("/api/admin/organizations/$slug")({
   server: {
@@ -36,11 +36,70 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
             userId: members.userId,
             role: members.role,
             createdAt: members.createdAt,
-          }).from(members).where(eq(members.organizationId, org.id));
+            userName: users.name,
+            userEmail: users.email,
+            userImage: users.image,
+          }).from(members)
+            .innerJoin(users, eq(members.userId, users.id))
+            .where(eq(members.organizationId, org.id));
+
+          // Find the owner
+          const owner = memberList.find(m => m.role === "owner") || memberList[0];
+
+          // Get tunnels list
+          const tunnelList = await db.select({
+            id: tunnels.id,
+            url: tunnels.url,
+            name: tunnels.name,
+            protocol: tunnels.protocol,
+            remotePort: tunnels.remotePort,
+            lastSeenAt: tunnels.lastSeenAt,
+            createdAt: tunnels.createdAt,
+            userId: tunnels.userId,
+            userName: users.name,
+            userEmail: users.email,
+          }).from(tunnels)
+            .innerJoin(users, eq(tunnels.userId, users.id))
+            .where(eq(tunnels.organizationId, org.id))
+            .orderBy(desc(tunnels.lastSeenAt));
+
+          // Get subdomains list
+          const subdomainList = await db.select({
+            id: subdomains.id,
+            subdomain: subdomains.subdomain,
+            createdAt: subdomains.createdAt,
+            userId: subdomains.userId,
+            userName: users.name,
+            userEmail: users.email,
+          }).from(subdomains)
+            .innerJoin(users, eq(subdomains.userId, users.id))
+            .where(eq(subdomains.organizationId, org.id))
+            .orderBy(desc(subdomains.createdAt));
+
+          // Get domains list
+          const domainList = await db.select({
+            id: domains.id,
+            domain: domains.domain,
+            status: domains.status,
+            createdAt: domains.createdAt,
+            updatedAt: domains.updatedAt,
+            userId: domains.userId,
+            userName: users.name,
+            userEmail: users.email,
+          }).from(domains)
+            .innerJoin(users, eq(domains.userId, users.id))
+            .where(eq(domains.organizationId, org.id))
+            .orderBy(desc(domains.createdAt));
 
           return Response.json({
             organization: org,
             subscription: sub || { plan: "free", status: "active" },
+            owner: owner ? {
+              id: owner.userId,
+              name: owner.userName,
+              email: owner.userEmail,
+              image: owner.userImage,
+            } : null,
             stats: {
               members: memberCount.count,
               activeTunnels: activeTunnelCount.count,
@@ -49,6 +108,9 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
               domains: domainCount.count,
             },
             members: memberList,
+            tunnels: tunnelList,
+            subdomains: subdomainList,
+            domains: domainList,
           });
         } catch (error) {
           console.error("Admin org detail error:", error);
