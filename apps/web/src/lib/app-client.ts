@@ -157,6 +157,67 @@ export const appClient = {
         headers: { Authorization: `Bearer ${token}` },
       }),
 
+    user: async (token: string, userId: string) =>
+      apiCall<{
+        user: {
+          id: string;
+          name: string;
+          email: string;
+          emailVerified: boolean;
+          image: string | null;
+          createdAt: Date;
+          updatedAt: Date;
+        };
+        stats: {
+          organizations: number;
+          totalTunnels: number;
+          activeTunnels: number;
+          subdomains: number;
+          domains: number;
+          sessions: number;
+          lastActive: Date | null;
+        };
+        memberships: Array<{
+          id: string;
+          role: string;
+          createdAt: Date;
+          organizationId: string;
+          organizationName: string;
+          organizationSlug: string;
+          organizationLogo: string | null;
+        }>;
+        sessions: Array<{
+          id: string;
+          createdAt: Date;
+          updatedAt: Date;
+          expiresAt: Date;
+          ipAddress: string | null;
+          userAgent: string | null;
+        }>;
+        accounts: Array<{
+          id: string;
+          providerId: string;
+          createdAt: Date;
+        }>;
+      }>("get", `/api/admin/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    updateUser: async (
+      token: string,
+      userId: string,
+      data: { name?: string; email?: string; emailVerified?: boolean },
+    ) =>
+      apiCall<{ success: boolean }>("patch", `/api/admin/users/${userId}`, {
+        data,
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    deleteUser: async (token: string, userId: string) =>
+      apiCall<{ success: boolean }>("delete", `/api/admin/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
     organizations: async (
       token: string,
       params: { page?: number; limit?: number; search?: string },
