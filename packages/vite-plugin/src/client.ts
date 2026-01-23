@@ -7,7 +7,7 @@ import type {
   TunnelResponseMessage,
 } from "./types";
 
-export class OutrayClient {
+export class OutRayClient {
   private ws: WebSocket | null = null;
   private options: OutrayClientOptions;
   private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -61,6 +61,10 @@ export class OutrayClient {
     this.ws.on("close", (code, reason) => this.handleClose(code, reason));
     this.ws.on("error", (error) => {
       this.options.onError?.(error);
+      // Ensure fatal WebSocket errors trigger cleanup and reconnect logic
+      if (this.ws && this.ws.readyState !== WebSocket.CLOSING && this.ws.readyState !== WebSocket.CLOSED) {
+        this.ws.terminate();
+      }
     });
     this.ws.on("pong", () => {
       this.lastPongReceived = Date.now();
@@ -165,6 +169,10 @@ export class OutrayClient {
       });
     });
 
+    req.setTimeout(30000, () => {
+      req.destroy(new Error("Request to local server timed out"));
+    });
+
     req.on("error", (err) => {
       const errorResponse: TunnelResponseMessage = {
         type: "response",
@@ -188,8 +196,12 @@ export class OutrayClient {
   private extractSubdomain(url: string): string | null {
     try {
       const hostname = new URL(url).hostname;
-      const [subdomain] = hostname.split(".");
-      return subdomain || null;
+      const parts = hostname.split(".");
+      // Only extract subdomain if there are at least 2 parts (subdomain + domain)
+      if (parts.length >= 2) {
+        return parts[0];
+      }
+      return null;
     } catch {
       return null;
     }
