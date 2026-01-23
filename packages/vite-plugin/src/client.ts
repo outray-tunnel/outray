@@ -158,7 +158,7 @@ export class OutrayClient {
           requestId: message.requestId,
           statusCode: res.statusCode || 200,
           headers: res.headers as Record<string, string | string[]>,
-          body: bodyBase64,
+          ...(bodyBase64 !== undefined ? { body: bodyBase64 } : {}),
         };
 
         this.ws?.send(encodeMessage(response));
