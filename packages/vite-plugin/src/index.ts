@@ -1,5 +1,5 @@
 import type { Plugin, ViteDevServer } from "vite";
-import { OutrayClient } from "./client";
+import { OutRayClient } from "./client";
 import type { OutrayPluginOptions } from "./types";
 
 const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
@@ -37,7 +37,7 @@ const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
 export default function outrayPlugin(
   options: OutrayPluginOptions = {}
 ): Plugin {
-  let client: OutrayClient | null = null;
+  let client: OutRayClient | null = null;
   let tunnelUrl: string | null = null;
 
   return {
@@ -54,9 +54,35 @@ export default function outrayPlugin(
 
       if (!enabled) return;
 
-      server.httpServer?.once("listening", () => {
+      if (!server.httpServer) {
+        if (!silent) {
+          server.config.logger.info(
+            `  \x1b[33m○\x1b[0m  Outray: httpServer is not available; tunnel will not be started`
+          );
+        }
+        return;
+      }
+
+      server.httpServer.once("listening", () => {
         const address = server.httpServer?.address();
-        if (!address || typeof address === "string") return;
+        
+        if (!address) {
+          if (!silent) {
+            server.config.logger.info(
+              `  \x1b[33m○\x1b[0m  Outray: Could not determine dev server address; tunnel will not be started`
+            );
+          }
+          return;
+        }
+        
+        if (typeof address === "string") {
+          if (!silent) {
+            server.config.logger.info(
+              `  \x1b[33m○\x1b[0m  Outray: Dev server is listening on a pipe or Unix domain socket ("${address}"); tunnel only works with TCP ports`
+            );
+          }
+          return;
+        }
 
         const port = address.port;
         const apiKey = options.apiKey ?? process.env.OUTRAY_API_KEY;
@@ -66,7 +92,7 @@ export default function outrayPlugin(
           process.env.OUTRAY_SERVER_URL ??
           DEFAULT_SERVER_URL;
 
-        client = new OutrayClient({
+        client = new OutRayClient({
           localPort: port,
           serverUrl,
           apiKey,
@@ -94,11 +120,13 @@ export default function outrayPlugin(
             if (!silent) {
               server.config.logger.info(`  \x1b[33m⟳\x1b[0m  Outray: Reconnecting...`);
             }
+            options.onReconnecting?.();
           },
           onClose: () => {
             if (!silent) {
               server.config.logger.info(`  \x1b[33m○\x1b[0m  Outray: Tunnel closed`);
             }
+            options.onClose?.();
           },
         });
 
@@ -106,7 +134,7 @@ export default function outrayPlugin(
       });
 
       // Cleanup when server closes
-      server.httpServer?.once("close", () => {
+      server.httpServer.once("close", () => {
         if (client) {
           client.stop();
           client = null;
@@ -116,6 +144,11 @@ export default function outrayPlugin(
   };
 }
 
-// Named exports for better tree-shaking
+// Named exports for better tree-shaking.
+// Recommended usage (default export):
+//   import outray from '@outray/vite'
+// Optional named import (equivalent):
+//   import { outray } from '@outray/vite'
 export { outrayPlugin as outray };
+export { OutRayClient };
 export type { OutrayPluginOptions };

@@ -10,6 +10,7 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "declarationMap": true,
+    // Note: tsup handles compilation; this tsconfig is primarily for type checking and IDE support.
     "outDir": "dist",
     "rootDir": "src",
     "resolveJsonModule": true

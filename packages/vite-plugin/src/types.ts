@@ -32,7 +32,7 @@ export interface OutrayPluginOptions {
   /**
    * Enable or disable the tunnel
    * Useful for conditionally enabling in certain environments
-   * @default true
+   * @default process.env.OUTRAY_ENABLED !== "false"
    */
   enabled?: boolean;
 
@@ -51,6 +51,16 @@ export interface OutrayPluginOptions {
    * Callback fired when tunnel encounters an error
    */
   onError?: (error: Error) => void;
+
+  /**
+   * Callback fired when tunnel connection is closed
+   */
+  onClose?: () => void;
+
+  /**
+   * Callback fired when tunnel is attempting to reconnect
+   */
+  onReconnecting?: () => void;
 }
 
 /**
@@ -71,17 +81,23 @@ export interface OutrayClientOptions {
 
 // Protocol message types
 
+export type TunnelProtocol = "http" | "tcp" | "udp";
+
 export interface OpenTunnelMessage {
   type: "open_tunnel";
   subdomain?: string | null;
   customDomain?: string | null;
   apiKey?: string;
   forceTakeover?: boolean;
+  protocol?: TunnelProtocol;
+  remotePort?: number;
 }
 
 export interface TunnelOpenedMessage {
   type: "tunnel_opened";
   url: string;
+  protocol?: TunnelProtocol;
+  port?: number;
 }
 
 export interface TunnelDataMessage {
