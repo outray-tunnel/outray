@@ -101,6 +101,13 @@ export class OutrayClient {
           !this.forceTakeover
         ) {
           // Reconnecting and subdomain is in use - try to take over
+          if (
+            this.ws &&
+            (this.ws.readyState === WebSocket.OPEN ||
+              this.ws.readyState === WebSocket.CONNECTING)
+          ) {
+            this.ws.close();
+          }
           this.forceTakeover = true;
           this.connect();
           return;
