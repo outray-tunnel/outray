@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ViteRouteImport } from './routes/vite'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SelectRouteImport } from './routes/select'
 import { Route as PricingRouteImport } from './routes/pricing'
@@ -89,6 +90,11 @@ import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$org
 import { Route as ApiOrgSlugTunnelsTunnelIdStopRouteImport } from './routes/api/$orgSlug/tunnels/$tunnelId.stop'
 import { Route as ApiOrgSlugDomainsDomainIdVerifyRouteImport } from './routes/api/$orgSlug/domains/$domainId.verify'
 
+const ViteRoute = ViteRouteImport.update({
+  id: '/vite',
+  path: '/vite',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -509,6 +515,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/select': typeof SelectRoute
   '/signup': typeof SignupRoute
+  '/vite': typeof ViteRoute
   '/$orgSlug/billing': typeof OrgSlugBillingRoute
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
   '/$orgSlug/install': typeof OrgSlugInstallRoute
@@ -589,6 +596,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/select': typeof SelectRoute
   '/signup': typeof SignupRoute
+  '/vite': typeof ViteRoute
   '/$orgSlug/billing': typeof OrgSlugBillingRoute
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
   '/$orgSlug/install': typeof OrgSlugInstallRoute
@@ -670,6 +678,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/select': typeof SelectRoute
   '/signup': typeof SignupRoute
+  '/vite': typeof ViteRoute
   '/$orgSlug/billing': typeof OrgSlugBillingRoute
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
   '/$orgSlug/install': typeof OrgSlugInstallRoute
@@ -753,6 +762,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/select'
     | '/signup'
+    | '/vite'
     | '/$orgSlug/billing'
     | '/$orgSlug/domains'
     | '/$orgSlug/install'
@@ -833,6 +843,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/select'
     | '/signup'
+    | '/vite'
     | '/$orgSlug/billing'
     | '/$orgSlug/domains'
     | '/$orgSlug/install'
@@ -913,6 +924,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/select'
     | '/signup'
+    | '/vite'
     | '/$orgSlug/billing'
     | '/$orgSlug/domains'
     | '/$orgSlug/install'
@@ -995,6 +1007,7 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   SelectRoute: typeof SelectRoute
   SignupRoute: typeof SignupRoute
+  ViteRoute: typeof ViteRoute
   ApiSearchRoute: typeof ApiSearchRoute
   CliLoginRoute: typeof CliLoginRoute
   DocsSplatRoute: typeof DocsSplatRoute
@@ -1041,6 +1054,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/vite': {
+      id: '/vite'
+      path: '/vite'
+      fullPath: '/vite'
+      preLoaderRoute: typeof ViteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -1754,6 +1774,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   SelectRoute: SelectRoute,
   SignupRoute: SignupRoute,
+  ViteRoute: ViteRoute,
   ApiSearchRoute: ApiSearchRoute,
   CliLoginRoute: CliLoginRoute,
   DocsSplatRoute: DocsSplatRoute,
