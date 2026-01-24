@@ -5,6 +5,11 @@ import { appClient } from "@/lib/app-client";
 import { useAdminStore } from "@/lib/admin-store";
 
 export const Route = createFileRoute("/admin")({
+  head: () => ({
+    meta: [
+      { title: "Admin - OutRay" },
+    ],
+  }),
   component: AdminLayout,
 });
 
