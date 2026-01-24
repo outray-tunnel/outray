@@ -30,6 +30,7 @@ import { Route as InternalDomainCheckRouteImport } from './routes/internal/domai
 import { Route as DocsSplatRouteImport } from './routes/docs/$'
 import { Route as CliLoginRouteImport } from './routes/cli.login'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AdminTunnelsRouteImport } from './routes/admin/tunnels'
 import { Route as AdminSubscriptionsRouteImport } from './routes/admin/subscriptions'
 import { Route as AdminChartsRouteImport } from './routes/admin/charts'
@@ -198,6 +199,11 @@ const CliLoginRoute = CliLoginRouteImport.update({
 const ApiSearchRoute = ApiSearchRouteImport.update({
   id: '/api/search',
   path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminTunnelsRoute = AdminTunnelsRouteImport.update({
@@ -562,6 +568,7 @@ export interface FileRoutesByFullPath {
   '/admin/charts': typeof AdminChartsRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/tunnels': typeof AdminTunnelsRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/cli/login': typeof CliLoginRoute
   '/docs/$': typeof DocsSplatRoute
@@ -647,6 +654,7 @@ export interface FileRoutesByTo {
   '/admin/charts': typeof AdminChartsRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/tunnels': typeof AdminTunnelsRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/cli/login': typeof CliLoginRoute
   '/docs/$': typeof DocsSplatRoute
@@ -735,6 +743,7 @@ export interface FileRoutesById {
   '/admin/charts': typeof AdminChartsRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/tunnels': typeof AdminTunnelsRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/cli/login': typeof CliLoginRoute
   '/docs/$': typeof DocsSplatRoute
@@ -824,6 +833,7 @@ export interface FileRouteTypes {
     | '/admin/charts'
     | '/admin/subscriptions'
     | '/admin/tunnels'
+    | '/api/health'
     | '/api/search'
     | '/cli/login'
     | '/docs/$'
@@ -909,6 +919,7 @@ export interface FileRouteTypes {
     | '/admin/charts'
     | '/admin/subscriptions'
     | '/admin/tunnels'
+    | '/api/health'
     | '/api/search'
     | '/cli/login'
     | '/docs/$'
@@ -996,6 +1007,7 @@ export interface FileRouteTypes {
     | '/admin/charts'
     | '/admin/subscriptions'
     | '/admin/tunnels'
+    | '/api/health'
     | '/api/search'
     | '/cli/login'
     | '/docs/$'
@@ -1073,6 +1085,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   ViteRoute: typeof ViteRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   ApiSearchRoute: typeof ApiSearchRoute
   CliLoginRoute: typeof CliLoginRoute
   DocsSplatRoute: typeof DocsSplatRoute
@@ -1264,6 +1277,13 @@ declare module '@tanstack/react-router' {
       path: '/api/search'
       fullPath: '/api/search'
       preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/tunnels': {
@@ -1880,6 +1900,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   ViteRoute: ViteRoute,
+  ApiHealthRoute: ApiHealthRoute,
   ApiSearchRoute: ApiSearchRoute,
   CliLoginRoute: CliLoginRoute,
   DocsSplatRoute: DocsSplatRoute,
