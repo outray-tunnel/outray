@@ -61,21 +61,10 @@ export const Route = createFileRoute("/api/tunnel/register")({
             );
           }
 
-          // Get the tunnel ID from the URL (hostname) for HTTP, or use provided for TCP/UDP
-          let tunnelId: string;
-          if (protocol === "http") {
-            const urlObj = new URL(
-              url!.startsWith("http") ? url! : `https://${url}`,
-            );
-            tunnelId = urlObj.hostname;
-          } else {
-            tunnelId = providedTunnelId!;
-          }
-
           // Use the URL passed from the tunnel server
           const tunnelUrl = url;
           const setKey = `org:${organizationId}:online_tunnels`;
-          let addedToRedis = false;
+          let addedDbTunnelId: string | null = null;
 
           try {
             // Use a transaction with row-level locking to prevent race conditions
@@ -101,7 +90,7 @@ export const Route = createFileRoute("/api/tunnel/register")({
               const isReconnection = !!existingTunnel;
 
               console.log(
-                `[TUNNEL LIMIT CHECK] Org: ${organizationId}, Tunnel: ${tunnelId}`,
+                `[TUNNEL LIMIT CHECK] Org: ${organizationId}, URL: ${tunnelUrl}`,
               );
               console.log(
                 `[TUNNEL LIMIT CHECK] Is Reconnection: ${isReconnection}`,
@@ -110,75 +99,76 @@ export const Route = createFileRoute("/api/tunnel/register")({
                 `[TUNNEL LIMIT CHECK] Plan: ${currentPlan}, Limit: ${tunnelLimit}`,
               );
 
-              // Check limits only for NEW tunnels (not reconnections)
-              if (!isReconnection) {
-                // Use Lua script for atomic check-and-add to prevent race conditions
-                // This ensures that counting and adding happen atomically
-                const luaScript = `
-                  local setKey = KEYS[1]
-                  local tunnelId = ARGV[1]
-                  local limit = tonumber(ARGV[2])
-                  
-                  -- Check if already in set (idempotent)
-                  if redis.call('SISMEMBER', setKey, tunnelId) == 1 then
-                    return 1  -- Already exists, allow
-                  end
-                  
-                  -- Check current count
-                  local currentCount = redis.call('SCARD', setKey)
-                  if limit ~= -1 and currentCount >= limit then
-                    return 0  -- Limit reached, reject
-                  end
-                  
-                  -- Add to set
-                  redis.call('SADD', setKey, tunnelId)
-                  return 1  -- Success
-                `;
-
-                const allowed = await redis.eval(
-                  luaScript,
-                  1,
-                  setKey,
-                  tunnelId,
-                  tunnelLimit.toString()
-                );
-
-                console.log(
-                  `[TUNNEL LIMIT CHECK] Lua script result: ${allowed}`,
-                );
-
-                if (allowed === 0) {
-                  console.log(
-                    `[TUNNEL LIMIT CHECK] REJECTED - Limit ${tunnelLimit} reached`,
-                  );
-                  return {
-                    error: `Tunnel limit reached. The ${currentPlan} plan allows ${tunnelLimit} active tunnel${tunnelLimit > 1 ? "s" : ""}.`,
-                    status: 403,
-                  };
-                }
-
-                // Mark that we added to Redis so we can rollback on error
-                addedToRedis = true;
-                console.log(
-                  `[TUNNEL LIMIT CHECK] ALLOWED`,
-                );
-              } else {
-                console.log(`[TUNNEL LIMIT CHECK] SKIPPED - Reconnection detected`);
-              }
-
               if (existingTunnel) {
                 // Tunnel with this URL already exists, update lastSeenAt
+                // No need to check limits - this is a reconnection to existing tunnel
                 await tx
                   .update(tunnels)
                   .set({ lastSeenAt: new Date() })
                   .where(eq(tunnels.id, existingTunnel.id));
 
-                return { success: true, tunnelId: existingTunnel.id };
+                console.log(`[TUNNEL LIMIT CHECK] SKIPPED - Reconnection detected, dbTunnelId: ${existingTunnel.id}`);
+                return { success: true, tunnelId: existingTunnel.id, isReconnection: true };
               }
 
-              // Create new tunnel record
+              // Generate UUID upfront so we can use it for both limit check and DB insert
+              const dbTunnelId = randomUUID();
+
+              // Use Lua script for atomic check-and-add to prevent race conditions
+              // IMPORTANT: Use the database record ID (UUID), not the hostname
+              // This ensures cleanup works correctly when tunnel disconnects
+              const luaScript = `
+                local setKey = KEYS[1]
+                local dbTunnelId = ARGV[1]
+                local limit = tonumber(ARGV[2])
+                
+                -- Check if already in set (idempotent)
+                if redis.call('SISMEMBER', setKey, dbTunnelId) == 1 then
+                  return 1  -- Already exists, allow
+                end
+                
+                -- Check current count
+                local currentCount = redis.call('SCARD', setKey)
+                if limit ~= -1 and currentCount >= limit then
+                  return 0  -- Limit reached, reject
+                end
+                
+                -- Add to set using the database record ID (not hostname)
+                redis.call('SADD', setKey, dbTunnelId)
+                return 1  -- Success
+              `;
+
+              const allowed = await redis.eval(
+                luaScript,
+                1,
+                setKey,
+                dbTunnelId,
+                tunnelLimit.toString()
+              );
+
+              console.log(
+                `[TUNNEL LIMIT CHECK] Lua script result: ${allowed}, dbTunnelId: ${dbTunnelId}`,
+              );
+
+              if (allowed === 0) {
+                console.log(
+                  `[TUNNEL LIMIT CHECK] REJECTED - Limit ${tunnelLimit} reached`,
+                );
+                return {
+                  error: `Tunnel limit reached. The ${currentPlan} plan allows ${tunnelLimit} active tunnel${tunnelLimit > 1 ? "s" : ""}.`,
+                  status: 403,
+                };
+              }
+
+              // Mark the dbTunnelId we added so we can rollback on error
+              addedDbTunnelId = dbTunnelId;
+              console.log(
+                `[TUNNEL LIMIT CHECK] ALLOWED - Added dbTunnelId: ${dbTunnelId}`,
+              );
+
+              // Now insert the tunnel record (limit check passed)
               const tunnelRecord = {
-                id: randomUUID(),
+                id: dbTunnelId,
                 url: tunnelUrl,
                 userId,
                 organizationId,
@@ -189,16 +179,16 @@ export const Route = createFileRoute("/api/tunnel/register")({
                 createdAt: new Date(),
                 updatedAt: new Date(),
               };
-
               await tx.insert(tunnels).values(tunnelRecord);
 
-              return { success: true, tunnelId: tunnelRecord.id };
+              return { success: true, tunnelId: tunnelRecord.id, isReconnection: false };
             });
 
             if ("error" in result) {
               // Limit error - rollback Redis if needed
-              if (addedToRedis) {
-                await redis.srem(setKey, tunnelId);
+              if (addedDbTunnelId) {
+                await redis.srem(setKey, addedDbTunnelId);
+                console.log(`[TUNNEL LIMIT CHECK] Rolled back Redis entry: ${addedDbTunnelId}`);
               }
               return Response.json({ error: result.error }, { status: result.status });
             }
@@ -206,9 +196,9 @@ export const Route = createFileRoute("/api/tunnel/register")({
             return Response.json({ success: true, tunnelId: result.tunnelId });
           } catch (error) {
             // Database error - rollback Redis if we added the tunnel
-            if (addedToRedis) {
-              await redis.srem(setKey, tunnelId);
-              console.log(`[TUNNEL LIMIT CHECK] Rolled back Redis entry due to error`);
+            if (addedDbTunnelId) {
+              await redis.srem(setKey, addedDbTunnelId);
+              console.log(`[TUNNEL LIMIT CHECK] Rolled back Redis entry due to error: ${addedDbTunnelId}`);
             }
             // Log the actual error for debugging
             console.error("[TUNNEL REGISTRATION] Transaction error:", error);
