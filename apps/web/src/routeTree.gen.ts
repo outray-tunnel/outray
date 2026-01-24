@@ -13,6 +13,7 @@ import { Route as ViteRouteImport } from './routes/vite'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SelectRouteImport } from './routes/select'
+import { Route as ReportBugRouteImport } from './routes/report-bug'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PluginsRouteImport } from './routes/plugins'
@@ -20,6 +21,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NextjsRouteImport } from './routes/nextjs'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EmailTemplatesRouteImport } from './routes/email-templates'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as OrgSlugRouteImport } from './routes/$orgSlug'
@@ -117,6 +119,11 @@ const SelectRoute = SelectRouteImport.update({
   path: '/select',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportBugRoute = ReportBugRouteImport.update({
+  id: '/report-bug',
+  path: '/report-bug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -150,6 +157,11 @@ const LoginRoute = LoginRouteImport.update({
 const EmailTemplatesRoute = EmailTemplatesRouteImport.update({
   id: '/email-templates',
   path: '/email-templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChangelogRoute = ChangelogRouteImport.update({
@@ -552,6 +564,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug': typeof OrgSlugRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/changelog': typeof ChangelogRoute
+  '/contact': typeof ContactRoute
   '/email-templates': typeof EmailTemplatesRoute
   '/login': typeof LoginRoute
   '/nextjs': typeof NextjsRoute
@@ -559,6 +572,7 @@ export interface FileRoutesByFullPath {
   '/plugins': typeof PluginsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/report-bug': typeof ReportBugRoute
   '/select': typeof SelectRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
@@ -640,6 +654,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/changelog': typeof ChangelogRoute
+  '/contact': typeof ContactRoute
   '/email-templates': typeof EmailTemplatesRoute
   '/login': typeof LoginRoute
   '/nextjs': typeof NextjsRoute
@@ -647,6 +662,7 @@ export interface FileRoutesByTo {
   '/plugins': typeof PluginsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/report-bug': typeof ReportBugRoute
   '/select': typeof SelectRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
@@ -729,6 +745,7 @@ export interface FileRoutesById {
   '/$orgSlug': typeof OrgSlugRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/changelog': typeof ChangelogRoute
+  '/contact': typeof ContactRoute
   '/email-templates': typeof EmailTemplatesRoute
   '/login': typeof LoginRoute
   '/nextjs': typeof NextjsRoute
@@ -736,6 +753,7 @@ export interface FileRoutesById {
   '/plugins': typeof PluginsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/report-bug': typeof ReportBugRoute
   '/select': typeof SelectRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
@@ -820,6 +838,7 @@ export interface FileRouteTypes {
     | '/$orgSlug'
     | '/admin'
     | '/changelog'
+    | '/contact'
     | '/email-templates'
     | '/login'
     | '/nextjs'
@@ -827,6 +846,7 @@ export interface FileRouteTypes {
     | '/plugins'
     | '/pricing'
     | '/privacy'
+    | '/report-bug'
     | '/select'
     | '/signup'
     | '/terms'
@@ -908,6 +928,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/changelog'
+    | '/contact'
     | '/email-templates'
     | '/login'
     | '/nextjs'
@@ -915,6 +936,7 @@ export interface FileRouteTypes {
     | '/plugins'
     | '/pricing'
     | '/privacy'
+    | '/report-bug'
     | '/select'
     | '/signup'
     | '/terms'
@@ -996,6 +1018,7 @@ export interface FileRouteTypes {
     | '/$orgSlug'
     | '/admin'
     | '/changelog'
+    | '/contact'
     | '/email-templates'
     | '/login'
     | '/nextjs'
@@ -1003,6 +1026,7 @@ export interface FileRouteTypes {
     | '/plugins'
     | '/pricing'
     | '/privacy'
+    | '/report-bug'
     | '/select'
     | '/signup'
     | '/terms'
@@ -1086,6 +1110,7 @@ export interface RootRouteChildren {
   OrgSlugRoute: typeof OrgSlugRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
   ChangelogRoute: typeof ChangelogRoute
+  ContactRoute: typeof ContactRoute
   EmailTemplatesRoute: typeof EmailTemplatesRoute
   LoginRoute: typeof LoginRoute
   NextjsRoute: typeof NextjsRoute
@@ -1093,6 +1118,7 @@ export interface RootRouteChildren {
   PluginsRoute: typeof PluginsRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
+  ReportBugRoute: typeof ReportBugRoute
   SelectRoute: typeof SelectRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
@@ -1172,6 +1198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SelectRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/report-bug': {
+      id: '/report-bug'
+      path: '/report-bug'
+      fullPath: '/report-bug'
+      preLoaderRoute: typeof ReportBugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -1219,6 +1252,13 @@ declare module '@tanstack/react-router' {
       path: '/email-templates'
       fullPath: '/email-templates'
       preLoaderRoute: typeof EmailTemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/changelog': {
@@ -1910,6 +1950,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrgSlugRoute: OrgSlugRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
   ChangelogRoute: ChangelogRoute,
+  ContactRoute: ContactRoute,
   EmailTemplatesRoute: EmailTemplatesRoute,
   LoginRoute: LoginRoute,
   NextjsRoute: NextjsRoute,
@@ -1917,6 +1958,7 @@ const rootRouteChildren: RootRouteChildren = {
   PluginsRoute: PluginsRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
+  ReportBugRoute: ReportBugRoute,
   SelectRoute: SelectRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
