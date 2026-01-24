@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Navbar } from "./navbar";
 import { DeveloperExperience } from "./developer-experience";
 import { NetworkDiagram } from "./network-diagram";
@@ -34,7 +35,7 @@ export const Landing = () => {
             <div className="text-white/40 text-sm">
               © {new Date().getFullYear()} OutRay. All rights reserved.
             </div>
-            <div className="flex gap-6 text-white/60">
+            <div className="flex gap-6 text-white/60 text-sm">
               <a
                 href="https://twitter.com/outraytunnel"
                 target="_blank"
@@ -56,6 +57,18 @@ export const Landing = () => {
               >
                 Discord
               </a>
+              <Link
+                to="/terms"
+                className="hover:text-white transition-colors"
+              >
+                Terms
+              </Link>
+              <Link
+                to="/privacy"
+                className="hover:text-white transition-colors"
+              >
+                Privacy
+              </Link>
             </div>
           </div>
         </footer>
