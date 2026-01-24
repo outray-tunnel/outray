@@ -84,8 +84,7 @@ export const Navbar = () => {
                         CLI Reference
                       </Link>
                       <Link 
-                        to="/docs/$" 
-                        params={{ _splat: "vite-plugin" }}
+                        to="/plugins"
                         className="text-white/70 hover:text-white transition-colors text-base"
                       >
                         Plugins
