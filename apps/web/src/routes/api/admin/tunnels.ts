@@ -160,6 +160,95 @@ export const Route = createFileRoute("/api/admin/tunnels")({
           return Response.json({ error: "Failed to fetch tunnels" }, { status: 500 });
         }
       },
+
+      // POST endpoint for cleanup of stale tunnels
+      POST: async ({ request }) => {
+        // Admin token check
+        const authHeader = request.headers.get("authorization") || "";
+        const token = authHeader.startsWith("Bearer ")
+          ? authHeader.slice("Bearer ".length)
+          : "";
+
+        if (!token) {
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const tokenKey = `admin:token:${hashToken(token)}`;
+        const exists = await redis.get(tokenKey);
+        if (!exists) {
+          return Response.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        try {
+          const body = await request.json() as { action?: string };
+          
+          if (body.action !== "cleanup") {
+            return Response.json({ error: "Invalid action" }, { status: 400 });
+          }
+
+          console.log("[ADMIN] Starting stale tunnel cleanup...");
+          let totalRemoved = 0;
+          let totalChecked = 0;
+          const removedEntries: { setKey: string; tunnelId: string; reason: string }[] = [];
+
+          // UUID regex pattern
+          const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+          // Scan all org:*:online_tunnels sets
+          let cursor = "0";
+          do {
+            const [nextCursor, keys] = await redis.scan(
+              cursor,
+              "MATCH",
+              "org:*:online_tunnels",
+              "COUNT",
+              100
+            );
+            cursor = nextCursor;
+
+            for (const setKey of keys) {
+              // Get all members of this set
+              const members = await redis.smembers(setKey);
+              
+              for (const tunnelId of members) {
+                totalChecked++;
+                
+                // Check if this is a valid UUID (dbTunnelId) or a hostname (legacy bug)
+                if (!uuidPattern.test(tunnelId)) {
+                  // This is a hostname, not a UUID - it's a stale entry from the old bug
+                  await redis.srem(setKey, tunnelId);
+                  removedEntries.push({ setKey, tunnelId, reason: "invalid_format_hostname" });
+                  totalRemoved++;
+                  continue;
+                }
+
+                // Check if the tunnel:last_seen key exists (valid UUID entries)
+                const lastSeenKey = `tunnel:last_seen:${tunnelId}`;
+                const lastSeenExists = await redis.exists(lastSeenKey);
+                
+                if (!lastSeenExists) {
+                  // No last_seen key means the tunnel is offline but wasn't cleaned up
+                  await redis.srem(setKey, tunnelId);
+                  removedEntries.push({ setKey, tunnelId, reason: "missing_last_seen" });
+                  totalRemoved++;
+                }
+              }
+            }
+          } while (cursor !== "0");
+
+          console.log(`[ADMIN] Cleanup complete: checked ${totalChecked} entries, removed ${totalRemoved} stale entries`);
+
+          return Response.json({
+            success: true,
+            checked: totalChecked,
+            removed: totalRemoved,
+            entries: removedEntries,
+          });
+        } catch (error) {
+          console.error("Admin tunnel cleanup error:", error);
+          return Response.json({ error: "Failed to cleanup tunnels" }, { status: 500 });
+        }
+      },
     },
   },
 });
