@@ -13,6 +13,11 @@ import { useAppStore } from "@/lib/store";
 
 
 export const Route = createFileRoute("/onboarding")({
+  head: () => ({
+    meta: [
+      { title: "Create Organization - OutRay" },
+    ],
+  }),
   component: Onboarding,
 });
 
