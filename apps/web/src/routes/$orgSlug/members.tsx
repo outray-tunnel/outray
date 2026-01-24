@@ -21,6 +21,11 @@ import { useEffect, useRef } from "react";
 import InviteMemberModal from "@/components/invite-member-modal";
 
 export const Route = createFileRoute("/$orgSlug/members")({
+  head: () => ({
+    meta: [
+      { title: "Members - OutRay" },
+    ],
+  }),
   component: MembersView,
 });
 
