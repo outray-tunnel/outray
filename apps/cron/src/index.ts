@@ -116,18 +116,27 @@ async function sampleActiveTunnels() {
 
     let totalCount = 0;
 
-    let cursor = "0";
-    do {
-      const [nextCursor, keys] = await redis.scan(
-        cursor,
-        "MATCH",
-        "tunnel:online:*",
-        "COUNT",
-        1000,
-      );
-      cursor = nextCursor;
-      totalCount += keys.length;
-    } while (cursor !== "0");
+    // Use global counter for O(1) lookup instead of O(n) SCAN
+    const countStr = await redis.get("tunnel:global:online_count");
+    if (countStr !== null) {
+      totalCount = parseInt(countStr, 10) || 0;
+    } else {
+      // Fallback: counter doesn't exist yet, use SCAN (only happens on first run)
+      let cursor = "0";
+      do {
+        const [nextCursor, keys] = await redis.scan(
+          cursor,
+          "MATCH",
+          "tunnel:online:*",
+          "COUNT",
+          1000,
+        );
+        cursor = nextCursor;
+        totalCount += keys.length;
+      } while (cursor !== "0");
+      // Initialize the counter for future runs
+      await redis.set("tunnel:global:online_count", totalCount.toString());
+    }
 
     console.log("Active tunnels:", totalCount);
 
