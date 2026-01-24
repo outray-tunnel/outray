@@ -34,6 +34,7 @@ import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AdminTunnelsRouteImport } from './routes/admin/tunnels'
 import { Route as AdminSubscriptionsRouteImport } from './routes/admin/subscriptions'
 import { Route as AdminChartsRouteImport } from './routes/admin/charts'
+import { Route as AdminActionsRouteImport } from './routes/admin/actions'
 import { Route as OrgSlugTokensRouteImport } from './routes/$orgSlug/tokens'
 import { Route as OrgSlugSubdomainsRouteImport } from './routes/$orgSlug/subdomains'
 import { Route as OrgSlugSettingsRouteImport } from './routes/$orgSlug/settings'
@@ -219,6 +220,11 @@ const AdminSubscriptionsRoute = AdminSubscriptionsRouteImport.update({
 const AdminChartsRoute = AdminChartsRouteImport.update({
   id: '/charts',
   path: '/charts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminActionsRoute = AdminActionsRouteImport.update({
+  id: '/actions',
+  path: '/actions',
   getParentRoute: () => AdminRoute,
 } as any)
 const OrgSlugTokensRoute = OrgSlugTokensRouteImport.update({
@@ -565,6 +571,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/settings': typeof OrgSlugSettingsRouteWithChildren
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
+  '/admin/actions': typeof AdminActionsRoute
   '/admin/charts': typeof AdminChartsRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/tunnels': typeof AdminTunnelsRoute
@@ -651,6 +658,7 @@ export interface FileRoutesByTo {
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
+  '/admin/actions': typeof AdminActionsRoute
   '/admin/charts': typeof AdminChartsRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/tunnels': typeof AdminTunnelsRoute
@@ -740,6 +748,7 @@ export interface FileRoutesById {
   '/$orgSlug/settings': typeof OrgSlugSettingsRouteWithChildren
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
+  '/admin/actions': typeof AdminActionsRoute
   '/admin/charts': typeof AdminChartsRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/tunnels': typeof AdminTunnelsRoute
@@ -830,6 +839,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/settings'
     | '/$orgSlug/subdomains'
     | '/$orgSlug/tokens'
+    | '/admin/actions'
     | '/admin/charts'
     | '/admin/subscriptions'
     | '/admin/tunnels'
@@ -916,6 +926,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/requests'
     | '/$orgSlug/subdomains'
     | '/$orgSlug/tokens'
+    | '/admin/actions'
     | '/admin/charts'
     | '/admin/subscriptions'
     | '/admin/tunnels'
@@ -1004,6 +1015,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/settings'
     | '/$orgSlug/subdomains'
     | '/$orgSlug/tokens'
+    | '/admin/actions'
     | '/admin/charts'
     | '/admin/subscriptions'
     | '/admin/tunnels'
@@ -1305,6 +1317,13 @@ declare module '@tanstack/react-router' {
       path: '/charts'
       fullPath: '/admin/charts'
       preLoaderRoute: typeof AdminChartsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/actions': {
+      id: '/admin/actions'
+      path: '/actions'
+      fullPath: '/admin/actions'
+      preLoaderRoute: typeof AdminActionsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/$orgSlug/tokens': {
@@ -1785,6 +1804,7 @@ const OrgSlugRouteWithChildren =
   OrgSlugRoute._addFileChildren(OrgSlugRouteChildren)
 
 interface AdminRouteChildren {
+  AdminActionsRoute: typeof AdminActionsRoute
   AdminChartsRoute: typeof AdminChartsRoute
   AdminSubscriptionsRoute: typeof AdminSubscriptionsRoute
   AdminTunnelsRoute: typeof AdminTunnelsRoute
@@ -1795,6 +1815,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminActionsRoute: AdminActionsRoute,
   AdminChartsRoute: AdminChartsRoute,
   AdminSubscriptionsRoute: AdminSubscriptionsRoute,
   AdminTunnelsRoute: AdminTunnelsRoute,
