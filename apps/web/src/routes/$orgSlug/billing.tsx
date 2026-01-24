@@ -13,6 +13,11 @@ import { AlertModal } from "@/components/alert-modal";
 import { appClient } from "@/lib/app-client";
 
 export const Route = createFileRoute("/$orgSlug/billing")({
+  head: () => ({
+    meta: [
+      { title: "Billing - OutRay" },
+    ],
+  }),
   component: BillingView,
   validateSearch: (search?: Record<string, unknown>): { success?: boolean } => {
     return {
