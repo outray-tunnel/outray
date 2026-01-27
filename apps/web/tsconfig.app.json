@@ -6,6 +6,7 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "types": ["vite/client"],
+    "typeRoots": ["./src/types", "./node_modules/@types"],
     "skipLibCheck": true,
     "baseUrl": ".",
 

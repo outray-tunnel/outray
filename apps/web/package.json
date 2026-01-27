@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@outray/vite": "^0.0.3",
+    "@paystack/inline-js": "^2.22.7",
     "@polar-sh/sdk": "^0.42.1",
     "@polar-sh/tanstack-start": "^0.4.3",
     "@react-three/drei": "^10.7.7",
