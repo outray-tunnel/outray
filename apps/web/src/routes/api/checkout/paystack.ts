@@ -102,7 +102,6 @@ export const Route = createFileRoute("/api/checkout/paystack")({
               plan,
               userId: session.user.id,
             },
-            callback_url: `${process.env.APP_URL}/api/checkout/paystack-callback`,
           });
 
           return Response.json({
