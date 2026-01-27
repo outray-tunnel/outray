@@ -3,6 +3,11 @@ import { useState } from "react";
 import { Copy, Check, Download, Key, Play } from "lucide-react";
 
 export const Route = createFileRoute("/$orgSlug/install")({
+  head: () => ({
+    meta: [
+      { title: "Install - OutRay" },
+    ],
+  }),
   component: Install,
 });
 

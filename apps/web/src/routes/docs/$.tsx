@@ -15,6 +15,11 @@ import { useFumadocsLoader } from "fumadocs-core/source/client";
 import { Mermaid } from "@/components/mdx/mermaid";
 
 export const Route = createFileRoute("/docs/$")({
+  head: ({ loaderData }) => ({
+    meta: [
+      { title: loaderData?.title ? `${loaderData.title} - OutRay Docs` : "Documentation - OutRay" },
+    ],
+  }),
   component: Page,
   loader: async ({ params }) => {
     const slugs = params._splat?.split("/") ?? [];
@@ -34,6 +39,7 @@ const serverLoader = createServerFn({
 
     return {
       path: page.path,
+      title: page.data.title,
       pageTree: await source.serializePageTree(source.getPageTree()),
     };
   });

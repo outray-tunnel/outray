@@ -13,6 +13,11 @@ import { ActiveTunnelsPanel } from "@/components/overview/active-tunnels-panel";
 import { OverviewSkeleton } from "@/components/overview/overview-skeleton";
 
 export const Route = createFileRoute("/$orgSlug/")({
+  head: () => ({
+    meta: [
+      { title: "Overview - OutRay" },
+    ],
+  }),
   component: OverviewView,
 });
 

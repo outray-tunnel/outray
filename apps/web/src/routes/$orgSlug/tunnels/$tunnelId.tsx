@@ -16,6 +16,11 @@ import { ProtocolEvents } from "@/components/tunnel-details/protocol-events";
 import { TunnelRequests } from "@/components/tunnel-details/tunnel-requests";
 
 export const Route = createFileRoute("/$orgSlug/tunnels/$tunnelId")({
+  head: () => ({
+    meta: [
+      { title: "Tunnel Details - OutRay" },
+    ],
+  }),
   component: TunnelDetailView,
   validateSearch: (search: Record<string, unknown>) => {
     return {

@@ -17,6 +17,7 @@ export interface TunnelConfig {
 
 export interface GlobalConfig {
   org?: string;
+  server_url?: string;
 }
 
 export interface OutRayTomlConfig {
@@ -39,6 +40,9 @@ const portSchema = Joi.number().integer().min(1).max(65535).required();
 
 const globalConfigSchema = Joi.object({
   org: Joi.string().optional(),
+  server_url: Joi.string().uri({ scheme: ['ws', 'wss'] }).optional().messages({
+    'string.uri': 'server_url must be a valid WebSocket URL (ws:// or wss://)',
+  }),
 });
 
 const tunnelConfigSchema = Joi.object({

@@ -7,6 +7,7 @@ import {
   Network,
   LogOut,
   BarChart3,
+  Wrench,
 } from "lucide-react";
 
 interface AdminSidebarProps {
@@ -20,6 +21,7 @@ const navItems = [
   { path: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
   { path: "/admin/tunnels", label: "Tunnels", icon: Network },
   { path: "/admin/charts", label: "Charts", icon: BarChart3 },
+  { path: "/admin/actions", label: "Actions", icon: Wrench },
 ];
 
 export function AdminSidebar({ onLogout }: AdminSidebarProps) {

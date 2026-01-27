@@ -17,8 +17,14 @@ import { appClient } from "@/lib/app-client";
 import { getPlanLimits } from "@/lib/subscription-plans";
 import { NewTunnelModal } from "@/components/new-tunnel-modal";
 import { LimitModal } from "@/components/limit-modal";
+import { Button } from "@/components/ui";
 
 export const Route = createFileRoute("/$orgSlug/tunnels/")({
+  head: () => ({
+    meta: [
+      { title: "Tunnels - OutRay" },
+    ],
+  }),
   component: TunnelsView,
 });
 
@@ -249,17 +255,13 @@ function TunnelsView() {
             </button>
           </div>
 
-          <button
+          <Button
             onClick={handleNewTunnelClick}
-            className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl transition-colors font-medium shadow-lg shadow-white/5 ${
-              isAtLimit
-                ? "bg-white/10 text-gray-400 cursor-not-allowed"
-                : "bg-white hover:bg-gray-200 text-black"
-            }`}
+            disabled={isAtLimit}
+            leftIcon={<Plus size={18} />}
           >
-            <Plus size={18} />
             <span className="hidden sm:inline">New Tunnel</span>
-          </button>
+          </Button>
         </div>
       </div>
 

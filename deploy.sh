@@ -106,10 +106,14 @@ npm install --production
 if pm2 list | grep -q "outray-cron"; then
   REDIS_URL="$REDIS_URL" \
   TIGER_DATA_URL="$TIGER_DATA_URL" \
+  DATABASE_URL="$DATABASE_URL" \
+  PAYSTACK_SECRET_KEY="$PAYSTACK_SECRET_KEY" \
   pm2 restart "outray-cron" --update-env
 else
   REDIS_URL="$REDIS_URL" \
   TIGER_DATA_URL="$TIGER_DATA_URL" \
+  DATABASE_URL="$DATABASE_URL" \
+  PAYSTACK_SECRET_KEY="$PAYSTACK_SECRET_KEY" \
   pm2 start dist/index.js --name "outray-cron"
 fi
 cd $APP_DIR

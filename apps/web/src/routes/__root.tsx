@@ -11,7 +11,13 @@ import appCss from "../index.css?url";
 import { RootProvider } from "fumadocs-ui/provider/tanstack";
 import { PostHogProvider } from "posthog-js/react";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export const Route = createRootRoute({
   head: () => ({

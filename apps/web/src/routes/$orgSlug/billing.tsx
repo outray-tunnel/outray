@@ -1,18 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CreditCard, Check, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   SUBSCRIPTION_PLANS,
   getPlanLimits,
   calculatePlanCost,
 } from "@/lib/subscription-plans";
 import { initiateCheckout, POLAR_PRODUCT_IDS } from "@/lib/polar";
+import { isNigerianUser } from "@/lib/geolocation";
 import { authClient, usePermission } from "@/lib/auth-client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertModal } from "@/components/alert-modal";
+import { PaystackSubscriptionModal } from "@/components/paystack-subscription-modal";
 import { appClient } from "@/lib/app-client";
+import { Button } from "@/components/ui";
+
+type Currency = "USD" | "NGN";
 
 export const Route = createFileRoute("/$orgSlug/billing")({
+  head: () => ({
+    meta: [
+      { title: "Billing - OutRay" },
+    ],
+  }),
   component: BillingView,
   validateSearch: (search?: Record<string, unknown>): { success?: boolean } => {
     return {
@@ -29,6 +39,11 @@ function BillingView() {
 const {data:orgs}=authClient.useListOrganizations();
   const selectedOrganizationId = orgs?.find((org)=>org.slug==orgSlug)?.id
   const { success } = Route.useSearch();
+  const [showPaystack, setShowPaystack] = useState(false);
+  const [currency, setCurrency] = useState<Currency>("USD");
+  const [isPaystackLoading, setIsPaystackLoading] = useState(false);
+  const [showPaystackModal, setShowPaystackModal] = useState(false);
+  const queryClient = useQueryClient();
   const [alertState, setAlertState] = useState<{
     isOpen: boolean;
     title: string;
@@ -60,6 +75,29 @@ const {data:orgs}=authClient.useListOrganizations();
     enabled: !!selectedOrganizationId && !!canManageBilling && !!orgSlug,
   });
 
+  // Check if user is in Nigeria to show Paystack option
+  useEffect(() => {
+    isNigerianUser().then((isNigerian) => {
+      setShowPaystack(isNigerian);
+      // Only set default currency if there's no active subscription
+      // (currency will be set based on subscription provider below)
+      if (isNigerian && !data?.subscription?.paymentProvider) {
+        setCurrency("NGN");
+      }
+    });
+  }, [data?.subscription?.paymentProvider]);
+
+  // Lock currency to match active subscription's provider
+  useEffect(() => {
+    if (data?.subscription?.status === "active" && data?.subscription?.plan !== "free") {
+      if (data.subscription.paymentProvider === "paystack") {
+        setCurrency("NGN");
+      } else {
+        setCurrency("USD");
+      }
+    }
+  }, [data?.subscription]);
+
   if (isCheckingPermission) {
     return (
       <div className="flex items-center justify-center min-h-100">
@@ -86,7 +124,21 @@ const {data:orgs}=authClient.useListOrganizations();
   const subscription = data?.subscription;
   const currentPlan = subscription?.plan || "free";
   const planLimits = getPlanLimits(currentPlan as any);
-  const monthlyCost = calculatePlanCost(currentPlan as any);
+  const monthlyCostUSD = calculatePlanCost(currentPlan as any);
+  const isPaystackSubscription = subscription?.paymentProvider === "paystack";
+  const hasActiveSubscription = currentPlan !== "free" && subscription?.status === "active";
+  const planConfig = SUBSCRIPTION_PLANS[currentPlan as keyof typeof SUBSCRIPTION_PLANS];
+  const monthlyCostDisplay = isPaystackSubscription 
+    ? `₦${planConfig.priceNGN.toLocaleString()}`
+    : `$${monthlyCostUSD}`;
+
+  // Lock currency toggle if user has an active subscription
+  const isProviderLocked = hasActiveSubscription;
+  const lockedCurrency: Currency | null = hasActiveSubscription
+    ? isPaystackSubscription
+      ? "NGN"
+      : "USD"
+    : null;
 
   const handleCheckout = async (plan: "ray" | "beam" | "pulse") => {
     if (isSessionLoading) {
@@ -144,11 +196,107 @@ const {data:orgs}=authClient.useListOrganizations();
   const handleManageSubscription = () => {
     if (!selectedOrganizationId) return;
 
-    window.location.href = `/api/${orgSlug}/portal/polar`;
+    // Check if it's a Paystack subscription
+    if (subscription?.paymentProvider === "paystack") {
+      setShowPaystackModal(true);
+    } else {
+      // Redirect to Polar portal for USD subscriptions
+      window.location.href = `/api/${orgSlug}/portal/polar`;
+    }
+  };
+
+  // Handle Paystack checkout
+  const handlePaystackCheckout = async (plan: "ray" | "beam" | "pulse") => {
+    if (isSessionLoading) {
+      setAlertState({
+        isOpen: true,
+        title: "Please Wait",
+        message: "Loading your session. Please try again in a moment.",
+        type: "info",
+      });
+      return;
+    }
+
+    if (!selectedOrganizationId || !session?.user) {
+      setAlertState({
+        isOpen: true,
+        title: "Authentication Required",
+        message: "Please sign in to upgrade your plan",
+        type: "error",
+      });
+      return;
+    }
+
+    setIsPaystackLoading(true);
+
+    try {
+      // Initialize Paystack transaction
+      const response = await fetch(
+        `/api/checkout/paystack?plan=${plan}&orgSlug=${orgSlug}`,
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to initialize payment");
+      }
+
+      // Import Paystack popup SDK dynamically
+      const PaystackPop = (await import("@paystack/inline-js")).default;
+      const popup = new PaystackPop();
+
+      // Open Paystack popup
+      popup.resumeTransaction(data.accessCode, {
+        onSuccess: async () => {
+          // Verify payment and activate subscription
+          try {
+            const verifyResponse = await fetch("/api/checkout/paystack-verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reference: data.reference }),
+            });
+
+            const verifyData = await verifyResponse.json();
+
+            if (verifyResponse.ok && verifyData.success) {
+              // Redirect to billing with success
+              window.location.href = `/${orgSlug}/billing?success=true`;
+            } else {
+              setAlertState({
+                isOpen: true,
+                title: "Verification Failed",
+                message: verifyData.error || "Failed to verify payment",
+                type: "error",
+              });
+            }
+          } catch (error) {
+            console.error("Verification error:", error);
+            setAlertState({
+              isOpen: true,
+              title: "Verification Error",
+              message: "Payment was successful but verification failed. Please contact support.",
+              type: "error",
+            });
+          }
+          setIsPaystackLoading(false);
+        },
+        onCancel: () => {
+          setIsPaystackLoading(false);
+        },
+      });
+    } catch (error) {
+      console.error("Paystack checkout error:", error);
+      setAlertState({
+        isOpen: true,
+        title: "Checkout Failed",
+        message: error instanceof Error ? error.message : "Failed to initiate payment",
+        type: "error",
+      });
+      setIsPaystackLoading(false);
+    }
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       {success && (
         <div className="mb-6 bg-accent/10 border border-accent/20 rounded-xl p-4 flex items-center gap-3">
           <Check className="w-5 h-5 text-accent shrink-0" />
@@ -205,7 +353,7 @@ const {data:orgs}=authClient.useListOrganizations();
                 </div>
                 <div className="text-right">
                   <p className="text-3xl font-bold text-white">
-                    ${monthlyCost}
+                    {monthlyCostDisplay}
                   </p>
                   <p className="text-sm text-gray-500">/month</p>
                 </div>
@@ -247,9 +395,48 @@ const {data:orgs}=authClient.useListOrganizations();
           </div>
 
           <div>
-            <h3 className="text-xl font-bold text-white mb-6">
-              Available Plans
-            </h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">
+                Available Plans
+              </h3>
+              {showPaystack && (
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex items-center gap-1 p-1 bg-white/5 rounded-full">
+                    <button
+                      onClick={() => !isProviderLocked && setCurrency("USD")}
+                      disabled={isProviderLocked && lockedCurrency === "NGN"}
+                      className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all ${
+                        currency === "USD"
+                          ? "bg-white text-black"
+                          : isProviderLocked && lockedCurrency === "NGN"
+                            ? "text-gray-600 cursor-not-allowed"
+                            : "text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      USD
+                    </button>
+                    <button
+                      onClick={() => !isProviderLocked && setCurrency("NGN")}
+                      disabled={isProviderLocked && lockedCurrency === "USD"}
+                      className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all ${
+                        currency === "NGN"
+                          ? "bg-green-600 text-white"
+                          : isProviderLocked && lockedCurrency === "USD"
+                            ? "text-gray-600 cursor-not-allowed"
+                            : "text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      NGN
+                    </button>
+                  </div>
+                  {isProviderLocked && (
+                    <p className="text-xs text-gray-500">
+                      Cancel subscription to switch currency
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
               {(
                 Object.entries(SUBSCRIPTION_PLANS).filter(
@@ -295,16 +482,23 @@ const {data:orgs}=authClient.useListOrganizations();
                 return (
                   <PlanCard
                     key={key}
+                    planKey={key}
+                    currentPlanKey={currentPlan}
                     name={plan.name}
-                    price={plan.price}
+                    priceUSD={plan.price}
+                    priceNGN={plan.priceNGN}
                     description={descriptions[key]}
                     features={features}
                     current={currentPlan === key}
                     recommended={key === "beam"}
+                    currency={currency}
+                    isLoading={isPaystackLoading}
                     onSelect={
                       key === "free"
                         ? () => {}
-                        : () => handleCheckout(key as "ray" | "beam" | "pulse")
+                        : currency === "NGN"
+                          ? () => handlePaystackCheckout(key as "ray" | "beam" | "pulse")
+                          : () => handleCheckout(key as "ray" | "beam" | "pulse")
                     }
                   />
                 );
@@ -321,27 +515,61 @@ const {data:orgs}=authClient.useListOrganizations();
         message={alertState.message}
         type={alertState.type}
       />
+
+      <PaystackSubscriptionModal
+        isOpen={showPaystackModal}
+        onClose={() => setShowPaystackModal(false)}
+        subscription={subscription ?? null}
+        orgSlug={orgSlug}
+        onSubscriptionUpdated={() => {
+          queryClient.invalidateQueries({ queryKey: ["subscription", orgSlug] });
+        }}
+      />
     </div>
   );
 }
 
+// Plan tier order for upgrade/downgrade comparison
+const PLAN_TIERS: Record<string, number> = {
+  free: 0,
+  ray: 1,
+  beam: 2,
+  pulse: 3,
+};
+
 function PlanCard({
+  planKey,
+  currentPlanKey,
   name,
-  price,
+  priceUSD,
+  priceNGN,
   description,
   features,
   current,
   recommended,
+  currency,
+  isLoading,
   onSelect,
 }: {
+  planKey: string;
+  currentPlanKey: string;
   name: string;
-  price: number;
+  priceUSD: number;
+  priceNGN: number;
   description: string;
   features: string[];
   current?: boolean;
   recommended?: boolean;
+  currency: Currency;
+  isLoading?: boolean;
   onSelect: () => void;
 }) {
+  const isFree = priceUSD === 0;
+  const displayPrice = currency === "NGN" ? priceNGN : priceUSD;
+  const currencySymbol = currency === "NGN" ? "₦" : "$";
+  const formattedPrice = currency === "NGN" ? displayPrice.toLocaleString() : displayPrice;
+  const isDowngrade = PLAN_TIERS[planKey] < PLAN_TIERS[currentPlanKey];
+
   return (
     <div
       className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 ${
@@ -369,7 +597,7 @@ function PlanCard({
         </h3>
         <p className="text-xs text-gray-500 mb-4">{description}</p>
         <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-bold text-white">${price}</span>
+          <span className="text-4xl font-bold text-white">{currencySymbol}{formattedPrice}</span>
           <span className="text-white/40">/month</span>
         </div>
       </div>
@@ -385,19 +613,32 @@ function PlanCard({
         ))}
       </div>
 
-      <button
+      <Button
         onClick={onSelect}
-        disabled={current}
-        className={`w-full py-3 rounded-full font-bold text-center transition-all ${
-          current
+        disabled={current || isFree || isLoading}
+        className={`w-full py-3 rounded-full font-medium transition-all ${
+          current || isFree
             ? "bg-white/10 text-gray-400 cursor-not-allowed"
             : recommended
               ? "bg-gradient-to-r from-accent to-yellow-400 text-black hover:opacity-90 shadow-lg shadow-accent/20"
-              : "bg-white/10 text-white hover:bg-white/20"
+              : "bg-white hover:bg-white/90 text-black"
         }`}
       >
-        {current ? "Current Plan" : "Upgrade"}
-      </button>
+        {isLoading ? (
+          <span className="flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Processing...
+          </span>
+        ) : current ? (
+          "Current Plan"
+        ) : isFree ? (
+          "Free"
+        ) : isDowngrade ? (
+          "Downgrade"
+        ) : (
+          "Upgrade"
+        )}
+      </Button>
     </div>
   );
 }

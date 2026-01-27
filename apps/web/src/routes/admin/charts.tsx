@@ -10,6 +10,11 @@ import { ChartsSkeleton } from "@/components/admin/admin-skeleton";
 import { useAdminStore } from "@/lib/admin-store";
 
 export const Route = createFileRoute("/admin/charts")({
+  head: () => ({
+    meta: [
+      { title: "Admin Charts - OutRay" },
+    ],
+  }),
   component: AdminChartsPage,
 });
 
@@ -21,7 +26,7 @@ interface ChartDataItem {
 }
 
 const COLORS = {
-  primary: "#FFA62B",
+  primary: "#8367c7",
   secondary: "#3B82F6",
   tertiary: "#8B5CF6",
   quaternary: "#10B981",
@@ -195,15 +200,15 @@ function AdminChartsPage() {
               <AreaChart data={data.hourlyRequests}>
                 <defs>
                   <linearGradient id="colorHourly" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#8367c7" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#8367c7" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="hour" tickFormatter={formatHour} stroke="#666" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="#666" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={tooltipStyle} labelFormatter={(label) => formatHour(label)} itemStyle={{ color: "#fff" }} labelStyle={{ color: "#9ca3af" }} />
-                <Area type="monotone" dataKey="requests" stroke="#F59E0B" strokeWidth={2} fill="url(#colorHourly)" name="Activity" />
+                <Area type="monotone" dataKey="requests" stroke="#8367c7" strokeWidth={2} fill="url(#colorHourly)" name="Activity" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

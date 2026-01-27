@@ -13,6 +13,11 @@ import { MobileHeader } from "@/components/mobile-header";
 import { ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/$orgSlug")({
+  head: () => ({
+    meta: [
+      { title: "Dashboard - OutRay" },
+    ],
+  }),
   component: DashboardLayout,
 });
 

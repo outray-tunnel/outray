@@ -1,8 +1,8 @@
 import WebSocket from "ws";
 import dgram from "dgram";
 import chalk from "chalk";
-import { encodeMessage, decodeMessage } from "./protocol";
-import { UDPDataMessage, UDPResponseMessage, TunnelProtocol } from "./types";
+import { encodeMessage, decodeMessage } from "@outray/core";
+import type { UDPDataMessage, UDPResponseMessage, TunnelProtocol } from "@outray/core";
 
 export class UDPTunnelClient {
   private ws: WebSocket | null = null;

@@ -16,11 +16,20 @@ type OrganizationInviteParams = {
   invitationLink: string;
 };
 
+type PaymentFailedParams = {
+  name: string;
+  planName: string;
+  amount: string;
+  billingUrl: string;
+  attemptsRemaining: number;
+};
+
 // Map template keys to their parameter types
 type TemplateParamsMap = {
   welcome: WelcomeParams;
   "password-reset": PasswordResetParams;
   "organization-invite": OrganizationInviteParams;
+  "payment-failed": PaymentFailedParams;
 };
 
 export type EmailTemplateKey = keyof TemplateParamsMap;
@@ -237,6 +246,96 @@ export const emailTemplates: EmailTemplates = {
             <td style="padding: 0 0 30px 0;">
               <p style="margin: 0; font-size: 14px; line-height: 20px; color: #71717a;">
                 If you did not expect this invitation, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 20px 0 0 0; border-top: 1px solid #e4e4e7;">
+              <p style="margin: 0; font-size: 14px; color: #71717a;">
+                © 2026 Outray. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`,
+  },
+
+  "payment-failed": {
+    name: "Payment Failed",
+    subject: "Action Required: Your OutRay payment failed",
+    params: ["name", "planName", "amount", "billingUrl", "attemptsRemaining"],
+    previewParams: {
+      name: "John Doe",
+      planName: "Beam",
+      amount: "₦21,000",
+      billingUrl: "https://outray.dev/acme/billing",
+      attemptsRemaining: 2,
+    },
+    html: ({ name, planName, amount, billingUrl, attemptsRemaining }) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Failed</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #ffffff;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #ffffff; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px;">
+          <tr>
+            <td style="padding: 0 0 20px 0;">
+              <h1 style="margin: 0 0 20px 0; font-size: 28px; font-weight: 700; color: #dc2626;">Payment Failed ⚠️</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 0 20px 0;">
+              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
+                Hi ${name},
+              </p>
+              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
+                We couldn't process your payment of <strong>${amount}</strong> for the <strong>${planName}</strong> plan on OutRay.
+              </p>
+              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
+                ${attemptsRemaining > 0
+                  ? `We'll retry your payment automatically. You have <strong>${attemptsRemaining} attempt${attemptsRemaining === 1 ? '' : 's'}</strong> remaining before your subscription is cancelled.`
+                  : `This was our final attempt. Your subscription has been cancelled and downgraded to the free plan.`
+                }
+              </p>
+              <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
+                To update your payment method, visit your billing page:
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 0 20px 0;">
+              <a href="${billingUrl}" style="display: inline-block; padding: 14px 32px; background-color: #18181b; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px;">
+                Update Payment Method
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 0 30px 0;">
+              <p style="margin: 0; font-size: 14px; line-height: 20px; color: #71717a;">
+                Common reasons for payment failures include:
+              </p>
+              <ul style="margin: 10px 0; padding-left: 20px; font-size: 14px; line-height: 24px; color: #71717a;">
+                <li>Insufficient funds</li>
+                <li>Expired card</li>
+                <li>Card declined by your bank</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 0 30px 0;">
+              <p style="margin: 0; font-size: 14px; line-height: 20px; color: #71717a;">
+                If you have any questions, just reply to this email.
               </p>
             </td>
           </tr>

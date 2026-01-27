@@ -1,5 +1,5 @@
 import { X, AlertCircle } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { Modal, Button, IconButton } from "@/components/ui";
 
 interface AlertModalProps {
   isOpen: boolean;
@@ -23,60 +23,32 @@ export function AlertModal({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-          />
-          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-md bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto"
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center border ${colors[type]}`}
             >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center border ${colors[type]}`}
-                    >
-                      <AlertCircle
-                        className={`w-5 h-5 ${colors[type].split(" ")[0]}`}
-                      />
-                    </div>
-                    <h2 className="text-lg font-semibold text-white">
-                      {title}
-                    </h2>
-                  </div>
-                  <button
-                    onClick={onClose}
-                    className="p-2 hover:bg-white/5 rounded-lg transition-colors text-gray-400 hover:text-white"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                  {message}
-                </p>
-
-                <button
-                  onClick={onClose}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </motion.div>
+              <AlertCircle
+                className={`w-5 h-5 ${colors[type].split(" ")[0]}`}
+              />
+            </div>
+            <h2 className="text-lg font-semibold text-white">{title}</h2>
           </div>
-        </>
-      )}
-    </AnimatePresence>
+          <IconButton
+            onClick={onClose}
+            icon={<X className="w-5 h-5" />}
+            aria-label="Close"
+          />
+        </div>
+
+        <p className="text-gray-400 text-sm leading-relaxed mb-6">{message}</p>
+
+        <Button variant="primary" onClick={onClose} fullWidth>
+          Close
+        </Button>
+      </div>
+    </Modal>
   );
 }

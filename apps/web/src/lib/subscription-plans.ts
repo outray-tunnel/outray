@@ -1,8 +1,9 @@
-// Subscription plan definitions for Polar
+// Subscription plan definitions for Polar and Paystack
 export const SUBSCRIPTION_PLANS = {
   free: {
     name: "Free",
     price: 0,
+    priceNGN: 0,
     features: {
       maxTunnels: 2,
       maxDomains: 0,
@@ -17,6 +18,7 @@ export const SUBSCRIPTION_PLANS = {
   ray: {
     name: "Ray",
     price: 7,
+    priceNGN: 10000, // ₦10,000
     polarProductId: process.env.POLAR_RAY_PRODUCT_ID,
     features: {
       maxTunnels: 3,
@@ -32,6 +34,7 @@ export const SUBSCRIPTION_PLANS = {
   beam: {
     name: "Beam",
     price: 15,
+    priceNGN: 21000, // ₦21,000
     polarProductId: process.env.POLAR_BEAM_PRODUCT_ID,
     features: {
       maxTunnels: 5,
@@ -47,6 +50,7 @@ export const SUBSCRIPTION_PLANS = {
   pulse: {
     name: "Pulse",
     price: 120,
+    priceNGN: 170000, // ₦170,000
     polarProductId: process.env.POLAR_PULSE_PRODUCT_ID,
     features: {
       maxTunnels: 20,
@@ -63,14 +67,15 @@ export const SUBSCRIPTION_PLANS = {
   unlimited: {
     name: "Unlimited",
     price: 0,
+    priceNGN: 0,
     hidden: true,
     features: {
-      maxTunnels: -1,
-      maxDomains: -1,
-      maxSubdomains: -1,
-      maxMembers: -1,
-      bandwidthPerMonth: -1,
-      retentionDays: -1,
+      maxTunnels: 999999999,
+      maxDomains: 999999999,
+      maxSubdomains: 999999999,
+      maxMembers: 999999999,
+      bandwidthPerMonth: 1024 * 1024 * 1024 * 1024 * 1024, // 1PB
+      retentionDays: 999999999,
       customDomains: true,
       prioritySupport: true,
     },

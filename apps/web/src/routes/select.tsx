@@ -3,6 +3,11 @@ import { authClient } from "@/lib/auth-client";
 import { ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/select")({
+  head: () => ({
+    meta: [
+      { title: "Select Organization - OutRay" },
+    ],
+  }),
   component: SelectOrganization,
 });
 

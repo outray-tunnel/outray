@@ -1,0 +1,236 @@
+---
+title: Next.js Plugin
+description: Automatically expose your Next.js dev server via OutRay tunnel
+icon: SiNextdotjs
+---
+
+The `@outray/next` plugin automatically creates an OutRay tunnel when your Next.js development server starts, giving you a public URL to share your local development environment.
+
+## Installation
+
+```bash
+npm install @outray/next
+```
+
+```bash
+pnpm add @outray/next
+```
+
+```bash
+yarn add @outray/next
+```
+
+## Quick Start
+
+Wrap your Next.js configuration with the plugin:
+
+```ts
+// next.config.ts
+import withOutray from '@outray/next'
+
+export default withOutray({
+  // your Next.js config
+})
+```
+
+When you run `next dev` or `npm run dev`, you'll see your tunnel URL printed in the terminal:
+
+```bash
+  ➜  Local:   http://localhost:3000
+  ➜  Tunnel:  https://abc123.outray.dev
+```
+
+## Configuration
+
+The plugin accepts an options object as the second argument:
+
+```ts
+// next.config.ts
+import withOutray from '@outray/next'
+
+export default withOutray(
+  {
+    // your Next.js config
+  },
+  {
+    subdomain: 'my-app',
+    apiKey: process.env.OUTRAY_API_KEY,
+  }
+)
+```
+
+### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `subdomain` | `string` | — | Request a specific subdomain for your tunnel URL. Requires authentication. |
+| `customDomain` | `string` | — | Use a custom domain. Must be configured in the OutRay dashboard first. |
+| `apiKey` | `string` | `process.env.OUTRAY_API_KEY` | API key for authentication. |
+| `serverUrl` | `string` | `wss://api.outray.dev/` | OutRay server WebSocket URL. Only change this for self-hosted instances. |
+| `enabled` | `boolean` | `process.env.OUTRAY_ENABLED !== "false"` | Enable or disable the tunnel. |
+| `silent` | `boolean` | `false` | Suppress tunnel status logs. |
+| `onTunnelReady` | `(url: string) => void` | — | Callback fired when tunnel is successfully established. |
+| `onError` | `(error: Error) => void` | — | Callback fired when tunnel encounters an error. |
+| `onClose` | `() => void` | — | Callback fired when tunnel connection is closed. |
+| `onReconnecting` | `() => void` | — | Callback fired when tunnel is attempting to reconnect. |
+
+## Environment Variables
+
+The plugin respects the following environment variables:
+
+| Variable | Description |
+|----------|-------------|
+| `OUTRAY_API_KEY` | API key for authentication (fallback for `apiKey` option) |
+| `OUTRAY_SUBDOMAIN` | Subdomain to use (fallback for `subdomain` option) |
+| `OUTRAY_SERVER_URL` | Server URL (fallback for `serverUrl` option) |
+| `OUTRAY_ENABLED` | Set to `"false"` to disable the tunnel |
+| `PORT` | The port your Next.js dev server runs on (default: 3000) |
+
+## Examples
+
+### Custom Subdomain
+
+Reserve a consistent subdomain for your project:
+
+```ts
+// next.config.ts
+import withOutray from '@outray/next'
+
+export default withOutray(
+  {
+    // your Next.js config
+  },
+  {
+    subdomain: 'my-app',
+    apiKey: process.env.OUTRAY_API_KEY,
+  }
+)
+```
+
+### Custom Domain
+
+Use your own domain for the tunnel:
+
+```ts
+// next.config.ts
+import withOutray from '@outray/next'
+
+export default withOutray(
+  {},
+  {
+    customDomain: 'dev.example.com',
+    apiKey: process.env.OUTRAY_API_KEY,
+  }
+)
+```
+
+### Conditional Enabling
+
+Only enable the tunnel in certain environments:
+
+```ts
+// next.config.ts
+import withOutray from '@outray/next'
+
+export default withOutray(
+  {},
+  {
+    enabled: process.env.EXPOSE_TUNNEL === 'true',
+  }
+)
+```
+
+### With Callbacks
+
+React to tunnel events in your application:
+
+```ts
+// next.config.ts
+import withOutray from '@outray/next'
+
+export default withOutray(
+  {},
+  {
+    onTunnelReady: (url) => {
+      console.log(`Share this URL: ${url}`)
+    },
+    onError: (error) => {
+      console.error('Tunnel error:', error.message)
+    },
+    onReconnecting: () => {
+      console.log('Connection lost, reconnecting...')
+    },
+  }
+)
+```
+
+### Silent Mode
+
+Disable all tunnel logs:
+
+```ts
+// next.config.ts
+import withOutray from '@outray/next'
+
+export default withOutray(
+  {},
+  {
+    silent: true,
+    onTunnelReady: (url) => {
+      // Handle the URL silently
+    },
+  }
+)
+```
+
+### With Other Plugins
+
+Compose with other Next.js plugins:
+
+```ts
+// next.config.ts
+import withOutray from '@outray/next'
+import withBundleAnalyzer from '@next/bundle-analyzer'
+
+const config = {
+  // your Next.js config
+}
+
+export default withOutray(
+  withBundleAnalyzer({ enabled: process.env.ANALYZE === 'true' })(config),
+  {
+    subdomain: 'my-app',
+  }
+)
+```
+
+## App Router & Pages Router
+
+The plugin works seamlessly with both Next.js App Router and Pages Router. No additional configuration is required.
+
+## Next.js Compatibility
+
+The plugin supports Next.js versions 13.x, 14.x, and 15.x.
+
+## Troubleshooting
+
+### Tunnel not starting
+
+- Ensure you're running in development mode (`next dev`)
+- Check that `OUTRAY_ENABLED` is not set to `"false"`
+- Verify the `PORT` environment variable matches your dev server port
+
+### Authentication errors
+
+- Run `outray login` in your terminal to authenticate
+- Or set the `OUTRAY_API_KEY` environment variable
+
+### Connection issues
+
+- Check your internet connection
+- Verify the server URL is correct (default: `wss://api.outray.dev/`)
+- The plugin will automatically attempt to reconnect on connection loss
+
+### Turbopack compatibility
+
+The plugin works with both webpack and Turbopack. The tunnel is started during the webpack configuration phase, which runs even when using Turbopack for development.

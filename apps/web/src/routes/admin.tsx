@@ -5,6 +5,11 @@ import { appClient } from "@/lib/app-client";
 import { useAdminStore } from "@/lib/admin-store";
 
 export const Route = createFileRoute("/admin")({
+  head: () => ({
+    meta: [
+      { title: "Admin - OutRay" },
+    ],
+  }),
   component: AdminLayout,
 });
 
@@ -289,8 +294,8 @@ function AdminOverview({ token }: { token: string }) {
                       x2="0"
                       y2="1"
                     >
-                      <stop offset="5%" stopColor="#FFA62B" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#FFA62B" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#8367c7" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#8367c7" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
@@ -325,7 +330,7 @@ function AdminOverview({ token }: { token: string }) {
                   <Area
                     type="monotone"
                     dataKey="active_tunnels"
-                    stroke="#FFA62B"
+                    stroke="#8367c7"
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorTunnels)"

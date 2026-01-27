@@ -64,6 +64,13 @@
       "when": 1768126782644,
       "tag": "0008_vengeful_human_fly",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1769465818553,
+      "tag": "0009_right_devos",
+      "breakpoints": true
     }
   ]
 }

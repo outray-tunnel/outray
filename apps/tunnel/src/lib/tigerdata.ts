@@ -20,6 +20,7 @@ export async function execute(text: string, params?: unknown[]): Promise<void> {
 }
 
 export interface TunnelEvent {
+  request_id?: string;
   timestamp: number;
   tunnel_id: string;
   organization_id: string;
@@ -92,9 +93,9 @@ class TimescaleDBLogger {
       const placeholders: string[] = [];
 
       events.forEach((event, i) => {
-        const offset = i * 13;
+        const offset = i * 14;
         placeholders.push(
-          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13})`,
+          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13}, $${offset + 14})`,
         );
         values.push(
           new Date(event.timestamp),
@@ -110,13 +111,14 @@ class TimescaleDBLogger {
           event.bytes_out,
           event.client_ip,
           event.user_agent,
+          event.request_id || null,
         );
       });
 
       const query = `
         INSERT INTO tunnel_events (
           timestamp, tunnel_id, organization_id, retention_days, host, method, 
-          path, status_code, request_duration_ms, bytes_in, bytes_out, client_ip, user_agent
+          path, status_code, request_duration_ms, bytes_in, bytes_out, client_ip, user_agent, request_id
         ) VALUES ${placeholders.join(", ")}
       `;
 
@@ -167,7 +169,7 @@ class RequestCaptureLogger {
       captures.forEach((capture, i) => {
         const offset = i * 11;
         placeholders.push(
-          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11})`
+          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11})`,
         );
         values.push(
           capture.id,
@@ -180,7 +182,7 @@ class RequestCaptureLogger {
           capture.request_body_size,
           JSON.stringify(capture.response_headers),
           capture.response_body,
-          capture.response_body_size
+          capture.response_body_size,
         );
       });
 

@@ -7,8 +7,14 @@ import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { Loader2, CheckCircle, XCircle, Terminal } from "lucide-react";
 import { appClient } from "@/lib/app-client";
+import { Button } from "@/components/ui";
 
 export const Route = createFileRoute("/cli/login")({
+  head: () => ({
+    meta: [
+      { title: "CLI Login - OutRay" },
+    ],
+  }),
   component: CLILogin,
 });
 
@@ -110,12 +116,12 @@ function CLILogin() {
           </p>
 
           {status === "ready" && (
-            <button
+            <Button
               onClick={handleConfirm}
-              className="mt-8 w-full rounded-lg bg-white px-4 py-3 text-sm font-medium text-black transition-colors hover:bg-gray-200"
+              className="mt-8 w-full"
             >
               Confirm Login
-            </button>
+            </Button>
           )}
 
           {status === "success" && (

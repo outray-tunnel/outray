@@ -124,6 +124,16 @@ export class TunnelRouter {
             metadata.dbTunnelId,
           );
           await this.redis.del(`tunnel:last_seen:${metadata.dbTunnelId}`);
+          // Remove org from global index if no more online tunnels
+          const remaining = await this.redis.scard(
+            `org:${metadata.organizationId}:online_tunnels`,
+          );
+          if (remaining === 0) {
+            await this.redis.srem(
+              "global:orgs_with_online_tunnels",
+              metadata.organizationId,
+            );
+          }
         }
       } catch (error) {
         console.error("Failed to remove tunnel reservation", error);
@@ -177,6 +187,9 @@ export class TunnelRouter {
         try {
           await this.redis.del(...keys);
 
+          // Track orgs that need global index cleanup
+          const orgsToCheck = new Set<string>();
+
           // Remove from organization online tunnels sets
           const pipeline = this.redis.pipeline();
           for (const [, metadata] of this.tunnelMetadata) {
@@ -186,9 +199,20 @@ export class TunnelRouter {
                 metadata.dbTunnelId,
               );
               pipeline.del(`tunnel:last_seen:${metadata.dbTunnelId}`);
+              orgsToCheck.add(metadata.organizationId);
             }
           }
           await pipeline.exec();
+
+          // Cleanup global index for orgs with no remaining tunnels
+          for (const orgId of orgsToCheck) {
+            const remaining = await this.redis.scard(
+              `org:${orgId}:online_tunnels`,
+            );
+            if (remaining === 0) {
+              await this.redis.srem("global:orgs_with_online_tunnels", orgId);
+            }
+          }
         } catch (error) {
           console.error(
             "Failed to clear tunnel reservations on shutdown",
@@ -304,6 +328,11 @@ export class TunnelRouter {
               `org:${metadata.organizationId}:online_tunnels`,
               metadata.dbTunnelId,
             );
+            // Add org to global index for O(1) lookup
+            await this.redis.sadd(
+              "global:orgs_with_online_tunnels",
+              metadata.organizationId,
+            );
             await this.redis.set(
               `tunnel:last_seen:${metadata.dbTunnelId}`,
               Date.now().toString(),
@@ -335,6 +364,10 @@ export class TunnelRouter {
                       `org:${metadata.organizationId}:online_tunnels`,
                       metadata.dbTunnelId,
                     );
+                    await this.redis.sadd(
+                      "global:orgs_with_online_tunnels",
+                      metadata.organizationId,
+                    );
                     await this.redis.set(
                       `tunnel:last_seen:${metadata.dbTunnelId}`,
                       Date.now().toString(),
@@ -350,6 +383,10 @@ export class TunnelRouter {
                     await this.redis.sadd(
                       `org:${metadata.organizationId}:online_tunnels`,
                       metadata.dbTunnelId,
+                    );
+                    await this.redis.sadd(
+                      "global:orgs_with_online_tunnels",
+                      metadata.organizationId,
                     );
                     await this.redis.set(
                       `tunnel:last_seen:${metadata.dbTunnelId}`,
@@ -388,6 +425,10 @@ export class TunnelRouter {
           await this.redis.sadd(
             `org:${metadata.organizationId}:online_tunnels`,
             metadata.dbTunnelId,
+          );
+          await this.redis.sadd(
+            "global:orgs_with_online_tunnels",
+            metadata.organizationId,
           );
           await this.redis.set(
             `tunnel:last_seen:${metadata.dbTunnelId}`,

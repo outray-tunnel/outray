@@ -5,7 +5,7 @@
 
 @theme {
   --font-family-sans: "Geom", sans-serif;
-  --color-accent: #ffa62b;
+  --color-accent: #8367c7;
   --animate-fade-in: fade-in 0.5s ease-out;
 
   @keyframes fade-in {
@@ -20,24 +20,36 @@
   }
 }
 
-@theme {
-  --color-fd-background: #000000;
-  --color-fd-foreground: #ffffff;
-  --color-fd-card: #0a0a0a;
-  --color-fd-card-foreground: #ffffff;
-  --color-fd-popover: #0a0a0a;
-  --color-fd-popover-foreground: #ffffff;
-  --color-fd-primary: #ffa62b;
-  --color-fd-primary-foreground: #000000;
-  --color-fd-secondary: #1a1a1a;
-  --color-fd-secondary-foreground: #ffffff;
-  --color-fd-muted: #1a1a1a;
-  --color-fd-muted-foreground: #a1a1aa;
-  --color-fd-accent: #ffa62b;
-  --color-fd-accent-foreground: #000000;
-  --color-fd-border: #262626;
-  --color-fd-input: #262626;
-  --color-fd-ring: #ffa62b;
+/* Fumadocs dark theme with brand accent color */
+.dark, :root {
+  --color-fd-background: hsl(0, 0%, 0%);
+  --color-fd-foreground: hsl(0, 0%, 100%);
+  --color-fd-card: hsl(0, 0%, 4%);
+  --color-fd-card-foreground: hsl(0, 0%, 100%);
+  --color-fd-popover: hsl(0, 0%, 6%);
+  --color-fd-popover-foreground: hsl(0, 0%, 100%);
+  --color-fd-primary: hsl(259, 47%, 59%);
+  --color-fd-primary-foreground: hsl(0, 0%, 100%);
+  --color-fd-secondary: hsl(0, 0%, 10%);
+  --color-fd-secondary-foreground: hsl(0, 0%, 100%);
+  --color-fd-muted: hsl(0, 0%, 10%);
+  --color-fd-muted-foreground: hsl(0, 0%, 65%);
+  --color-fd-accent: hsla(259, 47%, 59%, 0.15);
+  --color-fd-accent-foreground: hsl(0, 0%, 100%);
+  --color-fd-border: hsl(0, 0%, 15%);
+  --color-fd-input: hsl(0, 0%, 15%);
+  --color-fd-ring: hsl(259, 47%, 59%);
+  --color-fd-overlay: hsla(0, 0%, 0%, 0.5);
+}
+
+/* Sidebar styling for dark theme */
+.dark #nd-sidebar, #nd-sidebar {
+  --color-fd-background: hsl(0, 0%, 0%);
+  --color-fd-muted: hsl(0, 0%, 8%);
+  --color-fd-secondary: hsl(0, 0%, 10%);
+  --color-fd-muted-foreground: hsl(0, 0%, 70%);
+  --color-fd-primary: hsl(259, 47%, 59%);
+  --color-fd-accent: hsla(259, 47%, 59%, 0.15);
 }
 
 body {
@@ -63,10 +75,10 @@ button:disabled {
 
 /* Hide scrollbar while maintaining scroll functionality */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
+  display: none; /* Chrome, Safari and Opera */
 }

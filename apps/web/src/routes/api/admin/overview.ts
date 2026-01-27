@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { db } from "../../../db";
-import { users, organizations, tunnels, subscriptions } from "../../../db/schema";
+import {
+  users,
+  organizations,
+  tunnels,
+  subscriptions,
+} from "../../../db/schema";
 import { redis } from "../../../lib/redis";
 import { hashToken } from "../../../lib/hash";
 import { SUBSCRIPTION_PLANS } from "../../../lib/subscription-plans";
@@ -32,9 +37,7 @@ export const Route = createFileRoute("/api/admin/overview")({
           const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
           // Get user stats
-          const [totalUsers] = await db
-            .select({ count: count() })
-            .from(users);
+          const [totalUsers] = await db.select({ count: count() }).from(users);
 
           const [newUsersToday] = await db
             .select({ count: count() })
@@ -47,8 +50,8 @@ export const Route = createFileRoute("/api/admin/overview")({
             .where(
               and(
                 gte(users.createdAt, oneWeekAgo),
-                sql`${users.createdAt} < ${oneDayAgo}`
-              )
+                sql`${users.createdAt} < ${oneDayAgo}`,
+              ),
             );
 
           // Calculate user growth (comparing today vs same period last week)
@@ -75,8 +78,8 @@ export const Route = createFileRoute("/api/admin/overview")({
             .where(
               and(
                 gte(organizations.createdAt, oneWeekAgo),
-                sql`${organizations.createdAt} < ${oneDayAgo}`
-              )
+                sql`${organizations.createdAt} < ${oneDayAgo}`,
+              ),
             );
 
           const orgGrowth =
@@ -91,23 +94,15 @@ export const Route = createFileRoute("/api/admin/overview")({
             .select({ count: count() })
             .from(tunnels);
 
-          // Get active tunnels from Redis (scan all org sets)
+          // Get active tunnels from Redis using global index (O(1) lookup)
           let activeTunnelCount = 0;
-          let cursor = "0";
-          do {
-            const [nextCursor, keys] = await redis.scan(
-              cursor,
-              "MATCH",
-              "org:*:online_tunnels",
-              "COUNT",
-              100
-            );
-            cursor = nextCursor;
-            for (const key of keys) {
-              const count = await redis.scard(key);
-              activeTunnelCount += count;
-            }
-          } while (cursor !== "0");
+          const orgIds = await redis.smembers(
+            "global:orgs_with_online_tunnels",
+          );
+          for (const orgId of orgIds) {
+            const count = await redis.scard(`org:${orgId}:online_tunnels`);
+            activeTunnelCount += count;
+          }
 
           // Get subscription stats
           const subscriptionStats = await db
@@ -142,10 +137,11 @@ export const Route = createFileRoute("/api/admin/overview")({
           // Calculate MRR using actual plan prices
           const mrr = Object.entries(byPlan).reduce(
             (total, [plan, planCount]) => {
-              const planConfig = SUBSCRIPTION_PLANS[plan as keyof typeof SUBSCRIPTION_PLANS];
+              const planConfig =
+                SUBSCRIPTION_PLANS[plan as keyof typeof SUBSCRIPTION_PLANS];
               return total + (planConfig?.price || 0) * planCount;
             },
-            0
+            0,
           );
 
           return Response.json({
@@ -169,7 +165,10 @@ export const Route = createFileRoute("/api/admin/overview")({
           });
         } catch (error) {
           console.error("Admin overview error:", error);
-          return Response.json({ error: "Failed to fetch overview" }, { status: 500 });
+          return Response.json(
+            { error: "Failed to fetch overview" },
+            { status: 500 },
+          );
         }
       },
     },

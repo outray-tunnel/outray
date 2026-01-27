@@ -1,0 +1,53 @@
+{
+  "name": "@outray/next",
+  "version": "0.0.3",
+  "description": "Next.js plugin to automatically expose your dev server via Outray tunnel",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "next",
+    "nextjs",
+    "next-plugin",
+    "tunnel",
+    "outray",
+    "ngrok",
+    "localhost",
+    "development"
+  ],
+  "peerDependencies": {
+    "next": "^13.0.0 || ^14.0.0 || ^15.0.0 || ^16.0.0"
+  },
+  "dependencies": {
+    "@outray/core": "^0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "next": "^16.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.9.3"
+  },
+  "author": "akinloluwami",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akinloluwami/outray.git",
+    "directory": "packages/next-plugin"
+  },
+  "homepage": "https://outray.dev/nextjs"
+}

@@ -131,8 +131,8 @@ export function TunnelOverview({
                     x2="0"
                     y2="1"
                   >
-                    <stop offset="5%" stopColor="#FFA62B" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#FFA62B" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#8367c7" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#8367c7" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -198,7 +198,7 @@ export function TunnelOverview({
                 <Area
                   type="monotone"
                   dataKey="requests"
-                  stroke="#FFA62B"
+                  stroke="#8367c7"
                   strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#colorRequests)"

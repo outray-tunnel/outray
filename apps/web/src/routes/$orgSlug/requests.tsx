@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Search, Radio } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { appClient } from "@/lib/app-client";
 import { authClient } from "@/lib/auth-client";
 import { useFeatureFlag } from "@/lib/feature-flags";
@@ -12,6 +13,11 @@ import {
 } from "@/components/requests";
 
 export const Route = createFileRoute("/$orgSlug/requests")({
+  head: () => ({
+    meta: [
+      { title: "Requests - OutRay" },
+    ],
+  }),
   component: RequestsView,
 });
 
@@ -28,14 +34,32 @@ function RequestsView() {
   const [requests, setRequests] = useState<TunnelEvent[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>("live");
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<TunnelEvent | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<TunnelEvent | null>(
+    null,
+  );
   const { orgSlug } = Route.useParams();
   const { data: organizations = [] } = authClient.useListOrganizations();
   const activeOrgId = organizations?.find((org) => org.slug === orgSlug)?.id;
   const wsRef = useRef<WebSocket | null>(null);
 
   const inspectorEnabled = useFeatureFlag("request_inspector");
-  const fullCaptureEnabled = useFeatureFlag("full_capture");
+  const fullCaptureFeatureEnabled = useFeatureFlag("full_capture");
+
+  // Fetch organization's full capture setting
+  const { data: orgSettings } = useQuery({
+    queryKey: ["org-settings", orgSlug],
+    queryFn: async () => {
+      if (!orgSlug) return null;
+      const response = await appClient.settings.get(orgSlug);
+      if ("error" in response) throw new Error(response.error);
+      return response;
+    },
+    enabled: !!orgSlug,
+  });
+
+  // Full capture is enabled only if both the feature flag and org setting are enabled
+  const fullCaptureEnabled =
+    fullCaptureFeatureEnabled && (orgSettings?.fullCaptureEnabled ?? false);
 
   const activeIndex = TIME_RANGES.findIndex((r) => r.value === timeRange);
 
@@ -103,7 +127,7 @@ function RequestsView() {
         }
 
         const { token } = await tokenResponse.json();
-        
+
         if (cancelled) return;
 
         const wsUrl = import.meta.env.VITE_TUNNEL_URL;
@@ -166,7 +190,7 @@ function RequestsView() {
           (req) =>
             req.path.toLowerCase().includes(searchTerm.toLowerCase()) ||
             req.method.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            req.host.toLowerCase().includes(searchTerm.toLowerCase())
+            req.host.toLowerCase().includes(searchTerm.toLowerCase()),
         )
       : requests;
 
@@ -270,7 +294,10 @@ function RequestsView() {
             <tbody className="divide-y divide-white/5">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  <td
+                    colSpan={8}
+                    className="px-4 py-8 text-center text-gray-500"
+                  >
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                       Loading requests...
@@ -279,7 +306,10 @@ function RequestsView() {
                 </tr>
               ) : filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  <td
+                    colSpan={8}
+                    className="px-4 py-8 text-center text-gray-500"
+                  >
                     {timeRange === "live"
                       ? "Waiting for requests..."
                       : "No requests found in this time range"}
@@ -305,7 +335,9 @@ function RequestsView() {
                         {req.status_code}
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-mono text-gray-300">{req.method}</td>
+                    <td className="px-4 py-3 font-mono text-gray-300">
+                      {req.method}
+                    </td>
                     <td
                       className="px-4 py-3 text-gray-300 max-w-xs truncate"
                       title={req.path}

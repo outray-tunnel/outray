@@ -12,6 +12,8 @@
     "db:migrate": "npx drizzle-kit generate && npx drizzle-kit migrate"
   },
   "dependencies": {
+    "@outray/vite": "^0.0.3",
+    "@paystack/inline-js": "^2.22.7",
     "@polar-sh/sdk": "^0.42.1",
     "@polar-sh/tanstack-start": "^0.4.3",
     "@react-three/drei": "^10.7.7",
@@ -20,9 +22,11 @@
     "@tanstack/react-query": "^5.90.12",
     "@tanstack/react-router": "^1.141.2",
     "@tanstack/react-start": "^1.141.2",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/mdx": "^2.0.13",
     "axios": "^1.13.2",
     "better-auth": "^1.3.34",
+    "canvas-confetti": "^1.9.4",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",

@@ -9,12 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ViteRouteImport } from './routes/vite'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SelectRouteImport } from './routes/select'
+import { Route as ReportBugRouteImport } from './routes/report-bug'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PluginsRouteImport } from './routes/plugins'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as NextjsRouteImport } from './routes/nextjs'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EmailTemplatesRouteImport } from './routes/email-templates'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as OrgSlugRouteImport } from './routes/$orgSlug'
 import { Route as IndexRouteImport } from './routes/index'
@@ -24,10 +32,11 @@ import { Route as InternalDomainCheckRouteImport } from './routes/internal/domai
 import { Route as DocsSplatRouteImport } from './routes/docs/$'
 import { Route as CliLoginRouteImport } from './routes/cli.login'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
-import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AdminTunnelsRouteImport } from './routes/admin/tunnels'
 import { Route as AdminSubscriptionsRouteImport } from './routes/admin/subscriptions'
 import { Route as AdminChartsRouteImport } from './routes/admin/charts'
+import { Route as AdminActionsRouteImport } from './routes/admin/actions'
 import { Route as OrgSlugTokensRouteImport } from './routes/$orgSlug/tokens'
 import { Route as OrgSlugSubdomainsRouteImport } from './routes/$orgSlug/subdomains'
 import { Route as OrgSlugSettingsRouteImport } from './routes/$orgSlug/settings'
@@ -36,14 +45,15 @@ import { Route as OrgSlugMembersRouteImport } from './routes/$orgSlug/members'
 import { Route as OrgSlugInstallRouteImport } from './routes/$orgSlug/install'
 import { Route as OrgSlugDomainsRouteImport } from './routes/$orgSlug/domains'
 import { Route as OrgSlugBillingRouteImport } from './routes/$orgSlug/billing'
+import { Route as AdminUsersIndexRouteImport } from './routes/admin/users.index'
 import { Route as AdminOrganizationsIndexRouteImport } from './routes/admin/organizations.index'
 import { Route as OrgSlugTunnelsIndexRouteImport } from './routes/$orgSlug/tunnels/index'
 import { Route as OrgSlugSettingsIndexRouteImport } from './routes/$orgSlug/settings/index'
 import { Route as ApiWebhooksPolarRouteImport } from './routes/api/webhooks/polar'
+import { Route as ApiWebhooksPaystackRouteImport } from './routes/api/webhooks/paystack'
 import { Route as ApiTunnelRegisterRouteImport } from './routes/api/tunnel/register'
 import { Route as ApiTunnelCheckSubdomainRouteImport } from './routes/api/tunnel/check-subdomain'
 import { Route as ApiTunnelAuthRouteImport } from './routes/api/tunnel/auth'
-import { Route as ApiSubscriptionsOrganizationIdRouteImport } from './routes/api/subscriptions/$organizationId'
 import { Route as ApiOrganizationsCheckSlugRouteImport } from './routes/api/organizations/check-slug'
 import { Route as ApiMeOrgsRouteImport } from './routes/api/me/orgs'
 import { Route as ApiDomainVerifyOwnershipRouteImport } from './routes/api/domain/verify-ownership'
@@ -53,6 +63,8 @@ import { Route as ApiCliLoginRouteImport } from './routes/api/cli/login'
 import { Route as ApiCliExchangeRouteImport } from './routes/api/cli/exchange'
 import { Route as ApiCliCompleteRouteImport } from './routes/api/cli/complete'
 import { Route as ApiCheckoutPolarRouteImport } from './routes/api/checkout/polar'
+import { Route as ApiCheckoutPaystackVerifyRouteImport } from './routes/api/checkout/paystack-verify'
+import { Route as ApiCheckoutPaystackRouteImport } from './routes/api/checkout/paystack'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiAdminUsersRouteImport } from './routes/api/admin/users'
 import { Route as ApiAdminTunnelsRouteImport } from './routes/api/admin/tunnels'
@@ -66,6 +78,7 @@ import { Route as ApiOrgSlugSubscriptionsRouteImport } from './routes/api/$orgSl
 import { Route as ApiOrgSlugSettingsRouteImport } from './routes/api/$orgSlug/settings'
 import { Route as ApiOrgSlugRequestsRouteImport } from './routes/api/$orgSlug/requests'
 import { Route as ApiOrgSlugAuthTokensRouteImport } from './routes/api/$orgSlug/auth-tokens'
+import { Route as AdminUsersUserIdRouteImport } from './routes/admin/users.$userId'
 import { Route as AdminOrganizationsSlugRouteImport } from './routes/admin/organizations.$slug'
 import { Route as OrgSlugTunnelsTunnelIdRouteImport } from './routes/$orgSlug/tunnels/$tunnelId'
 import { Route as OrgSlugSettingsProfileRouteImport } from './routes/$orgSlug/settings/profile'
@@ -73,7 +86,9 @@ import { Route as OrgSlugSettingsOrganizationRouteImport } from './routes/$orgSl
 import { Route as ApiOrgSlugTunnelsIndexRouteImport } from './routes/api/$orgSlug/tunnels/index'
 import { Route as ApiOrgSlugSubdomainsIndexRouteImport } from './routes/api/$orgSlug/subdomains/index'
 import { Route as ApiOrgSlugDomainsIndexRouteImport } from './routes/api/$orgSlug/domains/index'
+import { Route as ApiSubscriptionsOrgSlugCancelRouteImport } from './routes/api/subscriptions/$orgSlug/cancel'
 import { Route as ApiCliLoginStatusRouteImport } from './routes/api/cli/login/status'
+import { Route as ApiAdminUsersUserIdRouteImport } from './routes/api/admin/users.$userId'
 import { Route as ApiAdminOrganizationsSlugRouteImport } from './routes/api/admin/organizations.$slug'
 import { Route as ApiOrgSlugTunnelsTunnelIdRouteImport } from './routes/api/$orgSlug/tunnels/$tunnelId'
 import { Route as ApiOrgSlugSubdomainsSubdomainIdRouteImport } from './routes/api/$orgSlug/subdomains/$subdomainId'
@@ -88,6 +103,16 @@ import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$org
 import { Route as ApiOrgSlugTunnelsTunnelIdStopRouteImport } from './routes/api/$orgSlug/tunnels/$tunnelId.stop'
 import { Route as ApiOrgSlugDomainsDomainIdVerifyRouteImport } from './routes/api/$orgSlug/domains/$domainId.verify'
 
+const ViteRoute = ViteRouteImport.update({
+  id: '/vite',
+  path: '/vite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -98,14 +123,34 @@ const SelectRoute = SelectRouteImport.update({
   path: '/select',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportBugRoute = ReportBugRouteImport.update({
+  id: '/report-bug',
+  path: '/report-bug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PluginsRoute = PluginsRouteImport.update({
+  id: '/plugins',
+  path: '/plugins',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NextjsRoute = NextjsRouteImport.update({
+  id: '/nextjs',
+  path: '/nextjs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -116,6 +161,16 @@ const LoginRoute = LoginRouteImport.update({
 const EmailTemplatesRoute = EmailTemplatesRouteImport.update({
   id: '/email-templates',
   path: '/email-templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -163,10 +218,10 @@ const ApiSearchRoute = ApiSearchRouteImport.update({
   path: '/api/search',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminUsersRoute = AdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AdminRoute,
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminTunnelsRoute = AdminTunnelsRouteImport.update({
   id: '/tunnels',
@@ -181,6 +236,11 @@ const AdminSubscriptionsRoute = AdminSubscriptionsRouteImport.update({
 const AdminChartsRoute = AdminChartsRouteImport.update({
   id: '/charts',
   path: '/charts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminActionsRoute = AdminActionsRouteImport.update({
+  id: '/actions',
+  path: '/actions',
   getParentRoute: () => AdminRoute,
 } as any)
 const OrgSlugTokensRoute = OrgSlugTokensRouteImport.update({
@@ -223,6 +283,11 @@ const OrgSlugBillingRoute = OrgSlugBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => OrgSlugRoute,
 } as any)
+const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminOrganizationsIndexRoute = AdminOrganizationsIndexRouteImport.update({
   id: '/organizations/',
   path: '/organizations/',
@@ -243,6 +308,11 @@ const ApiWebhooksPolarRoute = ApiWebhooksPolarRouteImport.update({
   path: '/api/webhooks/polar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksPaystackRoute = ApiWebhooksPaystackRouteImport.update({
+  id: '/api/webhooks/paystack',
+  path: '/api/webhooks/paystack',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTunnelRegisterRoute = ApiTunnelRegisterRouteImport.update({
   id: '/api/tunnel/register',
   path: '/api/tunnel/register',
@@ -258,12 +328,6 @@ const ApiTunnelAuthRoute = ApiTunnelAuthRouteImport.update({
   path: '/api/tunnel/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiSubscriptionsOrganizationIdRoute =
-  ApiSubscriptionsOrganizationIdRouteImport.update({
-    id: '/api/subscriptions/$organizationId',
-    path: '/api/subscriptions/$organizationId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiOrganizationsCheckSlugRoute =
   ApiOrganizationsCheckSlugRouteImport.update({
     id: '/api/organizations/check-slug',
@@ -310,6 +374,17 @@ const ApiCliCompleteRoute = ApiCliCompleteRouteImport.update({
 const ApiCheckoutPolarRoute = ApiCheckoutPolarRouteImport.update({
   id: '/api/checkout/polar',
   path: '/api/checkout/polar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCheckoutPaystackVerifyRoute =
+  ApiCheckoutPaystackVerifyRouteImport.update({
+    id: '/api/checkout/paystack-verify',
+    path: '/api/checkout/paystack-verify',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiCheckoutPaystackRoute = ApiCheckoutPaystackRouteImport.update({
+  id: '/api/checkout/paystack',
+  path: '/api/checkout/paystack',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -377,6 +452,11 @@ const ApiOrgSlugAuthTokensRoute = ApiOrgSlugAuthTokensRouteImport.update({
   path: '/api/$orgSlug/auth-tokens',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminUsersUserIdRoute = AdminUsersUserIdRouteImport.update({
+  id: '/users/$userId',
+  path: '/users/$userId',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminOrganizationsSlugRoute = AdminOrganizationsSlugRouteImport.update({
   id: '/organizations/$slug',
   path: '/organizations/$slug',
@@ -414,10 +494,21 @@ const ApiOrgSlugDomainsIndexRoute = ApiOrgSlugDomainsIndexRouteImport.update({
   path: '/api/$orgSlug/domains/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSubscriptionsOrgSlugCancelRoute =
+  ApiSubscriptionsOrgSlugCancelRouteImport.update({
+    id: '/api/subscriptions/$orgSlug/cancel',
+    path: '/api/subscriptions/$orgSlug/cancel',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiCliLoginStatusRoute = ApiCliLoginStatusRouteImport.update({
   id: '/status',
   path: '/status',
   getParentRoute: () => ApiCliLoginRoute,
+} as any)
+const ApiAdminUsersUserIdRoute = ApiAdminUsersUserIdRouteImport.update({
+  id: '/$userId',
+  path: '/$userId',
+  getParentRoute: () => ApiAdminUsersRoute,
 } as any)
 const ApiAdminOrganizationsSlugRoute =
   ApiAdminOrganizationsSlugRouteImport.update({
@@ -498,12 +589,20 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$orgSlug': typeof OrgSlugRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/changelog': typeof ChangelogRoute
+  '/contact': typeof ContactRoute
   '/email-templates': typeof EmailTemplatesRoute
   '/login': typeof LoginRoute
+  '/nextjs': typeof NextjsRoute
   '/onboarding': typeof OnboardingRoute
+  '/plugins': typeof PluginsRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/report-bug': typeof ReportBugRoute
   '/select': typeof SelectRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
+  '/vite': typeof ViteRoute
   '/$orgSlug/billing': typeof OrgSlugBillingRoute
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
   '/$orgSlug/install': typeof OrgSlugInstallRoute
@@ -512,10 +611,11 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/settings': typeof OrgSlugSettingsRouteWithChildren
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
+  '/admin/actions': typeof AdminActionsRoute
   '/admin/charts': typeof AdminChartsRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/tunnels': typeof AdminTunnelsRoute
-  '/admin/users': typeof AdminUsersRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/cli/login': typeof CliLoginRoute
   '/docs/$': typeof DocsSplatRoute
@@ -526,6 +626,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
   '/$orgSlug/tunnels/$tunnelId': typeof OrgSlugTunnelsTunnelIdRoute
   '/admin/organizations/$slug': typeof AdminOrganizationsSlugRoute
+  '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/$orgSlug/auth-tokens': typeof ApiOrgSlugAuthTokensRoute
   '/api/$orgSlug/requests': typeof ApiOrgSlugRequestsRouteWithChildren
   '/api/$orgSlug/settings': typeof ApiOrgSlugSettingsRoute
@@ -537,8 +638,10 @@ export interface FileRoutesByFullPath {
   '/api/admin/stats': typeof ApiAdminStatsRoute
   '/api/admin/subscriptions': typeof ApiAdminSubscriptionsRoute
   '/api/admin/tunnels': typeof ApiAdminTunnelsRoute
-  '/api/admin/users': typeof ApiAdminUsersRoute
+  '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/checkout/paystack': typeof ApiCheckoutPaystackRoute
+  '/api/checkout/paystack-verify': typeof ApiCheckoutPaystackVerifyRoute
   '/api/checkout/polar': typeof ApiCheckoutPolarRoute
   '/api/cli/complete': typeof ApiCliCompleteRoute
   '/api/cli/exchange': typeof ApiCliExchangeRoute
@@ -548,14 +651,15 @@ export interface FileRoutesByFullPath {
   '/api/domain/verify-ownership': typeof ApiDomainVerifyOwnershipRoute
   '/api/me/orgs': typeof ApiMeOrgsRoute
   '/api/organizations/check-slug': typeof ApiOrganizationsCheckSlugRoute
-  '/api/subscriptions/$organizationId': typeof ApiSubscriptionsOrganizationIdRoute
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
   '/api/tunnel/check-subdomain': typeof ApiTunnelCheckSubdomainRoute
   '/api/tunnel/register': typeof ApiTunnelRegisterRoute
+  '/api/webhooks/paystack': typeof ApiWebhooksPaystackRoute
   '/api/webhooks/polar': typeof ApiWebhooksPolarRoute
   '/$orgSlug/settings/': typeof OrgSlugSettingsIndexRoute
   '/$orgSlug/tunnels': typeof OrgSlugTunnelsIndexRoute
   '/admin/organizations': typeof AdminOrganizationsIndexRoute
+  '/admin/users': typeof AdminUsersIndexRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -567,7 +671,9 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/subdomains/$subdomainId': typeof ApiOrgSlugSubdomainsSubdomainIdRoute
   '/api/$orgSlug/tunnels/$tunnelId': typeof ApiOrgSlugTunnelsTunnelIdRouteWithChildren
   '/api/admin/organizations/$slug': typeof ApiAdminOrganizationsSlugRoute
+  '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRoute
   '/api/cli/login/status': typeof ApiCliLoginStatusRoute
+  '/api/subscriptions/$orgSlug/cancel': typeof ApiSubscriptionsOrgSlugCancelRoute
   '/api/$orgSlug/domains': typeof ApiOrgSlugDomainsIndexRoute
   '/api/$orgSlug/subdomains': typeof ApiOrgSlugSubdomainsIndexRoute
   '/api/$orgSlug/tunnels': typeof ApiOrgSlugTunnelsIndexRoute
@@ -577,12 +683,20 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/changelog': typeof ChangelogRoute
+  '/contact': typeof ContactRoute
   '/email-templates': typeof EmailTemplatesRoute
   '/login': typeof LoginRoute
+  '/nextjs': typeof NextjsRoute
   '/onboarding': typeof OnboardingRoute
+  '/plugins': typeof PluginsRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/report-bug': typeof ReportBugRoute
   '/select': typeof SelectRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
+  '/vite': typeof ViteRoute
   '/$orgSlug/billing': typeof OrgSlugBillingRoute
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
   '/$orgSlug/install': typeof OrgSlugInstallRoute
@@ -590,10 +704,11 @@ export interface FileRoutesByTo {
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
+  '/admin/actions': typeof AdminActionsRoute
   '/admin/charts': typeof AdminChartsRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/tunnels': typeof AdminTunnelsRoute
-  '/admin/users': typeof AdminUsersRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/cli/login': typeof CliLoginRoute
   '/docs/$': typeof DocsSplatRoute
@@ -604,6 +719,7 @@ export interface FileRoutesByTo {
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
   '/$orgSlug/tunnels/$tunnelId': typeof OrgSlugTunnelsTunnelIdRoute
   '/admin/organizations/$slug': typeof AdminOrganizationsSlugRoute
+  '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/$orgSlug/auth-tokens': typeof ApiOrgSlugAuthTokensRoute
   '/api/$orgSlug/requests': typeof ApiOrgSlugRequestsRouteWithChildren
   '/api/$orgSlug/settings': typeof ApiOrgSlugSettingsRoute
@@ -615,8 +731,10 @@ export interface FileRoutesByTo {
   '/api/admin/stats': typeof ApiAdminStatsRoute
   '/api/admin/subscriptions': typeof ApiAdminSubscriptionsRoute
   '/api/admin/tunnels': typeof ApiAdminTunnelsRoute
-  '/api/admin/users': typeof ApiAdminUsersRoute
+  '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/checkout/paystack': typeof ApiCheckoutPaystackRoute
+  '/api/checkout/paystack-verify': typeof ApiCheckoutPaystackVerifyRoute
   '/api/checkout/polar': typeof ApiCheckoutPolarRoute
   '/api/cli/complete': typeof ApiCliCompleteRoute
   '/api/cli/exchange': typeof ApiCliExchangeRoute
@@ -626,14 +744,15 @@ export interface FileRoutesByTo {
   '/api/domain/verify-ownership': typeof ApiDomainVerifyOwnershipRoute
   '/api/me/orgs': typeof ApiMeOrgsRoute
   '/api/organizations/check-slug': typeof ApiOrganizationsCheckSlugRoute
-  '/api/subscriptions/$organizationId': typeof ApiSubscriptionsOrganizationIdRoute
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
   '/api/tunnel/check-subdomain': typeof ApiTunnelCheckSubdomainRoute
   '/api/tunnel/register': typeof ApiTunnelRegisterRoute
+  '/api/webhooks/paystack': typeof ApiWebhooksPaystackRoute
   '/api/webhooks/polar': typeof ApiWebhooksPolarRoute
   '/$orgSlug/settings': typeof OrgSlugSettingsIndexRoute
   '/$orgSlug/tunnels': typeof OrgSlugTunnelsIndexRoute
   '/admin/organizations': typeof AdminOrganizationsIndexRoute
+  '/admin/users': typeof AdminUsersIndexRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -645,7 +764,9 @@ export interface FileRoutesByTo {
   '/api/$orgSlug/subdomains/$subdomainId': typeof ApiOrgSlugSubdomainsSubdomainIdRoute
   '/api/$orgSlug/tunnels/$tunnelId': typeof ApiOrgSlugTunnelsTunnelIdRouteWithChildren
   '/api/admin/organizations/$slug': typeof ApiAdminOrganizationsSlugRoute
+  '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRoute
   '/api/cli/login/status': typeof ApiCliLoginStatusRoute
+  '/api/subscriptions/$orgSlug/cancel': typeof ApiSubscriptionsOrgSlugCancelRoute
   '/api/$orgSlug/domains': typeof ApiOrgSlugDomainsIndexRoute
   '/api/$orgSlug/subdomains': typeof ApiOrgSlugSubdomainsIndexRoute
   '/api/$orgSlug/tunnels': typeof ApiOrgSlugTunnelsIndexRoute
@@ -657,12 +778,20 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$orgSlug': typeof OrgSlugRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/changelog': typeof ChangelogRoute
+  '/contact': typeof ContactRoute
   '/email-templates': typeof EmailTemplatesRoute
   '/login': typeof LoginRoute
+  '/nextjs': typeof NextjsRoute
   '/onboarding': typeof OnboardingRoute
+  '/plugins': typeof PluginsRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/report-bug': typeof ReportBugRoute
   '/select': typeof SelectRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
+  '/vite': typeof ViteRoute
   '/$orgSlug/billing': typeof OrgSlugBillingRoute
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
   '/$orgSlug/install': typeof OrgSlugInstallRoute
@@ -671,10 +800,11 @@ export interface FileRoutesById {
   '/$orgSlug/settings': typeof OrgSlugSettingsRouteWithChildren
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
+  '/admin/actions': typeof AdminActionsRoute
   '/admin/charts': typeof AdminChartsRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/tunnels': typeof AdminTunnelsRoute
-  '/admin/users': typeof AdminUsersRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/cli/login': typeof CliLoginRoute
   '/docs/$': typeof DocsSplatRoute
@@ -685,6 +815,7 @@ export interface FileRoutesById {
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
   '/$orgSlug/tunnels/$tunnelId': typeof OrgSlugTunnelsTunnelIdRoute
   '/admin/organizations/$slug': typeof AdminOrganizationsSlugRoute
+  '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/$orgSlug/auth-tokens': typeof ApiOrgSlugAuthTokensRoute
   '/api/$orgSlug/requests': typeof ApiOrgSlugRequestsRouteWithChildren
   '/api/$orgSlug/settings': typeof ApiOrgSlugSettingsRoute
@@ -696,8 +827,10 @@ export interface FileRoutesById {
   '/api/admin/stats': typeof ApiAdminStatsRoute
   '/api/admin/subscriptions': typeof ApiAdminSubscriptionsRoute
   '/api/admin/tunnels': typeof ApiAdminTunnelsRoute
-  '/api/admin/users': typeof ApiAdminUsersRoute
+  '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/checkout/paystack': typeof ApiCheckoutPaystackRoute
+  '/api/checkout/paystack-verify': typeof ApiCheckoutPaystackVerifyRoute
   '/api/checkout/polar': typeof ApiCheckoutPolarRoute
   '/api/cli/complete': typeof ApiCliCompleteRoute
   '/api/cli/exchange': typeof ApiCliExchangeRoute
@@ -707,14 +840,15 @@ export interface FileRoutesById {
   '/api/domain/verify-ownership': typeof ApiDomainVerifyOwnershipRoute
   '/api/me/orgs': typeof ApiMeOrgsRoute
   '/api/organizations/check-slug': typeof ApiOrganizationsCheckSlugRoute
-  '/api/subscriptions/$organizationId': typeof ApiSubscriptionsOrganizationIdRoute
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
   '/api/tunnel/check-subdomain': typeof ApiTunnelCheckSubdomainRoute
   '/api/tunnel/register': typeof ApiTunnelRegisterRoute
+  '/api/webhooks/paystack': typeof ApiWebhooksPaystackRoute
   '/api/webhooks/polar': typeof ApiWebhooksPolarRoute
   '/$orgSlug/settings/': typeof OrgSlugSettingsIndexRoute
   '/$orgSlug/tunnels/': typeof OrgSlugTunnelsIndexRoute
   '/admin/organizations/': typeof AdminOrganizationsIndexRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -726,7 +860,9 @@ export interface FileRoutesById {
   '/api/$orgSlug/subdomains/$subdomainId': typeof ApiOrgSlugSubdomainsSubdomainIdRoute
   '/api/$orgSlug/tunnels/$tunnelId': typeof ApiOrgSlugTunnelsTunnelIdRouteWithChildren
   '/api/admin/organizations/$slug': typeof ApiAdminOrganizationsSlugRoute
+  '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRoute
   '/api/cli/login/status': typeof ApiCliLoginStatusRoute
+  '/api/subscriptions/$orgSlug/cancel': typeof ApiSubscriptionsOrgSlugCancelRoute
   '/api/$orgSlug/domains/': typeof ApiOrgSlugDomainsIndexRoute
   '/api/$orgSlug/subdomains/': typeof ApiOrgSlugSubdomainsIndexRoute
   '/api/$orgSlug/tunnels/': typeof ApiOrgSlugTunnelsIndexRoute
@@ -739,12 +875,20 @@ export interface FileRouteTypes {
     | '/'
     | '/$orgSlug'
     | '/admin'
+    | '/changelog'
+    | '/contact'
     | '/email-templates'
     | '/login'
+    | '/nextjs'
     | '/onboarding'
+    | '/plugins'
     | '/pricing'
+    | '/privacy'
+    | '/report-bug'
     | '/select'
     | '/signup'
+    | '/terms'
+    | '/vite'
     | '/$orgSlug/billing'
     | '/$orgSlug/domains'
     | '/$orgSlug/install'
@@ -753,10 +897,11 @@ export interface FileRouteTypes {
     | '/$orgSlug/settings'
     | '/$orgSlug/subdomains'
     | '/$orgSlug/tokens'
+    | '/admin/actions'
     | '/admin/charts'
     | '/admin/subscriptions'
     | '/admin/tunnels'
-    | '/admin/users'
+    | '/api/health'
     | '/api/search'
     | '/cli/login'
     | '/docs/$'
@@ -767,6 +912,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/settings/profile'
     | '/$orgSlug/tunnels/$tunnelId'
     | '/admin/organizations/$slug'
+    | '/admin/users/$userId'
     | '/api/$orgSlug/auth-tokens'
     | '/api/$orgSlug/requests'
     | '/api/$orgSlug/settings'
@@ -780,6 +926,8 @@ export interface FileRouteTypes {
     | '/api/admin/tunnels'
     | '/api/admin/users'
     | '/api/auth/$'
+    | '/api/checkout/paystack'
+    | '/api/checkout/paystack-verify'
     | '/api/checkout/polar'
     | '/api/cli/complete'
     | '/api/cli/exchange'
@@ -789,14 +937,15 @@ export interface FileRouteTypes {
     | '/api/domain/verify-ownership'
     | '/api/me/orgs'
     | '/api/organizations/check-slug'
-    | '/api/subscriptions/$organizationId'
     | '/api/tunnel/auth'
     | '/api/tunnel/check-subdomain'
     | '/api/tunnel/register'
+    | '/api/webhooks/paystack'
     | '/api/webhooks/polar'
     | '/$orgSlug/settings/'
     | '/$orgSlug/tunnels'
     | '/admin/organizations'
+    | '/admin/users'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -808,7 +957,9 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/subdomains/$subdomainId'
     | '/api/$orgSlug/tunnels/$tunnelId'
     | '/api/admin/organizations/$slug'
+    | '/api/admin/users/$userId'
     | '/api/cli/login/status'
+    | '/api/subscriptions/$orgSlug/cancel'
     | '/api/$orgSlug/domains'
     | '/api/$orgSlug/subdomains'
     | '/api/$orgSlug/tunnels'
@@ -818,12 +969,20 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/changelog'
+    | '/contact'
     | '/email-templates'
     | '/login'
+    | '/nextjs'
     | '/onboarding'
+    | '/plugins'
     | '/pricing'
+    | '/privacy'
+    | '/report-bug'
     | '/select'
     | '/signup'
+    | '/terms'
+    | '/vite'
     | '/$orgSlug/billing'
     | '/$orgSlug/domains'
     | '/$orgSlug/install'
@@ -831,10 +990,11 @@ export interface FileRouteTypes {
     | '/$orgSlug/requests'
     | '/$orgSlug/subdomains'
     | '/$orgSlug/tokens'
+    | '/admin/actions'
     | '/admin/charts'
     | '/admin/subscriptions'
     | '/admin/tunnels'
-    | '/admin/users'
+    | '/api/health'
     | '/api/search'
     | '/cli/login'
     | '/docs/$'
@@ -845,6 +1005,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/settings/profile'
     | '/$orgSlug/tunnels/$tunnelId'
     | '/admin/organizations/$slug'
+    | '/admin/users/$userId'
     | '/api/$orgSlug/auth-tokens'
     | '/api/$orgSlug/requests'
     | '/api/$orgSlug/settings'
@@ -858,6 +1019,8 @@ export interface FileRouteTypes {
     | '/api/admin/tunnels'
     | '/api/admin/users'
     | '/api/auth/$'
+    | '/api/checkout/paystack'
+    | '/api/checkout/paystack-verify'
     | '/api/checkout/polar'
     | '/api/cli/complete'
     | '/api/cli/exchange'
@@ -867,14 +1030,15 @@ export interface FileRouteTypes {
     | '/api/domain/verify-ownership'
     | '/api/me/orgs'
     | '/api/organizations/check-slug'
-    | '/api/subscriptions/$organizationId'
     | '/api/tunnel/auth'
     | '/api/tunnel/check-subdomain'
     | '/api/tunnel/register'
+    | '/api/webhooks/paystack'
     | '/api/webhooks/polar'
     | '/$orgSlug/settings'
     | '/$orgSlug/tunnels'
     | '/admin/organizations'
+    | '/admin/users'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -886,7 +1050,9 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/subdomains/$subdomainId'
     | '/api/$orgSlug/tunnels/$tunnelId'
     | '/api/admin/organizations/$slug'
+    | '/api/admin/users/$userId'
     | '/api/cli/login/status'
+    | '/api/subscriptions/$orgSlug/cancel'
     | '/api/$orgSlug/domains'
     | '/api/$orgSlug/subdomains'
     | '/api/$orgSlug/tunnels'
@@ -897,12 +1063,20 @@ export interface FileRouteTypes {
     | '/'
     | '/$orgSlug'
     | '/admin'
+    | '/changelog'
+    | '/contact'
     | '/email-templates'
     | '/login'
+    | '/nextjs'
     | '/onboarding'
+    | '/plugins'
     | '/pricing'
+    | '/privacy'
+    | '/report-bug'
     | '/select'
     | '/signup'
+    | '/terms'
+    | '/vite'
     | '/$orgSlug/billing'
     | '/$orgSlug/domains'
     | '/$orgSlug/install'
@@ -911,10 +1085,11 @@ export interface FileRouteTypes {
     | '/$orgSlug/settings'
     | '/$orgSlug/subdomains'
     | '/$orgSlug/tokens'
+    | '/admin/actions'
     | '/admin/charts'
     | '/admin/subscriptions'
     | '/admin/tunnels'
-    | '/admin/users'
+    | '/api/health'
     | '/api/search'
     | '/cli/login'
     | '/docs/$'
@@ -925,6 +1100,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/settings/profile'
     | '/$orgSlug/tunnels/$tunnelId'
     | '/admin/organizations/$slug'
+    | '/admin/users/$userId'
     | '/api/$orgSlug/auth-tokens'
     | '/api/$orgSlug/requests'
     | '/api/$orgSlug/settings'
@@ -938,6 +1114,8 @@ export interface FileRouteTypes {
     | '/api/admin/tunnels'
     | '/api/admin/users'
     | '/api/auth/$'
+    | '/api/checkout/paystack'
+    | '/api/checkout/paystack-verify'
     | '/api/checkout/polar'
     | '/api/cli/complete'
     | '/api/cli/exchange'
@@ -947,14 +1125,15 @@ export interface FileRouteTypes {
     | '/api/domain/verify-ownership'
     | '/api/me/orgs'
     | '/api/organizations/check-slug'
-    | '/api/subscriptions/$organizationId'
     | '/api/tunnel/auth'
     | '/api/tunnel/check-subdomain'
     | '/api/tunnel/register'
+    | '/api/webhooks/paystack'
     | '/api/webhooks/polar'
     | '/$orgSlug/settings/'
     | '/$orgSlug/tunnels/'
     | '/admin/organizations/'
+    | '/admin/users/'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -966,7 +1145,9 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/subdomains/$subdomainId'
     | '/api/$orgSlug/tunnels/$tunnelId'
     | '/api/admin/organizations/$slug'
+    | '/api/admin/users/$userId'
     | '/api/cli/login/status'
+    | '/api/subscriptions/$orgSlug/cancel'
     | '/api/$orgSlug/domains/'
     | '/api/$orgSlug/subdomains/'
     | '/api/$orgSlug/tunnels/'
@@ -978,12 +1159,21 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OrgSlugRoute: typeof OrgSlugRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
+  ChangelogRoute: typeof ChangelogRoute
+  ContactRoute: typeof ContactRoute
   EmailTemplatesRoute: typeof EmailTemplatesRoute
   LoginRoute: typeof LoginRoute
+  NextjsRoute: typeof NextjsRoute
   OnboardingRoute: typeof OnboardingRoute
+  PluginsRoute: typeof PluginsRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
+  ReportBugRoute: typeof ReportBugRoute
   SelectRoute: typeof SelectRoute
   SignupRoute: typeof SignupRoute
+  TermsRoute: typeof TermsRoute
+  ViteRoute: typeof ViteRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   ApiSearchRoute: typeof ApiSearchRoute
   CliLoginRoute: typeof CliLoginRoute
   DocsSplatRoute: typeof DocsSplatRoute
@@ -1000,8 +1190,10 @@ export interface RootRouteChildren {
   ApiAdminStatsRoute: typeof ApiAdminStatsRoute
   ApiAdminSubscriptionsRoute: typeof ApiAdminSubscriptionsRoute
   ApiAdminTunnelsRoute: typeof ApiAdminTunnelsRoute
-  ApiAdminUsersRoute: typeof ApiAdminUsersRoute
+  ApiAdminUsersRoute: typeof ApiAdminUsersRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiCheckoutPaystackRoute: typeof ApiCheckoutPaystackRoute
+  ApiCheckoutPaystackVerifyRoute: typeof ApiCheckoutPaystackVerifyRoute
   ApiCheckoutPolarRoute: typeof ApiCheckoutPolarRoute
   ApiCliCompleteRoute: typeof ApiCliCompleteRoute
   ApiCliExchangeRoute: typeof ApiCliExchangeRoute
@@ -1011,10 +1203,10 @@ export interface RootRouteChildren {
   ApiDomainVerifyOwnershipRoute: typeof ApiDomainVerifyOwnershipRoute
   ApiMeOrgsRoute: typeof ApiMeOrgsRoute
   ApiOrganizationsCheckSlugRoute: typeof ApiOrganizationsCheckSlugRoute
-  ApiSubscriptionsOrganizationIdRoute: typeof ApiSubscriptionsOrganizationIdRoute
   ApiTunnelAuthRoute: typeof ApiTunnelAuthRoute
   ApiTunnelCheckSubdomainRoute: typeof ApiTunnelCheckSubdomainRoute
   ApiTunnelRegisterRoute: typeof ApiTunnelRegisterRoute
+  ApiWebhooksPaystackRoute: typeof ApiWebhooksPaystackRoute
   ApiWebhooksPolarRoute: typeof ApiWebhooksPolarRoute
   ApiOrgSlugDomainsDomainIdRoute: typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   ApiOrgSlugPortalPolarRoute: typeof ApiOrgSlugPortalPolarRoute
@@ -1024,6 +1216,7 @@ export interface RootRouteChildren {
   ApiOrgSlugStatsTunnelRoute: typeof ApiOrgSlugStatsTunnelRoute
   ApiOrgSlugSubdomainsSubdomainIdRoute: typeof ApiOrgSlugSubdomainsSubdomainIdRoute
   ApiOrgSlugTunnelsTunnelIdRoute: typeof ApiOrgSlugTunnelsTunnelIdRouteWithChildren
+  ApiSubscriptionsOrgSlugCancelRoute: typeof ApiSubscriptionsOrgSlugCancelRoute
   ApiOrgSlugDomainsIndexRoute: typeof ApiOrgSlugDomainsIndexRoute
   ApiOrgSlugSubdomainsIndexRoute: typeof ApiOrgSlugSubdomainsIndexRoute
   ApiOrgSlugTunnelsIndexRoute: typeof ApiOrgSlugTunnelsIndexRoute
@@ -1031,6 +1224,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/vite': {
+      id: '/vite'
+      path: '/vite'
+      fullPath: '/vite'
+      preLoaderRoute: typeof ViteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -1045,6 +1252,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SelectRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/report-bug': {
+      id: '/report-bug'
+      path: '/report-bug'
+      fullPath: '/report-bug'
+      preLoaderRoute: typeof ReportBugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
@@ -1052,11 +1273,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/plugins': {
+      id: '/plugins'
+      path: '/plugins'
+      fullPath: '/plugins'
+      preLoaderRoute: typeof PluginsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nextjs': {
+      id: '/nextjs'
+      path: '/nextjs'
+      fullPath: '/nextjs'
+      preLoaderRoute: typeof NextjsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -1071,6 +1306,20 @@ declare module '@tanstack/react-router' {
       path: '/email-templates'
       fullPath: '/email-templates'
       preLoaderRoute: typeof EmailTemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -1136,12 +1385,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/users': {
-      id: '/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminUsersRouteImport
-      parentRoute: typeof AdminRoute
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/tunnels': {
       id: '/admin/tunnels'
@@ -1162,6 +1411,13 @@ declare module '@tanstack/react-router' {
       path: '/charts'
       fullPath: '/admin/charts'
       preLoaderRoute: typeof AdminChartsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/actions': {
+      id: '/admin/actions'
+      path: '/actions'
+      fullPath: '/admin/actions'
+      preLoaderRoute: typeof AdminActionsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/$orgSlug/tokens': {
@@ -1220,6 +1476,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugBillingRouteImport
       parentRoute: typeof OrgSlugRoute
     }
+    '/admin/users/': {
+      id: '/admin/users/'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/organizations/': {
       id: '/admin/organizations/'
       path: '/organizations'
@@ -1248,6 +1511,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksPolarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/paystack': {
+      id: '/api/webhooks/paystack'
+      path: '/api/webhooks/paystack'
+      fullPath: '/api/webhooks/paystack'
+      preLoaderRoute: typeof ApiWebhooksPaystackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tunnel/register': {
       id: '/api/tunnel/register'
       path: '/api/tunnel/register'
@@ -1267,13 +1537,6 @@ declare module '@tanstack/react-router' {
       path: '/api/tunnel/auth'
       fullPath: '/api/tunnel/auth'
       preLoaderRoute: typeof ApiTunnelAuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/subscriptions/$organizationId': {
-      id: '/api/subscriptions/$organizationId'
-      path: '/api/subscriptions/$organizationId'
-      fullPath: '/api/subscriptions/$organizationId'
-      preLoaderRoute: typeof ApiSubscriptionsOrganizationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/organizations/check-slug': {
@@ -1337,6 +1600,20 @@ declare module '@tanstack/react-router' {
       path: '/api/checkout/polar'
       fullPath: '/api/checkout/polar'
       preLoaderRoute: typeof ApiCheckoutPolarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/checkout/paystack-verify': {
+      id: '/api/checkout/paystack-verify'
+      path: '/api/checkout/paystack-verify'
+      fullPath: '/api/checkout/paystack-verify'
+      preLoaderRoute: typeof ApiCheckoutPaystackVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/checkout/paystack': {
+      id: '/api/checkout/paystack'
+      path: '/api/checkout/paystack'
+      fullPath: '/api/checkout/paystack'
+      preLoaderRoute: typeof ApiCheckoutPaystackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -1430,6 +1707,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugAuthTokensRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/users/$userId': {
+      id: '/admin/users/$userId'
+      path: '/users/$userId'
+      fullPath: '/admin/users/$userId'
+      preLoaderRoute: typeof AdminUsersUserIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/organizations/$slug': {
       id: '/admin/organizations/$slug'
       path: '/organizations/$slug'
@@ -1479,12 +1763,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugDomainsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/subscriptions/$orgSlug/cancel': {
+      id: '/api/subscriptions/$orgSlug/cancel'
+      path: '/api/subscriptions/$orgSlug/cancel'
+      fullPath: '/api/subscriptions/$orgSlug/cancel'
+      preLoaderRoute: typeof ApiSubscriptionsOrgSlugCancelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cli/login/status': {
       id: '/api/cli/login/status'
       path: '/status'
       fullPath: '/api/cli/login/status'
       preLoaderRoute: typeof ApiCliLoginStatusRouteImport
       parentRoute: typeof ApiCliLoginRoute
+    }
+    '/api/admin/users/$userId': {
+      id: '/api/admin/users/$userId'
+      path: '/$userId'
+      fullPath: '/api/admin/users/$userId'
+      preLoaderRoute: typeof ApiAdminUsersUserIdRouteImport
+      parentRoute: typeof ApiAdminUsersRoute
     }
     '/api/admin/organizations/$slug': {
       id: '/api/admin/organizations/$slug'
@@ -1628,21 +1926,25 @@ const OrgSlugRouteWithChildren =
   OrgSlugRoute._addFileChildren(OrgSlugRouteChildren)
 
 interface AdminRouteChildren {
+  AdminActionsRoute: typeof AdminActionsRoute
   AdminChartsRoute: typeof AdminChartsRoute
   AdminSubscriptionsRoute: typeof AdminSubscriptionsRoute
   AdminTunnelsRoute: typeof AdminTunnelsRoute
-  AdminUsersRoute: typeof AdminUsersRoute
   AdminOrganizationsSlugRoute: typeof AdminOrganizationsSlugRoute
+  AdminUsersUserIdRoute: typeof AdminUsersUserIdRoute
   AdminOrganizationsIndexRoute: typeof AdminOrganizationsIndexRoute
+  AdminUsersIndexRoute: typeof AdminUsersIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminActionsRoute: AdminActionsRoute,
   AdminChartsRoute: AdminChartsRoute,
   AdminSubscriptionsRoute: AdminSubscriptionsRoute,
   AdminTunnelsRoute: AdminTunnelsRoute,
-  AdminUsersRoute: AdminUsersRoute,
   AdminOrganizationsSlugRoute: AdminOrganizationsSlugRoute,
+  AdminUsersUserIdRoute: AdminUsersUserIdRoute,
   AdminOrganizationsIndexRoute: AdminOrganizationsIndexRoute,
+  AdminUsersIndexRoute: AdminUsersIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -1672,6 +1974,18 @@ const ApiAdminOrganizationsRouteWithChildren =
   ApiAdminOrganizationsRoute._addFileChildren(
     ApiAdminOrganizationsRouteChildren,
   )
+
+interface ApiAdminUsersRouteChildren {
+  ApiAdminUsersUserIdRoute: typeof ApiAdminUsersUserIdRoute
+}
+
+const ApiAdminUsersRouteChildren: ApiAdminUsersRouteChildren = {
+  ApiAdminUsersUserIdRoute: ApiAdminUsersUserIdRoute,
+}
+
+const ApiAdminUsersRouteWithChildren = ApiAdminUsersRoute._addFileChildren(
+  ApiAdminUsersRouteChildren,
+)
 
 interface ApiCliLoginRouteChildren {
   ApiCliLoginStatusRoute: typeof ApiCliLoginStatusRoute
@@ -1717,12 +2031,21 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OrgSlugRoute: OrgSlugRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
+  ChangelogRoute: ChangelogRoute,
+  ContactRoute: ContactRoute,
   EmailTemplatesRoute: EmailTemplatesRoute,
   LoginRoute: LoginRoute,
+  NextjsRoute: NextjsRoute,
   OnboardingRoute: OnboardingRoute,
+  PluginsRoute: PluginsRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
+  ReportBugRoute: ReportBugRoute,
   SelectRoute: SelectRoute,
   SignupRoute: SignupRoute,
+  TermsRoute: TermsRoute,
+  ViteRoute: ViteRoute,
+  ApiHealthRoute: ApiHealthRoute,
   ApiSearchRoute: ApiSearchRoute,
   CliLoginRoute: CliLoginRoute,
   DocsSplatRoute: DocsSplatRoute,
@@ -1739,8 +2062,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminStatsRoute: ApiAdminStatsRoute,
   ApiAdminSubscriptionsRoute: ApiAdminSubscriptionsRoute,
   ApiAdminTunnelsRoute: ApiAdminTunnelsRoute,
-  ApiAdminUsersRoute: ApiAdminUsersRoute,
+  ApiAdminUsersRoute: ApiAdminUsersRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiCheckoutPaystackRoute: ApiCheckoutPaystackRoute,
+  ApiCheckoutPaystackVerifyRoute: ApiCheckoutPaystackVerifyRoute,
   ApiCheckoutPolarRoute: ApiCheckoutPolarRoute,
   ApiCliCompleteRoute: ApiCliCompleteRoute,
   ApiCliExchangeRoute: ApiCliExchangeRoute,
@@ -1750,10 +2075,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiDomainVerifyOwnershipRoute: ApiDomainVerifyOwnershipRoute,
   ApiMeOrgsRoute: ApiMeOrgsRoute,
   ApiOrganizationsCheckSlugRoute: ApiOrganizationsCheckSlugRoute,
-  ApiSubscriptionsOrganizationIdRoute: ApiSubscriptionsOrganizationIdRoute,
   ApiTunnelAuthRoute: ApiTunnelAuthRoute,
   ApiTunnelCheckSubdomainRoute: ApiTunnelCheckSubdomainRoute,
   ApiTunnelRegisterRoute: ApiTunnelRegisterRoute,
+  ApiWebhooksPaystackRoute: ApiWebhooksPaystackRoute,
   ApiWebhooksPolarRoute: ApiWebhooksPolarRoute,
   ApiOrgSlugDomainsDomainIdRoute: ApiOrgSlugDomainsDomainIdRouteWithChildren,
   ApiOrgSlugPortalPolarRoute: ApiOrgSlugPortalPolarRoute,
@@ -1763,6 +2088,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOrgSlugStatsTunnelRoute: ApiOrgSlugStatsTunnelRoute,
   ApiOrgSlugSubdomainsSubdomainIdRoute: ApiOrgSlugSubdomainsSubdomainIdRoute,
   ApiOrgSlugTunnelsTunnelIdRoute: ApiOrgSlugTunnelsTunnelIdRouteWithChildren,
+  ApiSubscriptionsOrgSlugCancelRoute: ApiSubscriptionsOrgSlugCancelRoute,
   ApiOrgSlugDomainsIndexRoute: ApiOrgSlugDomainsIndexRoute,
   ApiOrgSlugSubdomainsIndexRoute: ApiOrgSlugSubdomainsIndexRoute,
   ApiOrgSlugTunnelsIndexRoute: ApiOrgSlugTunnelsIndexRoute,

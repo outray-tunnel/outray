@@ -9,6 +9,11 @@ import { TunnelsSkeleton } from "@/components/admin/admin-skeleton";
 import { useAdminStore } from "@/lib/admin-store";
 
 export const Route = createFileRoute("/admin/tunnels")({
+  head: () => ({
+    meta: [
+      { title: "Admin Tunnels - OutRay" },
+    ],
+  }),
   component: AdminTunnelsPage,
 });
 

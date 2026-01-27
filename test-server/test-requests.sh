@@ -1,8 +1,15 @@
 #!/bin/bash
 
-BASE_URL="http://tolerant-institution.localhost.direct:3547"
+if [ -z "$1" ]; then
+  echo "Usage: $0 <base_url>"
+  echo "Example: $0 https://dangerous-sea.outray.app"
+  exit 1
+fi
+
+BASE_URL="$1"
 
 echo "=== Testing all endpoints ==="
+echo "Base URL: $BASE_URL"
 echo ""
 
 echo "1. GET /"

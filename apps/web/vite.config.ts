@@ -7,6 +7,7 @@ import { nitro } from "nitro/vite";
 import mdx from "fumadocs-mdx/vite";
 import * as MdxConfig from "./source.config";
 import tsconfigPaths from "vite-tsconfig-paths";
+import outray from "@outray/vite"
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -19,6 +20,10 @@ export default defineConfig({
     mdx(MdxConfig),
     tsconfigPaths({
       projects: ["./tsconfig.json"],
+    }),
+    outray({
+      customDomain:"webhook.outray.link",
+      apiKey:process.env.OUTRAY_API_KEY,
     }),
   ],
   server: {

@@ -15,6 +15,11 @@ export const subscriptions = pgTable(
     polarCustomerId: text("polar_customer_id"),
     polarSubscriptionId: text("polar_subscription_id"),
     polarProductId: text("polar_product_id"),
+    // Paystack fields
+    paystackCustomerCode: text("paystack_customer_code"),
+    paystackAuthorizationCode: text("paystack_authorization_code"),
+    paystackEmail: text("paystack_email"), // Email tied to authorization (required for charging)
+    paymentProvider: text("payment_provider").default("polar"), // 'polar' | 'paystack'
     currentPeriodEnd: timestamp("current_period_end"),
     cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
     canceledAt: timestamp("canceled_at"),
@@ -31,6 +36,10 @@ export const subscriptions = pgTable(
     index("subscriptions_polarSubscriptionId_idx").on(
       table.polarSubscriptionId,
     ),
+    index("subscriptions_paystackCustomerCode_idx").on(
+      table.paystackCustomerCode,
+    ),
+    index("subscriptions_paymentProvider_idx").on(table.paymentProvider),
   ],
 );
 

@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react";
+import { Button } from "@/components/ui";
 
 interface DomainHeaderProps {
   currentDomainCount: number;
@@ -26,17 +27,14 @@ export function DomainHeader({
           {isUnlimited ? "∞" : domainLimit} domains
         </p>
       </div>
-      <button
+      <Button
         onClick={onAddClick}
-        className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl font-medium transition-colors shadow-lg shadow-white/5 shrink-0 ${
-          isAtLimit
-            ? "bg-white/10 text-gray-400 cursor-not-allowed"
-            : "bg-white text-black hover:bg-white/90"
-        }`}
+        disabled={isAtLimit}
+        leftIcon={<Plus size={18} />}
+        className="shrink-0"
       >
-        <Plus size={18} />
         <span className="hidden sm:inline">Add Domain</span>
-      </button>
+      </Button>
     </div>
   );
 }

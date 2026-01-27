@@ -1,8 +1,8 @@
 import WebSocket from "ws";
 import chalk from "chalk";
 import prompts from "prompts";
-import { encodeMessage, decodeMessage } from "./protocol";
-import { TunnelDataMessage, TunnelResponseMessage } from "./types";
+import { encodeMessage, decodeMessage } from "@outray/core";
+import type { TunnelDataMessage, TunnelResponseMessage } from "@outray/core";
 import http from "http";
 
 export class OutRayClient {

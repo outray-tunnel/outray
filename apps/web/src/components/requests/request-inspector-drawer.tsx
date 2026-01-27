@@ -8,6 +8,7 @@ import { ResponseTabContent } from "./response-tab-content";
 import { FullCaptureDisabledContent } from "./full-capture-disabled-content";
 import { useRequestCapture } from "./use-request-capture";
 import { ReplayModal } from "./replay-modal";
+import { Button, IconButton } from "@/components/ui";
 
 function SkeletonLoader() {
   return (
@@ -165,12 +166,11 @@ export function RequestInspectorDrawer({
                   {request.path}
                 </span>
               </div>
-              <button
+              <IconButton
                 onClick={onClose}
-                className="p-2 hover:bg-white/5 rounded-lg transition-colors text-gray-400 hover:text-white"
-              >
-                <X size={20} />
-              </button>
+                icon={<X size={20} />}
+                aria-label="Close"
+              />
             </div>
 
             {/* Actions */}
@@ -183,21 +183,21 @@ export function RequestInspectorDrawer({
                   </>
                 ) : (
                   <>
-                    <button
+                    <Button
                       onClick={() => setShowReplayModal(true)}
                       disabled={!capture}
-                      className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent/90 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-colors"
+                      variant="accent"
+                      leftIcon={<Play size={16} />}
                     >
-                      <Play size={16} />
                       Replay Request
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => copyToClipboard(generateCurl(request), "curl")}
-                      className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-xl text-sm font-medium transition-colors border border-white/10"
+                      variant="secondary"
+                      leftIcon={copiedField === "curl" ? <Check size={16} /> : <Copy size={16} />}
                     >
-                      {copiedField === "curl" ? <Check size={16} /> : <Copy size={16} />}
                       {copiedField === "curl" ? "Copied!" : "Copy as cURL"}
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>

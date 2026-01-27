@@ -9,6 +9,11 @@ import { SubscriptionsSkeleton } from "@/components/admin/admin-skeleton";
 import { useAdminStore } from "@/lib/admin-store";
 
 export const Route = createFileRoute("/admin/subscriptions")({
+  head: () => ({
+    meta: [
+      { title: "Admin Subscriptions - OutRay" },
+    ],
+  }),
   component: AdminSubscriptionsPage,
 });
 

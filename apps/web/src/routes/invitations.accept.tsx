@@ -1,8 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { Button } from "@/components/ui";
 
 export const Route = createFileRoute("/invitations/accept")({
+  head: () => ({
+    meta: [
+      { title: "Accept Invitation - OutRay" },
+    ],
+  }),
   component: AcceptInvitation,
   validateSearch: (search: Record<string, unknown>): { token: string } => {
     return {
@@ -93,12 +99,11 @@ function AcceptInvitation() {
           </div>
           <h1 className="text-2xl font-bold mb-2 text-white">Error</h1>
           <p className="text-gray-400 mb-6">{error}</p>
-          <button
+          <Button
             onClick={() => navigate({ to: "/" })}
-            className="px-6 py-2.5 bg-white text-black rounded-xl font-medium hover:bg-gray-200 transition-colors"
           >
             Go Home
-          </button>
+          </Button>
         </div>
       </div>
     );

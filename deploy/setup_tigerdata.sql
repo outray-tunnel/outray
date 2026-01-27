@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS tunnel_events (
     bytes_in INTEGER NOT NULL,
     bytes_out INTEGER NOT NULL,
     client_ip TEXT NOT NULL,
-    user_agent TEXT NOT NULL
+    user_agent TEXT NOT NULL,
+    request_id TEXT  -- UUID stored as text, links to request_captures.id when full capture is enabled
 );
 
 -- Convert to hypertable if not already
@@ -48,6 +49,7 @@ SELECT create_hypertable('tunnel_events', 'timestamp',
 -- Create indexes (IF NOT EXISTS is implicit for CREATE INDEX on TimescaleDB)
 CREATE INDEX IF NOT EXISTS idx_tunnel_events_tunnel_id ON tunnel_events (tunnel_id, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_tunnel_events_organization_id ON tunnel_events (organization_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_tunnel_events_request_id ON tunnel_events (request_id) WHERE request_id IS NOT NULL;
 
 -- ============================================================================
 -- Protocol events for TCP/UDP tunnels

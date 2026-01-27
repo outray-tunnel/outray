@@ -5,7 +5,6 @@ import {
   X,
   Mail,
   Shield,
-  Loader2,
   AlertCircle,
 } from "lucide-react";
 import { authClient, usePermission } from "@/lib/auth-client";
@@ -19,8 +18,15 @@ import { LimitModal } from "@/components/limit-modal";
 import { ConfirmModal } from "@/components/confirm-modal";
 import { ChangeRoleModal } from "@/components/change-role-modal";
 import { useEffect, useRef } from "react";
+import InviteMemberModal from "@/components/invite-member-modal";
+import { Button, IconButton, Badge } from "@/components/ui";
 
 export const Route = createFileRoute("/$orgSlug/members")({
+  head: () => ({
+    meta: [
+      { title: "Members - OutRay" },
+    ],
+  }),
   component: MembersView,
 });
 
@@ -402,17 +408,14 @@ function MembersView() {
           </p>
         </div>
         {canInvite && (
-          <button
+          <Button
             onClick={handleInviteClick}
-            className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl font-medium transition-colors shadow-lg shadow-white/5 shrink-0 ${
-              isAtLimit
-                ? "bg-white/10 text-gray-400 cursor-not-allowed"
-                : "bg-white text-black hover:bg-gray-200"
-            }`}
+            disabled={isAtLimit}
+            leftIcon={<Plus size={18} />}
+            className="shrink-0"
           >
-            <Plus size={18} />
             <span className="hidden sm:inline">Invite Member</span>
-          </button>
+          </Button>
         )}
       </div>
 
@@ -467,11 +470,12 @@ function MembersView() {
                     <h4 className="text-white font-medium">
                       {member.user.name}
                     </h4>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${member.role === "owner" ? "bg-accent/10 text-accent border-accent/20" : "bg-white/5 text-gray-400 border-white/10"}`}
+                    <Badge
+                      variant={member.role === "owner" ? "accent" : "default"}
+                      className="text-[10px]"
                     >
                       {member.role}
-                    </span>
+                    </Badge>
                   </div>
                   <p className="text-sm text-gray-500">{member.user.email}</p>
                 </div>
@@ -553,16 +557,16 @@ function MembersView() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <span className="px-2.5 py-1 rounded-full bg-yellow-500/10 text-yellow-500 text-xs font-medium border border-yellow-500/20">
+                <Badge variant="warning">
                   Pending
-                </span>
+                </Badge>
                 {canCancelInvitation && (
-                  <button
+                  <IconButton
                     onClick={() => cancelInvitation(invitation.id)}
-                    className="p-2 text-gray-500 hover:text-red-500 transition-colors"
-                  >
-                    <X size={18} />
-                  </button>
+                    icon={<X size={18} />}
+                    variant="ghost"
+                    aria-label="Cancel invitation"
+                  />
                 )}
               </div>
             </div>
@@ -577,87 +581,15 @@ function MembersView() {
       </div>
 
       {isInviteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#101010] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-white/10 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white">Invite Member</h3>
-              <button
-                onClick={() => setIsInviteModalOpen(false)}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleInvite} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-                    size={18}
-                  />
-                  <input
-                    type="email"
-                    required
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder:text-gray-600 focus:outline-hidden focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all"
-                    placeholder="colleague@example.com"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Role
-                </label>
-                <div className="relative">
-                  <Shield
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-                    size={18}
-                  />
-                  <select
-                    value={inviteRole}
-                    onChange={(e) =>
-                      setInviteRole(
-                        e.target.value as "member" | "admin" | "owner",
-                      )
-                    }
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-hidden focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all appearance-none"
-                  >
-                    <option value="member">Member</option>
-                    <option value="admin">Admin</option>
-                    <option value="owner">Owner</option>
-                  </select>
-                </div>
-              </div>
-              <div className="pt-2 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsInviteModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 bg-white/5 text-white rounded-xl font-medium hover:bg-white/10 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={inviteMutation.isPending}
-                  className="flex-1 px-4 py-2.5 bg-white text-black rounded-xl font-medium hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {inviteMutation.isPending ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Send Invitation"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <InviteMemberModal
+          handleInvite={handleInvite}
+          inviteEmail={inviteEmail}
+          setInviteEmail={setInviteEmail}
+          inviteRole={inviteRole}
+          setInviteRole={setInviteRole}
+          setIsInviteModalOpen={setIsInviteModalOpen}
+          inviteMutation={inviteMutation}
+        />
       )}
 
       <LimitModal

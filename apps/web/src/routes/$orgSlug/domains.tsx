@@ -12,6 +12,11 @@ import { LimitModal } from "@/components/limit-modal";
 import { AlertModal } from "@/components/alert-modal";
 
 export const Route = createFileRoute("/$orgSlug/domains")({
+  head: () => ({
+    meta: [
+      { title: "Domains - OutRay" },
+    ],
+  }),
   component: DomainsView,
 });
 

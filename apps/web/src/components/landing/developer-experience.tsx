@@ -1,6 +1,88 @@
 import { Terminal as TerminalIcon, Code, Activity } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useEffect, useState } from "react";
+import { SiVite, SiNextdotjs } from "react-icons/si";
+import { Link } from "@tanstack/react-router";
+
+const PluginTabs = () => {
+  const [activeTab, setActiveTab] = useState<"vite" | "next">("vite");
+
+  return (
+    <div className="mt-auto">
+      <div className="flex gap-2 mb-3">
+        <button
+          onClick={() => setActiveTab("vite")}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            activeTab === "vite"
+              ? "bg-white/10 text-white"
+              : "text-white/40 hover:text-white/60"
+          }`}
+        >
+          <SiVite className={`w-4 h-4 ${activeTab === "vite" ? "text-[#646CFF]" : ""}`} />
+          Vite
+        </button>
+        <button
+          onClick={() => setActiveTab("next")}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            activeTab === "next"
+              ? "bg-white/10 text-white"
+              : "text-white/40 hover:text-white/60"
+          }`}
+        >
+          <SiNextdotjs className="w-4 h-4" />
+          Next.js
+        </button>
+      </div>
+
+      <div className="bg-black/40 rounded-2xl border border-white/5 overflow-hidden">
+        <div className="bg-white/5 border-b border-white/5 px-4 py-2 flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+            <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+            <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+          </div>
+          <span className="text-xs text-white/40 ml-2">
+            {activeTab === "vite" ? "vite.config.ts" : "next.config.ts"}
+          </span>
+        </div>
+        <div className="p-4 font-mono text-sm overflow-x-auto">
+          {activeTab === "vite" ? (
+            <pre className="text-white/70">
+              <code>
+                <span className="text-accent">import</span> outray{" "}
+                <span className="text-accent">from</span>{" "}
+                <span className="text-green-400/80">'@outray/vite'</span>;{"\n\n"}
+                <span className="text-accent">export default</span> defineConfig({"{"}
+                {"\n"}
+                {"  "}plugins: [outray()]{"\n"}
+                {"}"});
+              </code>
+            </pre>
+          ) : (
+            <pre className="text-white/70">
+              <code>
+                <span className="text-accent">import</span> withOutray{" "}
+                <span className="text-accent">from</span>{" "}
+                <span className="text-green-400/80">'@outray/next'</span>;{"\n\n"}
+                <span className="text-accent">export default</span> withOutray({"{"}
+                {"\n"}
+                {"  "}<span className="text-white/50">// your config</span>{"\n"}
+                {"}"});
+              </code>
+            </pre>
+          )}
+        </div>
+      </div>
+
+      <Link
+        to={activeTab === "vite" ? "/vite" : "/nextjs"}
+        className="mt-3 text-sm text-accent hover:underline inline-block"
+      >
+        Learn more →
+      </Link>
+    </div>
+  );
+};
 
 const LOGS = [
   {
@@ -63,11 +145,11 @@ const LOGS = [
 
 export const DeveloperExperience = () => {
   const [visibleLogs, setVisibleLogs] = useState(
-    LOGS.slice(0, 6).map((l, i) => ({ ...l, id: i })),
+    LOGS.slice(0, 8).map((l, i) => ({ ...l, id: i })),
   );
 
   useEffect(() => {
-    let count = 6;
+    let count = 8;
     const interval = setInterval(() => {
       const nextLog = LOGS[count % LOGS.length];
       const newLog = { ...nextLog, id: count };
@@ -86,9 +168,9 @@ export const DeveloperExperience = () => {
         </h2>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8 items-stretch">
-        <div className="grid gap-8 lg:grid-rows-2">
-          <div className="bg-white/2 border border-white/5 rounded-3xl p-8 hover:border-white/10 transition-colors group h-full flex flex-col">
+      <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid gap-8">
+          <div className="bg-white/2 border border-white/5 rounded-3xl p-8 hover:border-white/10 transition-colors group flex flex-col">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
                 <TerminalIcon size={20} className="text-accent" />
@@ -105,29 +187,17 @@ export const DeveloperExperience = () => {
             </div>
           </div>
 
-          <div className="bg-white/2 border border-white/5 rounded-3xl p-8 hover:border-white/10 transition-colors group h-full flex flex-col">
+          <div className="bg-white/2 border border-white/5 rounded-3xl p-8 hover:border-white/10 transition-colors group flex flex-col">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
                 <Code size={20} className="text-accent" />
               </div>
-              <div className="flex items-center gap-3">
-                <h3 className="text-xl font-bold text-white">Don't fw CLI?</h3>
-                <span className="px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-xs font-medium">
-                  Coming Soon
-                </span>
-              </div>
+              <h3 className="text-xl font-bold text-white">Don't fw CLI?</h3>
             </div>
             <p className="text-white/40 mb-6">
-              Use our SDKs to embed OutRay directly into your app.
+              Use our plugins to embed OutRay directly into your build tool.
             </p>
-            <div className="bg-black/40 rounded-2xl border border-white/5 p-4 font-mono text-sm overflow-x-auto mt-auto">
-              <span className="text-accent">import</span> outray{" "}
-              <span className="text-accent">from</span>{" "}
-              <span className="text-white/60">"outray"</span>;{"\n"}
-              <span className="text-accent">await</span> outray.
-              <span className="text-white">connect</span>({"{"} port:{" "}
-              <span className="text-white">3000</span> {"}"});
-            </div>
+            <PluginTabs />
           </div>
         </div>
 
@@ -149,7 +219,7 @@ export const DeveloperExperience = () => {
             </p>
           </div>
 
-          <div className="mt-8 space-y-3 font-mono text-xs flex-1 flex flex-col justify-end">
+          <div className="mt-6 space-y-3 font-mono text-xs flex-1 flex flex-col justify-end">
             <AnimatePresence mode="popLayout" initial={false}>
               {visibleLogs.map((log) => (
                 <motion.div

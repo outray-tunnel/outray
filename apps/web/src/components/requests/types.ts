@@ -1,4 +1,5 @@
 export interface TunnelEvent {
+  request_id?: string;
   timestamp: number;
   tunnel_id: string;
   organization_id: string;

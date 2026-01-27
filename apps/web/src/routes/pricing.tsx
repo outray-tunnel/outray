@@ -1,13 +1,27 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Navbar } from "@/components/landing/navbar";
 import { SUBSCRIPTION_PLANS } from "@/lib/subscription-plans";
+import { isNigerianUser } from "@/lib/geolocation";
 import { Check, X } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export const Route = createFileRoute("/pricing")({
+  head: () => ({
+    meta: [
+      { title: "Pricing - OutRay" },
+    ],
+  }),
   component: PricingPage,
 });
 
 function PricingPage() {
+  const [showNGN, setShowNGN] = useState(false);
+
+  // Check if user is in Nigeria to show NGN prices
+  useEffect(() => {
+    isNigerianUser().then(setShowNGN);
+  }, []);
+
   const plans = Object.entries(SUBSCRIPTION_PLANS)
     .filter(([_, plan]) => !("hidden" in plan && plan.hidden))
     .map(([key, plan]) => ({
@@ -80,6 +94,12 @@ function PricingPage() {
                       <span className="text-4xl font-bold">${plan.price}</span>
                       <span className="text-white/40">/month</span>
                     </div>
+                    {showNGN && plan.priceNGN > 0 && (
+                      <div className="flex items-baseline gap-1 mt-1">
+                        <span className="text-lg text-white/60">₦{plan.priceNGN.toLocaleString()}</span>
+                        <span className="text-white/40 text-sm">/month</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex-1 space-y-4 mb-8">
@@ -98,6 +118,11 @@ function PricingPage() {
                       label={`${
                         f.maxSubdomains === -1 ? "Unlimited" : f.maxSubdomains
                       } Subdomain${f.maxSubdomains === 1 ? "" : "s"}`}
+                    />
+                    <FeatureItem
+                      label={`${
+                        f.maxMembers === -1 ? "Unlimited" : f.maxMembers
+                      } Team Member${f.maxMembers === 1 ? "" : "s"}`}
                     />
                     <FeatureItem
                       label={`${formatBandwidth(f.bandwidthPerMonth)} Bandwidth`}

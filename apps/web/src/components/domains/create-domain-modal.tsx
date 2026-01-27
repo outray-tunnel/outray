@@ -1,5 +1,6 @@
 import { Globe, X } from "lucide-react";
 import { useState } from "react";
+import { Button, Input, Label, IconButton } from "@/components/ui";
 
 interface CreateDomainModalProps {
   isOpen: boolean;
@@ -51,33 +52,27 @@ export function CreateDomainModal({
       <div className="w-full max-w-md bg-[#101010] border border-white/10 rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-medium text-white">Add New Domain</h3>
-          <button
+          <IconButton
             onClick={() => {
               onClose();
               setNewDomain("");
             }}
-            className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white"
-          >
-            <X className="w-5 h-5" />
-          </button>
+            icon={<X className="w-5 h-5" />}
+            aria-label="Close"
+          />
         </div>
 
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-white/60 mb-2">
-              Domain Name
-            </label>
-            <div className="relative">
-              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20" />
-              <input
-                type="text"
-                value={newDomain}
-                onChange={(e) => setNewDomain(e.target.value)}
-                placeholder="e.g. api.myapp.com"
-                className="w-full bg-black/20 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all"
-                autoFocus
-              />
-            </div>
+            <Label>Domain Name</Label>
+            <Input
+              type="text"
+              value={newDomain}
+              onChange={(e) => setNewDomain(e.target.value)}
+              placeholder="e.g. api.myapp.com"
+              leftIcon={<Globe className="w-5 h-5" />}
+              autoFocus
+            />
             <p className="mt-2 text-sm text-white/40">
               Only subdomains are allowed (e.g., api.myapp.com, app.example.io).
               Root domains like myapp.com are not supported.
@@ -91,23 +86,24 @@ export function CreateDomainModal({
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => {
                 onClose();
                 setNewDomain("");
               }}
-              className="px-4 py-2 text-white/60 hover:text-white transition-colors"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={!newDomain || isPending}
-              className="px-4 py-2 bg-white text-black rounded-full hover:bg-white/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              isLoading={isPending}
+              className="rounded-full"
             >
               {isPending ? "Adding..." : "Add Domain"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

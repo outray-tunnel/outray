@@ -1,13 +1,13 @@
 import WebSocket from "ws";
 import net from "net";
 import chalk from "chalk";
-import { encodeMessage, decodeMessage } from "./protocol";
-import {
+import { encodeMessage, decodeMessage } from "@outray/core";
+import type {
   TCPConnectionMessage,
   TCPDataMessage,
   TCPCloseMessage,
   TunnelProtocol,
-} from "./types";
+} from "@outray/core";
 
 export class TCPTunnelClient {
   private ws: WebSocket | null = null;

@@ -1,8 +1,9 @@
 import { IncomingMessage, ServerResponse } from "http";
+import { randomUUID } from "crypto";
 import fs from "fs";
 import path from "path";
 import { TunnelRouter } from "./TunnelRouter";
-import { getBandwidthKey, generateId } from "../../../../shared/utils";
+import { getBandwidthKey } from "../../../../shared/utils";
 import { logger, requestCaptureLogger } from "../lib/tigerdata";
 import { LogManager } from "./LogManager";
 
@@ -134,7 +135,13 @@ export class HTTPProxy {
       }
 
       if (metadata?.organizationId) {
+        // Generate a shared request ID (UUID) for linking events and captures
+        const requestId = metadata.fullCaptureEnabled
+          ? randomUUID()
+          : undefined;
+
         const event = {
+          request_id: requestId,
           timestamp: Date.now(),
           tunnel_id: metadata.dbTunnelId || tunnelId,
           organization_id: metadata.organizationId,
@@ -154,10 +161,9 @@ export class HTTPProxy {
         this.logManager.addLog(event);
 
         // Capture full request/response data if enabled
-        if (metadata.fullCaptureEnabled) {
-          const captureId = generateId("capture");
+        if (metadata.fullCaptureEnabled && requestId) {
           const maxBodySize = 1024 * 1024; // 1MB limit
-          
+
           // Prepare request body (truncate if too large)
           let requestBody: string | null = null;
           let requestBodySize = bodyBuffer.length;
@@ -165,7 +171,9 @@ export class HTTPProxy {
             if (bodyBuffer.length <= maxBodySize) {
               requestBody = bodyBuffer.toString("base64");
             } else {
-              requestBody = bodyBuffer.subarray(0, maxBodySize).toString("base64");
+              requestBody = bodyBuffer
+                .subarray(0, maxBodySize)
+                .toString("base64");
             }
           }
 
@@ -176,13 +184,15 @@ export class HTTPProxy {
             if (responseBuffer.length <= maxBodySize) {
               responseBody = responseBuffer.toString("base64");
             } else {
-              responseBody = responseBuffer.subarray(0, maxBodySize).toString("base64");
+              responseBody = responseBuffer
+                .subarray(0, maxBodySize)
+                .toString("base64");
               responseBodySize = responseBuffer.subarray(0, maxBodySize).length;
             }
           }
 
           const requestCapture = {
-            id: captureId,
+            id: requestId,
             timestamp: Date.now(),
             tunnel_id: metadata.dbTunnelId || tunnelId,
             organization_id: metadata.organizationId,

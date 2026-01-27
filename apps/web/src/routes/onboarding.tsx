@@ -9,8 +9,16 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
+import { useAppStore } from "@/lib/store";
+import { Button } from "@/components/ui";
+
 
 export const Route = createFileRoute("/onboarding")({
+  head: () => ({
+    meta: [
+      { title: "Create Organization - OutRay" },
+    ],
+  }),
   component: Onboarding,
 });
 
@@ -23,6 +31,8 @@ function Onboarding() {
   const [isSlugAvailable, setIsSlugAvailable] = useState<boolean | null>(null);
   const navigate = useNavigate();
 
+  const { setSelectedOrganization } = useAppStore();
+  
   const { data: sessionData, isPending: sessionPending } =
     authClient.useSession();
 
@@ -150,6 +160,8 @@ function Onboarding() {
           organizationId: data.id,
         });
 
+        setSelectedOrganization(data);
+
         navigate({ to: "/$orgSlug/install", params: { orgSlug: data.slug } });
       }
     } catch (err) {
@@ -268,23 +280,15 @@ function Onboarding() {
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={loading || isCheckingSlug || !!error}
-              className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-white hover:bg-accent px-4 py-3.5 text-sm font-bold text-black transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-white/5 hover:shadow-accent/20"
+              isLoading={loading}
+              rightIcon={!loading ? <ArrowRight size={16} /> : undefined}
+              className="w-full rounded-2xl py-3.5 hover:scale-[1.02] active:scale-[0.98] disabled:hover:scale-100"
             >
-              {loading ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-black border-t-transparent" />
-              ) : (
-                <>
-                  Create Organization
-                  <ArrowRight
-                    size={16}
-                    className="transition-transform group-hover:translate-x-1"
-                  />
-                </>
-              )}
-            </button>
+              Create Organization
+            </Button>
           </form>
         </div>
 

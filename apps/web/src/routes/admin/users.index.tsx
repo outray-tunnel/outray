@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Users, Mail, Building2, Calendar } from "lucide-react";
@@ -7,7 +7,12 @@ import { AdminDataTable, type Column } from "@/components/admin/admin-data-table
 import { UsersSkeleton } from "@/components/admin/admin-skeleton";
 import { useAdminStore } from "@/lib/admin-store";
 
-export const Route = createFileRoute("/admin/users")({
+export const Route = createFileRoute("/admin/users/")({
+  head: () => ({
+    meta: [
+      { title: "Admin Users - OutRay" },
+    ],
+  }),
   component: AdminUsersPage,
 });
 
@@ -82,7 +87,11 @@ function AdminUsersPage() {
       key: "name",
       header: "User",
       render: (user) => (
-        <div className="flex items-center gap-3">
+        <Link
+          to="/admin/users/$userId"
+          params={{ userId: user.id }}
+          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+        >
           {user.image ? (
             <img
               src={user.image}
@@ -95,13 +104,13 @@ function AdminUsersPage() {
             </div>
           )}
           <div>
-            <div className="font-medium text-white">{user.name}</div>
+            <div className="font-medium text-white hover:text-accent">{user.name}</div>
             <div className="text-xs text-gray-500 flex items-center gap-1">
               <Mail size={10} />
               {user.email}
             </div>
           </div>
-        </div>
+        </Link>
       ),
     },
     {

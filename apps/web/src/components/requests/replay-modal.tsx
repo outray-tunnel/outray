@@ -3,6 +3,7 @@ import { X, Play, Loader2, Clock, ArrowRight, CheckCircle2, XCircle, AlertCircle
 import { AnimatePresence, motion } from "motion/react";
 import type { TunnelEvent, RequestCapture } from "./types";
 import { JsonViewer, formatBody } from "./json-viewer";
+import { Button, IconButton } from "@/components/ui";
 
 type RequestTab = "headers" | "body";
 
@@ -201,34 +202,36 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
           <div className="flex items-center gap-2">
             {isEditing ? (
               <>
-                <button
+                <Button
                   onClick={cancelEdit}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-white/5 text-gray-400 hover:text-white border border-white/10 transition-colors"
+                  variant="secondary"
+                  size="sm"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setIsEditing(false)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-accent/20 text-accent border border-accent/30 transition-colors"
+                  size="sm"
+                  className="bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30"
                 >
                   Done
-                </button>
+                </Button>
               </>
             ) : (
-              <button
+              <Button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-white/5 text-gray-400 hover:text-white border border-white/10 transition-colors"
+                variant="secondary"
+                size="sm"
+                leftIcon={<Edit3 size={14} />}
               >
-                <Edit3 size={14} />
                 Edit
-              </button>
+              </Button>
             )}
-            <button
+            <IconButton
               onClick={onClose}
-              className="p-2 hover:bg-white/5 rounded-lg transition-colors text-gray-400 hover:text-white"
-            >
-              <X size={20} />
-            </button>
+              icon={<X size={20} />}
+              aria-label="Close"
+            />
           </div>
         </div>
 
@@ -503,23 +506,14 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
               <Clock size={12} />
               <span>Request will be sent directly from your browser</span>
             </div>
-            <button
+            <Button
               onClick={handleReplay}
               disabled={replaying || !url}
-              className="flex items-center justify-center gap-2 px-6 py-2.5 bg-accent hover:bg-accent/90 disabled:bg-accent/50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
+              isLoading={replaying}
+              leftIcon={replaying ? undefined : <Play size={18} />}
             >
-              {replaying ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Play size={18} />
-                  Send Request
-                </>
-              )}
-            </button>
+              {replaying ? "Sending..." : "Send Request"}
+            </Button>
           </div>
         </div>
       </motion.div>

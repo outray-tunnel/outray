@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useState } from "react";
+import { Button, Label, IconButton } from "@/components/ui";
 
 interface CreateSubdomainModalProps {
   isOpen: boolean;
@@ -35,23 +36,19 @@ export function CreateSubdomainModal({
           <h2 className="text-lg font-semibold text-white">
             Reserve Subdomain
           </h2>
-          <button
-            title="close modal"
+          <IconButton
             onClick={() => {
               onClose();
               setNewSubdomain("");
             }}
-            className="text-gray-500 hover:text-white transition-colors"
-          >
-            <X size={20} />
-          </button>
+            icon={<X size={20} />}
+            aria-label="Close"
+          />
         </div>
 
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1.5">
-              Subdomain
-            </label>
+            <Label>Subdomain</Label>
             <div className="flex items-center">
               <input
                 type="text"
@@ -69,23 +66,25 @@ export function CreateSubdomainModal({
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={() => {
                 onClose();
                 setNewSubdomain("");
               }}
-              className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium"
+              className="flex-1"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={!newSubdomain || isPending}
-              className="flex-1 px-4 py-2.5 bg-white hover:bg-gray-200 text-black rounded-xl transition-colors disabled:opacity-50 font-medium"
+              isLoading={isPending}
+              className="flex-1"
             >
               {isPending ? "Reserving..." : "Reserve"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

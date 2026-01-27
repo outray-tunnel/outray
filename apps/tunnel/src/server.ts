@@ -102,7 +102,7 @@ async function validateDashboardToken(token: string): Promise<{
     if (!response.ok) {
       let errorMessage = `Failed to validate dashboard token: ${response.status} ${response.statusText}`;
       try {
-        const errorBody = await response.json();
+        const errorBody = await response.json() as { error?: string };
         if (errorBody && typeof errorBody.error === "string") {
           errorMessage = errorBody.error;
         }
@@ -162,8 +162,31 @@ httpServer.on("upgrade", (request, socket, head) => {
   }
 });
 
-httpServer.on("request", (req, res) => {
+httpServer.on("request", async (req, res) => {
   const host = req.headers.host || "";
+  const url = new URL(req.url || "", "http://localhost");
+  
+  // Health check endpoint
+  if (url.pathname === "/health") {
+    const redisStatus = redis.status === "ready" ? "healthy" : "unhealthy";
+    const isHealthy = redisStatus === "healthy";
+    
+    res.writeHead(isHealthy ? 200 : 503, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      status: isHealthy ? "healthy" : "unhealthy",
+      timestamp: new Date().toISOString(),
+      services: {
+        redis: redisStatus,
+        websocket: wssTunnel.clients.size >= 0 ? "healthy" : "unhealthy",
+      },
+      stats: {
+        activeTunnels: wssTunnel.clients.size,
+        dashboardConnections: wssDashboard.clients.size,
+      },
+    }));
+    return;
+  }
+  
   if (host.startsWith("api.")) {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "ok", version: "1.0.0" }));

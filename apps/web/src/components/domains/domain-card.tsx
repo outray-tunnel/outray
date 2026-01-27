@@ -9,6 +9,7 @@ import {
   Check,
 } from "lucide-react";
 import { ConfirmModal } from "../confirm-modal";
+import { Button, IconButton, Badge } from "@/components/ui";
 
 interface Domain {
   id: string;
@@ -79,20 +80,17 @@ export function DomainCard({
               {domain.domain}
             </h3>
             {domain.status === "active" ? (
-              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-xs font-medium text-green-400 shrink-0">
-                <CheckCircle className="w-3 h-3" />
+              <Badge variant="success" dot>
                 Active
-              </span>
+              </Badge>
             ) : domain.status === "failed" ? (
-              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-xs font-medium text-red-400 shrink-0">
-                <AlertCircle className="w-3 h-3" />
+              <Badge variant="error" dot>
                 Failed
-              </span>
+              </Badge>
             ) : (
-              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-xs font-medium text-yellow-400 shrink-0">
-                <AlertCircle className="w-3 h-3" />
+              <Badge variant="warning" dot>
                 Pending DNS
-              </span>
+              </Badge>
             )}
           </div>
           <p className="text-xs sm:text-sm text-white/40 mt-1">
@@ -250,13 +248,14 @@ export function DomainCard({
           </div>
 
           <div className="px-3 sm:px-4 pb-3 sm:pb-4">
-            <button
+            <Button
               onClick={() => onVerify(domain.id)}
               disabled={isVerifying}
-              className="w-full py-2.5 bg-white text-black rounded-xl hover:bg-white/90 transition-colors font-medium disabled:opacity-50 text-sm"
+              isLoading={isVerifying}
+              className="w-full"
             >
               {isVerifying ? "Verifying..." : "Verify DNS Records"}
-            </button>
+            </Button>
           </div>
         </div>
       )}

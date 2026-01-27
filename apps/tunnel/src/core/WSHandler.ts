@@ -685,6 +685,16 @@ export class WSHandler {
                   );
                   await redis.del(`tunnel:last_seen:${result.tunnelId}`);
                   await redis.del(`tunnel:online:${fullHostname}`);
+                  // Remove org from global index if no more online tunnels
+                  const remaining = await redis.scard(
+                    `org:${organizationId}:online_tunnels`,
+                  );
+                  if (remaining === 0) {
+                    await redis.srem(
+                      "global:orgs_with_online_tunnels",
+                      organizationId,
+                    );
+                  }
                 }
 
                 ws.send(

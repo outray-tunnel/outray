@@ -11,6 +11,11 @@ import { SubdomainCard } from "@/components/subdomains/subdomain-card";
 import { LimitModal } from "@/components/limit-modal";
 
 export const Route = createFileRoute("/$orgSlug/subdomains")({
+  head: () => ({
+    meta: [
+      { title: "Subdomains - OutRay" },
+    ],
+  }),
   component: SubdomainsView,
 });
 

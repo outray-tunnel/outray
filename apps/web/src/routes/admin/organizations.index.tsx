@@ -8,6 +8,11 @@ import { UsersSkeleton } from "@/components/admin/admin-skeleton";
 import { useAdminStore } from "@/lib/admin-store";
 
 export const Route = createFileRoute("/admin/organizations/")({
+  head: () => ({
+    meta: [
+      { title: "Admin Organizations - OutRay" },
+    ],
+  }),
   component: AdminOrganizationsPage,
 });
 
