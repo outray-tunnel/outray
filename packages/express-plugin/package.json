@@ -46,7 +46,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/akinloluwami/outray.git",
+    "url": "https://github.com/outray-tunnel/outray.git",
     "directory": "packages/express-plugin"
   }
 }
