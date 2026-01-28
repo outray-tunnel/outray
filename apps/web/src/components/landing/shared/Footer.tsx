@@ -77,6 +77,11 @@ export const Footer = () => {
                   Express
                 </Link>
               </li>
+              <li>
+                <Link to="/nestjs" className="hover:text-white transition-colors">
+                  NestJS
+                </Link>
+              </li>
             </ul>
           </div>
 
