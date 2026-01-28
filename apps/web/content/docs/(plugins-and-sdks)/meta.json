@@ -1,4 +1,4 @@
 {
   "title": "Plugins & SDKs",
-  "pages": ["vite-plugin", "nextjs-plugin"]
+  "pages": ["vite-plugin", "nextjs-plugin", "nestjs-plugin", "express-plugin"]
 }
