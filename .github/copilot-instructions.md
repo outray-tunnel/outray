@@ -158,3 +158,8 @@ className="bg-accent hover:bg-accent/90 text-white px-4 py-2 rounded-xl"
 // Ghost button
 className="p-2 hover:bg-white/5 rounded-lg transition-colors text-gray-400 hover:text-white"
 ```
+
+
+
+**Rules:**
+- Never use alerts or confirm dialogs; use custom modals instead.
