@@ -431,6 +431,16 @@ export const appClient = {
           headers: { Authorization: `Bearer ${token}` },
         },
       ),
+
+    resetToFree: async (token: string, slug: string) =>
+      apiCall<{ success: boolean; message: string; deleted: { domains: string; subdomains: number } }>(
+        "post",
+        `/api/admin/organizations/${slug}`,
+        {
+          data: { action: "reset_to_free" },
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      ),
   },
 
   cli: {
