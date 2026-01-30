@@ -4,7 +4,7 @@ import { subscriptions, organizations } from "../../../db/schema";
 import { redis } from "../../../lib/redis";
 import { hashToken } from "../../../lib/hash";
 import { SUBSCRIPTION_PLANS } from "../../../lib/subscription-plans";
-import { count, desc, eq, gte } from "drizzle-orm";
+import { count, desc, eq, gte, sql } from "drizzle-orm";
 
 export const Route = createFileRoute("/api/admin/subscriptions")({
   server: {
@@ -33,9 +33,9 @@ export const Route = createFileRoute("/api/admin/subscriptions")({
           const planFilter = url.searchParams.get("plan") || "";
           const offset = (page - 1) * limit;
 
-          // Build filter condition
+          // Build filter condition (case-insensitive)
           const filterCondition = planFilter
-            ? eq(subscriptions.plan, planFilter)
+            ? sql`LOWER(${subscriptions.plan}) = ${planFilter.toLowerCase()}`
             : undefined;
 
           // Get total count
