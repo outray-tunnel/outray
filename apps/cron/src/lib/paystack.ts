@@ -10,9 +10,14 @@ import { config } from "../config";
 
 // Kobo pricing (same as web app)
 const PAYSTACK_PRICES_KOBO: Record<string, number> = {
+  // Monthly
   ray: 10000 * 100, // ₦10,000
   beam: 21000 * 100, // ₦21,000
   pulse: 170000 * 100, // ₦170,000
+  // Yearly (2 months free)
+  ray_yearly: 100000 * 100, // ₦100,000
+  beam_yearly: 210000 * 100, // ₦210,000
+  pulse_yearly: 1700000 * 100, // ₦1,700,000
 };
 
 const PAYSTACK_API_URL = "https://api.paystack.co";
@@ -30,6 +35,7 @@ interface Subscription {
   id: string;
   organization_id: string;
   plan: string;
+  billing_interval: "month" | "year";
   paystack_authorization_code: string;
   paystack_email: string;
   current_period_end: Date;
@@ -64,7 +70,7 @@ async function chargeAuthorization(
       },
     );
 
-    const data = await response.json() as {
+    const data = (await response.json()) as {
       status: boolean;
       message: string;
       data?: {
@@ -118,7 +124,7 @@ async function getDueSubscriptions(): Promise<Subscription[]> {
   const client = await dbPool.connect();
   try {
     const result = await client.query<Subscription>(
-      `SELECT id, organization_id, plan, paystack_authorization_code, paystack_email, current_period_end
+      `SELECT id, organization_id, plan, billing_interval, paystack_authorization_code, paystack_email, current_period_end
        FROM subscriptions
        WHERE payment_provider = 'paystack'
          AND status = 'active'
@@ -135,11 +141,18 @@ async function getDueSubscriptions(): Promise<Subscription[]> {
 /**
  * Update subscription after successful charge
  */
-async function updateSubscriptionSuccess(subscriptionId: string): Promise<void> {
+async function updateSubscriptionSuccess(
+  subscriptionId: string,
+  billingInterval: "month" | "year",
+): Promise<void> {
   const client = await dbPool.connect();
   try {
     const nextPeriodEnd = new Date();
-    nextPeriodEnd.setMonth(nextPeriodEnd.getMonth() + 1);
+    if (billingInterval === "year") {
+      nextPeriodEnd.setFullYear(nextPeriodEnd.getFullYear() + 1);
+    } else {
+      nextPeriodEnd.setMonth(nextPeriodEnd.getMonth() + 1);
+    }
 
     await client.query(
       `UPDATE subscriptions
@@ -188,13 +201,21 @@ export async function chargePaystackSubscriptions(): Promise<void> {
 
   try {
     const dueSubscriptions = await getDueSubscriptions();
-    console.log(`[Paystack] Found ${dueSubscriptions.length} subscriptions due for renewal`);
+    console.log(
+      `[Paystack] Found ${dueSubscriptions.length} subscriptions due for renewal`,
+    );
 
     for (const subscription of dueSubscriptions) {
-      const amount = PAYSTACK_PRICES_KOBO[subscription.plan];
+      // Build price key based on billing interval
+      const billingInterval = subscription.billing_interval || "month";
+      const priceKey =
+        billingInterval === "year"
+          ? `${subscription.plan}_yearly`
+          : subscription.plan;
+      const amount = PAYSTACK_PRICES_KOBO[priceKey];
       if (!amount) {
         console.warn(
-          `[Paystack] Unknown plan ${subscription.plan} for subscription ${subscription.id}`,
+          `[Paystack] Unknown plan/interval ${priceKey} for subscription ${subscription.id}`,
         );
         continue;
       }
@@ -202,7 +223,7 @@ export async function chargePaystackSubscriptions(): Promise<void> {
       const reference = generateReference();
 
       console.log(
-        `[Paystack] Charging subscription ${subscription.id} (${subscription.plan}): ₦${amount / 100}`,
+        `[Paystack] Charging subscription ${subscription.id} (${subscription.plan}, ${billingInterval}): ₦${amount / 100}`,
       );
 
       const result = await chargeAuthorization(
@@ -213,17 +234,21 @@ export async function chargePaystackSubscriptions(): Promise<void> {
         {
           organizationId: subscription.organization_id,
           plan: subscription.plan,
+          interval: billingInterval,
           isRenewal: true,
         },
       );
 
       if (result.success) {
-        await updateSubscriptionSuccess(subscription.id);
+        await updateSubscriptionSuccess(subscription.id, billingInterval);
         console.log(
           `[Paystack] Successfully charged subscription ${subscription.id}`,
         );
       } else {
-        await updateSubscriptionFailed(subscription.id, result.error || "Unknown error");
+        await updateSubscriptionFailed(
+          subscription.id,
+          result.error || "Unknown error",
+        );
         // TODO: Send failed payment email to user
       }
 
