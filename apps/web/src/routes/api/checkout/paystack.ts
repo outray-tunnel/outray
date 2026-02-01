@@ -5,15 +5,17 @@ import {
   initializeTransaction,
   PAYSTACK_PRICES_KOBO,
   type PaystackPlan,
+  type PaystackPriceKey,
 } from "../../../lib/paystack";
 import { db } from "../../../db";
 import { organizations, members } from "../../../db/schema";
+import type { BillingInterval } from "../../../lib/subscription-plans";
 
 export const Route = createFileRoute("/api/checkout/paystack")({
   server: {
     handlers: {
       /**
-       * GET /api/checkout/paystack?plan=beam&orgSlug=my-org
+       * GET /api/checkout/paystack?plan=beam&orgSlug=my-org&interval=month
        *
        * Initializes a Paystack transaction and returns the access_code
        * for opening the Paystack popup on the frontend.
@@ -22,11 +24,21 @@ export const Route = createFileRoute("/api/checkout/paystack")({
         const url = new URL(request.url);
         const plan = url.searchParams.get("plan") as PaystackPlan | null;
         const orgSlug = url.searchParams.get("orgSlug");
+        const interval =
+          (url.searchParams.get("interval") as BillingInterval) || "month";
 
         // Validate plan
         if (!plan || !["ray", "beam", "pulse"].includes(plan)) {
           return Response.json(
             { error: "Invalid plan. Must be ray, beam, or pulse." },
+            { status: 400 },
+          );
+        }
+
+        // Validate interval
+        if (!["month", "year"].includes(interval)) {
+          return Response.json(
+            { error: "Invalid interval. Must be month or year." },
             { status: 400 },
           );
         }
@@ -45,7 +57,10 @@ export const Route = createFileRoute("/api/checkout/paystack")({
         });
 
         if (!session?.user) {
-          return Response.json({ error: "Authentication required." }, { status: 401 });
+          return Response.json(
+            { error: "Authentication required." },
+            { status: 401 },
+          );
         }
 
         // Verify organization exists
@@ -78,7 +93,10 @@ export const Route = createFileRoute("/api/checkout/paystack")({
         // Only allow owner/admin to manage subscriptions
         if (!["owner", "admin"].includes(membership.role)) {
           return Response.json(
-            { error: "Only organization owners and admins can manage subscriptions." },
+            {
+              error:
+                "Only organization owners and admins can manage subscriptions.",
+            },
             { status: 403 },
           );
         }
@@ -92,7 +110,10 @@ export const Route = createFileRoute("/api/checkout/paystack")({
         }
 
         try {
-          const amount = PAYSTACK_PRICES_KOBO[plan];
+          // Build price key based on interval
+          const priceKey: PaystackPriceKey =
+            interval === "year" ? `${plan}_yearly` : plan;
+          const amount = PAYSTACK_PRICES_KOBO[priceKey];
 
           const result = await initializeTransaction({
             email,
@@ -100,6 +121,7 @@ export const Route = createFileRoute("/api/checkout/paystack")({
             metadata: {
               organizationId: org.id,
               plan,
+              interval,
               userId: session.user.id,
             },
           });
