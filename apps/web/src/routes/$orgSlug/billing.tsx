@@ -101,6 +101,12 @@ function BillingView() {
       } else {
         setCurrency("USD");
       }
+      // Also sync billing interval with active subscription
+      if (data.subscription.billingInterval) {
+        setBillingInterval(
+          data.subscription.billingInterval as BillingInterval,
+        );
+      }
     }
   }, [data?.subscription]);
 
