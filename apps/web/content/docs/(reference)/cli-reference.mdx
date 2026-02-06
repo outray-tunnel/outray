@@ -71,6 +71,13 @@ outray 3000
 - `--org <slug>`: Run the tunnel under a specific organization.
 - `--key <token>`: Use a specific API key instead of the logged-in user.
 - `--no-logs`: Disable tunnel request logs.
+- `--shadow-port <port>`: Mirror traffic to another local port (HTTP only).
+- `--shadow-host <host>`: Shadow target host (default: `localhost`).
+- `--shadow-protocol <http|https>`: Shadow target protocol (default: `http`).
+- `--shadow-sample <0-1>`: Shadow sampling rate (default: `1`).
+- `--shadow-timeout <ms>`: Shadow request timeout.
+- `--shadow-max-body <bytes>`: Shadow body cap in bytes.
+- `--shadow-headers <h1,h2>`: Comma-separated header names to diff.
 
 ### `outray switch`
 
@@ -120,6 +127,15 @@ local_host = "localhost"
 subdomain = "my-app"
 custom_domain = "app.example.com"
 
+[tunnel.web.shadow]
+target_port = 4000
+target_host = "localhost"
+target_protocol = "http"
+sample_rate = 1
+timeout_ms = 4000
+max_body_bytes = 262144
+compare_headers = ["content-type", "cache-control"]
+
 [tunnel.api]
 protocol = "http"
 local_port = 8000
@@ -153,6 +169,17 @@ remote_port = 30000
 - `custom_domain`: Custom domain for HTTP tunnels (optional, HTTP only)
 - `remote_port`: Remote port for TCP/UDP tunnels (optional, TCP/UDP only)
 - `org`: Organization slug for this tunnel (optional, overrides global setting)
+- `shadow`: Shadow traffic config for HTTP tunnels (optional)
+
+**Shadow Settings (HTTP only):**
+
+- `target_port`: Local port to mirror requests to (required)
+- `target_host`: Shadow target host (optional, defaults to `"localhost"`)
+- `target_protocol`: Shadow target protocol - `"http"` or `"https"` (optional, defaults to `"http"`)
+- `sample_rate`: Sampling rate between 0 and 1 (optional, defaults to 1)
+- `timeout_ms`: Shadow request timeout in milliseconds (optional)
+- `max_body_bytes`: Maximum body size to hash/diff (optional)
+- `compare_headers`: Header names to diff (optional)
 
 ### Example Usage
 
@@ -175,3 +202,4 @@ These flags can be used with most commands:
 - `--help`, `-h`: Display help information.
 - `--config <path>`: Path to config file (for `start` and `validate-config` commands).
 - `--no-logs`: Disable tunnel request logs (for tunnel commands).
+- `--shadow-port <port>`: Mirror traffic to another local port (HTTP only).

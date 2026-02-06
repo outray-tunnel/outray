@@ -97,6 +97,7 @@ export default function outrayPlugin(
           apiKey,
           subdomain,
           customDomain: options.customDomain,
+          shadow: options.shadow,
           onTunnelReady: (url) => {
             if (!silent) {
               // Print tunnel URL in Vite's style

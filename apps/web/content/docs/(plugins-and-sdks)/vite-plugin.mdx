@@ -69,6 +69,7 @@ export default defineConfig({
 | `serverUrl` | `string` | `wss://api.outray.dev/` | OutRay server WebSocket URL. Only change this for self-hosted instances. |
 | `enabled` | `boolean` | `process.env.OUTRAY_ENABLED !== "false"` | Enable or disable the tunnel. |
 | `silent` | `boolean` | `false` | Suppress tunnel status logs. |
+| `shadow` | `ShadowOptions` | — | Mirror traffic to a local shadow target and diff responses (HTTP only). |
 | `onTunnelReady` | `(url: string) => void` | — | Callback fired when tunnel is successfully established. |
 | `onError` | `(error: Error) => void` | — | Callback fired when tunnel encounters an error. |
 | `onClose` | `() => void` | — | Callback fired when tunnel connection is closed. |
@@ -135,6 +136,29 @@ export default defineConfig({
   plugins: [
     outray({
       enabled: process.env.EXPOSE_TUNNEL === 'true',
+    })
+  ]
+})
+```
+
+### Shadow Traffic + Diff
+
+Mirror requests to another local service and log diffs when responses diverge:
+
+```ts
+import { defineConfig } from 'vite'
+import outray from '@outray/vite'
+
+export default defineConfig({
+  plugins: [
+    outray({
+      shadow: {
+        target: { host: 'localhost', port: 4000, protocol: 'http' },
+        sampleRate: 1,
+        timeoutMs: 4000,
+        maxBodyBytes: 262144,
+        compareHeaders: ['content-type'],
+      },
     })
   ]
 })

@@ -1,3 +1,5 @@
+import type { ShadowOptions } from "@outray/core";
+
 /**
  * Configuration options for the Outray Next.js plugin
  */
@@ -59,4 +61,9 @@ export interface OutrayPluginOptions {
    * Callback fired when tunnel is attempting to reconnect
    */
   onReconnecting?: () => void;
+
+  /**
+   * Shadow traffic options (HTTP only)
+   */
+  shadow?: ShadowOptions;
 }

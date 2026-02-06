@@ -9,6 +9,7 @@ import { ConfigManager, OutRayConfig } from "./config";
 import { AuthManager } from "./auth";
 import { TomlConfigParser, ParsedTunnelConfig } from "./toml-config";
 import { version } from "../package.json";
+import type { ShadowOptions } from "@outray/core";
 
 function getFlagValue(args: string[], flag: string): string | undefined {
   const match = args.find(
@@ -31,6 +32,61 @@ function getFlagValue(args: string[], flag: string): string | undefined {
 
 function hasFlag(args: string[], flag: string): boolean {
   return args.includes(flag);
+}
+
+function parseShadowOptionsFromArgs(
+  args: string[],
+): ShadowOptions | undefined {
+  const shadowPortValue = getFlagValue(args, "--shadow-port");
+  if (!shadowPortValue) {
+    return undefined;
+  }
+
+  const shadowPort = parseInt(shadowPortValue, 10);
+  if (Number.isNaN(shadowPort) || shadowPort < 1 || shadowPort > 65535) {
+    throw new Error("shadow-port must be a valid port (1-65535)");
+  }
+
+  const targetHost = getFlagValue(args, "--shadow-host") || "localhost";
+  const targetProtocol =
+    (getFlagValue(args, "--shadow-protocol") as "http" | "https" | undefined) ??
+    "http";
+
+  if (targetProtocol !== "http" && targetProtocol !== "https") {
+    throw new Error("shadow-protocol must be http or https");
+  }
+
+  const sampleRateValue = getFlagValue(args, "--shadow-sample");
+  const sampleRate = sampleRateValue ? parseFloat(sampleRateValue) : undefined;
+  if (sampleRate !== undefined && (sampleRate < 0 || sampleRate > 1)) {
+    throw new Error("shadow-sample must be between 0 and 1");
+  }
+
+  const timeoutValue = getFlagValue(args, "--shadow-timeout");
+  const timeoutMs = timeoutValue ? parseInt(timeoutValue, 10) : undefined;
+
+  const maxBodyValue = getFlagValue(args, "--shadow-max-body");
+  const maxBodyBytes = maxBodyValue ? parseInt(maxBodyValue, 10) : undefined;
+
+  const headerValue = getFlagValue(args, "--shadow-headers");
+  const compareHeaders = headerValue
+    ? headerValue
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean)
+    : undefined;
+
+  return {
+    target: {
+      host: targetHost,
+      port: shadowPort,
+      protocol: targetProtocol,
+    },
+    sampleRate,
+    timeoutMs,
+    maxBodyBytes,
+    compareHeaders,
+  };
 }
 
 async function handleLogin(
@@ -344,12 +400,28 @@ async function handleStartFromConfig(
         tunnel.remotePort,
       );
     } else {
+      const shadowOptions = tunnel.shadow
+        ? {
+            target: {
+              host: tunnel.shadow.target_host || "localhost",
+              port: tunnel.shadow.target_port,
+              protocol: tunnel.shadow.target_protocol || "http",
+            },
+            sampleRate: tunnel.shadow.sample_rate,
+            timeoutMs: tunnel.shadow.timeout_ms,
+            maxBodyBytes: tunnel.shadow.max_body_bytes,
+            compareHeaders: tunnel.shadow.compare_headers,
+          }
+        : undefined;
+
       client = new OutRayClient(
         tunnel.localPort,
         serverUrl,
         apiKey,
         tunnel.subdomain,
         tunnel.customDomain,
+        false,
+        shadowOptions,
       );
     }
 
@@ -410,6 +482,13 @@ function printHelp() {
   console.log(
     chalk.cyan("  --no-logs              Disable tunnel request logs"),
   );
+  console.log(chalk.cyan("  --shadow-port <port>   Mirror traffic to a local port (HTTP only)"));
+  console.log(chalk.cyan("  --shadow-host <host>   Shadow target host (default: localhost)"));
+  console.log(chalk.cyan("  --shadow-protocol <p>  Shadow target protocol: http|https"));
+  console.log(chalk.cyan("  --shadow-sample <n>    Shadow sample rate 0-1 (default: 1)"));
+  console.log(chalk.cyan("  --shadow-timeout <ms>  Shadow request timeout in ms"));
+  console.log(chalk.cyan("  --shadow-max-body <b>  Shadow body cap in bytes"));
+  console.log(chalk.cyan("  --shadow-headers <h>   Comma list of headers to diff"));
   console.log(chalk.cyan("  --dev                  Use dev environment"));
   console.log(chalk.cyan("  -v, --version          Show version"));
   console.log(chalk.cyan("  -h, --help             Show this help message"));
@@ -510,6 +589,11 @@ async function main() {
         if (tunnel.org) {
           console.log(`    Org: ${tunnel.org}`);
         }
+        if (tunnel.shadow) {
+          console.log(
+            `    Shadow: ${tunnel.shadow.target_protocol || "http"}://${tunnel.shadow.target_host || "localhost"}:${tunnel.shadow.target_port}`,
+          );
+        }
         console.log();
       }
     } catch (error) {
@@ -594,6 +678,23 @@ async function main() {
 
   // Handle --no-logs flag to disable tunnel request logs
   const noLogs = hasFlag(remainingArgs, "--no-logs");
+
+  let shadowOptions: ShadowOptions | undefined;
+  try {
+    shadowOptions = parseShadowOptionsFromArgs(remainingArgs);
+  } catch (error) {
+    console.log(
+      chalk.red(
+        `❌ ${error instanceof Error ? error.message : "Invalid shadow options"}`,
+      ),
+    );
+    process.exit(1);
+  }
+
+  if (shadowOptions && tunnelProtocol !== "http") {
+    console.log(chalk.red("❌ Shadow traffic is only supported for HTTP tunnels"));
+    process.exit(1);
+  }
 
   // Load and validate config
   let config = configManager.load();
@@ -682,6 +783,7 @@ async function main() {
       subdomain,
       customDomain,
       noLogs,
+      shadowOptions,
     );
   }
 

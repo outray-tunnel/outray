@@ -35,6 +35,24 @@ OutRay stores your request history so you can analyze past traffic patterns. The
 - **Beam Plan**: 30 days retention
 - **Pulse Plan**: 90 days retention
 
+## Shadow Traffic + Diff
+
+Shadow traffic lets you mirror live tunnel requests to a second local service and compare responses without affecting real users. This is useful for validating refactors, migrations, and new versions in real time.
+
+Key ideas:
+
+- **Non-blocking**: The primary response is returned as normal; shadow runs in parallel.
+- **Diffs only**: You only see output when status, body hash, or selected headers differ.
+- **Configurable**: Sampling, timeouts, and body caps keep it fast and safe.
+
+Example:
+
+```bash
+outray http 3000 --shadow-port 4000 --shadow-headers content-type,cache-control
+```
+
+When differences occur, the CLI prints a concise diff line.
+
 {/* ## Inspecting Requests */}
 
 {/* You can click on any request in the log to view more details, including headers and query parameters. This is particularly useful for debugging webhook payloads or API integrations. */}

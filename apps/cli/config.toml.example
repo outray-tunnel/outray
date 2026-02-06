@@ -9,6 +9,15 @@ local_host = "localhost"
 subdomain = "my-app"
 custom_domain = "app.example.com"
 
+[tunnel.web.shadow]
+target_port = 4000
+target_host = "localhost"
+target_protocol = "http"
+sample_rate = 1
+timeout_ms = 4000
+max_body_bytes = 262144
+compare_headers = ["content-type", "cache-control"]
+
 [tunnel.api]
 protocol = "http"
 local_port = 8000
@@ -24,4 +33,3 @@ remote_port = 20000
 protocol = "udp"
 local_port = 5000
 remote_port = 30000
-

@@ -2,8 +2,19 @@ import WebSocket from "ws";
 import chalk from "chalk";
 import prompts from "prompts";
 import { encodeMessage, decodeMessage } from "@outray/core";
-import type { TunnelDataMessage, TunnelResponseMessage } from "@outray/core";
+import type {
+  ShadowDiffResult,
+  ShadowOptions,
+  ShadowResponseSummary,
+  TunnelDataMessage,
+  TunnelResponseMessage,
+} from "@outray/core";
 import http from "http";
+import https from "https";
+import { createHash, randomUUID } from "crypto";
+
+const DEFAULT_SHADOW_TIMEOUT_MS = 4000;
+const DEFAULT_SHADOW_MAX_BODY_BYTES = 256 * 1024;
 
 export class OutRayClient {
   private ws: WebSocket | null = null;
@@ -23,6 +34,7 @@ export class OutRayClient {
   private reconnectAttempts = 0;
   private lastPongReceived = Date.now();
   private noLog: boolean;
+  private shadow?: ShadowOptions;
   private readonly PING_INTERVAL_MS = 25000; // 25 seconds
   private readonly PONG_TIMEOUT_MS = 10000; // 10 seconds to wait for pong
 
@@ -33,6 +45,7 @@ export class OutRayClient {
     subdomain?: string,
     customDomain?: string,
     noLog: boolean = false,
+    shadow?: ShadowOptions,
   ) {
     this.localPort = localPort;
     this.serverUrl = serverUrl;
@@ -41,6 +54,7 @@ export class OutRayClient {
     this.customDomain = customDomain;
     this.requestedSubdomain = subdomain;
     this.noLog = noLog;
+    this.shadow = shadow;
   }
 
   public start(): void {
@@ -183,6 +197,7 @@ export class OutRayClient {
 
   private handleTunnelData(message: TunnelDataMessage): void {
     const startTime = Date.now();
+    const requestId = randomUUID();
     const reqOptions = {
       hostname: "localhost",
       port: this.localPort,
@@ -230,6 +245,28 @@ export class OutRayClient {
         };
 
         this.ws?.send(encodeMessage(response));
+
+        const shadowOptions = this.shadow;
+        if (
+          shadowOptions &&
+          shadowOptions.enabled !== false &&
+          this.shouldSample(shadowOptions)
+        ) {
+          void this.runShadowDiff({
+            requestId,
+            method: message.method,
+            path: message.path,
+            headers: message.headers,
+            bodyBuffer,
+            primary: this.buildResponseSummary(
+              statusCode,
+              res.headers,
+              bodyBuffer,
+              duration,
+            ),
+            options: shadowOptions,
+          });
+        }
       });
     });
 
@@ -274,6 +311,215 @@ export class OutRayClient {
       );
       return null;
     }
+  }
+
+  private shouldSample(options: ShadowOptions): boolean {
+    const rate = options.sampleRate ?? 1;
+    if (rate >= 1) return true;
+    if (rate <= 0) return false;
+    return Math.random() < rate;
+  }
+
+  private buildResponseSummary(
+    statusCode: number,
+    headers: http.IncomingHttpHeaders,
+    bodyBuffer: Buffer,
+    durationMs: number,
+  ): ShadowResponseSummary {
+    const maxBytes =
+      this.shadow?.maxBodyBytes ?? DEFAULT_SHADOW_MAX_BODY_BYTES;
+    const bodySlice = bodyBuffer.subarray(0, maxBytes);
+    const truncated = bodyBuffer.length > bodySlice.length;
+    const bodyHash = bodySlice.length
+      ? createHash("sha256").update(bodySlice).digest("hex")
+      : undefined;
+    return {
+      statusCode,
+      headers: headers as Record<string, string | string[]>,
+      bodyHash,
+      bodyBytes: bodyBuffer.length,
+      durationMs,
+      truncated,
+    };
+  }
+
+  private async runShadowDiff(args: {
+    requestId: string;
+    method: string;
+    path: string;
+    headers: Record<string, string | string[]>;
+    bodyBuffer: Buffer;
+    primary: ShadowResponseSummary;
+    options: ShadowOptions;
+  }): Promise<void> {
+    const { requestId, method, path, headers, bodyBuffer, primary, options } =
+      args;
+
+    const shadow = await this.forwardToShadow({
+      method,
+      path,
+      headers,
+      bodyBuffer,
+      options,
+    });
+
+    const diffs = this.compareResponses(primary, shadow, options);
+
+    if (diffs.status || diffs.body || diffs.headers.length > 0) {
+      const diffResult: ShadowDiffResult = {
+        requestId,
+        method,
+        path,
+        primary,
+        shadow,
+        differences: diffs,
+      };
+      this.logShadowDiff(diffResult);
+    }
+  }
+
+  private compareResponses(
+    primary: ShadowResponseSummary,
+    shadow: ShadowResponseSummary,
+    options: ShadowOptions,
+  ): ShadowDiffResult["differences"] {
+    const status = primary.statusCode !== shadow.statusCode;
+    const body = primary.bodyHash !== shadow.bodyHash;
+
+    const headerKeys = options.compareHeaders;
+    if (!headerKeys || headerKeys.length === 0) {
+      return {
+        status,
+        headers: [],
+        body,
+      };
+    }
+
+    const mismatched: string[] = [];
+    for (const key of headerKeys) {
+      const normalized = key.toLowerCase();
+      const p = primary.headers?.[normalized] ?? primary.headers?.[key];
+      const s = shadow.headers?.[normalized] ?? shadow.headers?.[key];
+      if (JSON.stringify(p) !== JSON.stringify(s)) {
+        mismatched.push(key);
+      }
+    }
+
+    return {
+      status,
+      headers: mismatched,
+      body,
+    };
+  }
+
+  private logShadowDiff(result: ShadowDiffResult): void {
+    const parts: string[] = [];
+    if (result.differences.status) {
+      parts.push(
+        `status ${result.primary.statusCode ?? "?"}→${result.shadow.statusCode ?? "?"}`,
+      );
+    }
+    if (result.differences.body) {
+      parts.push("body");
+    }
+    if (result.differences.headers.length > 0) {
+      parts.push(`headers ${result.differences.headers.join(",")}`);
+    }
+
+    const shadowError = result.shadow.error
+      ? chalk.red(` shadow_error=${result.shadow.error}`)
+      : "";
+    const timings = ` ${chalk.dim(
+      `(${result.primary.durationMs ?? "-"}ms/${result.shadow.durationMs ?? "-"}ms)`,
+    )}`;
+
+    console.log(
+      chalk.yellow("⚡ Shadow diff:") +
+        ` ${chalk.bold(result.method)} ${result.path} ` +
+        chalk.yellow(parts.join(", ")) +
+        timings +
+        shadowError,
+    );
+  }
+
+  private forwardToShadow(args: {
+    method: string;
+    path: string;
+    headers: Record<string, string | string[]>;
+    bodyBuffer: Buffer;
+    options: ShadowOptions;
+  }): Promise<ShadowResponseSummary> {
+    const { method, path, headers, bodyBuffer, options } = args;
+    const protocol = options.target.protocol ?? "http";
+    const requestModule = protocol === "https" ? https : http;
+    const shadowHeaders = { ...headers } as Record<string, string | string[]>;
+    delete shadowHeaders["host"];
+
+    return new Promise<ShadowResponseSummary>((resolve) => {
+      const start = Date.now();
+      const timeoutMs = options.timeoutMs ?? DEFAULT_SHADOW_TIMEOUT_MS;
+      const maxBytes = options.maxBodyBytes ?? DEFAULT_SHADOW_MAX_BODY_BYTES;
+      const timer = setTimeout(() => {
+        resolve({
+          error: "Shadow request timed out",
+          durationMs: Date.now() - start,
+        });
+      }, timeoutMs);
+
+      const req = requestModule.request(
+        {
+          hostname: options.target.host ?? "localhost",
+          port: options.target.port,
+          path,
+          method,
+          headers: shadowHeaders,
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          let bytes = 0;
+
+          res.on("data", (chunk) => {
+            const bufferChunk = Buffer.from(chunk);
+            if (bytes < maxBytes) {
+              const remaining = maxBytes - bytes;
+              chunks.push(bufferChunk.subarray(0, remaining));
+            }
+            bytes += bufferChunk.length;
+          });
+
+          res.on("end", () => {
+            clearTimeout(timer);
+            const bodyBuffer = Buffer.concat(chunks);
+            const durationMs = Date.now() - start;
+            const bodyHash = bodyBuffer.length
+              ? createHash("sha256").update(bodyBuffer).digest("hex")
+              : undefined;
+            resolve({
+              statusCode: res.statusCode ?? 0,
+              headers: res.headers as Record<string, string | string[]>,
+              bodyHash,
+              bodyBytes: bytes,
+              durationMs,
+              truncated: bytes > maxBytes,
+            });
+          });
+        },
+      );
+
+      req.on("error", (error) => {
+        clearTimeout(timer);
+        resolve({
+          error: error.message,
+          durationMs: Date.now() - start,
+        });
+      });
+
+      if (bodyBuffer.length > 0) {
+        req.write(bodyBuffer);
+      }
+
+      req.end();
+    });
   }
 
   private startPing(): void {

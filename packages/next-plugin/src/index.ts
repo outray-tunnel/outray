@@ -78,6 +78,7 @@ function startTunnel(options: OutrayPluginOptions, silent: boolean): void {
     apiKey,
     subdomain,
     customDomain: options.customDomain,
+    shadow: options.shadow,
     onTunnelReady: (url) => {
       if (!silent) {
         const colorUrl = `\x1b[36m${url}\x1b[0m`;

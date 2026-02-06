@@ -9,6 +9,10 @@ export type {
   // Client options
   OutrayClientOptions,
   RequestInfo,
+  ShadowOptions,
+  ShadowTarget,
+  ShadowDiffResult,
+  ShadowResponseSummary,
   TunnelProtocol,
   // Protocol messages
   ClientMessage,

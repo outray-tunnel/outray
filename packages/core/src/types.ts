@@ -74,6 +74,16 @@ export interface OutrayClientOptions {
    * Callback fired for each proxied request (HTTP only)
    */
   onRequest?: (info: RequestInfo) => void;
+
+  /**
+   * Shadow traffic options (HTTP only)
+   */
+  shadow?: ShadowOptions;
+
+  /**
+   * Callback fired when shadow traffic differs from primary response
+   */
+  onShadowDiff?: (result: ShadowDiffResult) => void;
 }
 
 /**
@@ -85,6 +95,48 @@ export interface RequestInfo {
   statusCode: number;
   duration: number;
   error?: string;
+}
+
+// ============================================================================
+// Shadow Traffic
+// ============================================================================
+
+export interface ShadowTarget {
+  host?: string;
+  port: number;
+  protocol?: "http" | "https";
+}
+
+export interface ShadowOptions {
+  target: ShadowTarget;
+  enabled?: boolean;
+  sampleRate?: number;
+  timeoutMs?: number;
+  maxBodyBytes?: number;
+  compareHeaders?: string[];
+}
+
+export interface ShadowResponseSummary {
+  statusCode?: number;
+  headers?: Record<string, string | string[]>;
+  bodyHash?: string;
+  bodyBytes?: number;
+  durationMs?: number;
+  error?: string;
+  truncated?: boolean;
+}
+
+export interface ShadowDiffResult {
+  requestId: string;
+  method: string;
+  path: string;
+  primary: ShadowResponseSummary;
+  shadow: ShadowResponseSummary;
+  differences: {
+    status: boolean;
+    headers: string[];
+    body: boolean;
+  };
 }
 
 // ============================================================================

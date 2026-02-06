@@ -5,6 +5,16 @@ import Joi from "joi";
 
 export type TunnelProtocol = "http" | "tcp" | "udp";
 
+export interface ShadowConfig {
+  target_host?: string;
+  target_port: number;
+  target_protocol?: "http" | "https";
+  sample_rate?: number;
+  timeout_ms?: number;
+  max_body_bytes?: number;
+  compare_headers?: string[];
+}
+
 export interface TunnelConfig {
   protocol: TunnelProtocol;
   local_port: number;
@@ -13,6 +23,7 @@ export interface TunnelConfig {
   custom_domain?: string;
   remote_port?: number;
   org?: string;
+  shadow?: ShadowConfig;
 }
 
 export interface GlobalConfig {
@@ -34,6 +45,7 @@ export interface ParsedTunnelConfig {
   customDomain?: string;
   remotePort?: number;
   org?: string;
+  shadow?: ShadowConfig;
 }
 
 const portSchema = Joi.number().integer().min(1).max(65535).required();
@@ -43,6 +55,18 @@ const globalConfigSchema = Joi.object({
   server_url: Joi.string().uri({ scheme: ['ws', 'wss'] }).optional().messages({
     'string.uri': 'server_url must be a valid WebSocket URL (ws:// or wss://)',
   }),
+});
+
+const shadowConfigSchema = Joi.object({
+  target_host: Joi.string().hostname().optional().default("localhost"),
+  target_port: portSchema.messages({
+    "any.required": "Shadow target port is required",
+  }),
+  target_protocol: Joi.string().valid("http", "https").optional().default("http"),
+  sample_rate: Joi.number().min(0).max(1).optional(),
+  timeout_ms: Joi.number().integer().min(1).optional(),
+  max_body_bytes: Joi.number().integer().min(1).optional(),
+  compare_headers: Joi.array().items(Joi.string()).optional(),
 });
 
 const tunnelConfigSchema = Joi.object({
@@ -65,6 +89,7 @@ const tunnelConfigSchema = Joi.object({
   custom_domain: Joi.string().hostname().optional(),
   remote_port: Joi.number().integer().min(1).max(65535).optional(),
   org: Joi.string().optional(),
+  shadow: shadowConfigSchema.optional(),
 }).custom((value: TunnelConfig, helpers: Joi.CustomHelpers) => {
   const protocol = value.protocol;
 
@@ -85,6 +110,11 @@ const tunnelConfigSchema = Joi.object({
     if (value.custom_domain !== undefined) {
       return helpers.error("any.invalid", {
         message: `custom_domain is not valid for ${protocol.toUpperCase()} tunnels. ${protocol.toUpperCase()} tunnels use ports, not domains.`,
+      });
+    }
+    if (value.shadow !== undefined) {
+      return helpers.error("any.invalid", {
+        message: `shadow is not valid for ${protocol.toUpperCase()} tunnels. Shadow traffic only applies to HTTP tunnels.`,
       });
     }
   }
@@ -193,6 +223,7 @@ export class TomlConfigParser {
         customDomain: tunnel.custom_domain,
         remotePort: tunnel.remote_port,
         org: tunnel.org || globalConfig?.org,
+        shadow: tunnel.shadow,
       });
     }
 

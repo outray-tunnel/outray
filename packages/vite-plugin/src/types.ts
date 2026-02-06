@@ -1,4 +1,5 @@
 import type { Plugin } from "vite";
+import type { ShadowOptions } from "@outray/core";
 
 /**
  * Configuration options for the Outray Vite plugin
@@ -61,6 +62,11 @@ export interface OutrayPluginOptions {
    * Callback fired when tunnel is attempting to reconnect
    */
   onReconnecting?: () => void;
+
+  /**
+   * Shadow traffic options (HTTP only)
+   */
+  shadow?: ShadowOptions;
 }
 
 /**
