@@ -4,6 +4,7 @@ import prompts from "prompts";
 import { encodeMessage, decodeMessage } from "@outray/core";
 import type { TunnelDataMessage, TunnelResponseMessage } from "@outray/core";
 import http from "http";
+import https from "https";
 
 export class OutRayClient {
   private ws: WebSocket | null = null;
@@ -12,6 +13,7 @@ export class OutRayClient {
   private apiKey?: string;
   private subdomain?: string;
   private customDomain?: string;
+  private localProtocol: "http" | "https";
   private requestedSubdomain?: string;
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private pingInterval: NodeJS.Timeout | null = null;
@@ -23,7 +25,8 @@ export class OutRayClient {
   private reconnectAttempts = 0;
   private lastPongReceived = Date.now();
   private noLog: boolean;
-  private readonly PING_INTERVAL_MS = 25000; // 25 seconds
+  private verifySsl: boolean;
+  private readonly PING_INTERVAL_MS = 25000;
   private readonly PONG_TIMEOUT_MS = 10000; // 10 seconds to wait for pong
 
   constructor(
@@ -33,6 +36,8 @@ export class OutRayClient {
     subdomain?: string,
     customDomain?: string,
     noLog: boolean = false,
+    localProtocol: "http" | "https" = "http",
+    verifySsl: boolean = false,
   ) {
     this.localPort = localPort;
     this.serverUrl = serverUrl;
@@ -41,6 +46,8 @@ export class OutRayClient {
     this.customDomain = customDomain;
     this.requestedSubdomain = subdomain;
     this.noLog = noLog;
+    this.localProtocol = localProtocol;
+    this.verifySsl = verifySsl;
   }
 
   public start(): void {
@@ -183,15 +190,17 @@ export class OutRayClient {
 
   private handleTunnelData(message: TunnelDataMessage): void {
     const startTime = Date.now();
-    const reqOptions = {
+    const reqOptions: http.RequestOptions | https.RequestOptions = {
       hostname: "localhost",
       port: this.localPort,
       path: message.path,
       method: message.method,
       headers: message.headers,
+      ...(this.localProtocol === "https" && { rejectUnauthorized: this.verifySsl }),
     };
 
-    const req = http.request(reqOptions, (res) => {
+    const requestFn = this.localProtocol === "https" ? https.request : http.request;
+    const req = requestFn(reqOptions, (res) => {
       const chunks: Buffer[] = [];
 
       res.on("data", (chunk) => {

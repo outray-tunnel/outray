@@ -385,6 +385,7 @@ function printHelp() {
   console.log(chalk.cyan("  outray validate-config Validate config.toml file"));
   console.log(chalk.cyan("  outray <port>          Start HTTP tunnel"));
   console.log(chalk.cyan("  outray http <port>     Start HTTP tunnel"));
+  console.log(chalk.cyan("  outray https <port>    Start HTTPS tunnel (local server uses HTTPS)"));
   console.log(chalk.cyan("  outray tcp <port>      Start TCP tunnel"));
   console.log(chalk.cyan("  outray udp <port>      Start UDP tunnel"));
   console.log(chalk.cyan("  outray switch [org]    Switch organization"));
@@ -407,6 +408,9 @@ function printHelp() {
     chalk.cyan("  --remote-port <port>   Remote port (TCP/UDP only)"),
   );
   console.log(chalk.cyan("  --key <token>          Override auth token"));
+  console.log(
+    chalk.cyan("  --verify-ssl           Verify SSL certs (HTTPS only, default: off)"),
+  );
   console.log(
     chalk.cyan("  --no-logs              Disable tunnel request logs"),
   );
@@ -532,7 +536,7 @@ async function main() {
   // Parse tunnel command
   let localPort: number;
   let remainingArgs: string[];
-  let tunnelProtocol: "http" | "tcp" | "udp" = "http";
+  let tunnelProtocol: "http" | "https" | "tcp" | "udp" = "http";
 
   if (command === "http") {
     const portArg = args[1];
@@ -554,6 +558,16 @@ async function main() {
     localPort = parseInt(portArg, 10);
     remainingArgs = args.slice(2);
     tunnelProtocol = "tcp";
+  } else if (command === "https") {
+    const portArg = args[1];
+    if (!portArg) {
+      console.log(chalk.red("❌ Please specify a port"));
+      console.log(chalk.cyan("Usage: outray https <port>"));
+      process.exit(1);
+    }
+    localPort = parseInt(portArg, 10);
+    remainingArgs = args.slice(2);
+    tunnelProtocol = "https";
   } else if (command === "udp") {
     const portArg = args[1];
     if (!portArg) {
@@ -594,6 +608,8 @@ async function main() {
 
   // Handle --no-logs flag to disable tunnel request logs
   const noLogs = hasFlag(remainingArgs, "--no-logs");
+
+  const verifySsl = remainingArgs.includes("--verify-ssl");
 
   // Load and validate config
   let config = configManager.load();
@@ -675,6 +691,7 @@ async function main() {
       noLogs,
     );
   } else {
+    const localProtocol = tunnelProtocol === "https" ? "https" : "http";
     client = new OutRayClient(
       localPort!,
       serverUrl,
@@ -682,6 +699,8 @@ async function main() {
       subdomain,
       customDomain,
       noLogs,
+      localProtocol,
+      verifySsl,
     );
   }
 
