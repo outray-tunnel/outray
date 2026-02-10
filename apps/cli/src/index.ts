@@ -11,9 +11,7 @@ import { TomlConfigParser, ParsedTunnelConfig } from "./toml-config";
 import { version } from "../package.json";
 
 function getFlagValue(args: string[], flag: string): string | undefined {
-  const match = args.find(
-    (arg) => arg === flag || arg.startsWith(`${flag}=`),
-  );
+  const match = args.find((arg) => arg === flag || arg.startsWith(`${flag}=`));
   if (!match) {
     return undefined;
   }
@@ -350,6 +348,8 @@ async function handleStartFromConfig(
         apiKey,
         tunnel.subdomain,
         tunnel.customDomain,
+        false, // noLog
+        tunnel.local, // enableLocal
       );
     }
 
@@ -409,6 +409,12 @@ function printHelp() {
   console.log(chalk.cyan("  --key <token>          Override auth token"));
   console.log(
     chalk.cyan("  --no-logs              Disable tunnel request logs"),
+  );
+  console.log(
+    chalk.cyan("  --local                Advertise via mDNS (.local)"),
+  );
+  console.log(
+    chalk.cyan("  --local-only           LAN only (no remote tunnel)"),
   );
   console.log(chalk.cyan("  --dev                  Use dev environment"));
   console.log(chalk.cyan("  -v, --version          Show version"));
@@ -486,11 +492,13 @@ async function main() {
     try {
       const parsedConfig = TomlConfigParser.loadTomlConfig(tomlConfigPath);
       console.log(chalk.green(`✓ Config file is valid`));
-      
+
       if (parsedConfig.global?.server_url) {
-        console.log(chalk.cyan(`\nServer URL: ${parsedConfig.global.server_url}`));
+        console.log(
+          chalk.cyan(`\nServer URL: ${parsedConfig.global.server_url}`),
+        );
       }
-      
+
       console.log(
         chalk.cyan(`\nFound ${parsedConfig.tunnels.length} tunnel(s):\n`),
       );
@@ -583,7 +591,9 @@ async function main() {
 
   // Handle --remote-port flag for TCP/UDP tunnels
   const remotePortValue = getFlagValue(remainingArgs, "--remote-port");
-  const remotePort = remotePortValue ? parseInt(remotePortValue, 10) : undefined;
+  const remotePort = remotePortValue
+    ? parseInt(remotePortValue, 10)
+    : undefined;
 
   // Handle --org flag for temporary org override
   let tempOrgSlug: string | undefined;
@@ -594,6 +604,80 @@ async function main() {
 
   // Handle --no-logs flag to disable tunnel request logs
   const noLogs = hasFlag(remainingArgs, "--no-logs");
+
+  // Handle --local flag to enable mDNS advertising
+  const enableLocal = hasFlag(remainingArgs, "--local");
+
+  // Handle --local-only flag for LAN-only mode (no remote tunnel)
+  const localOnly = hasFlag(remainingArgs, "--local-only");
+
+  // Handle local-only mode (no authentication needed)
+  if (localOnly) {
+    const { MDNSAdvertiser, LocalProxy, LocalHttpsProxy } =
+      await import("./mdns");
+    const subdomainName = subdomain || `local-${localPort}`;
+    const hostname = `${subdomainName}.local`;
+
+    console.log(chalk.cyan("Starting LAN-only server..."));
+
+    const mdnsAdvertiser = new MDNSAdvertiser(subdomainName, localPort!);
+    await mdnsAdvertiser.start();
+    const info = mdnsAdvertiser.getInfo();
+
+    const localHttpsProxy = new LocalHttpsProxy(localPort!, hostname);
+    const httpsStarted = await localHttpsProxy.start();
+
+    const localProxy = new LocalProxy(localPort!);
+    const httpStarted = await localProxy.start();
+
+    console.log(chalk.green(`\n✨ LAN server ready`));
+    console.log(chalk.blue(`📡 Access your server at:`));
+
+    if (httpsStarted) {
+      if (localHttpsProxy.isTrusted) {
+        console.log(chalk.blue(`   https://${hostname}`));
+      } else {
+        console.log(
+          chalk.blue(`   https://${hostname}`) + chalk.dim(` (self-signed)`),
+        );
+      }
+    }
+
+    if (httpStarted) {
+      console.log(chalk.blue(`   http://${hostname}`));
+    }
+
+    if (!httpsStarted && !httpStarted) {
+      console.log(chalk.blue(`   http://${hostname}:${localPort}`));
+      console.log(chalk.dim(`   (Run with sudo for ports 80/443)`));
+    }
+
+    console.log(
+      chalk.dim(`   http://${info.ip}:${localPort} (Android/direct IP)`),
+    );
+    console.log(chalk.dim(`\nNo remote tunnel - local network only.`));
+    console.log(chalk.dim(`Press Ctrl+C to stop.\n`));
+
+    process.on("SIGINT", () => {
+      console.log(chalk.cyan("\n👋 Shutting down..."));
+      localHttpsProxy.stop();
+      localProxy.stop();
+      mdnsAdvertiser.stop();
+      process.exit(0);
+    });
+
+    process.on("SIGTERM", () => {
+      console.log(chalk.cyan("\n👋 Shutting down..."));
+      localHttpsProxy.stop();
+      localProxy.stop();
+      mdnsAdvertiser.stop();
+      process.exit(0);
+    });
+
+    // Keep process alive
+    await new Promise(() => {});
+    return;
+  }
 
   // Load and validate config
   let config = configManager.load();
@@ -682,6 +766,7 @@ async function main() {
       subdomain,
       customDomain,
       noLogs,
+      enableLocal,
     );
   }
 

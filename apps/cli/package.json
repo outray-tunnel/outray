@@ -1,6 +1,6 @@
 {
   "name": "outray",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "OutRay CLI - Expose your local server to the internet",
   "main": "dist/index.js",
   "bin": {

@@ -4,6 +4,7 @@ import prompts from "prompts";
 import { encodeMessage, decodeMessage } from "@outray/core";
 import type { TunnelDataMessage, TunnelResponseMessage } from "@outray/core";
 import http from "http";
+import { MDNSAdvertiser, LocalProxy, LocalHttpsProxy } from "./mdns";
 
 export class OutRayClient {
   private ws: WebSocket | null = null;
@@ -23,6 +24,10 @@ export class OutRayClient {
   private reconnectAttempts = 0;
   private lastPongReceived = Date.now();
   private noLog: boolean;
+  private enableLocal: boolean;
+  private mdnsAdvertiser: MDNSAdvertiser | null = null;
+  private localProxy: LocalProxy | null = null;
+  private localHttpsProxy: LocalHttpsProxy | null = null;
   private readonly PING_INTERVAL_MS = 25000; // 25 seconds
   private readonly PONG_TIMEOUT_MS = 10000; // 10 seconds to wait for pong
 
@@ -33,6 +38,7 @@ export class OutRayClient {
     subdomain?: string,
     customDomain?: string,
     noLog: boolean = false,
+    enableLocal: boolean = false,
   ) {
     this.localPort = localPort;
     this.serverUrl = serverUrl;
@@ -41,6 +47,7 @@ export class OutRayClient {
     this.customDomain = customDomain;
     this.requestedSubdomain = subdomain;
     this.noLog = noLog;
+    this.enableLocal = enableLocal;
   }
 
   public start(): void {
@@ -57,10 +64,87 @@ export class OutRayClient {
 
     this.stopPing();
     this.stopPongTimeout();
+    this.stopMDNS();
 
     if (this.ws) {
       this.ws.close();
       this.ws = null;
+    }
+  }
+
+  private stopMDNS(): void {
+    if (this.localHttpsProxy) {
+      this.localHttpsProxy.stop();
+      this.localHttpsProxy = null;
+    }
+    if (this.localProxy) {
+      this.localProxy.stop();
+      this.localProxy = null;
+    }
+    if (this.mdnsAdvertiser) {
+      this.mdnsAdvertiser.stop();
+      this.mdnsAdvertiser = null;
+    }
+  }
+
+  private async startMDNS(subdomain: string): Promise<void> {
+    if (!this.enableLocal) return;
+
+    this.stopMDNS();
+
+    try {
+      this.mdnsAdvertiser = new MDNSAdvertiser(subdomain, this.localPort);
+      await this.mdnsAdvertiser.start();
+      const info = this.mdnsAdvertiser.getInfo();
+
+      // Try to start HTTPS proxy on port 443
+      this.localHttpsProxy = new LocalHttpsProxy(this.localPort, info.hostname);
+      const httpsStarted = await this.localHttpsProxy.start();
+
+      // Try to start HTTP proxy on port 80
+      this.localProxy = new LocalProxy(this.localPort);
+      const httpStarted = await this.localProxy.start();
+
+      console.log(chalk.blue(`📡 LAN access:`));
+
+      if (httpsStarted) {
+        if (this.localHttpsProxy.isTrusted) {
+          console.log(chalk.blue(`   https://${info.hostname}`));
+        } else {
+          console.log(
+            chalk.blue(`   https://${info.hostname}`) +
+              chalk.dim(` (self-signed)`),
+          );
+          console.log(
+            chalk.dim(
+              `   Install mkcert for trusted certs: brew install mkcert && mkcert -install`,
+            ),
+          );
+        }
+      }
+
+      if (httpStarted) {
+        console.log(chalk.blue(`   http://${info.hostname}`));
+      }
+
+      if (!httpsStarted && !httpStarted) {
+        console.log(chalk.blue(`   http://${info.hostname}:${this.localPort}`));
+        console.log(
+          chalk.dim(`   (Run with sudo for https://${info.hostname})`),
+        );
+      }
+
+      // Always show IP for Android devices
+      console.log(
+        chalk.dim(`   http://${info.ip}:${this.localPort} (Android)`),
+      );
+      console.log(chalk.dim(`   (Accessible from devices on your network)`));
+    } catch (err) {
+      console.log(
+        chalk.dim(
+          `mDNS unavailable: ${err instanceof Error ? err.message : "unknown error"}`,
+        ),
+      );
     }
   }
 
@@ -112,6 +196,8 @@ export class OutRayClient {
         const derivedSubdomain = this.extractSubdomain(message.url);
         if (derivedSubdomain) {
           this.subdomain = derivedSubdomain;
+          // Start mDNS advertising if enabled
+          this.startMDNS(derivedSubdomain);
         }
         // Reset forceTakeover flag after successful connection
         // Keep subdomainConflictHandled to detect takeovers
