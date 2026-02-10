@@ -1,6 +1,6 @@
 {
     "name": "@outray/nest",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "NestJS plugin to automatically expose your dev server via Outray tunnel",
     "main": "dist/index.js",
     "module": "dist/index.mjs",
@@ -33,7 +33,7 @@
         "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0"
     },
     "dependencies": {
-        "@outray/core": "^0.0.1"
+        "@outray/core": "^0.0.2"
     },
     "devDependencies": {
         "@nestjs/common": "^11.1.12",

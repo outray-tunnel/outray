@@ -1,6 +1,6 @@
 {
   "name": "@outray/core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Core tunnel client for Outray - shared between CLI and framework plugins",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

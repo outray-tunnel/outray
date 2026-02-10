@@ -1,11 +1,12 @@
 import type { Application, Request, Response, NextFunction } from "express";
-import { OutrayClient } from "@outray/core";
+import { OutrayClient, LocalAccessManager } from "@outray/core";
 import type { OutrayPluginOptions } from "./types";
 import type { Server } from "http";
 
 const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
 
 let client: OutrayClient | null = null;
+let localAccess: LocalAccessManager | null = null;
 
 /**
  * Express middleware that automatically starts an Outray tunnel when the server starts.
@@ -52,6 +53,7 @@ export default function outray(
   const {
     enabled = process.env.OUTRAY_ENABLED !== "false",
     silent = false,
+    local = false,
   } = options;
 
   // Only run in development
@@ -94,6 +96,34 @@ export default function outray(
         process.env.OUTRAY_SERVER_URL ??
         DEFAULT_SERVER_URL;
 
+      // Start local access if enabled
+      if (local) {
+        const localSubdomain = subdomain || `express-${port}`;
+        localAccess = new LocalAccessManager(port, localSubdomain);
+        localAccess.start().then((info) => {
+          if (!silent) {
+            console.log(`  \x1b[34m📡\x1b[0m \x1b[1mLAN:\x1b[0m`);
+            if (info.httpsUrl) {
+              const trustNote = info.httpsIsTrusted ? "" : " \x1b[33m(self-signed)\x1b[0m";
+              console.log(`       \x1b[36m${info.httpsUrl}\x1b[0m${trustNote}`);
+            }
+            if (info.httpUrl) {
+              console.log(`       \x1b[36m${info.httpUrl}\x1b[0m`);
+            }
+            if (!info.httpsUrl && !info.httpUrl) {
+              console.log(`       \x1b[36mhttp://${info.hostname}:${info.port}\x1b[0m`);
+              console.log(`       \x1b[33m(Run with sudo for ports 80/443)\x1b[0m`);
+            }
+            console.log(`       \x1b[2mhttp://${info.ip}:${info.port} (Android)\x1b[0m`);
+          }
+          options.onLocalReady?.(info);
+        }).catch(() => {
+          if (!silent) {
+            console.log(`  \x1b[33m○\x1b[0m  Outray: mDNS unavailable`);
+          }
+        });
+      }
+
       client = new OutrayClient({
         localPort: port,
         serverUrl,
@@ -134,6 +164,10 @@ export default function outray(
 
     // Cleanup when server closes
     server.once("close", () => {
+      if (localAccess) {
+        localAccess.stop();
+        localAccess = null;
+      }
       if (client) {
         client.stop();
         client = null;
@@ -142,6 +176,10 @@ export default function outray(
 
     // Cleanup on process exit
     const cleanup = () => {
+      if (localAccess) {
+        localAccess.stop();
+        localAccess = null;
+      }
       if (client) {
         client.stop();
         client = null;

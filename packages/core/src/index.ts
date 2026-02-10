@@ -1,6 +1,15 @@
 // Core client
 export { OutrayClient } from "./client";
 
+// mDNS / Local access
+export {
+  MDNSAdvertiser,
+  LocalProxy,
+  LocalHttpsProxy,
+  LocalAccessManager,
+} from "./mdns";
+export type { LocalAccessInfo } from "./mdns";
+
 // Protocol utilities
 export { encodeMessage, decodeMessage } from "./protocol";
 

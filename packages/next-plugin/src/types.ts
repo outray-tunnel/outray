@@ -41,9 +41,21 @@ export interface OutrayPluginOptions {
   silent?: boolean;
 
   /**
+   * Enable local network access via mDNS (.local domain)
+   * Allows devices on the same LAN to access the dev server
+   * @default false
+   */
+  local?: boolean;
+
+  /**
    * Callback fired when tunnel is successfully established
    */
   onTunnelReady?: (url: string) => void;
+
+  /**
+   * Callback fired when local access is available
+   */
+  onLocalReady?: (info: { hostname: string; ip: string; httpUrl?: string; httpsUrl?: string }) => void;
 
   /**
    * Callback fired when tunnel encounters an error

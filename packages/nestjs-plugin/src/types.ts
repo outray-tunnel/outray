@@ -19,8 +19,16 @@ export interface OutrayPluginOptions extends Partial<Omit<OutrayClientOptions, "
      */
     silent?: boolean;
 
+    /**
+     * Enable local network access via mDNS (.local domain)
+     * Allows devices on the same LAN to access the dev server
+     * @default false
+     */
+    local?: boolean;
+
     // Event callbacks
     onTunnelReady?: (url: string) => void;
+    onLocalReady?: (info: { hostname: string; ip: string; httpUrl?: string; httpsUrl?: string }) => void;
     onError?: (error: Error) => void;
     onReconnecting?: () => void;
     onClose?: () => void;

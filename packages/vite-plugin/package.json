@@ -1,6 +1,6 @@
 {
   "name": "@outray/vite",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Vite plugin to automatically expose your dev server via Outray tunnel",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -33,7 +33,7 @@
     "vite": "^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0"
   },
   "dependencies": {
-    "@outray/core": "^0.0.1"
+    "@outray/core": "^0.0.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
