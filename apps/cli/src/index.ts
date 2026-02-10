@@ -613,7 +613,8 @@ async function main() {
 
   // Handle local-only mode (no authentication needed)
   if (localOnly) {
-    const { MDNSAdvertiser, LocalProxy, LocalHttpsProxy } = await import("./mdns");
+    const { MDNSAdvertiser, LocalProxy, LocalHttpsProxy } =
+      await import("./mdns");
     const subdomainName = subdomain || `local-${localPort}`;
     const hostname = `${subdomainName}.local`;
 
@@ -636,7 +637,9 @@ async function main() {
       if (localHttpsProxy.isTrusted) {
         console.log(chalk.blue(`   https://${hostname}`));
       } else {
-        console.log(chalk.blue(`   https://${hostname}`) + chalk.dim(` (self-signed)`));
+        console.log(
+          chalk.blue(`   https://${hostname}`) + chalk.dim(` (self-signed)`),
+        );
       }
     }
 
@@ -649,7 +652,9 @@ async function main() {
       console.log(chalk.dim(`   (Run with sudo for ports 80/443)`));
     }
 
-    console.log(chalk.dim(`   http://${info.ip}:${localPort} (Android/direct IP)`));
+    console.log(
+      chalk.dim(`   http://${info.ip}:${localPort} (Android/direct IP)`),
+    );
     console.log(chalk.dim(`\nNo remote tunnel - local network only.`));
     console.log(chalk.dim(`Press Ctrl+C to stop.\n`));
 
