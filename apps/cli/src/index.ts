@@ -11,9 +11,7 @@ import { TomlConfigParser, ParsedTunnelConfig } from "./toml-config";
 import { version } from "../package.json";
 
 function getFlagValue(args: string[], flag: string): string | undefined {
-  const match = args.find(
-    (arg) => arg === flag || arg.startsWith(`${flag}=`),
-  );
+  const match = args.find((arg) => arg === flag || arg.startsWith(`${flag}=`));
   if (!match) {
     return undefined;
   }
@@ -350,6 +348,8 @@ async function handleStartFromConfig(
         apiKey,
         tunnel.subdomain,
         tunnel.customDomain,
+        false, // noLog
+        tunnel.local, // enableLocal
       );
     }
 
@@ -409,6 +409,9 @@ function printHelp() {
   console.log(chalk.cyan("  --key <token>          Override auth token"));
   console.log(
     chalk.cyan("  --no-logs              Disable tunnel request logs"),
+  );
+  console.log(
+    chalk.cyan("  --local                Advertise via mDNS (.local)"),
   );
   console.log(chalk.cyan("  --dev                  Use dev environment"));
   console.log(chalk.cyan("  -v, --version          Show version"));
@@ -486,11 +489,13 @@ async function main() {
     try {
       const parsedConfig = TomlConfigParser.loadTomlConfig(tomlConfigPath);
       console.log(chalk.green(`✓ Config file is valid`));
-      
+
       if (parsedConfig.global?.server_url) {
-        console.log(chalk.cyan(`\nServer URL: ${parsedConfig.global.server_url}`));
+        console.log(
+          chalk.cyan(`\nServer URL: ${parsedConfig.global.server_url}`),
+        );
       }
-      
+
       console.log(
         chalk.cyan(`\nFound ${parsedConfig.tunnels.length} tunnel(s):\n`),
       );
@@ -583,7 +588,9 @@ async function main() {
 
   // Handle --remote-port flag for TCP/UDP tunnels
   const remotePortValue = getFlagValue(remainingArgs, "--remote-port");
-  const remotePort = remotePortValue ? parseInt(remotePortValue, 10) : undefined;
+  const remotePort = remotePortValue
+    ? parseInt(remotePortValue, 10)
+    : undefined;
 
   // Handle --org flag for temporary org override
   let tempOrgSlug: string | undefined;
@@ -594,6 +601,9 @@ async function main() {
 
   // Handle --no-logs flag to disable tunnel request logs
   const noLogs = hasFlag(remainingArgs, "--no-logs");
+
+  // Handle --local flag to enable mDNS advertising
+  const enableLocal = hasFlag(remainingArgs, "--local");
 
   // Load and validate config
   let config = configManager.load();
@@ -682,6 +692,7 @@ async function main() {
       subdomain,
       customDomain,
       noLogs,
+      enableLocal,
     );
   }
 
