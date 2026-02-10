@@ -4,7 +4,7 @@ import prompts from "prompts";
 import { encodeMessage, decodeMessage } from "@outray/core";
 import type { TunnelDataMessage, TunnelResponseMessage } from "@outray/core";
 import http from "http";
-import { MDNSAdvertiser, LocalProxy } from "./mdns";
+import { MDNSAdvertiser, LocalProxy, LocalHttpsProxy } from "./mdns";
 
 export class OutRayClient {
   private ws: WebSocket | null = null;
@@ -27,6 +27,7 @@ export class OutRayClient {
   private enableLocal: boolean;
   private mdnsAdvertiser: MDNSAdvertiser | null = null;
   private localProxy: LocalProxy | null = null;
+  private localHttpsProxy: LocalHttpsProxy | null = null;
   private readonly PING_INTERVAL_MS = 25000; // 25 seconds
   private readonly PONG_TIMEOUT_MS = 10000; // 10 seconds to wait for pong
 
@@ -72,6 +73,10 @@ export class OutRayClient {
   }
 
   private stopMDNS(): void {
+    if (this.localHttpsProxy) {
+      this.localHttpsProxy.stop();
+      this.localHttpsProxy = null;
+    }
     if (this.localProxy) {
       this.localProxy.stop();
       this.localProxy = null;
@@ -92,22 +97,35 @@ export class OutRayClient {
       await this.mdnsAdvertiser.start();
       const info = this.mdnsAdvertiser.getInfo();
 
-      // Try to start local proxy on port 80 for cleaner URLs
-      this.localProxy = new LocalProxy(this.localPort);
-      const proxyStarted = await this.localProxy.start();
+      // Try to start HTTPS proxy on port 443
+      this.localHttpsProxy = new LocalHttpsProxy(this.localPort, info.hostname);
+      const httpsStarted = await this.localHttpsProxy.start();
 
-      if (proxyStarted) {
-        console.log(chalk.blue(`📡 LAN access: http://${info.hostname}`));
-      } else {
+      // Try to start HTTP proxy on port 80
+      this.localProxy = new LocalProxy(this.localPort);
+      const httpStarted = await this.localProxy.start();
+
+      console.log(chalk.blue(`📡 LAN access:`));
+
+      if (httpsStarted) {
+        console.log(chalk.blue(`   https://${info.hostname}`));
+      }
+
+      if (httpStarted) {
+        console.log(chalk.blue(`   http://${info.hostname}`));
+      }
+
+      if (!httpsStarted && !httpStarted) {
+        console.log(chalk.blue(`   http://${info.hostname}:${this.localPort}`));
         console.log(
-          chalk.blue(
-            `📡 LAN access: http://${info.hostname}:${this.localPort}`,
-          ),
-        );
-        console.log(
-          chalk.dim(`   (Run with sudo to enable http://${info.hostname})`),
+          chalk.dim(`   (Run with sudo for https://${info.hostname})`),
         );
       }
+
+      // Always show IP for Android devices
+      console.log(
+        chalk.dim(`   http://${info.ip}:${this.localPort} (Android)`),
+      );
       console.log(chalk.dim(`   (Accessible from devices on your network)`));
     } catch (err) {
       console.log(
