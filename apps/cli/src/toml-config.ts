@@ -13,6 +13,7 @@ export interface TunnelConfig {
   custom_domain?: string;
   remote_port?: number;
   org?: string;
+  local?: boolean;
 }
 
 export interface GlobalConfig {
@@ -34,25 +35,27 @@ export interface ParsedTunnelConfig {
   customDomain?: string;
   remotePort?: number;
   org?: string;
+  local?: boolean;
 }
 
 const portSchema = Joi.number().integer().min(1).max(65535).required();
 
 const globalConfigSchema = Joi.object({
   org: Joi.string().optional(),
-  server_url: Joi.string().uri({ scheme: ['ws', 'wss'] }).optional().messages({
-    'string.uri': 'server_url must be a valid WebSocket URL (ws:// or wss://)',
-  }),
+  server_url: Joi.string()
+    .uri({ scheme: ["ws", "wss"] })
+    .optional()
+    .messages({
+      "string.uri":
+        "server_url must be a valid WebSocket URL (ws:// or wss://)",
+    }),
 });
 
 const tunnelConfigSchema = Joi.object({
-  protocol: Joi.string()
-    .valid("http", "tcp", "udp")
-    .required()
-    .messages({
-      "any.only": "Protocol must be one of: http, tcp, or udp",
-      "any.required": "Protocol is required (must be http, tcp, or udp)",
-    }),
+  protocol: Joi.string().valid("http", "tcp", "udp").required().messages({
+    "any.only": "Protocol must be one of: http, tcp, or udp",
+    "any.required": "Protocol is required (must be http, tcp, or udp)",
+  }),
   local_port: portSchema.messages({
     "number.base": "Local port must be a number",
     "number.integer": "Local port must be an integer",
@@ -65,6 +68,7 @@ const tunnelConfigSchema = Joi.object({
   custom_domain: Joi.string().hostname().optional(),
   remote_port: Joi.number().integer().min(1).max(65535).optional(),
   org: Joi.string().optional(),
+  local: Joi.boolean().optional().default(false),
 }).custom((value: TunnelConfig, helpers: Joi.CustomHelpers) => {
   const protocol = value.protocol;
 
@@ -125,19 +129,21 @@ export class TomlConfigParser {
       );
     }
 
-    const { value: config, error: validationError } =
-      configSchema.validate(rawConfig, {
+    const { value: config, error: validationError } = configSchema.validate(
+      rawConfig,
+      {
         abortEarly: false,
         allowUnknown: false,
         stripUnknown: false,
-      });
+      },
+    );
 
     if (validationError) {
       const errorMessages = validationError.details.map(
         (detail: Joi.ValidationErrorItem) => {
           const pathParts = detail.path;
           const tunnelName = pathParts[1];
-          const fieldName = (pathParts[2] as string);
+          const fieldName = pathParts[2] as string;
 
           let message = detail.message;
 
@@ -146,25 +152,32 @@ export class TomlConfigParser {
             if (context?.message) {
               message = context.message;
             } else {
-              message = message.replace("contains an invalid value", "has invalid configuration");
+              message = message.replace(
+                "contains an invalid value",
+                "has invalid configuration",
+              );
             }
           }
 
-            if (fieldName) {
-              const fieldDisplayName = fieldName.replace(/_/g, " ");
-              const fullPath = detail.path.join(".");
-              
-              if (message.includes(`"${fullPath}"`)) {
-                message = message.replace(`"${fullPath}"`, fieldDisplayName);
-              } else if (message.includes(fieldName)) {
-                message = message.replace(new RegExp(fieldName, "g"), fieldDisplayName);
-              }
-            }
+          if (fieldName) {
+            const fieldDisplayName = fieldName.replace(/_/g, " ");
+            const fullPath = detail.path.join(".");
 
-            message = message.replace(/^"/, "").replace(/"$/, "");
+            if (message.includes(`"${fullPath}"`)) {
+              message = message.replace(`"${fullPath}"`, fieldDisplayName);
+            } else if (message.includes(fieldName)) {
+              message = message.replace(
+                new RegExp(fieldName, "g"),
+                fieldDisplayName,
+              );
+            }
+          }
+
+          message = message.replace(/^"/, "").replace(/"$/, "");
 
           if (tunnelName && typeof tunnelName === "string") {
-            const capitalizedMessage = message.charAt(0).toUpperCase() + message.slice(1);
+            const capitalizedMessage =
+              message.charAt(0).toUpperCase() + message.slice(1);
             return `Tunnel "${tunnelName}": ${capitalizedMessage}`;
           }
 
@@ -193,6 +206,7 @@ export class TomlConfigParser {
         customDomain: tunnel.custom_domain,
         remotePort: tunnel.remote_port,
         org: tunnel.org || globalConfig?.org,
+        local: tunnel.local,
       });
     }
 
