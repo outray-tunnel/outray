@@ -410,13 +410,14 @@ function createLegacyCert(hostname: string): string {
  * Local HTTPS proxy that listens on port 443 and forwards to the target port.
  * Allows accessing the tunnel via https://subdomain.local without specifying a port.
  * Requires elevated privileges (sudo) to bind to port 443.
- * Uses a self-signed certificate (browser will show warning).
+ * Uses mkcert for trusted certs if available, otherwise falls back to self-signed.
  */
 export class LocalHttpsProxy {
   private server: https.Server | null = null;
   private targetPort: number;
   private hostname: string;
   private running = false;
+  private _isTrusted = false;
 
   constructor(targetPort: number, hostname: string) {
     this.targetPort = targetPort;
@@ -424,11 +425,18 @@ export class LocalHttpsProxy {
   }
 
   /**
+   * Whether the certificate is trusted (mkcert) or self-signed (openssl)
+   */
+  get isTrusted(): boolean {
+    return this._isTrusted;
+  }
+
+  /**
    * Start the HTTPS proxy server on port 443
    */
   async start(): Promise<boolean> {
     return new Promise((resolve) => {
-      // Generate self-signed certificate dynamically
+      // Generate certificate dynamically
       this.generateCert()
         .then((creds) => {
           if (!creds) {
@@ -436,27 +444,32 @@ export class LocalHttpsProxy {
             return;
           }
 
-          this.server = https.createServer(creds, (req, res) => {
-            const options: http.RequestOptions = {
-              hostname: "localhost",
-              port: this.targetPort,
-              path: req.url,
-              method: req.method,
-              headers: req.headers,
-            };
+          this._isTrusted = creds.trusted;
 
-            const proxyReq = http.request(options, (proxyRes) => {
-              res.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
-              proxyRes.pipe(res);
-            });
+          this.server = https.createServer(
+            { key: creds.key, cert: creds.cert },
+            (req, res) => {
+              const options: http.RequestOptions = {
+                hostname: "localhost",
+                port: this.targetPort,
+                path: req.url,
+                method: req.method,
+                headers: req.headers,
+              };
 
-            proxyReq.on("error", (err) => {
-              res.writeHead(502);
-              res.end(`Proxy error: ${err.message}`);
-            });
+              const proxyReq = http.request(options, (proxyRes) => {
+                res.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
+                proxyRes.pipe(res);
+              });
 
-            req.pipe(proxyReq);
-          });
+              proxyReq.on("error", (err) => {
+                res.writeHead(502);
+                res.end(`Proxy error: ${err.message}`);
+              });
+
+              req.pipe(proxyReq);
+            },
+          );
 
           this.server.on("error", (err: NodeJS.ErrnoException) => {
             resolve(false);
@@ -472,36 +485,57 @@ export class LocalHttpsProxy {
   }
 
   /**
-   * Generate a self-signed certificate using openssl
+   * Generate certificate - tries mkcert first (trusted), falls back to openssl (self-signed)
    */
-  private generateCert(): Promise<{ key: string; cert: string } | null> {
+  private generateCert(): Promise<{
+    key: string;
+    cert: string;
+    trusted: boolean;
+  } | null> {
     return new Promise((resolve) => {
       const { execSync } = require("child_process");
       const fs = require("fs");
       const os = require("os");
       const path = require("path");
 
-      try {
-        // Create temp files for key and cert
-        const tmpDir = os.tmpdir();
-        const keyFile = path.join(tmpDir, `outray-${Date.now()}.key`);
-        const certFile = path.join(tmpDir, `outray-${Date.now()}.crt`);
+      const tmpDir = os.tmpdir();
+      const keyFile = path.join(tmpDir, `outray-${Date.now()}-key.pem`);
+      const certFile = path.join(tmpDir, `outray-${Date.now()}.pem`);
 
-        // Generate certificate with openssl
+      // Try mkcert first (produces trusted certs if installed)
+      try {
+        execSync("which mkcert", { stdio: "pipe" });
+        execSync(
+          `mkcert -key-file "${keyFile}" -cert-file "${certFile}" "${this.hostname}"`,
+          {
+            stdio: "pipe",
+          },
+        );
+
+        const key = fs.readFileSync(keyFile, "utf8");
+        const cert = fs.readFileSync(certFile, "utf8");
+        fs.unlinkSync(keyFile);
+        fs.unlinkSync(certFile);
+
+        resolve({ key, cert, trusted: true });
+        return;
+      } catch {
+        // mkcert not available, fall back to openssl
+      }
+
+      // Fall back to openssl (self-signed, browser will warn)
+      try {
         execSync(
           `openssl req -x509 -newkey rsa:2048 -keyout "${keyFile}" -out "${certFile}" -days 365 -nodes -subj "/CN=${this.hostname}" -addext "subjectAltName=DNS:${this.hostname}"`,
           { stdio: "pipe" },
         );
 
-        // Read the files
         const key = fs.readFileSync(keyFile, "utf8");
         const cert = fs.readFileSync(certFile, "utf8");
-
-        // Clean up temp files
         fs.unlinkSync(keyFile);
         fs.unlinkSync(certFile);
 
-        resolve({ key, cert });
+        resolve({ key, cert, trusted: false });
       } catch (err) {
         resolve(null);
       }
