@@ -55,10 +55,10 @@ export function CreateSubdomainModal({
                 value={newSubdomain}
                 onChange={(e) => setNewSubdomain(e.target.value)}
                 placeholder="my-app"
-                className="flex-1 bg-white/5 border border-white/10 rounded-l-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent/50 focus:bg-white/10 transition-all"
+                className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-l-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent/50 focus:bg-white/10 transition-all"
                 autoFocus
               />
-              <div className="bg-white/5 border border-l-0 border-white/10 rounded-r-xl px-4 py-2.5 text-gray-400">
+              <div className="shrink-0 bg-white/5 border border-l-0 border-white/10 rounded-r-xl px-4 py-2.5 text-gray-400">
                 .outray.app
               </div>
             </div>
