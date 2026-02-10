@@ -108,7 +108,19 @@ export class OutRayClient {
       console.log(chalk.blue(`📡 LAN access:`));
 
       if (httpsStarted) {
-        console.log(chalk.blue(`   https://${info.hostname}`));
+        if (this.localHttpsProxy.isTrusted) {
+          console.log(chalk.blue(`   https://${info.hostname}`));
+        } else {
+          console.log(
+            chalk.blue(`   https://${info.hostname}`) +
+              chalk.dim(` (self-signed)`),
+          );
+          console.log(
+            chalk.dim(
+              `   Install mkcert for trusted certs: brew install mkcert && mkcert -install`,
+            ),
+          );
+        }
       }
 
       if (httpStarted) {
