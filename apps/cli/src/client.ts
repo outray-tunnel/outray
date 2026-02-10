@@ -4,7 +4,7 @@ import prompts from "prompts";
 import { encodeMessage, decodeMessage } from "@outray/core";
 import type { TunnelDataMessage, TunnelResponseMessage } from "@outray/core";
 import http from "http";
-import { MDNSAdvertiser } from "./mdns";
+import { MDNSAdvertiser, LocalProxy } from "./mdns";
 
 export class OutRayClient {
   private ws: WebSocket | null = null;
@@ -26,6 +26,7 @@ export class OutRayClient {
   private noLog: boolean;
   private enableLocal: boolean;
   private mdnsAdvertiser: MDNSAdvertiser | null = null;
+  private localProxy: LocalProxy | null = null;
   private readonly PING_INTERVAL_MS = 25000; // 25 seconds
   private readonly PONG_TIMEOUT_MS = 10000; // 10 seconds to wait for pong
 
@@ -71,6 +72,10 @@ export class OutRayClient {
   }
 
   private stopMDNS(): void {
+    if (this.localProxy) {
+      this.localProxy.stop();
+      this.localProxy = null;
+    }
     if (this.mdnsAdvertiser) {
       this.mdnsAdvertiser.stop();
       this.mdnsAdvertiser = null;
@@ -86,9 +91,23 @@ export class OutRayClient {
       this.mdnsAdvertiser = new MDNSAdvertiser(subdomain, this.localPort);
       await this.mdnsAdvertiser.start();
       const info = this.mdnsAdvertiser.getInfo();
-      console.log(
-        chalk.blue(`📡 LAN access: http://${info.hostname}:${this.localPort}`),
-      );
+
+      // Try to start local proxy on port 80 for cleaner URLs
+      this.localProxy = new LocalProxy(this.localPort);
+      const proxyStarted = await this.localProxy.start();
+
+      if (proxyStarted) {
+        console.log(chalk.blue(`📡 LAN access: http://${info.hostname}`));
+      } else {
+        console.log(
+          chalk.blue(
+            `📡 LAN access: http://${info.hostname}:${this.localPort}`,
+          ),
+        );
+        console.log(
+          chalk.dim(`   (Run with sudo to enable http://${info.hostname})`),
+        );
+      }
       console.log(chalk.dim(`   (Accessible from devices on your network)`));
     } catch (err) {
       console.log(
