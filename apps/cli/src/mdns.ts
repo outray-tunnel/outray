@@ -1,4 +1,5 @@
 import dgram from "dgram";
+import http from "http";
 import os from "os";
 
 const MDNS_PORT = 5353;
@@ -70,9 +71,13 @@ export class MDNSAdvertiser {
         this.handleQuery(msg, rinfo);
       });
 
-      this.socket.bind(MDNS_PORT, () => {
+      // Bind to all interfaces (0.0.0.0) to receive multicast from other devices
+      this.socket.bind(MDNS_PORT, "0.0.0.0", () => {
         try {
-          this.socket?.addMembership(MDNS_ADDRESS);
+          // Join multicast group on all interfaces
+          this.socket?.addMembership(MDNS_ADDRESS, this.ip);
+          this.socket?.setMulticastTTL(255);
+          this.socket?.setMulticastLoopback(true);
           this.running = true;
 
           // Send initial announcement
@@ -152,19 +157,30 @@ export class MDNSAdvertiser {
   private sendResponse(rinfo?: dgram.RemoteInfo): void {
     const response = this.buildDNSResponse();
     if (this.socket && this.running) {
-      // Multicast the response
+      // Always multicast the response so all devices can see it
       this.socket.send(response, 0, response.length, MDNS_PORT, MDNS_ADDRESS);
     }
   }
 
   /**
-   * Announce our presence
+   * Announce our presence - send multiple announcements for reliability
    */
   private announce(): void {
     this.sendResponse();
-    // Send a few announcements for reliability
+    // Send announcements at increasing intervals for reliability
+    setTimeout(() => this.sendResponse(), 500);
     setTimeout(() => this.sendResponse(), 1000);
-    setTimeout(() => this.sendResponse(), 3000);
+    setTimeout(() => this.sendResponse(), 2000);
+    setTimeout(() => this.sendResponse(), 5000);
+
+    // Keep announcing periodically while running
+    const announceInterval = setInterval(() => {
+      if (this.running) {
+        this.sendResponse();
+      } else {
+        clearInterval(announceInterval);
+      }
+    }, 30000); // Re-announce every 30 seconds
   }
 
   /**
@@ -250,5 +266,81 @@ export class MDNSAdvertiser {
       port: this.port,
       ip: this.ip,
     };
+  }
+}
+
+/**
+ * Local HTTP proxy that listens on port 80 and forwards to the target port.
+ * Allows accessing the tunnel via http://subdomain.local without specifying a port.
+ * Requires elevated privileges (sudo) to bind to port 80.
+ */
+export class LocalProxy {
+  private server: http.Server | null = null;
+  private targetPort: number;
+  private running = false;
+
+  constructor(targetPort: number) {
+    this.targetPort = targetPort;
+  }
+
+  /**
+   * Start the proxy server on port 80
+   */
+  start(): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.server = http.createServer((req, res) => {
+        const options: http.RequestOptions = {
+          hostname: "localhost",
+          port: this.targetPort,
+          path: req.url,
+          method: req.method,
+          headers: req.headers,
+        };
+
+        const proxyReq = http.request(options, (proxyRes) => {
+          res.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
+          proxyRes.pipe(res);
+        });
+
+        proxyReq.on("error", (err) => {
+          res.writeHead(502);
+          res.end(`Proxy error: ${err.message}`);
+        });
+
+        req.pipe(proxyReq);
+      });
+
+      this.server.on("error", (err: NodeJS.ErrnoException) => {
+        if (err.code === "EACCES") {
+          // Port 80 requires elevated privileges
+          resolve(false);
+        } else if (err.code === "EADDRINUSE") {
+          // Port 80 is already in use
+          resolve(false);
+        } else {
+          resolve(false);
+        }
+      });
+
+      this.server.listen(80, "0.0.0.0", () => {
+        this.running = true;
+        resolve(true);
+      });
+    });
+  }
+
+  /**
+   * Stop the proxy server
+   */
+  stop(): void {
+    if (this.server) {
+      this.server.close();
+      this.server = null;
+    }
+    this.running = false;
+  }
+
+  isRunning(): boolean {
+    return this.running;
   }
 }
