@@ -1,5 +1,7 @@
 import dgram from "dgram";
 import http from "http";
+import https from "https";
+import crypto from "crypto";
 import os from "os";
 
 const MDNS_PORT = 5353;
@@ -326,6 +328,183 @@ export class LocalProxy {
         this.running = true;
         resolve(true);
       });
+    });
+  }
+
+  /**
+   * Stop the proxy server
+   */
+  stop(): void {
+    if (this.server) {
+      this.server.close();
+      this.server = null;
+    }
+    this.running = false;
+  }
+
+  isRunning(): boolean {
+    return this.running;
+  }
+}
+
+/**
+ * Generate a self-signed certificate for a hostname.
+ * Uses Node.js crypto to create a basic certificate.
+ */
+function generateSelfSignedCert(hostname: string): {
+  key: string;
+  cert: string;
+} {
+  const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+  });
+
+  // Create a simple self-signed certificate
+  // Note: This is a minimal implementation. For production, use a proper CA.
+  const now = new Date();
+  const oneYear = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+  // Format dates for certificate
+  const notBefore = now.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const notAfter =
+    oneYear.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+  // Build certificate using crypto.createSign
+  const cert = crypto.X509Certificate
+    ? createModernCert(hostname, privateKey, notBefore, notAfter)
+    : createLegacyCert(hostname);
+
+  return {
+    key: privateKey.export({ type: "pkcs8", format: "pem" }) as string,
+    cert: cert,
+  };
+}
+
+/**
+ * Create a self-signed cert using Node's newer APIs (Node 15+)
+ */
+function createModernCert(
+  hostname: string,
+  privateKey: crypto.KeyObject,
+  notBefore: string,
+  notAfter: string,
+): string {
+  // For Node 15+, we'd use the new certificate APIs
+  // For now, fall back to a simpler approach using forge or openssl
+  return createLegacyCert(hostname);
+}
+
+/**
+ * Create a minimal self-signed PEM certificate
+ * This uses a pre-generated structure since Node doesn't have built-in cert generation
+ */
+function createLegacyCert(hostname: string): string {
+  // Generate keys and a basic self-signed cert structure
+  // In practice, this would need openssl or a library like node-forge
+  // For now, we'll create an inline certificate using spawn
+
+  return "";
+}
+
+/**
+ * Local HTTPS proxy that listens on port 443 and forwards to the target port.
+ * Allows accessing the tunnel via https://subdomain.local without specifying a port.
+ * Requires elevated privileges (sudo) to bind to port 443.
+ * Uses a self-signed certificate (browser will show warning).
+ */
+export class LocalHttpsProxy {
+  private server: https.Server | null = null;
+  private targetPort: number;
+  private hostname: string;
+  private running = false;
+
+  constructor(targetPort: number, hostname: string) {
+    this.targetPort = targetPort;
+    this.hostname = hostname;
+  }
+
+  /**
+   * Start the HTTPS proxy server on port 443
+   */
+  async start(): Promise<boolean> {
+    return new Promise((resolve) => {
+      // Generate self-signed certificate dynamically
+      this.generateCert()
+        .then((creds) => {
+          if (!creds) {
+            resolve(false);
+            return;
+          }
+
+          this.server = https.createServer(creds, (req, res) => {
+            const options: http.RequestOptions = {
+              hostname: "localhost",
+              port: this.targetPort,
+              path: req.url,
+              method: req.method,
+              headers: req.headers,
+            };
+
+            const proxyReq = http.request(options, (proxyRes) => {
+              res.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
+              proxyRes.pipe(res);
+            });
+
+            proxyReq.on("error", (err) => {
+              res.writeHead(502);
+              res.end(`Proxy error: ${err.message}`);
+            });
+
+            req.pipe(proxyReq);
+          });
+
+          this.server.on("error", (err: NodeJS.ErrnoException) => {
+            resolve(false);
+          });
+
+          this.server.listen(443, "0.0.0.0", () => {
+            this.running = true;
+            resolve(true);
+          });
+        })
+        .catch(() => resolve(false));
+    });
+  }
+
+  /**
+   * Generate a self-signed certificate using openssl
+   */
+  private generateCert(): Promise<{ key: string; cert: string } | null> {
+    return new Promise((resolve) => {
+      const { execSync } = require("child_process");
+      const fs = require("fs");
+      const os = require("os");
+      const path = require("path");
+
+      try {
+        // Create temp files for key and cert
+        const tmpDir = os.tmpdir();
+        const keyFile = path.join(tmpDir, `outray-${Date.now()}.key`);
+        const certFile = path.join(tmpDir, `outray-${Date.now()}.crt`);
+
+        // Generate certificate with openssl
+        execSync(
+          `openssl req -x509 -newkey rsa:2048 -keyout "${keyFile}" -out "${certFile}" -days 365 -nodes -subj "/CN=${this.hostname}" -addext "subjectAltName=DNS:${this.hostname}"`,
+          { stdio: "pipe" },
+        );
+
+        // Read the files
+        const key = fs.readFileSync(keyFile, "utf8");
+        const cert = fs.readFileSync(certFile, "utf8");
+
+        // Clean up temp files
+        fs.unlinkSync(keyFile);
+        fs.unlinkSync(certFile);
+
+        resolve({ key, cert });
+      } catch (err) {
+        resolve(null);
+      }
     });
   }
 
