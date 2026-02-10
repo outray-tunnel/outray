@@ -39,7 +39,7 @@ let tunnelStarted = false;
  */
 export default function withOutray(
   nextConfig: NextConfig = {},
-  options: OutrayPluginOptions = {}
+  options: OutrayPluginOptions = {},
 ): NextConfig {
   const {
     enabled = process.env.OUTRAY_ENABLED !== "false",
@@ -55,7 +55,7 @@ export default function withOutray(
   // Start tunnel immediately when config is loaded (dev server startup)
   if (!tunnelStarted) {
     tunnelStarted = true;
-    
+
     // Small delay to let the server bind to the port first
     setTimeout(() => {
       startTunnel(options, silent, local);
@@ -65,41 +65,54 @@ export default function withOutray(
   return nextConfig;
 }
 
-function startTunnel(options: OutrayPluginOptions, silent: boolean, local: boolean): void {
+function startTunnel(
+  options: OutrayPluginOptions,
+  silent: boolean,
+  local: boolean,
+): void {
   const port = parseInt(process.env.PORT || "3000", 10);
   const apiKey = options.apiKey ?? process.env.OUTRAY_API_KEY;
   const subdomain = options.subdomain ?? process.env.OUTRAY_SUBDOMAIN;
   const serverUrl =
-    options.serverUrl ??
-    process.env.OUTRAY_SERVER_URL ??
-    DEFAULT_SERVER_URL;
+    options.serverUrl ?? process.env.OUTRAY_SERVER_URL ?? DEFAULT_SERVER_URL;
 
   // Start local access if enabled
   if (local) {
     const localSubdomain = subdomain || `next-${port}`;
     localAccess = new LocalAccessManager(port, localSubdomain);
-    localAccess.start().then((info) => {
-      if (!silent) {
-        console.log(`  \x1b[34m📡\x1b[0m \x1b[1mLAN:\x1b[0m`);
-        if (info.httpsUrl) {
-          const trustNote = info.httpsIsTrusted ? "" : " \x1b[33m(self-signed)\x1b[0m";
-          console.log(`       \x1b[36m${info.httpsUrl}\x1b[0m${trustNote}`);
+    localAccess
+      .start()
+      .then((info) => {
+        if (!silent) {
+          console.log(`  \x1b[34m📡\x1b[0m \x1b[1mLAN:\x1b[0m`);
+          if (info.httpsUrl) {
+            const trustNote = info.httpsIsTrusted
+              ? ""
+              : " \x1b[33m(self-signed)\x1b[0m";
+            console.log(`       \x1b[36m${info.httpsUrl}\x1b[0m${trustNote}`);
+          }
+          if (info.httpUrl) {
+            console.log(`       \x1b[36m${info.httpUrl}\x1b[0m`);
+          }
+          if (!info.httpsUrl && !info.httpUrl) {
+            console.log(
+              `       \x1b[36mhttp://${info.hostname}:${info.port}\x1b[0m`,
+            );
+            console.log(
+              `       \x1b[33m(Run with sudo for ports 80/443)\x1b[0m`,
+            );
+          }
+          console.log(
+            `       \x1b[2mhttp://${info.ip}:${info.port} (Android)\x1b[0m`,
+          );
         }
-        if (info.httpUrl) {
-          console.log(`       \x1b[36m${info.httpUrl}\x1b[0m`);
+        options.onLocalReady?.(info);
+      })
+      .catch(() => {
+        if (!silent) {
+          console.log(`  \x1b[33m○\x1b[0m  Outray: mDNS unavailable`);
         }
-        if (!info.httpsUrl && !info.httpUrl) {
-          console.log(`       \x1b[36mhttp://${info.hostname}:${info.port}\x1b[0m`);
-          console.log(`       \x1b[33m(Run with sudo for ports 80/443)\x1b[0m`);
-        }
-        console.log(`       \x1b[2mhttp://${info.ip}:${info.port} (Android)\x1b[0m`);
-      }
-      options.onLocalReady?.(info);
-    }).catch(() => {
-      if (!silent) {
-        console.log(`  \x1b[33m○\x1b[0m  Outray: mDNS unavailable`);
-      }
-    });
+      });
   }
 
   client = new OutrayClient({
@@ -123,7 +136,9 @@ function startTunnel(options: OutrayPluginOptions, silent: boolean, local: boole
     },
     onReconnecting: (attempt, delay) => {
       if (!silent) {
-        console.log(`  \x1b[33m⟳\x1b[0m  Outray: Reconnecting in ${Math.round(delay / 1000)}s...`);
+        console.log(
+          `  \x1b[33m⟳\x1b[0m  Outray: Reconnecting in ${Math.round(delay / 1000)}s...`,
+        );
       }
       options.onReconnecting?.();
     },

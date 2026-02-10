@@ -55,7 +55,12 @@ export interface OutrayPluginOptions {
   /**
    * Callback fired when local access is available
    */
-  onLocalReady?: (info: { hostname: string; ip: string; httpUrl?: string; httpsUrl?: string }) => void;
+  onLocalReady?: (info: {
+    hostname: string;
+    ip: string;
+    httpUrl?: string;
+    httpsUrl?: string;
+  }) => void;
 
   /**
    * Callback fired when tunnel encounters an error

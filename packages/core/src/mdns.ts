@@ -320,7 +320,7 @@ export class LocalHttpsProxy {
               });
 
               req.pipe(proxyReq);
-            }
+            },
           );
 
           this.server.on("error", () => {
@@ -356,7 +356,7 @@ export class LocalHttpsProxy {
         execSync("which mkcert", { stdio: "pipe" });
         execSync(
           `mkcert -key-file "${keyFile}" -cert-file "${certFile}" "${this.hostname}"`,
-          { stdio: "pipe" }
+          { stdio: "pipe" },
         );
 
         const key = fs.readFileSync(keyFile, "utf8");
@@ -373,7 +373,7 @@ export class LocalHttpsProxy {
       try {
         execSync(
           `openssl req -x509 -newkey rsa:2048 -keyout "${keyFile}" -out "${certFile}" -days 365 -nodes -subj "/CN=${this.hostname}" -addext "subjectAltName=DNS:${this.hostname}"`,
-          { stdio: "pipe" }
+          { stdio: "pipe" },
         );
 
         const key = fs.readFileSync(keyFile, "utf8");

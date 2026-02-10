@@ -35,7 +35,7 @@ const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
  * ```
  */
 export default function outrayPlugin(
-  options: OutrayPluginOptions = {}
+  options: OutrayPluginOptions = {},
 ): Plugin {
   let client: OutrayClient | null = null;
   let localAccess: LocalAccessManager | null = null;
@@ -58,7 +58,7 @@ export default function outrayPlugin(
       if (!server.httpServer) {
         if (!silent) {
           server.config.logger.info(
-            `  \x1b[33m○\x1b[0m  Outray: httpServer is not available; tunnel will not be started`
+            `  \x1b[33m○\x1b[0m  Outray: httpServer is not available; tunnel will not be started`,
           );
         }
         return;
@@ -66,20 +66,20 @@ export default function outrayPlugin(
 
       server.httpServer.once("listening", () => {
         const address = server.httpServer?.address();
-        
+
         if (!address) {
           if (!silent) {
             server.config.logger.info(
-              `  \x1b[33m○\x1b[0m  Outray: Could not determine dev server address; tunnel will not be started`
+              `  \x1b[33m○\x1b[0m  Outray: Could not determine dev server address; tunnel will not be started`,
             );
           }
           return;
         }
-        
+
         if (typeof address === "string") {
           if (!silent) {
             server.config.logger.info(
-              `  \x1b[33m○\x1b[0m  Outray: Dev server is listening on a pipe or Unix domain socket ("${address}"); tunnel only works with TCP ports`
+              `  \x1b[33m○\x1b[0m  Outray: Dev server is listening on a pipe or Unix domain socket ("${address}"); tunnel only works with TCP ports`,
             );
           }
           return;
@@ -97,28 +97,47 @@ export default function outrayPlugin(
         if (local) {
           const localSubdomain = subdomain || `vite-${port}`;
           localAccess = new LocalAccessManager(port, localSubdomain);
-          localAccess.start().then((info) => {
-            if (!silent) {
-              server.config.logger.info(`  \x1b[34m📡\x1b[0m \x1b[1mLAN:\x1b[0m`);
-              if (info.httpsUrl) {
-                const trustNote = info.httpsIsTrusted ? "" : " \x1b[33m(self-signed)\x1b[0m";
-                server.config.logger.info(`       \x1b[36m${info.httpsUrl}\x1b[0m${trustNote}`);
+          localAccess
+            .start()
+            .then((info) => {
+              if (!silent) {
+                server.config.logger.info(
+                  `  \x1b[34m📡\x1b[0m \x1b[1mLAN:\x1b[0m`,
+                );
+                if (info.httpsUrl) {
+                  const trustNote = info.httpsIsTrusted
+                    ? ""
+                    : " \x1b[33m(self-signed)\x1b[0m";
+                  server.config.logger.info(
+                    `       \x1b[36m${info.httpsUrl}\x1b[0m${trustNote}`,
+                  );
+                }
+                if (info.httpUrl) {
+                  server.config.logger.info(
+                    `       \x1b[36m${info.httpUrl}\x1b[0m`,
+                  );
+                }
+                if (!info.httpsUrl && !info.httpUrl) {
+                  server.config.logger.info(
+                    `       \x1b[36mhttp://${info.hostname}:${info.port}\x1b[0m`,
+                  );
+                  server.config.logger.info(
+                    `       \x1b[33m(Run with sudo for ports 80/443)\x1b[0m`,
+                  );
+                }
+                server.config.logger.info(
+                  `       \x1b[2mhttp://${info.ip}:${info.port} (Android)\x1b[0m`,
+                );
               }
-              if (info.httpUrl) {
-                server.config.logger.info(`       \x1b[36m${info.httpUrl}\x1b[0m`);
+              options.onLocalReady?.(info);
+            })
+            .catch(() => {
+              if (!silent) {
+                server.config.logger.warn(
+                  `  \x1b[33m○\x1b[0m  Outray: mDNS unavailable`,
+                );
               }
-              if (!info.httpsUrl && !info.httpUrl) {
-                server.config.logger.info(`       \x1b[36mhttp://${info.hostname}:${info.port}\x1b[0m`);
-                server.config.logger.info(`       \x1b[33m(Run with sudo for ports 80/443)\x1b[0m`);
-              }
-              server.config.logger.info(`       \x1b[2mhttp://${info.ip}:${info.port} (Android)\x1b[0m`);
-            }
-            options.onLocalReady?.(info);
-          }).catch(() => {
-            if (!silent) {
-              server.config.logger.warn(`  \x1b[33m○\x1b[0m  Outray: mDNS unavailable`);
-            }
-          });
+            });
         }
 
         client = new OutrayClient({
@@ -131,26 +150,34 @@ export default function outrayPlugin(
             if (!silent) {
               // Print tunnel URL in Vite's style
               const colorUrl = `\x1b[36m${url}\x1b[0m`; // cyan color
-              server.config.logger.info(`  \x1b[32m➜\x1b[0m  \x1b[1mTunnel:\x1b[0m  ${colorUrl}`);
+              server.config.logger.info(
+                `  \x1b[32m➜\x1b[0m  \x1b[1mTunnel:\x1b[0m  ${colorUrl}`,
+              );
             }
 
             options.onTunnelReady?.(url);
           },
           onError: (error) => {
             if (!silent) {
-              server.config.logger.error(`  \x1b[31m✗\x1b[0m  Outray: ${error.message}`);
+              server.config.logger.error(
+                `  \x1b[31m✗\x1b[0m  Outray: ${error.message}`,
+              );
             }
             options.onError?.(error);
           },
           onReconnecting: (attempt, delay) => {
             if (!silent) {
-              server.config.logger.info(`  \x1b[33m⟳\x1b[0m  Outray: Reconnecting in ${Math.round(delay / 1000)}s...`);
+              server.config.logger.info(
+                `  \x1b[33m⟳\x1b[0m  Outray: Reconnecting in ${Math.round(delay / 1000)}s...`,
+              );
             }
             options.onReconnecting?.();
           },
           onClose: () => {
             if (!silent) {
-              server.config.logger.info(`  \x1b[33m○\x1b[0m  Outray: Tunnel closed`);
+              server.config.logger.info(
+                `  \x1b[33m○\x1b[0m  Outray: Tunnel closed`,
+              );
             }
             options.onClose?.();
           },
