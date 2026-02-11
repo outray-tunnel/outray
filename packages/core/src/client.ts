@@ -4,11 +4,11 @@ import { encodeMessage, decodeMessage } from "./protocol";
 import type {
   OutrayClientOptions,
   TunnelDataMessage,
-  TunnelResponseMessage,
-  ErrorCodes,
+  TunnelResponseMessage
 } from "./types";
 
 const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
+const DEFAULT_LOCAL_HOST = "localhost";
 const PING_INTERVAL_MS = 25000;
 const PONG_TIMEOUT_MS = 10000;
 
@@ -35,7 +35,7 @@ const PONG_TIMEOUT_MS = 10000;
 export class OutrayClient {
   private ws: WebSocket | null = null;
   private options: Required<
-    Pick<OutrayClientOptions, "localPort" | "serverUrl">
+    Pick<OutrayClientOptions, "localPort" | "serverUrl" | "localHost">
   > &
     OutrayClientOptions;
   private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -52,6 +52,7 @@ export class OutrayClient {
     this.options = {
       ...options,
       serverUrl: options.serverUrl ?? DEFAULT_SERVER_URL,
+      localHost: options.localHost ?? DEFAULT_LOCAL_HOST,
     };
     this.subdomain = options.subdomain;
   }
@@ -174,7 +175,7 @@ export class OutrayClient {
     const startTime = Date.now();
 
     const reqOptions = {
-      hostname: "localhost",
+      hostname: this.options.localHost,
       port: this.options.localPort,
       path: message.path,
       method: message.method,

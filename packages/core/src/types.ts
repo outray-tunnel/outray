@@ -17,6 +17,12 @@ export interface OutrayClientOptions {
   localPort: number;
 
   /**
+   * Local host to proxy requests to
+   * @default 'localhost'
+   */
+  localHost?: string;
+
+  /**
    * Outray server WebSocket URL
    * @default 'wss://api.outray.dev/'
    */

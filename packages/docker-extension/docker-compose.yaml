@@ -1,0 +1,7 @@
+services:
+  docker-extension:
+    image: ${DESKTOP_PLUGIN_IMAGE}
+    volumes:
+      - /data
+    environment:
+      DB_FILE_NAME: "file:/data/outray.db"
