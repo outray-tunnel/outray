@@ -52,22 +52,33 @@ export const Hero = () => {
 
       <div className="flex flex-col gap-8 max-w-360 mx-auto px-6 relative z-10 w-full items-center">
         <div className="flex flex-col gap-6 items-center mt-20">
-          <motion.a
-            href="https://www.ycombinator.com/companies/outray"
-            target="_blank"
-            onClick={() => posthog.capture("yc_badge_clicked")}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-white/60 backdrop-blur-sm hover:bg-white/10 transition-colors"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="w-4 h-4 bg-[#F26522] flex items-center justify-center rounded-xs">
-              <span className="text-white text-[10px] font-bold font-sans">
-                Y
-              </span>
-            </div>
-            <span>Not backed by Y Combinator</span>
-          </motion.a>
+          <div className="flex items-center gap-3 flex-col-reverse flex-col">
+            <motion.a
+              href="https://www.ycombinator.com/companies/outray"
+              target="_blank"
+              onClick={() => posthog.capture("yc_badge_clicked")}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-white/60 backdrop-blur-sm hover:bg-white/10 transition-colors"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="w-4 h-4 bg-[#F26522] flex items-center justify-center rounded-xs">
+                <span className="text-white text-[10px] font-bold font-sans">
+                  Y
+                </span>
+              </div>
+              <span>Not backed by Y Combinator</span>
+            </motion.a>
+            <motion.a
+              href="https://vercel.com/oss"
+              target="_blank"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" className="w-52" />
+            </motion.a>
+          </div>
           <motion.h1
             className="text-5xl md:text-7xl font-bold text-center"
             initial={{ opacity: 0, y: 20 }}
