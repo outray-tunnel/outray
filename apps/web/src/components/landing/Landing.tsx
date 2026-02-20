@@ -6,6 +6,7 @@ import { BringYourOwnDomain } from "./bring-your-own-domain";
 import { MultipleProtocols } from "./multiple-protocols";
 import { OpenSource } from "./opensource";
 import { Hero } from "./hero";
+import { LocalAccess } from "./local-access";
 
 export const Landing = () => {
   return (
@@ -22,6 +23,8 @@ export const Landing = () => {
         <NetworkDiagram />
 
         <BringYourOwnDomain />
+
+        <LocalAccess />
 
         <MultipleProtocols />
 
