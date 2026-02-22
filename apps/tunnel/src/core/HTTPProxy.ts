@@ -174,6 +174,7 @@ export class HTTPProxy {
               requestBody = bodyBuffer
                 .subarray(0, maxBodySize)
                 .toString("base64");
+              requestBodySize = maxBodySize;
             }
           }
 
@@ -187,7 +188,7 @@ export class HTTPProxy {
               responseBody = responseBuffer
                 .subarray(0, maxBodySize)
                 .toString("base64");
-              responseBodySize = responseBuffer.subarray(0, maxBodySize).length;
+              responseBodySize = maxBodySize;
             }
           }
 
