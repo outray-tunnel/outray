@@ -11,7 +11,7 @@ import { config } from "./config";
 import {
   checkTimescaleDBConnection,
   shutdownLoggers,
-} from "./lib/tigerdata";
+} from "./lib/timescale";
 
 const redis = new Redis(config.redisUrl, {
   lazyConnect: true,

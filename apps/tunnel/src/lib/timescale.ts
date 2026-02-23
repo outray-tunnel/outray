@@ -4,7 +4,7 @@ import { config } from "../config";
 const { Pool } = pg;
 
 export const pool = new Pool({
-  connectionString: config.tigerDataUrl,
+  connectionString: config.timeScaleUrl,
   ssl: {
     rejectUnauthorized: false,
   },

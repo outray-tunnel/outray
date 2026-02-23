@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { redis } from "../../../../lib/redis";
 import { requireOrgFromSlug } from "../../../../lib/org";
-import { tigerData } from "../../../../lib/tigerdata";
+import { tigerData } from "../../../../lib/timescale";
 
 export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
   server: {
