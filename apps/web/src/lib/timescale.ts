@@ -8,9 +8,9 @@ if (!process.env.TIMESCALE_URL) {
 const connectionString = process.env.TIMESCALE_URL;
 export const tigerData = new Pool({
   connectionString,
-  ssl:{ 
-    rejectUnauthorized: false,
-  }
+  ssl: connectionString.includes("sslmode=require")
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {

@@ -5,9 +5,9 @@ const { Pool } = pg;
 
 export const pool = new Pool({
   connectionString: config.timeScaleUrl,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ssl: config.timeScaleUrl?.includes("sslmode=require")
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
