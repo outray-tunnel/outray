@@ -2,10 +2,10 @@ import pg from "pg";
 
 const { Pool } = pg;
 
-if (!process.env.TIGER_DATA_URL) {
-  throw new Error("TIGER_DATA_URL environment variable is required");
+if (!process.env.TIMESCALE_URL) {
+  throw new Error("TIMESCALE_URL environment variable is required");
 }
-const connectionString = process.env.TIGER_DATA_URL;
+const connectionString = process.env.TIMESCALE_URL;
 export const tigerData = new Pool({
   connectionString,
   ssl:{ 

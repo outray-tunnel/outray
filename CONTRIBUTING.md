@@ -63,7 +63,7 @@ outray/
    Run the schema file against your TimescaleDB instance:
 
    ```bash
-   psql "$TIGER_DATA_URL" -f deploy/setup_tigerdata.sql
+   psql "$TIMESCALE_URL" -f deploy/setup_tigerdata.sql
    ```
 
 6. **Start development servers**

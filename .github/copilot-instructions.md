@@ -66,7 +66,7 @@ cd packages/next-plugin && npm run build
 
 # Database migrations
 cd apps/web && npx drizzle-kit push
-psql "$TIGER_DATA_URL" -f deploy/setup_tigerdata.sql
+psql "$TIMESCALE_URL" -f deploy/setup_tigerdata.sql
 ```
 
 ## Conventions
@@ -82,7 +82,7 @@ Each app has `.env.example`. Key variables:
 - `BASE_DOMAIN` - Tunnel domain (e.g., `outray.dev`)
 - `REDIS_URL` - Tunnel state and pub/sub
 - `DATABASE_URL` - PostgreSQL for web app
-- `TIGER_DATA_URL` - TimescaleDB for analytics
+- `TIMESCALE_URL` - TimescaleDB for analytics
 - `INTERNAL_API_SECRET` - Auth between tunnel server and web API
 
 ### Error Handling
