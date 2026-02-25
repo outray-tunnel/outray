@@ -136,7 +136,7 @@ wssDashboard.on("connection", async (ws, req) => {
     return;
   }
 
-  // Validate the token with the web API
+
   const authResult = await validateDashboardToken(token);
 
   if (!authResult.valid || !authResult.orgId) {
