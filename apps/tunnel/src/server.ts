@@ -166,8 +166,11 @@ httpServer.on("request", async (req, res) => {
   const host = req.headers.host || "";
   const url = new URL(req.url || "", "http://localhost");
   
-  // Health check endpoint
-  if (url.pathname === "/health") {
+  // Health check endpoint — only for the tunnel server itself, not tunneled subdomains
+  const cleanHost = host.split(":")[0].toLowerCase();
+  const isBaseDomain = cleanHost === config.baseDomain.toLowerCase() || cleanHost === "localhost";
+  
+  if (url.pathname === "/health" && isBaseDomain) {
     const redisStatus = redis.status === "ready" ? "healthy" : "unhealthy";
     const isHealthy = redisStatus === "healthy";
     
