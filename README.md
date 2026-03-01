@@ -49,12 +49,12 @@ outray udp 53
 ```
 outray/
 ├── apps/
-│   ├── cli/             # CLI client
-│   ├── cron/            # Background jobs
-│   ├── internal-check/  # Domain verification for Caddy
-│   ├── landing/         # Marketing website
+│   ├── cli/             # Main CLI client
+│   ├── web/             # Dashboard & API
 │   ├── tunnel/          # Tunnel server
-│   └── web/             # Dashboard & API
+│   ├── cron/            # Background jobs
+│   └── internal-check/  # Caddy domain verification
+├── packages/            # Core logic & plugins
 ├── shared/              # Shared utilities
 └── deploy/              # Deployment configs
 ```
