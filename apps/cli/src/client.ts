@@ -2,7 +2,13 @@ import WebSocket from "ws";
 import chalk from "chalk";
 import prompts from "prompts";
 import { encodeMessage, decodeMessage } from "@outray/core";
-import type { TunnelDataMessage, TunnelResponseMessage } from "@outray/core";
+import type {
+  TunnelDataMessage,
+  TunnelResponseMessage,
+  WSUpgradeMessage,
+  WSFrameMessage,
+  WSCloseMessage,
+} from "@outray/core";
 import http from "http";
 import { MDNSAdvertiser, LocalProxy, LocalHttpsProxy } from "./mdns";
 
@@ -30,6 +36,7 @@ export class OutRayClient {
   private localHttpsProxy: LocalHttpsProxy | null = null;
   private readonly PING_INTERVAL_MS = 25000; // 25 seconds
   private readonly PONG_TIMEOUT_MS = 10000; // 10 seconds to wait for pong
+  private localWebSockets = new Map<string, WebSocket>();
 
   constructor(
     localPort: number,
@@ -70,6 +77,12 @@ export class OutRayClient {
       this.ws.close();
       this.ws = null;
     }
+
+    // Clean up all local WebSocket connections
+    for (const [_id, localWs] of this.localWebSockets) {
+      localWs.close();
+    }
+    this.localWebSockets.clear();
   }
 
   private stopMDNS(): void {
@@ -261,6 +274,12 @@ export class OutRayClient {
         }
       } else if (message.type === "request") {
         this.handleTunnelData(message);
+      } else if (message.type === "ws_upgrade") {
+        this.handleWSUpgrade(message as WSUpgradeMessage);
+      } else if (message.type === "ws_frame") {
+        this.handleWSFrame(message as WSFrameMessage);
+      } else if (message.type === "ws_close") {
+        this.handleWSClose(message as WSCloseMessage);
       }
     } catch (error) {
       console.log(chalk.red(`❌ Failed to parse message: ${error}`));
@@ -360,6 +379,125 @@ export class OutRayClient {
       );
       return null;
     }
+  }
+
+  private handleWSUpgrade(message: WSUpgradeMessage): void {
+    const wsUrl = `ws://localhost:${this.localPort}${message.path}`;
+
+    try {
+      const headers: Record<string, string> = {};
+      if (message.protocol) {
+        headers["Sec-WebSocket-Protocol"] = message.protocol;
+      }
+
+      const localWs = new WebSocket(wsUrl, { headers });
+
+      localWs.on("open", () => {
+        this.localWebSockets.set(message.wsConnectionId, localWs);
+
+        this.ws?.send(
+          encodeMessage({
+            type: "ws_upgrade_response",
+            wsConnectionId: message.wsConnectionId,
+            success: true,
+          })
+        );
+
+        if (!this.noLog) {
+          console.log(
+            chalk.dim("⚡") +
+              ` ${chalk.bold("WS")} ${message.path} ${chalk.green("connected")}`,
+          );
+        }
+      });
+
+      localWs.on("message", (data: WebSocket.RawData, isBinary: boolean) => {
+        if (this.ws?.readyState === WebSocket.OPEN) {
+          const buffer = Buffer.isBuffer(data)
+            ? data
+            : Buffer.from(data as ArrayBuffer);
+          this.ws.send(
+            encodeMessage({
+              type: "ws_frame",
+              wsConnectionId: message.wsConnectionId,
+              data: buffer.toString("base64"),
+              isBinary,
+            })
+          );
+        }
+      });
+
+      localWs.on("close", (code, reason) => {
+        this.localWebSockets.delete(message.wsConnectionId);
+        if (this.ws?.readyState === WebSocket.OPEN) {
+          this.ws.send(
+            encodeMessage({
+              type: "ws_close",
+              wsConnectionId: message.wsConnectionId,
+              code,
+              reason: reason?.toString(),
+            })
+          );
+        }
+        if (!this.noLog) {
+          console.log(
+            chalk.dim("⚡") +
+              ` ${chalk.bold("WS")} ${message.path} ${chalk.yellow("closed")} ${chalk.dim(`(${code})`)}`,
+          );
+        }
+      });
+
+      localWs.on("error", (error) => {
+        this.localWebSockets.delete(message.wsConnectionId);
+
+        if (localWs.readyState === WebSocket.CONNECTING) {
+          this.ws?.send(
+            encodeMessage({
+              type: "ws_upgrade_response",
+              wsConnectionId: message.wsConnectionId,
+              success: false,
+              error: `Failed to connect to local WebSocket: ${error.message}`,
+            })
+          );
+        }
+
+        if (!this.noLog) {
+          console.log(
+            chalk.dim("⚡") +
+              ` ${chalk.bold("WS")} ${message.path} ${chalk.red("error")} ${chalk.dim(error.message)}`,
+          );
+        }
+      });
+    } catch (error) {
+      this.ws?.send(
+        encodeMessage({
+          type: "ws_upgrade_response",
+          wsConnectionId: message.wsConnectionId,
+          success: false,
+          error: `Failed to create WebSocket connection: ${error instanceof Error ? error.message : String(error)}`,
+        })
+      );
+    }
+  }
+
+  private handleWSFrame(message: WSFrameMessage): void {
+    const localWs = this.localWebSockets.get(message.wsConnectionId);
+    if (!localWs || localWs.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    const data = Buffer.from(message.data, "base64");
+    localWs.send(data, { binary: message.isBinary });
+  }
+
+  private handleWSClose(message: WSCloseMessage): void {
+    const localWs = this.localWebSockets.get(message.wsConnectionId);
+    if (!localWs) {
+      return;
+    }
+
+    this.localWebSockets.delete(message.wsConnectionId);
+    localWs.close(message.code || 1000, message.reason || "");
   }
 
   private startPing(): void {
