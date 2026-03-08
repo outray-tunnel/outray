@@ -350,6 +350,7 @@ async function handleStartFromConfig(
         tunnel.customDomain,
         false, // noLog
         tunnel.local, // enableLocal
+        tunnel.password,
       );
     }
 
@@ -406,6 +407,7 @@ function printHelp() {
   console.log(
     chalk.cyan("  --remote-port <port>   Remote port (TCP/UDP only)"),
   );
+  console.log(chalk.cyan("  --password <password>  Password protect HTTP tunnel"));
   console.log(chalk.cyan("  --key <token>          Override auth token"));
   console.log(
     chalk.cyan("  --no-logs              Disable tunnel request logs"),
@@ -588,6 +590,7 @@ async function main() {
 
   const subdomain = getFlagValue(remainingArgs, "--subdomain");
   const customDomain = getFlagValue(remainingArgs, "--domain");
+  const password = getFlagValue(remainingArgs, "--password");
 
   // Handle --remote-port flag for TCP/UDP tunnels
   const remotePortValue = getFlagValue(remainingArgs, "--remote-port");
@@ -767,6 +770,7 @@ async function main() {
       customDomain,
       noLogs,
       enableLocal,
+      password,
     );
   }
 
