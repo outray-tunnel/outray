@@ -37,6 +37,7 @@ export class OutRayClient {
   private readonly PING_INTERVAL_MS = 25000; // 25 seconds
   private readonly PONG_TIMEOUT_MS = 10000; // 10 seconds to wait for pong
   private localWebSockets = new Map<string, WebSocket>();
+  private password?: string;
 
   constructor(
     localPort: number,
@@ -46,6 +47,7 @@ export class OutRayClient {
     customDomain?: string,
     noLog: boolean = false,
     enableLocal: boolean = false,
+    password?: string,
   ) {
     this.localPort = localPort;
     this.serverUrl = serverUrl;
@@ -55,6 +57,7 @@ export class OutRayClient {
     this.requestedSubdomain = subdomain;
     this.noLog = noLog;
     this.enableLocal = enableLocal;
+    this.password = password;
   }
 
   public start(): void {
@@ -196,6 +199,7 @@ export class OutRayClient {
       subdomain: this.subdomain,
       customDomain: this.customDomain,
       forceTakeover: this.forceTakeover,
+      password: this.password,
     });
     this.ws?.send(handshake);
   }
