@@ -14,6 +14,7 @@ export interface OpenTunnelMessage {
   forceTakeover?: boolean;
   protocol?: TunnelProtocol;
   remotePort?: number; // For TCP/UDP: the port to expose on the server
+  password?: string;
 }
 
 export interface TunnelOpenedMessage {
