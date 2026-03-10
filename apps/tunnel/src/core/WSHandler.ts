@@ -269,6 +269,20 @@ export class WSHandler {
               );
             }
 
+            // Gate password protection: only paid plans can use --password
+            if (message.password && (!plan || plan === "free")) {
+              ws.send(
+                Protocol.encode({
+                  type: "error",
+                  code: "PASSWORD_REQUIRES_PAID",
+                  message:
+                    "Password-protected tunnels require a paid plan. Upgrade at https://outray.dev/pricing",
+                }),
+              );
+              ws.close();
+              return;
+            }
+
             const tunnelProtocol = message.protocol || "http";
             if (tunnelProtocol === "tcp" || tunnelProtocol === "udp") {
               if (!organizationId) {
