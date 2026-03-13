@@ -2,8 +2,6 @@
   <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" />
 </a>
 
-CA: Bfi5qtnGii7KXY5g5kro5XnbxApvMoLTL5mTaVUhdoMY
-
 # OutRay
 
 **Expose your localhost to the internet.** Outray is an open-source tunneling solution that lets you share local servers with anyone, anywhere.
