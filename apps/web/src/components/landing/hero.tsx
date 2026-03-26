@@ -53,7 +53,7 @@ export const Hero = () => {
       <div className="flex flex-col gap-8 max-w-360 mx-auto px-6 relative z-10 w-full items-center">
         <div className="flex flex-col gap-6 items-center mt-20">
           <div className="flex items-center gap-3 flex-col-reverse flex-col">
-            <motion.a
+            {/* <motion.a
               href="https://www.ycombinator.com/companies/outray"
               target="_blank"
               onClick={() => posthog.capture("yc_badge_clicked")}
@@ -68,7 +68,7 @@ export const Hero = () => {
                 </span>
               </div>
               <span>Not backed by Y Combinator</span>
-            </motion.a>
+            </motion.a> */}
             <motion.a
               href="https://vercel.com/oss"
               target="_blank"
