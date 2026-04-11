@@ -38,6 +38,7 @@ export class OutRayClient {
   private readonly PONG_TIMEOUT_MS = 10000; // 10 seconds to wait for pong
   private localWebSockets = new Map<string, WebSocket>();
   private password?: string;
+  private showQr: boolean;
 
   constructor(
     localPort: number,
@@ -48,6 +49,7 @@ export class OutRayClient {
     noLog: boolean = false,
     enableLocal: boolean = false,
     password?: string,
+    showQr: boolean = false,
   ) {
     this.localPort = localPort;
     this.serverUrl = serverUrl;
@@ -58,6 +60,7 @@ export class OutRayClient {
     this.noLog = noLog;
     this.enableLocal = enableLocal;
     this.password = password;
+    this.showQr = showQr;
   }
 
   public start(): void {
@@ -129,7 +132,7 @@ export class OutRayClient {
         } else {
           console.log(
             chalk.blue(`   https://${info.hostname}`) +
-              chalk.dim(` (self-signed)`),
+            chalk.dim(` (self-signed)`),
           );
           console.log(
             chalk.dim(
@@ -204,7 +207,7 @@ export class OutRayClient {
     this.ws?.send(handshake);
   }
 
-  private handleMessage(data: string): void {
+  private async handleMessage(data: string): Promise<void> {
     try {
       const message = decodeMessage(data);
 
@@ -224,6 +227,14 @@ export class OutRayClient {
         console.log(
           chalk.yellow("Keep this running to keep your tunnel active."),
         );
+        // Render a QR code of the tunnel url if flag is present
+        if (this.showQr) {
+          const qrcode = await import("qrcode-terminal")
+          console.log()
+          qrcode.generate(message.url, { small: true })
+        }
+
+
       } else if (message.type === "error") {
         if (message.code === "SUBDOMAIN_IN_USE") {
           if (this.assignedUrl) {
@@ -332,7 +343,7 @@ export class OutRayClient {
         if (!this.noLog) {
           console.log(
             chalk.dim("←") +
-              ` ${chalk.bold(message.method)} ${message.path} ${statusColor(statusCode)} ${chalk.dim(`${duration}ms`)}`,
+            ` ${chalk.bold(message.method)} ${message.path} ${statusColor(statusCode)} ${chalk.dim(`${duration}ms`)}`,
           );
         }
 
@@ -357,7 +368,7 @@ export class OutRayClient {
       if (!this.noLog) {
         console.log(
           chalk.dim("←") +
-            ` ${chalk.bold(message.method)} ${message.path} ${chalk.red("502")} ${chalk.dim(`${duration}ms`)} ${chalk.red(err.message)}`,
+          ` ${chalk.bold(message.method)} ${message.path} ${chalk.red("502")} ${chalk.dim(`${duration}ms`)} ${chalk.red(err.message)}`,
         );
       }
 
@@ -420,7 +431,7 @@ export class OutRayClient {
         if (!this.noLog) {
           console.log(
             chalk.dim("⚡") +
-              ` ${chalk.bold("WS")} ${message.path} ${chalk.green("connected")}`,
+            ` ${chalk.bold("WS")} ${message.path} ${chalk.green("connected")}`,
           );
         }
       });
@@ -456,7 +467,7 @@ export class OutRayClient {
         if (!this.noLog) {
           console.log(
             chalk.dim("⚡") +
-              ` ${chalk.bold("WS")} ${message.path} ${chalk.yellow("closed")} ${chalk.dim(`(${code})`)}`,
+            ` ${chalk.bold("WS")} ${message.path} ${chalk.yellow("closed")} ${chalk.dim(`(${code})`)}`,
           );
         }
       });
@@ -478,7 +489,7 @@ export class OutRayClient {
         if (!this.noLog) {
           console.log(
             chalk.dim("⚡") +
-              ` ${chalk.bold("WS")} ${message.path} ${chalk.red("error")} ${chalk.dim(error.message)}`,
+            ` ${chalk.bold("WS")} ${message.path} ${chalk.red("error")} ${chalk.dim(error.message)}`,
           );
         }
       });
