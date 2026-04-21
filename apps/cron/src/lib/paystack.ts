@@ -41,6 +41,11 @@ interface Subscription {
   current_period_end: Date;
 }
 
+interface ExpiredCanceledSubscription {
+  id: string;
+  organization_id: string;
+}
+
 /**
  * Charge a stored authorization
  */
@@ -128,11 +133,39 @@ async function getDueSubscriptions(): Promise<Subscription[]> {
        FROM subscriptions
        WHERE payment_provider = 'paystack'
          AND status = 'active'
+         AND cancel_at_period_end = false
          AND paystack_authorization_code IS NOT NULL
          AND paystack_email IS NOT NULL
          AND current_period_end <= NOW()`,
     );
     return result.rows;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Downgrade Paystack subscriptions that were canceled and have reached period end.
+ *
+ * We currently model the free tier as "no subscription row", so deleting the row
+ * keeps plan enforcement consistent across the app and prevents any future charges.
+ */
+async function downgradeExpiredCanceledSubscriptions(): Promise<void> {
+  const client = await dbPool.connect();
+  try {
+    const result = await client.query<ExpiredCanceledSubscription>(
+      `DELETE FROM subscriptions
+       WHERE payment_provider = 'paystack'
+         AND cancel_at_period_end = true
+         AND current_period_end <= NOW()
+       RETURNING id, organization_id`,
+    );
+
+    if (result.rowCount) {
+      console.log(
+        `[Paystack] Downgraded ${result.rowCount} canceled subscription(s) to free plan`,
+      );
+    }
   } finally {
     client.release();
   }
@@ -200,6 +233,8 @@ export async function chargePaystackSubscriptions(): Promise<void> {
   console.log("[Paystack] Starting recurring charge job...");
 
   try {
+    await downgradeExpiredCanceledSubscriptions();
+
     const dueSubscriptions = await getDueSubscriptions();
     console.log(
       `[Paystack] Found ${dueSubscriptions.length} subscriptions due for renewal`,
