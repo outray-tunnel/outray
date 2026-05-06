@@ -11,7 +11,7 @@ import { LocalAccess } from "./local-access";
 export const Landing = () => {
   return (
     <>
-      <div className="min-h-screen bg-black text-white selection:bg-accent/30">
+      <div className="min-h-screen bg-black text-white selection:bg-accent/30 overflow-x-hidden">
         <Navbar />
 
         <Hero />

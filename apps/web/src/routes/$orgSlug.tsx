@@ -130,22 +130,22 @@ function DashboardLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070707] text-gray-300 font-sans selection:bg-accent/30">
+    <div className="min-h-screen bg-[#070707] text-gray-300 font-sans selection:bg-accent/30 flex flex-col">
       {/* Mobile header */}
       <MobileHeader />
 
-      <div className="flex h-[calc(100vh-52px)] md:h-screen overflow-hidden">
+      <div className="flex flex-1 overflow-hidden">
         {/* Desktop sidebar - hidden on mobile */}
         <div className="hidden md:flex h-full">
           <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
         </div>
 
-        <div className="flex-1 flex flex-col min-w-0 bg-[#101010] md:border md:border-white/5 md:m-2 md:rounded-2xl">
+        <div className="flex-1 flex flex-col min-w-0 bg-[#101010] md:border md:border-white/5 md:m-2 md:rounded-2xl overflow-hidden">
           {/* <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-black">
            
           </header> */}
 
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
             <Outlet />
           </div>
         </div>
