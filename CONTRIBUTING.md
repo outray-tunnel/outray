@@ -1,114 +1,73 @@
 # Contributing to Outray
 
-Thanks for your interest in contributing to Outray! This guide will help you get started.
+Thanks for your interest in contributing to Outray! This guide will help you get set up and start shipping features quickly.
 
 ## Project Structure
+
+Our monorepo is organized to keep logic decoupled and reusable:
 
 ```
 outray/
 ├── apps/
-│   ├── cli/             # CLI client for creating tunnels
-│   ├── cron/            # Background jobs (tunnel snapshots)
-│   ├── internal-check/  # Domain verification for Caddy on-demand TLS
-│   ├── landing/         # Marketing website (Astro)
-│   ├── tunnel/          # Tunnel server (HTTP, TCP, UDP proxying)
-│   └── web/             # Dashboard & API (React + TanStack Router)
-├── shared/              # Shared utilities and types
-└── deploy/              # Deployment scripts and configs
+│   ├── cli/             # Main Outray CLI (TypeScript)
+│   ├── web/             # Dashboard & API (React + TanStack Start)
+│   ├── tunnel/          # High-performance Tunnel Server
+│   ├── cron/            # Maintenance snapshots & background tasks
+│   └── internal-check/  # Caddy domain verification service
+├── packages/
+│   ├── core/            # Shared tunnel core logic
+│   ├── vite-plugin/     # Outray integration for Vite
+│   └── ...plugins/      # Next.js, Express, NestJS plugins
+├── shared/              # Global types and utility helpers
+└── deploy/              # Infrastructure-as-Code & scripts
 ```
 
-## Prerequisites
+## Quick Start (Local Setup)
 
-- Node.js 20+
-- npm
-- Redis (for tunnel state)
-- PostgreSQL (for user data)
-- Tiger Data / TimescaleDB (for analytics)
+Prepare your environment in three simple steps:
 
-## Getting Started
-
-1. **Clone the repository**
-
+1. **Clone & Install**
    ```bash
    git clone https://github.com/akinloluwami/outray.git
    cd outray
-   ```
-
-2. **Install dependencies**
-
-   ```bash
    npm install
    ```
 
-3. **Set up environment variables**
-
-   Copy `.env.example` to `.env` in each app directory and fill in the values:
-
+2. **Initialize Environment**
+   We provide a helper script to set up all `.env` files across the monorepo:
    ```bash
-   cp apps/web/.env.example apps/web/.env
-   cp apps/tunnel/.env.example apps/tunnel/.env
-   cp apps/cron/.env.example apps/cron/.env
-   cp apps/internal-check/.env.example apps/internal-check/.env
+   npm run setup:envs
    ```
 
-4. **Run database migrations**
-
+3. **Spin Up Infrastructure**
+   Outray requires Redis, Postgres, and TimescaleDB. Use Docker to start them instantly:
    ```bash
-   cd apps/web
-   npx drizzle-kit push
+   docker compose up -d
    ```
 
-5. **Set up Tiger Data (TimescaleDB) tables**
+## Development Workflow
 
-   Run the schema file against your TimescaleDB instance:
+Instead of managing multiple terminals, use our root commands:
 
-   ```bash
-   psql "$TIMESCALE_URL" -f deploy/setup_tigerdata.sql
-   ```
+- **Full Application**: Run `npm run dev` in the root to start the Web Dashboard, Tunnel Server, and CLI in parallel.
+- **Specific App**: Run `npm run dev -w apps/web` (or any other app).
+- **Database Migrations**: 
+  ```bash
+  cd apps/web
+  npm run db:migrate
+  ```
 
-6. **Start development servers**
+## Code Guidelines
 
-   ```bash
-   # Terminal 1: Web dashboard
-   cd apps/web && npm run dev
-
-   # Terminal 2: Tunnel server
-   cd apps/tunnel && npm run dev
-
-   # Terminal 3: CLI (for testing)
-   cd apps/cli && npm run dev
-   ```
-
-## Development
-
-### Web Dashboard (`apps/web`)
-
-- React with TanStack Router
-- Drizzle ORM for database
-- Better Auth for authentication
-
-### Tunnel Server (`apps/tunnel`)
-
-- Handles HTTP, TCP, and UDP tunneling
-- WebSocket-based protocol for client communication
-- Redis for tunnel state management
-
-### CLI (`apps/cli`)
-
-- TypeScript CLI for creating tunnels
-- Supports HTTP, TCP, and UDP protocols
-
-## Code Style
-
-- Use TypeScript
-- Follow existing code patterns
-- Run `npm run lint` before committing
+- **TypeScript First**: All new code must be type-safe.
+- **Consistency**: Follow the patterns in `packages/core` for any tunnel logic.
+- **Linting**: Run `npm run lint` at the root before pushing.
 
 ## Pull Requests
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Make your changes
-4. Test your changes locally
-5. Commit with a descriptive message
-6. Push and open a PR. Add a detailed description of your changes and attach a screenshot if you made UI changes.
+1. **Branching**: Use `feat/`, `fix/`, or `docs/` prefixes (e.g., `feat/add-github-oauth`).
+2. **Quality**: Ensure your code builds locally with `npm run build`.
+3. **Description**: Describe *what* changed and *why*. Attach screenshots if you've touched the Dashboard UI.
+
+---
+*Stay sharp and happy coding!*
