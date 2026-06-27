@@ -419,6 +419,7 @@ function printHelp() {
     chalk.cyan("  --local-only           LAN only (no remote tunnel)"),
   );
   console.log(chalk.cyan("  --dev                  Use dev environment"));
+  console.log(chalk.cyan("  --qr                   Show QR Code"));
   console.log(chalk.cyan("  -v, --version          Show version"));
   console.log(chalk.cyan("  -h, --help             Show this help message"));
 }
@@ -614,8 +615,13 @@ async function main() {
   // Handle --local-only flag for LAN-only mode (no remote tunnel)
   const localOnly = hasFlag(remainingArgs, "--local-only");
 
+<<<<<<< HEAD
   // Handle --key before loading saved config so API-key-only usage works in CI.
   const keyValue = getFlagValue(remainingArgs, "--key");
+=======
+  // Handle --qr flag to render a QR Code of the tunnel url
+  const showQr = hasFlag(remainingArgs, "--qr");
+>>>>>>> 8e68f79f7e0c632d4fe723d216b9d7c01ce3c408
 
   // Handle local-only mode (no authentication needed)
   if (localOnly) {
@@ -681,7 +687,7 @@ async function main() {
     });
 
     // Keep process alive
-    await new Promise(() => {});
+    await new Promise(() => { });
     return;
   }
 
@@ -773,6 +779,7 @@ async function main() {
       noLogs,
       enableLocal,
       password,
+      showQr
     );
   }
 
