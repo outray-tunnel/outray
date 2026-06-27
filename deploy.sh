@@ -134,18 +134,9 @@ echo "🔄 Updating Caddyfile..."
 
 cat > $CADDYFILE <<EOF
 {
-    storage file_system /caddy
     on_demand_tls {
         ask http://localhost:3001/internal/domain-check
     }
-}
-
-outray.app, *.outray.app {
-    tls {
-        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-    }
-
-    reverse_proxy localhost:$TARGET_PORT
 }
 
 :443 {
@@ -159,13 +150,7 @@ EOF
 
 # 3. Reload Caddy
 echo "🔄 Reloading Caddy..."
-CADDY_CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-$(systemctl show --property Environment --value caddy | tr ' ' '\n' | sed -n 's/^CLOUDFLARE_API_TOKEN=//p' | head -1)}"
-if [ -z "$CADDY_CLOUDFLARE_API_TOKEN" ]; then
-  echo "❌ CLOUDFLARE_API_TOKEN is required for wildcard TLS." >&2
-  exit 1
-fi
-
-CLOUDFLARE_API_TOKEN="$CADDY_CLOUDFLARE_API_TOKEN" caddy reload --config $CADDYFILE
+caddy reload --config $CADDYFILE
 
 echo "✅ Traffic switched to $TARGET_COLOR."
 
