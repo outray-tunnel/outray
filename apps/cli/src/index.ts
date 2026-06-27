@@ -614,6 +614,9 @@ async function main() {
   // Handle --local-only flag for LAN-only mode (no remote tunnel)
   const localOnly = hasFlag(remainingArgs, "--local-only");
 
+  // Handle --key before loading saved config so API-key-only usage works in CI.
+  const keyValue = getFlagValue(remainingArgs, "--key");
+
   // Handle local-only mode (no authentication needed)
   if (localOnly) {
     const { MDNSAdvertiser, LocalProxy, LocalHttpsProxy } =
@@ -685,13 +688,13 @@ async function main() {
   // Load and validate config
   let config = configManager.load();
 
-  if (!config) {
+  if (!config && !keyValue) {
     console.log(chalk.red("❌ Not logged in. Run: outray login"));
     process.exit(1);
   }
 
   // Handle temporary org override
-  if (tempOrgSlug && config.authType === "user" && config.userToken) {
+  if (tempOrgSlug && config?.authType === "user" && config.userToken) {
     const authManager = new AuthManager(webUrl, config.userToken);
     const orgs = await authManager.fetchOrganizations();
     const tempOrg = orgs.find((org) => org.slug === tempOrgSlug);
@@ -715,10 +718,9 @@ async function main() {
   // Get API key/token
   let apiKey: string | undefined;
 
-  const keyValue = getFlagValue(remainingArgs, "--key");
   if (keyValue) {
     apiKey = keyValue;
-  } else {
+  } else if (config) {
     // Ensure we have a valid token
     try {
       apiKey = await ensureValidToken(configManager, config, webUrl);
@@ -734,7 +736,7 @@ async function main() {
   }
 
   // Show active org (unless using --org override or --key override)
-  if (!tempOrgSlug && !keyValue) {
+  if (config && !tempOrgSlug && !keyValue) {
     const orgSlug = await getOrgSlugForDisplay(config, webUrl);
     if (orgSlug) {
       console.log(chalk.dim(`Org: ${orgSlug}`));
