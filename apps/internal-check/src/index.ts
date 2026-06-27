@@ -23,13 +23,18 @@ const domains = pgTable("domains", {
 
 // --- Database Connection ---
 
-const client = new pg.Client({
+const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
+  max: 10,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 3_000,
+  query_timeout: 3_000,
+  statement_timeout: 3_000,
 });
 
 async function connectDb() {
   try {
-    await client.connect();
+    await pool.query("select 1");
     console.log("Connected to database");
   } catch (err) {
     console.error("Failed to connect to database", err);
@@ -39,7 +44,7 @@ async function connectDb() {
 
 connectDb();
 
-const db = drizzle(client);
+const db = drizzle(pool);
 
 const app = express();
 const port = process.env.PORT || 3001;
