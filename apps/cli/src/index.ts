@@ -615,13 +615,11 @@ async function main() {
   // Handle --local-only flag for LAN-only mode (no remote tunnel)
   const localOnly = hasFlag(remainingArgs, "--local-only");
 
-<<<<<<< HEAD
   // Handle --key before loading saved config so API-key-only usage works in CI.
   const keyValue = getFlagValue(remainingArgs, "--key");
-=======
+
   // Handle --qr flag to render a QR Code of the tunnel url
   const showQr = hasFlag(remainingArgs, "--qr");
->>>>>>> 8e68f79f7e0c632d4fe723d216b9d7c01ce3c408
 
   // Handle local-only mode (no authentication needed)
   if (localOnly) {
@@ -779,7 +777,7 @@ async function main() {
       noLogs,
       enableLocal,
       password,
-      showQr
+      showQr,
     );
   }
 

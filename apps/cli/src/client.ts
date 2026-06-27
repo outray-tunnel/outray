@@ -229,12 +229,10 @@ export class OutRayClient {
         );
         // Render a QR code of the tunnel url if flag is present
         if (this.showQr) {
-          const qrcode = await import("qrcode-terminal")
-          console.log()
-          qrcode.generate(message.url, { small: true })
+          const qrcode = await import("qrcode-terminal");
+          console.log();
+          qrcode.generate(message.url, { small: true });
         }
-
-
       } else if (message.type === "error") {
         if (message.code === "SUBDOMAIN_IN_USE") {
           if (this.assignedUrl) {

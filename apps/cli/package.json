@@ -34,16 +34,16 @@
     "tunneling",
     "development"
   ],
-  "author": "akinloluwami",
+  "author": "xt42io",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/akinloluwami/outray.git",
+    "url": "git+https://github.com/xt42io/outray.git",
     "directory": "apps/cli"
   },
-  "homepage": "https://github.com/akinloluwami/outray#readme",
+  "homepage": "https://github.com/xt42io/outray#readme",
   "bugs": {
-    "url": "https://github.com/akinloluwami/outray/issues"
+    "url": "https://github.com/xt42io/outray/issues"
   },
   "engines": {
     "node": ">=16.0.0"
