@@ -155,18 +155,18 @@ caddy reload --config $CADDYFILE
 echo "✅ Traffic switched to $TARGET_COLOR."
 
 # 4. Stop old tunnel server instance
-if pm2 list | grep -q "$OLD_NAME.*online"; then
+if pm2 describe "$OLD_NAME" >/dev/null 2>&1; then
   echo "🛑 Stopping $OLD_NAME..."
-  pm2 stop $OLD_NAME
-  pm2 delete $OLD_NAME
+  pm2 stop "$OLD_NAME" || true
+  pm2 delete "$OLD_NAME" || true
 fi
 
 # Clean up any legacy web servers
 for web_name in "outray-web-blue" "outray-web-green"; do
-  if pm2 list | grep -q "$web_name.*online"; then
+  if pm2 describe "$web_name" >/dev/null 2>&1; then
     echo "🧹 Cleaning up legacy web server: $web_name..."
-    pm2 stop $web_name
-    pm2 delete $web_name
+    pm2 stop "$web_name" || true
+    pm2 delete "$web_name" || true
   fi
 done
 
