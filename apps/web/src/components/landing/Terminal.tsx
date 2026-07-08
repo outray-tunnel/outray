@@ -119,7 +119,7 @@ export function Terminal() {
               {logs.map((log, i) => (
                 <div key={i} className="flex gap-3 text-xs md:text-sm">
                   <span className="text-white/50 w-16">{log.method}</span>
-                  <span className="text-white/80 flex-1">{log.path}</span>
+                  <span className="text-white/80 flex-1 truncate">{log.path}</span>
                   <span
                     className={
                       log.status >= 400

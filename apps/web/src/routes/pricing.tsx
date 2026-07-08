@@ -47,13 +47,13 @@ function PricingPage() {
     <div className="min-h-screen bg-black text-white selection:bg-accent/30 font-sans">
       <Navbar />
 
-      <div className="pt-32 pb-24 px-6">
+      <div className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
+          <div className="text-center mb-12 sm:mb-16">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 sm:mb-6 tracking-tight">
               Simple, transparent pricing
             </h1>
-            <p className="text-xl text-white/60 max-w-2xl mx-auto mb-8">
+            <p className="text-lg sm:text-xl text-white/60 max-w-2xl mx-auto mb-8">
               Start for free, upgrade as you grow. No hidden fees.
             </p>
 
@@ -70,10 +70,10 @@ function PricingPage() {
                   {
                     value: "year" as const,
                     label: (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 sm:gap-2">
                         Yearly
-                        <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
-                          2 months free
+                        <span className="text-[10px] sm:text-xs bg-green-500/20 text-green-400 px-1.5 sm:px-2 py-0.5 rounded-full">
+                          -2 months
                         </span>
                       </span>
                     ),
@@ -87,7 +87,7 @@ function PricingPage() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {plans.map((plan) => {
               const f = plan.features as {
                 maxTunnels: number;
@@ -108,16 +108,16 @@ function PricingPage() {
               return (
                 <div
                   key={plan.id}
-                  className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 ${
+                  className={`relative flex flex-col p-6 sm:p-8 rounded-3xl border transition-all duration-300 ${
                     plan.id === "beam"
-                      ? "bg-linear-to-br from-accent/10 via-white/5 to-purple-500/10 border-accent shadow-[0_0_60px_rgba(255,255,255,0.15)] ring-2 ring-accent/30 scale-[1.02]"
+                      ? "bg-linear-to-br from-accent/10 via-white/5 to-purple-500/10 border-accent shadow-[0_0_60px_rgba(255,255,255,0.15)] ring-2 ring-accent/30 lg:scale-[1.02]"
                       : "bg-[#0c0c0c] border-white/10 hover:border-white/20"
                   }`}
                 >
                   {plan.id === "beam" && (
                     <>
                       <div className="absolute inset-0 rounded-3xl bg-linear-to-br from-accent/5 via-transparent to-purple-500/5 pointer-events-none" />
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-linear-to-r from-accent to-yellow-400 text-black text-xs font-bold rounded-full uppercase tracking-wider shadow-lg shadow-accent/30 flex items-center gap-1.5">
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 sm:px-5 py-1 sm:1.5 bg-linear-to-r from-accent to-yellow-400 text-black text-[10px] sm:text-xs font-bold rounded-full uppercase tracking-wider shadow-lg shadow-accent/30 flex items-center gap-1 sm:gap-1.5 whitespace-nowrap">
                         <span className="animate-pulse">✨</span>
                         Recommended
                         <span className="animate-pulse">✨</span>
@@ -125,31 +125,31 @@ function PricingPage() {
                     </>
                   )}
 
-                  <div className="mb-8 relative">
+                  <div className="mb-6 sm:mb-8 relative">
                     <h3
-                      className={`text-xl font-bold mb-2 ${plan.id === "beam" ? "text-accent" : ""}`}
+                      className={`text-lg sm:text-xl font-bold mb-2 ${plan.id === "beam" ? "text-accent" : ""}`}
                     >
                       {plan.name}
                     </h3>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold">
+                      <span className="text-3xl sm:text-4xl font-bold">
                         ${displayPriceUSD}
                       </span>
-                      <span className="text-white/40">{intervalLabel}</span>
+                      <span className="text-white/40 text-sm sm:text-base">{intervalLabel}</span>
                     </div>
                     {showNGN && displayPriceNGN > 0 && (
                       <div className="flex items-baseline gap-1 mt-1">
-                        <span className="text-lg text-white/60">
+                        <span className="text-base sm:text-lg text-white/60">
                           ₦{displayPriceNGN.toLocaleString()}
                         </span>
-                        <span className="text-white/40 text-sm">
+                        <span className="text-white/40 text-xs sm:text-sm">
                           {intervalLabel}
                         </span>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex-1 space-y-4 mb-8">
+                  <div className="flex-1 space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                     <FeatureItem
                       label={`${
                         f.maxTunnels === -1 ? "Unlimited" : f.maxTunnels
@@ -185,7 +185,7 @@ function PricingPage() {
 
                   <Link
                     to="/login"
-                    className={`w-full py-3 rounded-full font-bold text-center transition-all ${
+                    className={`w-full py-3 rounded-full font-bold text-center transition-all text-sm sm:text-base ${
                       plan.id === "beam"
                         ? "bg-white text-black hover:bg-gray-200"
                         : "bg-white/10 text-white hover:bg-white/20"
@@ -200,13 +200,13 @@ function PricingPage() {
         </div>
       </div>
 
-      <footer className="border-t border-white/10 py-12 bg-black">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+      <footer className="border-t border-white/10 py-10 sm:py-12 bg-black">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8 md:gap-6">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="OutRay Logo" className="w-6" />
             <span className="font-bold">OutRay</span>
           </div>
-          <div className="text-white/40 text-sm">
+          <div className="text-white/40 text-xs sm:text-sm text-center md:text-left">
             © {new Date().getFullYear()} OutRay Inc. All rights reserved.
           </div>
           <div className="flex gap-6 text-white/60">
@@ -234,14 +234,14 @@ function FeatureItem({
   included?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 text-sm">
+    <div className="flex items-center gap-3 text-xs sm:text-sm">
       {included ? (
-        <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-          <Check size={12} className="text-white" />
+        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+          <Check size={10} className="text-white sm:w-[12px] sm:h-[12px]" />
         </div>
       ) : (
-        <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-          <X size={12} className="text-white/20" />
+        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+          <X size={10} className="text-white/20 sm:w-[12px] sm:h-[12px]" />
         </div>
       )}
       <span className={included ? "text-white/80" : "text-white/40"}>

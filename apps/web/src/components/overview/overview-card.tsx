@@ -29,19 +29,19 @@ export function OverviewCard({
         : "text-red-400 bg-red-500/10 border-red-500/20";
 
   return (
-    <div className="group bg-white/2 border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-all relative overflow-hidden">
-      <div className="flex items-start justify-between mb-4 relative z-10">
-        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-300 border border-white/5 group-hover:border-accent/20 group-hover:text-accent transition-colors">
-          {icon}
+    <div className="group bg-white/2 border border-white/5 rounded-2xl p-4 sm:p-6 hover:border-white/10 transition-all relative overflow-hidden">
+      <div className="flex items-start justify-between mb-3 sm:mb-4 relative z-10">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-white/5 flex items-center justify-center text-gray-300 border border-white/5 group-hover:border-accent/20 group-hover:text-accent transition-colors">
+          {React.cloneElement(icon as React.ReactElement, { size: 18 })}
         </div>
         {(change !== undefined || trend !== "neutral") && (
           <div
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium ${changeColor}`}
+            className={`flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg border text-[10px] sm:text-xs font-medium ${changeColor}`}
           >
             {trend === "up" ? (
-              <ArrowUpRight size={12} />
+              <ArrowUpRight size={10} className="sm:w-[12px] sm:h-[12px]" />
             ) : trend === "down" ? (
-              <ArrowDownRight size={12} />
+              <ArrowDownRight size={10} className="sm:w-[12px] sm:h-[12px]" />
             ) : null}
             {showDash
               ? "-"
@@ -53,17 +53,17 @@ export function OverviewCard({
       </div>
 
       <div className="relative z-10">
-        <div className="text-3xl font-bold text-white mb-1 tracking-tight">
+        <div className="text-2xl sm:text-3xl font-bold text-white mb-0.5 sm:mb-1 tracking-tight">
           {value}
         </div>
         <div className="flex items-center gap-2">
-          <div className="text-xs text-gray-500 uppercase tracking-wider font-medium">
+          <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider font-medium">
             {title}
           </div>
           {subValue && (
             <>
               <span className="text-gray-700">•</span>
-              <span className="text-xs text-gray-500">{subValue}</span>
+              <span className="text-[10px] sm:text-xs text-gray-500">{subValue}</span>
             </>
           )}
         </div>

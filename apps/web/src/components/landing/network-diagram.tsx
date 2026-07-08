@@ -19,12 +19,12 @@ export function NetworkDiagram() {
                 ease: "easeInOut",
               }}
             />
-            <h2 className="relative text-6xl md:text-7xl font-bold italic tracking-tighter text-transparent bg-clip-text bg-linear-to-b from-white via-white/90 to-white/70 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+            <h2 className="relative text-4xl sm:text-6xl md:text-7xl font-bold italic tracking-tighter text-transparent bg-clip-text bg-linear-to-b from-white via-white/90 to-white/70 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] px-4">
               It just works
             </h2>
 
             <motion.div
-              className="absolute -top-8 -right-10 text-yellow-200"
+              className="absolute -top-6 -right-4 sm:-top-8 sm:-right-10 text-yellow-200"
               animate={{
                 scale: [1, 1.2, 1],
                 opacity: [0.7, 1, 0.7],
@@ -32,10 +32,10 @@ export function NetworkDiagram() {
               }}
               transition={{ duration: 2, repeat: Infinity }}
             >
-              <Sparkles className="w-10 h-10 fill-yellow-200/20" />
+              <Sparkles className="w-6 h-6 sm:w-10 sm:h-10 fill-yellow-200/20" />
             </motion.div>
             <motion.div
-              className="absolute -bottom-4 -left-10 text-purple-300"
+              className="absolute -bottom-2 -left-4 sm:-bottom-4 sm:-left-10 text-purple-300"
               animate={{
                 scale: [1, 1.2, 1],
                 opacity: [0.5, 0.8, 0.5],
@@ -43,7 +43,7 @@ export function NetworkDiagram() {
               }}
               transition={{ duration: 3, repeat: Infinity, delay: 1 }}
             >
-              <Sparkles className="w-8 h-8 fill-purple-300/20" />
+              <Sparkles className="w-5 h-5 sm:w-8 sm:h-8 fill-purple-300/20" />
             </motion.div>
             <motion.div
               className="absolute top-0 -left-8 text-blue-300"

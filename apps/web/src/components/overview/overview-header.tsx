@@ -9,7 +9,7 @@ export function OverviewHeader({
   onNewTunnelClick: () => void;
 }) {
   return (
-    <div className="flex items-start sm:items-center justify-between gap-4">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div className="min-w-0 flex-1">
         <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
           Overview
@@ -22,9 +22,9 @@ export function OverviewHeader({
         onClick={onNewTunnelClick}
         disabled={isAtLimit}
         leftIcon={<Plus size={18} />}
-        className="shrink-0"
+        className="w-full sm:w-auto shrink-0"
       >
-        <span className="hidden sm:inline">New Tunnel</span>
+        <span>New Tunnel</span>
       </Button>
     </div>
   );

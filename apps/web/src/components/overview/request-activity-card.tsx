@@ -49,13 +49,13 @@ export function RequestActivityCard({
     });
 
   return (
-    <div className="lg:col-span-2 bg-white/2 border border-white/5 rounded-2xl p-6 relative">
+    <div className="lg:col-span-2 bg-white/2 border border-white/5 rounded-2xl p-4 sm:p-6 relative">
       {isPlaceholderData && (
         <div className="absolute inset-0 bg-black/20 backdrop-blur-sm z-10 rounded-2xl flex items-center justify-center transition-all duration-200">
           <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
         </div>
       )}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h3 className="text-lg font-medium text-white flex items-center gap-2">
             <Zap size={18} className="text-accent" />
@@ -63,12 +63,12 @@ export function RequestActivityCard({
           </h3>
           <p className="text-sm text-gray-500">Traffic over time</p>
         </div>
-        <div className="flex bg-white/5 rounded-lg p-1">
+        <div className="flex bg-white/5 rounded-lg p-1 w-full sm:w-auto overflow-x-auto">
           {["1h", "24h", "7d", "30d"].map((range) => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+              className={`flex-1 sm:flex-none px-3 py-1 text-xs font-medium rounded-md transition-all ${
                 timeRange === range
                   ? "bg-white/10 text-white shadow-sm"
                   : "text-gray-500 hover:text-gray-300"
@@ -81,16 +81,16 @@ export function RequestActivityCard({
       </div>
 
       {!chartData || chartData.length === 0 ? (
-        <div className="h-75 flex flex-col items-center justify-center text-gray-500 bg-white/5 rounded-xl border border-white/5 border-dashed">
+        <div className="h-64 sm:h-75 flex flex-col items-center justify-center text-gray-500 bg-white/5 rounded-xl border border-white/5 border-dashed">
           <Activity size={32} className="mb-2 opacity-50" />
           <p>No traffic data available yet</p>
         </div>
       ) : (
-        <div className="h-75 w-full">
+        <div className="h-64 sm:h-75 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={transformData()}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
             >
               <defs>
                 <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
@@ -106,14 +106,15 @@ export function RequestActivityCard({
               <XAxis
                 dataKey="time"
                 stroke="#666"
-                fontSize={12}
+                fontSize={10}
                 tickLine={false}
                 axisLine={false}
                 interval="preserveStartEnd"
+                minTickGap={30}
               />
               <YAxis
                 stroke="#666"
-                fontSize={12}
+                fontSize={10}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(value) => `${value}`}
