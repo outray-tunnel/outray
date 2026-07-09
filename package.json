@@ -3,17 +3,19 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "apps/tunnel",
-    "apps/cli",
-    "apps/web"
+    "apps/*",
+    "packages/*",
+    "shared"
   ],
   "scripts": {
-    "install:all": "npm install && cd apps/tunnel && npm install && cd ../cli && npm install && cd ../web && npm install",
-    "dev:tunnel": "cd apps/tunnel && npm run dev",
-    "dev:web": "cd apps/web && npm run dev",
-    "build": "cd apps/tunnel && npm run build && cd ../cli && npm run build && cd ../web && npm run build"
+    "dev": "concurrently \"npm run dev -w apps/web\" \"npm run dev -w apps/tunnel\" \"npm run dev -w apps/cli\"",
+    "install:all": "npm install",
+    "setup:envs": "node ./scripts/setup-envs.js",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
   },
   "devDependencies": {
+    "concurrently": "^9.1.0",
     "typescript": "^5.7.2"
   },
   "dependencies": {
