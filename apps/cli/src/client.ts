@@ -409,11 +409,16 @@ export class OutRayClient {
 
     try {
       const headers: Record<string, string> = {};
-      if (message.protocol) {
-        headers["Sec-WebSocket-Protocol"] = message.protocol;
+      for (const key of ["authorization", "cookie", "origin", "referer", "user-agent"] as const) {
+        const value = message.headers[key];
+        if (typeof value === "string") {
+          headers[key] = value;
+        }
       }
 
-      const localWs = new WebSocket(wsUrl, { headers });
+      const localWs = message.protocol
+        ? new WebSocket(wsUrl, [message.protocol], { headers })
+        : new WebSocket(wsUrl, { headers });
 
       localWs.on("open", () => {
         this.localWebSockets.set(message.wsConnectionId, localWs);
