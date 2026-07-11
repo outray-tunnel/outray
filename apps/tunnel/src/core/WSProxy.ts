@@ -81,26 +81,44 @@ export class WSProxy {
       timeout,
     });
 
-    // Build headers to forward (filter out hop-by-hop headers)
-    const headers: Record<string, string | string[]> = {};
-    for (const [key, value] of Object.entries(request.headers)) {
-      if (value !== undefined) {
-        headers[key] = value;
-      }
-    }
-
     // Send ws_upgrade to the tunnel client
     tunnelWs.send(
       Protocol.encode({
         type: "ws_upgrade",
         wsConnectionId,
         path: request.url || "/",
-        headers,
+        headers: this.buildForwardHeaders(request.headers),
         protocol: request.headers["sec-websocket-protocol"],
       })
     );
 
     console.log(`→ WebSocket upgrade requested: ${tunnelId}${request.url} (${wsConnectionId})`);
+  }
+
+  private buildForwardHeaders(
+    headers: IncomingMessage["headers"],
+  ): Record<string, string | string[]> {
+    // Preserve headers that commonly matter for WebSocket servers while stripping hop-by-hop upgrade headers that should not be replayed.
+    const forwarded: Record<string, string | string[]> = {};
+    const allowed = new Set([
+      "authorization",
+      "cookie",
+      "origin",
+      "referer",
+      "user-agent",
+      "sec-websocket-protocol",
+      "x-forwarded-for",
+      "x-forwarded-host",
+      "x-forwarded-proto",
+    ]);
+
+    for (const [key, value] of Object.entries(headers)) {
+      if (value !== undefined && allowed.has(key.toLowerCase())) {
+        forwarded[key] = value;
+      }
+    }
+
+    return forwarded;
   }
 
   /**
