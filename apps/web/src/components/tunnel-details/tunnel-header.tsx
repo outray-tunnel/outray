@@ -1,6 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Globe, Copy, ExternalLink, Power } from "lucide-react";
 import { useState } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  ArrowLeft01Icon,
+  ArrowUpRight01Icon,
+  Copy01Icon,
+  PowerServiceIcon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import { ConfirmModal } from "../confirm-modal";
 import { useAppStore } from "@/lib/store";
 
@@ -20,100 +26,85 @@ export function TunnelHeader({
   onStop,
   isStopping,
 }: TunnelHeaderProps) {
-  const [confirmState, setConfirmState] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    isDestructive: boolean;
-    confirmText: string;
-  }>({
-    isOpen: false,
-    title: "",
-    message: "",
-    onConfirm: () => {},
-    isDestructive: false,
-    confirmText: "",
-  });
-
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const { selectedOrganization } = useAppStore();
 
   return (
     <>
-      <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+      <header className="flex items-start gap-4 border-b border-white/[0.07] pb-7">
         <Link
           to="/$orgSlug/tunnels"
-          params={{ orgSlug: selectedOrganization?.slug! }}
-          className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors shrink-0"
+          params={{ orgSlug: selectedOrganization?.slug || "" }}
+          className="mt-0.5 p-1.5 text-zinc-700 transition-colors hover:text-zinc-300"
+          aria-label="Back to tunnels"
         >
-          <ArrowLeft size={20} />
+          <HugeiconsIcon icon={ArrowLeft01Icon} size={16} strokeWidth={1.7} />
         </Link>
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
-            <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight truncate">
+        <div className="min-w-0 flex-1">
+          <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-700">
+            Tunnel detail
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="truncate text-2xl font-semibold tracking-[-0.035em] text-white">
               {tunnel.name || tunnel.id}
-            </h2>
+            </h1>
             <span
-              className={`px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium border flex items-center gap-1.5 shrink-0 ${
-                tunnel.isOnline
-                  ? "bg-green-500/10 text-green-500 border-green-500/20"
-                  : "bg-red-500/10 text-red-500 border-red-500/20"
+              className={`flex items-center gap-1.5 text-[10px] font-medium ${
+                tunnel.isOnline ? "text-emerald-500" : "text-red-500"
               }`}
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full ${tunnel.isOnline ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+                className={`h-1.5 w-1.5 rounded-full ${
+                  tunnel.isOnline ? "bg-emerald-500" : "bg-red-500"
+                }`}
               />
               {tunnel.isOnline ? "Online" : "Offline"}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500">
-            <Globe size={14} className="shrink-0" />
-            <span className="font-mono truncate">{tunnel.url}</span>
+          <div className="mt-2 flex items-center gap-2 text-zinc-700">
+            <span className="truncate font-mono text-[11px]">{tunnel.url}</span>
             <button
-              className="hover:text-white transition-colors shrink-0"
-              onClick={() => navigator.clipboard.writeText(tunnel.url)}
+              type="button"
+              className="hover:text-zinc-300"
+              onClick={() => void navigator.clipboard.writeText(tunnel.url)}
+              aria-label="Copy tunnel URL"
             >
-              <Copy size={12} />
+              <HugeiconsIcon icon={Copy01Icon} size={12} strokeWidth={1.7} />
             </button>
             <a
               href={tunnel.url}
               target="_blank"
               rel="noreferrer"
-              className="hover:text-white transition-colors shrink-0"
+              className="hover:text-zinc-300"
+              aria-label="Open tunnel"
             >
-              <ExternalLink size={12} />
+              <HugeiconsIcon
+                icon={ArrowUpRight01Icon}
+                size={12}
+                strokeWidth={1.7}
+              />
             </a>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <button
-            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl border border-red-500/20 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => {
-              setConfirmState({
-                isOpen: true,
-                title: "Stop Tunnel",
-                message: "Are you sure you want to stop this tunnel?",
-                onConfirm: onStop,
-                isDestructive: true,
-                confirmText: "Stop",
-              });
-            }}
-            disabled={isStopping || !tunnel.isOnline}
-          >
-            <Power size={16} />
-            {isStopping ? "Stopping..." : "Stop"}
-          </button>
-        </div>
-      </div>
+        <button
+          type="button"
+          onClick={() => setIsConfirmOpen(true)}
+          disabled={isStopping || !tunnel.isOnline}
+          className="flex h-9 shrink-0 items-center gap-2 rounded-md border border-red-500/20 px-3 text-[11px] font-medium text-red-400 transition-colors hover:bg-red-500/[0.07] disabled:opacity-35"
+        >
+          <HugeiconsIcon icon={PowerServiceIcon} size={14} strokeWidth={1.7} />
+          {isStopping ? "Stopping" : "Stop"}
+        </button>
+      </header>
 
       <ConfirmModal
-        isOpen={confirmState.isOpen}
-        onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmState.onConfirm}
-        title={confirmState.title}
-        message={confirmState.message}
-        isDestructive={confirmState.isDestructive}
-        confirmText={confirmState.confirmText}
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={onStop}
+        title="Stop Tunnel"
+        message="Are you sure you want to stop this tunnel?"
+        isDestructive
+        confirmText="Stop"
       />
     </>
   );
