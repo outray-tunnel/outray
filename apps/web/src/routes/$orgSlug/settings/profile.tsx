@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
-import { User, Mail } from "lucide-react";
-import { Card, CardHeader, CardContent, Input, Label } from "@/components/ui";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Mail01Icon, UserIcon } from "@hugeicons-pro/core-stroke-rounded";
 
 export const Route = createFileRoute("/$orgSlug/settings/profile")({
   head: () => ({
@@ -21,49 +21,55 @@ function ProfileSettingsView() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card padding={false}>
-        <CardHeader
-          icon={<User className="w-5 h-5" />}
-          iconClassName="bg-blue-500/10 text-blue-400"
-          title="Profile"
-          description="Your personal information"
-        />
-        <CardContent className="space-y-6">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-2xl font-bold text-white shadow-lg shadow-blue-500/20">
-              {user.name?.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h4 className="text-white font-medium text-lg">{user.name}</h4>
-              <p className="text-gray-500">{user.email}</p>
-            </div>
-          </div>
+    <section className="border-y border-white/[0.07]">
+      <div className="flex items-center gap-4 py-5">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-sm font-medium text-zinc-300">
+          {user.name?.charAt(0).toUpperCase()}
+        </div>
+        <div className="min-w-0">
+          <h2 className="truncate text-sm font-medium text-zinc-200">
+            {user.name}
+          </h2>
+          <p className="mt-1 truncate text-[11px] text-zinc-600">
+            Personal account
+          </p>
+        </div>
+      </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <Label>Full Name</Label>
-              <Input
-                type="text"
-                value={user.name || ""}
-                readOnly
-                disabled
-                leftIcon={<User className="w-4 h-4" />}
-              />
-            </div>
-            <div>
-              <Label>Email Address</Label>
-              <Input
-                type="email"
-                value={user.email || ""}
-                readOnly
-                disabled
-                leftIcon={<Mail className="w-4 h-4" />}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid border-t border-white/[0.07] md:grid-cols-2 md:divide-x md:divide-white/[0.07]">
+        <ReadOnlyField
+          label="Full name"
+          value={user.name || ""}
+          icon={UserIcon}
+        />
+        <ReadOnlyField
+          label="Email address"
+          value={user.email || ""}
+          icon={Mail01Icon}
+        />
+      </div>
+    </section>
+  );
+}
+
+function ReadOnlyField({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon: typeof UserIcon;
+}) {
+  return (
+    <div className="py-5 md:px-6 first:pl-0">
+      <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+        {label}
+      </p>
+      <div className="mt-3 flex items-center gap-2.5 text-xs text-zinc-400">
+        <HugeiconsIcon icon={icon} size={14} strokeWidth={1.7} />
+        <span className="truncate">{value}</span>
+      </div>
     </div>
   );
 }
