@@ -1,18 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import { appClient } from "@/lib/app-client";
 import { useParams } from "@tanstack/react-router";
+import { appClient } from "@/lib/app-client";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
 export function BandwidthUsage() {
   const { orgSlug } = useParams({ from: "/$orgSlug" });
-
   const { data, isLoading } = useQuery({
     queryKey: ["bandwidth", orgSlug],
     queryFn: async () => {
@@ -23,41 +22,39 @@ export function BandwidthUsage() {
   });
 
   if (isLoading || !data) {
-    return <div className="animate-pulse h-24 bg-white/5 rounded-2xl" />;
+    return <div className="h-28 animate-pulse border-y border-white/[0.06] bg-white/[0.015]" />;
   }
-
-  if ("error" in data) {
-    return null;
-  }
+  if ("error" in data) return null;
 
   const { usage, limit, percentage } = data;
 
   return (
-    <div className="bg-white/2 border border-white/5 rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-400">Bandwidth Usage</h3>
-        <span className="text-xs font-medium px-2 py-1 bg-white/5 rounded-full text-gray-300">
+    <section className="border-y border-white/[0.07] py-5">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-medium text-zinc-300">Bandwidth</h3>
+          <p className="mt-1 text-[11px] text-zinc-600">Current billing period</p>
+        </div>
+        <span className="font-mono text-[11px] text-zinc-500">
           {formatBytes(usage)} / {formatBytes(limit)}
         </span>
       </div>
-
-      <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
+      <div className="h-px bg-white/[0.08]">
         <div
-          className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 ${
+          className={`h-full transition-[width] duration-500 ${
             percentage > 90
               ? "bg-red-500"
               : percentage > 75
-                ? "bg-yellow-500"
-                : "bg-blue-500"
+                ? "bg-amber-500"
+                : "bg-accent"
           }`}
           style={{ width: `${percentage}%` }}
         />
       </div>
-
-      <div className="mt-2 flex justify-between text-xs text-gray-500">
+      <div className="mt-2 flex justify-between text-[10px] text-zinc-700">
         <span>{percentage.toFixed(1)}% used</span>
         <span>Resets next month</span>
       </div>
-    </div>
+    </section>
   );
 }
