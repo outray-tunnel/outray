@@ -12,6 +12,8 @@
     "db:migrate": "npx drizzle-kit generate && npx drizzle-kit migrate"
   },
   "dependencies": {
+    "@hugeicons-pro/core-stroke-rounded": "^4.3.0",
+    "@hugeicons/react": "^1.1.10",
     "@outray/vite": "^0.0.4",
     "@paystack/inline-js": "^2.22.7",
     "@polar-sh/sdk": "^0.42.1",

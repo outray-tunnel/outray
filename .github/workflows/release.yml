@@ -19,6 +19,8 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
+        env:
+          HUGEICONS_LICENSE_KEY: ${{ secrets.HUGEICONS_LICENSE_KEY }}
         run: npm ci
 
       - name: Build CLI and workspace dependencies
@@ -60,6 +62,8 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
+        env:
+          HUGEICONS_LICENSE_KEY: ${{ secrets.HUGEICONS_LICENSE_KEY }}
         run: npm ci
 
       - name: Build

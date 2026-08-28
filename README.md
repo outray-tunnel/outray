@@ -62,12 +62,15 @@ outray/
 
 ## Development
 
-Install every workspace from the repository root and create the single local
-environment file:
+Create the single local environment file, add your Hugeicons Pro license key,
+then export it while installing the workspaces:
 
 ```bash
-npm install
 cp .env.example .env
+set -a
+source .env
+set +a
+npm install
 ```
 
 Ensure PostgreSQL, Redis, and TimescaleDB are running, then start the web,

@@ -51,11 +51,14 @@ Messages are JSON-encoded in [shared/types.ts](shared/types.ts). Key message typ
 ## Development Commands
 
 ```bash
-# Install all workspaces
-npm install
-
 # Configure the single local environment file
 cp .env.example .env
+
+# Export the Hugeicons registry credential and install all workspaces
+set -a
+source .env
+set +a
+npm install
 
 # Start web, tunnel, cron, and internal-check together
 npm run dev

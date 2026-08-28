@@ -34,19 +34,29 @@ outray/
    cd outray
    ```
 
-2. **Install dependencies**
+2. **Set up environment variables**
 
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-
-   Copy the root environment template and fill in the values:
+   Copy the root environment template and fill in the values, including
+   `HUGEICONS_LICENSE_KEY` for access to the private Pro icon package:
 
    ```bash
    cp .env.example .env
    ```
+
+3. **Install dependencies**
+
+   Export the root environment while npm authenticates with the Hugeicons
+   registry:
+
+   ```bash
+   set -a
+   source .env
+   set +a
+   npm install
+   ```
+
+   CI environments must provide the same key as a
+   `HUGEICONS_LICENSE_KEY` secret.
 
 4. **Run database migrations**
 
