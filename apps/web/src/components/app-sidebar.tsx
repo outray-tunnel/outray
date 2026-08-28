@@ -1,18 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "@tanstack/react-router";
+import { useLocation, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   CreditCardIcon,
-  Globe02Icon,
-  HistoryIcon,
-  Home01Icon,
   Key01Icon,
-  LinkSquare01Icon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
+  Pulse02Icon,
   Route03Icon,
   Search01Icon,
+  SecurityLockIcon,
   Settings02Icon,
   UserGroupIcon,
 } from "@hugeicons-pro/core-stroke-rounded";
@@ -51,6 +49,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const [navQuery, setNavQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { orgSlug } = useParams({ from: "/$orgSlug" });
+  const location = useLocation();
 
   const selectedOrg =
     organizations.find((org) => org.slug === orgSlug) || organizations[0];
@@ -96,37 +95,22 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const navGroups = useMemo<SidebarNavGroup[]>(
     () => [
       {
+        label: "Products",
         items: [
           {
             to: "/$orgSlug",
-            label: "Overview",
-            icon: Home01Icon,
-            activeOptions: { exact: true },
-          },
-        ],
-      },
-      {
-        label: "Tunnels",
-        items: [
-          {
-            to: "/$orgSlug/tunnels",
-            label: "Active tunnels",
+            label: "Tunnels",
             icon: Route03Icon,
           },
           {
-            to: "/$orgSlug/requests",
-            label: "Requests",
-            icon: HistoryIcon,
+            to: "/$orgSlug/observability",
+            label: "Observability",
+            icon: Pulse02Icon,
           },
           {
-            to: "/$orgSlug/subdomains",
-            label: "Subdomains",
-            icon: Globe02Icon,
-          },
-          {
-            to: "/$orgSlug/domains",
-            label: "Domains",
-            icon: LinkSquare01Icon,
+            to: "/$orgSlug/secrets",
+            label: "Secrets",
+            icon: SecurityLockIcon,
           },
         ],
       },
@@ -183,6 +167,33 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   };
 
   const params = { orgSlug: selectedOrg?.slug ?? orgSlug ?? "" };
+  const basePath = `/${params.orgSlug}`;
+
+  const isNavItemActive = (item: SidebarNavItem) => {
+    if (item.to === "/$orgSlug") {
+      const tunnelPaths = [
+        basePath,
+        `${basePath}/tunnels`,
+        `${basePath}/requests`,
+        `${basePath}/subdomains`,
+        `${basePath}/domains`,
+        `${basePath}/install`,
+      ];
+
+      return tunnelPaths.some((path) =>
+        path === basePath
+          ? location.pathname === path
+          : location.pathname === path ||
+            location.pathname.startsWith(`${path}/`),
+      );
+    }
+
+    const targetPath = item.to.replace("/$orgSlug", basePath);
+    return (
+      location.pathname === targetPath ||
+      location.pathname.startsWith(`${targetPath}/`)
+    );
+  };
 
   return (
     <aside
@@ -322,6 +333,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                     activeOptions={item.activeOptions}
                     isCollapsed={isCollapsed}
                     params={params}
+                    isActive={isNavItemActive(item)}
                   />
                 ))}
               </div>
@@ -347,6 +359,11 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
           label="Settings"
           isCollapsed={isCollapsed}
           params={params}
+          isActive={isNavItemActive({
+            to: "/$orgSlug/settings",
+            label: "Settings",
+            icon: Settings02Icon,
+          })}
         />
       </div>
 
