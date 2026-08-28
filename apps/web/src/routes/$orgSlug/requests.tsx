@@ -1,10 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Search, Radio } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Activity03Icon,
+  Cancel01Icon,
+  DatabaseIcon,
+  InformationCircleIcon,
+  Search01Icon,
+  Settings02Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
+import { toast } from "sonner";
 import { appClient } from "@/lib/app-client";
 import { authClient } from "@/lib/auth-client";
 import { useFeatureFlag } from "@/lib/feature-flags";
+import { Modal } from "@/components/ui";
 import {
   type TunnelEvent,
   type TimeRange,
@@ -22,7 +32,7 @@ export const Route = createFileRoute("/$orgSlug/requests")({
 });
 
 const TIME_RANGES = [
-  { value: "live" as TimeRange, label: "Live", icon: Radio },
+  { value: "live" as TimeRange, label: "Live" },
   { value: "1h" as TimeRange, label: "1h" },
   { value: "24h" as TimeRange, label: "24h" },
   { value: "7d" as TimeRange, label: "7d" },
@@ -30,10 +40,12 @@ const TIME_RANGES = [
 ];
 
 function RequestsView() {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [requests, setRequests] = useState<TunnelEvent[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>("live");
   const [isLoading, setIsLoading] = useState(false);
+  const [isCaptureSettingsOpen, setIsCaptureSettingsOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<TunnelEvent | null>(
     null,
   );
@@ -46,7 +58,7 @@ function RequestsView() {
   const fullCaptureFeatureEnabled = useFeatureFlag("full_capture");
 
   // Fetch organization's full capture setting
-  const { data: orgSettings } = useQuery({
+  const { data: orgSettings, isLoading: isLoadingOrgSettings } = useQuery({
     queryKey: ["org-settings", orgSlug],
     queryFn: async () => {
       if (!orgSlug) return null;
@@ -57,30 +69,56 @@ function RequestsView() {
     enabled: !!orgSlug,
   });
 
-  // Full capture is enabled only if both the feature flag and org setting are enabled
-  const fullCaptureEnabled =
-    fullCaptureFeatureEnabled && (orgSettings?.fullCaptureEnabled ?? false);
+  const captureSettingEnabled = orgSettings?.fullCaptureEnabled ?? false;
 
-  const activeIndex = TIME_RANGES.findIndex((r) => r.value === timeRange);
-
-  const fetchHistoricalRequests = async (range: TimeRange) => {
-    if (!orgSlug || range === "live") return;
-
-    setIsLoading(true);
-    try {
-      const response = await appClient.requests.list(orgSlug, {
-        range,
-        limit: 100,
-        search: searchTerm,
+  const updateFullCaptureMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const response = await appClient.settings.update(orgSlug, {
+        fullCaptureEnabled: enabled,
       });
       if ("error" in response) throw new Error(response.error);
-      setRequests(response.requests || []);
-    } catch (error) {
-      console.error("Failed to fetch historical requests:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return response;
+    },
+    onSuccess: (response) => {
+      queryClient.setQueryData(["org-settings", orgSlug], {
+        fullCaptureEnabled: response.fullCaptureEnabled,
+      });
+      toast.success(
+        response.fullCaptureEnabled
+          ? "Full request capture enabled"
+          : "Full request capture disabled",
+      );
+    },
+    onError: () => {
+      toast.error("Failed to update request capture");
+    },
+  });
+
+  // Full capture is enabled only if both the feature flag and org setting are enabled
+  const fullCaptureEnabled =
+    fullCaptureFeatureEnabled && captureSettingEnabled;
+
+  const fetchHistoricalRequests = useCallback(
+    async (range: TimeRange) => {
+      if (!orgSlug || range === "live") return;
+
+      setIsLoading(true);
+      try {
+        const response = await appClient.requests.list(orgSlug, {
+          range,
+          limit: 100,
+          search: searchTerm,
+        });
+        if ("error" in response) throw new Error(response.error);
+        setRequests(response.requests || []);
+      } catch (error) {
+        console.error("Failed to fetch historical requests:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [orgSlug, searchTerm],
+  );
 
   useEffect(() => {
     if (timeRange === "live") {
@@ -91,7 +129,7 @@ function RequestsView() {
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [timeRange, activeOrgId, searchTerm, orgSlug]);
+  }, [timeRange, activeOrgId, fetchHistoricalRequests]);
 
   useEffect(() => {
     if (!activeOrgId || timeRange !== "live") {
@@ -227,59 +265,82 @@ function RequestsView() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="relative flex-1 max-w-md group">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-accent transition-colors"
-            size={16}
+    <div className="mx-auto max-w-6xl space-y-7">
+      <header className="flex items-end justify-between gap-6 border-b border-white/[0.07] pb-7">
+        <div>
+          <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-700">
+            Tunnels
+          </p>
+          <h1 className="text-2xl font-semibold tracking-[-0.035em] text-white">
+            Requests
+          </h1>
+          <p className="mt-2 text-sm text-zinc-500">
+            Inspect live and historical traffic across every HTTP tunnel.
+          </p>
+        </div>
+
+        {fullCaptureFeatureEnabled && (
+          <button
+            type="button"
+            onClick={() => setIsCaptureSettingsOpen(true)}
+            className="flex h-8 shrink-0 items-center gap-2 rounded-md border border-white/[0.09] px-3 text-[11px] font-medium text-zinc-500 transition-colors hover:border-white/[0.16] hover:bg-white/[0.03] hover:text-zinc-300"
+          >
+            <HugeiconsIcon
+              icon={Settings02Icon}
+              size={14}
+              strokeWidth={1.7}
+              aria-hidden="true"
+            />
+            Settings
+          </button>
+        )}
+      </header>
+
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <label className="flex h-9 max-w-sm flex-1 items-center gap-2 border-b border-white/[0.09] text-zinc-600 focus-within:border-white/20 focus-within:text-zinc-400">
+          <HugeiconsIcon
+            icon={Search01Icon}
+            size={15}
+            strokeWidth={1.7}
+            aria-hidden="true"
           />
           <input
             type="text"
-            placeholder="Search requests by path, method or host..."
+            placeholder="Search path, method, or host"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:border-accent/50 focus:bg-white/10 transition-all"
+            className="min-w-0 flex-1 bg-transparent text-[12px] text-zinc-300 outline-none placeholder:text-zinc-700"
           />
-        </div>
+        </label>
 
-        <div className="relative grid grid-cols-5 items-center bg-white/5 border border-white/10 rounded-xl p-1">
-          <div
-            className="absolute top-1 bottom-1 left-1 bg-accent rounded-lg transition-all duration-300 ease-out shadow-sm"
-            style={{
-              width: `calc((100% - 0.5rem) / ${TIME_RANGES.length})`,
-              transform: `translateX(${activeIndex * 100}%)`,
-            }}
-          />
-
-          {TIME_RANGES.map(({ value, label, icon: Icon }) => (
+        <div className="flex items-center border-b border-white/[0.07]">
+          {TIME_RANGES.map(({ value, label }) => (
             <button
               key={value}
               onClick={() => setTimeRange(value)}
-              className={`relative z-10 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+              className={`relative border-b px-3 py-2 text-[11px] font-medium transition-colors ${
                 timeRange === value
-                  ? "text-white"
-                  : "text-gray-400 hover:text-gray-300"
+                  ? "border-accent text-zinc-200"
+                  : "border-transparent text-zinc-700 hover:text-zinc-400"
               }`}
             >
-              {Icon && (
-                <Icon
-                  size={14}
-                  className={timeRange === value ? "animate-pulse" : ""}
+              {value === "live" && (
+                <span
+                  className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${
+                    timeRange === "live" ? "bg-emerald-500" : "bg-zinc-700"
+                  }`}
                 />
               )}
               {label}
             </button>
           ))}
         </div>
-
-        <div className="flex items-center gap-2" />
       </div>
 
-      <div className="border border-white/5 rounded-2xl overflow-hidden bg-white/2">
+      <div className="overflow-hidden border-y border-white/[0.07]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs text-gray-500 uppercase bg-white/5 border-b border-white/5">
+            <thead className="border-b border-white/[0.07] text-[9px] uppercase tracking-[0.1em] text-zinc-700">
               <tr>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Method</th>
@@ -291,15 +352,15 @@ function RequestsView() {
                 <th className="px-4 py-3 font-medium text-right">Time</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-white/[0.06]">
               {isLoading ? (
                 <tr>
                   <td
                     colSpan={8}
-                    className="px-4 py-8 text-center text-gray-500"
+                    className="px-4 py-14 text-center text-zinc-700"
                   >
                     <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                      <div className="h-4 w-4 animate-spin rounded-full border border-zinc-700 border-t-zinc-300" />
                       Loading requests...
                     </div>
                   </td>
@@ -308,11 +369,19 @@ function RequestsView() {
                 <tr>
                   <td
                     colSpan={8}
-                    className="px-4 py-8 text-center text-gray-500"
+                    className="px-4 py-16 text-center text-zinc-700"
                   >
-                    {timeRange === "live"
-                      ? "Waiting for requests..."
-                      : "No requests found in this time range"}
+                    <HugeiconsIcon
+                      icon={Activity03Icon}
+                      size={23}
+                      strokeWidth={1.5}
+                      className="mx-auto mb-3"
+                    />
+                    <span className="text-xs">
+                      {timeRange === "live"
+                        ? "Waiting for requests"
+                        : "No requests found in this time range"}
+                    </span>
                   </td>
                 </tr>
               ) : (
@@ -320,16 +389,16 @@ function RequestsView() {
                   <tr
                     key={`${req.tunnel_id}-${req.timestamp}-${i}`}
                     onClick={() => inspectorEnabled && setSelectedRequest(req)}
-                    className={`hover:bg-white/5 transition-colors group ${inspectorEnabled ? "cursor-pointer" : ""}`}
+                    className={`group transition-colors hover:bg-white/[0.025] ${inspectorEnabled ? "cursor-pointer" : ""}`}
                   >
                     <td className="px-4 py-3">
                       <div
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                        className={`inline-flex items-center text-[11px] font-medium ${
                           req.status_code >= 500
-                            ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                            ? "text-red-400"
                             : req.status_code >= 400
-                              ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
-                              : "bg-green-500/10 text-green-400 border border-green-500/20"
+                              ? "text-amber-400"
+                              : "text-emerald-400"
                         }`}
                       >
                         {req.status_code}
@@ -371,6 +440,141 @@ function RequestsView() {
         fullCaptureEnabled={fullCaptureEnabled}
         orgSlug={orgSlug}
       />
+
+      <RequestCaptureSettingsModal
+        isOpen={isCaptureSettingsOpen}
+        onClose={() => setIsCaptureSettingsOpen(false)}
+        enabled={captureSettingEnabled}
+        isLoading={isLoadingOrgSettings}
+        isUpdating={updateFullCaptureMutation.isPending}
+        onToggle={() =>
+          updateFullCaptureMutation.mutate(!captureSettingEnabled)
+        }
+      />
     </div>
+  );
+}
+
+function RequestCaptureSettingsModal({
+  isOpen,
+  onClose,
+  enabled,
+  isLoading,
+  isUpdating,
+  onToggle,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  enabled: boolean;
+  isLoading: boolean;
+  isUpdating: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="lg" appearance="flat">
+      <header className="flex shrink-0 items-start justify-between gap-6 border-b border-white/[0.07] px-5 py-5 sm:px-6">
+        <div className="min-w-0">
+          <div className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-700">
+            <HugeiconsIcon
+              icon={Settings02Icon}
+              size={13}
+              strokeWidth={1.8}
+              aria-hidden="true"
+            />
+            Tunnels / Requests
+          </div>
+          <h2 className="text-lg font-semibold tracking-[-0.025em] text-white">
+            Request settings
+          </h2>
+          <p className="mt-1.5 text-xs leading-5 text-zinc-600">
+            Configure how request and response data is stored.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex size-8 shrink-0 items-center justify-center rounded-md text-zinc-600 transition-colors hover:bg-white/[0.05] hover:text-zinc-300"
+          aria-label="Close request settings"
+        >
+          <HugeiconsIcon
+            icon={Cancel01Icon}
+            size={16}
+            strokeWidth={1.8}
+            aria-hidden="true"
+          />
+        </button>
+      </header>
+
+      <div className="px-5 py-6 sm:px-6">
+        <div className="flex items-start justify-between gap-8">
+          <div className="flex min-w-0 max-w-md gap-3">
+            <HugeiconsIcon
+              icon={DatabaseIcon}
+              size={16}
+              strokeWidth={1.7}
+              className="mt-0.5 shrink-0 text-zinc-600"
+              aria-hidden="true"
+            />
+            <div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h3 className="text-xs font-medium text-zinc-300">
+                  Full request capture
+                </h3>
+                <span
+                  className={`text-[9px] font-medium uppercase tracking-[0.08em] ${
+                    enabled ? "text-emerald-500" : "text-zinc-700"
+                  }`}
+                >
+                  {enabled ? "Enabled" : "Metadata only"}
+                </span>
+              </div>
+              <p className="mt-1.5 text-[11px] leading-5 text-zinc-600">
+                Store complete headers and body content for inspection and
+                request replay.
+              </p>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="h-5 w-9 shrink-0 animate-pulse rounded-full bg-white/[0.07]" />
+          ) : (
+            <button
+              type="button"
+              onClick={onToggle}
+              disabled={isUpdating}
+              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors ${
+                enabled
+                  ? "border-white/30 bg-white"
+                  : "border-white/[0.12] bg-white/[0.04]"
+              } ${isUpdating ? "cursor-not-allowed opacity-40" : ""}`}
+              aria-pressed={enabled}
+              aria-label="Toggle full request capture"
+            >
+              <span
+                className={`inline-block size-3.5 transform rounded-full transition-transform ${
+                  enabled
+                    ? "translate-x-[18px] bg-black"
+                    : "translate-x-0.5 bg-zinc-600"
+                }`}
+              />
+            </button>
+          )}
+        </div>
+
+        <div className="mt-6 flex items-start gap-2.5 border-t border-white/[0.07] pt-5 text-[10px] leading-4 text-amber-200/55">
+          <HugeiconsIcon
+            icon={InformationCircleIcon}
+            size={13}
+            strokeWidth={1.7}
+            className="mt-0.5 shrink-0"
+            aria-hidden="true"
+          />
+          <p>
+            Request and response bodies can contain sensitive data. Enable this
+            only when your traffic-handling policy permits storage.
+          </p>
+        </div>
+      </div>
+    </Modal>
   );
 }
