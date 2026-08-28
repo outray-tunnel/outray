@@ -30,10 +30,7 @@ export const Route = createFileRoute("/api/cli/login")({
             expiresAt,
           });
 
-          const baseUrl =
-            process.env.NODE_ENV === "development"
-              ? "http://localhost:3000"
-              : "https://outray.dev";
+          const baseUrl = process.env.APP_URL ?? new URL(request.url).origin;
 
           return Response.json({
             loginUrl: `${baseUrl}/cli/login?code=${code}`,
@@ -51,4 +48,3 @@ export const Route = createFileRoute("/api/cli/login")({
     },
   },
 });
-
