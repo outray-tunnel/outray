@@ -1,5 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, Clock, ChevronRight, Network } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  ArrowUpRight01Icon,
+  Route03Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import { type Tunnel } from "@/lib/app-client";
 
 export function ActiveTunnelsPanel({
@@ -12,20 +16,31 @@ export function ActiveTunnelsPanel({
   const hasTunnels = activeTunnels.length > 0;
 
   return (
-    <div className="bg-white/2 border border-white/5 rounded-2xl p-6 flex flex-col flex-1">
-      <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
-        <Network size={18} className="text-blue-400" />
-        Active Tunnels
-      </h3>
+    <section className="flex flex-1 flex-col border-y border-white/[0.07] py-5">
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-medium text-zinc-300">Active tunnels</h3>
+          <p className="mt-1 text-[11px] text-zinc-600">Recent connections</p>
+        </div>
+        <span className="text-[11px] tabular-nums text-zinc-700">
+          {activeTunnels.length} online
+        </span>
+      </div>
 
-      <div className="flex-1 overflow-y-auto space-y-3 pr-2 -mr-2 custom-scrollbar">
+      <div className="flex-1 divide-y divide-white/[0.06] overflow-y-auto">
         {!hasTunnels ? (
-          <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 py-8">
-            <Network size={32} className="mb-3 opacity-50" />
-            <p className="text-sm">No active tunnels</p>
+          <div className="flex h-full min-h-36 flex-col items-center justify-center py-8 text-center text-zinc-700">
+            <HugeiconsIcon
+              icon={Route03Icon}
+              size={24}
+              strokeWidth={1.5}
+              className="mb-3"
+              aria-hidden="true"
+            />
+            <p className="text-xs">No active tunnels</p>
             <Link
               to="/$orgSlug/tunnels"
-              className="mt-2 text-xs text-accent hover:underline"
+              className="mt-2 text-[11px] text-zinc-500 hover:text-white"
               params={{ orgSlug }}
             >
               Start your first tunnel
@@ -37,32 +52,27 @@ export function ActiveTunnelsPanel({
               key={tunnel.id}
               to="/$orgSlug/tunnels/$tunnelId"
               params={{ orgSlug, tunnelId: tunnel.id }}
-              className="block p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all group"
+              className="group flex items-center gap-3 py-3 text-xs transition-colors hover:text-white"
               search={{ tab: "overview" }}
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-2 h-2 rounded-full ${tunnel.isOnline ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
-                  />
-                  <span className="text-sm font-medium text-white truncate max-w-30">
-                    {tunnel.name || tunnel.id}
-                  </span>
-                </div>
-                <ChevronRight
-                  size={14}
-                  className="text-gray-500 group-hover:text-white transition-colors"
-                />
-              </div>
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span className="font-mono truncate max-w-35">
-                  {tunnel.url}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock size={10} />
-                  {new Date(tunnel.createdAt).toLocaleDateString()}
-                </span>
-              </div>
+              <span
+                className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                  tunnel.isOnline ? "bg-emerald-500" : "bg-red-500"
+                }`}
+              />
+              <span className="min-w-0 flex-1 truncate text-zinc-400">
+                {tunnel.name || tunnel.id}
+              </span>
+              <span className="truncate font-mono text-[10px] text-zinc-700">
+                {tunnel.url}
+              </span>
+              <HugeiconsIcon
+                icon={ArrowUpRight01Icon}
+                size={12}
+                strokeWidth={1.7}
+                className="text-zinc-700 group-hover:text-zinc-400"
+                aria-hidden="true"
+              />
             </Link>
           ))
         )}
@@ -71,13 +81,18 @@ export function ActiveTunnelsPanel({
       {hasTunnels && (
         <Link
           to="/$orgSlug/tunnels"
-          className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-400 hover:text-white transition-colors py-2 border-t border-white/5"
+          className="mt-3 flex items-center gap-1.5 pt-3 text-[11px] text-zinc-600 transition-colors hover:text-zinc-300"
           params={{ orgSlug }}
         >
           View all tunnels
-          <ArrowUpRight size={14} />
+          <HugeiconsIcon
+            icon={ArrowUpRight01Icon}
+            size={12}
+            strokeWidth={1.7}
+            aria-hidden="true"
+          />
         </Link>
       )}
-    </div>
+    </section>
   );
 }
