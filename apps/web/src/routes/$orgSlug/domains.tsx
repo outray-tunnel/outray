@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Globe, Plus } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Add01Icon,
+  Globe02Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import { appClient } from "@/lib/app-client";
 import { getPlanLimits } from "@/lib/subscription-plans";
 import { DomainHeader } from "@/components/domains/domain-header";
@@ -10,6 +14,7 @@ import { CreateDomainModal } from "@/components/domains/create-domain-modal";
 import { DomainCard } from "@/components/domains/domain-card";
 import { LimitModal } from "@/components/limit-modal";
 import { AlertModal } from "@/components/alert-modal";
+import { ResourceListSkeleton } from "@/components/resource-list-skeleton";
 
 export const Route = createFileRoute("/$orgSlug/domains")({
   head: () => ({
@@ -131,39 +136,11 @@ function DomainsView() {
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="h-8 w-48 bg-white/5 rounded mb-2" />
-            <div className="h-4 w-64 bg-white/5 rounded" />
-          </div>
-          <div className="h-10 w-40 bg-white/5 rounded-lg" />
-        </div>
-
-        <div className="grid gap-4">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between bg-white/2 border border-white/5 rounded-2xl p-6"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-white/5" />
-                <div>
-                  <div className="h-4 w-48 bg-white/5 rounded mb-2" />
-                  <div className="h-3 w-32 bg-white/5 rounded" />
-                </div>
-              </div>
-              <div className="h-8 w-8 bg-white/5 rounded-lg" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <ResourceListSkeleton />;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-6xl space-y-7">
       <DomainHeader
         currentDomainCount={currentDomainCount}
         domainLimit={domainLimit}
@@ -205,7 +182,7 @@ function DomainsView() {
         type={alertState.type}
       />
 
-      <div className="grid gap-4">
+      <div className="border-t border-white/[0.07]">
         {domains.map((domain: any) => (
           <DomainCard
             key={domain.id}
@@ -217,22 +194,25 @@ function DomainsView() {
         ))}
 
         {domains.length === 0 && !isCreating && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Globe className="w-8 h-8 text-white/20" />
-            </div>
-            <h3 className="text-lg font-medium text-white mb-2">
+          <div className="flex min-h-64 flex-col items-center justify-center border-b border-white/[0.07] py-12 text-center">
+            <HugeiconsIcon
+              icon={Globe02Icon}
+              size={27}
+              strokeWidth={1.5}
+              className="mb-4 text-zinc-700"
+            />
+            <h3 className="text-sm font-medium text-zinc-300">
               No custom domains
             </h3>
-            <p className="text-white/40 max-w-sm mx-auto mb-6">
+            <p className="mx-auto mb-6 mt-2 max-w-sm text-xs text-zinc-700">
               Add a custom domain to access your tunnels via your own branded
               URLs.
             </p>
             <button
               onClick={handleAddDomainClick}
-              className="px-4 py-2.5 bg-white text-black rounded-xl font-medium hover:bg-gray-200 transition-colors shadow-lg shadow-white/5 flex items-center gap-2 mx-auto"
+              className="mx-auto flex h-9 items-center gap-2 rounded-md bg-white px-3.5 text-[12px] font-medium text-black hover:bg-zinc-200"
             >
-              <Plus size={18} />
+              <HugeiconsIcon icon={Add01Icon} size={15} strokeWidth={1.9} />
               Add your first domain
             </button>
           </div>
