@@ -8,6 +8,7 @@ export interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
+  appearance?: "default" | "flat";
 }
 
 export interface ModalHeaderProps {
@@ -40,7 +41,13 @@ export function Modal({
   onClose,
   children,
   size = "md",
+  appearance = "default",
 }: ModalProps) {
+  const appearanceStyles =
+    appearance === "flat"
+      ? "bg-[#080808] border border-white/[0.08] rounded-xl shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
+      : "bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl";
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -57,7 +64,7 @@ export function Modal({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className={`w-full ${sizeStyles[size]} bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto flex flex-col max-h-[90vh]`}
+              className={`pointer-events-auto flex max-h-[90vh] w-full flex-col overflow-hidden ${sizeStyles[size]} ${appearanceStyles}`}
             >
               {children}
             </motion.div>
