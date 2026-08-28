@@ -8,6 +8,7 @@ import {
 import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { Sidebar } from "@/components/app-sidebar";
+import { ProductSubSidebar } from "@/components/product-sub-sidebar";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { MobileHeader } from "@/components/mobile-header";
 import { ArrowRight } from "lucide-react";
@@ -138,9 +139,10 @@ function DashboardLayout() {
         {/* Desktop sidebar - hidden on mobile */}
         <div className="hidden md:flex h-full">
           <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+          <ProductSubSidebar />
         </div>
 
-        <div className="flex-1 flex flex-col min-w-0 bg-[#101010] md:border md:border-white/5 md:m-2 md:rounded-2xl">
+        <main className="flex min-w-0 flex-1 flex-col bg-[#090909]">
           {/* <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-black">
            
           </header> */}
@@ -148,7 +150,7 @@ function DashboardLayout() {
           <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
             <Outlet />
           </div>
-        </div>
+        </main>
       </div>
 
       {/* Mobile bottom navigation */}
