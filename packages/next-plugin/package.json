@@ -34,7 +34,7 @@
     "next": "^13.0.0 || ^14.0.0 || ^15.0.0 || ^16.0.0"
   },
   "dependencies": {
-    "@outray/core": "^0.0.2"
+    "@outray/core": "^0.0.4"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

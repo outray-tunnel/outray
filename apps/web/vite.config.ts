@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => {
     ],
     server: {
       allowedHosts: true,
+      port: Number(env.WEB_PORT || 3000),
     },
   };
 });

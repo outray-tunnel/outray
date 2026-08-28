@@ -16,26 +16,10 @@ jobs:
           node-version: "20"
 
       - name: Install Dependencies
-        run: |
-          npm install
-          cd apps/web && npm install
+        run: npm ci
 
-      - name: Build Tunnel
-        run: |
-          cd apps/tunnel
-          npm run build
-
-      - name: Build Internal Check
-        run: |
-          cd apps/internal-check
-          npm install
-          npm run build
-
-      - name: Build Cron
-        run: |
-          cd apps/cron
-          npm install
-          npm run build
+      - name: Build Services
+        run: npm run build -- --filter=outray-tunnel --filter=outray-internal-check --filter=outray-cron
 
       - name: Deploy Tunnel Files
         uses: appleboy/scp-action@master

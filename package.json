@@ -1,23 +1,29 @@
 {
-  "name": "outray",
+  "name": "@outray/monorepo",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "workspaces": [
-    "apps/tunnel",
-    "apps/cli",
-    "apps/web"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
-    "install:all": "npm install && cd apps/tunnel && npm install && cd ../cli && npm install && cd ../web && npm install",
-    "dev:tunnel": "cd apps/tunnel && npm run dev",
-    "dev:web": "cd apps/web && npm run dev",
-    "build": "cd apps/tunnel && npm run build && cd ../cli && npm run build && cd ../web && npm run build"
+    "dev": "dotenv -e .env -- turbo run dev --env-mode=loose --filter=outray-web --filter=outray-tunnel --filter=outray-cron --filter=outray-internal-check",
+    "dev:web": "dotenv -e .env -- turbo run dev --env-mode=loose --filter=outray-web",
+    "dev:tunnel": "dotenv -e .env -- turbo run dev --env-mode=loose --filter=outray-tunnel",
+    "dev:cron": "dotenv -e .env -- turbo run dev --env-mode=loose --filter=outray-cron",
+    "dev:internal-check": "dotenv -e .env -- turbo run dev --env-mode=loose --filter=outray-internal-check",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "db:migrate": "dotenv -e .env -- npm run db:migrate --workspace=outray-web",
+    "db:generate-auth": "dotenv -e .env -- npm run db:generate-auth --workspace=outray-web"
   },
   "devDependencies": {
-    "typescript": "^5.7.2"
-  },
-  "dependencies": {
-    "axios": "^1.13.2",
-    "zustand": "^5.0.9"
+    "dotenv-cli": "^10.0.0",
+    "turbo": "^2.5.6"
   }
 }

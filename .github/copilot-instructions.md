@@ -54,18 +54,22 @@ Messages are JSON-encoded in [shared/types.ts](shared/types.ts). Key message typ
 # Install all workspaces
 npm install
 
-# Run dev servers (separate terminals)
-cd apps/web && npm run dev      # Dashboard on :3000
-cd apps/tunnel && npm run dev   # Tunnel server on :3547
-cd apps/cli && npm run dev      # CLI in watch mode
+# Configure the single local environment file
+cp .env.example .env
 
-# Build packages before using in other apps
-cd packages/core && npm run build
-cd packages/vite-plugin && npm run build
-cd packages/next-plugin && npm run build
+# Start web, tunnel, cron, and internal-check together
+npm run dev
+
+# Run one service and build its workspace dependencies
+npm run dev:web
+npm run dev:tunnel
+
+# Build or lint the complete workspace graph
+npm run build
+npm run lint
 
 # Database migrations
-cd apps/web && npx drizzle-kit push
+npm run db:migrate
 psql "$TIMESCALE_URL" -f deploy/setup_tigerdata.sql
 ```
 
@@ -78,7 +82,8 @@ Use UUIDs for all entity identifiers (tunnels, tokens, users, orgs). Generate wi
 Generated via `generateSubdomain()` using adjective-noun format (e.g., `quick-tiger`). Reserved slugs in [shared/reserved-slugs.ts](shared/reserved-slugs.ts).
 
 ### Environment Variables
-Each app has `.env.example`. Key variables:
+Local development uses the root `.env`, copied from the root `.env.example`. Key variables:
+- `WEB_PORT`, `TUNNEL_PORT`, `INTERNAL_CHECK_PORT` - Local service ports
 - `BASE_DOMAIN` - Tunnel domain (e.g., `outray.dev`)
 - `REDIS_URL` - Tunnel state and pub/sub
 - `DATABASE_URL` - PostgreSQL for web app
@@ -115,11 +120,12 @@ The `apps/internal-check` service validates domains for Caddy's on-demand TLS:
 ## CI/CD Workflows
 
 **deploy.yml** (on push to main):
-- Builds tunnel server, internal-check, and cron services
+- Installs the root lockfile and uses Turbo to build tunnel, internal-check, and cron
 - Deploys via SCP to production server
 - Restarts services via SSH
 
 **release.yml** (on version tags `v*`):
+- Installs the root lockfile and builds the CLI with its workspace dependencies
 - Builds CLI binaries for macOS (ARM64/x64), Linux, and Windows
 - Creates GitHub Release with tarballs/zips
 - Publishes `outray` CLI to npm

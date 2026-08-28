@@ -16,19 +16,16 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies
-        working-directory: apps/cli
         run: npm ci
 
-      - name: Build TypeScript
-        working-directory: apps/cli
-        run: npm run build
+      - name: Build CLI and workspace dependencies
+        run: npm run build -- --filter=outray
 
       - name: Build binaries
-        working-directory: apps/cli
-        run: npx pkg . --compress GZip
+        run: npm run build:binaries --workspace=outray
 
       - name: Prepare release assets
         working-directory: apps/cli/bin
@@ -59,16 +56,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        working-directory: apps/cli
         run: npm ci
 
       - name: Build
-        working-directory: apps/cli
-        run: npm run build
+        run: npm run build -- --filter=outray
 
       - name: Publish to npm
         working-directory: apps/cli

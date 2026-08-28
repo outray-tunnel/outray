@@ -23,7 +23,7 @@ export const SUBSCRIPTION_PLANS = {
     priceYearly: 70, // 2 months free ($7 × 10)
     priceNGN: 10000, // ₦10,000
     priceNGNYearly: 100000, // ₦100,000 (2 months free)
-    polarProductId: process.env.POLAR_RAY_PRODUCT_ID,
+    polarProductId: process.env.POLAR_PRODUCT_RAY,
     features: {
       maxTunnels: 3,
       maxDomains: 1,
@@ -41,7 +41,7 @@ export const SUBSCRIPTION_PLANS = {
     priceYearly: 150, // 2 months free ($15 × 10)
     priceNGN: 21000, // ₦21,000
     priceNGNYearly: 210000, // ₦210,000 (2 months free)
-    polarProductId: process.env.POLAR_BEAM_PRODUCT_ID,
+    polarProductId: process.env.POLAR_PRODUCT_BEAM,
     features: {
       maxTunnels: 5,
       maxDomains: 5,
@@ -59,7 +59,7 @@ export const SUBSCRIPTION_PLANS = {
     priceYearly: 1200, // 2 months free ($120 × 10)
     priceNGN: 170000, // ₦170,000
     priceNGNYearly: 1700000, // ₦1,700,000 (2 months free)
-    polarProductId: process.env.POLAR_PULSE_PRODUCT_ID,
+    polarProductId: process.env.POLAR_PRODUCT_PULSE,
     features: {
       maxTunnels: 20,
       maxDomains: 25,

@@ -47,7 +47,7 @@ connectDb();
 const db = drizzle(pool);
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = process.env.INTERNAL_CHECK_PORT || process.env.PORT || 3001;
 
 app.get("/internal/domain-check", async (req, res) => {
   const domain = req.query.domain as string;

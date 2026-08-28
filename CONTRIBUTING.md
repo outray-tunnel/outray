@@ -10,9 +10,9 @@ outray/
 │   ├── cli/             # CLI client for creating tunnels
 │   ├── cron/            # Background jobs (tunnel snapshots)
 │   ├── internal-check/  # Domain verification for Caddy on-demand TLS
-│   ├── landing/         # Marketing website (Astro)
 │   ├── tunnel/          # Tunnel server (HTTP, TCP, UDP proxying)
 │   └── web/             # Dashboard & API (React + TanStack Router)
+├── packages/            # Core client and framework integrations
 ├── shared/              # Shared utilities and types
 └── deploy/              # Deployment scripts and configs
 ```
@@ -42,20 +42,16 @@ outray/
 
 3. **Set up environment variables**
 
-   Copy `.env.example` to `.env` in each app directory and fill in the values:
+   Copy the root environment template and fill in the values:
 
    ```bash
-   cp apps/web/.env.example apps/web/.env
-   cp apps/tunnel/.env.example apps/tunnel/.env
-   cp apps/cron/.env.example apps/cron/.env
-   cp apps/internal-check/.env.example apps/internal-check/.env
+   cp .env.example .env
    ```
 
 4. **Run database migrations**
 
    ```bash
-   cd apps/web
-   npx drizzle-kit push
+   npm run db:migrate
    ```
 
 5. **Set up Tiger Data (TimescaleDB) tables**
@@ -69,15 +65,11 @@ outray/
 6. **Start development servers**
 
    ```bash
-   # Terminal 1: Web dashboard
-   cd apps/web && npm run dev
-
-   # Terminal 2: Tunnel server
-   cd apps/tunnel && npm run dev
-
-   # Terminal 3: CLI (for testing)
-   cd apps/cli && npm run dev
+   npm run dev
    ```
+
+   This starts the web, tunnel, cron, and internal-check services. PostgreSQL,
+   Redis, and TimescaleDB must already be running.
 
 ## Development
 
@@ -97,6 +89,16 @@ outray/
 
 - TypeScript CLI for creating tunnels
 - Supports HTTP, TCP, and UDP protocols
+
+### Common commands
+
+```bash
+npm run dev                 # All runtime services
+npm run dev:web             # A single service and its dependencies
+npm run build               # Every workspace in dependency order
+npm run lint                # Every workspace with a lint task
+npm run dev --workspace=outray  # CLI compiler in watch mode
+```
 
 ## Code Style
 

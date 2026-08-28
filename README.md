@@ -40,6 +40,7 @@ outray udp 53
 ### Requirements
 
 - Node.js 20+
+- npm 10+
 - PostgreSQL
 - Redis
 - Tiger Data (TimescaleDB)
@@ -52,12 +53,33 @@ outray/
 │   ├── cli/             # CLI client
 │   ├── cron/            # Background jobs
 │   ├── internal-check/  # Domain verification for Caddy
-│   ├── landing/         # Marketing website
 │   ├── tunnel/          # Tunnel server
 │   └── web/             # Dashboard & API
+├── packages/            # Core client and framework integrations
 ├── shared/              # Shared utilities
 └── deploy/              # Deployment configs
 ```
+
+## Development
+
+Install every workspace from the repository root and create the single local
+environment file:
+
+```bash
+npm install
+cp .env.example .env
+```
+
+Ensure PostgreSQL, Redis, and TimescaleDB are running, then start the web,
+tunnel, cron, and internal-check services together:
+
+```bash
+npm run dev
+```
+
+Use `npm run dev:web`, `npm run dev:tunnel`, `npm run dev:cron`, or
+`npm run dev:internal-check` to run a single service and its workspace
+dependencies.
 
 ## Documentation
 
