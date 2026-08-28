@@ -1,5 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CreditCard, Check, Loader2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  ArrowUpRight01Icon,
+  CheckmarkCircle02Icon,
+  CreditCardIcon,
+  Loading03Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   SUBSCRIPTION_PLANS,
@@ -17,6 +23,7 @@ import { PaystackSubscriptionModal } from "@/components/paystack-subscription-mo
 import { appClient } from "@/lib/app-client";
 import { Button } from "@/components/ui";
 import { SlidingToggle } from "@/components/ui/sliding-toggle";
+import { WorkspacePageHeader } from "@/components/workspace-page-header";
 
 type Currency = "USD" | "NGN";
 
@@ -112,20 +119,28 @@ function BillingView() {
 
   if (isCheckingPermission) {
     return (
-      <div className="flex items-center justify-center min-h-100">
-        <Loader2 className="w-8 h-8 animate-spin text-white/20" />
+      <div className="flex min-h-100 items-center justify-center text-zinc-700">
+        <HugeiconsIcon
+          icon={Loading03Icon}
+          size={20}
+          strokeWidth={1.7}
+          className="animate-spin"
+        />
       </div>
     );
   }
 
   if (!canManageBilling) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-100 text-center">
-        <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
-          <CreditCard className="w-8 h-8 text-gray-500" />
-        </div>
-        <h2 className="text-xl font-bold text-white mb-2">Access Denied</h2>
-        <p className="text-gray-400 max-w-md">
+      <div className="flex min-h-100 flex-col items-center justify-center border-y border-white/[0.07] py-12 text-center">
+        <HugeiconsIcon
+          icon={CreditCardIcon}
+          size={27}
+          strokeWidth={1.5}
+          className="mb-4 text-zinc-700"
+        />
+        <h2 className="text-sm font-medium text-zinc-300">Billing restricted</h2>
+        <p className="mt-2 max-w-md text-xs leading-5 text-zinc-600">
           You don't have permission to manage billing for this organization.
           Please contact an administrator if you need access.
         </p>
@@ -150,11 +165,6 @@ function BillingView() {
 
   // Lock currency and interval toggle if user has an active subscription
   const isProviderLocked = hasActiveSubscription;
-  const lockedCurrency: Currency | null = hasActiveSubscription
-    ? isPaystackSubscription
-      ? "NGN"
-      : "USD"
-    : null;
 
   const handleCheckout = async (plan: "ray" | "beam" | "pulse") => {
     if (isSessionLoading) {
@@ -320,81 +330,97 @@ function BillingView() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="mx-auto max-w-6xl space-y-7">
       {success && (
-        <div className="mb-6 bg-accent/10 border border-accent/20 rounded-xl p-4 flex items-center gap-3">
-          <Check className="w-5 h-5 text-accent shrink-0" />
+        <aside className="flex items-center gap-3 border-y border-emerald-400/20 py-4">
+          <HugeiconsIcon
+            icon={CheckmarkCircle02Icon}
+            size={16}
+            strokeWidth={1.8}
+            className="shrink-0 text-emerald-400"
+          />
           <div>
-            <p className="text-sm font-medium text-white">
-              Subscription activated successfully!
+            <p className="text-xs font-medium text-zinc-200">
+              Subscription activated
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="mt-1 text-[11px] text-zinc-600">
               Your plan has been upgraded and is now active.
             </p>
           </div>
-        </div>
+        </aside>
       )}
 
-      <div className="flex items-center justify-between mb-6 sm:mb-8">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Billing & Subscription
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Manage your subscription and billing details
-          </p>
-        </div>
-      </div>
+      <WorkspacePageHeader
+        title="Billing"
+        description="Manage your subscription, usage, and billing preferences."
+      />
 
       {isLoading ? (
-        <div className="flex items-center justify-center p-12">
-          <Loader2 className="w-8 h-8 animate-spin text-accent" />
+        <div className="flex min-h-64 items-center justify-center border-y border-white/[0.07] text-zinc-700">
+          <HugeiconsIcon
+            icon={Loading03Icon}
+            size={20}
+            strokeWidth={1.7}
+            className="animate-spin"
+          />
         </div>
       ) : (
         <>
-          <div className="bg-white/2 border border-white/5 rounded-2xl overflow-hidden mb-8">
-            <div className="p-6 border-b border-white/5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-accent/10 rounded-lg">
-                    <CreditCard className="w-5 h-5 text-accent" />
-                  </div>
+          <section className="border-y border-white/[0.07]">
+            <div className="flex flex-col gap-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3.5">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/[0.04] text-zinc-600">
+                  <HugeiconsIcon
+                    icon={CreditCardIcon}
+                    size={15}
+                    strokeWidth={1.7}
+                  />
+                </span>
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+                    Current plan
+                  </p>
                   <div>
-                    <h3 className="text-lg font-medium text-white">
-                      Current Plan:{" "}
+                    <h2 className="mt-1 text-sm font-medium text-zinc-200">
                       {
                         SUBSCRIPTION_PLANS[
                           currentPlan as keyof typeof SUBSCRIPTION_PLANS
                         ].name
                       }
-                    </h3>
-                    <p className="text-sm text-gray-500">
+                    </h2>
+                    <p className="mt-1 text-[11px] text-zinc-600">
                       {subscription?.status === "active"
                         ? "Active subscription"
                         : "No active subscription"}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-white">
+              </div>
+              <div className="sm:text-right">
+                <p className="text-2xl font-medium tracking-[-0.04em] text-zinc-200">
                     {currentCostDisplay}
-                  </p>
-                  <p className="text-sm text-gray-500">{intervalLabel}</p>
-                </div>
+                </p>
+                <p className="mt-1 text-[10px] text-zinc-700">
+                  {intervalLabel}
+                </p>
               </div>
               {currentPlan !== "free" && (
-                <div className="mt-4">
-                  <button
-                    onClick={handleManageSubscription}
-                    className="text-sm text-accent hover:text-accent/80 font-medium transition-colors"
-                  >
-                    Manage Subscription →
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleManageSubscription}
+                  className="flex w-fit items-center gap-1.5 text-[11px] font-medium text-zinc-400 transition-colors hover:text-white"
+                >
+                  Manage subscription
+                  <HugeiconsIcon
+                    icon={ArrowUpRight01Icon}
+                    size={12}
+                    strokeWidth={1.7}
+                  />
+                </button>
               )}
             </div>
 
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid border-t border-white/[0.07] sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.07]">
               <MetricBar
                 label="Tunnels"
                 value={data?.usage?.tunnels}
@@ -416,12 +442,19 @@ function BillingView() {
                 limit={planLimits.maxMembers}
               />
             </div>
-          </div>
+          </section>
 
-          <div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-              <h3 className="text-xl font-bold text-white">Available Plans</h3>
-              <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+          <section>
+            <div className="mb-5 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+              <div>
+                <h2 className="text-sm font-medium text-zinc-300">
+                  Available plans
+                </h2>
+                <p className="mt-1 text-[11px] text-zinc-600">
+                  Choose capacity that matches your workload.
+                </p>
+              </div>
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end">
                 {/* Billing Interval Toggle */}
                 <SlidingToggle
                   options={[
@@ -436,8 +469,8 @@ function BillingView() {
                       label: (
                         <span className="flex items-center gap-1.5">
                           Yearly
-                          <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">
-                            2 months free
+                          <span className="text-[9px] text-emerald-400">
+                            Save 2 months
                           </span>
                         </span>
                       ),
@@ -474,11 +507,11 @@ function BillingView() {
               </div>
             </div>
             {isProviderLocked && (
-              <p className="text-xs text-gray-500 mb-4 text-right">
+              <p className="mb-4 text-right text-[10px] text-zinc-700">
                 Cancel your current subscription to change billing options
               </p>
             )}
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid border-y border-white/[0.07] md:grid-cols-2 md:divide-x md:divide-white/[0.07] xl:grid-cols-4">
               {(
                 Object.entries(SUBSCRIPTION_PLANS).filter(
                   ([_, plan]) => !("hidden" in plan && plan.hidden),
@@ -558,7 +591,7 @@ function BillingView() {
                 );
               })}
             </div>
-          </div>
+          </section>
         </>
       )}
 
@@ -632,37 +665,38 @@ function PlanCard({
 
   return (
     <div
-      className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 ${
-        recommended
-          ? "bg-white/[0.02] border-accent/40 shadow-lg shadow-accent/5"
-          : "bg-[#0c0c0c] border-white/10 hover:border-white/20"
+      className={`relative flex flex-col border-b border-white/[0.07] px-5 py-6 transition-colors last:border-b-0 md:border-b-0 xl:px-6 ${
+        recommended ? "bg-white/[0.025]" : "hover:bg-white/[0.015]"
       }`}
     >
       {recommended && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-accent text-white text-xs font-medium rounded-full">
+        <div className="absolute right-5 top-6 text-[9px] font-medium uppercase tracking-[0.08em] text-accent">
           Recommended
         </div>
       )}
 
-      <div className="mb-8 relative">
-        <h3 className="text-xl font-bold mb-2 text-white">{name}</h3>
-        <p className="text-xs text-gray-500 mb-4">{description}</p>
-        <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-bold text-white">
+      <div className="relative mb-7">
+        <h3 className="text-sm font-medium text-zinc-200">{name}</h3>
+        <p className="mb-5 mt-1 text-[11px] text-zinc-600">{description}</p>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-3xl font-medium tracking-[-0.045em] text-white">
             {currencySymbol}
             {formattedPrice}
           </span>
-          <span className="text-white/40">{intervalLabel}</span>
+          <span className="text-[10px] text-zinc-700">{intervalLabel}</span>
         </div>
       </div>
 
-      <div className="flex-1 space-y-3 mb-8">
+      <div className="mb-7 flex-1 space-y-3">
         {features.map((feature, index) => (
-          <div key={index} className="flex items-center gap-3 text-sm">
-            <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-              <Check size={12} className="text-white" />
-            </div>
-            <span className="text-white/80">{feature}</span>
+          <div key={index} className="flex items-center gap-2.5 text-[11px]">
+            <HugeiconsIcon
+              icon={CheckmarkCircle02Icon}
+              size={13}
+              strokeWidth={1.7}
+              className="shrink-0 text-zinc-700"
+            />
+            <span className="text-zinc-500">{feature}</span>
           </div>
         ))}
       </div>
@@ -673,7 +707,7 @@ function PlanCard({
         variant={
           current || isFree ? "secondary" : recommended ? "primary" : "primary"
         }
-        className={`w-full py-3 rounded-full font-medium ${
+        className={`w-full !rounded-md py-2.5 text-xs font-medium ${
           current || isFree
             ? ""
             : recommended
@@ -683,7 +717,12 @@ function PlanCard({
       >
         {isLoading ? (
           <span className="flex items-center justify-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <HugeiconsIcon
+              icon={Loading03Icon}
+              size={14}
+              strokeWidth={1.7}
+              className="animate-spin"
+            />
             Processing...
           </span>
         ) : current ? (
@@ -713,14 +752,16 @@ function MetricBar({
     limit === -1 ? 0 : Math.min(100, Math.max(0, ((value || 0) / limit) * 100));
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-gray-500">{label}</span>
-        <span className="text-xs font-medium text-white">
+    <div className="border-b border-white/[0.07] py-5 last:border-b-0 sm:px-5 lg:border-b-0 lg:px-6 first:pl-0">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+          {label}
+        </span>
+        <span className="text-[10px] font-medium text-zinc-500">
           {value ?? "-"} / {limit === -1 ? "∞" : limit}
         </span>
       </div>
-      <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+      <div className="h-px w-full bg-white/[0.07]">
         <div
           className="h-full bg-accent transition-all duration-500 ease-out"
           style={{ width: `${percentage}%` }}
