@@ -1,5 +1,5 @@
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Add01Icon } from "@hugeicons-pro/core-stroke-rounded";
 
 interface SubdomainHeaderProps {
   currentSubdomainCount: number;
@@ -17,24 +17,28 @@ export function SubdomainHeader({
   onAddClick,
 }: SubdomainHeaderProps) {
   return (
-    <div className="flex items-start sm:items-center justify-between gap-4">
+    <header className="flex items-end justify-between gap-6 border-b border-white/[0.07] pb-7">
       <div className="min-w-0 flex-1">
-        <h1 className="text-xl sm:text-2xl font-semibold text-white">
+        <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-700">
+          Tunnels
+        </p>
+        <h1 className="text-2xl font-semibold tracking-[-0.035em] text-white">
           Subdomains
         </h1>
-        <p className="text-xs sm:text-sm text-gray-400 mt-1">
-          Reserve subdomains for your tunnels · {currentSubdomainCount} /{" "}
-          {isUnlimited ? "∞" : subdomainLimit} subdomains
+        <p className="mt-2 text-sm text-zinc-500">
+          Reserve stable OutRay addresses · {currentSubdomainCount} of{" "}
+          {isUnlimited ? "∞" : subdomainLimit} used
         </p>
       </div>
-      <Button
+      <button
+        type="button"
         onClick={onAddClick}
         disabled={isAtLimit}
-        leftIcon={<Plus size={18} />}
-        className="shrink-0"
+        className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-white px-3.5 text-[12px] font-medium text-black transition-colors hover:bg-zinc-200 disabled:opacity-40"
       >
-        <span className="hidden sm:inline">Reserve Subdomain</span>
-      </Button>
-    </div>
+        <HugeiconsIcon icon={Add01Icon} size={15} strokeWidth={1.9} />
+        <span className="hidden sm:inline">Reserve subdomain</span>
+      </button>
+    </header>
   );
 }
