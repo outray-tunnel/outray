@@ -434,7 +434,7 @@ async function main() {
     (isDev ? "ws://localhost:3547" : "wss://api.outray.dev/");
   const webUrl =
     process.env.OUTRAY_WEB_URL ||
-    (isDev ? "http://localhost:3000" : "https://outray.dev");
+    (isDev ? "http://localhost:6767" : "https://outray.dev");
 
   const configManager = new ConfigManager(isDev);
 
