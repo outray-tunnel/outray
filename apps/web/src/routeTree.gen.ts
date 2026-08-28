@@ -42,7 +42,9 @@ import { Route as AdminActionsRouteImport } from './routes/admin/actions'
 import { Route as OrgSlugTokensRouteImport } from './routes/$orgSlug/tokens'
 import { Route as OrgSlugSubdomainsRouteImport } from './routes/$orgSlug/subdomains'
 import { Route as OrgSlugSettingsRouteImport } from './routes/$orgSlug/settings'
+import { Route as OrgSlugSecretsRouteImport } from './routes/$orgSlug/secrets'
 import { Route as OrgSlugRequestsRouteImport } from './routes/$orgSlug/requests'
+import { Route as OrgSlugObservabilityRouteImport } from './routes/$orgSlug/observability'
 import { Route as OrgSlugMembersRouteImport } from './routes/$orgSlug/members'
 import { Route as OrgSlugInstallRouteImport } from './routes/$orgSlug/install'
 import { Route as OrgSlugDomainsRouteImport } from './routes/$orgSlug/domains'
@@ -272,9 +274,19 @@ const OrgSlugSettingsRoute = OrgSlugSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => OrgSlugRoute,
 } as any)
+const OrgSlugSecretsRoute = OrgSlugSecretsRouteImport.update({
+  id: '/secrets',
+  path: '/secrets',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
 const OrgSlugRequestsRoute = OrgSlugRequestsRouteImport.update({
   id: '/requests',
   path: '/requests',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
+const OrgSlugObservabilityRoute = OrgSlugObservabilityRouteImport.update({
+  id: '/observability',
+  path: '/observability',
   getParentRoute: () => OrgSlugRoute,
 } as any)
 const OrgSlugMembersRoute = OrgSlugMembersRouteImport.update({
@@ -633,7 +645,9 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
   '/$orgSlug/install': typeof OrgSlugInstallRoute
   '/$orgSlug/members': typeof OrgSlugMembersRoute
+  '/$orgSlug/observability': typeof OrgSlugObservabilityRoute
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
+  '/$orgSlug/secrets': typeof OrgSlugSecretsRoute
   '/$orgSlug/settings': typeof OrgSlugSettingsRouteWithChildren
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
@@ -731,7 +745,9 @@ export interface FileRoutesByTo {
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
   '/$orgSlug/install': typeof OrgSlugInstallRoute
   '/$orgSlug/members': typeof OrgSlugMembersRoute
+  '/$orgSlug/observability': typeof OrgSlugObservabilityRoute
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
+  '/$orgSlug/secrets': typeof OrgSlugSecretsRoute
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
   '/admin/actions': typeof AdminActionsRoute
@@ -830,7 +846,9 @@ export interface FileRoutesById {
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
   '/$orgSlug/install': typeof OrgSlugInstallRoute
   '/$orgSlug/members': typeof OrgSlugMembersRoute
+  '/$orgSlug/observability': typeof OrgSlugObservabilityRoute
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
+  '/$orgSlug/secrets': typeof OrgSlugSecretsRoute
   '/$orgSlug/settings': typeof OrgSlugSettingsRouteWithChildren
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
@@ -931,7 +949,9 @@ export interface FileRouteTypes {
     | '/$orgSlug/domains'
     | '/$orgSlug/install'
     | '/$orgSlug/members'
+    | '/$orgSlug/observability'
     | '/$orgSlug/requests'
+    | '/$orgSlug/secrets'
     | '/$orgSlug/settings'
     | '/$orgSlug/subdomains'
     | '/$orgSlug/tokens'
@@ -1029,7 +1049,9 @@ export interface FileRouteTypes {
     | '/$orgSlug/domains'
     | '/$orgSlug/install'
     | '/$orgSlug/members'
+    | '/$orgSlug/observability'
     | '/$orgSlug/requests'
+    | '/$orgSlug/secrets'
     | '/$orgSlug/subdomains'
     | '/$orgSlug/tokens'
     | '/admin/actions'
@@ -1127,7 +1149,9 @@ export interface FileRouteTypes {
     | '/$orgSlug/domains'
     | '/$orgSlug/install'
     | '/$orgSlug/members'
+    | '/$orgSlug/observability'
     | '/$orgSlug/requests'
+    | '/$orgSlug/secrets'
     | '/$orgSlug/settings'
     | '/$orgSlug/subdomains'
     | '/$orgSlug/tokens'
@@ -1507,11 +1531,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugSettingsRouteImport
       parentRoute: typeof OrgSlugRoute
     }
+    '/$orgSlug/secrets': {
+      id: '/$orgSlug/secrets'
+      path: '/secrets'
+      fullPath: '/$orgSlug/secrets'
+      preLoaderRoute: typeof OrgSlugSecretsRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
     '/$orgSlug/requests': {
       id: '/$orgSlug/requests'
       path: '/requests'
       fullPath: '/$orgSlug/requests'
       preLoaderRoute: typeof OrgSlugRequestsRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/$orgSlug/observability': {
+      id: '/$orgSlug/observability'
+      path: '/observability'
+      fullPath: '/$orgSlug/observability'
+      preLoaderRoute: typeof OrgSlugObservabilityRouteImport
       parentRoute: typeof OrgSlugRoute
     }
     '/$orgSlug/members': {
@@ -1979,7 +2017,9 @@ interface OrgSlugRouteChildren {
   OrgSlugDomainsRoute: typeof OrgSlugDomainsRoute
   OrgSlugInstallRoute: typeof OrgSlugInstallRoute
   OrgSlugMembersRoute: typeof OrgSlugMembersRoute
+  OrgSlugObservabilityRoute: typeof OrgSlugObservabilityRoute
   OrgSlugRequestsRoute: typeof OrgSlugRequestsRoute
+  OrgSlugSecretsRoute: typeof OrgSlugSecretsRoute
   OrgSlugSettingsRoute: typeof OrgSlugSettingsRouteWithChildren
   OrgSlugSubdomainsRoute: typeof OrgSlugSubdomainsRoute
   OrgSlugTokensRoute: typeof OrgSlugTokensRoute
@@ -1993,7 +2033,9 @@ const OrgSlugRouteChildren: OrgSlugRouteChildren = {
   OrgSlugDomainsRoute: OrgSlugDomainsRoute,
   OrgSlugInstallRoute: OrgSlugInstallRoute,
   OrgSlugMembersRoute: OrgSlugMembersRoute,
+  OrgSlugObservabilityRoute: OrgSlugObservabilityRoute,
   OrgSlugRequestsRoute: OrgSlugRequestsRoute,
+  OrgSlugSecretsRoute: OrgSlugSecretsRoute,
   OrgSlugSettingsRoute: OrgSlugSettingsRouteWithChildren,
   OrgSlugSubdomainsRoute: OrgSlugSubdomainsRoute,
   OrgSlugTokensRoute: OrgSlugTokensRoute,
