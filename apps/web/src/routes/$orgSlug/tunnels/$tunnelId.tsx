@@ -143,7 +143,7 @@ function TunnelDetailView() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-6xl space-y-7">
       <div className="flex flex-col gap-6">
         <TunnelHeader
           tunnel={tunnel}
