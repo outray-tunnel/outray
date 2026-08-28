@@ -1,4 +1,5 @@
-import { Activity } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Activity03Icon } from "@hugeicons-pro/core-stroke-rounded";
 import {
   AreaChart,
   Area,
@@ -37,7 +38,7 @@ export function TunnelOverview({
 }: TunnelOverviewProps) {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid border-y border-white/[0.07] md:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.07]">
         {[
           {
             label: "Total Requests",
@@ -66,13 +67,13 @@ export function TunnelOverview({
         ].map((stat, i) => (
           <div
             key={i}
-            className="bg-white/2 border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-all group"
+            className="px-1 py-5 lg:px-6 first:pl-1"
           >
-            <div className="text-sm text-gray-500 font-medium mb-2">
+            <div className="mb-2 text-[11px] text-zinc-600">
               {stat.label}
             </div>
             <div className="flex items-end justify-between">
-              <div className="text-2xl font-semibold text-white">
+              <div className="text-2xl font-medium tracking-[-0.04em] text-zinc-200">
                 {stat.value}
               </div>
               {stat.change && (
@@ -92,26 +93,26 @@ export function TunnelOverview({
           </div>
         ))}
       </div>
-      <div className="bg-white/2 border border-white/5 rounded-2xl p-6 relative">
+      <section className="relative border-y border-white/[0.07] py-5">
         {isPlaceholderData && (
-          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm z-10 rounded-2xl flex items-center justify-center transition-all duration-200">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-sm transition-all duration-200">
             <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
           </div>
         )}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-medium text-white">Traffic Overview</h3>
-            <p className="text-sm text-gray-500">Requests over time</p>
+            <h3 className="text-sm font-medium text-zinc-300">Traffic overview</h3>
+            <p className="mt-1 text-[11px] text-zinc-600">Requests over time</p>
           </div>
-          <div className="flex bg-white/5 rounded-lg p-1">
+          <div className="flex border-b border-white/[0.07]">
             {["1h", "24h", "7d", "30d"].map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                className={`border-b px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
                   timeRange === range
-                    ? "bg-white/10 text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-300"
+                    ? "border-accent text-zinc-200"
+                    : "border-transparent text-zinc-700 hover:text-zinc-400"
                 }`}
               >
                 {range}
@@ -180,7 +181,7 @@ export function TunnelOverview({
                   contentStyle={{
                     backgroundColor: "#0A0A0A",
                     border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "12px",
+                  borderRadius: "6px",
                     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                   }}
                   itemStyle={{ color: "#fff" }}
@@ -206,13 +207,18 @@ export function TunnelOverview({
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-gray-500 bg-white/5 rounded-xl border border-white/5 border-dashed">
-              <Activity size={32} className="mb-2 opacity-50" />
-              <p>No traffic data available yet</p>
+            <div className="flex h-full flex-col items-center justify-center text-zinc-700">
+              <HugeiconsIcon
+                icon={Activity03Icon}
+                size={25}
+                strokeWidth={1.5}
+                className="mb-3"
+              />
+              <p className="text-xs">No traffic data available yet</p>
             </div>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }
