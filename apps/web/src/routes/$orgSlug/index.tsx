@@ -88,7 +88,7 @@ function OverviewView() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-6xl space-y-7">
       <OverviewHeader
         isAtLimit={isAtLimit}
         onNewTunnelClick={handleNewTunnelClick}
@@ -96,7 +96,7 @@ function OverviewView() {
 
       <StatsSummary stats={stats} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-7 lg:grid-cols-3">
         <RequestActivityCard
           stats={stats}
           timeRange={timeRange}
@@ -104,7 +104,7 @@ function OverviewView() {
           isPlaceholderData={isPlaceholderData}
         />
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-7">
           <BandwidthUsage />
           <ActiveTunnelsPanel activeTunnels={activeTunnels} orgSlug={orgSlug} />
         </div>
