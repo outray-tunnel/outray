@@ -1,15 +1,13 @@
 import { useState } from "react";
 import {
   Globe,
-  CheckCircle,
-  AlertCircle,
   Info,
   Copy,
   Trash2,
   Check,
 } from "lucide-react";
 import { ConfirmModal } from "../confirm-modal";
-import { Button, IconButton, Badge } from "@/components/ui";
+import { Button, Badge } from "@/components/ui";
 
 interface Domain {
   id: string;
@@ -68,15 +66,15 @@ export function DomainCard({
   const txtValue = domain.id;
 
   return (
-    <div className="group bg-white/2 border border-white/5 rounded-2xl p-4 sm:p-6 hover:border-white/10 transition-all">
+    <div className="group border-b border-white/[0.06] px-1 py-5">
       {/* Header row with icon, domain info, and delete button */}
       <div className="flex items-start gap-3 sm:gap-4">
-        <div className="hidden sm:flex w-10 h-10 rounded-full bg-white/5 items-center justify-center shrink-0">
-          <Globe className="w-5 h-5 text-white/40" />
+        <div className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/[0.04] ring-1 ring-white/[0.06] sm:flex">
+          <Globe className="h-4 w-4 text-zinc-600" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <h3 className="text-base sm:text-lg font-medium text-white break-all">
+            <h3 className="break-all text-[13px] font-medium text-zinc-300">
               {domain.domain}
             </h3>
             {domain.status === "active" ? (
@@ -93,7 +91,7 @@ export function DomainCard({
               </Badge>
             )}
           </div>
-          <p className="text-xs sm:text-sm text-white/40 mt-1">
+          <p className="mt-1 text-[10px] text-zinc-700">
             Added on {new Date(domain.createdAt).toLocaleDateString()}
           </p>
         </div>
@@ -110,7 +108,7 @@ export function DomainCard({
               confirmText: "Delete",
             });
           }}
-          className="p-2 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-500/10 text-white/40 sm:text-white/20 hover:text-red-400 rounded-lg transition-all shrink-0"
+          className="shrink-0 p-2 text-zinc-800 transition-all hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"
           title="Remove domain"
         >
           <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -119,31 +117,31 @@ export function DomainCard({
 
       {/* DNS Configuration section - full width below header */}
       {domain.status !== "active" && (
-        <div className="mt-4 bg-black/20 rounded-xl border border-white/5 overflow-hidden">
-          <div className="p-3 sm:p-4 border-b border-white/5 flex items-start gap-3">
-            <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded-lg shrink-0">
+        <div className="mt-5 border-t border-white/[0.06] pt-5">
+          <div className="flex items-start gap-3 border-b border-white/[0.06] pb-4">
+            <div className="shrink-0 text-zinc-600">
               <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-medium text-white mb-1">
+              <h4 className="mb-1 text-xs font-medium text-zinc-300">
                 DNS Configuration
               </h4>
-              <p className="text-[11px] sm:text-xs text-white/60 leading-relaxed">
+              <p className="text-[11px] leading-relaxed text-zinc-600">
                 Add these records to your domain provider to verify ownership
                 and route traffic.
               </p>
             </div>
           </div>
 
-          <div className="p-3 sm:p-4 space-y-3">
+          <div className="space-y-5 py-4">
             {/* CNAME Record */}
-            <div className="bg-white/5 rounded-lg border border-white/5 overflow-hidden">
+            <div className="border-b border-white/[0.06] pb-5">
               <div className="p-3 space-y-3">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-medium ring-1 ring-inset ring-blue-500/20">
+                <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-blue-400">
                   CNAME
                 </span>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2 p-2 bg-black/20 rounded-lg">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.05] py-2">
                     <div className="min-w-0">
                       <span className="text-[10px] text-white/40 uppercase block mb-0.5">
                         Name
@@ -165,7 +163,7 @@ export function DomainCard({
                       )}
                     </button>
                   </div>
-                  <div className="flex items-center justify-between gap-2 p-2 bg-black/20 rounded-lg">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.05] py-2">
                     <div className="min-w-0 flex-1">
                       <span className="text-[10px] text-white/40 uppercase block mb-0.5">
                         Value
@@ -192,13 +190,13 @@ export function DomainCard({
             </div>
 
             {/* TXT Record */}
-            <div className="bg-white/5 rounded-lg border border-white/5 overflow-hidden">
+            <div>
               <div className="p-3 space-y-3">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 text-xs font-medium ring-1 ring-inset ring-purple-500/20">
+                <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-accent">
                   TXT
                 </span>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2 p-2 bg-black/20 rounded-lg">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.05] py-2">
                     <div className="min-w-0 flex-1">
                       <span className="text-[10px] text-white/40 uppercase block mb-0.5">
                         Name
@@ -220,7 +218,7 @@ export function DomainCard({
                       )}
                     </button>
                   </div>
-                  <div className="flex items-center justify-between gap-2 p-2 bg-black/20 rounded-lg">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.05] py-2">
                     <div className="min-w-0 flex-1">
                       <span className="text-[10px] text-white/40 uppercase block mb-0.5">
                         Value
@@ -247,7 +245,7 @@ export function DomainCard({
             </div>
           </div>
 
-          <div className="px-3 sm:px-4 pb-3 sm:pb-4">
+          <div className="pt-1">
             <Button
               onClick={() => onVerify(domain.id)}
               disabled={isVerifying}
