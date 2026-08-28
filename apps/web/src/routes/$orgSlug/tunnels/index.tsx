@@ -1,126 +1,68 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Globe,
-  Copy,
-  MoreVertical,
-  ArrowUpDown,
-  LayoutGrid,
-  List,
-  Search,
-  Check,
-  Plus,
-  AlertTriangle,
-} from "lucide-react";
+  Add01Icon,
+  Alert02Icon,
+  ArrowRight01Icon,
+  Copy01Icon,
+  Route03Icon,
+  Search01Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import { appClient } from "@/lib/app-client";
 import { getPlanLimits } from "@/lib/subscription-plans";
 import { NewTunnelModal } from "@/components/new-tunnel-modal";
 import { LimitModal } from "@/components/limit-modal";
-import { Button } from "@/components/ui";
 
 export const Route = createFileRoute("/$orgSlug/tunnels/")({
-  head: () => ({
-    meta: [
-      { title: "Tunnels - OutRay" },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "Tunnels - OutRay" }] }),
   component: TunnelsView,
 });
 
 function TunnelsView() {
   const { orgSlug } = Route.useParams();
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name">("newest");
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
-  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name">(
+    "newest",
+  );
   const [isNewTunnelModalOpen, setIsNewTunnelModalOpen] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
 
   const { data: subscriptionData } = useQuery({
     queryKey: ["subscription", orgSlug],
     queryFn: async () => {
-      if (!orgSlug) return null;
       const response = await appClient.subscriptions.get(orgSlug);
       if ("error" in response) throw new Error(response.error);
       return response;
     },
-    enabled: !!orgSlug,
   });
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["tunnels", orgSlug],
-    queryFn: () => {
-      if (!orgSlug) throw new Error("No active organization");
-      return appClient.tunnels.list(orgSlug);
-    },
-    enabled: !!orgSlug,
+    queryFn: () => appClient.tunnels.list(orgSlug),
   });
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="flex items-center justify-between gap-4 opacity-50 pointer-events-none">
-          <div className="relative flex-1 max-w-md">
-            <div className="h-10 bg-white/5 rounded-lg w-full" />
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-24 bg-white/5 rounded-lg" />
-            <div className="h-10 w-20 bg-white/5 rounded-lg" />
-            <div className="h-9 w-px bg-white/10 mx-1" />
-            <div className="h-10 w-20 bg-white/5 rounded-lg" />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-white/2 border border-white/5 rounded-2xl p-6"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-white/5" />
-                  <div>
-                    <div className="h-4 w-32 bg-white/5 rounded mb-2" />
-                    <div className="h-3 w-48 bg-white/5 rounded" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-8">
-                  <div className="flex items-center gap-6">
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="h-2 w-12 bg-white/5 rounded" />
-                      <div className="h-3 w-16 bg-white/5 rounded" />
-                    </div>
-                    <div className="h-8 w-px bg-white/5" />
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="h-2 w-12 bg-white/5 rounded" />
-                      <div className="h-3 w-20 bg-white/5 rounded" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error || (data && "error" in data)) {
-    return (
-      <div className="flex items-center justify-center h-64 text-red-500">
-        Failed to load tunnels
-      </div>
-    );
-  }
-
   const tunnels = data && "tunnels" in data ? data.tunnels : [];
-  const subscription = subscriptionData?.subscription;
-  const currentPlan = subscription?.plan || "free";
-  const planLimits = getPlanLimits(currentPlan as any);
-  const tunnelLimit = planLimits.maxTunnels;
-  const isAtLimit = tunnels.length >= tunnelLimit;
+  const currentPlan = subscriptionData?.subscription?.plan || "free";
+  const tunnelLimit = getPlanLimits(currentPlan as any).maxTunnels;
+  const isAtLimit = tunnelLimit !== -1 && tunnels.length >= tunnelLimit;
+
+  const filteredTunnels = tunnels
+    .filter(
+      (tunnel) =>
+        tunnel.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tunnel.url.toLowerCase().includes(searchQuery.toLowerCase()),
+    )
+    .sort((a, b) => {
+      if (sortBy === "newest") {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      if (sortBy === "oldest") {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      return (a.name || "").localeCompare(b.name || "");
+    });
 
   const handleNewTunnelClick = () => {
     if (isAtLimit) {
@@ -130,281 +72,199 @@ function TunnelsView() {
     setIsNewTunnelModalOpen(true);
   };
 
-  const filteredTunnels = tunnels
-    .filter(
-      (t) =>
-        t.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.url.toLowerCase().includes(searchQuery.toLowerCase()),
-    )
-    .sort((a, b) => {
-      if (sortBy === "newest")
-        return (
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-      if (sortBy === "oldest")
-        return (
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-      if (sortBy === "name") return (a.name || "").localeCompare(b.name || "");
-      return 0;
-    });
+  if (error || (data && "error" in data)) {
+    return (
+      <div className="flex min-h-64 items-center justify-center text-xs text-red-400">
+        Failed to load tunnels
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-6xl space-y-7">
+      <header className="flex items-end justify-between gap-6 border-b border-white/[0.07] pb-7">
+        <div>
+          <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-700">
+            Tunnels
+          </p>
+          <h1 className="text-2xl font-semibold tracking-[-0.035em] text-white">
+            Active tunnels
+          </h1>
+          <p className="mt-2 text-sm text-zinc-500">
+            Manage public endpoints connected to your local services.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleNewTunnelClick}
+          disabled={isAtLimit}
+          className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-white px-3.5 text-[12px] font-medium text-black transition-colors hover:bg-zinc-200 disabled:opacity-40"
+        >
+          <HugeiconsIcon icon={Add01Icon} size={15} strokeWidth={1.9} />
+          <span className="hidden sm:inline">New tunnel</span>
+        </button>
+      </header>
+
       {isAtLimit && (
-        <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 flex items-center gap-3">
-          <div className="p-2 bg-orange-500/10 rounded-lg text-orange-500">
-            <AlertTriangle size={20} />
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-orange-200">
-              Tunnel Limit Reached
-            </h3>
-            <p className="text-xs text-orange-200/60 mt-0.5">
-              You have reached the limit of {tunnelLimit} tunnels on the{" "}
-              <span className="capitalize">{currentPlan}</span> plan. Upgrade to
-              create more.
+        <div className="flex items-start gap-3 border-y border-amber-500/20 py-4 text-amber-300">
+          <HugeiconsIcon
+            icon={Alert02Icon}
+            size={16}
+            strokeWidth={1.7}
+            className="mt-0.5 shrink-0"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium">Tunnel limit reached</p>
+            <p className="mt-1 text-[11px] text-amber-300/50">
+              The {currentPlan} plan includes {tunnelLimit} tunnels.
             </p>
           </div>
           <Link
             to="/$orgSlug/billing"
             params={{ orgSlug }}
-            className="ml-auto px-4 py-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-200 text-xs font-medium rounded-lg transition-colors"
+            className="text-[11px] font-medium text-amber-300 hover:text-amber-200"
           >
-            Upgrade Plan
+            Upgrade plan
           </Link>
         </div>
       )}
 
-      <div className="flex items-start sm:items-center justify-between gap-4 flex-wrap">
-        <div className="relative flex-1 min-w-0 max-w-md group">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-accent transition-colors"
-            size={16}
-          />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <label className="flex h-9 max-w-sm flex-1 items-center gap-2 border-b border-white/[0.09] text-zinc-600 focus-within:border-white/20 focus-within:text-zinc-400">
+          <HugeiconsIcon icon={Search01Icon} size={15} strokeWidth={1.7} />
           <input
-            type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search tunnels..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:border-accent/50 focus:bg-white/10 transition-all"
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search tunnels"
+            className="min-w-0 flex-1 bg-transparent text-[12px] text-zinc-300 outline-none placeholder:text-zinc-700"
           />
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="relative">
-            <button
-              onClick={() => setIsSortOpen(!isSortOpen)}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-white/10 transition-all sm:min-w-35 justify-between"
-            >
-              <div className="flex items-center gap-2">
-                <ArrowUpDown size={16} />
-                <span className="capitalize hidden sm:inline">{sortBy}</span>
-              </div>
-            </button>
-
-            {isSortOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setIsSortOpen(false)}
-                />
-                <div className="absolute right-0 top-full mt-2 w-40 bg-[#0A0A0A] border border-white/10 rounded-xl overflow-hidden shadow-xl z-20 py-1">
-                  {(["newest", "oldest", "name"] as const).map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        setSortBy(option);
-                        setIsSortOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white flex items-center justify-between"
-                    >
-                      <span className="capitalize">{option}</span>
-                      {sortBy === option && (
-                        <Check size={14} className="text-accent" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* View mode toggle - hidden on mobile (always grid on mobile) */}
-          <div className="hidden sm:block h-9 w-px bg-white/10 mx-1" />
-
-          <div className="hidden sm:flex bg-white/5 border border-white/10 rounded-xl p-1">
-            <button
-              onClick={() => setViewMode("list")}
-              className={`p-2 rounded-lg transition-all ${
-                viewMode === "list"
-                  ? "bg-white/10 text-white shadow-sm"
-                  : "text-gray-500 hover:text-gray-300"
-              }`}
-            >
-              <List size={16} />
-            </button>
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`p-2 rounded-lg transition-all ${
-                viewMode === "grid"
-                  ? "bg-white/10 text-white shadow-sm"
-                  : "text-gray-500 hover:text-gray-300"
-              }`}
-            >
-              <LayoutGrid size={16} />
-            </button>
-          </div>
-
-          <Button
-            onClick={handleNewTunnelClick}
-            disabled={isAtLimit}
-            leftIcon={<Plus size={18} />}
+        </label>
+        <label className="flex items-center gap-2 text-[11px] text-zinc-700">
+          Sort
+          <select
+            value={sortBy}
+            onChange={(event) =>
+              setSortBy(event.target.value as "newest" | "oldest" | "name")
+            }
+            className="bg-transparent py-2 text-[11px] text-zinc-400 outline-none"
           >
-            <span className="hidden sm:inline">New Tunnel</span>
-          </Button>
-        </div>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="name">Name</option>
+          </select>
+        </label>
       </div>
 
-      {/* Grid on mobile, respect viewMode on larger screens */}
-      <div
-        className={`grid grid-cols-1 gap-4 ${
-          viewMode === "grid"
-            ? "sm:grid-cols-2 lg:grid-cols-3"
-            : "sm:grid-cols-1"
-        }`}
-      >
-        {filteredTunnels.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-gray-500">
-            {searchQuery
-              ? "No tunnels match your search"
-              : "No tunnels found. Start one using the CLI!"}
+      <section className="border-y border-white/[0.07]">
+        <div className="hidden grid-cols-[minmax(0,1fr)_100px_120px_24px] gap-4 border-b border-white/[0.07] px-1 py-3 text-[9px] font-medium uppercase tracking-[0.1em] text-zinc-700 md:grid">
+          <span>Tunnel</span>
+          <span>Status</span>
+          <span>Created</span>
+          <span />
+        </div>
+
+        {isLoading ? (
+          <div className="divide-y divide-white/[0.06]">
+            {[0, 1, 2].map((item) => (
+              <div key={item} className="flex h-17 animate-pulse items-center gap-3 py-4">
+                <span className="h-7 w-7 rounded-md bg-white/[0.04]" />
+                <span className="h-3 w-44 bg-white/[0.04]" />
+              </div>
+            ))}
+          </div>
+        ) : filteredTunnels.length === 0 ? (
+          <div className="flex min-h-56 flex-col items-center justify-center py-12 text-center">
+            <HugeiconsIcon
+              icon={Route03Icon}
+              size={26}
+              strokeWidth={1.5}
+              className="mb-4 text-zinc-700"
+            />
+            <p className="text-sm text-zinc-400">
+              {searchQuery ? "No tunnels match your search" : "No tunnels yet"}
+            </p>
+            <p className="mt-1 text-[11px] text-zinc-700">
+              {searchQuery
+                ? "Try a different name or URL."
+                : "Create one here or connect through the CLI."}
+            </p>
           </div>
         ) : (
-          filteredTunnels.map((tunnel) => (
-            <Link
-              key={tunnel.id}
-              to="/$orgSlug/tunnels/$tunnelId"
-              params={{ orgSlug, tunnelId: tunnel.id }}
-              className={`block group bg-white/2 border border-white/5 rounded-2xl hover:border-white/10 transition-all p-4 sm:p-6 ${
-                viewMode === "grid" ? "h-full flex flex-col" : "sm:block"
-              }`}
-              search={{
-                tab: "overview",
-              }}
-            >
-              {/* Always use grid-style layout on mobile, respect viewMode on larger screens */}
-              <div
-                className={
-                  viewMode === "grid"
-                    ? "flex flex-col h-full"
-                    : "flex flex-col sm:flex-row sm:items-center sm:justify-between"
-                }
-              >
-                <div
-                  className={`flex items-center gap-3 sm:gap-4 ${viewMode === "grid" ? "mb-4 sm:mb-6" : "mb-4 sm:mb-0"}`}
-                >
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 shrink-0">
-                    <Globe size={18} className="sm:hidden" />
-                    <Globe size={20} className="hidden sm:block" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-medium text-white truncate">
-                        {tunnel.name ||
-                          (tunnel.protocol === "http"
-                            ? new URL(tunnel.url).hostname
-                            : `${tunnel.protocol?.toUpperCase()} Port ${tunnel.remotePort}`)}
-                      </h3>
-                      <span
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
-                          tunnel.protocol === "tcp"
-                            ? "bg-purple-500/10 text-purple-500 border border-purple-500/20"
-                            : tunnel.protocol === "udp"
-                              ? "bg-orange-500/10 text-orange-500 border border-orange-500/20"
-                              : "bg-green-500/10 text-green-500 border border-green-500/20"
-                        }`}
-                      >
-                        {(tunnel.protocol || "http").toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-gray-500 font-mono truncate">
-                        {tunnel.url}
-                      </span>
-                      <button
-                        className="text-gray-600 hover:text-gray-400 transition-colors shrink-0"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigator.clipboard.writeText(tunnel.url);
-                        }}
-                      >
-                        <Copy size={12} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+          <div className="divide-y divide-white/[0.06]">
+            {filteredTunnels.map((tunnel) => {
+              const title =
+                tunnel.name ||
+                (tunnel.protocol === "http"
+                  ? new URL(tunnel.url).hostname
+                  : `${tunnel.protocol?.toUpperCase()} port ${tunnel.remotePort}`);
 
-                <div
-                  className={
-                    viewMode === "grid"
-                      ? "mt-auto pt-4 sm:pt-6 border-t border-white/5 flex items-center justify-between"
-                      : "pt-4 sm:pt-0 border-t sm:border-t-0 border-white/5 flex items-center justify-between sm:gap-8"
-                  }
+              return (
+                <Link
+                  key={tunnel.id}
+                  to="/$orgSlug/tunnels/$tunnelId"
+                  params={{ orgSlug, tunnelId: tunnel.id }}
+                  search={{ tab: "overview" }}
+                  className="group grid gap-4 px-1 py-4 transition-colors hover:bg-white/[0.02] md:grid-cols-[minmax(0,1fr)_100px_120px_24px] md:items-center"
                 >
-                  <div
-                    className={`flex items-center ${viewMode === "grid" ? "gap-4 w-full justify-between" : "gap-4 sm:gap-6 w-full sm:w-auto justify-between sm:justify-start"}`}
-                  >
-                    <div className={viewMode === "grid" ? "" : "sm:text-right"}>
-                      <div className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">
-                        Status
-                      </div>
-                      <div
-                        className={`flex items-center gap-2 ${viewMode === "grid" ? "" : "sm:justify-end"}`}
-                      >
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            tunnel.isOnline
-                              ? "bg-green-500 animate-pulse"
-                              : "bg-red-500"
-                          }`}
-                        />
-                        <span className="text-sm font-mono text-gray-300 capitalize">
-                          {tunnel.isOnline ? "online" : "offline"}
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/[0.04] text-zinc-600 ring-1 ring-white/[0.06]">
+                      <HugeiconsIcon icon={Route03Icon} size={15} strokeWidth={1.7} />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-[13px] font-medium text-zinc-300 group-hover:text-white">
+                          {title}
+                        </p>
+                        <span className="text-[9px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+                          {tunnel.protocol || "http"}
                         </span>
                       </div>
-                    </div>
-
-                    {!viewMode && (
-                      <div className="hidden sm:block h-8 w-px bg-white/5" />
-                    )}
-
-                    <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">
-                        Created
-                      </div>
-                      <div className="text-sm font-mono text-gray-300">
-                        {new Date(tunnel.createdAt).toLocaleDateString()}
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="truncate font-mono text-[10px] text-zinc-700">
+                          {tunnel.url}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            void navigator.clipboard.writeText(tunnel.url);
+                          }}
+                          className="text-zinc-800 hover:text-zinc-400"
+                          aria-label="Copy tunnel URL"
+                        >
+                          <HugeiconsIcon icon={Copy01Icon} size={11} strokeWidth={1.7} />
+                        </button>
                       </div>
                     </div>
                   </div>
-
-                  {viewMode !== "grid" && (
-                    <button className="hidden sm:block p-2 text-gray-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100">
-                      <MoreVertical size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </Link>
-          ))
+                  <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        tunnel.isOnline ? "bg-emerald-500" : "bg-red-500"
+                      }`}
+                    />
+                    {tunnel.isOnline ? "Online" : "Offline"}
+                  </div>
+                  <span className="text-[11px] text-zinc-600">
+                    {new Date(tunnel.createdAt).toLocaleDateString()}
+                  </span>
+                  <HugeiconsIcon
+                    icon={ArrowRight01Icon}
+                    size={14}
+                    strokeWidth={1.7}
+                    className="hidden text-zinc-800 group-hover:text-zinc-400 md:block"
+                  />
+                </Link>
+              );
+            })}
+          </div>
         )}
-      </div>
+      </section>
 
       <NewTunnelModal
         isOpen={isNewTunnelModalOpen}
         onClose={() => setIsNewTunnelModalOpen(false)}
       />
-
       <LimitModal
         isOpen={isLimitModalOpen}
         onClose={() => setIsLimitModalOpen(false)}
