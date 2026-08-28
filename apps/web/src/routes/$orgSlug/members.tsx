@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Plus,
-  MoreVertical,
-  X,
-  Mail,
-  Shield,
-  AlertCircle,
-} from "lucide-react";
+  Add01Icon,
+  Alert02Icon,
+  Cancel01Icon,
+  Mail01Icon,
+  MoreVerticalIcon,
+  ShieldUserIcon,
+  UserGroupIcon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import { authClient, usePermission } from "@/lib/auth-client";
 import { useState } from "react";
 import { useAppStore } from "@/lib/store";
@@ -19,7 +21,7 @@ import { ConfirmModal } from "@/components/confirm-modal";
 import { ChangeRoleModal } from "@/components/change-role-modal";
 import { useEffect, useRef } from "react";
 import InviteMemberModal from "@/components/invite-member-modal";
-import { Button, IconButton, Badge } from "@/components/ui";
+import { WorkspacePageHeader } from "@/components/workspace-page-header";
 
 export const Route = createFileRoute("/$orgSlug/members")({
   head: () => ({
@@ -350,8 +352,6 @@ function MembersView() {
   const memberLimit = planLimits.maxMembers;
   const isAtLimit =
     memberLimit === -1 ? false : currentMemberCount >= memberLimit;
-  const remainingSlots =
-    memberLimit === -1 ? 999 : Math.max(0, memberLimit - currentMemberCount);
 
   const handleInviteClick = () => {
     if (isAtLimit) {
@@ -363,146 +363,152 @@ function MembersView() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto relative animate-pulse">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <div className="h-8 w-32 bg-white/5 rounded mb-2" />
-            <div className="h-4 w-64 bg-white/5 rounded" />
+      <div className="relative mx-auto max-w-6xl animate-pulse space-y-7">
+        <header className="flex items-end justify-between gap-6 border-b border-white/[0.07] pb-7">
+          <div className="flex-1">
+            <div className="mb-3 h-2 w-16 rounded bg-white/[0.04]" />
+            <div className="h-6 w-28 rounded bg-white/[0.07]" />
+            <div className="mt-3 h-3 w-72 max-w-full rounded bg-white/[0.04]" />
           </div>
-          <div className="h-10 w-36 bg-white/5 rounded-xl" />
-        </div>
+          <div className="h-9 w-9 rounded-md bg-white/[0.07] sm:w-32" />
+        </header>
 
-        <div className="bg-white/2 border border-white/5 rounded-2xl overflow-hidden mb-6">
-          <div className="p-6 border-b border-white/5">
-            <div className="h-6 w-32 bg-white/5 rounded" />
+        <section className="border-y border-white/[0.07]">
+          <div className="flex items-center justify-between border-b border-white/[0.07] py-4">
+            <div className="h-3 w-24 rounded bg-white/[0.06]" />
+            <div className="h-2.5 w-16 rounded bg-white/[0.04]" />
           </div>
-          <div className="divide-y divide-white/5">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-white/5" />
-                  <div>
-                    <div className="h-4 w-32 bg-white/5 rounded mb-2" />
-                    <div className="h-3 w-48 bg-white/5 rounded" />
-                  </div>
+          <div className="divide-y divide-white/[0.07]">
+            {[0, 1, 2].map((row) => (
+              <div key={row} className="flex items-center gap-3.5 py-4">
+                <div className="size-8 rounded-full bg-white/[0.05]" />
+                <div className="flex-1">
+                  <div className="h-3 w-32 rounded bg-white/[0.06]" />
+                  <div className="mt-2 h-2.5 w-44 rounded bg-white/[0.04]" />
                 </div>
-                <div className="w-8 h-8 bg-white/5 rounded" />
+                <div className="h-3 w-16 rounded bg-white/[0.04]" />
               </div>
             ))}
           </div>
-        </div>
+        </section>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto relative">
-      <div className="flex items-start sm:items-center justify-between gap-4 mb-8">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Members
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Manage who has access to this organization · {currentMemberCount} /{" "}
-            {memberLimit} members
-          </p>
-        </div>
-        {canInvite && (
-          <Button
+    <div className="relative mx-auto max-w-6xl space-y-7">
+      <WorkspacePageHeader
+        title="Members"
+        description={
+          <>
+            Manage workspace access · {currentMemberCount} of{" "}
+            {memberLimit === -1 ? "∞" : memberLimit} seats used
+          </>
+        }
+        action={
+          canInvite ? (
+          <button
+            type="button"
             onClick={handleInviteClick}
             disabled={isAtLimit}
-            leftIcon={<Plus size={18} />}
-            className="shrink-0"
+            className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-white px-3.5 text-[12px] font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <span className="hidden sm:inline">Invite Member</span>
-          </Button>
-        )}
-      </div>
+            <HugeiconsIcon icon={Add01Icon} size={15} strokeWidth={1.9} />
+            <span className="hidden sm:inline">Invite member</span>
+          </button>
+          ) : undefined
+        }
+      />
 
       {isAtLimit && (
-        <div className="mb-6 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-yellow-500">
-              Member limit reached
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              You've reached your plan's limit of {memberLimit} members.
-              {currentPlan !== "free" && remainingSlots === 0 && (
-                <>
-                  {" "}
-                  Go to{" "}
-                  <Link
-                    to="/$orgSlug/billing"
-                    className="text-yellow-500 hover:underline"
-                    params={{ orgSlug: selectedOrganization?.slug! }}
-                  >
-                    Billing
-                  </Link>{" "}
-                  to add more member slots or upgrade your plan.
-                </>
-              )}
-              {currentPlan === "free" && (
-                <> Upgrade to a paid plan to invite more team members.</>
-              )}
-            </p>
+        <aside className="flex flex-col gap-4 border-y border-white/[0.07] py-4 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 items-center gap-3.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-400/[0.08] text-amber-300">
+              <HugeiconsIcon icon={Alert02Icon} size={15} strokeWidth={1.8} />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[12px] font-medium text-zinc-200">
+                  Member seats are full
+                </p>
+                <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-amber-300/70">
+                  {memberLimit} of {memberLimit} used
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] leading-5 text-zinc-600">
+                Your {currentPlan} plan has no remaining member seats.
+              </p>
+            </div>
           </div>
-        </div>
+          <Link
+            to="/$orgSlug/billing"
+            params={{ orgSlug }}
+            className="ml-11 text-[11px] font-medium text-zinc-300 hover:text-white sm:ml-0"
+          >
+            View plans
+          </Link>
+        </aside>
       )}
 
-      <div className="bg-white/2 border border-white/5 rounded-2xl mb-6">
-        <div className="p-6 border-b border-white/5 rounded-t-2xl">
-          <h3 className="text-lg font-medium text-white">Team Members</h3>
+      <section className="border-y border-white/[0.07]">
+        <div className="flex items-center justify-between border-b border-white/[0.07] py-4">
+          <h2 className="text-xs font-medium text-zinc-300">Team members</h2>
+          <span className="text-[10px] text-zinc-700">
+            {members.length} active · {invitations.length} pending
+          </span>
         </div>
 
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-white/[0.07]">
           {members.map((member) => (
             <div
               key={member.id}
-              className="p-4 flex items-center justify-between hover:bg-white/2 transition-colors"
+              className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_100px_32px] sm:items-center"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
+              <div className="flex min-w-0 items-center gap-3.5">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-[11px] font-medium text-zinc-300">
                   {member.user.name?.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-white font-medium">
-                      {member.user.name}
-                    </h4>
-                    <Badge
-                      variant={member.role === "owner" ? "accent" : "default"}
-                      className="text-[10px]"
-                    >
-                      {member.role}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-gray-500">{member.user.email}</p>
+                <div className="min-w-0">
+                  <h3 className="truncate text-xs font-medium text-zinc-300">
+                    {member.user.name}
+                  </h3>
+                  <p className="mt-1 truncate text-[11px] text-zinc-600">
+                    {member.user.email}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 relative">
+              <span className="w-fit text-[10px] font-medium capitalize text-zinc-600">
+                {member.role}
+              </span>
+              <div className="relative flex items-center">
                 {member.role !== "owner" && (canUpdate || canDelete) && (
                   <>
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setActiveDropdownId(
                           activeDropdownId === member.id ? null : member.id,
                         );
                       }}
-                      className={`p-2 transition-colors rounded-lg ${activeDropdownId === member.id ? "bg-white/10 text-white" : "text-gray-500 hover:text-white hover:bg-white/5"}`}
+                      className={`flex size-8 items-center justify-center rounded-md transition-colors ${activeDropdownId === member.id ? "bg-white/[0.08] text-zinc-300" : "text-zinc-700 hover:bg-white/[0.04] hover:text-zinc-400"}`}
+                      aria-label={`Actions for ${member.user.name}`}
                     >
-                      <MoreVertical size={18} />
+                      <HugeiconsIcon
+                        icon={MoreVerticalIcon}
+                        size={14}
+                        strokeWidth={1.7}
+                      />
                     </button>
 
                     {activeDropdownId === member.id && (
                       <div
                         ref={dropdownRef}
-                        className="absolute right-0 top-full mt-2 w-48 bg-[#101010] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-50"
+                        className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-lg border border-white/[0.09] bg-[#0a0a0a] p-1 shadow-2xl shadow-black/60"
                       >
-                        <div className="p-1">
                           {canUpdate && (
                             <button
+                              type="button"
                               onClick={() => {
                                 setChangeRoleState({
                                   isOpen: true,
@@ -511,25 +517,33 @@ function MembersView() {
                                 });
                                 setActiveDropdownId(null);
                               }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left"
+                              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[11px] text-zinc-500 transition-colors hover:bg-white/[0.05] hover:text-zinc-200"
                             >
-                              <Shield size={14} />
-                              Change Role
+                              <HugeiconsIcon
+                                icon={ShieldUserIcon}
+                                size={13}
+                                strokeWidth={1.7}
+                              />
+                              Change role
                             </button>
                           )}
                           {canDelete && (
                             <button
+                              type="button"
                               onClick={() => {
                                 removeMember(member.id);
                                 setActiveDropdownId(null);
                               }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-left"
+                              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[11px] text-red-400/70 transition-colors hover:bg-red-500/[0.08] hover:text-red-400"
                             >
-                              <X size={14} />
-                              Remove Member
+                              <HugeiconsIcon
+                                icon={Cancel01Icon}
+                                size={13}
+                                strokeWidth={1.7}
+                              />
+                              Remove member
                             </button>
                           )}
-                        </div>
                       </div>
                     )}
                   </>
@@ -541,44 +555,59 @@ function MembersView() {
           {invitations.map((invitation) => (
             <div
               key={invitation.id}
-              className="p-4 flex items-center justify-between hover:bg-white/2 transition-colors opacity-75"
+              className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_100px_32px] sm:items-center"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-500 font-bold">
-                  <Mail size={18} />
+              <div className="flex min-w-0 items-center gap-3.5">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/[0.035] text-zinc-700">
+                  <HugeiconsIcon icon={Mail01Icon} size={14} strokeWidth={1.7} />
                 </div>
-                <div>
-                  <h4 className="text-gray-400 font-medium">
-                    Invited: {invitation.email}
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    Role: {invitation.role}
+                <div className="min-w-0">
+                  <h3 className="truncate text-xs font-medium text-zinc-500">
+                    {invitation.email}
+                  </h3>
+                  <p className="mt-1 text-[11px] capitalize text-zinc-700">
+                    {invitation.role} invitation
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <Badge variant="warning">
-                  Pending
-                </Badge>
+              <span className="w-fit text-[10px] font-medium text-amber-300/60">
+                Pending
+              </span>
+              <div>
                 {canCancelInvitation && (
-                  <IconButton
+                  <button
+                    type="button"
                     onClick={() => cancelInvitation(invitation.id)}
-                    icon={<X size={18} />}
-                    variant="ghost"
+                    className="flex size-8 items-center justify-center rounded-md text-zinc-700 hover:bg-red-500/[0.08] hover:text-red-400"
                     aria-label="Cancel invitation"
-                  />
+                  >
+                    <HugeiconsIcon
+                      icon={Cancel01Icon}
+                      size={14}
+                      strokeWidth={1.7}
+                    />
+                  </button>
                 )}
               </div>
             </div>
           ))}
 
           {members.length === 0 && invitations.length === 0 && (
-            <div className="p-8 text-center text-gray-500">
-              No members found
+            <div className="flex min-h-64 flex-col items-center justify-center py-12 text-center">
+              <HugeiconsIcon
+                icon={UserGroupIcon}
+                size={27}
+                strokeWidth={1.5}
+                className="mb-4 text-zinc-700"
+              />
+              <h3 className="text-sm font-medium text-zinc-300">No members</h3>
+              <p className="mt-2 text-xs text-zinc-700">
+                Invite someone to start collaborating in this workspace.
+              </p>
             </div>
           )}
         </div>
-      </div>
+      </section>
 
       {isInviteModalOpen && (
         <InviteMemberModal
