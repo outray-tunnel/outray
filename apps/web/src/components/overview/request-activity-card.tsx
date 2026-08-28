@@ -1,4 +1,5 @@
-import { Activity, Zap } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Activity03Icon } from "@hugeicons-pro/core-stroke-rounded";
 import {
   Area,
   AreaChart,
@@ -49,29 +50,28 @@ export function RequestActivityCard({
     });
 
   return (
-    <div className="lg:col-span-2 bg-white/2 border border-white/5 rounded-2xl p-6 relative">
+    <section className="relative border-y border-white/[0.07] py-5 lg:col-span-2">
       {isPlaceholderData && (
-        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm z-10 rounded-2xl flex items-center justify-center transition-all duration-200">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-sm transition-all duration-200">
           <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
         </div>
       )}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium text-white flex items-center gap-2">
-            <Zap size={18} className="text-accent" />
-            Request Activity
+          <h3 className="text-sm font-medium text-zinc-300">
+            Request activity
           </h3>
-          <p className="text-sm text-gray-500">Traffic over time</p>
+          <p className="mt-1 text-[11px] text-zinc-600">Traffic over time</p>
         </div>
-        <div className="flex bg-white/5 rounded-lg p-1">
+        <div className="flex items-center gap-1 border-b border-white/[0.07]">
           {["1h", "24h", "7d", "30d"].map((range) => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+              className={`border-b px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
                 timeRange === range
-                  ? "bg-white/10 text-white shadow-sm"
-                  : "text-gray-500 hover:text-gray-300"
+                  ? "border-accent text-zinc-200"
+                  : "border-transparent text-zinc-700 hover:text-zinc-400"
               }`}
             >
               {range}
@@ -81,9 +81,15 @@ export function RequestActivityCard({
       </div>
 
       {!chartData || chartData.length === 0 ? (
-        <div className="h-75 flex flex-col items-center justify-center text-gray-500 bg-white/5 rounded-xl border border-white/5 border-dashed">
-          <Activity size={32} className="mb-2 opacity-50" />
-          <p>No traffic data available yet</p>
+        <div className="flex h-75 flex-col items-center justify-center text-zinc-700">
+          <HugeiconsIcon
+            icon={Activity03Icon}
+            size={25}
+            strokeWidth={1.5}
+            className="mb-3"
+            aria-hidden="true"
+          />
+          <p className="text-xs">No traffic data available yet</p>
         </div>
       ) : (
         <div className="h-75 w-full">
@@ -122,7 +128,7 @@ export function RequestActivityCard({
                 contentStyle={{
                   backgroundColor: "#0A0A0A",
                   border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: "12px",
+                  borderRadius: "6px",
                   boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                 }}
                 itemStyle={{ color: "#fff" }}
@@ -140,6 +146,6 @@ export function RequestActivityCard({
           </ResponsiveContainer>
         </div>
       )}
-    </div>
+    </section>
   );
 }
