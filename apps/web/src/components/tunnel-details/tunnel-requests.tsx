@@ -1,6 +1,10 @@
-import { Search, MoreVertical, Radio } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "@tanstack/react-router";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Activity03Icon,
+  Search01Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import { appClient } from "@/lib/app-client";
 import { authClient } from "@/lib/auth-client";
 
@@ -37,7 +41,7 @@ interface TunnelRequestsProps {
 type TimeRange = "live" | "1h" | "24h" | "7d" | "30d";
 
 const TIME_RANGES = [
-  { value: "live" as TimeRange, label: "Live", icon: Radio },
+  { value: "live" as TimeRange, label: "Live" },
   { value: "1h" as TimeRange, label: "1h" },
   { value: "24h" as TimeRange, label: "24h" },
   { value: "7d" as TimeRange, label: "7d" },
@@ -54,27 +58,28 @@ export function TunnelRequests({ tunnelId }: TunnelRequestsProps) {
   const activeOrgId = organizations?.find((org) => org.slug === orgSlug)?.id;
   const wsRef = useRef<WebSocket | null>(null);
 
-  const activeIndex = TIME_RANGES.findIndex((r) => r.value === timeRange);
+  const fetchHistoricalRequests = useCallback(
+    async (range: TimeRange) => {
+      if (!orgSlug || range === "live") return;
 
-  const fetchHistoricalRequests = async (range: TimeRange) => {
-    if (!orgSlug || range === "live") return;
-
-    setIsLoading(true);
-    try {
-      const response = await appClient.requests.list(orgSlug, {
-        tunnelId,
-        range,
-        limit: 100,
-        search: searchTerm,
-      });
-      if ("error" in response) throw new Error(response.error);
-      setRequests(response.requests || []);
-    } catch (error) {
-      console.error("Failed to fetch historical requests:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      setIsLoading(true);
+      try {
+        const response = await appClient.requests.list(orgSlug, {
+          tunnelId,
+          range,
+          limit: 100,
+          search: searchTerm,
+        });
+        if ("error" in response) throw new Error(response.error);
+        setRequests(response.requests || []);
+      } catch (error) {
+        console.error("Failed to fetch historical requests:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [orgSlug, searchTerm, tunnelId],
+  );
 
   useEffect(() => {
     if (timeRange === "live") {
@@ -85,7 +90,7 @@ export function TunnelRequests({ tunnelId }: TunnelRequestsProps) {
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [timeRange, activeOrgId, tunnelId, searchTerm, orgSlug]);
+  }, [timeRange, activeOrgId, fetchHistoricalRequests]);
 
   useEffect(() => {
     if (!activeOrgId || timeRange !== "live") {
@@ -104,7 +109,7 @@ export function TunnelRequests({ tunnelId }: TunnelRequestsProps) {
         const message = JSON.parse(event.data);
         if (message.type === "history") {
           const tunnelRequests = message.data.filter(
-            (r: any) => r.tunnel_id === tunnelId,
+            (request: TunnelEvent) => request.tunnel_id === tunnelId,
           );
           setRequests(tunnelRequests);
         } else if (message.type === "log") {
@@ -138,140 +143,148 @@ export function TunnelRequests({ tunnelId }: TunnelRequestsProps) {
       : requests;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-            size={16}
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <label className="flex h-9 max-w-sm flex-1 items-center gap-2 border-b border-white/[0.09] text-zinc-600 transition-colors focus-within:border-white/20 focus-within:text-zinc-400">
+          <HugeiconsIcon
+            icon={Search01Icon}
+            size={15}
+            strokeWidth={1.7}
+            aria-hidden="true"
           />
           <input
             type="text"
-            placeholder="Search requests..."
+            placeholder="Search method or path"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white/5 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-accent/50 transition-colors"
+            className="min-w-0 flex-1 bg-transparent text-[12px] text-zinc-300 outline-none placeholder:text-zinc-700"
           />
-        </div>
+        </label>
 
-        <div className="relative grid grid-cols-5 items-center bg-white/5 border border-white/10 rounded-xl p-1">
-          <div
-            className="absolute top-1 bottom-1 left-1 bg-accent rounded-lg transition-all duration-300 ease-out shadow-sm"
-            style={{
-              width: `calc((100% - 0.5rem) / ${TIME_RANGES.length})`,
-              transform: `translateX(${activeIndex * 100}%)`,
-            }}
-          />
-
-          {TIME_RANGES.map(({ value, label, icon: Icon }) => (
+        <div className="flex items-center border-b border-white/[0.07]">
+          {TIME_RANGES.map(({ value, label }) => (
             <button
               key={value}
+              type="button"
               onClick={() => setTimeRange(value)}
-              className={`relative z-10 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+              className={`relative border-b px-3 py-2 text-[11px] font-medium transition-colors ${
                 timeRange === value
-                  ? "text-white"
-                  : "text-gray-400 hover:text-gray-300"
+                  ? "border-accent text-zinc-200"
+                  : "border-transparent text-zinc-700 hover:text-zinc-400"
               }`}
             >
-              {Icon && (
-                <Icon
-                  size={14}
-                  className={timeRange === value ? "animate-pulse" : ""}
+              {value === "live" && (
+                <span
+                  className={`mr-1.5 inline-block size-1.5 rounded-full ${
+                    timeRange === "live" ? "bg-emerald-500" : "bg-zinc-700"
+                  }`}
                 />
               )}
               {label}
             </button>
           ))}
         </div>
-
-        {/* <button className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-colors text-sm">
-          <Filter size={16} />
-          Filter
-        </button>
-        <button className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-colors text-sm">
-          <Download size={16} />
-          Export
-        </button> */}
       </div>
 
-      <div className="bg-white/2 border border-white/5 rounded-2xl overflow-hidden flex flex-col max-h-150">
-        <div className="overflow-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-white/5 text-gray-400 font-medium sticky top-0 z-10 backdrop-blur-md">
+      <div className="flex max-h-150 flex-col overflow-hidden border-y border-white/[0.07]">
+        <div className="overflow-auto overscroll-contain">
+          <table className="w-full min-w-185 text-left">
+            <thead className="sticky top-0 z-10 border-b border-white/[0.07] bg-[#080808]/95 text-[9px] uppercase tracking-[0.1em] text-zinc-700 backdrop-blur-md">
               <tr>
-                <th className="px-6 py-3 bg-white/5">Status</th>
-                <th className="px-6 py-3 bg-white/5">Method</th>
-                <th className="px-6 py-3 bg-white/5">Path</th>
-                <th className="px-6 py-3 bg-white/5">Time</th>
-                <th className="px-6 py-3 bg-white/5">Duration</th>
-                <th className="px-6 py-3 bg-white/5">Size</th>
-                <th className="px-6 py-3 bg-white/5"></th>
+                <th className="w-20 px-4 py-3 font-medium">Status</th>
+                <th className="w-20 px-4 py-3 font-medium">Method</th>
+                <th className="px-4 py-3 font-medium">Path</th>
+                <th className="w-30 px-4 py-3 font-medium">Client</th>
+                <th className="w-24 px-4 py-3 text-right font-medium">
+                  Duration
+                </th>
+                <th className="w-20 px-4 py-3 text-right font-medium">Size</th>
+                <th className="w-24 px-4 py-3 text-right font-medium">Time</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-white/[0.06] text-[11px]">
               {isLoading ? (
                 <tr>
                   <td
                     colSpan={7}
-                    className="px-6 py-8 text-center text-gray-500"
+                    className="px-4 py-14 text-center text-zinc-700"
                   >
-                    Loading requests...
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="size-3.5 animate-spin rounded-full border border-zinc-700 border-t-zinc-300" />
+                      Loading requests
+                    </div>
                   </td>
                 </tr>
               ) : filteredRequests.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
-                    className="px-6 py-8 text-center text-gray-500"
+                    className="px-4 py-16 text-center text-zinc-700"
                   >
-                    {timeRange === "live"
-                      ? "Waiting for requests..."
-                      : "No requests found"}
+                    <HugeiconsIcon
+                      icon={Activity03Icon}
+                      size={22}
+                      strokeWidth={1.5}
+                      className="mx-auto mb-3"
+                      aria-hidden="true"
+                    />
+                    <p className="text-xs">
+                      {timeRange === "live"
+                        ? "Waiting for requests"
+                        : "No requests found"}
+                    </p>
+                    <p className="mt-1 text-[10px] text-zinc-800">
+                      {timeRange === "live"
+                        ? "Incoming traffic will appear here in real time."
+                        : "Try another time range or search term."}
+                    </p>
                   </td>
                 </tr>
               ) : (
                 filteredRequests.map((req, i) => (
                   <tr
                     key={`${req.tunnel_id}-${req.timestamp}-${i}`}
-                    className="hover:bg-white/5 transition-colors group"
+                    className="group transition-colors hover:bg-white/[0.025]"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3.5">
                       <span
-                        className={`px-2 py-1 rounded-md text-xs font-medium ${
+                        className={`font-medium tabular-nums ${
                           req.status_code >= 500
-                            ? "bg-red-500/10 text-red-500"
+                            ? "text-red-400"
                             : req.status_code >= 400
-                              ? "bg-orange-500/10 text-orange-500"
+                              ? "text-amber-400"
                               : req.status_code >= 300
-                                ? "bg-blue-500/10 text-blue-500"
-                                : "bg-green-500/10 text-green-500"
+                                ? "text-sky-400"
+                                : "text-emerald-400"
                         }`}
                       >
                         {req.status_code}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-mono text-white">
+                    <td className="px-4 py-3.5 font-mono font-medium text-zinc-400">
                       {req.method}
                     </td>
                     <td
-                      className="px-6 py-4 text-gray-300 truncate max-w-50"
+                      className="max-w-80 truncate px-4 py-3.5 font-mono text-zinc-300"
                       title={req.path}
                     >
                       {req.path}
                     </td>
-                    <td className="px-6 py-4 text-gray-500">
-                      {new Date(req.timestamp).toLocaleTimeString()}
+                    <td className="px-4 py-3.5 font-mono text-[10px] text-zinc-700">
+                      {req.client_ip || "—"}
                     </td>
-                    <td className="px-6 py-4 text-gray-300">
+                    <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500">
                       {req.request_duration_ms}ms
                     </td>
-                    <td className="px-6 py-4 text-gray-500">
+                    <td className="px-4 py-3.5 text-right tabular-nums text-zinc-600">
                       {formatBytes(req.bytes_in + req.bytes_out)}
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <button className="p-1 text-gray-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all">
-                        <MoreVertical size={16} />
-                      </button>
+                    <td className="whitespace-nowrap px-4 py-3.5 text-right tabular-nums text-zinc-700">
+                      {new Date(req.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
                     </td>
                   </tr>
                 ))
