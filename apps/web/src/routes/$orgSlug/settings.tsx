@@ -1,6 +1,11 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
-import { User, Building2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Building06Icon,
+  UserIcon,
+} from "@hugeicons-pro/core-stroke-rounded";
+import { WorkspacePageHeader } from "@/components/workspace-page-header";
 
 export const Route = createFileRoute("/$orgSlug/settings")({
   head: () => ({
@@ -24,40 +29,34 @@ function SettingsLayout() {
     {
       to: `/${orgSlug}/settings/profile`,
       label: "Profile",
-      icon: User,
+      icon: UserIcon,
     },
     {
       to: `/${orgSlug}/settings/organization`,
       label: "Organization",
-      icon: Building2,
+      icon: Building06Icon,
     },
   ];
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Settings
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Manage your account settings and preferences
-          </p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-7">
+      <WorkspacePageHeader
+        title="Settings"
+        description="Manage your identity and organization preferences."
+      />
 
-      <div className="border-b border-white/10 overflow-x-auto">
-        <div className="flex items-center gap-4 sm:gap-6">
+      <div className="overflow-x-auto border-b border-white/[0.07]">
+        <div className="flex items-center gap-6">
           {tabs.map((tab) => (
             <Link
               key={tab.to}
               to={tab.to}
-              className="flex items-center gap-2 pb-3 text-sm font-medium transition-colors border-b-2 border-transparent hover:text-white text-gray-400"
+              className="flex items-center gap-2 border-b pb-3 text-[11px] font-medium text-zinc-700 transition-colors hover:text-zinc-300 border-transparent"
               activeProps={{
-                className: "!text-white !border-white",
+                className: "!border-white !text-zinc-200",
               }}
             >
-              <tab.icon size={16} />
+              <HugeiconsIcon icon={tab.icon} size={14} strokeWidth={1.7} />
               {tab.label}
             </Link>
           ))}
