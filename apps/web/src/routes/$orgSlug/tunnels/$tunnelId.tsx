@@ -105,17 +105,7 @@ function TunnelDetailView() {
   const isLoadingStats = isProtocolTunnel ? protocolStatsLoading : statsLoading;
 
   if (tunnelLoading || (isLoadingStats && !tunnel)) {
-    return (
-      <div className="space-y-6 max-w-7xl mx-auto animate-pulse">
-        <div className="h-20 bg-white/5 rounded-xl" />
-        <div className="grid grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 bg-white/5 rounded-2xl" />
-          ))}
-        </div>
-        <div className="h-96 bg-white/5 rounded-2xl" />
-      </div>
-    );
+    return <TunnelDetailSkeleton activeTab={activeTab} />;
   }
 
   if (!tunnel) {
@@ -190,6 +180,117 @@ function TunnelDetailView() {
 
       {activeTab === "requests" && !isProtocolTunnel && (
         <TunnelRequests tunnelId={tunnelId} />
+      )}
+    </div>
+  );
+}
+
+function TunnelDetailSkeleton({ activeTab }: { activeTab: string }) {
+  return (
+    <div className="mx-auto max-w-6xl space-y-7 animate-pulse">
+      <div className="flex flex-col gap-6">
+        <header className="flex items-start gap-4 border-b border-white/[0.07] pb-7">
+          <div className="mt-1 size-7 shrink-0 bg-white/[0.04]" />
+          <div className="min-w-0 flex-1">
+            <div className="h-2 w-20 bg-white/[0.05]" />
+            <div className="mt-5 h-7 w-52 bg-white/[0.06]" />
+            <div className="mt-3 h-2.5 w-64 max-w-full bg-white/[0.04]" />
+          </div>
+          <div className="h-9 w-20 shrink-0 rounded-md border border-white/[0.06] bg-white/[0.025]" />
+        </header>
+
+        <div className="flex gap-6 border-b border-white/[0.07]">
+          <div className="h-10 w-16 border-b border-white/[0.08]" />
+          <div className="h-10 w-16 border-b border-white/[0.04]" />
+        </div>
+      </div>
+
+      {activeTab === "requests" ? (
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="h-9 w-full max-w-sm border-b border-white/[0.08]">
+              <div className="mt-3 h-2.5 w-36 bg-white/[0.04]" />
+            </div>
+            <div className="flex h-9 w-56 items-end gap-5 border-b border-white/[0.07] px-2 pb-3">
+              {[24, 14, 20, 14, 20].map((width, index) => (
+                <div
+                  key={index}
+                  className="h-2 bg-white/[0.04]"
+                  style={{ width }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="overflow-hidden border-y border-white/[0.07]">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-185 text-left">
+                <thead className="border-b border-white/[0.07] text-[9px] uppercase tracking-[0.1em] text-zinc-800">
+                  <tr>
+                    <th className="w-20 px-4 py-3 font-medium">Status</th>
+                    <th className="w-20 px-4 py-3 font-medium">Method</th>
+                    <th className="px-4 py-3 font-medium">Path</th>
+                    <th className="w-30 px-4 py-3 font-medium">Client</th>
+                    <th className="w-24 px-4 py-3 text-right font-medium">
+                      Duration
+                    </th>
+                    <th className="w-20 px-4 py-3 text-right font-medium">
+                      Size
+                    </th>
+                    <th className="w-24 px-4 py-3 text-right font-medium">
+                      Time
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.05]">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <tr key={index} className="h-11">
+                      <td className="px-4 py-3">
+                        <div className="h-2.5 w-7 bg-white/[0.05]" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="h-2.5 w-8 bg-white/[0.04]" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div
+                          className="h-2.5 bg-white/[0.05]"
+                          style={{ width: `${38 + (index % 3) * 15}%` }}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="h-2.5 w-16 bg-white/[0.035]" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="ml-auto h-2.5 w-9 bg-white/[0.04]" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="ml-auto h-2.5 w-8 bg-white/[0.035]" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="ml-auto h-2.5 w-12 bg-white/[0.035]" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-7">
+          <div className="grid border-y border-white/[0.07] md:grid-cols-4 md:divide-x md:divide-white/[0.07]">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="px-5 py-6 first:pl-0">
+                <div className="h-2 w-16 bg-white/[0.04]" />
+                <div className="mt-4 h-6 w-20 bg-white/[0.06]" />
+              </div>
+            ))}
+          </div>
+          <div className="border-y border-white/[0.07] py-6">
+            <div className="h-2.5 w-28 bg-white/[0.04]" />
+            <div className="mt-8 h-64 bg-white/[0.025]" />
+          </div>
+        </div>
       )}
     </div>
   );
