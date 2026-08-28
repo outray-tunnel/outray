@@ -1,5 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Bug, LogOut } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Bug01Icon,
+  Logout02Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
 import { ReportBugModal } from "../report-bug-modal";
@@ -18,19 +22,30 @@ export function UserSection({ user, isCollapsed }: UserSectionProps) {
     navigate({ to: "/", search: { redirect: undefined } });
   };
 
+  const initials = user?.name
+    ?.split(" ")
+    .map((part: string) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "U";
+
   return (
-    <div className={`${isCollapsed ? "p-2" : "p-3"} border-t border-white/5 space-y-2 bg-black/20`}>
+    <div className={`${isCollapsed ? "px-2" : "px-3"} pb-3`}>
       <button
+        type="button"
         onClick={() => setIsReportBugModalOpen(true)}
-        className={`flex items-center ${isCollapsed ? "justify-center w-10 h-10" : "gap-3 w-full px-3 py-2.5"} text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors group relative`}
+        className={`flex h-8 w-full items-center rounded-md text-[12px] text-zinc-600 transition-colors hover:bg-white/[0.045] hover:text-zinc-300 ${
+          isCollapsed ? "justify-center px-2" : "gap-2.5 px-2"
+        }`}
+        title={isCollapsed ? "Report a bug" : undefined}
       >
-        <Bug size={20} />
-        {!isCollapsed && <span>Report a Bug</span>}
-        {isCollapsed && (
-          <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 border border-white/10">
-            Report a Bug
-          </div>
-        )}
+        <HugeiconsIcon
+          icon={Bug01Icon}
+          size={15}
+          strokeWidth={1.7}
+          aria-hidden="true"
+        />
+        {!isCollapsed && <span>Report a bug</span>}
       </button>
 
       <ReportBugModal
@@ -41,33 +56,38 @@ export function UserSection({ user, isCollapsed }: UserSectionProps) {
       />
 
       <div
-        className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3"} ${isCollapsed ? "w-10 h-10" : "px-2 py-2"} rounded-xl hover:bg-white/5 transition-colors cursor-pointer group border border-transparent hover:border-white/5 relative`}
+        className={`mt-1 flex h-10 items-center rounded-md transition-colors hover:bg-white/[0.045] ${
+          isCollapsed ? "justify-center" : "gap-2 px-1.5"
+        }`}
       >
-        <div className="w-9 h-9 rounded-full bg-linear-to-tr from-accent to-orange-600 flex items-center justify-center text-black font-bold text-xs shadow-lg shadow-accent/20 shrink-0">
-          {user?.name?.substring(0, 2).toUpperCase() || "U"}
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-[9px] font-semibold text-zinc-200 ring-1 ring-white/10">
+          {initials}
         </div>
         {!isCollapsed && (
           <>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-white truncate group-hover:text-accent transition-colors">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12px] font-medium leading-4 text-zinc-300">
                 {user?.name || "User"}
-              </div>
-              <div className="text-xs text-gray-500 truncate">
+              </p>
+              <p className="truncate text-[10px] leading-3 text-zinc-600">
                 {user?.email || "user@example.com"}
-              </div>
+              </p>
             </div>
             <button
+              type="button"
               onClick={handleLogout}
-              className="text-gray-500 hover:text-white transition-colors"
+              className="rounded p-1 text-zinc-600 transition-colors hover:bg-white/[0.06] hover:text-zinc-300"
+              aria-label="Sign out"
+              title="Sign out"
             >
-              <LogOut size={16} />
+              <HugeiconsIcon
+                icon={Logout02Icon}
+                size={14}
+                strokeWidth={1.7}
+                aria-hidden="true"
+              />
             </button>
           </>
-        )}
-        {isCollapsed && (
-          <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 border border-white/10">
-            {user?.name || "User"}
-          </div>
         )}
       </div>
     </div>

@@ -1,9 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { cloneElement } from "react";
-import type { LucideProps } from "lucide-react";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 interface NavItemProps {
-  icon: React.ReactNode;
+  icon: IconSvgElement;
   label: string;
   to: string;
   activeOptions?: { exact: boolean };
@@ -19,29 +18,32 @@ export function NavItem({
   isCollapsed,
   params,
 }: NavItemProps) {
-  // Clone icon with dynamic size based on collapsed state
-  const dynamicIcon = cloneElement(icon as React.ReactElement<LucideProps>, {
-    size: isCollapsed ? 20 : 14,
-  });
-
   return (
     <Link
       to={to}
       params={params}
       activeProps={{
         className:
-          "bg-accent/10 text-accent font-medium border border-accent/20 shadow-[0_0_15px_rgba(255,166,43,0.1)]",
+          "bg-white/[0.07] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]",
       }}
       inactiveProps={{
         className:
-          "text-gray-400 hover:text-white hover:bg-white/5 border border-transparent",
+          "text-zinc-500 hover:bg-white/[0.045] hover:text-zinc-200",
       }}
       activeOptions={activeOptions}
-      className={`flex items-center ${isCollapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-1"} w-full text-sm rounded-xl transition-all duration-200 group relative`}
+      className={`group relative flex h-8 w-full items-center rounded-md text-[13px] font-medium tracking-[-0.01em] transition-colors duration-150 ${
+        isCollapsed ? "justify-center px-2" : "gap-2.5 px-2"
+      }`}
       title={isCollapsed ? label : undefined}
     >
-      {dynamicIcon}
-      {!isCollapsed && <span>{label}</span>}
+      <HugeiconsIcon
+        icon={icon}
+        size={16}
+        strokeWidth={1.7}
+        className="shrink-0"
+        aria-hidden="true"
+      />
+      {!isCollapsed && <span className="truncate">{label}</span>}
     </Link>
   );
 }

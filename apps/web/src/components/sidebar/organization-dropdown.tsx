@@ -1,6 +1,11 @@
 import { Link, useLocation, useParams } from "@tanstack/react-router";
-import { useRef, useEffect } from "react";
-import { ChevronRight, Check, Plus } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Add01Icon,
+  ArrowDown01Icon,
+  CheckmarkCircle02Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 
 interface Organization {
   id: string;
@@ -9,7 +14,7 @@ interface Organization {
 }
 
 interface OrganizationDropdownProps {
-  organizations: any[];
+  organizations: Organization[];
   setSelectedOrganization: (org: Organization | null) => void;
   isOrgDropdownOpen: boolean;
   setIsOrgDropdownOpen: (open: boolean) => void;
@@ -28,7 +33,7 @@ export function OrganizationDropdown({
   const { orgSlug } = useParams({ from: "/$orgSlug" });
 
   const selectedOrg =
-    organizations?.find((org) => org.slug === orgSlug) || organizations?.[0];
+    organizations.find((org) => org.slug === orgSlug) || organizations[0];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -41,39 +46,54 @@ export function OrganizationDropdown({
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [setIsOrgDropdownOpen]);
 
+  const initial = selectedOrg?.name?.charAt(0).toUpperCase() || "O";
+
   return (
-    <div className={`${isCollapsed ? "px-2" : "px-4"} py-2 relative`} ref={dropdownRef}>
+    <div
+      className={`relative ${isCollapsed ? "px-2" : "px-3"}`}
+      ref={dropdownRef}
+    >
       <button
-        onClick={() => !isCollapsed && setIsOrgDropdownOpen(!isOrgDropdownOpen)}
-        className={`w-full flex items-center ${isCollapsed ? "justify-center" : "justify-between"} px-3 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-sm text-gray-300 transition-all group hover:border-white/10 hover:shadow-lg hover:shadow-black/20 ${isOrgDropdownOpen ? "bg-white/10 border-white/10" : ""}`}
+        type="button"
+        onClick={() =>
+          !isCollapsed && setIsOrgDropdownOpen(!isOrgDropdownOpen)
+        }
+        className={`flex h-9 w-full items-center rounded-md text-zinc-300 transition-colors hover:bg-white/[0.05] hover:text-white ${
+          isCollapsed ? "justify-center px-1" : "gap-2 px-1.5"
+        } ${isOrgDropdownOpen ? "bg-white/[0.06] text-white" : ""}`}
+        aria-expanded={isOrgDropdownOpen}
+        aria-label={isCollapsed ? selectedOrg?.name || "Organization" : undefined}
       >
-        <span className="flex items-center gap-3">
-          <div className="w-6 h-6 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
-            <div className="w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_rgba(255,166,43,0.5)]" />
-          </div>
-          {!isCollapsed && (
-            <span className="font-medium truncate max-w-30">
-              {selectedOrg?.name || "Select Org"}
-            </span>
-          )}
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border border-white/10 bg-white/[0.07] text-[10px] font-semibold text-zinc-200">
+          {initial}
         </span>
         {!isCollapsed && (
-          <span
-            className={`text-gray-500 group-hover:text-gray-400 transition-transform duration-200 ${isOrgDropdownOpen ? "-rotate-90" : "rotate-90"}`}
-          >
-            <ChevronRight size={14} />
-          </span>
+          <>
+            <span className="min-w-0 flex-1 truncate text-left text-[13px] font-medium">
+              {selectedOrg?.name || "Select organization"}
+            </span>
+            <HugeiconsIcon
+              icon={ArrowDown01Icon}
+              size={13}
+              strokeWidth={1.8}
+              className={`text-zinc-600 transition-transform duration-150 ${
+                isOrgDropdownOpen ? "rotate-180" : ""
+              }`}
+              aria-hidden="true"
+            />
+          </>
         )}
       </button>
 
       {isOrgDropdownOpen && !isCollapsed && (
-        <div className="absolute top-full left-4 right-4 mt-2 bg-[#101010] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-50 backdrop-blur-xl">
-          <div className="p-1 max-h-60 overflow-y-auto">
+        <div className="absolute left-3 right-3 top-full z-50 mt-1 overflow-hidden rounded-lg border border-white/10 bg-[#121212] p-1 shadow-2xl shadow-black/60">
+          <p className="px-2 pb-1 pt-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-600">
+            Organizations
+          </p>
+          <div className="max-h-56 overflow-y-auto">
             {organizations.map((org) => (
               <Link
                 key={org.id}
@@ -82,25 +102,38 @@ export function OrganizationDropdown({
                   setSelectedOrganization(org);
                   setIsOrgDropdownOpen(false);
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                className={`flex h-8 w-full items-center gap-2 rounded-md px-2 text-[13px] transition-colors ${
                   orgSlug === org.slug
-                    ? "bg-accent/10 text-accent"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                    ? "bg-white/[0.07] text-white"
+                    : "text-zinc-400 hover:bg-white/[0.05] hover:text-white"
                 }`}
               >
-                <span className="truncate">{org.name}</span>
-                {orgSlug === org.slug && <Check size={14} />}
+                <span className="min-w-0 flex-1 truncate">{org.name}</span>
+                {orgSlug === org.slug && (
+                  <HugeiconsIcon
+                    icon={CheckmarkCircle02Icon}
+                    size={14}
+                    strokeWidth={1.8}
+                    className="text-accent"
+                    aria-hidden="true"
+                  />
+                )}
               </Link>
             ))}
           </div>
-          <div className="p-1 border-t border-white/5">
+          <div className="mt-1 border-t border-white/[0.06] pt-1">
             <Link
               to="/onboarding"
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+              className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-[13px] text-zinc-500 transition-colors hover:bg-white/[0.05] hover:text-white"
               onClick={() => setIsOrgDropdownOpen(false)}
             >
-              <Plus size={14} />
-              Create Organization
+              <HugeiconsIcon
+                icon={Add01Icon}
+                size={14}
+                strokeWidth={1.8}
+                aria-hidden="true"
+              />
+              Create organization
             </Link>
           </div>
         </div>
