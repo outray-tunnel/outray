@@ -23,9 +23,7 @@ export const Route = createFileRoute("/$orgSlug/tunnels/")({
 function TunnelsView() {
   const { orgSlug } = Route.useParams();
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name">(
-    "newest",
-  );
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name">("newest");
   const [isNewTunnelModalOpen, setIsNewTunnelModalOpen] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
 
@@ -56,10 +54,14 @@ function TunnelsView() {
     )
     .sort((a, b) => {
       if (sortBy === "newest") {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       }
       if (sortBy === "oldest") {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
       }
       return (a.name || "").localeCompare(b.name || "");
     });
@@ -84,9 +86,6 @@ function TunnelsView() {
     <div className="mx-auto max-w-6xl space-y-7">
       <header className="flex items-end justify-between gap-6 border-b border-white/[0.07] pb-7">
         <div>
-          <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-700">
-            Tunnels
-          </p>
           <h1 className="text-2xl font-semibold tracking-[-0.035em] text-white">
             Active tunnels
           </h1>
@@ -106,7 +105,7 @@ function TunnelsView() {
       </header>
 
       {isAtLimit && (
-        <div className="flex items-start gap-3 border-y border-amber-500/20 py-4 text-amber-300">
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 px-5 py-4 text-amber-300">
           <HugeiconsIcon
             icon={Alert02Icon}
             size={16}
@@ -155,8 +154,8 @@ function TunnelsView() {
         </label>
       </div>
 
-      <section className="border-y border-white/[0.07]">
-        <div className="hidden grid-cols-[minmax(0,1fr)_100px_120px_24px] gap-4 border-b border-white/[0.07] px-1 py-3 text-[9px] font-medium uppercase tracking-[0.1em] text-zinc-700 md:grid">
+      <section className="overflow-hidden rounded-xl border border-white/[0.07]">
+        <div className="hidden grid-cols-[minmax(0,1fr)_100px_120px_24px] gap-4 border-b border-white/[0.07] px-6 py-4 text-[9px] font-medium uppercase tracking-[0.1em] text-zinc-700 md:grid">
           <span>Tunnel</span>
           <span>Status</span>
           <span>Created</span>
@@ -166,14 +165,17 @@ function TunnelsView() {
         {isLoading ? (
           <div className="divide-y divide-white/[0.06]">
             {[0, 1, 2].map((item) => (
-              <div key={item} className="flex h-17 animate-pulse items-center gap-3 py-4">
+              <div
+                key={item}
+                className="flex h-17 animate-pulse items-center gap-3 px-6 py-4"
+              >
                 <span className="h-7 w-7 rounded-md bg-white/[0.04]" />
                 <span className="h-3 w-44 bg-white/[0.04]" />
               </div>
             ))}
           </div>
         ) : filteredTunnels.length === 0 ? (
-          <div className="flex min-h-56 flex-col items-center justify-center py-12 text-center">
+          <div className="flex min-h-56 flex-col items-center justify-center px-6 py-12 text-center">
             <HugeiconsIcon
               icon={Route03Icon}
               size={26}
@@ -204,11 +206,15 @@ function TunnelsView() {
                   to="/$orgSlug/tunnels/$tunnelId"
                   params={{ orgSlug, tunnelId: tunnel.id }}
                   search={{ tab: "overview" }}
-                  className="group grid gap-4 px-1 py-4 transition-colors hover:bg-white/[0.02] md:grid-cols-[minmax(0,1fr)_100px_120px_24px] md:items-center"
+                  className="group grid gap-4 px-6 py-5 transition-colors hover:bg-white/[0.02] md:grid-cols-[minmax(0,1fr)_100px_120px_24px] md:items-center"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/[0.04] text-zinc-600 ring-1 ring-white/[0.06]">
-                      <HugeiconsIcon icon={Route03Icon} size={15} strokeWidth={1.7} />
+                      <HugeiconsIcon
+                        icon={Route03Icon}
+                        size={15}
+                        strokeWidth={1.7}
+                      />
                     </span>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -232,7 +238,11 @@ function TunnelsView() {
                           className="text-zinc-800 hover:text-zinc-400"
                           aria-label="Copy tunnel URL"
                         >
-                          <HugeiconsIcon icon={Copy01Icon} size={11} strokeWidth={1.7} />
+                          <HugeiconsIcon
+                            icon={Copy01Icon}
+                            size={11}
+                            strokeWidth={1.7}
+                          />
                         </button>
                       </div>
                     </div>
