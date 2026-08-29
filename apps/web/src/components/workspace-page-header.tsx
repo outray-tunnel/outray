@@ -12,15 +12,17 @@ export function WorkspacePageHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="flex items-end justify-between gap-6 border-b border-white/[0.07] pb-7">
+    <header className="flex items-end justify-between gap-8 border-b border-white/[0.07] pb-8">
       <div className="min-w-0 flex-1">
-        <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-700">
+        <p className="mb-3.5 text-xs font-medium uppercase tracking-[0.12em] text-zinc-600">
           {eyebrow}
         </p>
-        <h1 className="text-2xl font-semibold tracking-[-0.035em] text-white">
+        <h1 className="text-3xl font-semibold tracking-[-0.035em] text-white">
           {title}
         </h1>
-        <p className="mt-2 text-sm text-zinc-500">{description}</p>
+        <p className="mt-2.5 text-[15px] leading-6 text-zinc-400">
+          {description}
+        </p>
       </div>
       {action}
     </header>
