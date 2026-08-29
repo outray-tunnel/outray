@@ -66,7 +66,7 @@ export function DomainCard({
   const txtValue = domain.id;
 
   return (
-    <div className="group border-b border-white/[0.06] px-1 py-5">
+    <div className="group border-b border-white/[0.06] px-5 py-5 last:border-b-0 sm:px-6">
       {/* Header row with icon, domain info, and delete button */}
       <div className="flex items-start gap-3 sm:gap-4">
         <div className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/[0.04] ring-1 ring-white/[0.06] sm:flex">
