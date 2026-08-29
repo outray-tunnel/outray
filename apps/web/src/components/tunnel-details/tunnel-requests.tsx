@@ -7,6 +7,7 @@ import {
 } from "@hugeicons-pro/core-stroke-rounded";
 import { appClient } from "@/lib/app-client";
 import { authClient } from "@/lib/auth-client";
+import { getHttpMethodColor } from "@/components/requests";
 
 function formatBytes(bytes: number): string {
   if (bytes >= 1_073_741_824) {
@@ -261,7 +262,9 @@ export function TunnelRequests({ tunnelId }: TunnelRequestsProps) {
                         {req.status_code}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 font-mono font-medium text-zinc-400">
+                    <td
+                      className={`px-4 py-3.5 font-mono font-medium ${getHttpMethodColor(req.method)}`}
+                    >
                       {req.method}
                     </td>
                     <td
