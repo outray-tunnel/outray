@@ -22,18 +22,22 @@ export function BandwidthUsage() {
   });
 
   if (isLoading || !data) {
-    return <div className="h-28 animate-pulse border-y border-white/[0.06] bg-white/[0.015]" />;
+    return (
+      <div className="h-28 animate-pulse rounded-xl border border-white/[0.06] bg-white/[0.015]" />
+    );
   }
   if ("error" in data) return null;
 
   const { usage, limit, percentage } = data;
 
   return (
-    <section className="border-y border-white/[0.07] py-5">
+    <section className="rounded-xl border border-white/[0.07] p-6">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <h3 className="text-sm font-medium text-zinc-300">Bandwidth</h3>
-          <p className="mt-1 text-[11px] text-zinc-600">Current billing period</p>
+          <p className="mt-1 text-[11px] text-zinc-600">
+            Current billing period
+          </p>
         </div>
         <span className="font-mono text-[11px] text-zinc-500">
           {formatBytes(usage)} / {formatBytes(limit)}
