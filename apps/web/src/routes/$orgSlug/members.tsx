@@ -25,9 +25,7 @@ import { WorkspacePageHeader } from "@/components/workspace-page-header";
 
 export const Route = createFileRoute("/$orgSlug/members")({
   head: () => ({
-    meta: [
-      { title: "Members - OutRay" },
-    ],
+    meta: [{ title: "Members - OutRay" }],
   }),
   component: MembersView,
 });
@@ -373,14 +371,14 @@ function MembersView() {
           <div className="h-9 w-9 rounded-md bg-white/[0.07] sm:w-32" />
         </header>
 
-        <section className="border-y border-white/[0.07]">
-          <div className="flex items-center justify-between border-b border-white/[0.07] py-4">
+        <section className="rounded-xl border border-white/[0.07]">
+          <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4 sm:px-6">
             <div className="h-3 w-24 rounded bg-white/[0.06]" />
             <div className="h-2.5 w-16 rounded bg-white/[0.04]" />
           </div>
           <div className="divide-y divide-white/[0.07]">
             {[0, 1, 2].map((row) => (
-              <div key={row} className="flex items-center gap-3.5 py-4">
+              <div key={row} className="flex items-center gap-3.5 px-5 py-5 sm:px-6">
                 <div className="size-8 rounded-full bg-white/[0.05]" />
                 <div className="flex-1">
                   <div className="h-3 w-32 rounded bg-white/[0.06]" />
@@ -407,21 +405,21 @@ function MembersView() {
         }
         action={
           canInvite ? (
-          <button
-            type="button"
-            onClick={handleInviteClick}
-            disabled={isAtLimit}
-            className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-white px-3.5 text-[12px] font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <HugeiconsIcon icon={Add01Icon} size={15} strokeWidth={1.9} />
-            <span className="hidden sm:inline">Invite member</span>
-          </button>
+            <button
+              type="button"
+              onClick={handleInviteClick}
+              disabled={isAtLimit}
+              className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-white px-3.5 text-[12px] font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <HugeiconsIcon icon={Add01Icon} size={15} strokeWidth={1.9} />
+              <span className="hidden sm:inline">Invite member</span>
+            </button>
           ) : undefined
         }
       />
 
       {isAtLimit && (
-        <aside className="flex flex-col gap-4 border-y border-white/[0.07] py-4 sm:flex-row sm:items-center">
+        <aside className="flex flex-col gap-4 rounded-xl border border-white/[0.07] px-5 py-4 sm:flex-row sm:items-center">
           <div className="flex min-w-0 flex-1 items-center gap-3.5">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-400/[0.08] text-amber-300">
               <HugeiconsIcon icon={Alert02Icon} size={15} strokeWidth={1.8} />
@@ -450,8 +448,8 @@ function MembersView() {
         </aside>
       )}
 
-      <section className="border-y border-white/[0.07]">
-        <div className="flex items-center justify-between border-b border-white/[0.07] py-4">
+      <section className="rounded-xl border border-white/[0.07]">
+        <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4 sm:px-6">
           <h2 className="text-xs font-medium text-zinc-300">Team members</h2>
           <span className="text-[10px] text-zinc-700">
             {members.length} active · {invitations.length} pending
@@ -462,7 +460,7 @@ function MembersView() {
           {members.map((member) => (
             <div
               key={member.id}
-              className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_100px_32px] sm:items-center"
+              className="grid gap-3 px-5 py-5 sm:grid-cols-[minmax(0,1fr)_100px_32px] sm:items-center sm:px-6"
             >
               <div className="flex min-w-0 items-center gap-3.5">
                 <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-[11px] font-medium text-zinc-300">
@@ -506,44 +504,44 @@ function MembersView() {
                         ref={dropdownRef}
                         className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-lg border border-white/[0.09] bg-[#0a0a0a] p-1 shadow-2xl shadow-black/60"
                       >
-                          {canUpdate && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setChangeRoleState({
-                                  isOpen: true,
-                                  memberId: member.id,
-                                  currentRole: member.role as any,
-                                });
-                                setActiveDropdownId(null);
-                              }}
-                              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[11px] text-zinc-500 transition-colors hover:bg-white/[0.05] hover:text-zinc-200"
-                            >
-                              <HugeiconsIcon
-                                icon={ShieldUserIcon}
-                                size={13}
-                                strokeWidth={1.7}
-                              />
-                              Change role
-                            </button>
-                          )}
-                          {canDelete && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                removeMember(member.id);
-                                setActiveDropdownId(null);
-                              }}
-                              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[11px] text-red-400/70 transition-colors hover:bg-red-500/[0.08] hover:text-red-400"
-                            >
-                              <HugeiconsIcon
-                                icon={Cancel01Icon}
-                                size={13}
-                                strokeWidth={1.7}
-                              />
-                              Remove member
-                            </button>
-                          )}
+                        {canUpdate && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setChangeRoleState({
+                                isOpen: true,
+                                memberId: member.id,
+                                currentRole: member.role as any,
+                              });
+                              setActiveDropdownId(null);
+                            }}
+                            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[11px] text-zinc-500 transition-colors hover:bg-white/[0.05] hover:text-zinc-200"
+                          >
+                            <HugeiconsIcon
+                              icon={ShieldUserIcon}
+                              size={13}
+                              strokeWidth={1.7}
+                            />
+                            Change role
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              removeMember(member.id);
+                              setActiveDropdownId(null);
+                            }}
+                            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[11px] text-red-400/70 transition-colors hover:bg-red-500/[0.08] hover:text-red-400"
+                          >
+                            <HugeiconsIcon
+                              icon={Cancel01Icon}
+                              size={13}
+                              strokeWidth={1.7}
+                            />
+                            Remove member
+                          </button>
+                        )}
                       </div>
                     )}
                   </>
@@ -555,11 +553,15 @@ function MembersView() {
           {invitations.map((invitation) => (
             <div
               key={invitation.id}
-              className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_100px_32px] sm:items-center"
+              className="grid gap-3 px-5 py-5 sm:grid-cols-[minmax(0,1fr)_100px_32px] sm:items-center sm:px-6"
             >
               <div className="flex min-w-0 items-center gap-3.5">
                 <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/[0.035] text-zinc-700">
-                  <HugeiconsIcon icon={Mail01Icon} size={14} strokeWidth={1.7} />
+                  <HugeiconsIcon
+                    icon={Mail01Icon}
+                    size={14}
+                    strokeWidth={1.7}
+                  />
                 </div>
                 <div className="min-w-0">
                   <h3 className="truncate text-xs font-medium text-zinc-500">
