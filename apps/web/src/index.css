@@ -21,7 +21,8 @@
 }
 
 /* Fumadocs dark theme with brand accent color */
-.dark, :root {
+.dark,
+:root {
   --color-fd-background: hsl(0, 0%, 0%);
   --color-fd-foreground: hsl(0, 0%, 100%);
   --color-fd-card: hsl(0, 0%, 4%);
@@ -43,7 +44,8 @@
 }
 
 /* Sidebar styling for dark theme */
-.dark #nd-sidebar, #nd-sidebar {
+.dark #nd-sidebar,
+#nd-sidebar {
   --color-fd-background: hsl(0, 0%, 0%);
   --color-fd-muted: hsl(0, 0%, 8%);
   --color-fd-secondary: hsl(0, 0%, 10%);
@@ -56,6 +58,74 @@ body {
   background-color: var(--color-fd-background);
   color: var(--color-fd-foreground);
   font-family: "Geom", sans-serif;
+}
+
+/* Product workspace scale
+ *
+ * The workspace is deliberately a little larger and softer than the public
+ * site. This keeps dense request data readable without turning controls into
+ * oversized pills, and gives all product surfaces one consistent geometry.
+ */
+.workspace-ui .text-\[8px\] {
+  font-size: 0.625rem;
+  line-height: 0.875rem;
+}
+
+.workspace-ui .text-\[9px\] {
+  font-size: 0.6875rem;
+  line-height: 0.9375rem;
+}
+
+.workspace-ui .text-\[10px\] {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.workspace-ui .text-\[11px\] {
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+
+.workspace-ui .text-\[12px\],
+.workspace-ui .text-xs {
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+
+.workspace-ui .text-\[13px\] {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.workspace-ui .text-\[14px\] {
+  font-size: 1rem;
+  line-height: 1.375rem;
+}
+
+.workspace-ui .text-\[15px\],
+.workspace-ui .text-sm {
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+}
+
+.workspace-ui .rounded-sm {
+  border-radius: 0.5rem;
+}
+
+.workspace-ui .rounded-md {
+  border-radius: 0.625rem;
+}
+
+.workspace-ui .rounded-lg {
+  border-radius: 0.75rem;
+}
+
+.workspace-ui .rounded-xl {
+  border-radius: 1rem;
+}
+
+.workspace-ui .rounded-2xl {
+  border-radius: 1.25rem;
 }
 
 /* Safe area padding for mobile devices with notches */
