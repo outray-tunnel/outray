@@ -187,7 +187,7 @@ export function TunnelRequests({ tunnelId }: TunnelRequestsProps) {
         </div>
       </div>
 
-      <div className="flex max-h-150 flex-col overflow-hidden border-y border-white/[0.07]">
+      <div className="flex max-h-150 flex-col overflow-hidden rounded-xl border border-white/[0.07]">
         <div className="overflow-auto overscroll-contain">
           <table className="w-full min-w-185 text-left">
             <thead className="sticky top-0 z-10 border-b border-white/[0.07] bg-[#080808]/95 text-[9px] uppercase tracking-[0.1em] text-zinc-700 backdrop-blur-md">
