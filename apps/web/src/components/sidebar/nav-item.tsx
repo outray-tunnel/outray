@@ -3,6 +3,7 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 interface NavItemProps {
   icon: IconSvgElement;
+  activeIcon?: IconSvgElement;
   label: string;
   to: string;
   activeOptions?: { exact: boolean };
@@ -13,6 +14,7 @@ interface NavItemProps {
 
 export function NavItem({
   icon,
+  activeIcon,
   label,
   to,
   activeOptions,
@@ -34,14 +36,14 @@ export function NavItem({
         isActive === undefined ? { className: inactiveClassName } : {}
       }
       activeOptions={activeOptions}
-      className={`group relative flex h-8 w-full items-center rounded-md text-[13px] font-medium tracking-[-0.01em] transition-colors duration-150 ${
-        isCollapsed ? "justify-center px-2" : "gap-2.5 px-2"
+      className={`group relative flex h-10 w-full items-center rounded-lg text-sm font-medium tracking-[-0.01em] transition-colors duration-150 ${
+        isCollapsed ? "justify-center px-2.5" : "gap-3 px-3"
       } ${isActive === undefined ? "" : isActive ? activeClassName : inactiveClassName}`}
       title={isCollapsed ? label : undefined}
     >
       <HugeiconsIcon
-        icon={icon}
-        size={16}
+        icon={isActive && activeIcon ? activeIcon : icon}
+        size={18}
         strokeWidth={1.7}
         className="shrink-0"
         aria-hidden="true"
