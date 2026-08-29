@@ -38,9 +38,12 @@ export function StatsSummary({ stats }: { stats?: OverviewStats | null }) {
   ];
 
   return (
-    <section className="grid border-y border-white/[0.07] md:grid-cols-3 md:divide-x md:divide-white/[0.07]">
+    <section className="grid overflow-hidden rounded-xl border border-white/[0.07] md:grid-cols-3 md:divide-x md:divide-white/[0.07]">
       {items.map((item) => (
-        <div key={item.label} className="flex items-start gap-4 py-5 md:px-6 first:pl-0">
+        <div
+          key={item.label}
+          className="flex items-start gap-4 border-b border-white/[0.07] px-6 py-6 last:border-b-0 md:border-b-0"
+        >
           <span className="mt-0.5 text-zinc-600">
             <HugeiconsIcon
               icon={item.icon}
