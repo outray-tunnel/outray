@@ -17,6 +17,7 @@ import {
 } from "@/components/observability/observability-ui";
 import { monitors, services } from "@/components/observability/mock-data";
 import { Modal } from "@/components/ui/modal";
+import { Select } from "@/components/ui/select";
 
 export const Route = createFileRoute("/$orgSlug/observability/monitors")({
   head: () => ({ meta: [{ title: "Monitors - OutRay Observability" }] }),
@@ -135,6 +136,11 @@ function NotificationRoute({ name, destination, detail }: { name: string; destin
 }
 
 function CreateMonitorModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [service, setService] = useState(services[0]?.id ?? "");
+  const [signal, setSignal] = useState("error-rate");
+  const [condition, setCondition] = useState("above");
+  const [duration, setDuration] = useState("5m");
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" appearance="flat">
       <header className="flex items-start justify-between gap-5 border-b border-white/[0.07] px-5 py-5 sm:px-6">
@@ -152,36 +158,68 @@ function CreateMonitorModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
           <input placeholder="e.g. Checkout latency" className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-white/[0.025] px-3 text-xs text-zinc-300 outline-none placeholder:text-zinc-800 focus:border-white/[0.16]" />
         </label>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
+          <div>
             <span className="text-[10px] font-medium text-zinc-600">Service</span>
-            <select className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-[#0a0a0a] px-3 text-xs text-zinc-400 outline-none">
-              {services.map((service) => <option key={service.id}>{service.name}</option>)}
-            </select>
-          </label>
-          <label className="block">
+            <Select
+              value={service}
+              onChange={setService}
+              ariaLabel="Monitor service"
+              options={services.map((item) => ({ value: item.id, label: item.name }))}
+              className="mt-2"
+            />
+          </div>
+          <div>
             <span className="text-[10px] font-medium text-zinc-600">Signal</span>
-            <select className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-[#0a0a0a] px-3 text-xs text-zinc-400 outline-none">
-              <option>Error rate</option><option>P95 latency</option><option>Availability</option><option>Throughput</option>
-            </select>
-          </label>
+            <Select
+              value={signal}
+              onChange={setSignal}
+              ariaLabel="Monitor signal"
+              options={[
+                { value: "error-rate", label: "Error rate" },
+                { value: "p95-latency", label: "P95 latency" },
+                { value: "availability", label: "Availability" },
+                { value: "throughput", label: "Throughput" },
+              ]}
+              className="mt-2"
+            />
+          </div>
         </div>
         <div className="grid grid-cols-[1fr_100px_1fr] items-end gap-3">
-          <label>
+          <div>
             <span className="text-[10px] font-medium text-zinc-600">Condition</span>
-            <select className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-[#0a0a0a] px-3 text-xs text-zinc-400 outline-none"><option>Above</option><option>Below</option></select>
-          </label>
+            <Select
+              value={condition}
+              onChange={setCondition}
+              ariaLabel="Monitor condition"
+              options={[
+                { value: "above", label: "Above" },
+                { value: "below", label: "Below" },
+              ]}
+              className="mt-2"
+            />
+          </div>
           <label>
             <span className="text-[10px] font-medium text-zinc-600">Value</span>
             <input defaultValue="2" className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-white/[0.025] px-3 text-xs text-zinc-300 outline-none" />
           </label>
-          <label>
+          <div>
             <span className="text-[10px] font-medium text-zinc-600">For</span>
-            <select className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-[#0a0a0a] px-3 text-xs text-zinc-400 outline-none"><option>5 minutes</option><option>10 minutes</option><option>15 minutes</option></select>
-          </label>
+            <Select
+              value={duration}
+              onChange={setDuration}
+              ariaLabel="Monitor duration"
+              options={[
+                { value: "5m", label: "5 minutes" },
+                { value: "10m", label: "10 minutes" },
+                { value: "15m", label: "15 minutes" },
+              ]}
+              className="mt-2"
+            />
+          </div>
         </div>
         <div className="flex items-center gap-3 rounded-lg border border-white/[0.06] px-4 py-3 text-[10px] text-zinc-600">
           <HugeiconsIcon icon={Clock01Icon} size={14} strokeWidth={1.7} />
-          Evaluation runs every 30 seconds using demo telemetry.
+          Evaluation runs every 30 seconds using incoming telemetry.
         </div>
       </div>
       <footer className="flex justify-end gap-2 border-t border-white/[0.07] px-5 py-4 sm:px-6">
