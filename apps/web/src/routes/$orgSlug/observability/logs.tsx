@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  ArrowDown01Icon,
   ArrowRight01Icon,
   Copy01Icon,
   PauseIcon,
@@ -21,6 +20,7 @@ import {
   type LogEvent,
   type LogLevel,
 } from "@/components/observability/mock-data";
+import { Select } from "@/components/ui/select";
 
 export const Route = createFileRoute("/$orgSlug/observability/logs")({
   head: () => ({ meta: [{ title: "Logs - OutRay Observability" }] }),
@@ -87,19 +87,17 @@ function LogsView() {
             />
             <kbd className="hidden rounded border border-white/[0.07] px-1.5 py-0.5 text-[9px] text-zinc-700 sm:block">⌘ K</kbd>
           </label>
-          <label className="flex h-12 items-center gap-2 bg-[#090909] px-5 sm:px-6">
-            <select
-              value={service}
-              onChange={(event) => setService(event.target.value)}
-              className="min-w-0 flex-1 appearance-none bg-transparent text-[10px] text-zinc-500 outline-none"
-            >
-              <option value="all">All services</option>
-              {services.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-            <HugeiconsIcon icon={ArrowDown01Icon} size={13} strokeWidth={1.7} className="text-zinc-700" />
-          </label>
+          <Select
+            value={service}
+            onChange={setService}
+            ariaLabel="Filter logs by service"
+            options={[
+              { value: "all", label: "All services" },
+              ...services.map((item) => ({ value: item.id, label: item.name })),
+            ]}
+            className="h-12 bg-[#090909]"
+            triggerClassName="h-12 !rounded-none !border-0 !bg-white/[0.018] px-5 hover:!bg-white/[0.035] focus-visible:outline focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-white/20 sm:px-6"
+          />
         </div>
         <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] px-5 py-3 sm:px-6">
           {(["all", "debug", "info", "warn", "error"] as const).map((value) => (
