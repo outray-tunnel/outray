@@ -92,6 +92,7 @@ import { Route as OrgSlugSettingsProfileRouteImport } from './routes/$orgSlug/se
 import { Route as OrgSlugSettingsOrganizationRouteImport } from './routes/$orgSlug/settings/organization'
 import { Route as OrgSlugObservabilityTracesRouteImport } from './routes/$orgSlug/observability/traces'
 import { Route as OrgSlugObservabilityServicesRouteImport } from './routes/$orgSlug/observability/services'
+import { Route as OrgSlugObservabilityRequestsRouteImport } from './routes/$orgSlug/observability/requests'
 import { Route as OrgSlugObservabilityMonitorsRouteImport } from './routes/$orgSlug/observability/monitors'
 import { Route as OrgSlugObservabilityMetricsRouteImport } from './routes/$orgSlug/observability/metrics'
 import { Route as OrgSlugObservabilityLogsRouteImport } from './routes/$orgSlug/observability/logs'
@@ -539,6 +540,12 @@ const OrgSlugObservabilityServicesRoute =
     path: '/services',
     getParentRoute: () => OrgSlugObservabilityRoute,
   } as any)
+const OrgSlugObservabilityRequestsRoute =
+  OrgSlugObservabilityRequestsRouteImport.update({
+    id: '/requests',
+    path: '/requests',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
 const OrgSlugObservabilityMonitorsRoute =
   OrgSlugObservabilityMonitorsRouteImport.update({
     id: '/monitors',
@@ -714,6 +721,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
   '/$orgSlug/observability/monitors': typeof OrgSlugObservabilityMonitorsRoute
+  '/$orgSlug/observability/requests': typeof OrgSlugObservabilityRequestsRoute
   '/$orgSlug/observability/services': typeof OrgSlugObservabilityServicesRoute
   '/$orgSlug/observability/traces': typeof OrgSlugObservabilityTracesRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
@@ -819,6 +827,7 @@ export interface FileRoutesByTo {
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
   '/$orgSlug/observability/monitors': typeof OrgSlugObservabilityMonitorsRoute
+  '/$orgSlug/observability/requests': typeof OrgSlugObservabilityRequestsRoute
   '/$orgSlug/observability/services': typeof OrgSlugObservabilityServicesRoute
   '/$orgSlug/observability/traces': typeof OrgSlugObservabilityTracesRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
@@ -928,6 +937,7 @@ export interface FileRoutesById {
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
   '/$orgSlug/observability/monitors': typeof OrgSlugObservabilityMonitorsRoute
+  '/$orgSlug/observability/requests': typeof OrgSlugObservabilityRequestsRoute
   '/$orgSlug/observability/services': typeof OrgSlugObservabilityServicesRoute
   '/$orgSlug/observability/traces': typeof OrgSlugObservabilityTracesRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
@@ -1038,6 +1048,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
     | '/$orgSlug/observability/monitors'
+    | '/$orgSlug/observability/requests'
     | '/$orgSlug/observability/services'
     | '/$orgSlug/observability/traces'
     | '/$orgSlug/settings/organization'
@@ -1143,6 +1154,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
     | '/$orgSlug/observability/monitors'
+    | '/$orgSlug/observability/requests'
     | '/$orgSlug/observability/services'
     | '/$orgSlug/observability/traces'
     | '/$orgSlug/settings/organization'
@@ -1251,6 +1263,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
     | '/$orgSlug/observability/monitors'
+    | '/$orgSlug/observability/requests'
     | '/$orgSlug/observability/services'
     | '/$orgSlug/observability/traces'
     | '/$orgSlug/settings/organization'
@@ -1970,6 +1983,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugObservabilityServicesRouteImport
       parentRoute: typeof OrgSlugObservabilityRoute
     }
+    '/$orgSlug/observability/requests': {
+      id: '/$orgSlug/observability/requests'
+      path: '/requests'
+      fullPath: '/$orgSlug/observability/requests'
+      preLoaderRoute: typeof OrgSlugObservabilityRequestsRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
     '/$orgSlug/observability/monitors': {
       id: '/$orgSlug/observability/monitors'
       path: '/monitors'
@@ -2138,6 +2158,7 @@ interface OrgSlugObservabilityRouteChildren {
   OrgSlugObservabilityLogsRoute: typeof OrgSlugObservabilityLogsRoute
   OrgSlugObservabilityMetricsRoute: typeof OrgSlugObservabilityMetricsRoute
   OrgSlugObservabilityMonitorsRoute: typeof OrgSlugObservabilityMonitorsRoute
+  OrgSlugObservabilityRequestsRoute: typeof OrgSlugObservabilityRequestsRoute
   OrgSlugObservabilityServicesRoute: typeof OrgSlugObservabilityServicesRoute
   OrgSlugObservabilityTracesRoute: typeof OrgSlugObservabilityTracesRoute
   OrgSlugObservabilityIndexRoute: typeof OrgSlugObservabilityIndexRoute
@@ -2148,6 +2169,7 @@ const OrgSlugObservabilityRouteChildren: OrgSlugObservabilityRouteChildren = {
   OrgSlugObservabilityLogsRoute: OrgSlugObservabilityLogsRoute,
   OrgSlugObservabilityMetricsRoute: OrgSlugObservabilityMetricsRoute,
   OrgSlugObservabilityMonitorsRoute: OrgSlugObservabilityMonitorsRoute,
+  OrgSlugObservabilityRequestsRoute: OrgSlugObservabilityRequestsRoute,
   OrgSlugObservabilityServicesRoute: OrgSlugObservabilityServicesRoute,
   OrgSlugObservabilityTracesRoute: OrgSlugObservabilityTracesRoute,
   OrgSlugObservabilityIndexRoute: OrgSlugObservabilityIndexRoute,
