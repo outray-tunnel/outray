@@ -9,9 +9,7 @@ import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/$orgSlug/settings/organization")({
   head: () => ({
-    meta: [
-      { title: "Organization Settings - OutRay" },
-    ],
+    meta: [{ title: "Organization Settings - OutRay" }],
   }),
   component: OrganizationSettingsView,
 });
@@ -29,8 +27,8 @@ function OrganizationSettingsView() {
 
   return (
     <div className="space-y-7">
-      <section className="border-y border-white/[0.07]">
-        <div className="flex items-center gap-3 py-5">
+      <section className="rounded-xl border border-white/[0.07]">
+        <div className="flex items-center gap-3 px-5 py-5 sm:px-6">
           <HugeiconsIcon
             icon={Building06Icon}
             size={17}
@@ -58,7 +56,6 @@ function OrganizationSettingsView() {
           />
         </div>
       </section>
-
     </div>
   );
 }
@@ -73,7 +70,7 @@ function OrganizationField({
   icon: typeof TextIcon;
 }) {
   return (
-    <div className="py-5 md:px-6 first:pl-0">
+    <div className="px-5 py-5 sm:px-6">
       <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-700">
         {label}
       </p>
