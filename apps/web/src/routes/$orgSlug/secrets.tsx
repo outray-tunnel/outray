@@ -19,13 +19,18 @@ const summary = [
   { label: "Stored secrets", value: "0", detail: "Encrypted at rest" },
   { label: "Environments", value: "0", detail: "No environments yet" },
   { label: "Team access", value: "0", detail: "No policies assigned" },
-  { label: "Last rotation", value: "Never", detail: "Automatic rotation planned" },
+  {
+    label: "Last rotation",
+    value: "Never",
+    detail: "Automatic rotation planned",
+  },
 ];
 
 const capabilities = [
   {
     name: "Encrypted vaults",
-    description: "Keep application credentials isolated by project and environment.",
+    description:
+      "Keep application credentials isolated by project and environment.",
     icon: ShieldKeyIcon,
   },
   {
@@ -35,7 +40,8 @@ const capabilities = [
   },
   {
     name: "Runtime delivery",
-    description: "Inject configuration without committing values to source control.",
+    description:
+      "Inject configuration without committing values to source control.",
     icon: Key01Icon,
   },
 ];
@@ -76,11 +82,11 @@ function SecretsView() {
       </header>
 
       <section
-        className="grid border-y border-white/[0.07] sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.07]"
+        className="grid overflow-hidden rounded-xl border border-white/[0.07] sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.07]"
         aria-label="Secrets summary"
       >
         {summary.map((item) => (
-          <div key={item.label} className="px-1 py-5 lg:px-6 first:pl-1">
+          <div key={item.label} className="px-6 py-6">
             <p className="text-[11px] text-zinc-600">{item.label}</p>
             <p className="mt-2 text-2xl font-medium tracking-[-0.04em] text-zinc-200">
               {item.value}
@@ -99,11 +105,11 @@ function SecretsView() {
             The foundation planned for the Secrets preview.
           </p>
         </div>
-        <div className="divide-y divide-white/[0.07] border-y border-white/[0.07]">
+        <div className="divide-y divide-white/[0.07] overflow-hidden rounded-xl border border-white/[0.07]">
           {capabilities.map((capability) => (
             <div
               key={capability.name}
-              className="flex items-start gap-4 py-5"
+              className="flex items-start gap-4 px-6 py-5"
             >
               <span className="mt-0.5 text-zinc-500">
                 <HugeiconsIcon
