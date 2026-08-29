@@ -16,7 +16,7 @@ export function ActiveTunnelsPanel({
   const hasTunnels = activeTunnels.length > 0;
 
   return (
-    <section className="flex flex-1 flex-col border-y border-white/[0.07] py-5">
+    <section className="flex flex-1 flex-col overflow-hidden rounded-xl border border-white/[0.07] p-6">
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-medium text-zinc-300">Active tunnels</h3>
