@@ -8,6 +8,7 @@ import {
 import { appClient } from "@/lib/app-client";
 import { authClient } from "@/lib/auth-client";
 import { getHttpMethodColor } from "@/components/requests";
+import { TimeRangeControl } from "@/components/observability/observability-ui";
 
 function formatBytes(bytes: number): string {
   if (bytes >= 1_073_741_824) {
@@ -162,29 +163,14 @@ export function TunnelRequests({ tunnelId }: TunnelRequestsProps) {
           />
         </label>
 
-        <div className="flex items-center border-b border-white/[0.07]">
-          {TIME_RANGES.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setTimeRange(value)}
-              className={`relative border-b px-3 py-2 text-[11px] font-medium transition-colors ${
-                timeRange === value
-                  ? "border-accent text-zinc-200"
-                  : "border-transparent text-zinc-700 hover:text-zinc-400"
-              }`}
-            >
-              {value === "live" && (
-                <span
-                  className={`mr-1.5 inline-block size-1.5 rounded-full ${
-                    timeRange === "live" ? "bg-emerald-500" : "bg-zinc-700"
-                  }`}
-                />
-              )}
-              {label}
-            </button>
-          ))}
-        </div>
+        <TimeRangeControl
+          value={timeRange}
+          onChange={(value) => setTimeRange(value as TimeRange)}
+          options={TIME_RANGES.map((range) => ({
+            ...range,
+            live: range.value === "live",
+          }))}
+        />
       </div>
 
       <div className="flex max-h-150 flex-col overflow-hidden rounded-xl border border-white/[0.07]">
