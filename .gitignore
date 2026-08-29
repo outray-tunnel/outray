@@ -27,3 +27,4 @@ test-apps
 video
 pnpm-lock.yaml
 md
+.npmrc
