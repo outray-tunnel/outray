@@ -45,8 +45,8 @@ export function Modal({
 }: ModalProps) {
   const appearanceStyles =
     appearance === "flat"
-      ? "bg-[#080808] border border-white/[0.08] rounded-xl shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
-      : "bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl";
+      ? "bg-[#080808] border border-white/[0.08] rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
+      : "bg-[#0A0A0A] border border-white/10 rounded-3xl shadow-2xl";
 
   return (
     <AnimatePresence>
@@ -109,9 +109,7 @@ export function ModalHeader({
 }
 
 export function ModalContent({ children, className = "" }: ModalContentProps) {
-  return (
-    <div className={`p-6 overflow-y-auto ${className}`}>{children}</div>
-  );
+  return <div className={`p-6 overflow-y-auto ${className}`}>{children}</div>;
 }
 
 export function ModalFooter({ children, className = "" }: ModalFooterProps) {
