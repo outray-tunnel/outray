@@ -182,7 +182,7 @@ function DomainsView() {
         type={alertState.type}
       />
 
-      <div className="border-t border-white/[0.07]">
+      <div className="overflow-hidden rounded-xl border border-white/[0.07]">
         {domains.map((domain: any) => (
           <DomainCard
             key={domain.id}
@@ -194,7 +194,7 @@ function DomainsView() {
         ))}
 
         {domains.length === 0 && !isCreating && (
-          <div className="flex min-h-64 flex-col items-center justify-center border-b border-white/[0.07] py-12 text-center">
+          <div className="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
             <HugeiconsIcon
               icon={Globe02Icon}
               size={27}
