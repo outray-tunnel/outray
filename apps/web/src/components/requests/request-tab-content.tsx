@@ -1,9 +1,6 @@
 import type { ReactNode } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Copy01Icon,
-  Tick02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import { Copy01Icon, Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
 import type { TunnelEvent, RequestDetails } from "./types";
 import { JsonViewer, formatBody } from "./json-viewer";
 import { getHttpMethodColor } from "./utils";
@@ -48,21 +45,14 @@ export function RequestTabContent({
           <CopyButton
             copied={copiedField === "req-headers"}
             onClick={() =>
-              onCopy(
-                JSON.stringify(details.headers, null, 2),
-                "req-headers",
-              )
+              onCopy(JSON.stringify(details.headers, null, 2), "req-headers")
             }
             label="Copy request headers"
           />
         }
       >
         {Object.entries(details.headers).map(([key, value]) => (
-          <DetailRow
-            key={key}
-            label={key}
-            value={formatHeaderValue(value)}
-          />
+          <DetailRow key={key} label={key} value={formatHeaderValue(value)} />
         ))}
       </InspectorSection>
 
@@ -124,8 +114,8 @@ export function InspectorSection({
   children: ReactNode;
 }) {
   return (
-    <section className="border-y border-white/[0.07]">
-      <div className="flex h-11 items-center justify-between border-b border-white/[0.07]">
+    <section className="overflow-hidden rounded-xl border border-white/[0.07]">
+      <div className="flex h-11 items-center justify-between border-b border-white/[0.07] px-4">
         <div className="flex items-center gap-2.5">
           <h3 className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-600">
             {title}
@@ -149,8 +139,11 @@ export function DetailRow({
   valueClassName?: string;
 }) {
   return (
-    <div className="grid grid-cols-[minmax(90px,0.34fr)_1fr] gap-5 py-3">
-      <span className="truncate font-mono text-[10px] text-zinc-700" title={label}>
+    <div className="grid grid-cols-[minmax(90px,0.34fr)_1fr] gap-5 px-4 py-3">
+      <span
+        className="truncate font-mono text-[10px] text-zinc-700"
+        title={label}
+      >
         {label}
       </span>
       <span
