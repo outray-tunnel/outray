@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { ArrowLeft, Building2, Users, Network, Globe, Crown, Save, Loader2, X, User, AlertTriangle } from "lucide-react";
 import { appClient } from "@/lib/app-client";
 import { useAdminStore } from "@/lib/admin-store";
+import { Select } from "@/components/ui/select";
 
 export const Route = createFileRoute("/admin/organizations/$slug")({
   head: () => ({
@@ -247,21 +248,29 @@ function AdminOrganizationDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm text-gray-400 mb-2">Plan</label>
-            <select value={plan} onChange={(e) => setPlan(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20">
-              {PLANS.map((p) => (
-                <option key={p} value={p} className="bg-[#0a0a0a]">{p.charAt(0).toUpperCase() + p.slice(1)}</option>
-              ))}
-            </select>
+            <Select
+              value={plan}
+              onChange={setPlan}
+              options={PLANS.map((planOption) => ({
+                value: planOption,
+                label: planOption.charAt(0).toUpperCase() + planOption.slice(1),
+              }))}
+              ariaLabel="Subscription plan"
+              triggerClassName="h-[42px] rounded-xl bg-white/5 px-4 text-sm"
+            />
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-2">Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20">
-              {STATUSES.map((s) => (
-                <option key={s} value={s} className="bg-[#0a0a0a]">{s.charAt(0).toUpperCase() + s.slice(1).replace("_", " ")}</option>
-              ))}
-            </select>
+            <Select
+              value={status}
+              onChange={setStatus}
+              options={STATUSES.map((statusOption) => ({
+                value: statusOption,
+                label: statusOption.charAt(0).toUpperCase() + statusOption.slice(1).replace("_", " "),
+              }))}
+              ariaLabel="Subscription status"
+              triggerClassName="h-[42px] rounded-xl bg-white/5 px-4 text-sm"
+            />
           </div>
         </div>
         {data.subscription.polarSubscriptionId && (
