@@ -113,7 +113,7 @@ export function FullCaptureDisabledContent({
         document.body,
       )}
 
-      <div className="border-y border-white/[0.07] py-5">
+      <div className="rounded-xl border border-white/[0.07] px-4 py-5">
         <div className="flex items-start gap-3">
           <HugeiconsIcon
             icon={DatabaseIcon}
@@ -141,8 +141,8 @@ export function FullCaptureDisabledContent({
         </div>
       </div>
 
-      <section className="border-y border-white/[0.07]">
-        <div className="flex h-11 items-center border-b border-white/[0.07]">
+      <section className="rounded-xl border border-white/[0.07]">
+        <div className="flex h-11 items-center border-b border-white/[0.07] px-4">
           <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-600">
             General
           </span>
@@ -170,13 +170,13 @@ export function FullCaptureDisabledContent({
         </div>
       </section>
 
-      <section className="border-y border-white/[0.07] opacity-45">
-        <div className="flex h-11 items-center border-b border-white/[0.07]">
+      <section className="rounded-xl border border-white/[0.07] opacity-45">
+        <div className="flex h-11 items-center border-b border-white/[0.07] px-4">
           <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-600">
             Headers
           </span>
         </div>
-        <div className="space-y-3.5 py-4">
+        <div className="space-y-3.5 px-4 py-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="flex items-center gap-6">
               <div className="h-2.5 w-20 bg-white/[0.06]" />
@@ -186,13 +186,13 @@ export function FullCaptureDisabledContent({
         </div>
       </section>
 
-      <section className="border-y border-white/[0.07] opacity-45">
-        <div className="flex h-11 items-center border-b border-white/[0.07]">
+      <section className="rounded-xl border border-white/[0.07] opacity-45">
+        <div className="flex h-11 items-center border-b border-white/[0.07] px-4">
           <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-600">
             Body
           </span>
         </div>
-        <div className="space-y-3 py-4">
+        <div className="space-y-3 px-4 py-4">
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
@@ -216,7 +216,7 @@ function MetadataRow({
   valueClassName?: string;
 }) {
   return (
-    <div className="grid grid-cols-[90px_1fr] gap-5 py-3">
+    <div className="grid grid-cols-[90px_1fr] gap-5 px-4 py-3">
       <span className="font-mono text-[10px] text-zinc-700">{label}</span>
       <span
         className={`break-all text-right font-mono text-[10px] leading-4 ${valueClassName}`}
