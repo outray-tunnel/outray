@@ -19,6 +19,7 @@ import {
   type TunnelEvent,
   type TimeRange,
   formatBytes,
+  getHttpMethodColor,
   RequestInspectorDrawer,
 } from "@/components/requests";
 
@@ -404,7 +405,9 @@ function RequestsView() {
                         {req.status_code}
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-mono text-gray-300">
+                    <td
+                      className={`px-4 py-3 font-mono font-medium ${getHttpMethodColor(req.method)}`}
+                    >
                       {req.method}
                     </td>
                     <td
