@@ -46,6 +46,38 @@ export interface TraceEvent {
   spans: TraceSpan[];
 }
 
+export type RequestCaptureState = "full" | "metadata" | "redacted";
+
+export interface ApiRequestEvent {
+  id: string;
+  timestamp: string;
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  route: string;
+  path: string;
+  service: string;
+  environment: string;
+  region: string;
+  statusCode: number;
+  duration: number;
+  traceId: string;
+  spanId: string;
+  clientAddress: string;
+  userAgent: string;
+  protocol: string;
+  captureState: RequestCaptureState;
+  request: {
+    headers: Record<string, string>;
+    query: Record<string, string>;
+    body: string | null;
+    size: number;
+  };
+  response: {
+    headers: Record<string, string>;
+    body: string | null;
+    size: number;
+  };
+}
+
 export const trafficTrend = [
   34, 38, 36, 43, 46, 44, 51, 55, 53, 61, 58, 64, 68, 65, 72, 74, 78, 73,
   81, 87, 83, 89, 94, 91,
@@ -59,6 +91,206 @@ export const latencyTrend = [
 export const errorTrend = [
   0.42, 0.37, 0.51, 0.48, 0.62, 0.55, 0.71, 0.64, 0.58, 0.81, 0.76, 0.69,
   0.74, 0.83, 0.79, 0.68, 0.72, 0.91, 0.86, 0.78, 0.73, 0.69, 0.76, 0.73,
+];
+
+export const apiRequests: ApiRequestEvent[] = [
+  {
+    id: "req_01JY7Q4G8JZ9N3ME5F2A1K6T8V",
+    timestamp: "09:51:42.118",
+    method: "POST",
+    route: "/v1/checkout",
+    path: "/v1/checkout?expand=payment",
+    service: "api-gateway",
+    environment: "production",
+    region: "fra1",
+    statusCode: 502,
+    duration: 1248,
+    traceId: "7f2b190d4eb6426a",
+    spanId: "a98c4ef15079d6b2",
+    clientAddress: "197.210.84.16",
+    userAgent: "OutRay SDK/1.4.2",
+    protocol: "HTTP/2",
+    captureState: "redacted",
+    request: {
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "req_01JY7Q4G8JZ9N3ME5F2A1K6T8V",
+        authorization: "[REDACTED]",
+        "user-agent": "OutRay SDK/1.4.2",
+      },
+      query: { expand: "payment" },
+      body: JSON.stringify({ order_id: "ord_89214", payment_method: "card", card_token: "[REDACTED]", save_method: false }),
+      size: 184,
+    },
+    response: {
+      headers: { "content-type": "application/json; charset=utf-8", "x-request-id": "req_01JY7Q4G8JZ9N3ME5F2A1K6T8V", "cache-control": "no-store" },
+      body: JSON.stringify({ error: { code: "PAYMENT_PROVIDER_UNAVAILABLE", message: "Payment authorization failed", retryable: true } }),
+      size: 126,
+    },
+  },
+  {
+    id: "req_01JY7Q4E94WY0X6N3Q8R2K1H5C",
+    timestamp: "09:51:39.587",
+    method: "POST",
+    route: "/v1/orders",
+    path: "/v1/orders",
+    service: "api-gateway",
+    environment: "production",
+    region: "fra1",
+    statusCode: 201,
+    duration: 184,
+    traceId: "d9a814270f2346f3",
+    spanId: "9d3f74a62c801be5",
+    clientAddress: "102.89.47.203",
+    userAgent: "Mozilla/5.0",
+    protocol: "HTTP/2",
+    captureState: "full",
+    request: {
+      headers: { "content-type": "application/json", "x-request-id": "req_01JY7Q4E94WY0X6N3Q8R2K1H5C", authorization: "[REDACTED]", origin: "https://app.example.com" },
+      query: {},
+      body: JSON.stringify({ cart_id: "cart_4912", currency: "NGN", shipping_address_id: "addr_1294" }),
+      size: 142,
+    },
+    response: {
+      headers: { "content-type": "application/json; charset=utf-8", location: "/v1/orders/ord_89214", "x-request-id": "req_01JY7Q4E94WY0X6N3Q8R2K1H5C" },
+      body: JSON.stringify({ id: "ord_89214", status: "pending_payment", total: 28400, currency: "NGN", created_at: "2026-08-29T09:51:39.742Z" }),
+      size: 196,
+    },
+  },
+  {
+    id: "req_01JY7Q4C2AXF9DV8Z4M1P6R3WB",
+    timestamp: "09:51:36.800",
+    method: "GET",
+    route: "/checkout",
+    path: "/checkout",
+    service: "web-app",
+    environment: "production",
+    region: "global",
+    statusCode: 200,
+    duration: 242,
+    traceId: "c730247a7d72453c",
+    spanId: "29f1b7ca36e480d2",
+    clientAddress: "41.58.214.92",
+    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    protocol: "HTTP/2",
+    captureState: "metadata",
+    request: { headers: { accept: "text/html", "user-agent": "Mozilla/5.0", cookie: "[REDACTED]" }, query: {}, body: null, size: 0 },
+    response: { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-cache" }, body: null, size: 18472 },
+  },
+  {
+    id: "req_01JY7Q49J8C2K5A7H1P3M6VX0N",
+    timestamp: "09:51:34.091",
+    method: "POST",
+    route: "/internal/payments/settle",
+    path: "/internal/payments/settle",
+    service: "worker-payments",
+    environment: "production",
+    region: "fra1",
+    statusCode: 500,
+    duration: 1820,
+    traceId: "a421ba83477b45c5",
+    spanId: "c8a920ed4f31b675",
+    clientAddress: "10.24.8.19",
+    userAgent: "worker-payments/1.9.4",
+    protocol: "HTTP/1.1",
+    captureState: "full",
+    request: {
+      headers: { "content-type": "application/json", "x-internal-secret": "[REDACTED]", "x-attempt": "2" },
+      query: {},
+      body: JSON.stringify({ payment_id: "pay_720184", ledger_account: "acct_4982", amount: 28400, currency: "NGN" }),
+      size: 154,
+    },
+    response: {
+      headers: { "content-type": "application/json", "x-retry-after": "30" },
+      body: JSON.stringify({ error: "serialization_failure", transaction_id: "txn_340192", retryable: true }),
+      size: 104,
+    },
+  },
+  {
+    id: "req_01JY7Q46NX0C8H4S2V5D9M3K1A",
+    timestamp: "09:51:31.550",
+    method: "POST",
+    route: "/v1/notifications/email",
+    path: "/v1/notifications/email",
+    service: "notifications",
+    environment: "staging",
+    region: "iad1",
+    statusCode: 202,
+    duration: 628,
+    traceId: "59b792ea50254a20",
+    spanId: "f41d73a908b2c65e",
+    clientAddress: "10.42.1.84",
+    userAgent: "checkout-api/1.31.0",
+    protocol: "HTTP/2",
+    captureState: "redacted",
+    request: {
+      headers: { "content-type": "application/json", authorization: "[REDACTED]" },
+      query: {},
+      body: JSON.stringify({ template: "receipt", recipient: "a***@example.com", variables: { order_id: "ord_89214", total: "NGN 28,400" } }),
+      size: 238,
+    },
+    response: { headers: { "content-type": "application/json" }, body: JSON.stringify({ delivery_id: "del_819402", status: "accepted" }), size: 72 },
+  },
+  {
+    id: "req_01JY7Q43TR6P8M1V5D2Z0A9K7C",
+    timestamp: "09:51:29.312",
+    method: "GET",
+    route: "/v1/customers/:id",
+    path: "/v1/customers/cus_48219?include=plan",
+    service: "identity",
+    environment: "production",
+    region: "iad1",
+    statusCode: 200,
+    duration: 91,
+    traceId: "18b3fc0c86f94870",
+    spanId: "e2c74a96350b8f1d",
+    clientAddress: "10.18.4.32",
+    userAgent: "api-gateway/2.14.3",
+    protocol: "HTTP/2",
+    captureState: "metadata",
+    request: { headers: { accept: "application/json", authorization: "[REDACTED]" }, query: { include: "plan" }, body: null, size: 0 },
+    response: { headers: { "content-type": "application/json", "cache-control": "private, max-age=30" }, body: null, size: 892 },
+  },
+  {
+    id: "req_01JY7Q40B5A2P9M8R1H6X3K4VN",
+    timestamp: "09:51:26.844",
+    method: "PATCH",
+    route: "/v1/orders/:id",
+    path: "/v1/orders/ord_89214",
+    service: "checkout-api",
+    environment: "production",
+    region: "fra1",
+    statusCode: 422,
+    duration: 318,
+    traceId: "8c9f121d30be4a67",
+    spanId: "71a03e9482cf5bd6",
+    clientAddress: "102.89.47.203",
+    userAgent: "Mozilla/5.0",
+    protocol: "HTTP/2",
+    captureState: "full",
+    request: { headers: { "content-type": "application/json", authorization: "[REDACTED]" }, query: {}, body: JSON.stringify({ status: "completed", delivery_reference: null }), size: 86 },
+    response: { headers: { "content-type": "application/problem+json" }, body: JSON.stringify({ type: "validation_error", errors: [{ field: "delivery_reference", message: "Required when completing an order" }] }), size: 172 },
+  },
+  {
+    id: "req_01JY7Q3X6N4V2Z8K1D5M9A0PRC",
+    timestamp: "09:51:22.608",
+    method: "DELETE",
+    route: "/v1/sessions/:id",
+    path: "/v1/sessions/ses_74810",
+    service: "identity",
+    environment: "production",
+    region: "iad1",
+    statusCode: 204,
+    duration: 67,
+    traceId: "21ab640f98dc4375",
+    spanId: "fb801c4296a5d3e7",
+    clientAddress: "197.210.84.16",
+    userAgent: "OutRay SDK/1.4.2",
+    protocol: "HTTP/2",
+    captureState: "full",
+    request: { headers: { authorization: "[REDACTED]", "x-request-id": "req_01JY7Q3X6N4V2Z8K1D5M9A0PRC" }, query: {}, body: null, size: 0 },
+    response: { headers: { "x-request-id": "req_01JY7Q3X6N4V2Z8K1D5M9A0PRC" }, body: null, size: 0 },
+  },
 ];
 
 export const services: ObservabilityService[] = [
