@@ -2,10 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Add01Icon,
-  Globe02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import { Add01Icon, Globe02Icon } from "@hugeicons-pro/core-stroke-rounded";
 import { appClient } from "@/lib/app-client";
 import { getPlanLimits } from "@/lib/subscription-plans";
 import { SubdomainHeader } from "@/components/subdomains/subdomain-header";
@@ -17,9 +14,7 @@ import { ResourceListSkeleton } from "@/components/resource-list-skeleton";
 
 export const Route = createFileRoute("/$orgSlug/subdomains")({
   head: () => ({
-    meta: [
-      { title: "Subdomains - OutRay" },
-    ],
+    meta: [{ title: "Subdomains - OutRay" }],
   }),
   component: SubdomainsView,
 });
@@ -63,7 +58,10 @@ function SubdomainsView() {
         orgSlug,
       });
       if ("error" in response || "message" in response) {
-        const errorMsg = (response as any).error || (response as any).message || "Failed to create subdomain";
+        const errorMsg =
+          (response as any).error ||
+          (response as any).message ||
+          "Failed to create subdomain";
         throw new Error(errorMsg);
       }
       return response;
@@ -79,7 +77,9 @@ function SubdomainsView() {
   });
 
   // Keep modal open when there's an error
-  const modalError = createMutation.isError ? (createMutation.error?.message || "Failed to create subdomain") : error;
+  const modalError = createMutation.isError
+    ? createMutation.error?.message || "Failed to create subdomain"
+    : error;
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -153,7 +153,7 @@ function SubdomainsView() {
       />
 
       {subdomains.length === 0 ? (
-        <div className="flex min-h-64 flex-col items-center justify-center border-y border-white/[0.07] py-12 text-center">
+        <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-white/[0.07] py-12 text-center">
           <HugeiconsIcon
             icon={Globe02Icon}
             size={27}
@@ -175,7 +175,7 @@ function SubdomainsView() {
           </button>
         </div>
       ) : (
-        <div className="border-t border-white/[0.07]">
+        <div className="overflow-hidden rounded-xl border border-white/[0.07]">
           {subdomains.map((sub: any) => (
             <SubdomainCard
               key={sub.id}
