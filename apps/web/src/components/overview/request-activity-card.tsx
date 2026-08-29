@@ -50,7 +50,7 @@ export function RequestActivityCard({
     });
 
   return (
-    <section className="relative border-y border-white/[0.07] py-5 lg:col-span-2">
+    <section className="relative overflow-hidden rounded-xl border border-white/[0.07] p-6 lg:col-span-2">
       {isPlaceholderData && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-sm transition-all duration-200">
           <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
