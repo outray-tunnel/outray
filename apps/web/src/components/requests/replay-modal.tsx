@@ -91,7 +91,9 @@ function MethodDropdown({
                   setOpen(false);
                 }}
                 className={`flex h-8 w-full items-center px-3 font-mono text-[10px] font-medium transition-colors hover:bg-white/[0.04] ${getHttpMethodColor(item)} ${
-                  item === value ? "bg-white/[0.035]" : "opacity-70 hover:opacity-100"
+                  item === value
+                    ? "bg-white/[0.035]"
+                    : "opacity-70 hover:opacity-100"
                 }`}
               >
                 {item}
@@ -257,7 +259,9 @@ export function ReplayModal({
   };
 
   const removeHeader = (index: number) => {
-    setHeaders((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    setHeaders((current) =>
+      current.filter((_, itemIndex) => itemIndex !== index),
+    );
   };
 
   const updateHeader = (
@@ -450,7 +454,7 @@ export function ReplayModal({
 
         <div className="flex-1 space-y-7 overflow-y-auto px-5 py-6 sm:px-6">
           {activeTab === "headers" && (
-            <section className="border-y border-white/[0.07]">
+            <section className="overflow-hidden rounded-xl border border-white/[0.07] px-4">
               {headers.length === 0 ? (
                 <div className="py-12 text-center">
                   <p className="text-xs text-zinc-600">No headers</p>
@@ -536,7 +540,7 @@ export function ReplayModal({
           )}
 
           {activeTab === "body" && hasBody && (
-            <section className="border-y border-white/[0.07] py-4">
+            <section className="overflow-hidden rounded-xl border border-white/[0.07] p-4">
               {isEditing ? (
                 <textarea
                   value={body}
@@ -584,7 +588,7 @@ export function ReplayModal({
 
           {result && (
             <div ref={resultRef} className="space-y-7 scroll-mt-6">
-              <section className="grid grid-cols-[1fr_auto_1fr] items-center gap-5 border-y border-white/[0.07] py-5">
+              <section className="grid grid-cols-[1fr_auto_1fr] items-center gap-5 overflow-hidden rounded-xl border border-white/[0.07] px-6 py-5">
                 <ResultMetric
                   label="Original"
                   status={request.status_code}
@@ -744,8 +748,8 @@ function ResultSection({
   children: ReactNode;
 }) {
   return (
-    <section className="border-y border-white/[0.07]">
-      <div className="flex h-11 items-center gap-2.5 border-b border-white/[0.07]">
+    <section className="overflow-hidden rounded-xl border border-white/[0.07]">
+      <div className="flex h-11 items-center gap-2.5 border-b border-white/[0.07] px-4">
         <h3 className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-600">
           {title}
         </h3>
