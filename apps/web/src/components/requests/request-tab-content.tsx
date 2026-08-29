@@ -1,6 +1,12 @@
-import { Copy, Check } from "lucide-react";
+import type { ReactNode } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Copy01Icon,
+  Tick02Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import type { TunnelEvent, RequestDetails } from "./types";
 import { JsonViewer, formatBody } from "./json-viewer";
+import { getHttpMethodColor } from "./utils";
 
 interface RequestTabContentProps {
   request: TunnelEvent;
@@ -9,102 +15,175 @@ interface RequestTabContentProps {
   onCopy: (text: string, field: string) => void;
 }
 
-export function RequestTabContent({ request, details, copiedField, onCopy }: RequestTabContentProps) {
+export function RequestTabContent({
+  request,
+  details,
+  copiedField,
+  onCopy,
+}: RequestTabContentProps) {
   const formatHeaderValue = (value: string | string[]): string => {
-    return Array.isArray(value) ? value.join(', ') : value;
+    return Array.isArray(value) ? value.join(", ") : value;
   };
 
   const bodyInfo = formatBody(details.body);
 
   return (
-    <div className="space-y-4">
-      {/* General Info */}
-      <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-          <span className="text-sm font-medium text-white">General</span>
-        </div>
-        <div className="p-4 space-y-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-500">URL</span>
-            <span className="text-gray-300 font-mono">
-              {request.host.includes('localhost') ? 'http' : 'https'}://{request.host}{request.path}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Method</span>
-            <span className="text-gray-300 font-mono">{request.method}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Client IP</span>
-            <span className="text-gray-300 font-mono">{request.client_ip}</span>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-7">
+      <InspectorSection title="General">
+        <DetailRow
+          label="URL"
+          value={`${request.host.includes("localhost") ? "http" : "https"}://${request.host}${request.path}`}
+        />
+        <DetailRow
+          label="Method"
+          value={request.method}
+          valueClassName={getHttpMethodColor(request.method)}
+        />
+        <DetailRow label="Client IP" value={request.client_ip} />
+      </InspectorSection>
 
-      {/* Headers */}
-      <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-          <span className="text-sm font-medium text-white">Headers</span>
-          <button
-            onClick={() => onCopy(JSON.stringify(details.headers, null, 2), "req-headers")}
-            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
-          >
-            {copiedField === "req-headers" ? <Check size={14} /> : <Copy size={14} />}
-          </button>
-        </div>
-        <div className="p-4 space-y-2 text-sm font-mono">
-          {Object.entries(details.headers).map(([key, value]) => (
-            <div key={key} className="flex gap-2">
-              <span className="text-accent">{key}:</span>
-              <span className="text-gray-300 break-all">{formatHeaderValue(value)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <InspectorSection
+        title="Headers"
+        action={
+          <CopyButton
+            copied={copiedField === "req-headers"}
+            onClick={() =>
+              onCopy(
+                JSON.stringify(details.headers, null, 2),
+                "req-headers",
+              )
+            }
+            label="Copy request headers"
+          />
+        }
+      >
+        {Object.entries(details.headers).map(([key, value]) => (
+          <DetailRow
+            key={key}
+            label={key}
+            value={formatHeaderValue(value)}
+          />
+        ))}
+      </InspectorSection>
 
-      {/* Query Params */}
       {Object.keys(details.queryParams).length > 0 && (
-        <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/10">
-            <span className="text-sm font-medium text-white">Query Parameters</span>
-          </div>
-          <div className="p-4 space-y-2 text-sm font-mono">
-            {Object.entries(details.queryParams).map(([key, value]) => (
-              <div key={key} className="flex gap-2">
-                <span className="text-accent">{key}:</span>
-                <span className="text-gray-300">{value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <InspectorSection title="Query parameters">
+          {Object.entries(details.queryParams).map(([key, value]) => (
+            <DetailRow key={key} label={key} value={value} />
+          ))}
+        </InspectorSection>
       )}
 
-      {/* Body */}
       {details.body && (
-        <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-white">Body</span>
-              {bodyInfo.isJson && (
-                <span className="text-xs px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded">JSON</span>
-              )}
-            </div>
-            <button
-              onClick={() => onCopy(bodyInfo.isJson ? bodyInfo.formatted : details.body!, "req-body")}
-              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
-            >
-              {copiedField === "req-body" ? <Check size={14} /> : <Copy size={14} />}
-            </button>
-          </div>
-          <div className="p-4 overflow-x-auto">
+        <InspectorSection
+          title="Body"
+          titleAccessory={
+            bodyInfo.isJson ? (
+              <span className="text-[8px] font-medium uppercase tracking-[0.1em] text-sky-400/70">
+                JSON
+              </span>
+            ) : null
+          }
+          action={
+            <CopyButton
+              copied={copiedField === "req-body"}
+              onClick={() =>
+                onCopy(
+                  bodyInfo.isJson ? bodyInfo.formatted : details.body!,
+                  "req-body",
+                )
+              }
+              label="Copy request body"
+            />
+          }
+        >
+          <div className="overflow-x-auto py-4">
             {bodyInfo.isJson ? (
               <JsonViewer data={bodyInfo.parsed} />
             ) : (
-              <pre className="text-sm font-mono text-gray-300">{details.body}</pre>
+              <pre className="whitespace-pre-wrap font-mono text-[11px] leading-5 text-zinc-400">
+                {details.body}
+              </pre>
             )}
           </div>
-        </div>
+        </InspectorSection>
       )}
     </div>
+  );
+}
+
+export function InspectorSection({
+  title,
+  titleAccessory,
+  action,
+  children,
+}: {
+  title: string;
+  titleAccessory?: ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="border-y border-white/[0.07]">
+      <div className="flex h-11 items-center justify-between border-b border-white/[0.07]">
+        <div className="flex items-center gap-2.5">
+          <h3 className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-600">
+            {title}
+          </h3>
+          {titleAccessory}
+        </div>
+        {action}
+      </div>
+      <div className="divide-y divide-white/[0.055]">{children}</div>
+    </section>
+  );
+}
+
+export function DetailRow({
+  label,
+  value,
+  valueClassName = "text-zinc-400",
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="grid grid-cols-[minmax(90px,0.34fr)_1fr] gap-5 py-3">
+      <span className="truncate font-mono text-[10px] text-zinc-700" title={label}>
+        {label}
+      </span>
+      <span
+        className={`break-all text-right font-mono text-[10px] leading-4 ${valueClassName}`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+export function CopyButton({
+  copied,
+  onClick,
+  label,
+}: {
+  copied: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex size-7 items-center justify-center rounded-md text-zinc-700 transition-colors hover:bg-white/[0.04] hover:text-zinc-300"
+      aria-label={label}
+    >
+      <HugeiconsIcon
+        icon={copied ? Tick02Icon : Copy01Icon}
+        size={13}
+        strokeWidth={1.7}
+        aria-hidden="true"
+      />
+    </button>
   );
 }
