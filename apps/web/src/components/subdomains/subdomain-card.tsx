@@ -22,7 +22,7 @@ export function SubdomainCard({ subdomain, onDelete }: SubdomainCardProps) {
 
   return (
     <>
-      <div className="group flex items-center justify-between gap-4 border-b border-white/[0.06] px-1 py-4">
+      <div className="group flex items-center justify-between gap-4 border-b border-white/[0.06] px-5 py-5 last:border-b-0 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/[0.04] text-zinc-600 ring-1 ring-white/[0.06]">
             <HugeiconsIcon icon={Globe02Icon} size={15} strokeWidth={1.7} />
