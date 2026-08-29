@@ -3,10 +3,15 @@ import { createPortal } from "react-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  DatabaseIcon,
+  InformationCircleIcon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import { appClient } from "@/lib/app-client";
 import type { TunnelEvent } from "./types";
+import { getHttpMethodColor } from "./utils";
 import { formatBytes } from "./utils";
-import { Button } from "@/components/ui";
 
 interface FullCaptureDisabledContentProps {
   request: TunnelEvent;
@@ -47,48 +52,59 @@ export function FullCaptureDisabledContent({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 w-screen h-screen bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+              className="fixed inset-0 z-[100] flex h-screen w-screen items-center justify-center bg-black/70 p-4"
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="bg-[#141414] border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl"
+                className="w-full max-w-md rounded-xl border border-white/[0.08] bg-[#080808] shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
               >
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  Enable Full Capture?
-                </h3>
-                <p className="text-sm text-gray-400 mb-4">
-                  This will capture and store complete request and response data
-                  including headers and body content. This allows for detailed
-                  request inspection and replay functionality.
-                </p>
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-6">
-                  <p className="text-xs text-amber-300">
-                    <strong>Privacy Notice:</strong> Enabling this feature will
-                    store request/response bodies which may contain sensitive
-                    data. Only enable if you consent to storing this traffic
-                    data.
+                <div className="border-b border-white/[0.07] px-5 py-5">
+                  <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-zinc-700">
+                    Request settings
+                  </p>
+                  <h3 className="mt-3 text-lg font-semibold tracking-[-0.025em] text-white">
+                    Enable full capture?
+                  </h3>
+                  <p className="mt-2 text-xs leading-5 text-zinc-600">
+                    Store complete headers and body content for detailed
+                    inspection and request replay.
                   </p>
                 </div>
-                <div className="flex gap-3 justify-end">
-                  <Button
+                <div className="px-5 py-5">
+                  <div className="flex items-start gap-2.5 border-l border-amber-400/35 py-0.5 pl-3 text-[10px] leading-4 text-amber-200/60">
+                    <HugeiconsIcon
+                      icon={InformationCircleIcon}
+                      size={13}
+                      strokeWidth={1.7}
+                      className="mt-0.5 shrink-0"
+                      aria-hidden="true"
+                    />
+                    Request and response bodies may contain sensitive data.
+                    Enable this only when your traffic-handling policy permits
+                    storage.
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 border-t border-white/[0.07] px-5 py-4">
+                  <button
+                    type="button"
                     onClick={() => setShowConfirmation(false)}
-                    variant="ghost"
+                    className="h-8 rounded-md px-3 text-[10px] font-medium text-zinc-600 transition-colors hover:bg-white/[0.04] hover:text-zinc-300"
                   >
                     Cancel
-                  </Button>
-                  <Button
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => enableFullCaptureMutation.mutate()}
                     disabled={enableFullCaptureMutation.isPending}
-                    isLoading={enableFullCaptureMutation.isPending}
-                    variant="accent"
+                    className="h-8 rounded-md bg-white px-3 text-[10px] font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {enableFullCaptureMutation.isPending
-                      ? "Enabling..."
-                      : "Enable Full Capture"}
-                  </Button>
+                      ? "Enabling…"
+                      : "Enable full capture"}
+                  </button>
                 </div>
               </motion.div>
             </motion.div>
@@ -97,99 +113,116 @@ export function FullCaptureDisabledContent({
         document.body,
       )}
 
-      <div className="bg-accent/10 border border-accent/20 rounded-xl p-4">
+      <div className="border-y border-white/[0.07] py-5">
         <div className="flex items-start gap-3">
-          <div className="w-5 h-5 rounded-full border border-accent/40 flex items-center justify-center shrink-0 mt-0.5">
-            <span className="text-accent text-xs">i</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white mb-1">
+          <HugeiconsIcon
+            icon={DatabaseIcon}
+            size={16}
+            strokeWidth={1.7}
+            className="mt-0.5 shrink-0 text-zinc-600"
+            aria-hidden="true"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-zinc-300">
               Full capture is disabled
             </p>
-            <p className="text-sm text-gray-400 mb-3">
+            <p className="mt-1.5 text-[10px] leading-4 text-zinc-600">
               Only basic request metadata is available. Enable full capture to
               inspect headers, body, and replay requests.
             </p>
-            <Button
+            <button
+              type="button"
               onClick={() => setShowConfirmation(true)}
-              variant="accent"
-              size="sm"
+              className="mt-4 h-8 rounded-md bg-white px-3 text-[10px] font-semibold text-black transition-colors hover:bg-zinc-200"
             >
               Enable full capture
-            </Button>
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10">
-          <span className="text-sm font-medium text-white">General</span>
+      <section className="border-y border-white/[0.07]">
+        <div className="flex h-11 items-center border-b border-white/[0.07]">
+          <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-600">
+            General
+          </span>
         </div>
-        <div className="p-4 space-y-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-500">URL</span>
-            <span className="text-gray-300 font-mono">
-              https://{request.host}
-              {request.path}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Method</span>
-            <span className="text-gray-300 font-mono">{request.method}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Status</span>
-            <span className="text-gray-300 font-mono">
-              {request.status_code}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Client IP</span>
-            <span className="text-gray-300 font-mono">{request.client_ip}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Duration</span>
-            <span className="text-gray-300 font-mono">
-              {request.request_duration_ms}ms
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Size</span>
-            <span className="text-gray-300 font-mono">
-              {formatBytes(request.bytes_in + request.bytes_out)}
-            </span>
-          </div>
+        <div className="divide-y divide-white/[0.055]">
+          <MetadataRow
+            label="URL"
+            value={`https://${request.host}${request.path}`}
+          />
+          <MetadataRow
+            label="Method"
+            value={request.method}
+            valueClassName={getHttpMethodColor(request.method)}
+          />
+          <MetadataRow label="Status" value={String(request.status_code)} />
+          <MetadataRow label="Client IP" value={request.client_ip} />
+          <MetadataRow
+            label="Duration"
+            value={`${request.request_duration_ms}ms`}
+          />
+          <MetadataRow
+            label="Size"
+            value={formatBytes(request.bytes_in + request.bytes_out)}
+          />
         </div>
-      </div>
+      </section>
 
-      <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden opacity-50">
-        <div className="px-4 py-3 border-b border-white/10">
-          <span className="text-sm font-medium text-white">Headers</span>
+      <section className="border-y border-white/[0.07] opacity-45">
+        <div className="flex h-11 items-center border-b border-white/[0.07]">
+          <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-600">
+            Headers
+          </span>
         </div>
-        <div className="p-4 space-y-2">
+        <div className="space-y-3.5 py-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="flex gap-2 items-center">
-              <div className="h-4 w-24 bg-white/10 rounded" />
-              <div className="h-4 flex-1 bg-white/10 rounded" />
+            <div key={i} className="flex items-center gap-6">
+              <div className="h-2.5 w-20 bg-white/[0.06]" />
+              <div className="h-2.5 flex-1 bg-white/[0.07]" />
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden opacity-50">
-        <div className="px-4 py-3 border-b border-white/10">
-          <span className="text-sm font-medium text-white">Body</span>
+      <section className="border-y border-white/[0.07] opacity-45">
+        <div className="flex h-11 items-center border-b border-white/[0.07]">
+          <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-600">
+            Body
+          </span>
         </div>
-        <div className="p-4 space-y-2">
+        <div className="space-y-3 py-4">
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="h-4 bg-white/10 rounded"
+              className="h-2.5 bg-white/[0.07]"
               style={{ width: `${80 - i * 15}%` }}
             />
           ))}
         </div>
-      </div>
+      </section>
+    </div>
+  );
+}
+
+function MetadataRow({
+  label,
+  value,
+  valueClassName = "text-zinc-400",
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="grid grid-cols-[90px_1fr] gap-5 py-3">
+      <span className="font-mono text-[10px] text-zinc-700">{label}</span>
+      <span
+        className={`break-all text-right font-mono text-[10px] leading-4 ${valueClassName}`}
+      >
+        {value}
+      </span>
     </div>
   );
 }
