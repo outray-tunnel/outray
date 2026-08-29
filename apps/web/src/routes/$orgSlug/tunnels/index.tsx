@@ -14,6 +14,7 @@ import { appClient } from "@/lib/app-client";
 import { getPlanLimits } from "@/lib/subscription-plans";
 import { NewTunnelModal } from "@/components/new-tunnel-modal";
 import { LimitModal } from "@/components/limit-modal";
+import { Select } from "@/components/ui/select";
 
 export const Route = createFileRoute("/$orgSlug/tunnels/")({
   head: () => ({ meta: [{ title: "Tunnels - OutRay" }] }),
@@ -138,20 +139,23 @@ function TunnelsView() {
             className="min-w-0 flex-1 bg-transparent text-[12px] text-zinc-300 outline-none placeholder:text-zinc-700"
           />
         </label>
-        <label className="flex items-center gap-2 text-[11px] text-zinc-700">
-          Sort
-          <select
+        <div className="flex items-center gap-2 text-[11px] text-zinc-700">
+          <span>Sort</span>
+          <Select
             value={sortBy}
-            onChange={(event) =>
-              setSortBy(event.target.value as "newest" | "oldest" | "name")
+            onChange={(value) =>
+              setSortBy(value as "newest" | "oldest" | "name")
             }
-            className="bg-transparent py-2 text-[11px] text-zinc-400 outline-none"
-          >
-            <option value="newest">Newest</option>
-            <option value="oldest">Oldest</option>
-            <option value="name">Name</option>
-          </select>
-        </label>
+            options={[
+              { value: "newest", label: "Newest" },
+              { value: "oldest", label: "Oldest" },
+              { value: "name", label: "Name" },
+            ]}
+            ariaLabel="Sort tunnels"
+            className="w-28"
+            triggerClassName="h-9 bg-transparent"
+          />
+        </div>
       </div>
 
       <section className="overflow-hidden rounded-xl border border-white/[0.07]">
