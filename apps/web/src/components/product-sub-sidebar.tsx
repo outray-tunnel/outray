@@ -94,6 +94,11 @@ export function ProductSubSidebar() {
           icon: ServerStack01Icon,
         },
         {
+          label: "Requests",
+          to: "/$orgSlug/observability/requests",
+          icon: Route03Icon,
+        },
+        {
           label: "Metrics",
           to: "/$orgSlug/observability/metrics",
           icon: Activity03Icon,
