@@ -2,6 +2,7 @@ import { useLocation, useParams } from "@tanstack/react-router";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   Activity03Icon,
+  Alert02Icon,
   Globe02Icon,
   HistoryIcon,
   Home01Icon,
@@ -9,6 +10,7 @@ import {
   LinkSquare01Icon,
   LogsIcon,
   Route03Icon,
+  ServerStack01Icon,
   SecurityLockIcon,
   ShieldKeyIcon,
   WorkflowSquare06Icon,
@@ -19,6 +21,7 @@ interface SubNavItem {
   label: string;
   to: string;
   icon: IconSvgElement;
+  exact?: boolean;
 }
 
 interface ProductNavigation {
@@ -83,12 +86,33 @@ export function ProductSubSidebar() {
           label: "Overview",
           to: "/$orgSlug/observability",
           icon: Home01Icon,
+          exact: true,
         },
-      ],
-      upcoming: [
-        { label: "Metrics", icon: Activity03Icon },
-        { label: "Logs", icon: LogsIcon },
-        { label: "Traces", icon: WorkflowSquare06Icon },
+        {
+          label: "Services",
+          to: "/$orgSlug/observability/services",
+          icon: ServerStack01Icon,
+        },
+        {
+          label: "Metrics",
+          to: "/$orgSlug/observability/metrics",
+          icon: Activity03Icon,
+        },
+        {
+          label: "Logs",
+          to: "/$orgSlug/observability/logs",
+          icon: LogsIcon,
+        },
+        {
+          label: "Traces",
+          to: "/$orgSlug/observability/traces",
+          icon: WorkflowSquare06Icon,
+        },
+        {
+          label: "Monitors",
+          to: "/$orgSlug/observability/monitors",
+          icon: Alert02Icon,
+        },
       ],
     };
   } else if (location.pathname.startsWith(`${basePath}/secrets`)) {
@@ -113,6 +137,7 @@ export function ProductSubSidebar() {
 
   const isItemActive = (item: SubNavItem) => {
     const target = item.to.replace("/$orgSlug", basePath);
+    if (item.exact) return location.pathname === target;
     if (item.to === "/$orgSlug") return location.pathname === basePath;
     return (
       location.pathname === target || location.pathname.startsWith(`${target}/`)
