@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Activity03Icon,
-  ArrowDown01Icon,
   ChartHistogramIcon,
   Clock01Icon,
   Database02Icon,
@@ -22,6 +21,7 @@ import {
   services,
   trafficTrend,
 } from "@/components/observability/mock-data";
+import { Select } from "@/components/ui/select";
 
 export const Route = createFileRoute("/$orgSlug/observability/metrics")({
   head: () => ({ meta: [{ title: "Metrics - OutRay Observability" }] }),
@@ -58,43 +58,41 @@ function MetricsView() {
 
       <Panel>
         <div className="grid gap-px bg-white/[0.06] md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto]">
-          <label className="bg-[#090909] px-5 py-4 sm:px-6">
+          <div className="bg-[#090909] px-5 py-4 sm:px-6">
             <span className="text-[9px] font-medium uppercase tracking-[0.08em] text-zinc-700">
               Metric
             </span>
-            <div className="mt-2 flex items-center gap-2">
-              <HugeiconsIcon icon={Activity03Icon} size={15} strokeWidth={1.7} className="text-violet-400" />
-              <select
-                value={metric}
-                onChange={(event) => setMetric(event.target.value)}
-                className="min-w-0 flex-1 appearance-none bg-transparent text-[12px] font-mono text-zinc-300 outline-none"
-              >
-                {metricOptions.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-              <HugeiconsIcon icon={ArrowDown01Icon} size={13} strokeWidth={1.7} className="text-zinc-700" />
-            </div>
-          </label>
-          <label className="bg-[#090909] px-5 py-4 sm:px-6">
+            <Select
+              value={metric}
+              onChange={setMetric}
+              ariaLabel="Metric"
+              icon={<HugeiconsIcon icon={Activity03Icon} size={15} strokeWidth={1.7} className="text-violet-400" />}
+              options={metricOptions.map((option) => ({
+                value: option.value,
+                label: option.label,
+                className: "font-mono text-zinc-300",
+              }))}
+              className="mt-1"
+              triggerClassName="h-8 border-0 bg-transparent px-0 hover:bg-transparent"
+            />
+          </div>
+          <div className="bg-[#090909] px-5 py-4 sm:px-6">
             <span className="text-[9px] font-medium uppercase tracking-[0.08em] text-zinc-700">
               Filter by service
             </span>
-            <div className="mt-2 flex items-center gap-2">
-              <HugeiconsIcon icon={FilterIcon} size={15} strokeWidth={1.7} className="text-zinc-600" />
-              <select
-                value={service}
-                onChange={(event) => setService(event.target.value)}
-                className="min-w-0 flex-1 appearance-none bg-transparent text-[12px] text-zinc-400 outline-none"
-              >
-                <option value="all">All services</option>
-                {services.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-              <HugeiconsIcon icon={ArrowDown01Icon} size={13} strokeWidth={1.7} className="text-zinc-700" />
-            </div>
-          </label>
+            <Select
+              value={service}
+              onChange={setService}
+              ariaLabel="Filter metrics by service"
+              icon={<HugeiconsIcon icon={FilterIcon} size={15} strokeWidth={1.7} className="text-zinc-600" />}
+              options={[
+                { value: "all", label: "All services" },
+                ...services.map((item) => ({ value: item.id, label: item.name })),
+              ]}
+              className="mt-1"
+              triggerClassName="h-8 border-0 bg-transparent px-0 hover:bg-transparent"
+            />
+          </div>
           <div className="flex items-center bg-[#090909] px-5 py-4 sm:px-6">
             <button type="button" className="h-9 rounded-lg bg-white px-4 text-[11px] font-medium text-black hover:bg-zinc-200">
               Run query
