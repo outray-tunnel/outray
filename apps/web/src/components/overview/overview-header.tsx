@@ -11,9 +11,6 @@ export function OverviewHeader({
   return (
     <header className="flex items-end justify-between gap-6 border-b border-white/[0.07] pb-7">
       <div className="min-w-0">
-        <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-700">
-          Tunnels
-        </p>
         <h1 className="text-2xl font-semibold tracking-[-0.035em] text-white">
           Overview
         </h1>
