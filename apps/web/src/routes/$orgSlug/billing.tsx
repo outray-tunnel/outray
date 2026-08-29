@@ -119,27 +119,28 @@ function BillingView() {
 
   if (isCheckingPermission) {
     return (
-      <div className="flex min-h-100 items-center justify-center text-zinc-700">
-        <HugeiconsIcon
-          icon={Loading03Icon}
-          size={20}
-          strokeWidth={1.7}
-          className="animate-spin"
+      <div className="mx-auto max-w-6xl space-y-7">
+        <WorkspacePageHeader
+          title="Billing"
+          description="Manage your subscription, usage, and billing preferences."
         />
+        <BillingSkeleton />
       </div>
     );
   }
 
   if (!canManageBilling) {
     return (
-      <div className="flex min-h-100 flex-col items-center justify-center border-y border-white/[0.07] py-12 text-center">
+      <div className="flex min-h-100 flex-col items-center justify-center rounded-xl border border-white/[0.07] px-6 py-12 text-center">
         <HugeiconsIcon
           icon={CreditCardIcon}
           size={27}
           strokeWidth={1.5}
           className="mb-4 text-zinc-700"
         />
-        <h2 className="text-sm font-medium text-zinc-300">Billing restricted</h2>
+        <h2 className="text-sm font-medium text-zinc-300">
+          Billing restricted
+        </h2>
         <p className="mt-2 max-w-md text-xs leading-5 text-zinc-600">
           You don't have permission to manage billing for this organization.
           Please contact an administrator if you need access.
@@ -332,7 +333,7 @@ function BillingView() {
   return (
     <div className="mx-auto max-w-6xl space-y-7">
       {success && (
-        <aside className="flex items-center gap-3 border-y border-emerald-400/20 py-4">
+        <aside className="flex items-center gap-3 rounded-xl border border-emerald-400/20 px-5 py-4">
           <HugeiconsIcon
             icon={CheckmarkCircle02Icon}
             size={16}
@@ -356,18 +357,11 @@ function BillingView() {
       />
 
       {isLoading ? (
-        <div className="flex min-h-64 items-center justify-center border-y border-white/[0.07] text-zinc-700">
-          <HugeiconsIcon
-            icon={Loading03Icon}
-            size={20}
-            strokeWidth={1.7}
-            className="animate-spin"
-          />
-        </div>
+        <BillingSkeleton />
       ) : (
         <>
-          <section className="border-y border-white/[0.07]">
-            <div className="flex flex-col gap-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <section className="rounded-xl border border-white/[0.07]">
+            <div className="flex flex-col gap-5 px-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div className="flex items-center gap-3.5">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/[0.04] text-zinc-600">
                   <HugeiconsIcon
@@ -398,7 +392,7 @@ function BillingView() {
               </div>
               <div className="sm:text-right">
                 <p className="text-2xl font-medium tracking-[-0.04em] text-zinc-200">
-                    {currentCostDisplay}
+                  {currentCostDisplay}
                 </p>
                 <p className="mt-1 text-[10px] text-zinc-700">
                   {intervalLabel}
@@ -511,7 +505,7 @@ function BillingView() {
                 Cancel your current subscription to change billing options
               </p>
             )}
-            <div className="grid border-y border-white/[0.07] md:grid-cols-2 md:divide-x md:divide-white/[0.07] xl:grid-cols-4">
+            <div className="grid gap-px overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.07] md:grid-cols-2 xl:grid-cols-4">
               {(
                 Object.entries(SUBSCRIPTION_PLANS).filter(
                   ([_, plan]) => !("hidden" in plan && plan.hidden),
@@ -665,8 +659,8 @@ function PlanCard({
 
   return (
     <div
-      className={`relative flex flex-col border-b border-white/[0.07] px-5 py-6 transition-colors last:border-b-0 md:border-b-0 xl:px-6 ${
-        recommended ? "bg-white/[0.025]" : "hover:bg-white/[0.015]"
+      className={`relative flex flex-col bg-[#090909] px-5 py-6 transition-colors xl:px-6 ${
+        recommended ? "!bg-[#0d0d0d]" : "hover:bg-[#0b0b0b]"
       }`}
     >
       {recommended && (
@@ -752,7 +746,7 @@ function MetricBar({
     limit === -1 ? 0 : Math.min(100, Math.max(0, ((value || 0) / limit) * 100));
 
   return (
-    <div className="border-b border-white/[0.07] py-5 last:border-b-0 sm:px-5 lg:border-b-0 lg:px-6 first:pl-0">
+    <div className="border-b border-white/[0.07] px-5 py-5 last:border-b-0 sm:px-6 lg:border-b-0">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-700">
           {label}
@@ -767,6 +761,62 @@ function MetricBar({
           style={{ width: `${percentage}%` }}
         />
       </div>
+    </div>
+  );
+}
+
+function BillingSkeleton() {
+  return (
+    <div className="animate-pulse space-y-7" aria-busy="true">
+      <section className="overflow-hidden rounded-xl border border-white/[0.07]">
+        <div className="flex flex-col gap-5 px-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex items-center gap-3.5">
+            <div className="size-9 rounded-lg bg-white/[0.05]" />
+            <div>
+              <div className="h-2.5 w-20 rounded bg-white/[0.04]" />
+              <div className="mt-2.5 h-4 w-24 rounded bg-white/[0.07]" />
+              <div className="mt-2 h-2.5 w-28 rounded bg-white/[0.04]" />
+            </div>
+          </div>
+          <div className="h-7 w-20 rounded bg-white/[0.07]" />
+        </div>
+        <div className="grid border-t border-white/[0.07] sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.07]">
+          {[0, 1, 2, 3].map((item) => (
+            <div
+              key={item}
+              className="border-b border-white/[0.07] px-5 py-5 last:border-b-0 sm:px-6 lg:border-b-0"
+            >
+              <div className="flex justify-between gap-4">
+                <div className="h-2.5 w-16 rounded bg-white/[0.04]" />
+                <div className="h-2.5 w-10 rounded bg-white/[0.04]" />
+              </div>
+              <div className="mt-4 h-1.5 rounded-full bg-white/[0.04]" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-5">
+          <div className="h-4 w-28 rounded bg-white/[0.07]" />
+          <div className="mt-2 h-2.5 w-48 rounded bg-white/[0.04]" />
+        </div>
+        <div className="grid gap-px overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.07] md:grid-cols-2 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => (
+            <div key={item} className="min-h-80 bg-[#090909] px-5 py-6 sm:px-6">
+              <div className="h-4 w-16 rounded bg-white/[0.07]" />
+              <div className="mt-3 h-2.5 w-32 rounded bg-white/[0.04]" />
+              <div className="mt-7 h-8 w-24 rounded bg-white/[0.07]" />
+              <div className="mt-8 space-y-4">
+                {[0, 1, 2, 3].map((feature) => (
+                  <div key={feature} className="h-2.5 w-32 rounded bg-white/[0.04]" />
+                ))}
+              </div>
+              <div className="mt-10 h-9 rounded-lg bg-white/[0.06]" />
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
