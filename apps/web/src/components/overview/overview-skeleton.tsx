@@ -9,18 +9,17 @@ export function OverviewSkeleton() {
     >
       <header className="flex items-end justify-between gap-6 border-b border-white/[0.07] pb-7">
         <div className="min-w-0 flex-1">
-          <div className="mb-3 h-2 w-12 rounded-full bg-white/[0.05]" />
           <div className="h-6 w-28 rounded bg-white/[0.07]" />
           <div className="mt-3 h-3 w-72 max-w-full rounded bg-white/[0.05]" />
         </div>
         <div className="h-9 w-9 shrink-0 rounded-md bg-white/[0.07] sm:w-28" />
       </header>
 
-      <section className="grid border-y border-white/[0.07] md:grid-cols-3 md:divide-x md:divide-white/[0.07]">
+      <section className="grid overflow-hidden rounded-xl border border-white/[0.07] md:grid-cols-3 md:divide-x md:divide-white/[0.07]">
         {statWidths.map((width, index) => (
           <div
             key={width}
-            className="flex items-start gap-4 border-b border-white/[0.07] py-5 last:border-b-0 md:border-b-0 md:px-6 first:pl-0"
+            className="flex items-start gap-4 border-b border-white/[0.07] px-6 py-6 last:border-b-0 md:border-b-0"
           >
             <div className="mt-0.5 size-4 shrink-0 rounded bg-white/[0.05]" />
             <div className="flex-1">
@@ -37,7 +36,7 @@ export function OverviewSkeleton() {
       </section>
 
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-3">
-        <section className="border-y border-white/[0.07] py-5 lg:col-span-2">
+        <section className="overflow-hidden rounded-xl border border-white/[0.07] p-6 lg:col-span-2">
           <div className="mb-6 flex items-start justify-between gap-6">
             <div>
               <div className="h-3.5 w-28 rounded bg-white/[0.07]" />
@@ -45,10 +44,7 @@ export function OverviewSkeleton() {
             </div>
             <div className="flex gap-3 border-b border-white/[0.07] pb-2">
               {[0, 1, 2, 3].map((item) => (
-                <div
-                  key={item}
-                  className="h-2.5 w-5 rounded bg-white/[0.04]"
-                />
+                <div key={item} className="h-2.5 w-5 rounded bg-white/[0.04]" />
               ))}
             </div>
           </div>
@@ -62,7 +58,7 @@ export function OverviewSkeleton() {
         </section>
 
         <div className="flex flex-col gap-7">
-          <section className="border-y border-white/[0.07] py-5">
+          <section className="rounded-xl border border-white/[0.07] p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="h-3.5 w-20 rounded bg-white/[0.07]" />
@@ -77,7 +73,7 @@ export function OverviewSkeleton() {
             </div>
           </section>
 
-          <section className="flex-1 border-y border-white/[0.07] py-5">
+          <section className="flex-1 rounded-xl border border-white/[0.07] p-6">
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <div className="h-3.5 w-24 rounded bg-white/[0.07]" />
