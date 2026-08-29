@@ -38,7 +38,7 @@ export function TunnelOverview({
 }: TunnelOverviewProps) {
   return (
     <div className="space-y-6">
-      <div className="grid border-y border-white/[0.07] md:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.07]">
+      <div className="grid overflow-hidden rounded-xl border border-white/[0.07] md:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.07]">
         {[
           {
             label: "Total Requests",
@@ -65,13 +65,8 @@ export function TunnelOverview({
             trend: stats?.errorRate && stats.errorRate > 0 ? "down" : "neutral",
           },
         ].map((stat, i) => (
-          <div
-            key={i}
-            className="px-1 py-5 lg:px-6 first:pl-1"
-          >
-            <div className="mb-2 text-[11px] text-zinc-600">
-              {stat.label}
-            </div>
+          <div key={i} className="px-6 py-6">
+            <div className="mb-2 text-[11px] text-zinc-600">{stat.label}</div>
             <div className="flex items-end justify-between">
               <div className="text-2xl font-medium tracking-[-0.04em] text-zinc-200">
                 {stat.value}
@@ -93,7 +88,7 @@ export function TunnelOverview({
           </div>
         ))}
       </div>
-      <section className="relative border-y border-white/[0.07] py-5">
+      <section className="relative overflow-hidden rounded-xl border border-white/[0.07] p-6">
         {isPlaceholderData && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-sm transition-all duration-200">
             <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -101,7 +96,9 @@ export function TunnelOverview({
         )}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-sm font-medium text-zinc-300">Traffic overview</h3>
+            <h3 className="text-sm font-medium text-zinc-300">
+              Traffic overview
+            </h3>
             <p className="mt-1 text-[11px] text-zinc-600">Requests over time</p>
           </div>
           <div className="flex border-b border-white/[0.07]">
@@ -181,7 +178,7 @@ export function TunnelOverview({
                   contentStyle={{
                     backgroundColor: "#0A0A0A",
                     border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: "6px",
+                    borderRadius: "6px",
                     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                   }}
                   itemStyle={{ color: "#fff" }}
