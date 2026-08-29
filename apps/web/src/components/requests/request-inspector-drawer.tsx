@@ -19,20 +19,25 @@ function SkeletonLoader() {
   return (
     <div className="space-y-7 animate-pulse">
       {[3, 6, 4].map((rowCount, sectionIndex) => (
-        <section key={rowCount} className="border-y border-white/[0.07]">
-          <div className="flex h-11 items-center border-b border-white/[0.07]">
+        <section
+          key={rowCount}
+          className="rounded-xl border border-white/[0.07]"
+        >
+          <div className="flex h-11 items-center border-b border-white/[0.07] px-4">
             <div
               className="h-2.5 bg-white/[0.06]"
               style={{ width: sectionIndex === 0 ? 56 : 48 }}
             />
           </div>
-          <div className="space-y-3.5 py-4">
+          <div className="space-y-3.5 px-4 py-4">
             {Array.from({ length: rowCount }).map((_, rowIndex) => (
               <div key={rowIndex} className="flex items-center gap-6">
                 <div className="h-2.5 w-20 shrink-0 bg-white/[0.04]" />
                 <div
                   className="h-2.5 bg-white/[0.055]"
-                  style={{ width: `${46 + ((rowIndex + sectionIndex) % 3) * 14}%` }}
+                  style={{
+                    width: `${46 + ((rowIndex + sectionIndex) % 3) * 14}%`,
+                  }}
                 />
               </div>
             ))}
@@ -59,7 +64,7 @@ export function RequestInspectorDrawer({
   const [activeTab, setActiveTab] = useState<InspectorTab>("request");
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showReplayModal, setShowReplayModal] = useState(false);
-  
+
   const { capture, loading, error } = useRequestCapture(orgSlug, request);
 
   const copyToClipboard = async (text: string, field: string) => {
@@ -137,12 +142,12 @@ export function RequestInspectorDrawer({
                   <div className="flex min-w-0 items-center gap-2.5">
                     <span
                       className={`text-xs font-semibold tabular-nums ${
-                    request.status_code >= 500
-                      ? "text-red-400"
-                      : request.status_code >= 400
-                        ? "text-amber-400"
-                        : "text-emerald-400"
-                  }`}
+                        request.status_code >= 500
+                          ? "text-red-400"
+                          : request.status_code >= 400
+                            ? "text-amber-400"
+                            : "text-emerald-400"
+                      }`}
                     >
                       {request.status_code}
                     </span>
@@ -206,9 +211,7 @@ export function RequestInspectorDrawer({
                       className="flex h-8 items-center gap-2 rounded-md border border-white/[0.09] px-3 text-[10px] font-medium text-zinc-500 transition-colors hover:border-white/[0.16] hover:bg-white/[0.03] hover:text-zinc-300"
                     >
                       <HugeiconsIcon
-                        icon={
-                          copiedField === "curl" ? Tick02Icon : Copy01Icon
-                        }
+                        icon={copiedField === "curl" ? Tick02Icon : Copy01Icon}
                         size={13}
                         strokeWidth={1.8}
                         aria-hidden="true"
@@ -291,12 +294,13 @@ export function RequestInspectorDrawer({
                 </>
               ) : (
                 <div className="border-l border-white/[0.12] py-0.5 pl-3">
-                    <p className="text-xs text-zinc-400">
-                      No detailed request data available.
-                    </p>
-                    <p className="mt-1 text-[10px] leading-4 text-zinc-700">
-                      This request may have occurred before full capture was enabled.
-                    </p>
+                  <p className="text-xs text-zinc-400">
+                    No detailed request data available.
+                  </p>
+                  <p className="mt-1 text-[10px] leading-4 text-zinc-700">
+                    This request may have occurred before full capture was
+                    enabled.
+                  </p>
                 </div>
               )}
             </div>
