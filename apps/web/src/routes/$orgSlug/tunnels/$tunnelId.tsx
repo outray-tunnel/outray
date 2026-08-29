@@ -17,9 +17,7 @@ import { TunnelRequests } from "@/components/tunnel-details/tunnel-requests";
 
 export const Route = createFileRoute("/$orgSlug/tunnels/$tunnelId")({
   head: () => ({
-    meta: [
-      { title: "Tunnel Details - OutRay" },
-    ],
+    meta: [{ title: "Tunnel Details - OutRay" }],
   }),
   component: TunnelDetailView,
   validateSearch: (search: Record<string, unknown>) => {
@@ -222,7 +220,7 @@ function TunnelDetailSkeleton({ activeTab }: { activeTab: string }) {
             </div>
           </div>
 
-          <div className="overflow-hidden border-y border-white/[0.07]">
+          <div className="overflow-hidden rounded-xl border border-white/[0.07]">
             <div className="overflow-x-auto">
               <table className="w-full min-w-185 text-left">
                 <thead className="border-b border-white/[0.07] text-[9px] uppercase tracking-[0.1em] text-zinc-800">
@@ -278,15 +276,15 @@ function TunnelDetailSkeleton({ activeTab }: { activeTab: string }) {
         </div>
       ) : (
         <div className="space-y-7">
-          <div className="grid border-y border-white/[0.07] md:grid-cols-4 md:divide-x md:divide-white/[0.07]">
+          <div className="grid rounded-xl border border-white/[0.07] md:grid-cols-4 md:divide-x md:divide-white/[0.07]">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="px-5 py-6 first:pl-0">
+              <div key={index} className="px-5 py-6 sm:px-6">
                 <div className="h-2 w-16 bg-white/[0.04]" />
                 <div className="mt-4 h-6 w-20 bg-white/[0.06]" />
               </div>
             ))}
           </div>
-          <div className="border-y border-white/[0.07] py-6">
+          <div className="rounded-xl border border-white/[0.07] px-5 py-6 sm:px-6">
             <div className="h-2.5 w-28 bg-white/[0.04]" />
             <div className="mt-8 h-64 bg-white/[0.025]" />
           </div>
