@@ -1,5 +1,19 @@
 import type { TunnelEvent, RequestDetails, ResponseDetails } from "./types";
 
+const HTTP_METHOD_TEXT_COLORS: Record<string, string> = {
+  GET: "text-green-400",
+  POST: "text-blue-400",
+  PUT: "text-amber-400",
+  PATCH: "text-purple-400",
+  DELETE: "text-red-400",
+  HEAD: "text-teal-400",
+  OPTIONS: "text-gray-400",
+};
+
+export function getHttpMethodColor(method: string): string {
+  return HTTP_METHOD_TEXT_COLORS[method.toUpperCase()] ?? "text-gray-400";
+}
+
 export function getMockRequestDetails(req: TunnelEvent): RequestDetails {
   return {
     headers: {
