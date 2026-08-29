@@ -3,17 +3,26 @@ import { useLocation, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
-  CreditCardIcon,
-  Key01Icon,
+  Cone01Icon,
+  LicenseIcon,
+  LockPasswordIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   Pulse02Icon,
-  Route03Icon,
   Search01Icon,
-  SecurityLockIcon,
   Settings02Icon,
   UserGroupIcon,
+  WalletCardsIcon,
 } from "@hugeicons-pro/core-stroke-rounded";
+import {
+  Cone01Icon as Cone01SolidIcon,
+  LicenseIcon as LicenseSolidIcon,
+  LockPasswordIcon as LockPasswordSolidIcon,
+  Pulse02Icon as Pulse02SolidIcon,
+  Settings02Icon as Settings02SolidIcon,
+  UserGroupIcon as UserGroupSolidIcon,
+  WalletCardsIcon as WalletCardsSolidIcon,
+} from "@hugeicons-pro/core-solid-rounded";
 import { useAppStore } from "@/lib/store";
 import { authClient, usePermission } from "@/lib/auth-client";
 import { appClient } from "@/lib/app-client";
@@ -32,6 +41,7 @@ interface SidebarNavItem {
   to: string;
   label: string;
   icon: IconSvgElement;
+  activeIcon: IconSvgElement;
   activeOptions?: { exact: boolean };
 }
 
@@ -100,17 +110,20 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
           {
             to: "/$orgSlug",
             label: "Tunnels",
-            icon: Route03Icon,
+            icon: Cone01Icon,
+            activeIcon: Cone01SolidIcon,
           },
           {
             to: "/$orgSlug/observability",
             label: "Observability",
             icon: Pulse02Icon,
+            activeIcon: Pulse02SolidIcon,
           },
           {
             to: "/$orgSlug/secrets",
             label: "Secrets",
-            icon: SecurityLockIcon,
+            icon: LockPasswordIcon,
+            activeIcon: LockPasswordSolidIcon,
           },
         ],
       },
@@ -121,18 +134,21 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
             to: "/$orgSlug/members",
             label: "Members",
             icon: UserGroupIcon,
+            activeIcon: UserGroupSolidIcon,
           },
           {
             to: "/$orgSlug/tokens",
             label: "API tokens",
-            icon: Key01Icon,
+            icon: LicenseIcon,
+            activeIcon: LicenseSolidIcon,
           },
           ...(canManageBilling
             ? [
                 {
                   to: "/$orgSlug/billing",
                   label: "Billing",
-                  icon: CreditCardIcon,
+                  icon: WalletCardsIcon,
+                  activeIcon: WalletCardsSolidIcon,
                 },
               ]
             : []),
@@ -198,12 +214,12 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   return (
     <aside
       className={`group relative flex h-full shrink-0 flex-col overflow-hidden border-r border-white/[0.07] bg-[#090909] text-zinc-400 transition-[width] duration-200 ease-out ${
-        isCollapsed ? "w-[64px]" : "w-[232px]"
+        isCollapsed ? "w-[68px]" : "w-[248px]"
       }`}
       aria-label="Main navigation"
     >
       <div
-        className={`flex h-14 shrink-0 items-center ${
+        className={`flex h-16 shrink-0 items-center ${
           isCollapsed ? "justify-center px-2" : "justify-between px-3"
         }`}
       >
@@ -211,10 +227,10 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
           <img
             src="/logo.png"
             alt="OutRay"
-            className="h-7 w-7 shrink-0 object-contain"
+            className="h-8 w-8 shrink-0 object-contain"
           />
           {!isCollapsed && (
-            <span className="truncate text-[15px] font-semibold tracking-[-0.03em] text-zinc-100">
+            <span className="truncate text-[17px] font-semibold tracking-[-0.03em] text-zinc-100">
               OutRay
             </span>
           )}
@@ -225,7 +241,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
             <button
               type="button"
               onClick={toggleSearch}
-              className={`rounded-md p-1.5 transition-colors ${
+              className={`rounded-lg p-2 transition-colors ${
                 isSearchOpen
                   ? "bg-white/[0.07] text-zinc-200"
                   : "text-zinc-600 hover:bg-white/[0.05] hover:text-zinc-300"
@@ -235,7 +251,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
             >
               <HugeiconsIcon
                 icon={Search01Icon}
-                size={15}
+                size={17}
                 strokeWidth={1.7}
                 aria-hidden="true"
               />
@@ -243,13 +259,13 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
             <button
               type="button"
               onClick={() => setIsCollapsed(true)}
-              className="rounded-md p-1.5 text-zinc-600 transition-colors hover:bg-white/[0.05] hover:text-zinc-300"
+              className="rounded-lg p-2 text-zinc-600 transition-colors hover:bg-white/[0.05] hover:text-zinc-300"
               aria-label="Collapse sidebar"
               title="Collapse sidebar"
             >
               <HugeiconsIcon
                 icon={PanelLeftCloseIcon}
-                size={15}
+                size={17}
                 strokeWidth={1.7}
                 aria-hidden="true"
               />
@@ -261,13 +277,13 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
           <button
             type="button"
             onClick={() => setIsCollapsed(false)}
-            className="absolute left-[39px] top-5 rounded bg-[#151515] p-1 text-zinc-500 opacity-0 shadow-lg ring-1 ring-white/10 transition-opacity hover:text-zinc-200 group-hover:opacity-100"
+            className="absolute left-[43px] top-6 rounded-lg bg-[#151515] p-1.5 text-zinc-500 opacity-0 shadow-lg ring-1 ring-white/10 transition-opacity hover:text-zinc-200 group-hover:opacity-100"
             aria-label="Expand sidebar"
             title="Expand sidebar"
           >
             <HugeiconsIcon
               icon={PanelLeftOpenIcon}
-              size={13}
+              size={15}
               strokeWidth={1.7}
               aria-hidden="true"
             />
@@ -329,6 +345,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                     key={item.to}
                     to={item.to}
                     icon={item.icon}
+                    activeIcon={item.activeIcon}
                     label={item.label}
                     activeOptions={item.activeOptions}
                     isCollapsed={isCollapsed}
@@ -356,6 +373,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
         <NavItem
           to="/$orgSlug/settings"
           icon={Settings02Icon}
+          activeIcon={Settings02SolidIcon}
           label="Settings"
           isCollapsed={isCollapsed}
           params={params}
@@ -363,6 +381,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
             to: "/$orgSlug/settings",
             label: "Settings",
             icon: Settings02Icon,
+            activeIcon: Settings02SolidIcon,
           })}
         />
       </div>
