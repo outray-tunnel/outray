@@ -25,9 +25,7 @@ import {
 
 export const Route = createFileRoute("/$orgSlug/requests")({
   head: () => ({
-    meta: [
-      { title: "Requests - OutRay" },
-    ],
+    meta: [{ title: "Requests - OutRay" }],
   }),
   component: RequestsView,
 });
@@ -96,8 +94,7 @@ function RequestsView() {
   });
 
   // Full capture is enabled only if both the feature flag and org setting are enabled
-  const fullCaptureEnabled =
-    fullCaptureFeatureEnabled && captureSettingEnabled;
+  const fullCaptureEnabled = fullCaptureFeatureEnabled && captureSettingEnabled;
 
   const fetchHistoricalRequests = useCallback(
     async (range: TimeRange) => {
@@ -269,9 +266,6 @@ function RequestsView() {
     <div className="mx-auto max-w-6xl space-y-7">
       <header className="flex items-end justify-between gap-6 border-b border-white/[0.07] pb-7">
         <div>
-          <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-700">
-            Tunnels
-          </p>
           <h1 className="text-2xl font-semibold tracking-[-0.035em] text-white">
             Requests
           </h1>
@@ -338,7 +332,7 @@ function RequestsView() {
         </div>
       </div>
 
-      <div className="overflow-hidden border-y border-white/[0.07]">
+      <div className="overflow-hidden rounded-xl border border-white/[0.07]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="border-b border-white/[0.07] text-[9px] uppercase tracking-[0.1em] text-zinc-700">
