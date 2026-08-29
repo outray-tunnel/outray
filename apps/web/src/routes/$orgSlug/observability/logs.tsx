@@ -1,0 +1,207 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  ArrowDown01Icon,
+  ArrowRight01Icon,
+  Copy01Icon,
+  PauseIcon,
+  PlayIcon,
+  Search01Icon,
+  Tick02Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
+import {
+  ObservabilityHeader,
+  ObservabilityPage,
+  Panel,
+} from "@/components/observability/observability-ui";
+import {
+  logs,
+  services,
+  type LogEvent,
+  type LogLevel,
+} from "@/components/observability/mock-data";
+
+export const Route = createFileRoute("/$orgSlug/observability/logs")({
+  head: () => ({ meta: [{ title: "Logs - OutRay Observability" }] }),
+  component: LogsView,
+});
+
+const levelStyles: Record<LogLevel, string> = {
+  debug: "text-zinc-600",
+  info: "text-cyan-400",
+  warn: "text-amber-400",
+  error: "text-rose-400",
+};
+
+function LogsView() {
+  const [query, setQuery] = useState("");
+  const [level, setLevel] = useState<"all" | LogLevel>("all");
+  const [service, setService] = useState("all");
+  const [isLive, setIsLive] = useState(true);
+  const [selected, setSelected] = useState<LogEvent | null>(logs[0]);
+
+  const visibleLogs = useMemo(() => {
+    const normalized = query.toLowerCase();
+    return logs.filter(
+      (event) =>
+        (level === "all" || event.level === level) &&
+        (service === "all" || event.service === service) &&
+        (!normalized ||
+          event.message.toLowerCase().includes(normalized) ||
+          event.service.toLowerCase().includes(normalized) ||
+          event.traceId.includes(normalized)),
+    );
+  }, [level, query, service]);
+
+  return (
+    <ObservabilityPage>
+      <ObservabilityHeader
+        title="Logs"
+        description="Search structured application events and move directly from a log line into its trace context."
+        action={
+          <button
+            type="button"
+            onClick={() => setIsLive((value) => !value)}
+            className={`flex h-9 items-center gap-2 rounded-lg border px-3 text-[10px] font-medium transition-colors ${
+              isLive
+                ? "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-400"
+                : "border-white/[0.08] text-zinc-600"
+            }`}
+          >
+            <HugeiconsIcon icon={isLive ? PauseIcon : PlayIcon} size={13} strokeWidth={1.8} />
+            {isLive ? "Streaming" : "Paused"}
+          </button>
+        }
+      />
+
+      <Panel>
+        <div className="grid gap-px bg-white/[0.06] md:grid-cols-[minmax(0,1fr)_180px]">
+          <label className="flex h-12 items-center gap-3 bg-[#090909] px-5 text-zinc-600 sm:px-6">
+            <HugeiconsIcon icon={Search01Icon} size={15} strokeWidth={1.7} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder='Search logs — try "payment", a trace ID, or service name'
+              className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-zinc-300 outline-none placeholder:text-zinc-700"
+            />
+            <kbd className="hidden rounded border border-white/[0.07] px-1.5 py-0.5 text-[9px] text-zinc-700 sm:block">⌘ K</kbd>
+          </label>
+          <label className="flex h-12 items-center gap-2 bg-[#090909] px-5 sm:px-6">
+            <select
+              value={service}
+              onChange={(event) => setService(event.target.value)}
+              className="min-w-0 flex-1 appearance-none bg-transparent text-[10px] text-zinc-500 outline-none"
+            >
+              <option value="all">All services</option>
+              {services.map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+            <HugeiconsIcon icon={ArrowDown01Icon} size={13} strokeWidth={1.7} className="text-zinc-700" />
+          </label>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] px-5 py-3 sm:px-6">
+          {(["all", "debug", "info", "warn", "error"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setLevel(value)}
+              className={`h-7 rounded-md px-2.5 text-[9px] uppercase tracking-[0.07em] transition-colors ${
+                level === value
+                  ? "bg-white/[0.08] text-zinc-200"
+                  : "text-zinc-700 hover:text-zinc-400"
+              }`}
+            >
+              {value}
+            </button>
+          ))}
+          <span className="ml-auto text-[9px] text-zinc-700">{visibleLogs.length} events shown</span>
+        </div>
+      </Panel>
+
+      <div className={`grid gap-7 ${selected ? "xl:grid-cols-[minmax(0,1fr)_400px]" : ""}`}>
+        <Panel>
+          <div className="hidden grid-cols-[90px_70px_150px_minmax(0,1fr)_120px_24px] gap-4 border-b border-white/[0.07] px-5 py-3 text-[9px] uppercase tracking-[0.08em] text-zinc-700 sm:px-6 lg:grid">
+            <span>Time</span>
+            <span>Level</span>
+            <span>Service</span>
+            <span>Message</span>
+            <span>Trace</span>
+            <span />
+          </div>
+          <div className="divide-y divide-white/[0.055] font-mono">
+            {visibleLogs.map((event) => (
+              <button
+                key={event.id}
+                type="button"
+                onClick={() => setSelected(event)}
+                className={`grid w-full gap-2 px-5 py-3.5 text-left text-[10px] transition-colors sm:px-6 lg:grid-cols-[90px_70px_150px_minmax(0,1fr)_120px_24px] lg:items-center lg:gap-4 ${
+                  selected?.id === event.id ? "bg-white/[0.035]" : "hover:bg-white/[0.02]"
+                }`}
+              >
+                <span className="tabular-nums text-zinc-700">{event.timestamp}</span>
+                <span className={`uppercase ${levelStyles[event.level]}`}>{event.level}</span>
+                <span className="truncate text-zinc-500">{event.service}</span>
+                <span className="truncate text-zinc-300">{event.message}</span>
+                <span className="truncate text-zinc-700">{event.traceId.slice(0, 10)}</span>
+                <HugeiconsIcon icon={ArrowRight01Icon} size={13} strokeWidth={1.7} className="hidden text-zinc-800 lg:block" />
+              </button>
+            ))}
+          </div>
+        </Panel>
+
+        {selected && <LogDetail event={selected} />}
+      </div>
+    </ObservabilityPage>
+  );
+}
+function LogDetail({ event }: { event: LogEvent }) {
+  const [copied, setCopied] = useState(false);
+
+  const copyEvent = async () => {
+    await navigator.clipboard.writeText(JSON.stringify(event, null, 2));
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  };
+
+  return (
+    <Panel
+      title="Event details"
+      description={event.timestamp}
+      action={
+        <button
+          type="button"
+          onClick={copyEvent}
+          className={`flex size-8 items-center justify-center rounded-lg transition-colors ${copied ? "bg-emerald-400/[0.1] text-emerald-400" : "text-zinc-700 hover:bg-white/[0.05] hover:text-zinc-300"}`}
+          aria-label="Copy log event"
+        >
+          <HugeiconsIcon icon={copied ? Tick02Icon : Copy01Icon} size={14} strokeWidth={1.7} />
+        </button>
+      }
+    >
+      <div className="space-y-6 p-5 sm:p-6">
+        <div>
+          <span className={`font-mono text-[10px] uppercase ${levelStyles[event.level]}`}>{event.level}</span>
+          <p className="mt-3 font-mono text-[11px] leading-5 text-zinc-300">{event.message}</p>
+        </div>
+        <div className="grid grid-cols-[90px_1fr] gap-y-3 border-y border-white/[0.06] py-5 font-mono text-[10px]">
+          <span className="text-zinc-700">service</span><span className="text-zinc-400">{event.service}</span>
+          <span className="text-zinc-700">environment</span><span className="text-zinc-400">{event.environment}</span>
+          <span className="text-zinc-700">trace_id</span><span className="break-all text-violet-400">{event.traceId}</span>
+        </div>
+        <div>
+          <p className="mb-3 text-[9px] font-medium uppercase tracking-[0.08em] text-zinc-700">Attributes</p>
+          <div className="space-y-2 rounded-lg border border-white/[0.06] bg-black/20 p-4 font-mono text-[10px]">
+            {Object.entries(event.attributes).map(([key, value]) => (
+              <div key={key} className="grid grid-cols-[110px_1fr] gap-3">
+                <span className="truncate text-zinc-700">{key}</span>
+                <span className="break-all text-zinc-400">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
