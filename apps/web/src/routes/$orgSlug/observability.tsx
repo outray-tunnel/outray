@@ -25,7 +25,8 @@ const summary = [
 const signals = [
   {
     name: "Metrics",
-    description: "Service health, latency, throughput, and custom measurements.",
+    description:
+      "Service health, latency, throughput, and custom measurements.",
     icon: Activity03Icon,
   },
   {
@@ -76,11 +77,11 @@ function ObservabilityView() {
       </header>
 
       <section
-        className="grid border-y border-white/[0.07] sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.07]"
+        className="grid overflow-hidden rounded-xl border border-white/[0.07] sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.07]"
         aria-label="Observability summary"
       >
         {summary.map((item) => (
-          <div key={item.label} className="px-1 py-5 lg:px-6 first:pl-1">
+          <div key={item.label} className="px-6 py-6">
             <p className="text-[11px] text-zinc-600">{item.label}</p>
             <p className="mt-2 text-2xl font-medium tracking-[-0.04em] text-zinc-200">
               {item.value}
@@ -92,17 +93,16 @@ function ObservabilityView() {
 
       <section>
         <div className="mb-5">
-          <h2 className="text-sm font-medium text-zinc-200">Telemetry signals</h2>
+          <h2 className="text-sm font-medium text-zinc-200">
+            Telemetry signals
+          </h2>
           <p className="mt-1 text-xs text-zinc-600">
             The first set of signals planned for the Observability preview.
           </p>
         </div>
-        <div className="divide-y divide-white/[0.07] border-y border-white/[0.07]">
+        <div className="divide-y divide-white/[0.07] overflow-hidden rounded-xl border border-white/[0.07]">
           {signals.map((signal) => (
-            <div
-              key={signal.name}
-              className="flex items-start gap-4 py-5"
-            >
+            <div key={signal.name} className="flex items-start gap-4 px-6 py-5">
               <span className="mt-0.5 text-zinc-500">
                 <HugeiconsIcon
                   icon={signal.icon}
