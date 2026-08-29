@@ -41,31 +41,56 @@ export function ObservabilityHeader({
           {description}
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-3">
-        <span className="hidden items-center gap-2 text-[10px] uppercase tracking-[0.08em] text-zinc-700 sm:flex">
-          <span className="size-1.5 rounded-full bg-emerald-400" />
-          Demo telemetry
-        </span>
-        {action}
-      </div>
+      {action && <div className="flex shrink-0 items-center">{action}</div>}
     </header>
   );
 }
 
-export function TimeRangeControl({ value = "24h" }: { value?: string }) {
+interface TimeRangeOption {
+  value: string;
+  label: string;
+  live?: boolean;
+}
+
+const DEFAULT_TIME_RANGES: TimeRangeOption[] = [
+  { value: "1h", label: "1h" },
+  { value: "6h", label: "6h" },
+  { value: "24h", label: "24h" },
+  { value: "7d", label: "7d" },
+];
+
+export function TimeRangeControl({
+  value = "24h",
+  options = DEFAULT_TIME_RANGES,
+  onChange,
+}: {
+  value?: string;
+  options?: TimeRangeOption[];
+  onChange?: (value: string) => void;
+}) {
   return (
     <div className="flex h-9 items-center rounded-lg border border-white/[0.08] bg-white/[0.025] p-1">
-      {["1h", "6h", "24h", "7d"].map((range) => (
+      {options.map((range) => (
         <button
-          key={range}
+          key={range.value}
           type="button"
+          onClick={() => onChange?.(range.value)}
           className={`h-7 rounded-md px-2.5 text-[10px] font-medium transition-colors ${
-            value === range
+            value === range.value
               ? "bg-white/[0.09] text-zinc-200"
               : "text-zinc-700 hover:text-zinc-400"
           }`}
         >
-          {range}
+          <span className="flex items-center gap-1.5">
+            {range.live && (
+              <span
+                className={`size-1.5 rounded-full ${
+                  value === range.value ? "bg-emerald-400" : "bg-zinc-700"
+                }`}
+              />
+            )}
+            {range.label}
+          </span>
         </button>
       ))}
     </div>
