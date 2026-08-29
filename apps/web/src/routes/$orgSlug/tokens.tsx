@@ -16,9 +16,7 @@ import { WorkspacePageHeader } from "@/components/workspace-page-header";
 
 export const Route = createFileRoute("/$orgSlug/tokens")({
   head: () => ({
-    meta: [
-      { title: "API Tokens - OutRay" },
-    ],
+    meta: [{ title: "API Tokens - OutRay" }],
   }),
   component: TokensSettingsView,
 });
@@ -70,8 +68,6 @@ function TokensSettingsView() {
     },
   });
 
-
-
   return (
     <div className="mx-auto max-w-6xl space-y-7">
       <WorkspacePageHeader
@@ -108,8 +104,8 @@ function TokensSettingsView() {
         isDestructive
       />
 
-      <section className="border-y border-white/[0.07]">
-        <div className="hidden grid-cols-[minmax(0,1fr)_160px_120px_32px] gap-4 border-b border-white/[0.07] px-1 py-3 text-[9px] font-medium uppercase tracking-[0.1em] text-zinc-700 md:grid">
+      <section className="rounded-xl border border-white/[0.07]">
+        <div className="hidden grid-cols-[minmax(0,1fr)_160px_120px_32px] gap-4 border-b border-white/[0.07] px-5 py-3 text-[9px] font-medium uppercase tracking-[0.1em] text-zinc-700 sm:px-6 md:grid">
           <span>Token</span>
           <span>Created</span>
           <span>Last used</span>
@@ -117,13 +113,24 @@ function TokensSettingsView() {
         </div>
 
         {isLoading ? (
-          <div className="flex min-h-48 items-center justify-center text-zinc-700">
-            <HugeiconsIcon
-              icon={Loading03Icon}
-              size={20}
-              strokeWidth={1.7}
-              className="animate-spin"
-            />
+          <div className="divide-y divide-white/[0.07]" aria-busy="true">
+            {[0, 1, 2, 3].map((row) => (
+              <div
+                key={row}
+                className="grid animate-pulse gap-3 px-5 py-5 sm:px-6 md:grid-cols-[minmax(0,1fr)_160px_120px_32px] md:items-center md:gap-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="size-9 shrink-0 rounded-lg bg-white/[0.05]" />
+                  <div className="min-w-0 flex-1">
+                    <div className="h-3 w-32 rounded bg-white/[0.07]" />
+                    <div className="mt-2 h-2.5 w-24 rounded bg-white/[0.04]" />
+                  </div>
+                </div>
+                <div className="h-2.5 w-20 rounded bg-white/[0.04]" />
+                <div className="h-2.5 w-14 rounded bg-white/[0.04]" />
+                <div className="size-8 rounded-lg bg-white/[0.035]" />
+              </div>
+            ))}
           </div>
         ) : tokens?.length === 0 ? (
           <div className="flex min-h-64 flex-col items-center justify-center py-12 text-center">
@@ -143,11 +150,15 @@ function TokensSettingsView() {
             {tokens?.map((token) => (
               <div
                 key={token.id}
-                className="grid gap-3 px-1 py-4 md:grid-cols-[minmax(0,1fr)_160px_120px_32px] md:items-center md:gap-4"
+                className="grid gap-3 px-5 py-5 sm:px-6 md:grid-cols-[minmax(0,1fr)_160px_120px_32px] md:items-center md:gap-4"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/[0.035] text-zinc-600">
-                    <HugeiconsIcon icon={Key01Icon} size={14} strokeWidth={1.7} />
+                    <HugeiconsIcon
+                      icon={Key01Icon}
+                      size={14}
+                      strokeWidth={1.7}
+                    />
                   </span>
                   <div className="min-w-0">
                     <h3 className="truncate text-xs font-medium text-zinc-300">
@@ -165,7 +176,9 @@ function TokensSettingsView() {
                   })}
                 </p>
                 <p className="text-[11px] text-zinc-600">
-                  <span className="mr-2 text-zinc-700 md:hidden">Last used</span>
+                  <span className="mr-2 text-zinc-700 md:hidden">
+                    Last used
+                  </span>
                   {token.lastUsedAt
                     ? formatDistanceToNow(new Date(token.lastUsedAt), {
                         addSuffix: true,
