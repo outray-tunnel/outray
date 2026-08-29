@@ -53,6 +53,7 @@ import { Route as AdminUsersIndexRouteImport } from './routes/admin/users.index'
 import { Route as AdminOrganizationsIndexRouteImport } from './routes/admin/organizations.index'
 import { Route as OrgSlugTunnelsIndexRouteImport } from './routes/$orgSlug/tunnels/index'
 import { Route as OrgSlugSettingsIndexRouteImport } from './routes/$orgSlug/settings/index'
+import { Route as OrgSlugObservabilityIndexRouteImport } from './routes/$orgSlug/observability/index'
 import { Route as ApiWebhooksPolarRouteImport } from './routes/api/webhooks/polar'
 import { Route as ApiWebhooksPaystackRouteImport } from './routes/api/webhooks/paystack'
 import { Route as ApiTunnelRegisterRouteImport } from './routes/api/tunnel/register'
@@ -89,6 +90,11 @@ import { Route as AdminOrganizationsSlugRouteImport } from './routes/admin/organ
 import { Route as OrgSlugTunnelsTunnelIdRouteImport } from './routes/$orgSlug/tunnels/$tunnelId'
 import { Route as OrgSlugSettingsProfileRouteImport } from './routes/$orgSlug/settings/profile'
 import { Route as OrgSlugSettingsOrganizationRouteImport } from './routes/$orgSlug/settings/organization'
+import { Route as OrgSlugObservabilityTracesRouteImport } from './routes/$orgSlug/observability/traces'
+import { Route as OrgSlugObservabilityServicesRouteImport } from './routes/$orgSlug/observability/services'
+import { Route as OrgSlugObservabilityMonitorsRouteImport } from './routes/$orgSlug/observability/monitors'
+import { Route as OrgSlugObservabilityMetricsRouteImport } from './routes/$orgSlug/observability/metrics'
+import { Route as OrgSlugObservabilityLogsRouteImport } from './routes/$orgSlug/observability/logs'
 import { Route as ApiOrgSlugTunnelsIndexRouteImport } from './routes/api/$orgSlug/tunnels/index'
 import { Route as ApiOrgSlugSubdomainsIndexRouteImport } from './routes/api/$orgSlug/subdomains/index'
 import { Route as ApiOrgSlugDomainsIndexRouteImport } from './routes/api/$orgSlug/domains/index'
@@ -106,6 +112,7 @@ import { Route as ApiOrgSlugRequestsReplayRouteImport } from './routes/api/$orgS
 import { Route as ApiOrgSlugRequestsCaptureRouteImport } from './routes/api/$orgSlug/requests/capture'
 import { Route as ApiOrgSlugPortalPolarRouteImport } from './routes/api/$orgSlug/portal/polar'
 import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$orgSlug/domains/$domainId'
+import { Route as OrgSlugObservabilityServicesServiceIdRouteImport } from './routes/$orgSlug/observability/services_.$serviceId'
 import { Route as ApiOrgSlugTunnelsTunnelIdStopRouteImport } from './routes/api/$orgSlug/tunnels/$tunnelId.stop'
 import { Route as ApiOrgSlugDomainsDomainIdVerifyRouteImport } from './routes/api/$orgSlug/domains/$domainId.verify'
 
@@ -329,6 +336,12 @@ const OrgSlugSettingsIndexRoute = OrgSlugSettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OrgSlugSettingsRoute,
 } as any)
+const OrgSlugObservabilityIndexRoute =
+  OrgSlugObservabilityIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
 const ApiWebhooksPolarRoute = ApiWebhooksPolarRouteImport.update({
   id: '/api/webhooks/polar',
   path: '/api/webhooks/polar',
@@ -514,6 +527,36 @@ const OrgSlugSettingsOrganizationRoute =
     path: '/organization',
     getParentRoute: () => OrgSlugSettingsRoute,
   } as any)
+const OrgSlugObservabilityTracesRoute =
+  OrgSlugObservabilityTracesRouteImport.update({
+    id: '/traces',
+    path: '/traces',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
+const OrgSlugObservabilityServicesRoute =
+  OrgSlugObservabilityServicesRouteImport.update({
+    id: '/services',
+    path: '/services',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
+const OrgSlugObservabilityMonitorsRoute =
+  OrgSlugObservabilityMonitorsRouteImport.update({
+    id: '/monitors',
+    path: '/monitors',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
+const OrgSlugObservabilityMetricsRoute =
+  OrgSlugObservabilityMetricsRouteImport.update({
+    id: '/metrics',
+    path: '/metrics',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
+const OrgSlugObservabilityLogsRoute =
+  OrgSlugObservabilityLogsRouteImport.update({
+    id: '/logs',
+    path: '/logs',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
 const ApiOrgSlugTunnelsIndexRoute = ApiOrgSlugTunnelsIndexRouteImport.update({
   id: '/api/$orgSlug/tunnels/',
   path: '/api/$orgSlug/tunnels/',
@@ -608,6 +651,12 @@ const ApiOrgSlugDomainsDomainIdRoute =
     path: '/api/$orgSlug/domains/$domainId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OrgSlugObservabilityServicesServiceIdRoute =
+  OrgSlugObservabilityServicesServiceIdRouteImport.update({
+    id: '/services_/$serviceId',
+    path: '/services/$serviceId',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
 const ApiOrgSlugTunnelsTunnelIdStopRoute =
   ApiOrgSlugTunnelsTunnelIdStopRouteImport.update({
     id: '/stop',
@@ -645,7 +694,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
   '/$orgSlug/install': typeof OrgSlugInstallRoute
   '/$orgSlug/members': typeof OrgSlugMembersRoute
-  '/$orgSlug/observability': typeof OrgSlugObservabilityRoute
+  '/$orgSlug/observability': typeof OrgSlugObservabilityRouteWithChildren
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
   '/$orgSlug/secrets': typeof OrgSlugSecretsRoute
   '/$orgSlug/settings': typeof OrgSlugSettingsRouteWithChildren
@@ -662,6 +711,11 @@ export interface FileRoutesByFullPath {
   '/internal/domain-check': typeof InternalDomainCheckRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
   '/$orgSlug/': typeof OrgSlugIndexRoute
+  '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
+  '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
+  '/$orgSlug/observability/monitors': typeof OrgSlugObservabilityMonitorsRoute
+  '/$orgSlug/observability/services': typeof OrgSlugObservabilityServicesRoute
+  '/$orgSlug/observability/traces': typeof OrgSlugObservabilityTracesRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
   '/$orgSlug/tunnels/$tunnelId': typeof OrgSlugTunnelsTunnelIdRoute
@@ -698,10 +752,12 @@ export interface FileRoutesByFullPath {
   '/api/tunnel/register': typeof ApiTunnelRegisterRoute
   '/api/webhooks/paystack': typeof ApiWebhooksPaystackRoute
   '/api/webhooks/polar': typeof ApiWebhooksPolarRoute
+  '/$orgSlug/observability/': typeof OrgSlugObservabilityIndexRoute
   '/$orgSlug/settings/': typeof OrgSlugSettingsIndexRoute
   '/$orgSlug/tunnels': typeof OrgSlugTunnelsIndexRoute
   '/admin/organizations': typeof AdminOrganizationsIndexRoute
   '/admin/users': typeof AdminUsersIndexRoute
+  '/$orgSlug/observability/services/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -745,7 +801,6 @@ export interface FileRoutesByTo {
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
   '/$orgSlug/install': typeof OrgSlugInstallRoute
   '/$orgSlug/members': typeof OrgSlugMembersRoute
-  '/$orgSlug/observability': typeof OrgSlugObservabilityRoute
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
   '/$orgSlug/secrets': typeof OrgSlugSecretsRoute
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
@@ -761,6 +816,11 @@ export interface FileRoutesByTo {
   '/internal/domain-check': typeof InternalDomainCheckRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
   '/$orgSlug': typeof OrgSlugIndexRoute
+  '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
+  '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
+  '/$orgSlug/observability/monitors': typeof OrgSlugObservabilityMonitorsRoute
+  '/$orgSlug/observability/services': typeof OrgSlugObservabilityServicesRoute
+  '/$orgSlug/observability/traces': typeof OrgSlugObservabilityTracesRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
   '/$orgSlug/tunnels/$tunnelId': typeof OrgSlugTunnelsTunnelIdRoute
@@ -797,10 +857,12 @@ export interface FileRoutesByTo {
   '/api/tunnel/register': typeof ApiTunnelRegisterRoute
   '/api/webhooks/paystack': typeof ApiWebhooksPaystackRoute
   '/api/webhooks/polar': typeof ApiWebhooksPolarRoute
+  '/$orgSlug/observability': typeof OrgSlugObservabilityIndexRoute
   '/$orgSlug/settings': typeof OrgSlugSettingsIndexRoute
   '/$orgSlug/tunnels': typeof OrgSlugTunnelsIndexRoute
   '/admin/organizations': typeof AdminOrganizationsIndexRoute
   '/admin/users': typeof AdminUsersIndexRoute
+  '/$orgSlug/observability/services/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -846,7 +908,7 @@ export interface FileRoutesById {
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
   '/$orgSlug/install': typeof OrgSlugInstallRoute
   '/$orgSlug/members': typeof OrgSlugMembersRoute
-  '/$orgSlug/observability': typeof OrgSlugObservabilityRoute
+  '/$orgSlug/observability': typeof OrgSlugObservabilityRouteWithChildren
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
   '/$orgSlug/secrets': typeof OrgSlugSecretsRoute
   '/$orgSlug/settings': typeof OrgSlugSettingsRouteWithChildren
@@ -863,6 +925,11 @@ export interface FileRoutesById {
   '/internal/domain-check': typeof InternalDomainCheckRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
   '/$orgSlug/': typeof OrgSlugIndexRoute
+  '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
+  '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
+  '/$orgSlug/observability/monitors': typeof OrgSlugObservabilityMonitorsRoute
+  '/$orgSlug/observability/services': typeof OrgSlugObservabilityServicesRoute
+  '/$orgSlug/observability/traces': typeof OrgSlugObservabilityTracesRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
   '/$orgSlug/tunnels/$tunnelId': typeof OrgSlugTunnelsTunnelIdRoute
@@ -899,10 +966,12 @@ export interface FileRoutesById {
   '/api/tunnel/register': typeof ApiTunnelRegisterRoute
   '/api/webhooks/paystack': typeof ApiWebhooksPaystackRoute
   '/api/webhooks/polar': typeof ApiWebhooksPolarRoute
+  '/$orgSlug/observability/': typeof OrgSlugObservabilityIndexRoute
   '/$orgSlug/settings/': typeof OrgSlugSettingsIndexRoute
   '/$orgSlug/tunnels/': typeof OrgSlugTunnelsIndexRoute
   '/admin/organizations/': typeof AdminOrganizationsIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
+  '/$orgSlug/observability/services_/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -966,6 +1035,11 @@ export interface FileRouteTypes {
     | '/internal/domain-check'
     | '/invitations/accept'
     | '/$orgSlug/'
+    | '/$orgSlug/observability/logs'
+    | '/$orgSlug/observability/metrics'
+    | '/$orgSlug/observability/monitors'
+    | '/$orgSlug/observability/services'
+    | '/$orgSlug/observability/traces'
     | '/$orgSlug/settings/organization'
     | '/$orgSlug/settings/profile'
     | '/$orgSlug/tunnels/$tunnelId'
@@ -1002,10 +1076,12 @@ export interface FileRouteTypes {
     | '/api/tunnel/register'
     | '/api/webhooks/paystack'
     | '/api/webhooks/polar'
+    | '/$orgSlug/observability/'
     | '/$orgSlug/settings/'
     | '/$orgSlug/tunnels'
     | '/admin/organizations'
     | '/admin/users'
+    | '/$orgSlug/observability/services/$serviceId'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -1049,7 +1125,6 @@ export interface FileRouteTypes {
     | '/$orgSlug/domains'
     | '/$orgSlug/install'
     | '/$orgSlug/members'
-    | '/$orgSlug/observability'
     | '/$orgSlug/requests'
     | '/$orgSlug/secrets'
     | '/$orgSlug/subdomains'
@@ -1065,6 +1140,11 @@ export interface FileRouteTypes {
     | '/internal/domain-check'
     | '/invitations/accept'
     | '/$orgSlug'
+    | '/$orgSlug/observability/logs'
+    | '/$orgSlug/observability/metrics'
+    | '/$orgSlug/observability/monitors'
+    | '/$orgSlug/observability/services'
+    | '/$orgSlug/observability/traces'
     | '/$orgSlug/settings/organization'
     | '/$orgSlug/settings/profile'
     | '/$orgSlug/tunnels/$tunnelId'
@@ -1101,10 +1181,12 @@ export interface FileRouteTypes {
     | '/api/tunnel/register'
     | '/api/webhooks/paystack'
     | '/api/webhooks/polar'
+    | '/$orgSlug/observability'
     | '/$orgSlug/settings'
     | '/$orgSlug/tunnels'
     | '/admin/organizations'
     | '/admin/users'
+    | '/$orgSlug/observability/services/$serviceId'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -1166,6 +1248,11 @@ export interface FileRouteTypes {
     | '/internal/domain-check'
     | '/invitations/accept'
     | '/$orgSlug/'
+    | '/$orgSlug/observability/logs'
+    | '/$orgSlug/observability/metrics'
+    | '/$orgSlug/observability/monitors'
+    | '/$orgSlug/observability/services'
+    | '/$orgSlug/observability/traces'
     | '/$orgSlug/settings/organization'
     | '/$orgSlug/settings/profile'
     | '/$orgSlug/tunnels/$tunnelId'
@@ -1202,10 +1289,12 @@ export interface FileRouteTypes {
     | '/api/tunnel/register'
     | '/api/webhooks/paystack'
     | '/api/webhooks/polar'
+    | '/$orgSlug/observability/'
     | '/$orgSlug/settings/'
     | '/$orgSlug/tunnels/'
     | '/admin/organizations/'
     | '/admin/users/'
+    | '/$orgSlug/observability/services_/$serviceId'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -1608,6 +1697,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugSettingsIndexRouteImport
       parentRoute: typeof OrgSlugSettingsRoute
     }
+    '/$orgSlug/observability/': {
+      id: '/$orgSlug/observability/'
+      path: '/'
+      fullPath: '/$orgSlug/observability/'
+      preLoaderRoute: typeof OrgSlugObservabilityIndexRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
     '/api/webhooks/polar': {
       id: '/api/webhooks/polar'
       path: '/api/webhooks/polar'
@@ -1860,6 +1956,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugSettingsOrganizationRouteImport
       parentRoute: typeof OrgSlugSettingsRoute
     }
+    '/$orgSlug/observability/traces': {
+      id: '/$orgSlug/observability/traces'
+      path: '/traces'
+      fullPath: '/$orgSlug/observability/traces'
+      preLoaderRoute: typeof OrgSlugObservabilityTracesRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
+    '/$orgSlug/observability/services': {
+      id: '/$orgSlug/observability/services'
+      path: '/services'
+      fullPath: '/$orgSlug/observability/services'
+      preLoaderRoute: typeof OrgSlugObservabilityServicesRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
+    '/$orgSlug/observability/monitors': {
+      id: '/$orgSlug/observability/monitors'
+      path: '/monitors'
+      fullPath: '/$orgSlug/observability/monitors'
+      preLoaderRoute: typeof OrgSlugObservabilityMonitorsRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
+    '/$orgSlug/observability/metrics': {
+      id: '/$orgSlug/observability/metrics'
+      path: '/metrics'
+      fullPath: '/$orgSlug/observability/metrics'
+      preLoaderRoute: typeof OrgSlugObservabilityMetricsRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
+    '/$orgSlug/observability/logs': {
+      id: '/$orgSlug/observability/logs'
+      path: '/logs'
+      fullPath: '/$orgSlug/observability/logs'
+      preLoaderRoute: typeof OrgSlugObservabilityLogsRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
     '/api/$orgSlug/tunnels/': {
       id: '/api/$orgSlug/tunnels/'
       path: '/api/$orgSlug/tunnels'
@@ -1979,6 +2110,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugDomainsDomainIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$orgSlug/observability/services_/$serviceId': {
+      id: '/$orgSlug/observability/services_/$serviceId'
+      path: '/services/$serviceId'
+      fullPath: '/$orgSlug/observability/services/$serviceId'
+      preLoaderRoute: typeof OrgSlugObservabilityServicesServiceIdRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
     '/api/$orgSlug/tunnels/$tunnelId/stop': {
       id: '/api/$orgSlug/tunnels/$tunnelId/stop'
       path: '/stop'
@@ -1995,6 +2133,30 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface OrgSlugObservabilityRouteChildren {
+  OrgSlugObservabilityLogsRoute: typeof OrgSlugObservabilityLogsRoute
+  OrgSlugObservabilityMetricsRoute: typeof OrgSlugObservabilityMetricsRoute
+  OrgSlugObservabilityMonitorsRoute: typeof OrgSlugObservabilityMonitorsRoute
+  OrgSlugObservabilityServicesRoute: typeof OrgSlugObservabilityServicesRoute
+  OrgSlugObservabilityTracesRoute: typeof OrgSlugObservabilityTracesRoute
+  OrgSlugObservabilityIndexRoute: typeof OrgSlugObservabilityIndexRoute
+  OrgSlugObservabilityServicesServiceIdRoute: typeof OrgSlugObservabilityServicesServiceIdRoute
+}
+
+const OrgSlugObservabilityRouteChildren: OrgSlugObservabilityRouteChildren = {
+  OrgSlugObservabilityLogsRoute: OrgSlugObservabilityLogsRoute,
+  OrgSlugObservabilityMetricsRoute: OrgSlugObservabilityMetricsRoute,
+  OrgSlugObservabilityMonitorsRoute: OrgSlugObservabilityMonitorsRoute,
+  OrgSlugObservabilityServicesRoute: OrgSlugObservabilityServicesRoute,
+  OrgSlugObservabilityTracesRoute: OrgSlugObservabilityTracesRoute,
+  OrgSlugObservabilityIndexRoute: OrgSlugObservabilityIndexRoute,
+  OrgSlugObservabilityServicesServiceIdRoute:
+    OrgSlugObservabilityServicesServiceIdRoute,
+}
+
+const OrgSlugObservabilityRouteWithChildren =
+  OrgSlugObservabilityRoute._addFileChildren(OrgSlugObservabilityRouteChildren)
 
 interface OrgSlugSettingsRouteChildren {
   OrgSlugSettingsOrganizationRoute: typeof OrgSlugSettingsOrganizationRoute
@@ -2017,7 +2179,7 @@ interface OrgSlugRouteChildren {
   OrgSlugDomainsRoute: typeof OrgSlugDomainsRoute
   OrgSlugInstallRoute: typeof OrgSlugInstallRoute
   OrgSlugMembersRoute: typeof OrgSlugMembersRoute
-  OrgSlugObservabilityRoute: typeof OrgSlugObservabilityRoute
+  OrgSlugObservabilityRoute: typeof OrgSlugObservabilityRouteWithChildren
   OrgSlugRequestsRoute: typeof OrgSlugRequestsRoute
   OrgSlugSecretsRoute: typeof OrgSlugSecretsRoute
   OrgSlugSettingsRoute: typeof OrgSlugSettingsRouteWithChildren
@@ -2033,7 +2195,7 @@ const OrgSlugRouteChildren: OrgSlugRouteChildren = {
   OrgSlugDomainsRoute: OrgSlugDomainsRoute,
   OrgSlugInstallRoute: OrgSlugInstallRoute,
   OrgSlugMembersRoute: OrgSlugMembersRoute,
-  OrgSlugObservabilityRoute: OrgSlugObservabilityRoute,
+  OrgSlugObservabilityRoute: OrgSlugObservabilityRouteWithChildren,
   OrgSlugRequestsRoute: OrgSlugRequestsRoute,
   OrgSlugSecretsRoute: OrgSlugSecretsRoute,
   OrgSlugSettingsRoute: OrgSlugSettingsRouteWithChildren,
