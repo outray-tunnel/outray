@@ -27,7 +27,7 @@ export function SubdomainLimitWarning({
   return (
     <aside
       role="status"
-      className="flex flex-col gap-4 border-y border-white/[0.07] py-4 sm:flex-row sm:items-center"
+      className="flex flex-col gap-4 rounded-xl border border-white/[0.07] px-5 py-4 sm:flex-row sm:items-center"
     >
       <div className="flex min-w-0 flex-1 items-center gap-3.5">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-400/[0.08] text-amber-300">
