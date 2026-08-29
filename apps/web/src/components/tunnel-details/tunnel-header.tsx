@@ -5,8 +5,8 @@ import {
   ArrowLeft01Icon,
   ArrowUpRight01Icon,
   Copy01Icon,
-  SquareStopIcon,
 } from "@hugeicons-pro/core-stroke-rounded";
+import { StopIcon } from "@hugeicons-pro/core-solid-rounded";
 import { ConfirmModal } from "../confirm-modal";
 import { useAppStore } from "@/lib/store";
 
@@ -92,7 +92,7 @@ export function TunnelHeader({
           disabled={isStopping || !tunnel.isOnline}
           className="flex h-9 shrink-0 items-center gap-2 rounded-md border border-red-500/20 px-3 text-[11px] font-medium text-red-400 transition-colors hover:bg-red-500/[0.07] disabled:opacity-35"
         >
-          <HugeiconsIcon icon={SquareStopIcon} size={14} strokeWidth={1.7} />
+          <HugeiconsIcon icon={StopIcon} size={14} />
           {isStopping ? "Stopping" : "Stop"}
         </button>
       </header>
