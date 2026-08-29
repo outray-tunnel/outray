@@ -1,67 +1,44 @@
 import { useState } from "react";
-import { X, Copy, Play, ArrowDownToLine, ArrowUpFromLine, Check } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Cancel01Icon,
+  Copy01Icon,
+  ReplayIcon,
+  Tick02Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import type { TunnelEvent, InspectorTab } from "./types";
-import { generateCurl } from "./utils";
+import { generateCurl, getHttpMethodColor } from "./utils";
 import { RequestTabContent } from "./request-tab-content";
 import { ResponseTabContent } from "./response-tab-content";
 import { FullCaptureDisabledContent } from "./full-capture-disabled-content";
 import { useRequestCapture } from "./use-request-capture";
 import { ReplayModal } from "./replay-modal";
-import { Button, IconButton } from "@/components/ui";
 
 function SkeletonLoader() {
   return (
-    <div className="space-y-4 animate-pulse">
-      {/* General Info Skeleton */}
-      <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10">
-          <div className="h-4 w-16 bg-white/10 rounded" />
-        </div>
-        <div className="p-4 space-y-3">
-          <div className="flex justify-between">
-            <div className="h-3 w-12 bg-white/10 rounded" />
-            <div className="h-3 w-48 bg-white/10 rounded" />
+    <div className="space-y-7 animate-pulse">
+      {[3, 6, 4].map((rowCount, sectionIndex) => (
+        <section key={rowCount} className="border-y border-white/[0.07]">
+          <div className="flex h-11 items-center border-b border-white/[0.07]">
+            <div
+              className="h-2.5 bg-white/[0.06]"
+              style={{ width: sectionIndex === 0 ? 56 : 48 }}
+            />
           </div>
-          <div className="flex justify-between">
-            <div className="h-3 w-16 bg-white/10 rounded" />
-            <div className="h-3 w-12 bg-white/10 rounded" />
+          <div className="space-y-3.5 py-4">
+            {Array.from({ length: rowCount }).map((_, rowIndex) => (
+              <div key={rowIndex} className="flex items-center gap-6">
+                <div className="h-2.5 w-20 shrink-0 bg-white/[0.04]" />
+                <div
+                  className="h-2.5 bg-white/[0.055]"
+                  style={{ width: `${46 + ((rowIndex + sectionIndex) % 3) * 14}%` }}
+                />
+              </div>
+            ))}
           </div>
-          <div className="flex justify-between">
-            <div className="h-3 w-20 bg-white/10 rounded" />
-            <div className="h-3 w-24 bg-white/10 rounded" />
-          </div>
-        </div>
-      </div>
-
-      {/* Headers Skeleton */}
-      <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-          <div className="h-4 w-16 bg-white/10 rounded" />
-          <div className="h-6 w-6 bg-white/10 rounded" />
-        </div>
-        <div className="p-4 space-y-2">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="flex gap-2">
-              <div className="h-3 w-24 bg-white/10 rounded" />
-              <div className="h-3 flex-1 bg-white/10 rounded" style={{ maxWidth: `${60 + Math.random() * 40}%` }} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Body Skeleton */}
-      <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-          <div className="h-4 w-12 bg-white/10 rounded" />
-          <div className="h-6 w-6 bg-white/10 rounded" />
-        </div>
-        <div className="p-4 space-y-2">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-3 bg-white/10 rounded" style={{ width: `${70 + Math.random() * 30}%` }} />
-          ))}
-        </div>
-      </div>
+        </section>
+      ))}
     </div>
   );
 }
@@ -105,28 +82,32 @@ export function RequestInspectorDrawer({
   };
 
   // Create request details from real data or fallback to basic info
-  const requestDetails = capture ? {
-    headers: capture.request.headers,
-    queryParams: getQueryParams(request.path),
-    body: capture.request.body,
-  } : {
-    headers: {
-      Host: request.host,
-      "User-Agent": request.user_agent,
-      "X-Forwarded-For": request.client_ip,
-    },
-    queryParams: getQueryParams(request.path),
-    body: null,
-  };
+  const requestDetails = capture
+    ? {
+        headers: capture.request.headers,
+        queryParams: getQueryParams(request.path),
+        body: capture.request.body,
+      }
+    : {
+        headers: {
+          Host: request.host,
+          "User-Agent": request.user_agent,
+          "X-Forwarded-For": request.client_ip,
+        },
+        queryParams: getQueryParams(request.path),
+        body: null,
+      };
 
-  const responseDetails = capture ? {
-    headers: capture.response.headers,
-    body: capture.response.body,
-  } : null;
+  const responseDetails = capture
+    ? {
+        headers: capture.response.headers,
+        body: capture.response.body,
+      }
+    : null;
 
   const tabs = [
-    { id: "request" as InspectorTab, label: "Request", icon: ArrowUpFromLine },
-    { id: "response" as InspectorTab, label: "Response", icon: ArrowDownToLine },
+    { id: "request" as InspectorTab, label: "Request" },
+    { id: "response" as InspectorTab, label: "Response" },
   ];
 
   return (
@@ -138,113 +119,150 @@ export function RequestInspectorDrawer({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            className="fixed inset-0 z-40 bg-black/65"
           />
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-2xl bg-[#0A0A0A] border-l border-white/10 z-50 flex flex-col"
+            transition={{ type: "spring", damping: 34, stiffness: 340 }}
+            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col border-l border-white/[0.08] bg-[#080808] shadow-[-24px_0_80px_rgba(0,0,0,0.45)]"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`inline-flex items-center px-2.5 py-1 rounded text-sm font-medium ${
+            <header className="shrink-0 border-b border-white/[0.07] px-5 py-5 sm:px-6">
+              <div className="flex items-start justify-between gap-5">
+                <div className="min-w-0">
+                  <p className="mb-3 text-[9px] font-medium uppercase tracking-[0.12em] text-zinc-700">
+                    Request inspector
+                  </p>
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span
+                      className={`text-xs font-semibold tabular-nums ${
                     request.status_code >= 500
-                      ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                      ? "text-red-400"
                       : request.status_code >= 400
-                        ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
-                        : "bg-green-500/10 text-green-400 border border-green-500/20"
+                        ? "text-amber-400"
+                        : "text-emerald-400"
                   }`}
-                >
-                  {request.status_code}
+                    >
+                      {request.status_code}
+                    </span>
+                    <span
+                      className={`font-mono text-[11px] font-medium ${getHttpMethodColor(request.method)}`}
+                    >
+                      {request.method}
+                    </span>
+                    <span
+                      className="truncate font-mono text-[11px] text-zinc-600"
+                      title={request.path}
+                    >
+                      {request.path}
+                    </span>
+                  </div>
                 </div>
-                <span className="font-mono text-white font-medium">{request.method}</span>
-                <span className="text-gray-400 truncate max-w-xs" title={request.path}>
-                  {request.path}
-                </span>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md text-zinc-600 transition-colors hover:bg-white/[0.05] hover:text-zinc-300"
+                  aria-label="Close request inspector"
+                >
+                  <HugeiconsIcon
+                    icon={Cancel01Icon}
+                    size={16}
+                    strokeWidth={1.8}
+                    aria-hidden="true"
+                  />
+                </button>
               </div>
-              <IconButton
-                onClick={onClose}
-                icon={<X size={20} />}
-                aria-label="Close"
-              />
-            </div>
+            </header>
 
-            {/* Actions */}
             {fullCaptureEnabled && (
-              <div className="flex items-center gap-2 p-4 border-b border-white/10">
+              <div className="flex min-h-14 shrink-0 items-center gap-2 border-b border-white/[0.07] px-5 sm:px-6">
                 {loading ? (
                   <>
-                    <div className="h-9 w-32 bg-white/5 rounded-xl animate-pulse" />
-                    <div className="h-9 w-28 bg-white/5 rounded-xl animate-pulse" />
+                    <div className="h-8 w-28 animate-pulse rounded-md bg-white/[0.05]" />
+                    <div className="h-8 w-28 animate-pulse rounded-md bg-white/[0.04]" />
                   </>
                 ) : (
                   <>
-                    <Button
+                    <button
+                      type="button"
                       onClick={() => setShowReplayModal(true)}
                       disabled={!capture}
-                      variant="accent"
-                      leftIcon={<Play size={16} />}
+                      className="flex h-8 items-center gap-2 rounded-md bg-white px-3 text-[10px] font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-35"
                     >
-                      Replay Request
-                    </Button>
-                    <Button
-                      onClick={() => copyToClipboard(generateCurl(request), "curl")}
-                      variant="secondary"
-                      leftIcon={copiedField === "curl" ? <Check size={16} /> : <Copy size={16} />}
+                      <HugeiconsIcon
+                        icon={ReplayIcon}
+                        size={13}
+                        strokeWidth={1.8}
+                        aria-hidden="true"
+                      />
+                      Replay request
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        copyToClipboard(generateCurl(request), "curl")
+                      }
+                      className="flex h-8 items-center gap-2 rounded-md border border-white/[0.09] px-3 text-[10px] font-medium text-zinc-500 transition-colors hover:border-white/[0.16] hover:bg-white/[0.03] hover:text-zinc-300"
                     >
-                      {copiedField === "curl" ? "Copied!" : "Copy as cURL"}
-                    </Button>
+                      <HugeiconsIcon
+                        icon={
+                          copiedField === "curl" ? Tick02Icon : Copy01Icon
+                        }
+                        size={13}
+                        strokeWidth={1.8}
+                        aria-hidden="true"
+                      />
+                      {copiedField === "curl" ? "Copied" : "Copy as cURL"}
+                    </button>
                   </>
                 )}
               </div>
             )}
 
-            {/* Tabs - show skeleton when loading */}
             {fullCaptureEnabled && (
-              <div className="flex items-center gap-1 p-4 border-b border-white/10">
+              <nav className="flex h-11 shrink-0 items-end gap-6 border-b border-white/[0.07] px-5 sm:px-6">
                 {loading ? (
                   <>
-                    <div className="h-9 w-24 bg-white/5 rounded-lg animate-pulse" />
-                    <div className="h-9 w-24 bg-white/5 rounded-lg animate-pulse" />
+                    <div className="mb-4 h-2 w-14 animate-pulse bg-white/[0.05]" />
+                    <div className="mb-4 h-2 w-16 animate-pulse bg-white/[0.04]" />
                   </>
                 ) : (
-                  tabs.map(({ id, label, icon: Icon }) => (
+                  tabs.map(({ id, label }) => (
                     <button
                       key={id}
+                      type="button"
                       onClick={() => setActiveTab(id)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`h-11 border-b text-[10px] font-medium transition-colors ${
                         activeTab === id
-                          ? "bg-white/10 text-white"
-                          : "text-gray-400 hover:text-white hover:bg-white/5"
+                          ? "border-white text-zinc-200"
+                          : "border-transparent text-zinc-700 hover:text-zinc-400"
                       }`}
                     >
-                      <Icon size={16} />
                       {label}
                     </button>
                   ))
                 )}
-              </div>
+              </nav>
             )}
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 space-y-5 overflow-y-auto px-5 py-6 sm:px-6">
               {!fullCaptureEnabled ? (
-                <FullCaptureDisabledContent request={request} orgSlug={orgSlug} />
+                <FullCaptureDisabledContent
+                  request={request}
+                  orgSlug={orgSlug}
+                />
               ) : loading ? (
                 <SkeletonLoader />
               ) : error ? (
-                <div className="py-8">
-                  <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
-                    <p className="text-orange-300">{error}</p>
-                    <p className="text-gray-400 text-sm mt-2">
+                <div>
+                  <div className="border-l border-amber-400/35 py-0.5 pl-3">
+                    <p className="text-xs text-amber-300/75">{error}</p>
+                    <p className="mt-1 text-[10px] text-zinc-700">
                       Showing basic request information instead.
                     </p>
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-6">
                     <RequestTabContent
                       request={request}
                       details={requestDetails}
@@ -272,32 +290,37 @@ export function RequestInspectorDrawer({
                   )}
                 </>
               ) : (
-                <div className="py-8">
-                  <div className="bg-gray-500/10 border border-gray-500/20 rounded-lg p-4">
-                    <p className="text-gray-300">No detailed request data available.</p>
-                    <p className="text-gray-400 text-sm mt-2">
+                <div className="border-l border-white/[0.12] py-0.5 pl-3">
+                    <p className="text-xs text-zinc-400">
+                      No detailed request data available.
+                    </p>
+                    <p className="mt-1 text-[10px] leading-4 text-zinc-700">
                       This request may have occurred before full capture was enabled.
                     </p>
-                  </div>
                 </div>
               )}
             </div>
 
-            {/* Footer metadata */}
-            <div className="p-4 border-t border-white/10 bg-white/2">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            <footer className="shrink-0 border-t border-white/[0.07] px-5 py-4 sm:px-6">
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <span className="text-gray-500">Tunnel ID</span>
-                  <p className="text-gray-300 font-mono text-xs mt-1">{request.tunnel_id}</p>
+                  <span className="text-[9px] uppercase tracking-[0.1em] text-zinc-800">
+                    Tunnel ID
+                  </span>
+                  <p className="mt-1 truncate font-mono text-[10px] text-zinc-600">
+                    {request.tunnel_id}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Timestamp</span>
-                  <p className="text-gray-300 text-xs mt-1">
+                  <span className="text-[9px] uppercase tracking-[0.1em] text-zinc-800">
+                    Timestamp
+                  </span>
+                  <p className="mt-1 text-[10px] tabular-nums text-zinc-600">
                     {new Date(request.timestamp).toLocaleString()}
                   </p>
                 </div>
               </div>
-            </div>
+            </footer>
           </motion.div>
 
           {/* Replay Modal */}
