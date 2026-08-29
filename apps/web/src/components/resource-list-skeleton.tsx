@@ -13,7 +13,6 @@ export function ResourceListSkeleton({
     >
       <header className="flex items-end justify-between gap-6 border-b border-white/[0.07] pb-7">
         <div className="min-w-0 flex-1">
-          <div className="mb-3 h-2 w-12 rounded-full bg-white/[0.05]" />
           <div className="h-6 w-36 rounded bg-white/[0.07]" />
           <div className="mt-3 h-3 w-64 max-w-full rounded bg-white/[0.05]" />
         </div>
@@ -22,11 +21,11 @@ export function ResourceListSkeleton({
         />
       </header>
 
-      <section className="border-y border-white/[0.07]">
+      <section className="rounded-xl border border-white/[0.07]">
         {[0, 1, 2].map((row) => (
           <div
             key={row}
-            className="flex items-center gap-3.5 border-b border-white/[0.07] px-1 py-5 last:border-b-0"
+            className="flex items-center gap-3.5 border-b border-white/[0.07] px-5 py-5 last:border-b-0 sm:px-6"
           >
             <div className="size-8 shrink-0 rounded-full bg-white/[0.05]" />
             <div className="min-w-0 flex-1">
