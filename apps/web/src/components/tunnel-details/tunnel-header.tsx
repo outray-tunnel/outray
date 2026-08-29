@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowLeft01Icon,
   ArrowUpRight01Icon,
   Copy01Icon,
+  Tick02Icon,
 } from "@hugeicons-pro/core-stroke-rounded";
 import { StopIcon } from "@hugeicons-pro/core-solid-rounded";
 import { ConfirmModal } from "../confirm-modal";
@@ -27,7 +28,23 @@ export function TunnelHeader({
   isStopping,
 }: TunnelHeaderProps) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { selectedOrganization } = useAppStore();
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+    };
+  }, []);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(tunnel.url);
+    setIsCopied(true);
+
+    if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+    copyResetTimer.current = setTimeout(() => setIsCopied(false), 1600);
+  };
 
   return (
     <>
@@ -65,11 +82,20 @@ export function TunnelHeader({
             <span className="truncate font-mono text-[11px]">{tunnel.url}</span>
             <button
               type="button"
-              className="hover:text-zinc-300"
-              onClick={() => void navigator.clipboard.writeText(tunnel.url)}
-              aria-label="Copy tunnel URL"
+              className={`flex size-7 items-center justify-center rounded-lg transition-colors ${
+                isCopied
+                  ? "bg-emerald-500/[0.08] text-emerald-400"
+                  : "text-zinc-700 hover:bg-white/[0.04] hover:text-zinc-300"
+              }`}
+              onClick={() => void handleCopy()}
+              aria-label={isCopied ? "Tunnel URL copied" : "Copy tunnel URL"}
+              title={isCopied ? "Copied" : "Copy URL"}
             >
-              <HugeiconsIcon icon={Copy01Icon} size={12} strokeWidth={1.7} />
+              <HugeiconsIcon
+                icon={isCopied ? Tick02Icon : Copy01Icon}
+                size={14}
+                strokeWidth={1.8}
+              />
             </button>
             <a
               href={tunnel.url}
