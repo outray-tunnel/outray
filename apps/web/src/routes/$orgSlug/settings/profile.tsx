@@ -5,9 +5,7 @@ import { Mail01Icon, UserIcon } from "@hugeicons-pro/core-stroke-rounded";
 
 export const Route = createFileRoute("/$orgSlug/settings/profile")({
   head: () => ({
-    meta: [
-      { title: "Profile Settings - OutRay" },
-    ],
+    meta: [{ title: "Profile Settings - OutRay" }],
   }),
   component: ProfileSettingsView,
 });
@@ -21,8 +19,8 @@ function ProfileSettingsView() {
   }
 
   return (
-    <section className="border-y border-white/[0.07]">
-      <div className="flex items-center gap-4 py-5">
+    <section className="rounded-xl border border-white/[0.07]">
+      <div className="flex items-center gap-4 px-5 py-5 sm:px-6">
         <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-sm font-medium text-zinc-300">
           {user.name?.charAt(0).toUpperCase()}
         </div>
@@ -62,7 +60,7 @@ function ReadOnlyField({
   icon: typeof UserIcon;
 }) {
   return (
-    <div className="py-5 md:px-6 first:pl-0">
+    <div className="px-5 py-5 sm:px-6">
       <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-700">
         {label}
       </p>
