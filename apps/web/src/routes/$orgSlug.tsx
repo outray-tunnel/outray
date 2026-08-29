@@ -15,9 +15,7 @@ import { ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/$orgSlug")({
   head: () => ({
-    meta: [
-      { title: "Dashboard - OutRay" },
-    ],
+    meta: [{ title: "Dashboard - OutRay" }],
   }),
   component: DashboardLayout,
 });
@@ -131,7 +129,7 @@ function DashboardLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070707] text-gray-300 font-sans selection:bg-accent/30">
+    <div className="workspace-ui min-h-screen bg-[#070707] text-gray-300 font-sans selection:bg-accent/30">
       {/* Mobile header */}
       <MobileHeader />
 
@@ -147,7 +145,7 @@ function DashboardLayout() {
            
           </header> */}
 
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
+          <div className="flex-1 overflow-y-auto p-5 pb-20 md:p-8 md:pb-8">
             <Outlet />
           </div>
         </main>
