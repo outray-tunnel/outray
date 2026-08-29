@@ -1,6 +1,10 @@
-import { Copy, Check } from "lucide-react";
 import type { ResponseDetails } from "./types";
 import { JsonViewer, formatBody } from "./json-viewer";
+import {
+  CopyButton,
+  DetailRow,
+  InspectorSection,
+} from "./request-tab-content";
 
 interface ResponseTabContentProps {
   details: ResponseDetails;
@@ -8,61 +12,76 @@ interface ResponseTabContentProps {
   onCopy: (text: string, field: string) => void;
 }
 
-export function ResponseTabContent({ details, copiedField, onCopy }: ResponseTabContentProps) {
+export function ResponseTabContent({
+  details,
+  copiedField,
+  onCopy,
+}: ResponseTabContentProps) {
   const formatHeaderValue = (value: string | string[]): string => {
-    return Array.isArray(value) ? value.join(', ') : value;
+    return Array.isArray(value) ? value.join(", ") : value;
   };
 
   const bodyInfo = formatBody(details.body);
 
   return (
-    <div className="space-y-4">
-      {/* Headers */}
-      <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-          <span className="text-sm font-medium text-white">Headers</span>
-          <button
-            onClick={() => onCopy(JSON.stringify(details.headers, null, 2), "res-headers")}
-            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
-          >
-            {copiedField === "res-headers" ? <Check size={14} /> : <Copy size={14} />}
-          </button>
-        </div>
-        <div className="p-4 space-y-2 text-sm font-mono">
-          {Object.entries(details.headers).map(([key, value]) => (
-            <div key={key} className="flex gap-2">
-              <span className="text-accent">{key}:</span>
-              <span className="text-gray-300 break-all">{formatHeaderValue(value)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+    <div className="space-y-7">
+      <InspectorSection
+        title="Headers"
+        action={
+          <CopyButton
+            copied={copiedField === "res-headers"}
+            onClick={() =>
+              onCopy(
+                JSON.stringify(details.headers, null, 2),
+                "res-headers",
+              )
+            }
+            label="Copy response headers"
+          />
+        }
+      >
+        {Object.entries(details.headers).map(([key, value]) => (
+          <DetailRow
+            key={key}
+            label={key}
+            value={formatHeaderValue(value)}
+          />
+        ))}
+      </InspectorSection>
 
-      {/* Body */}
       {details.body && (
-        <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-white">Body</span>
-              {bodyInfo.isJson && (
-                <span className="text-xs px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded">JSON</span>
-              )}
-            </div>
-            <button
-              onClick={() => onCopy(bodyInfo.isJson ? bodyInfo.formatted : details.body!, "res-body")}
-              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
-            >
-              {copiedField === "res-body" ? <Check size={14} /> : <Copy size={14} />}
-            </button>
-          </div>
-          <div className="p-4 overflow-x-auto">
+        <InspectorSection
+          title="Body"
+          titleAccessory={
+            bodyInfo.isJson ? (
+              <span className="text-[8px] font-medium uppercase tracking-[0.1em] text-sky-400/70">
+                JSON
+              </span>
+            ) : null
+          }
+          action={
+            <CopyButton
+              copied={copiedField === "res-body"}
+              onClick={() =>
+                onCopy(
+                  bodyInfo.isJson ? bodyInfo.formatted : details.body!,
+                  "res-body",
+                )
+              }
+              label="Copy response body"
+            />
+          }
+        >
+          <div className="overflow-x-auto py-4">
             {bodyInfo.isJson ? (
               <JsonViewer data={bodyInfo.parsed} />
             ) : (
-              <pre className="text-sm font-mono text-gray-300">{details.body}</pre>
+              <pre className="whitespace-pre-wrap font-mono text-[11px] leading-5 text-zinc-400">
+                {details.body}
+              </pre>
             )}
           </div>
-        </div>
+        </InspectorSection>
       )}
     </div>
   );
