@@ -36,4 +36,11 @@ export const config = {
     process.env.OTLP_QUEUE_MAX_DELIVERY_ATTEMPTS,
     5,
   ),
+  logsQueueKey: process.env.OTLP_LOGS_QUEUE_KEY || "outray:otel:logs",
+  logsQueueDeadLetterKey:
+    process.env.OTLP_LOGS_QUEUE_DEAD_LETTER_KEY || "outray:otel:logs:dead-letter",
+  logsQueueMaxEntries: positiveInteger(
+    process.env.OTLP_LOGS_QUEUE_MAX_ENTRIES,
+    10_000,
+  ),
 };
