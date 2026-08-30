@@ -46,6 +46,7 @@ function sanitizedOtlpRecords(records: unknown[]) {
 export interface TinybirdSpanRecord {
   organization_id: string;
   retention_days: number;
+  ingested_at: string;
   start_time: string;
   end_time: string;
   trace_id: string;
@@ -80,6 +81,7 @@ export function toTinybirdSpan(
   return {
     organization_id: organizationId,
     retention_days: retentionDays,
+    ingested_at: new Date().toISOString(),
     start_time: span.timestamp.toISOString(),
     end_time: span.endTimestamp.toISOString(),
     trace_id: span.traceId,
