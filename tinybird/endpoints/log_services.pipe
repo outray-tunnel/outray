@@ -1,0 +1,19 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Lists services that emitted logs for one OutRay organization.
+
+NODE services
+SQL >
+    %
+    SELECT
+        ServiceName AS service,
+        max(Timestamp) AS last_seen
+    FROM otel_logs FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 24)}} HOUR
+    GROUP BY ServiceName
+    ORDER BY last_seen DESC
+    LIMIT 250
+
+TYPE endpoint
