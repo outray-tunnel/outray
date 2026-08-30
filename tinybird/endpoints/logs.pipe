@@ -1,0 +1,51 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Lists OpenTelemetry logs for one OutRay organization.
+
+NODE filtered_logs
+SQL >
+    %
+    SELECT
+        EventId AS id,
+        Timestamp AS timestamp,
+        ObservedTimestamp AS observed_timestamp,
+        SeverityNumber AS severity_number,
+        SeverityText AS severity_text,
+        SeverityLevel AS level,
+        Body AS message,
+        EventName AS event_name,
+        TraceId AS trace_id,
+        SpanId AS span_id,
+        Flags AS flags,
+        ServiceName AS service,
+        ServiceNamespace AS service_namespace,
+        ServiceVersion AS service_version,
+        Environment AS environment,
+        Region AS region,
+        ScopeName AS scope_name,
+        ScopeVersion AS scope_version,
+        LogAttributes AS attributes,
+        ResourceAttributes AS resource_attributes,
+        ScopeAttributes AS scope_attributes
+    FROM otel_logs FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 1)}} HOUR
+    {% if defined(search) %}
+      AND (
+        positionCaseInsensitive(Body, {{String(search)}}) > 0
+        OR positionCaseInsensitive(ServiceName, {{String(search)}}) > 0
+        OR positionCaseInsensitive(TraceId, {{String(search)}}) > 0
+        OR positionCaseInsensitive(EventName, {{String(search)}}) > 0
+      )
+    {% end %}
+    {% if defined(service) %}
+      AND ServiceName = {{String(service)}}
+    {% end %}
+    {% if defined(level) %}
+      AND SeverityLevel = {{String(level)}}
+    {% end %}
+    ORDER BY Timestamp DESC
+    LIMIT {{Int32(limit, 250)}}
+
+TYPE endpoint
