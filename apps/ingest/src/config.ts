@@ -27,4 +27,13 @@ export const config = {
     process.env.OTLP_RATE_LIMIT_PER_MINUTE,
     600,
   ),
+  queueKey: process.env.OTLP_QUEUE_KEY || "outray:otel:traces",
+  queueDeadLetterKey:
+    process.env.OTLP_QUEUE_DEAD_LETTER_KEY || "outray:otel:traces:dead-letter",
+  queueMaxEntries: positiveInteger(process.env.OTLP_QUEUE_MAX_ENTRIES, 10_000),
+  queueBatchSize: positiveInteger(process.env.OTLP_QUEUE_BATCH_SIZE, 10),
+  queueMaxDeliveryAttempts: positiveInteger(
+    process.env.OTLP_QUEUE_MAX_DELIVERY_ATTEMPTS,
+    5,
+  ),
 };
