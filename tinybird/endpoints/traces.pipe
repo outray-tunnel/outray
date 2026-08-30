@@ -1,0 +1,42 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Lists trace summaries for one authenticated OutRay organization.
+
+NODE trace_rollup
+SQL >
+    %
+    SELECT
+        TraceId AS id,
+        argMin(SpanName, Timestamp) AS name,
+        argMin(ServiceName, Timestamp) AS root_service,
+        min(Timestamp) AS started_at,
+        dateDiff('nanosecond', min(Timestamp), max(EndTimestamp)) / 1000000 AS duration_ms,
+        count() AS span_count,
+        if(max(StatusCode) = 2, 'error', 'ok') AS status,
+        argMin(HttpMethod, Timestamp) AS method
+    FROM otel_spans
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 1)}} HOUR
+    GROUP BY TraceId
+
+NODE filtered
+SQL >
+    %
+    SELECT *
+    FROM trace_rollup
+    WHERE 1 = 1
+    {% if defined(search) %}
+      AND (
+        positionCaseInsensitive(name, {{String(search)}}) > 0
+        OR positionCaseInsensitive(root_service, {{String(search)}}) > 0
+        OR positionCaseInsensitive(id, {{String(search)}}) > 0
+      )
+    {% end %}
+    {% if defined(errors_only) %}
+      AND (not {{Boolean(errors_only)}} OR status = 'error')
+    {% end %}
+    ORDER BY started_at DESC
+    LIMIT {{Int32(limit, 100)}}
+
+TYPE endpoint
