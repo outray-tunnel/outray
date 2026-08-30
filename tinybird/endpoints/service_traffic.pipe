@@ -1,0 +1,55 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Bucketed trace-derived traffic for all services or one selected service.
+
+NODE service_modes
+SQL >
+    %
+    SELECT
+        ServiceName AS service,
+        countIf(SpanKind = 2) > 0 AS uses_server_spans
+    FROM otel_spans FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 24)}} HOUR
+    {% if defined(service) %}
+      AND ServiceName = {{String(service)}}
+    {% end %}
+    GROUP BY ServiceName
+
+NODE selected_spans
+SQL >
+    %
+    SELECT spans.*
+    FROM otel_spans AS spans FINAL
+    INNER JOIN service_modes AS modes
+        ON spans.ServiceName = modes.service
+    WHERE spans.OrganizationId = {{String(organization_id)}}
+      AND spans.Timestamp >= now() - INTERVAL {{Int32(hours, 24)}} HOUR
+      AND (not modes.uses_server_spans OR spans.SpanKind = 2)
+    {% if defined(service) %}
+      AND spans.ServiceName = {{String(service)}}
+    {% end %}
+
+NODE traffic
+SQL >
+    %
+    SELECT
+        toStartOfInterval(
+            Timestamp,
+            INTERVAL {{UInt32(interval_seconds, 3600)}} SECOND
+        ) AS timestamp,
+        count() AS operation_count,
+        countIf(
+            StatusCode = 2
+            OR toUInt16OrZero(SpanAttributes['http.response.status_code']) >= 500
+            OR toUInt16OrZero(SpanAttributes['http.status_code']) >= 500
+        ) AS error_count,
+        round(error_count / operation_count * 100, 2) AS error_rate,
+        round(quantileTDigest(0.95)(DurationNano / 1000000), 2) AS p95_duration_ms,
+        round(operation_count / (toFloat64({{UInt32(interval_seconds, 3600)}}) / 60), 2) AS operations_per_minute
+    FROM selected_spans
+    GROUP BY timestamp
+    ORDER BY timestamp ASC
+
+TYPE endpoint
