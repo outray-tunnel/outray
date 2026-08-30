@@ -9,7 +9,7 @@ SQL >
     SELECT
         TraceId,
         dateDiff('nanosecond', min(Timestamp), max(EndTimestamp)) / 1000000 AS duration_ms
-    FROM otel_spans
+    FROM otel_spans FINAL
     WHERE OrganizationId = {{String(organization_id)}}
       AND Timestamp >= now() - INTERVAL {{Int32(hours, 1)}} HOUR
     GROUP BY TraceId
