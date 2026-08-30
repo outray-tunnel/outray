@@ -104,11 +104,49 @@ message ExportTracePartialSuccess {
   int64 rejected_spans = 1;
   string error_message = 2;
 }
+
+message ResourceLogs {
+  Resource resource = 1;
+  repeated ScopeLogs scope_logs = 2;
+  string schema_url = 3;
+}
+message ScopeLogs {
+  InstrumentationScope scope = 1;
+  repeated LogRecord log_records = 2;
+  string schema_url = 3;
+}
+message LogRecord {
+  fixed64 time_unix_nano = 1;
+  uint32 severity_number = 2;
+  string severity_text = 3;
+  AnyValue body = 5;
+  repeated KeyValue attributes = 6;
+  uint32 dropped_attributes_count = 7;
+  fixed32 flags = 8;
+  bytes trace_id = 9;
+  bytes span_id = 10;
+  fixed64 observed_time_unix_nano = 11;
+  string event_name = 12;
+}
+message ExportLogsServiceRequest {
+  repeated ResourceLogs resource_logs = 1;
+}
+message ExportLogsServiceResponse {
+  ExportLogsPartialSuccess partial_success = 1;
+}
+message ExportLogsPartialSuccess {
+  int64 rejected_log_records = 1;
+  string error_message = 2;
+}
 `;
 
 const root = parse(schema, { keepCase: false }).root;
 const requestType = root.lookupType("outray.otlp.ExportTraceServiceRequest");
 const responseType = root.lookupType("outray.otlp.ExportTraceServiceResponse");
+const logsRequestType = root.lookupType("outray.otlp.ExportLogsServiceRequest");
+const logsResponseType = root.lookupType(
+  "outray.otlp.ExportLogsServiceResponse",
+);
 
 function decode(type: Type, payload: Uint8Array): unknown {
   const message = type.decode(payload);
@@ -125,6 +163,10 @@ export function decodeTraceRequest(payload: Uint8Array): unknown {
   return decode(requestType, payload);
 }
 
+export function decodeLogsRequest(payload: Uint8Array): unknown {
+  return decode(logsRequestType, payload);
+}
+
 export function encodeTraceResponse(
   rejectedSpans: number,
   errorMessage: string,
@@ -138,4 +180,19 @@ export function encodeTraceResponse(
       }
     : {};
   return responseType.encode(responseType.create(value)).finish();
+}
+
+export function encodeLogsResponse(
+  rejectedLogRecords: number,
+  errorMessage: string,
+): Uint8Array {
+  const value = rejectedLogRecords
+    ? {
+        partialSuccess: {
+          rejectedLogRecords: String(rejectedLogRecords),
+          errorMessage,
+        },
+      }
+    : {};
+  return logsResponseType.encode(logsResponseType.create(value)).finish();
 }
