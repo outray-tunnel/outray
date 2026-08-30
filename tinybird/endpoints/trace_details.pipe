@@ -22,7 +22,7 @@ SQL >
         ResourceAttributes AS resource_attributes,
         Events AS events,
         Links AS links
-    FROM otel_spans
+    FROM otel_spans FINAL
     WHERE OrganizationId = {{String(organization_id)}}
       AND TraceId = {{String(trace_id)}}
     ORDER BY Timestamp ASC
