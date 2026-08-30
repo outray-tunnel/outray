@@ -3,17 +3,30 @@ import { gunzipSync } from "node:zlib";
 import { Redis } from "ioredis";
 import { ApiTokenAuthenticator, apiKeyFromHeaders } from "./auth.js";
 import { config } from "./config.js";
+import { parseLogsPayload } from "./logs.js";
 import { parseTracePayload } from "./otlp.js";
-import { decodeTraceRequest, encodeTraceResponse } from "./protobuf.js";
-import { TraceQueue } from "./queue.js";
-import { TinybirdIngestClient, toTinybirdSpan } from "./tinybird.js";
+import {
+  decodeLogsRequest,
+  decodeTraceRequest,
+  encodeLogsResponse,
+  encodeTraceResponse,
+} from "./protobuf.js";
+import { DurableQueue } from "./queue.js";
+import {
+  TinybirdIngestClient,
+  toTinybirdLog,
+  toTinybirdSpan,
+  type TinybirdLogRecord,
+  type TinybirdSpanRecord,
+} from "./tinybird.js";
 
 const authenticator = new ApiTokenAuthenticator(config.databaseUrl);
 const tinybird = new TinybirdIngestClient(
   config.tinybirdApiHost,
   config.tinybirdIngestToken,
 );
-const traceQueue = new TraceQueue({
+const traceQueue = new DurableQueue<TinybirdSpanRecord>({
+  signalName: "Trace",
   redisUrl: config.redisUrl,
   streamKey: config.queueKey,
   deadLetterKey: config.queueDeadLetterKey,
@@ -21,6 +34,18 @@ const traceQueue = new TraceQueue({
   maxEntries: config.queueMaxEntries,
   batchSize: config.queueBatchSize,
   maxDeliveryAttempts: config.queueMaxDeliveryAttempts,
+  deliver: (records) => tinybird.appendSpans(records),
+});
+const logsQueue = new DurableQueue<TinybirdLogRecord>({
+  signalName: "Log",
+  redisUrl: config.redisUrl,
+  streamKey: config.logsQueueKey,
+  deadLetterKey: config.logsQueueDeadLetterKey,
+  group: "tinybird-writers",
+  maxEntries: config.logsQueueMaxEntries,
+  batchSize: config.queueBatchSize,
+  maxDeliveryAttempts: config.queueMaxDeliveryAttempts,
+  deliver: (records) => tinybird.appendLogs(records),
 });
 const redis = new Redis(config.redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 });
 
@@ -32,7 +57,8 @@ void redis
   .catch((error: Error) =>
     console.error("Redis ingestion limiter unavailable", error),
   );
-traceQueue.start(tinybird);
+traceQueue.start();
+logsQueue.start();
 
 function sendJson(response: ServerResponse, status: number, body: unknown) {
   const encoded = JSON.stringify(body);
@@ -108,7 +134,7 @@ class HttpError extends Error {
   }
 }
 
-async function handleTraces(request: IncomingMessage, response: ServerResponse) {
+function otlpContentType(request: IncomingMessage) {
   const contentType = request.headers["content-type"]
     ?.split(";", 1)[0]
     ?.trim()
@@ -122,7 +148,10 @@ async function handleTraces(request: IncomingMessage, response: ServerResponse) 
       "Content-Type must be application/json or application/x-protobuf",
     );
   }
+  return contentType;
+}
 
+async function authenticateRequest(request: IncomingMessage) {
   const apiKey = apiKeyFromHeaders(requestHeaders(request));
   if (!apiKey) throw new HttpError(401, "Missing OutRay API key");
 
@@ -131,6 +160,12 @@ async function handleTraces(request: IncomingMessage, response: ServerResponse) 
   if (!(await enforceRateLimit(auth.organizationId))) {
     throw new HttpError(429, "OTLP ingestion rate limit exceeded");
   }
+  return auth;
+}
+
+async function handleTraces(request: IncomingMessage, response: ServerResponse) {
+  const contentType = otlpContentType(request);
+  const auth = await authenticateRequest(request);
 
   const body = await readBody(request);
   let payload: unknown;
@@ -182,6 +217,60 @@ async function handleTraces(request: IncomingMessage, response: ServerResponse) 
   }
 }
 
+async function handleLogs(request: IncomingMessage, response: ServerResponse) {
+  const contentType = otlpContentType(request);
+  const auth = await authenticateRequest(request);
+  const body = await readBody(request);
+
+  let payload: unknown;
+  try {
+    payload =
+      contentType === "application/x-protobuf"
+        ? decodeLogsRequest(body)
+        : JSON.parse(body.toString("utf8"));
+  } catch {
+    throw new HttpError(
+      400,
+      `Request body is not valid OTLP ${contentType === "application/x-protobuf" ? "protobuf" : "JSON"}`,
+    );
+  }
+
+  let parsed: ReturnType<typeof parseLogsPayload>;
+  try {
+    parsed = parseLogsPayload(payload);
+  } catch (error) {
+    throw new HttpError(400, error instanceof Error ? error.message : "Invalid OTLP logs payload");
+  }
+
+  const accepted = parsed.records.slice(0, config.maxRecordsPerRequest);
+  const rejected = parsed.rejected + Math.max(0, parsed.records.length - accepted.length);
+  await logsQueue.enqueue(
+    accepted.map((record) =>
+      toTinybirdLog(auth.organizationId, auth.retentionDays, record),
+    ),
+  );
+
+  const errorMessage = rejected
+    ? `${rejected} invalid or over-limit log records were rejected`
+    : "";
+  if (contentType === "application/x-protobuf") {
+    sendProtobuf(response, 200, encodeLogsResponse(rejected, errorMessage));
+  } else {
+    sendJson(
+      response,
+      200,
+      rejected
+        ? {
+            partialSuccess: {
+              rejectedLogRecords: rejected,
+              errorMessage,
+            },
+          }
+        : {},
+    );
+  }
+}
+
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
@@ -200,8 +289,13 @@ const server = createServer(async (request, response) => {
 
     if (
       request.method === "POST" &&
-      (url.pathname === "/v1/logs" || url.pathname === "/v1/metrics")
+      (url.pathname === "/v1/logs" || url.pathname === "/api/otlp/v1/logs")
     ) {
+      await handleLogs(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/metrics") {
       sendJson(response, 501, { message: "This OTLP signal is not enabled yet" });
       return;
     }
@@ -212,7 +306,7 @@ const server = createServer(async (request, response) => {
       sendJson(response, error.status, { message: error.message });
       return;
     }
-    console.error("Trace ingestion failed", error);
+    console.error("Telemetry ingestion failed", error);
     sendJson(response, 503, { message: "Telemetry ingestion is temporarily unavailable" });
   }
 });
@@ -224,7 +318,12 @@ server.listen(config.port, "0.0.0.0", () => {
 async function shutdown(signal: string) {
   console.log(`Received ${signal}; stopping ingestion service`);
   server.close();
-  await Promise.allSettled([authenticator.close(), redis.quit(), traceQueue.close()]);
+  await Promise.allSettled([
+    authenticator.close(),
+    redis.quit(),
+    traceQueue.close(),
+    logsQueue.close(),
+  ]);
   process.exit(0);
 }
 
