@@ -5,6 +5,7 @@ dist/
 .DS_Store
 .env
 .env.local
+.tinyb
 .output
 .vscode
 
