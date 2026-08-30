@@ -42,21 +42,21 @@ export interface ParsedTracePayload {
   rejected: number;
 }
 
-const record = (value: unknown): UnknownRecord | null =>
+export const record = (value: unknown): UnknownRecord | null =>
   value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as UnknownRecord)
     : null;
 
-const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+export const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
-const stringValue = (value: unknown): string =>
+export const stringValue = (value: unknown): string =>
   typeof value === "string" ? value : "";
 
-function field(source: UnknownRecord | null, camel: string, snake: string) {
+export function field(source: UnknownRecord | null, camel: string, snake: string) {
   return source?.[camel] ?? source?.[snake];
 }
 
-function integerString(value: unknown): string | null {
+export function integerString(value: unknown): string | null {
   if (typeof value === "string" && /^\d+$/.test(value)) return value;
   if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) {
     return String(value);
@@ -64,7 +64,7 @@ function integerString(value: unknown): string | null {
   return null;
 }
 
-function identifier(value: unknown, length: number): string | null {
+export function identifier(value: unknown, length: number): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.toLowerCase();
   if (normalized.length === length && /^[0-9a-f]+$/.test(normalized)) {
@@ -93,7 +93,7 @@ function nanoDate(value: string): Date | null {
   }
 }
 
-function decodeAnyValue(value: unknown): AttributeValue {
+export function decodeAnyValue(value: unknown): AttributeValue {
   const item = record(value);
   if (!item) return null;
   if (typeof item.stringValue === "string") return item.stringValue;
@@ -113,7 +113,7 @@ function decodeAnyValue(value: unknown): AttributeValue {
   return null;
 }
 
-function decodeAttributes(value: unknown): Record<string, AttributeValue> {
+export function decodeAttributes(value: unknown): Record<string, AttributeValue> {
   const result: Record<string, AttributeValue> = {};
   for (const candidate of list(value)) {
     const item = record(candidate);
@@ -123,7 +123,7 @@ function decodeAttributes(value: unknown): Record<string, AttributeValue> {
   return result;
 }
 
-function attributeString(
+export function attributeString(
   attributes: Record<string, AttributeValue>,
   ...keys: string[]
 ) {
