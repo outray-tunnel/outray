@@ -1,0 +1,28 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Trace volume, errors, and latency statistics for one organization.
+
+NODE trace_rows
+SQL >
+    %
+    SELECT
+        TraceId,
+        dateDiff('nanosecond', min(Timestamp), max(EndTimestamp)) / 1000000 AS duration_ms,
+        max(StatusCode) AS status_code
+    FROM otel_spans
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 1)}} HOUR
+    GROUP BY TraceId
+
+NODE statistics
+SQL >
+    SELECT
+        count() AS total_traces,
+        countIf(status_code = 2) AS error_traces,
+        if(total_traces = 0, 0, round(error_traces / total_traces * 100, 2)) AS error_rate,
+        quantileExact(0.95)(duration_ms) AS p95_duration_ms,
+        max(duration_ms) AS longest_duration_ms
+    FROM trace_rows
+
+TYPE endpoint
