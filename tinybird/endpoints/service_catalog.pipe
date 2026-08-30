@@ -1,0 +1,94 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Trace-derived service health and traffic statistics for one OutRay organization.
+
+NODE service_modes
+SQL >
+    %
+    SELECT
+        ServiceName AS service,
+        countIf(SpanKind = 2) > 0 AS uses_server_spans
+    FROM otel_spans FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 24)}} HOUR
+    {% if defined(service) %}
+      AND ServiceName = {{String(service)}}
+    {% end %}
+    GROUP BY ServiceName
+
+NODE selected_spans
+SQL >
+    %
+    SELECT
+        spans.*,
+        modes.uses_server_spans AS uses_server_spans
+    FROM otel_spans AS spans FINAL
+    INNER JOIN service_modes AS modes
+        ON spans.ServiceName = modes.service
+    WHERE spans.OrganizationId = {{String(organization_id)}}
+      AND spans.Timestamp >= now() - INTERVAL {{Int32(hours, 24)}} HOUR
+      AND (not modes.uses_server_spans OR spans.SpanKind = 2)
+    {% if defined(service) %}
+      AND spans.ServiceName = {{String(service)}}
+    {% end %}
+
+NODE service_rollup
+SQL >
+    %
+    SELECT
+        ServiceName AS id,
+        ServiceName AS name,
+        argMaxIf(ServiceNamespace, Timestamp, notEmpty(ServiceNamespace)) AS namespace,
+        argMaxIf(ServiceVersion, Timestamp, notEmpty(ServiceVersion)) AS version,
+        argMaxIf(Environment, Timestamp, notEmpty(Environment)) AS environment,
+        argMaxIf(Region, Timestamp, notEmpty(Region)) AS region,
+        argMaxIf(ScopeName, Timestamp, notEmpty(ScopeName)) AS scope_name,
+        max(Timestamp) AS last_seen,
+        count() AS operation_count,
+        countIf(
+            StatusCode = 2
+            OR toUInt16OrZero(SpanAttributes['http.response.status_code']) >= 500
+            OR toUInt16OrZero(SpanAttributes['http.status_code']) >= 500
+        ) AS error_count,
+        round(error_count / operation_count * 100, 2) AS error_rate,
+        round(quantileTDigest(0.95)(DurationNano / 1000000), 2) AS p95_duration_ms,
+        round(operation_count / (toFloat64({{Int32(hours, 24)}}) * 60), 2) AS operations_per_minute,
+        max(uses_server_spans) AS uses_server_spans
+    FROM selected_spans
+    GROUP BY ServiceName
+
+NODE service_health
+SQL >
+    %
+    SELECT
+        *,
+        multiIf(
+            error_rate >= 5 OR p95_duration_ms >= 1500, 'critical',
+            error_rate >= 2 OR p95_duration_ms >= 750, 'degraded',
+            'healthy'
+        ) AS health
+    FROM service_rollup
+
+NODE catalog
+SQL >
+    %
+    SELECT
+        *,
+        count() OVER () AS total_service_count,
+        sum(operation_count) OVER () AS total_operation_count,
+        sum(error_count) OVER () AS total_error_count,
+        round(
+            sum(operation_count) OVER ()
+                / (toFloat64({{Int32(hours, 24)}}) * 60),
+            2
+        ) AS total_operations_per_minute,
+        countIf(health != 'healthy') OVER () AS total_attention_count
+    FROM service_health
+    ORDER BY
+        multiIf(health = 'critical', 0, health = 'degraded', 1, 2),
+        operation_count DESC,
+        name ASC
+    LIMIT {{Int32(limit, 250)}}
+
+TYPE endpoint
