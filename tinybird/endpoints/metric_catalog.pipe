@@ -1,0 +1,57 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Lists metric instruments seen for one OutRay organization.
+
+NODE catalog
+SQL >
+    %
+    SELECT
+        lower(hex(MD5(toJSONString(tuple(
+            MetricName,
+            MetricType,
+            Unit,
+            AggregationTemporality,
+            IsMonotonic
+        ))))) AS metric_key,
+        MetricName AS name,
+        argMax(Description, Timestamp) AS description,
+        Unit AS unit,
+        MetricType AS type,
+        AggregationTemporality AS aggregation_temporality,
+        IsMonotonic AS is_monotonic,
+        min(Timestamp) AS first_seen,
+        max(Timestamp) AS last_seen,
+        count() AS data_point_count,
+        uniqExact(ServiceName) AS service_count,
+        arraySort(groupUniqArray(250)(ServiceName)) AS services,
+        arraySort(groupUniqArrayArray(100)(mapKeys(Attributes))) AS dimensions
+    FROM otel_metrics FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 24)}} HOUR
+    {% if defined(service) %}
+      AND ServiceName = {{String(service)}}
+    {% end %}
+    {% if defined(search) %}
+      AND (
+        positionCaseInsensitive(MetricName, {{String(search)}}) > 0
+        OR positionCaseInsensitive(Description, {{String(search)}}) > 0
+        OR positionCaseInsensitive(Unit, {{String(search)}}) > 0
+      )
+    {% end %}
+    GROUP BY
+        MetricName,
+        MetricType,
+        Unit,
+        AggregationTemporality,
+        IsMonotonic
+    ORDER BY
+        last_seen DESC,
+        name ASC,
+        type ASC,
+        unit ASC,
+        aggregation_temporality ASC,
+        is_monotonic ASC
+    LIMIT {{Int32(limit, 500)}}
+
+TYPE endpoint
