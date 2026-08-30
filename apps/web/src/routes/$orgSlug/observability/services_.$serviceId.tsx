@@ -1,17 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   Activity03Icon,
   Alert02Icon,
   ArrowLeft01Icon,
-  ArrowRight01Icon,
-  CheckmarkCircle02Icon,
   Clock01Icon,
   CloudIcon,
   CodeIcon,
-  CpuIcon,
+  Pulse02Icon,
   ServerStack01Icon,
-  WorkflowSquare06Icon,
 } from "@hugeicons-pro/core-stroke-rounded";
 import {
   HealthPill,
@@ -20,16 +18,38 @@ import {
   TimeRangeControl,
   TrendChart,
 } from "@/components/observability/observability-ui";
-import {
-  latencyTrend,
-  logs,
-  monitors,
-  services,
-  traces,
-  trafficTrend,
-  type LogLevel,
-  type ObservabilityService,
-} from "@/components/observability/mock-data";
+
+type ServiceHealth = "healthy" | "degraded" | "critical";
+
+interface ServiceTelemetry {
+  id: string;
+  name: string;
+  namespace: string;
+  version: string;
+  environment: string;
+  region: string;
+  scopeName: string;
+  lastSeen: string;
+  operationCount: number;
+  errorCount: number;
+  errorRate: number;
+  p95Duration: number;
+  operationsPerMinute: number;
+  usesServerSpans: boolean;
+  health: ServiceHealth;
+}
+
+interface ServiceDetailResponse {
+  services: ServiceTelemetry[];
+  traffic: Array<{
+    timestamp: string;
+    operationCount: number;
+    errorCount: number;
+    errorRate: number;
+    p95Duration: number | null;
+    operationsPerMinute: number;
+  }>;
+}
 
 export const Route = createFileRoute(
   "/$orgSlug/observability/services_/$serviceId",
@@ -38,35 +58,102 @@ export const Route = createFileRoute(
   component: ServiceView,
 });
 
-const logLevelStyles: Record<LogLevel, string> = {
-  debug: "text-zinc-600",
-  info: "text-cyan-400",
-  warn: "text-amber-400",
-  error: "text-rose-400",
-};
-
 function ServiceView() {
   const { orgSlug, serviceId } = Route.useParams();
-  const service = services.find((item) => item.id === serviceId);
+  const [timeRange, setTimeRange] = useState("24h");
+  const [data, setData] = useState<ServiceDetailResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastSuccessAt, setLastSuccessAt] = useState<number | null>(null);
 
-  if (!service) {
-    return <ServiceNotFound orgSlug={orgSlug} />;
+  useEffect(() => {
+    const controller = new AbortController();
+    let nextPoll: number | undefined;
+    const parameters = new URLSearchParams({
+      range: timeRange,
+      service: serviceId,
+    });
+
+    const loadService = async () => {
+      try {
+        const response = await fetch(
+          `/api/${orgSlug}/observability/services?${parameters}`,
+          { signal: controller.signal },
+        );
+        if (!response.ok) throw new Error("Could not load service telemetry");
+        setData((await response.json()) as ServiceDetailResponse);
+        setLastSuccessAt(Date.now());
+        setError(null);
+      } catch (requestError) {
+        if (
+          requestError instanceof DOMException &&
+          requestError.name === "AbortError"
+        )
+          return;
+        setError("Service telemetry is temporarily unavailable.");
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          nextPoll = window.setTimeout(() => void loadService(), 5_000);
+        }
+      }
+    };
+
+    void loadService();
+    return () => {
+      controller.abort();
+      if (nextPoll) window.clearTimeout(nextPoll);
+    };
+  }, [orgSlug, serviceId, timeRange]);
+
+  function changeTimeRange(value: string) {
+    if (value === timeRange) return;
+    setData(null);
+    setLastSuccessAt(null);
+    setLoading(true);
+    setError(null);
+    setTimeRange(value);
   }
 
-  const scale = service.requestsPerMinute / 1842;
-  const requestValues = trafficTrend.map((value) =>
-    Math.round(value * scale * 28),
-  );
-  const serviceLogs = logs.filter((event) => event.service === service.id);
-  const serviceTraces = traces.filter(
-    (trace) =>
-      trace.rootService === service.id ||
-      trace.spans.some((span) => span.service === service.id),
-  );
-  const relatedMonitors = monitors.filter(
-    (monitor) => monitor.service === service.id,
-  );
-  const dependencies = getDependencies(service.id);
+  if (loading && !data) {
+    return <ServiceSkeleton orgSlug={orgSlug} />;
+  }
+
+  if (error && !data) {
+    return (
+      <ServiceState
+        orgSlug={orgSlug}
+        title="Service telemetry unavailable"
+        message={error}
+        timeRange={timeRange}
+        onTimeRangeChange={changeTimeRange}
+      />
+    );
+  }
+
+  const service = data?.services[0];
+  if (!service && error)
+    return (
+      <ServiceState
+        orgSlug={orgSlug}
+        title="Service telemetry unavailable"
+        message={`${error} The last successful result${
+          lastSuccessAt ? ` from ${formatClockTime(lastSuccessAt)}` : ""
+        } contained no spans for this service.`}
+        timeRange={timeRange}
+        onTimeRangeChange={changeTimeRange}
+      />
+    );
+  if (!service)
+    return (
+      <ServiceNotFound
+        orgSlug={orgSlug}
+        timeRange={timeRange}
+        onTimeRangeChange={changeTimeRange}
+      />
+    );
+  const traffic = data?.traffic || [];
+  const hasLatency = traffic.some((point) => point.p95Duration !== null);
 
   return (
     <ObservabilityPage>
@@ -78,7 +165,11 @@ function ServiceView() {
               params={{ orgSlug }}
               className="mb-5 inline-flex items-center gap-2 text-[10px] text-zinc-700 transition-colors hover:text-zinc-300"
             >
-              <HugeiconsIcon icon={ArrowLeft01Icon} size={13} strokeWidth={1.7} />
+              <HugeiconsIcon
+                icon={ArrowLeft01Icon}
+                size={13}
+                strokeWidth={1.7}
+              />
               All services
             </Link>
             <div className="flex min-w-0 items-center gap-4">
@@ -97,255 +188,173 @@ function ServiceView() {
                   <HealthPill health={service.health} />
                 </div>
                 <p className="mt-2 text-xs text-zinc-600">
-                  {service.environment} · {service.region} · {service.runtime} · {service.version}
+                  {serviceContext(service)}
                 </p>
               </div>
             </div>
           </div>
-          <TimeRangeControl />
+          <TimeRangeControl value={timeRange} onChange={changeTimeRange} />
         </div>
       </header>
 
-      <section className="grid overflow-hidden rounded-xl border border-white/[0.07] sm:grid-cols-2 xl:grid-cols-4 xl:divide-x xl:divide-white/[0.07]">
+      {error && data && (
+        <div className="rounded-xl border border-amber-400/15 bg-amber-400/[0.035] px-4 py-3 text-[10px] text-amber-300">
+          {error} Showing the last successful result
+          {lastSuccessAt ? ` from ${formatClockTime(lastSuccessAt)}.` : "."}
+        </div>
+      )}
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <ServiceMetric
           icon={Activity03Icon}
+          label="Operations"
+          value={service.operationCount.toLocaleString()}
+          detail={`Observed in the last ${timeRange}`}
+          tone="violet"
+        />
+        <ServiceMetric
+          icon={Pulse02Icon}
           label="Throughput"
-          value={`${service.requestsPerMinute.toLocaleString()} rpm`}
-          detail="12.4% from previous period"
+          value={`${formatNumber(service.operationsPerMinute)} opm`}
+          detail={
+            service.usesServerSpans
+              ? "Calculated from server spans"
+              : "Calculated from all reported spans"
+          }
           tone="violet"
         />
         <ServiceMetric
           icon={Alert02Icon}
           label="Error rate"
-          value={`${service.errorRate}%`}
-          detail={service.errorRate > 2 ? "Above 2% threshold" : "Within normal range"}
-          tone={service.errorRate > 2 ? "rose" : "emerald"}
+          value={`${formatNumber(service.errorRate)}%`}
+          detail={`${service.errorCount.toLocaleString()} errored operations`}
+          tone={service.errorRate >= 2 ? "rose" : "emerald"}
         />
         <ServiceMetric
           icon={Clock01Icon}
           label="P95 latency"
-          value={`${service.p95}ms`}
-          detail={`P50 ${Math.round(service.p95 * 0.34)}ms`}
-          tone={service.p95 > 700 ? "amber" : "violet"}
-        />
-        <ServiceMetric
-          icon={CheckmarkCircle02Icon}
-          label="Availability"
-          value={service.health === "critical" ? "98.82%" : service.health === "degraded" ? "99.71%" : "99.98%"}
-          detail="30-day rolling SLO"
-          tone={service.health === "healthy" ? "emerald" : "amber"}
+          value={formatDuration(service.p95Duration)}
+          detail="From observed operation duration"
+          tone={service.p95Duration >= 750 ? "amber" : "violet"}
         />
       </section>
 
       <div className="grid gap-7 lg:grid-cols-3">
         <Panel
-          title="Request volume"
-          description="Requests per minute for this service"
-          action={<span className="text-[10px] text-zinc-700">Updated now</span>}
+          title="Operation volume"
+          description={
+            service.usesServerSpans
+              ? "Server operations per minute"
+              : "Reported spans per minute; no server spans were found"
+          }
+          action={
+            <span className="text-[10px] text-zinc-700">
+              {error ? "Data may be stale" : formatLastSuccess(lastSuccessAt)}
+            </span>
+          }
           className="lg:col-span-2"
         >
-          <TrendChart values={requestValues} />
+          {traffic.length ? (
+            <TrendChart
+              values={traffic.map((point) => point.operationsPerMinute)}
+              labels={chartLabels(traffic)}
+            />
+          ) : (
+            <div className="px-6 py-14 text-center text-[11px] text-zinc-700">
+              No traffic points in this time range.
+            </div>
+          )}
         </Panel>
 
-        <Panel title="Service details" description="Current runtime context">
+        <Panel title="Service details" description="Reported resource context">
           <div className="space-y-5 p-5 sm:p-6">
-            <ServiceDetail icon={CodeIcon} label="Runtime" value={service.runtime} />
-            <ServiceDetail icon={CloudIcon} label="Region" value={service.region} />
-            <ServiceDetail icon={CpuIcon} label="Version" value={service.version} />
-            <ServiceDetail icon={ServerStack01Icon} label="Last deploy" value={service.deploy} />
-            <div className="border-t border-white/[0.06] pt-5">
-              <p className="text-[9px] font-medium uppercase tracking-[0.08em] text-zinc-700">
-                Resource attributes
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {[service.environment, service.region, service.runtime.split(" ")[0].toLowerCase()].map((attribute) => (
-                  <span key={attribute} className="rounded-md border border-white/[0.06] bg-white/[0.025] px-2 py-1 font-mono text-[9px] text-zinc-600">
-                    {attribute}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <ServiceDetail
+              icon={CodeIcon}
+              label="Namespace"
+              value={service.namespace || "Not reported"}
+            />
+            <ServiceDetail
+              icon={CloudIcon}
+              label="Environment"
+              value={service.environment || "Not reported"}
+            />
+            <ServiceDetail
+              icon={CloudIcon}
+              label="Region"
+              value={service.region || "Not reported"}
+            />
+            <ServiceDetail
+              icon={ServerStack01Icon}
+              label="Version"
+              value={service.version || "Not reported"}
+            />
+            <ServiceDetail
+              icon={Activity03Icon}
+              label="Instrumentation scope"
+              value={service.scopeName || "Not reported"}
+            />
+            <ServiceDetail
+              icon={Clock01Icon}
+              label="Last span"
+              value={formatRelativeTime(service.lastSeen)}
+            />
           </div>
         </Panel>
       </div>
 
       <div className="grid gap-7 lg:grid-cols-2">
-        <Panel
-          title="Dependencies"
-          description="Services observed in connected traces"
-        >
-          <div className="divide-y divide-white/[0.06]">
-            {dependencies.map((dependency) => {
-              const internalService = services.find(
-                (item) => item.id === dependency.name,
-              );
-              const content = (
-                <>
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-white/[0.035] text-zinc-600">
-                    <HugeiconsIcon icon={WorkflowSquare06Icon} size={14} strokeWidth={1.7} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[11px] font-medium text-zinc-300">{dependency.name}</p>
-                    <p className="mt-1 text-[9px] text-zinc-700">{dependency.type} · {dependency.calls.toLocaleString()} calls</p>
-                  </div>
-                  <span className="font-mono text-[10px] text-zinc-600">{dependency.latency}ms</span>
-                  {internalService && <HugeiconsIcon icon={ArrowRight01Icon} size={13} strokeWidth={1.7} className="text-zinc-800" />}
-                </>
-              );
-
-              return internalService ? (
-                <Link
-                  key={dependency.name}
-                  to="/$orgSlug/observability/services/$serviceId"
-                  params={{ orgSlug, serviceId: internalService.id }}
-                  className="flex items-center gap-3 px-5 py-4 transition-colors hover:bg-white/[0.02] sm:px-6"
-                >
-                  {content}
-                </Link>
-              ) : (
-                <div key={dependency.name} className="flex items-center gap-3 px-5 py-4 sm:px-6">
-                  {content}
-                </div>
-              );
-            })}
-          </div>
+        <Panel title="Latency" description="P95 duration by traffic bucket">
+          {hasLatency ? (
+            <TrendChart
+              values={traffic.map((point) => point.p95Duration)}
+              tone={service.p95Duration >= 750 ? "amber" : "violet"}
+              labels={chartLabels(traffic)}
+            />
+          ) : (
+            <div className="px-6 py-14 text-center text-[11px] text-zinc-700">
+              No latency points in this time range.
+            </div>
+          )}
         </Panel>
 
-        <Panel title="Latency profile" description="Percentile trend for this service">
-          <div className="space-y-5 p-5 sm:p-6">
-            {[
-              ["P50", Math.round(service.p95 * 0.34), "bg-emerald-400/65"],
-              ["P75", Math.round(service.p95 * 0.58), "bg-cyan-400/65"],
-              ["P90", Math.round(service.p95 * 0.82), "bg-violet-400/65"],
-              ["P95", service.p95, service.p95 > 700 ? "bg-amber-400/70" : "bg-violet-400/70"],
-              ["P99", Math.round(service.p95 * 1.72), "bg-rose-400/65"],
-            ].map(([label, value, color]) => (
-              <div key={label} className="grid grid-cols-[34px_minmax(0,1fr)_65px] items-center gap-3">
-                <span className="text-[9px] text-zinc-700">{label}</span>
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.04]">
-                  <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(100, (Number(value) / (service.p95 * 1.72)) * 100)}%` }} />
-                </div>
-                <span className="text-right font-mono text-[9px] text-zinc-500">{value}ms</span>
-              </div>
-            ))}
-            <div className="border-t border-white/[0.06] pt-5">
-              <TrendChart
-                values={latencyTrend.map((value) => Math.round(value * (service.p95 / 486)))}
-                tone={service.p95 > 700 ? "amber" : "violet"}
-                labels={["-60m", "-50m", "-40m", "-30m", "-20m", "-10m", "Now"]}
-              />
-            </div>
+        <Panel
+          title="Explore telemetry"
+          description="Inspect the underlying signals"
+        >
+          <div className="grid gap-3 p-5 sm:p-6">
+            <TelemetryLink
+              to="/$orgSlug/observability/traces"
+              orgSlug={orgSlug}
+              title="Traces"
+              description="Open the trace explorer and search for this service."
+            />
+            <TelemetryLink
+              to="/$orgSlug/observability/logs"
+              orgSlug={orgSlug}
+              title="Logs"
+              description="Open the logs explorer and filter by this service."
+            />
           </div>
         </Panel>
       </div>
 
       <Panel
-        title="Recent traces"
-        description={`${serviceTraces.length} traces touching this service`}
-        action={
-          <Link to="/$orgSlug/observability/traces" params={{ orgSlug }} className="text-[10px] text-zinc-600 transition-colors hover:text-zinc-300">
-            View all
-          </Link>
-        }
+        title="Health policy"
+        description="Applied to the selected time range"
       >
-        <div className="hidden grid-cols-[minmax(0,1fr)_150px_100px_90px_24px] gap-4 border-b border-white/[0.06] px-5 py-3 text-[9px] uppercase tracking-[0.08em] text-zinc-700 sm:px-6 lg:grid">
-          <span>Trace</span><span>Root service</span><span>Started</span><span>Duration</span><span />
-        </div>
-        <div className="divide-y divide-white/[0.055]">
-          {serviceTraces.map((trace) => (
-            <Link
-              key={trace.id}
-              to="/$orgSlug/observability/traces"
-              params={{ orgSlug }}
-              className="grid gap-3 px-5 py-4 transition-colors hover:bg-white/[0.02] sm:px-6 lg:grid-cols-[minmax(0,1fr)_150px_100px_90px_24px] lg:items-center lg:gap-4"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <span className={`size-1.5 shrink-0 rounded-full ${trace.status === "error" ? "bg-rose-400" : "bg-emerald-400"}`} />
-                <div className="min-w-0">
-                  <p className="truncate font-mono text-[10px] text-zinc-300">{trace.name}</p>
-                  <p className="mt-1 truncate font-mono text-[9px] text-zinc-800">{trace.id}</p>
-                </div>
-              </div>
-              <span className="text-[10px] text-zinc-500">{trace.rootService}</span>
-              <span className="font-mono text-[9px] text-zinc-700">{trace.startedAt}</span>
-              <span className={`font-mono text-[10px] ${trace.duration > 1000 ? "text-amber-400" : "text-zinc-500"}`}>{formatDuration(trace.duration)}</span>
-              <HugeiconsIcon icon={ArrowRight01Icon} size={13} strokeWidth={1.7} className="hidden text-zinc-800 lg:block" />
-            </Link>
-          ))}
-        </div>
-      </Panel>
-
-      <div className="grid gap-7 lg:grid-cols-3">
-        <Panel
-          title="Recent logs"
-          description={`Latest events from ${service.name}`}
-          className="lg:col-span-2"
-          action={
-            <Link to="/$orgSlug/observability/logs" params={{ orgSlug }} className="text-[10px] text-zinc-600 transition-colors hover:text-zinc-300">
-              Explore logs
-            </Link>
-          }
-        >
-          <div className="divide-y divide-white/[0.055] font-mono">
-            {serviceLogs.map((event) => (
-              <Link
-                key={event.id}
-                to="/$orgSlug/observability/logs"
-                params={{ orgSlug }}
-                className="grid gap-2 px-5 py-4 transition-colors hover:bg-white/[0.02] sm:grid-cols-[82px_62px_minmax(0,1fr)] sm:items-center sm:px-6"
-              >
-                <span className="text-[9px] text-zinc-700">{event.timestamp}</span>
-                <span className={`text-[9px] uppercase ${logLevelStyles[event.level]}`}>{event.level}</span>
-                <span className="truncate text-[10px] text-zinc-300">{event.message}</span>
-              </Link>
-            ))}
-          </div>
-        </Panel>
-
-        <Panel title="Monitors" description="Rules scoped to this service">
-          {relatedMonitors.length ? (
-            <div className="divide-y divide-white/[0.06]">
-              {relatedMonitors.map((monitor) => (
-                <Link
-                  key={monitor.name}
-                  to="/$orgSlug/observability/monitors"
-                  params={{ orgSlug }}
-                  className="block px-5 py-5 transition-colors hover:bg-white/[0.02] sm:px-6"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-medium text-zinc-300">{monitor.name}</p>
-                    <span className={`size-1.5 rounded-full ${monitor.state === "firing" ? "bg-rose-400" : "bg-emerald-400"}`} />
-                  </div>
-                  <p className="mt-2 font-mono text-[9px] text-zinc-700">{monitor.query}</p>
-                  <p className="mt-2 text-[9px] text-zinc-800">Changed {monitor.changed}</p>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="px-5 py-10 text-center sm:px-6">
-              <p className="text-[11px] text-zinc-500">No service monitors</p>
-              <Link to="/$orgSlug/observability/monitors" params={{ orgSlug }} className="mt-2 inline-block text-[10px] text-violet-400">Create a monitor</Link>
-            </div>
-          )}
-        </Panel>
-      </div>
-
-      <Panel title="Deployments" description="Recent versions correlated with telemetry changes">
-        <div className="divide-y divide-white/[0.055]">
-          {getDeployments(service).map((deployment, index) => (
-            <div key={deployment.version} className="grid gap-3 px-5 py-4 sm:px-6 md:grid-cols-[minmax(0,1fr)_150px_120px_90px] md:items-center">
-              <div className="flex items-center gap-3">
-                <span className={`size-1.5 rounded-full ${index === 0 ? "bg-emerald-400" : "bg-zinc-700"}`} />
-                <div>
-                  <p className="font-mono text-[10px] text-zinc-300">{deployment.version}</p>
-                  <p className="mt-1 text-[9px] text-zinc-700">{deployment.commit}</p>
-                </div>
-              </div>
-              <span className="text-[10px] text-zinc-600">{deployment.author}</span>
-              <span className="text-[10px] text-zinc-700">{deployment.when}</span>
-              <span className={`text-[9px] ${deployment.impact === "Stable" ? "text-emerald-400" : "text-amber-400"}`}>{deployment.impact}</span>
-            </div>
-          ))}
+        <div className="grid gap-3 p-5 text-[10px] sm:grid-cols-3 sm:p-6">
+          <HealthRule
+            health="healthy"
+            description="Error rate below 2% and P95 below 750ms"
+          />
+          <HealthRule
+            health="degraded"
+            description="Error rate at least 2% or P95 at least 750ms"
+          />
+          <HealthRule
+            health="critical"
+            description="Error rate at least 5% or P95 at least 1.5s"
+          />
         </div>
       </Panel>
     </ObservabilityPage>
@@ -373,13 +382,19 @@ function ServiceMetric({
   };
 
   return (
-    <div className="min-w-0 px-5 py-5 sm:px-6">
+    <div className="rounded-xl border border-white/[0.07] px-5 py-5 sm:px-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[9px] font-medium uppercase tracking-[0.08em] text-zinc-700">{label}</p>
-          <p className="mt-2.5 text-xl font-semibold tracking-[-0.035em] text-zinc-100">{value}</p>
+          <p className="text-[9px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+            {label}
+          </p>
+          <p className="mt-2.5 text-xl font-semibold tracking-[-0.035em] text-zinc-100">
+            {value}
+          </p>
         </div>
-        <span className={`flex size-8 items-center justify-center rounded-lg ${toneStyles[tone]}`}>
+        <span
+          className={`flex size-8 items-center justify-center rounded-lg ${toneStyles[tone]}`}
+        >
           <HugeiconsIcon icon={icon} size={15} strokeWidth={1.8} />
         </span>
       </div>
@@ -388,31 +403,157 @@ function ServiceMetric({
   );
 }
 
-function ServiceDetail({ icon, label, value }: { icon: IconSvgElement; label: string; value: string }) {
+function ServiceDetail({
+  icon,
+  label,
+  value,
+}: {
+  icon: IconSvgElement;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="flex items-center gap-3">
       <span className="flex size-8 items-center justify-center rounded-lg bg-white/[0.035] text-zinc-600">
         <HugeiconsIcon icon={icon} size={14} strokeWidth={1.7} />
       </span>
-      <div>
-        <p className="text-[9px] uppercase tracking-[0.08em] text-zinc-700">{label}</p>
-        <p className="mt-1 text-[11px] text-zinc-400">{value}</p>
+      <div className="min-w-0">
+        <p className="text-[9px] uppercase tracking-[0.08em] text-zinc-700">
+          {label}
+        </p>
+        <p className="mt-1 truncate text-[11px] text-zinc-400">{value}</p>
       </div>
     </div>
   );
 }
 
-function ServiceNotFound({ orgSlug }: { orgSlug: string }) {
+function TelemetryLink({
+  to,
+  orgSlug,
+  title,
+  description,
+}: {
+  to: "/$orgSlug/observability/traces" | "/$orgSlug/observability/logs";
+  orgSlug: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      to={to}
+      params={{ orgSlug }}
+      className="rounded-lg border border-white/[0.07] px-4 py-4 transition-colors hover:border-white/[0.12] hover:bg-white/[0.02]"
+    >
+      <p className="text-xs font-medium text-zinc-300">{title}</p>
+      <p className="mt-1 text-[10px] text-zinc-700">{description}</p>
+    </Link>
+  );
+}
+
+function HealthRule({
+  health,
+  description,
+}: {
+  health: ServiceHealth;
+  description: string;
+}) {
+  return (
+    <div className="rounded-lg border border-white/[0.06] px-4 py-4">
+      <HealthPill health={health} />
+      <p className="mt-3 leading-5 text-zinc-600">{description}</p>
+    </div>
+  );
+}
+
+function ServiceSkeleton({ orgSlug }: { orgSlug: string }) {
   return (
     <ObservabilityPage>
+      <Link
+        to="/$orgSlug/observability/services"
+        params={{ orgSlug }}
+        className="inline-flex items-center gap-2 text-[10px] text-zinc-700"
+      >
+        <HugeiconsIcon icon={ArrowLeft01Icon} size={13} strokeWidth={1.7} />
+        All services
+      </Link>
+      <div className="animate-pulse space-y-7" aria-busy="true">
+        <div className="h-24 rounded-xl border border-white/[0.07] bg-white/[0.015]" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => (
+            <div
+              key={item}
+              className="h-32 rounded-xl border border-white/[0.07] bg-white/[0.015]"
+            />
+          ))}
+        </div>
+        <div className="h-80 rounded-xl border border-white/[0.07] bg-white/[0.015]" />
+      </div>
+    </ObservabilityPage>
+  );
+}
+
+function ServiceNotFound({
+  orgSlug,
+  timeRange,
+  onTimeRangeChange,
+}: {
+  orgSlug: string;
+  timeRange: string;
+  onTimeRangeChange: (value: string) => void;
+}) {
+  return (
+    <ServiceState
+      orgSlug={orgSlug}
+      title="Service not found"
+      message="This service did not report spans in the selected time range."
+      timeRange={timeRange}
+      onTimeRangeChange={onTimeRangeChange}
+    />
+  );
+}
+
+function ServiceState({
+  orgSlug,
+  title,
+  message,
+  timeRange,
+  onTimeRangeChange,
+}: {
+  orgSlug: string;
+  title: string;
+  message: string;
+  timeRange: string;
+  onTimeRangeChange: (value: string) => void;
+}) {
+  return (
+    <ObservabilityPage>
+      <header className="flex flex-col gap-5 border-b border-white/[0.07] pb-7 sm:flex-row sm:items-center sm:justify-between">
+        <Link
+          to="/$orgSlug/observability/services"
+          params={{ orgSlug }}
+          className="inline-flex items-center gap-2 text-[10px] text-zinc-700 transition-colors hover:text-zinc-300"
+        >
+          <HugeiconsIcon icon={ArrowLeft01Icon} size={13} strokeWidth={1.7} />
+          All services
+        </Link>
+        <TimeRangeControl value={timeRange} onChange={onTimeRangeChange} />
+      </header>
       <div className="flex min-h-[520px] items-center justify-center rounded-xl border border-white/[0.07]">
         <div className="max-w-sm px-6 text-center">
           <span className="mx-auto flex size-10 items-center justify-center rounded-xl bg-white/[0.04] text-zinc-600">
-            <HugeiconsIcon icon={ServerStack01Icon} size={18} strokeWidth={1.7} />
+            <HugeiconsIcon
+              icon={ServerStack01Icon}
+              size={18}
+              strokeWidth={1.7}
+            />
           </span>
-          <h1 className="mt-5 text-lg font-semibold text-zinc-200">Service not found</h1>
-          <p className="mt-2 text-xs leading-5 text-zinc-600">This service is not reporting telemetry or no longer exists.</p>
-          <Link to="/$orgSlug/observability/services" params={{ orgSlug }} className="mt-5 inline-flex h-9 items-center rounded-lg bg-white px-4 text-[10px] font-medium text-black">
+          <h1 className="mt-5 text-lg font-semibold text-zinc-200">{title}</h1>
+          <p className="mt-2 text-xs leading-5 text-zinc-600">{message}</p>
+          <Link
+            to="/$orgSlug/observability/services"
+            params={{ orgSlug }}
+            className="mt-5 inline-flex h-9 items-center rounded-lg bg-white px-4 text-[10px] font-medium text-black"
+          >
             Back to services
           </Link>
         </div>
@@ -421,43 +562,57 @@ function ServiceNotFound({ orgSlug }: { orgSlug: string }) {
   );
 }
 
-function getDependencies(serviceId: string) {
-  const connected = new Set<string>();
-  traces
-    .filter(
-      (trace) =>
-        trace.rootService === serviceId ||
-        trace.spans.some((span) => span.service === serviceId),
-    )
-    .forEach((trace) => {
-      if (trace.rootService !== serviceId) connected.add(trace.rootService);
-      trace.spans.forEach((span) => {
-        if (span.service !== serviceId) connected.add(span.service);
-      });
-    });
-
-  if (!connected.size) {
-    connected.add("postgres");
-    connected.add("redis");
-  }
-
-  return Array.from(connected).slice(0, 5).map((name, index) => ({
-    name,
-    type: services.some((service) => service.id === name) ? "Internal service" : "External dependency",
-    calls: Math.max(24, 842 - index * 137),
-    latency: 28 + index * 37,
-  }));
+function serviceContext(service: ServiceTelemetry) {
+  const context = [
+    service.namespace,
+    service.version,
+    service.environment,
+    service.region,
+  ].filter(Boolean);
+  return context.length ? context.join(" · ") : "No resource context reported";
 }
 
-function getDeployments(service: ObservabilityService) {
-  const majorVersion = service.version.replace("-rc.2", "");
-  return [
-    { version: service.version, commit: "4d8a19f · improve request handling", author: "Ayo Balogun", when: service.deploy, impact: "Stable" },
-    { version: `${majorVersion}-prev.1`, commit: "908cc21 · update telemetry context", author: "Mira Okafor", when: "3 days ago", impact: "Stable" },
-    { version: `${majorVersion}-prev.2`, commit: "f1842ab · tune connection pool", author: "Ayo Balogun", when: "8 days ago", impact: service.health === "healthy" ? "Stable" : "Watch" },
-  ];
+function chartLabels(points: Array<{ timestamp: string }>): string[] {
+  if (!points.length) return [];
+  const indexes = [0, 0.25, 0.5, 0.75, 1].map((ratio) =>
+    Math.round((points.length - 1) * ratio),
+  );
+  return indexes.map((index) =>
+    new Date(points[index].timestamp).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+  );
 }
 
-function formatDuration(duration: number) {
-  return duration >= 1000 ? `${(duration / 1000).toFixed(2)}s` : `${duration}ms`;
+function formatRelativeTime(value: string) {
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return "unknown";
+  const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
+}
+
+function formatDuration(milliseconds: number) {
+  return milliseconds >= 1000
+    ? `${formatNumber(milliseconds / 1000)}s`
+    : `${formatNumber(milliseconds)}ms`;
+}
+
+function formatNumber(value: number) {
+  return Number(value.toFixed(value >= 100 ? 0 : 2)).toLocaleString();
+}
+
+function formatLastSuccess(value: number | null) {
+  return value ? `Updated at ${formatClockTime(value)}` : "Updating…";
+}
+
+function formatClockTime(value: number) {
+  return new Date(value).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
