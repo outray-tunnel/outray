@@ -1,0 +1,30 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Returns every span in a trace, scoped to one OutRay organization.
+
+NODE trace_spans
+SQL >
+    %
+    SELECT
+        TraceId AS trace_id,
+        SpanId AS span_id,
+        ParentSpanId AS parent_span_id,
+        SpanName AS name,
+        ServiceName AS service,
+        Timestamp AS started_at,
+        DurationNano / 1000000 AS duration_ms,
+        dateDiff('nanosecond', min(Timestamp) OVER (), Timestamp) / 1000000 AS offset_ms,
+        if(StatusCode = 2, 'error', 'ok') AS status,
+        SpanKind AS kind,
+        StatusMessage AS status_message,
+        SpanAttributes AS attributes,
+        ResourceAttributes AS resource_attributes,
+        Events AS events,
+        Links AS links
+    FROM otel_spans
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND TraceId = {{String(trace_id)}}
+    ORDER BY Timestamp ASC
+
+TYPE endpoint
