@@ -4,6 +4,8 @@ import { Redis } from "ioredis";
 import { ApiTokenAuthenticator, apiKeyFromHeaders } from "./auth.js";
 import { config } from "./config.js";
 import { parseTracePayload } from "./otlp.js";
+import { decodeTraceRequest, encodeTraceResponse } from "./protobuf.js";
+import { TraceQueue } from "./queue.js";
 import { TinybirdIngestClient, toTinybirdSpan } from "./tinybird.js";
 
 const authenticator = new ApiTokenAuthenticator(config.databaseUrl);
@@ -11,6 +13,15 @@ const tinybird = new TinybirdIngestClient(
   config.tinybirdApiHost,
   config.tinybirdIngestToken,
 );
+const traceQueue = new TraceQueue({
+  redisUrl: config.redisUrl,
+  streamKey: config.queueKey,
+  deadLetterKey: config.queueDeadLetterKey,
+  group: "tinybird-writers",
+  maxEntries: config.queueMaxEntries,
+  batchSize: config.queueBatchSize,
+  maxDeliveryAttempts: config.queueMaxDeliveryAttempts,
+});
 const redis = new Redis(config.redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 });
 
 redis.on("error", (error: Error) =>
@@ -21,6 +32,7 @@ void redis
   .catch((error: Error) =>
     console.error("Redis ingestion limiter unavailable", error),
   );
+traceQueue.start(tinybird);
 
 function sendJson(response: ServerResponse, status: number, body: unknown) {
   const encoded = JSON.stringify(body);
@@ -30,6 +42,15 @@ function sendJson(response: ServerResponse, status: number, body: unknown) {
     "Cache-Control": "no-store",
   });
   response.end(encoded);
+}
+
+function sendProtobuf(response: ServerResponse, status: number, body: Uint8Array) {
+  response.writeHead(status, {
+    "Content-Type": "application/x-protobuf",
+    "Content-Length": body.byteLength,
+    "Cache-Control": "no-store",
+  });
+  response.end(body);
 }
 
 function requestHeaders(request: IncomingMessage): Headers {
@@ -88,13 +109,17 @@ class HttpError extends Error {
 }
 
 async function handleTraces(request: IncomingMessage, response: ServerResponse) {
-  const contentType = request.headers["content-type"]?.split(";", 1)[0];
-  if (contentType !== "application/json") {
+  const contentType = request.headers["content-type"]
+    ?.split(";", 1)[0]
+    ?.trim()
+    .toLowerCase();
+  if (
+    contentType !== "application/json" &&
+    contentType !== "application/x-protobuf"
+  ) {
     throw new HttpError(
       415,
-      contentType === "application/x-protobuf"
-        ? "OTLP protobuf support is not enabled yet"
-        : "Content-Type must be application/json",
+      "Content-Type must be application/json or application/x-protobuf",
     );
   }
 
@@ -110,9 +135,15 @@ async function handleTraces(request: IncomingMessage, response: ServerResponse) 
   const body = await readBody(request);
   let payload: unknown;
   try {
-    payload = JSON.parse(body.toString("utf8"));
+    payload =
+      contentType === "application/x-protobuf"
+        ? decodeTraceRequest(body)
+        : JSON.parse(body.toString("utf8"));
   } catch {
-    throw new HttpError(400, "Request body is not valid OTLP JSON");
+    throw new HttpError(
+      400,
+      `Request body is not valid OTLP ${contentType === "application/x-protobuf" ? "protobuf" : "JSON"}`,
+    );
   }
 
   let parsed: ReturnType<typeof parseTracePayload>;
@@ -124,22 +155,31 @@ async function handleTraces(request: IncomingMessage, response: ServerResponse) 
 
   const accepted = parsed.spans.slice(0, config.maxRecordsPerRequest);
   const rejected = parsed.rejected + Math.max(0, parsed.spans.length - accepted.length);
-  await tinybird.appendSpans(
-    accepted.map((span) => toTinybirdSpan(auth.organizationId, auth.retentionDays, span)),
+  await traceQueue.enqueue(
+    accepted.map((span) =>
+      toTinybirdSpan(auth.organizationId, auth.retentionDays, span),
+    ),
   );
 
-  sendJson(
-    response,
-    200,
-    rejected
-      ? {
-          partialSuccess: {
-            rejectedSpans: rejected,
-            errorMessage: `${rejected} invalid or over-limit spans were rejected`,
-          },
-        }
-      : {},
-  );
+  const errorMessage = rejected
+    ? `${rejected} invalid or over-limit spans were rejected`
+    : "";
+  if (contentType === "application/x-protobuf") {
+    sendProtobuf(response, 200, encodeTraceResponse(rejected, errorMessage));
+  } else {
+    sendJson(
+      response,
+      200,
+      rejected
+        ? {
+            partialSuccess: {
+              rejectedSpans: rejected,
+              errorMessage,
+            },
+          }
+        : {},
+    );
+  }
 }
 
 const server = createServer(async (request, response) => {
@@ -184,7 +224,7 @@ server.listen(config.port, "0.0.0.0", () => {
 async function shutdown(signal: string) {
   console.log(`Received ${signal}; stopping ingestion service`);
   server.close();
-  await Promise.allSettled([authenticator.close(), redis.quit()]);
+  await Promise.allSettled([authenticator.close(), redis.quit(), traceQueue.close()]);
   process.exit(0);
 }
 
