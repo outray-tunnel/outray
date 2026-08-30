@@ -243,7 +243,7 @@ export function TrendChart({
   tone = "violet",
   labels = ["12 AM", "4 AM", "8 AM", "12 PM", "4 PM", "8 PM", "Now"],
 }: {
-  values: number[];
+  values: Array<number | null>;
   tone?: "violet" | "emerald" | "amber" | "rose";
   labels?: string[];
 }) {
@@ -310,6 +310,7 @@ export function TrendChart({
             <Area
               type="monotone"
               dataKey="value"
+              connectNulls={false}
               stroke={chartColors[tone]}
               strokeWidth={1.75}
               fill={`url(#${gradientId})`}
