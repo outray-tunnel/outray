@@ -1,0 +1,45 @@
+TOKEN OUTRAY_INGEST_TOKEN APPEND
+
+DESCRIPTION >
+    OpenTelemetry spans accepted by the OutRay ingestion gateway.
+
+SCHEMA >
+    `OrganizationId` LowCardinality(String) `json:$.organization_id` CODEC(ZSTD(1)),
+    `RetentionDays` UInt16 `json:$.retention_days` CODEC(Delta, ZSTD(1)),
+    `Timestamp` DateTime64(9) `json:$.start_time` CODEC(Delta(8), ZSTD(1)),
+    `EndTimestamp` DateTime64(9) `json:$.end_time` CODEC(Delta(8), ZSTD(1)),
+    `TraceId` String `json:$.trace_id` CODEC(ZSTD(1)),
+    `SpanId` String `json:$.span_id` CODEC(ZSTD(1)),
+    `ParentSpanId` String `json:$.parent_span_id` CODEC(ZSTD(1)),
+    `TraceState` String `json:$.trace_state` CODEC(ZSTD(1)),
+    `SpanName` LowCardinality(String) `json:$.span_name` CODEC(ZSTD(1)),
+    `SpanKind` UInt8 `json:$.span_kind` CODEC(Delta, ZSTD(1)),
+    `ServiceName` LowCardinality(String) `json:$.service_name` CODEC(ZSTD(1)),
+    `ServiceNamespace` LowCardinality(String) `json:$.service_namespace` CODEC(ZSTD(1)),
+    `ServiceVersion` LowCardinality(String) `json:$.service_version` CODEC(ZSTD(1)),
+    `Environment` LowCardinality(String) `json:$.environment` CODEC(ZSTD(1)),
+    `Region` LowCardinality(String) `json:$.region` CODEC(ZSTD(1)),
+    `ScopeName` LowCardinality(String) `json:$.scope_name` CODEC(ZSTD(1)),
+    `ScopeVersion` LowCardinality(String) `json:$.scope_version` CODEC(ZSTD(1)),
+    `DurationNano` UInt64 `json:$.duration_nano` CODEC(ZSTD(1)),
+    `StatusCode` UInt8 `json:$.status_code` CODEC(Delta, ZSTD(1)),
+    `StatusMessage` String `json:$.status_message` CODEC(ZSTD(1)),
+    `HttpMethod` LowCardinality(String) `json:$.http_method` CODEC(ZSTD(1)),
+    `ResourceAttributes` Map(LowCardinality(String), String) `json:$.resource_attributes` CODEC(ZSTD(1)),
+    `SpanAttributes` Map(LowCardinality(String), String) `json:$.span_attributes` CODEC(ZSTD(1)),
+    `ScopeAttributes` Map(LowCardinality(String), String) `json:$.scope_attributes` CODEC(ZSTD(1)),
+    `Events` String `json:$.events` CODEC(ZSTD(1)),
+    `Links` String `json:$.links` CODEC(ZSTD(1))
+
+ENGINE "MergeTree"
+ENGINE_PARTITION_KEY "toDate(Timestamp)"
+ENGINE_SORTING_KEY "OrganizationId, Timestamp, TraceId, SpanId"
+ENGINE_TTL "toDateTime(Timestamp) + toIntervalDay(RetentionDays)"
+ENGINE_SETTINGS index_granularity=8192
+
+INDEXES >
+    idx_trace_id TraceId TYPE bloom_filter(0.001) GRANULARITY 1,
+    idx_service ServiceName TYPE bloom_filter(0.01) GRANULARITY 1,
+    idx_span_name SpanName TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 8,
+    idx_span_attr_key mapKeys(SpanAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,
+    idx_span_attr_value mapValues(SpanAttributes) TYPE bloom_filter(0.01) GRANULARITY 1
