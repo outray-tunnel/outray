@@ -38,9 +38,18 @@ export const config = {
   ),
   logsQueueKey: process.env.OTLP_LOGS_QUEUE_KEY || "outray:otel:logs",
   logsQueueDeadLetterKey:
-    process.env.OTLP_LOGS_QUEUE_DEAD_LETTER_KEY || "outray:otel:logs:dead-letter",
+    process.env.OTLP_LOGS_QUEUE_DEAD_LETTER_KEY ||
+    "outray:otel:logs:dead-letter",
   logsQueueMaxEntries: positiveInteger(
     process.env.OTLP_LOGS_QUEUE_MAX_ENTRIES,
+    10_000,
+  ),
+  metricsQueueKey: process.env.OTLP_METRICS_QUEUE_KEY || "outray:otel:metrics",
+  metricsQueueDeadLetterKey:
+    process.env.OTLP_METRICS_QUEUE_DEAD_LETTER_KEY ||
+    "outray:otel:metrics:dead-letter",
+  metricsQueueMaxEntries: positiveInteger(
+    process.env.OTLP_METRICS_QUEUE_MAX_ENTRIES,
     10_000,
   ),
 };
