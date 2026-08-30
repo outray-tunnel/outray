@@ -6,6 +6,7 @@ DESCRIPTION >
 SCHEMA >
     `OrganizationId` LowCardinality(String) `json:$.organization_id` CODEC(ZSTD(1)),
     `RetentionDays` UInt16 `json:$.retention_days` CODEC(Delta, ZSTD(1)),
+    `IngestedAt` DateTime64(9) `json:$.ingested_at` CODEC(Delta(8), ZSTD(1)),
     `Timestamp` DateTime64(9) `json:$.start_time` CODEC(Delta(8), ZSTD(1)),
     `EndTimestamp` DateTime64(9) `json:$.end_time` CODEC(Delta(8), ZSTD(1)),
     `TraceId` String `json:$.trace_id` CODEC(ZSTD(1)),
@@ -31,9 +32,10 @@ SCHEMA >
     `Events` String `json:$.events` CODEC(ZSTD(1)),
     `Links` String `json:$.links` CODEC(ZSTD(1))
 
-ENGINE "MergeTree"
+ENGINE "ReplacingMergeTree"
 ENGINE_PARTITION_KEY "toDate(Timestamp)"
 ENGINE_SORTING_KEY "OrganizationId, Timestamp, TraceId, SpanId"
+ENGINE_VER IngestedAt
 ENGINE_TTL "toDateTime(Timestamp) + toIntervalDay(RetentionDays)"
 ENGINE_SETTINGS index_granularity=8192
 
@@ -43,3 +45,6 @@ INDEXES >
     idx_span_name SpanName TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 8,
     idx_span_attr_key mapKeys(SpanAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,
     idx_span_attr_value mapValues(SpanAttributes) TYPE bloom_filter(0.01) GRANULARITY 1
+
+FORWARD_QUERY >
+    SELECT OrganizationId, RetentionDays, defaultValueOfTypeName('DateTime64(9)') AS IngestedAt, Timestamp, EndTimestamp, TraceId, SpanId, ParentSpanId, TraceState, SpanName, SpanKind, ServiceName, ServiceNamespace, ServiceVersion, Environment, Region, ScopeName, ScopeVersion, DurationNano, StatusCode, StatusMessage, HttpMethod, ResourceAttributes, SpanAttributes, ScopeAttributes, Events, Links
