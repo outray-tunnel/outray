@@ -1,0 +1,107 @@
+TOKEN OUTRAY_INGEST_TOKEN APPEND
+
+DESCRIPTION >
+    Normalized OpenTelemetry metric data points accepted by the OutRay ingestion gateway.
+
+SCHEMA >
+    `OrganizationId` LowCardinality(String) `json:$.organization_id` CODEC(ZSTD(1)),
+    `RetentionDays` UInt16 `json:$.retention_days` CODEC(Delta, ZSTD(1)),
+    `IngestedAt` DateTime64(9) `json:$.ingested_at` CODEC(Delta(8), ZSTD(1)),
+    `EventId` String `json:$.event_id` CODEC(ZSTD(1)),
+    `Timestamp` DateTime64(9) `json:$.timestamp` CODEC(Delta(8), ZSTD(1)),
+    `StartTimestamp` Nullable(DateTime64(9)) `json:$.start_timestamp` CODEC(ZSTD(1)),
+    `MetricName` LowCardinality(String) `json:$.metric_name` CODEC(ZSTD(1)),
+    `Description` String `json:$.metric_description` CODEC(ZSTD(1)),
+    `Unit` LowCardinality(String) `json:$.metric_unit` CODEC(ZSTD(1)),
+    `MetricType` LowCardinality(String) `json:$.metric_type` CODEC(ZSTD(1)),
+    `AggregationTemporality` UInt8 `json:$.aggregation_temporality` CODEC(Delta, ZSTD(1)),
+    `IsMonotonic` UInt8 `json:$.is_monotonic` CODEC(Delta, ZSTD(1)),
+    `Value` Nullable(Float64) `json:$.value` CODEC(Gorilla, ZSTD(1)),
+    `ValueInt` Nullable(Int64) `json:$.value_int` CODEC(Delta, ZSTD(1)),
+    `Count` String `json:$.count` CODEC(ZSTD(1)),
+    `Sum` Nullable(Float64) `json:$.sum` CODEC(Gorilla, ZSTD(1)),
+    `Min` Nullable(Float64) `json:$.min` CODEC(Gorilla, ZSTD(1)),
+    `Max` Nullable(Float64) `json:$.max` CODEC(Gorilla, ZSTD(1)),
+    `BucketCounts` Array(String) `json:$.bucket_counts[:]` CODEC(ZSTD(1)),
+    `ExplicitBounds` Array(Float64) `json:$.explicit_bounds[:]` CODEC(ZSTD(1)),
+    `Scale` Int32 `json:$.scale` CODEC(Delta, ZSTD(1)),
+    `ZeroCount` String `json:$.zero_count` CODEC(ZSTD(1)),
+    `ZeroThreshold` Float64 `json:$.zero_threshold` CODEC(Gorilla, ZSTD(1)),
+    `PositiveOffset` Int32 `json:$.positive_offset` CODEC(Delta, ZSTD(1)),
+    `PositiveBucketCounts` Array(String) `json:$.positive_bucket_counts[:]` CODEC(ZSTD(1)),
+    `NegativeOffset` Int32 `json:$.negative_offset` CODEC(Delta, ZSTD(1)),
+    `NegativeBucketCounts` Array(String) `json:$.negative_bucket_counts[:]` CODEC(ZSTD(1)),
+    `Quantiles` Array(Float64) `json:$.quantiles[:]` CODEC(ZSTD(1)),
+    `QuantileValues` Array(Float64) `json:$.quantile_values[:]` CODEC(ZSTD(1)),
+    `Flags` UInt32 `json:$.flags` CODEC(Delta, ZSTD(1)),
+    `ServiceName` LowCardinality(String) `json:$.service_name` CODEC(ZSTD(1)),
+    `ServiceNamespace` LowCardinality(String) `json:$.service_namespace` CODEC(ZSTD(1)),
+    `ServiceVersion` LowCardinality(String) `json:$.service_version` CODEC(ZSTD(1)),
+    `Environment` LowCardinality(String) `json:$.environment` CODEC(ZSTD(1)),
+    `Region` LowCardinality(String) `json:$.region` CODEC(ZSTD(1)),
+    `ResourceAttributes` Map(LowCardinality(String), String) `json:$.resource_attributes` CODEC(ZSTD(1)),
+    `Attributes` Map(LowCardinality(String), String) `json:$.attributes` CODEC(ZSTD(1)),
+    `ScopeName` LowCardinality(String) `json:$.scope_name` CODEC(ZSTD(1)),
+    `ScopeVersion` LowCardinality(String) `json:$.scope_version` CODEC(ZSTD(1)),
+    `ScopeAttributes` Map(LowCardinality(String), String) `json:$.scope_attributes` CODEC(ZSTD(1)),
+    `ResourceSchemaUrl` String `json:$.resource_schema_url` CODEC(ZSTD(1)),
+    `ScopeSchemaUrl` String `json:$.scope_schema_url` CODEC(ZSTD(1))
+
+FORWARD_QUERY >
+    SELECT
+        OrganizationId,
+        RetentionDays,
+        IngestedAt,
+        EventId,
+        Timestamp,
+        StartTimestamp,
+        MetricName,
+        Description,
+        Unit,
+        MetricType,
+        AggregationTemporality,
+        IsMonotonic,
+        Value,
+        ValueInt,
+        CAST(Count, 'String') AS Count,
+        Sum,
+        Min,
+        Max,
+        CAST(BucketCounts, 'Array(String)') AS BucketCounts,
+        ExplicitBounds,
+        Scale,
+        CAST(ZeroCount, 'String') AS ZeroCount,
+        ZeroThreshold,
+        PositiveOffset,
+        CAST(PositiveBucketCounts, 'Array(String)') AS PositiveBucketCounts,
+        NegativeOffset,
+        CAST(NegativeBucketCounts, 'Array(String)') AS NegativeBucketCounts,
+        Quantiles,
+        QuantileValues,
+        Flags,
+        ServiceName,
+        ServiceNamespace,
+        ServiceVersion,
+        Environment,
+        Region,
+        ResourceAttributes,
+        Attributes,
+        ScopeName,
+        ScopeVersion,
+        ScopeAttributes,
+        ResourceSchemaUrl,
+        ScopeSchemaUrl
+
+ENGINE "ReplacingMergeTree"
+ENGINE_PARTITION_KEY "toDate(Timestamp)"
+ENGINE_SORTING_KEY "OrganizationId, Timestamp, MetricName, EventId"
+ENGINE_VER IngestedAt
+ENGINE_TTL "toDateTime(Timestamp) + toIntervalDay(RetentionDays)"
+ENGINE_SETTINGS index_granularity=8192
+
+INDEXES >
+    idx_event_id EventId TYPE bloom_filter(0.001) GRANULARITY 1,
+    idx_metric MetricName TYPE bloom_filter(0.01) GRANULARITY 1,
+    idx_service ServiceName TYPE bloom_filter(0.01) GRANULARITY 1,
+    idx_resource_attr_key mapKeys(ResourceAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,
+    idx_metric_attr_key mapKeys(Attributes) TYPE bloom_filter(0.01) GRANULARITY 1
