@@ -15,7 +15,7 @@ SQL >
         count() AS span_count,
         if(max(StatusCode) = 2, 'error', 'ok') AS status,
         argMin(HttpMethod, Timestamp) AS method
-    FROM otel_spans
+    FROM otel_spans FINAL
     WHERE OrganizationId = {{String(organization_id)}}
       AND Timestamp >= now() - INTERVAL {{Int32(hours, 1)}} HOUR
     GROUP BY TraceId
