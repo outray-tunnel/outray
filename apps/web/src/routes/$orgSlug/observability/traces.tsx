@@ -15,7 +15,7 @@ import {
   Panel,
   TimeRangeControl,
 } from "@/components/observability/observability-ui";
-import { traces, type TraceEvent } from "@/components/observability/mock-data";
+import type { TraceEvent } from "@/components/observability/mock-data";
 
 export const Route = createFileRoute("/$orgSlug/observability/traces")({
   head: () => ({ meta: [{ title: "Traces - OutRay Observability" }] }),
@@ -23,9 +23,84 @@ export const Route = createFileRoute("/$orgSlug/observability/traces")({
 });
 
 function TracesView() {
+  const { orgSlug } = Route.useParams();
   const [query, setQuery] = useState("");
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [selected, setSelected] = useState<TraceEvent | null>(null);
+  const [timeRange, setTimeRange] = useState("1h");
+  const [traces, setTraces] = useState<TraceEvent[]>([]);
+  const [statistics, setStatistics] = useState({
+    totalTraces: 0,
+    errorTraces: 0,
+    errorRate: 0,
+    p95Duration: 0,
+    longestDuration: 0,
+  });
+  const [distribution, setDistribution] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void fetch(`/api/${orgSlug}/observability/traces?range=${timeRange}`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Could not load traces");
+        return response.json() as Promise<{
+          traces: TraceEvent[];
+          statistics: typeof statistics;
+          distribution: Array<{ bucket: string; count: number }>;
+        }>;
+      })
+      .then((data) => {
+        setTraces(data.traces);
+        setStatistics(data.statistics);
+        setDistribution(
+          Object.fromEntries(data.distribution.map((item) => [item.bucket, item.count])),
+        );
+      })
+      .catch((requestError: unknown) => {
+        if (requestError instanceof DOMException && requestError.name === "AbortError") return;
+        setError("Trace data is temporarily unavailable.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [orgSlug, timeRange]);
+
+  function changeTimeRange(value: string) {
+    setLoading(true);
+    setError(null);
+    setTimeRange(value);
+  }
+
+  async function openTrace(trace: TraceEvent) {
+    setSelected(trace);
+    try {
+      const response = await fetch(
+        `/api/${orgSlug}/observability/traces/${encodeURIComponent(trace.id)}`,
+      );
+      if (!response.ok) return;
+      const data = (await response.json()) as {
+        spans: Array<{
+          name: string;
+          service: string;
+          duration: number;
+          offset: number;
+          status: "ok" | "error";
+        }>;
+      };
+      setSelected((current) =>
+        current?.id === trace.id ? { ...current, spans: data.spans } : current,
+      );
+    } catch {
+      // The summary remains usable if its span details cannot be loaded.
+    }
+  }
 
   const visibleTraces = useMemo(
     () =>
@@ -37,7 +112,7 @@ function TracesView() {
             trace.id.includes(query.toLowerCase()) ||
             trace.rootService.toLowerCase().includes(query.toLowerCase())),
       ),
-    [errorsOnly, query],
+    [errorsOnly, query, traces],
   );
 
   return (
@@ -45,15 +120,15 @@ function TracesView() {
       <ObservabilityHeader
         title="Traces"
         description="Follow requests across service boundaries and isolate the spans responsible for latency and failures."
-        action={<TimeRangeControl value="1h" />}
+        action={<TimeRangeControl value={timeRange} onChange={changeTimeRange} />}
       />
 
       <div className="grid gap-7 lg:grid-cols-4">
         {[
-          ["Total traces", "18.4K", "Last hour"],
-          ["Error traces", "134", "0.73% of total"],
-          ["P95 duration", "486ms", "Across all routes"],
-          ["Longest trace", "4.82s", "payment.completed"],
+          ["Total traces", statistics.totalTraces.toLocaleString(), `Last ${timeRange}`],
+          ["Error traces", statistics.errorTraces.toLocaleString(), `${statistics.errorRate}% of total`],
+          ["P95 duration", formatDuration(statistics.p95Duration), "Across all routes"],
+          ["Longest trace", formatDuration(statistics.longestDuration), `Last ${timeRange}`],
         ].map(([label, value, detail]) => (
           <div key={label} className="rounded-xl border border-white/[0.07] px-5 py-5 sm:px-6">
             <p className="text-[9px] font-medium uppercase tracking-[0.08em] text-zinc-700">{label}</p>
@@ -65,7 +140,10 @@ function TracesView() {
 
       <Panel title="Duration distribution" description="Trace count by end-to-end duration">
         <div className="grid grid-cols-8 items-end gap-2 px-5 pb-5 pt-8 sm:px-6">
-          {[78, 96, 84, 61, 44, 28, 16, 8].map((height, index) => (
+          {["<50", "50-100", "100-250", "250-500", "500-750", "750-1s", "1-2s", ">2s"].map((bucket, index, buckets) => {
+            const largest = Math.max(1, ...buckets.map((item) => distribution[item] || 0));
+            const height = ((distribution[bucket] || 0) / largest) * 100;
+            return (
             <div key={index} className="flex flex-col items-center gap-3">
               <div className="flex h-28 w-full items-end">
                 <div
@@ -73,11 +151,10 @@ function TracesView() {
                   style={{ height: `${height}%` }}
                 />
               </div>
-              <span className="text-[8px] text-zinc-800">
-                {["<50", "100", "250", "500", "750", "1s", "2s", ">2s"][index]}
-              </span>
+              <span className="text-[8px] text-zinc-800">{bucket}</span>
             </div>
-          ))}
+            );
+          })}
         </div>
       </Panel>
 
@@ -108,11 +185,20 @@ function TracesView() {
           <span>Trace</span><span>Root service</span><span>Started</span><span>Duration</span><span>Spans</span><span />
         </div>
         <div className="divide-y divide-white/[0.055]">
-          {visibleTraces.map((trace) => (
+          {loading && <TraceTableSkeleton />}
+          {!loading && error && (
+            <div className="px-6 py-12 text-center text-[11px] text-rose-400">{error}</div>
+          )}
+          {!loading && !error && visibleTraces.length === 0 && (
+            <div className="px-6 py-12 text-center text-[11px] text-zinc-700">
+              No traces received in this time range.
+            </div>
+          )}
+          {!loading && !error && visibleTraces.map((trace) => (
             <button
               key={trace.id}
               type="button"
-              onClick={() => setSelected(trace)}
+              onClick={() => void openTrace(trace)}
               className={`grid w-full gap-3 px-5 py-4 text-left transition-colors sm:px-6 lg:grid-cols-[minmax(0,1fr)_150px_110px_90px_80px_24px] lg:items-center lg:gap-4 ${
                 selected?.id === trace.id
                   ? "bg-white/[0.035]"
@@ -127,7 +213,7 @@ function TracesView() {
                 </div>
               </div>
               <span className="text-[10px] text-zinc-500">{trace.rootService}</span>
-              <span className="font-mono text-[9px] text-zinc-700">{trace.startedAt}</span>
+              <span className="font-mono text-[9px] text-zinc-700">{formatStartedAt(trace.startedAt)}</span>
               <span className={`font-mono text-[10px] ${trace.duration > 1000 ? "text-amber-400" : "text-zinc-500"}`}>
                 {formatDuration(trace.duration)}
               </span>
@@ -249,6 +335,11 @@ function TraceDetail({ trace, onClose }: { trace: TraceEvent | null; onClose: ()
                     <span className="text-right">Time</span>
                   </div>
                   <div className="divide-y divide-white/[0.055]">
+                    {trace.spans.length === 0 && (
+                      <div className="px-4 py-8 text-center text-[9px] text-zinc-700">
+                        Loading trace spans…
+                      </div>
+                    )}
                     {trace.spans.map((span, index) => {
                       const width = Math.max(3, (span.duration / trace.duration) * 100);
                       const left = (span.offset / trace.duration) * 100;
@@ -307,6 +398,46 @@ function TraceFact({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
+function TraceTableSkeleton() {
+  return (
+    <div className="divide-y divide-white/[0.055]" aria-label="Loading traces">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div
+          key={index}
+          className="grid animate-pulse gap-3 px-5 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_150px_110px_90px_80px_24px] lg:items-center lg:gap-4"
+        >
+          <div className="flex items-center gap-3">
+            <span className="size-1.5 rounded-full bg-white/[0.08]" />
+            <div className="space-y-2">
+              <div className="h-2.5 w-36 rounded bg-white/[0.06]" />
+              <div className="h-2 w-52 rounded bg-white/[0.035]" />
+            </div>
+          </div>
+          <div className="h-2.5 w-24 rounded bg-white/[0.05]" />
+          <div className="h-2.5 w-20 rounded bg-white/[0.04]" />
+          <div className="h-2.5 w-14 rounded bg-white/[0.04]" />
+          <div className="h-2.5 w-8 rounded bg-white/[0.04]" />
+          <div />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatStartedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    fractionalSecondDigits: 3,
+  });
+}
+
 function formatDuration(duration: number) {
-  return duration >= 1000 ? `${(duration / 1000).toFixed(2)}s` : `${duration}ms`;
+  if (!Number.isFinite(duration)) return "0ms";
+  return duration >= 1000
+    ? `${(duration / 1000).toFixed(2)}s`
+    : `${Math.round(duration * 100) / 100}ms`;
 }
