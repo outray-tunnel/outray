@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { hostname } from "node:os";
 import { Redis } from "ioredis";
-import type { TinybirdIngestClient, TinybirdSpanRecord } from "./tinybird.js";
 
-interface TraceQueueOptions {
+interface DurableQueueOptions<T> {
+  signalName: string;
   redisUrl: string;
   streamKey: string;
   deadLetterKey: string;
@@ -11,6 +11,7 @@ interface TraceQueueOptions {
   maxEntries: number;
   batchSize: number;
   maxDeliveryAttempts: number;
+  deliver: (records: T[]) => Promise<void>;
 }
 
 type StreamMessage = [id: string, fields: string[]];
@@ -25,14 +26,14 @@ function fieldValue(fields: string[], name: string): string | null {
   return null;
 }
 
-export class TraceQueue {
+export class DurableQueue<T> {
   private readonly producer: Redis;
   private readonly worker: Redis;
   private readonly consumer = `${hostname()}:${process.pid}:${randomUUID()}`;
   private stopping = false;
   private workerPromise: Promise<void> | null = null;
 
-  constructor(private readonly options: TraceQueueOptions) {
+  constructor(private readonly options: DurableQueueOptions<T>) {
     const shared = {
       lazyConnect: true,
       connectTimeout: 3_000,
@@ -47,14 +48,15 @@ export class TraceQueue {
     });
 
     this.producer.on("error", (error: Error) =>
-      console.error("Trace queue producer error", error),
+      console.error(`${options.signalName} queue producer error`, error),
     );
     this.worker.on("error", (error: Error) => {
-      if (!this.stopping) console.error("Trace queue worker error", error);
+      if (!this.stopping)
+        console.error(`${options.signalName} queue worker error`, error);
     });
   }
 
-  async enqueue(records: TinybirdSpanRecord[]): Promise<void> {
+  async enqueue(records: T[]): Promise<void> {
     if (records.length === 0) return;
     if (this.producer.status === "wait" || this.producer.status === "end") {
       await this.producer.connect();
@@ -62,7 +64,7 @@ export class TraceQueue {
 
     const queued = await this.producer.xlen(this.options.streamKey);
     if (queued >= this.options.maxEntries) {
-      throw new Error("Trace ingestion queue is full");
+      throw new Error(`${this.options.signalName} ingestion queue is full`);
     }
 
     const transaction = this.producer.multi();
@@ -76,31 +78,36 @@ export class TraceQueue {
     }
     const result = await transaction.exec();
     if (!result || result.some(([error]) => error)) {
-      throw new Error("Could not durably enqueue trace data");
+      throw new Error(
+        `Could not durably enqueue ${this.options.signalName} data`,
+      );
     }
   }
 
-  start(tinybird: TinybirdIngestClient): void {
+  start(): void {
     if (this.workerPromise) return;
-    this.workerPromise = this.run(tinybird).catch((error) => {
+    this.workerPromise = this.run().catch((error) => {
       if (!this.stopping)
-        console.error("Trace queue stopped unexpectedly", error);
+        console.error(
+          `${this.options.signalName} queue stopped unexpectedly`,
+          error,
+        );
     });
   }
 
-  private async run(tinybird: TinybirdIngestClient): Promise<void> {
+  private async run(): Promise<void> {
     while (!this.stopping) {
       try {
         if (this.worker.status === "wait" || this.worker.status === "end") {
           await this.worker.connect();
         }
         await this.createConsumerGroup();
-        await this.recoverStale(tinybird);
+        await this.recoverStale();
         let lastRecoveryAt = Date.now();
 
         while (!this.stopping) {
           if (Date.now() - lastRecoveryAt >= 30_000) {
-            await this.recoverStale(tinybird);
+            await this.recoverStale();
             lastRecoveryAt = Date.now();
           }
           const result = (await this.worker.xreadgroup(
@@ -117,11 +124,14 @@ export class TraceQueue {
           )) as [string, StreamMessage[]][] | null;
 
           const messages = result?.[0]?.[1] ?? [];
-          for (const message of messages) await this.deliver(message, tinybird);
+          for (const message of messages) await this.deliver(message);
         }
       } catch (error) {
         if (this.stopping) break;
-        console.error("Trace queue worker will retry", error);
+        console.error(
+          `${this.options.signalName} queue worker will retry`,
+          error,
+        );
         this.worker.disconnect(false);
         await sleep(2_000);
       }
@@ -143,7 +153,7 @@ export class TraceQueue {
     }
   }
 
-  private async recoverStale(tinybird: TinybirdIngestClient): Promise<void> {
+  private async recoverStale(): Promise<void> {
     let cursor = "0-0";
     do {
       const result = (await this.worker.xautoclaim(
@@ -156,24 +166,20 @@ export class TraceQueue {
         this.options.batchSize,
       )) as [string, StreamMessage[]];
       cursor = result[0];
-      for (const message of result[1] ?? [])
-        await this.deliver(message, tinybird);
+      for (const message of result[1] ?? []) await this.deliver(message);
     } while (!this.stopping && cursor !== "0-0");
   }
 
-  private async deliver(
-    [id, fields]: StreamMessage,
-    tinybird: TinybirdIngestClient,
-  ): Promise<void> {
+  private async deliver([id, fields]: StreamMessage): Promise<void> {
     const payload = fieldValue(fields, "payload");
     if (!payload) {
       await this.acknowledge(id);
       return;
     }
 
-    let records: TinybirdSpanRecord[];
+    let records: T[];
     try {
-      records = JSON.parse(payload) as TinybirdSpanRecord[];
+      records = JSON.parse(payload) as T[];
       if (!Array.isArray(records)) throw new Error("payload is not an array");
     } catch (error) {
       await this.deadLetter(id, payload, error);
@@ -186,7 +192,7 @@ export class TraceQueue {
       attempt++
     ) {
       try {
-        await tinybird.appendSpans(records);
+        await this.options.deliver(records);
         await this.acknowledge(id);
         return;
       } catch (error) {
@@ -215,7 +221,7 @@ export class TraceQueue {
     const message =
       error instanceof Error ? error.message : "Unknown delivery failure";
     console.error(
-      `Trace queue delivery failed permanently for ${id}: ${message}`,
+      `${this.options.signalName} queue delivery failed permanently for ${id}: ${message}`,
     );
     await this.worker
       .multi()
