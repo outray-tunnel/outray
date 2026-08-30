@@ -1,7 +1,7 @@
 import { parse, type Type } from "protobufjs";
 
 // The wire-compatible subset of opentelemetry-proto v1.7.0 required by the
-// traces Export service. Unknown future fields are safely ignored by protobuf.
+// traces, logs, and metrics Export services. Unknown future fields are ignored.
 const schema = String.raw`
 syntax = "proto3";
 
@@ -138,6 +138,129 @@ message ExportLogsPartialSuccess {
   int64 rejected_log_records = 1;
   string error_message = 2;
 }
+
+message ResourceMetrics {
+  Resource resource = 1;
+  repeated ScopeMetrics scope_metrics = 2;
+  string schema_url = 3;
+}
+message ScopeMetrics {
+  InstrumentationScope scope = 1;
+  repeated Metric metrics = 2;
+  string schema_url = 3;
+}
+message Metric {
+  string name = 1;
+  string description = 2;
+  string unit = 3;
+  oneof data {
+    Gauge gauge = 5;
+    Sum sum = 7;
+    Histogram histogram = 9;
+    ExponentialHistogram exponential_histogram = 10;
+    Summary summary = 11;
+  }
+  repeated KeyValue metadata = 12;
+}
+message Gauge { repeated NumberDataPoint data_points = 1; }
+message Sum {
+  repeated NumberDataPoint data_points = 1;
+  AggregationTemporality aggregation_temporality = 2;
+  bool is_monotonic = 3;
+}
+message Histogram {
+  repeated HistogramDataPoint data_points = 1;
+  AggregationTemporality aggregation_temporality = 2;
+}
+message ExponentialHistogram {
+  repeated ExponentialHistogramDataPoint data_points = 1;
+  AggregationTemporality aggregation_temporality = 2;
+}
+message Summary { repeated SummaryDataPoint data_points = 1; }
+enum AggregationTemporality {
+  AGGREGATION_TEMPORALITY_UNSPECIFIED = 0;
+  AGGREGATION_TEMPORALITY_DELTA = 1;
+  AGGREGATION_TEMPORALITY_CUMULATIVE = 2;
+}
+message NumberDataPoint {
+  repeated KeyValue attributes = 7;
+  fixed64 start_time_unix_nano = 2;
+  fixed64 time_unix_nano = 3;
+  oneof value {
+    double as_double = 4;
+    sfixed64 as_int = 6;
+  }
+  repeated Exemplar exemplars = 5;
+  uint32 flags = 8;
+}
+message HistogramDataPoint {
+  repeated KeyValue attributes = 9;
+  fixed64 start_time_unix_nano = 2;
+  fixed64 time_unix_nano = 3;
+  fixed64 count = 4;
+  optional double sum = 5;
+  repeated fixed64 bucket_counts = 6;
+  repeated double explicit_bounds = 7;
+  repeated Exemplar exemplars = 8;
+  uint32 flags = 10;
+  optional double min = 11;
+  optional double max = 12;
+}
+message ExponentialHistogramDataPoint {
+  repeated KeyValue attributes = 1;
+  fixed64 start_time_unix_nano = 2;
+  fixed64 time_unix_nano = 3;
+  fixed64 count = 4;
+  optional double sum = 5;
+  sint32 scale = 6;
+  fixed64 zero_count = 7;
+  Buckets positive = 8;
+  Buckets negative = 9;
+  uint32 flags = 10;
+  repeated Exemplar exemplars = 11;
+  optional double min = 12;
+  optional double max = 13;
+  double zero_threshold = 14;
+
+  message Buckets {
+    sint32 offset = 1;
+    repeated uint64 bucket_counts = 2;
+  }
+}
+message SummaryDataPoint {
+  repeated KeyValue attributes = 7;
+  fixed64 start_time_unix_nano = 2;
+  fixed64 time_unix_nano = 3;
+  fixed64 count = 4;
+  double sum = 5;
+  repeated ValueAtQuantile quantile_values = 6;
+  uint32 flags = 8;
+
+  message ValueAtQuantile {
+    double quantile = 1;
+    double value = 2;
+  }
+}
+message Exemplar {
+  repeated KeyValue filtered_attributes = 7;
+  fixed64 time_unix_nano = 2;
+  oneof value {
+    double as_double = 3;
+    sfixed64 as_int = 6;
+  }
+  bytes span_id = 4;
+  bytes trace_id = 5;
+}
+message ExportMetricsServiceRequest {
+  repeated ResourceMetrics resource_metrics = 1;
+}
+message ExportMetricsServiceResponse {
+  ExportMetricsPartialSuccess partial_success = 1;
+}
+message ExportMetricsPartialSuccess {
+  int64 rejected_data_points = 1;
+  string error_message = 2;
+}
 `;
 
 const root = parse(schema, { keepCase: false }).root;
@@ -146,6 +269,12 @@ const responseType = root.lookupType("outray.otlp.ExportTraceServiceResponse");
 const logsRequestType = root.lookupType("outray.otlp.ExportLogsServiceRequest");
 const logsResponseType = root.lookupType(
   "outray.otlp.ExportLogsServiceResponse",
+);
+const metricsRequestType = root.lookupType(
+  "outray.otlp.ExportMetricsServiceRequest",
+);
+const metricsResponseType = root.lookupType(
+  "outray.otlp.ExportMetricsServiceResponse",
 );
 
 function decode(type: Type, payload: Uint8Array): unknown {
@@ -165,6 +294,10 @@ export function decodeTraceRequest(payload: Uint8Array): unknown {
 
 export function decodeLogsRequest(payload: Uint8Array): unknown {
   return decode(logsRequestType, payload);
+}
+
+export function decodeMetricsRequest(payload: Uint8Array): unknown {
+  return decode(metricsRequestType, payload);
 }
 
 export function encodeTraceResponse(
@@ -195,4 +328,19 @@ export function encodeLogsResponse(
       }
     : {};
   return logsResponseType.encode(logsResponseType.create(value)).finish();
+}
+
+export function encodeMetricsResponse(
+  rejectedDataPoints: number,
+  errorMessage: string,
+): Uint8Array {
+  const value = rejectedDataPoints
+    ? {
+        partialSuccess: {
+          rejectedDataPoints: String(rejectedDataPoints),
+          errorMessage,
+        },
+      }
+    : {};
+  return metricsResponseType.encode(metricsResponseType.create(value)).finish();
 }
