@@ -1,0 +1,115 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Compares one metric across services using temporality-aware series rollups.
+
+NODE service_series
+SQL >
+    %
+    SELECT
+        ServiceName AS service,
+        cityHash64(
+            ServiceName,
+            toString(arrayMap(key -> (key, ResourceAttributes[key]), arraySort(mapKeys(ResourceAttributes)))),
+            toString(arrayMap(key -> (key, Attributes[key]), arraySort(mapKeys(Attributes)))),
+            ScopeName,
+            ScopeVersion,
+            toString(arrayMap(key -> (key, ScopeAttributes[key]), arraySort(mapKeys(ScopeAttributes))))
+        ) AS series_id,
+        MetricType AS type,
+        AggregationTemporality AS temporality,
+        max(Timestamp) AS last_seen,
+        count() AS raw_point_count,
+        argMax(Flags, Timestamp) AS latest_flags,
+        tupleElement(argMax(tuple(coalesce(Value, toFloat64(ValueInt))), Timestamp), 1) AS latest_scalar_value,
+        sumIf(ifNull(coalesce(Value, toFloat64(ValueInt)), 0), bitAnd(Flags, 1) = 0) AS delta_scalar_value,
+        tupleElement(argMax(tuple(Sum), Timestamp), 1) AS latest_distribution_sum,
+        argMax(toUInt64(Count), Timestamp) AS latest_distribution_count,
+        sumIf(ifNull(Sum, 0), bitAnd(Flags, 1) = 0 AND Sum IS NOT NULL) AS delta_distribution_sum,
+        sumIf(toUInt64(Count), bitAnd(Flags, 1) = 0) AS delta_distribution_count,
+        countIf(bitAnd(Flags, 1) = 0 AND toUInt64(Count) > 0 AND Sum IS NULL) AS delta_missing_sum_count
+    FROM otel_metrics FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND MetricName = {{String(metric_name)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 1)}} HOUR
+    {% if defined(service) %}
+      AND ServiceName = {{String(service)}}
+    {% end %}
+    {% if defined(metric_type) %}
+      AND MetricType = {{String(metric_type)}}
+    {% end %}
+    {% if defined(metric_unit) %}
+      AND Unit = if({{String(metric_unit)}} = '__outray_empty__', '', {{String(metric_unit)}})
+    {% end %}
+    {% if defined(aggregation_temporality) %}
+      AND AggregationTemporality = {{UInt8(aggregation_temporality)}}
+    {% end %}
+    {% if defined(is_monotonic) %}
+      AND IsMonotonic = {{UInt8(is_monotonic)}}
+    {% end %}
+    GROUP BY ServiceName, series_id, MetricType, AggregationTemporality
+
+NODE service_values
+SQL >
+    %
+    SELECT
+        service,
+        series_id,
+        type,
+        temporality,
+        last_seen AS series_last_seen,
+        raw_point_count,
+        if(
+            bitAnd(latest_flags, 1) = 1,
+            CAST(NULL, 'Nullable(Float64)'),
+            multiIf(
+                type = 'gauge', latest_scalar_value,
+                type = 'sum' AND temporality = 1, delta_scalar_value,
+                type = 'sum', latest_scalar_value,
+                CAST(NULL, 'Nullable(Float64)')
+            )
+        ) AS scalar_value,
+        if(
+            bitAnd(latest_flags, 1) = 1,
+            CAST(NULL, 'Nullable(Float64)'),
+            if(temporality = 1, delta_distribution_sum, latest_distribution_sum)
+        ) AS distribution_sum,
+        if(
+            bitAnd(latest_flags, 1) = 1,
+            0,
+            if(temporality = 1, delta_distribution_count, latest_distribution_count)
+        ) AS distribution_count,
+        if(temporality = 1, delta_missing_sum_count, latest_distribution_sum IS NULL) AS missing_sum_count
+    FROM service_series
+
+NODE services
+SQL >
+    %
+    SELECT
+        service,
+        type,
+        max(series_last_seen) AS last_seen,
+        sum(raw_point_count) AS count,
+        multiIf(
+            type = 'gauge' AND count(scalar_value) > 0, avg(scalar_value),
+            type = 'sum' AND count(scalar_value) > 0, sum(scalar_value),
+            type IN ('histogram', 'exponential_histogram') AND sum(distribution_count) > 0 AND sum(missing_sum_count) > 0,
+                toFloat64(sum(distribution_count)),
+            type IN ('histogram', 'exponential_histogram', 'summary') AND sum(distribution_count) > 0,
+                sum(ifNull(distribution_sum, 0)) / sum(distribution_count),
+            CAST(NULL, 'Nullable(Float64)')
+        ) AS value,
+        multiIf(
+            type = 'gauge', 'latest',
+            type = 'sum' AND max(temporality) = 1, 'delta_sum',
+            type = 'sum', 'cumulative',
+            type IN ('histogram', 'exponential_histogram') AND sum(missing_sum_count) > 0, 'count',
+            type IN ('histogram', 'exponential_histogram', 'summary'), 'mean',
+            'value'
+        ) AS aggregation
+    FROM service_values
+    GROUP BY service, type
+    ORDER BY value DESC, service ASC
+    LIMIT {{Int32(limit, 250)}}
+
+TYPE endpoint
