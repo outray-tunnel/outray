@@ -1,0 +1,45 @@
+TOKEN OUTRAY_INGEST_TOKEN APPEND
+
+DESCRIPTION >
+    OpenTelemetry log records accepted by the OutRay ingestion gateway.
+
+SCHEMA >
+    `OrganizationId` LowCardinality(String) `json:$.organization_id` CODEC(ZSTD(1)),
+    `RetentionDays` UInt16 `json:$.retention_days` CODEC(Delta, ZSTD(1)),
+    `IngestedAt` DateTime64(9) `json:$.ingested_at` CODEC(Delta(8), ZSTD(1)),
+    `EventId` String `json:$.event_id` CODEC(ZSTD(1)),
+    `Timestamp` DateTime64(9) `json:$.timestamp` CODEC(Delta(8), ZSTD(1)),
+    `ObservedTimestamp` DateTime64(9) `json:$.observed_timestamp` CODEC(Delta(8), ZSTD(1)),
+    `SeverityNumber` UInt8 `json:$.severity_number` CODEC(Delta, ZSTD(1)),
+    `SeverityText` LowCardinality(String) `json:$.severity_text` CODEC(ZSTD(1)),
+    `SeverityLevel` LowCardinality(String) `json:$.severity_level` CODEC(ZSTD(1)),
+    `Body` String `json:$.body` CODEC(ZSTD(1)),
+    `EventName` LowCardinality(String) `json:$.event_name` CODEC(ZSTD(1)),
+    `TraceId` String `json:$.trace_id` CODEC(ZSTD(1)),
+    `SpanId` String `json:$.span_id` CODEC(ZSTD(1)),
+    `Flags` UInt32 `json:$.flags` CODEC(Delta, ZSTD(1)),
+    `ServiceName` LowCardinality(String) `json:$.service_name` CODEC(ZSTD(1)),
+    `ServiceNamespace` LowCardinality(String) `json:$.service_namespace` CODEC(ZSTD(1)),
+    `ServiceVersion` LowCardinality(String) `json:$.service_version` CODEC(ZSTD(1)),
+    `Environment` LowCardinality(String) `json:$.environment` CODEC(ZSTD(1)),
+    `Region` LowCardinality(String) `json:$.region` CODEC(ZSTD(1)),
+    `ScopeName` LowCardinality(String) `json:$.scope_name` CODEC(ZSTD(1)),
+    `ScopeVersion` LowCardinality(String) `json:$.scope_version` CODEC(ZSTD(1)),
+    `ResourceAttributes` Map(LowCardinality(String), String) `json:$.resource_attributes` CODEC(ZSTD(1)),
+    `LogAttributes` Map(LowCardinality(String), String) `json:$.log_attributes` CODEC(ZSTD(1)),
+    `ScopeAttributes` Map(LowCardinality(String), String) `json:$.scope_attributes` CODEC(ZSTD(1))
+
+ENGINE "ReplacingMergeTree"
+ENGINE_PARTITION_KEY "toDate(Timestamp)"
+ENGINE_SORTING_KEY "OrganizationId, Timestamp, EventId"
+ENGINE_VER IngestedAt
+ENGINE_TTL "toDateTime(Timestamp) + toIntervalDay(RetentionDays)"
+ENGINE_SETTINGS index_granularity=8192
+
+INDEXES >
+    idx_event_id EventId TYPE bloom_filter(0.001) GRANULARITY 1,
+    idx_trace_id TraceId TYPE bloom_filter(0.001) GRANULARITY 1,
+    idx_service ServiceName TYPE bloom_filter(0.01) GRANULARITY 1,
+    idx_body Body TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 8,
+    idx_log_attr_key mapKeys(LogAttributes) TYPE bloom_filter(0.01) GRANULARITY 1,
+    idx_log_attr_value mapValues(LogAttributes) TYPE bloom_filter(0.01) GRANULARITY 1
