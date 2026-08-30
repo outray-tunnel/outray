@@ -67,8 +67,21 @@ function integerString(value: unknown): string | null {
 function identifier(value: unknown, length: number): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.toLowerCase();
-  if (normalized.length !== length || !/^[0-9a-f]+$/.test(normalized)) return null;
-  return /^0+$/.test(normalized) ? null : normalized;
+  if (normalized.length === length && /^[0-9a-f]+$/.test(normalized)) {
+    return /^0+$/.test(normalized) ? null : normalized;
+  }
+
+  try {
+    const bytes = Buffer.from(value, "base64");
+    const expectedBytes = length / 2;
+    if (bytes.byteLength !== expectedBytes) return null;
+    const canonical = bytes.toString("base64").replace(/=+$/, "");
+    if (canonical !== value.replace(/=+$/, "")) return null;
+    const hex = bytes.toString("hex");
+    return /^0+$/.test(hex) ? null : hex;
+  } catch {
+    return null;
+  }
 }
 
 function nanoDate(value: string): Date | null {
