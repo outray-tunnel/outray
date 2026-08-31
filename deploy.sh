@@ -25,6 +25,7 @@ ALERT_EVALUATION_RETENTION_DAYS="${ALERT_EVALUATION_RETENTION_DAYS:-30}"
 DATABASE_SSL_REJECT_UNAUTHORIZED="${DATABASE_SSL_REJECT_UNAUTHORIZED:-true}"
 
 # Tunnel Server Config
+BASE_DOMAIN="${BASE_DOMAIN:-outray.app}"
 BLUE_PORT=3547
 GREEN_PORT=3548
 BLUE_NAME="outray-blue"
@@ -86,7 +87,7 @@ echo "🔵 Current active: $CURRENT_COLOR (or none)"
 echo "🟢 Deploying to: $TARGET_COLOR (Tunnel Server: $TARGET_NAME on Port $TARGET_PORT)"
 
 # 1. Start Tunnel Server
-BASE_DOMAIN="outray.app" \
+BASE_DOMAIN="$BASE_DOMAIN" \
 WEB_API_URL="https://outray.dev/api" \
 PORT=$TARGET_PORT \
 REDIS_URL="$REDIS_URL" \
@@ -173,11 +174,29 @@ echo "✅ Tunnel server is running."
 # 2. Update Caddyfile (Web will be handled by Vercel)
 echo "🔄 Updating Caddyfile..."
 
-cat > $CADDYFILE <<EOF
+if [ ! -r /etc/caddy/cloudflare.env ]; then
+  echo "❌ /etc/caddy/cloudflare.env is required for wildcard certificate renewal." >&2
+  exit 1
+fi
+
+set -a
+. /etc/caddy/cloudflare.env
+set +a
+
+CADDYFILE_CANDIDATE="${CADDYFILE}.next"
+cat > "$CADDYFILE_CANDIDATE" <<EOF
 {
     on_demand_tls {
-        ask http://localhost:3001/internal/domain-check
+        ask http://127.0.0.1:3001/internal/domain-check
     }
+}
+
+*.${BASE_DOMAIN} {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+
+    reverse_proxy 127.0.0.1:$TARGET_PORT
 }
 
 :443 {
@@ -185,9 +204,13 @@ cat > $CADDYFILE <<EOF
         on_demand
     }
 
-    reverse_proxy localhost:$TARGET_PORT
+    reverse_proxy 127.0.0.1:$TARGET_PORT
 }
 EOF
+
+caddy fmt --overwrite "$CADDYFILE_CANDIDATE"
+caddy validate --config "$CADDYFILE_CANDIDATE"
+mv "$CADDYFILE_CANDIDATE" "$CADDYFILE"
 
 # 3. Reload Caddy
 echo "🔄 Reloading Caddy..."
