@@ -110,6 +110,9 @@ npm run lint                # Every workspace with a lint task
 npm run dev --workspace=outray  # CLI compiler in watch mode
 ```
 
+Production migration ordering, Tinybird deployment credentials, and alert
+runtime variables are documented in [deploy/README.md](deploy/README.md).
+
 ## Code Style
 
 - Use TypeScript
