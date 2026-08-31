@@ -131,12 +131,11 @@ test(
 
     await assert.rejects(
       () =>
-        entries.createSecret(
-          member,
-          "integration-service",
-          "production",
-          { key: "blocked", value: "value", expectedRevision: 0 },
-        ),
+        entries.createSecret(member, "integration-service", "production", {
+          key: "blocked",
+          value: "value",
+          expectedRevision: 0,
+        }),
       (error: unknown) =>
         error instanceof Error &&
         "code" in error &&
@@ -259,40 +258,26 @@ test(
       name: "Multi target",
       slug: "multi-target",
     });
-    await entries.createSecret(
-      member,
-      "integration-service",
-      "multi-target",
-      { key: "TARGET_REVISION", value: "one", expectedRevision: 0 },
-    );
+    await entries.createSecret(member, "integration-service", "multi-target", {
+      key: "TARGET_REVISION",
+      value: "one",
+      expectedRevision: 0,
+    });
     await assert.rejects(
       () =>
-        entries.createSecret(
-          member,
-          "integration-service",
-          "multi-base",
-          {
-            key: "ATOMIC_MULTI",
-            value: "must not persist",
-            environmentSlugs: ["multi-base", "multi-target"],
-            expectedRevision: 0,
-            expectedRevisions: { "multi-base": 0, "multi-target": 0 },
-          },
-        ),
+        entries.createSecret(member, "integration-service", "multi-base", {
+          key: "ATOMIC_MULTI",
+          value: "must not persist",
+          environmentSlugs: ["multi-base", "multi-target"],
+          expectedRevision: 0,
+          expectedRevisions: { "multi-base": 0, "multi-target": 0 },
+        }),
       hasCode("REVISION_CONFLICT"),
     );
     const [multiBaseAfterConflict, multiTargetAfterConflict] =
       await Promise.all([
-        entries.listSecrets(
-          member,
-          "integration-service",
-          "multi-base",
-        ),
-        entries.listSecrets(
-          member,
-          "integration-service",
-          "multi-target",
-        ),
+        entries.listSecrets(member, "integration-service", "multi-base"),
+        entries.listSecrets(member, "integration-service", "multi-target"),
       ]);
     assert.equal(multiBaseAfterConflict.environment.revision, 0);
     assert.equal(multiBaseAfterConflict.secrets.length, 0);
@@ -474,20 +459,12 @@ test(
     const purgedEntries = await db
       .select({ id: secretsSchema.secretEntries.id })
       .from(secretsSchema.secretEntries)
-      .where(
-        eq(
-          secretsSchema.secretEntries.id,
-          replacement.secrets[0].id,
-        ),
-      );
+      .where(eq(secretsSchema.secretEntries.id, replacement.secrets[0].id));
     const purgedVersions = await db
       .select({ id: secretsSchema.secretVersions.id })
       .from(secretsSchema.secretVersions)
       .where(
-        eq(
-          secretsSchema.secretVersions.entryId,
-          replacement.secrets[0].id,
-        ),
+        eq(secretsSchema.secretVersions.entryId, replacement.secrets[0].id),
       );
     assert.equal(purgedEntries.length, 0);
     assert.equal(purgedVersions.length, 0);
@@ -694,9 +671,7 @@ test(
           expiresIn: "30d",
         }),
       (error: unknown) =>
-        error instanceof Error &&
-        "code" in error &&
-        error.code === "NOT_FOUND",
+        error instanceof Error && "code" in error && error.code === "NOT_FOUND",
     );
 
     const foreignAccess = accessFor({
@@ -953,12 +928,14 @@ test(
       "security-service",
       "development",
     );
-    assert.deepEqual(firstMetadata.secrets.map((secret) => secret.key), [
-      "FIRST_ORG_ONLY",
-    ]);
-    assert.deepEqual(foreignMetadata.secrets.map((secret) => secret.key), [
-      "FOREIGN_ORG_ONLY",
-    ]);
+    assert.deepEqual(
+      firstMetadata.secrets.map((secret) => secret.key),
+      ["FIRST_ORG_ONLY"],
+    );
+    assert.deepEqual(
+      foreignMetadata.secrets.map((secret) => secret.key),
+      ["FOREIGN_ORG_ONLY"],
+    );
     await assert.rejects(
       () =>
         entries.revealSecret(
@@ -973,12 +950,11 @@ test(
 
     await assert.rejects(
       () =>
-        entries.createSecret(
-          member,
-          "security-service",
-          "production",
-          { key: "PRODUCTION_VALUE", value: "v1", expectedRevision: 0 },
-        ),
+        entries.createSecret(member, "security-service", "production", {
+          key: "PRODUCTION_VALUE",
+          value: "v1",
+          expectedRevision: 0,
+        }),
       hasCode("PRODUCTION_CONFIRMATION_REQUIRED"),
     );
     const productionSecret = await entries.createSecret(
@@ -1173,9 +1149,10 @@ test(
       "security-service",
       "development",
     );
-    assert.deepEqual(machineMetadata.secrets.map((secret) => secret.key), [
-      "FIRST_ORG_ONLY",
-    ]);
+    assert.deepEqual(
+      machineMetadata.secrets.map((secret) => secret.key),
+      ["FIRST_ORG_ONLY"],
+    );
     await assert.rejects(
       () =>
         secretsAccess.requireSecretsAccess(
@@ -1204,12 +1181,7 @@ test(
       hasCode("FORBIDDEN"),
     );
     await assert.rejects(
-      () =>
-        entries.listSecrets(
-          readAccess,
-          "security-service",
-          "production",
-        ),
+      () => entries.listSecrets(readAccess, "security-service", "production"),
       hasCode("FORBIDDEN"),
     );
 
@@ -1280,9 +1252,10 @@ test(
       "security-service",
       "development",
     );
-    assert.deepEqual(cliMetadata.secrets.map((secret) => secret.key), [
-      "FIRST_ORG_ONLY",
-    ]);
+    assert.deepEqual(
+      cliMetadata.secrets.map((secret) => secret.key),
+      ["FIRST_ORG_ONLY"],
+    );
     const [usedCliCredential] = await db
       .select({ lastUsedAt: authSchema.cliOrgTokens.lastUsedAt })
       .from(authSchema.cliOrgTokens)
@@ -1306,14 +1279,17 @@ test(
     };
     await db.insert(appSchema.authTokens).values(legacyCredential);
     const legacyResponse = await tunnelAuthPost({
-      request: new Request("http://tunnel.integration.invalid/api/tunnel/auth", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "cf-connecting-ip": "203.0.113.10",
+      request: new Request(
+        "http://tunnel.integration.invalid/api/tunnel/auth",
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "cf-connecting-ip": "203.0.113.10",
+          },
+          body: JSON.stringify({ token: legacyCredential.token }),
         },
-        body: JSON.stringify({ token: legacyCredential.token }),
-      }),
+      ),
     });
     const legacyPayload = (await legacyResponse.json()) as {
       valid?: unknown;
@@ -1352,21 +1328,26 @@ test(
     );
     assert.deepEqual(backfilledLegacyCredential.scopes, ["tunnel:connect"]);
 
-    const tunnelMachineCredential =
-      await governance.createSecretsMachineToken(owner, {
+    const tunnelMachineCredential = await governance.createSecretsMachineToken(
+      owner,
+      {
         name: "Machine tunnel integration token",
         scopes: ["tunnel:connect"],
         expiresIn: "30d",
-      });
+      },
+    );
     const tunnelMachineResponse = await tunnelAuthPost({
-      request: new Request("http://tunnel.integration.invalid/api/tunnel/auth", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "cf-connecting-ip": "203.0.113.10",
+      request: new Request(
+        "http://tunnel.integration.invalid/api/tunnel/auth",
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "cf-connecting-ip": "203.0.113.10",
+          },
+          body: JSON.stringify({ token: tunnelMachineCredential.token }),
         },
-        body: JSON.stringify({ token: tunnelMachineCredential.token }),
-      }),
+      ),
     });
     const tunnelMachinePayload = (await tunnelMachineResponse.json()) as {
       valid?: unknown;
@@ -1441,6 +1422,9 @@ test(
       { confirmation: "FIRST_ORG_ONLY", expectedRevision: 1 },
     );
 
-    assert.notEqual(foreignSecret.secrets[0].id, firstOrganizationSecret.secrets[0].id);
+    assert.notEqual(
+      foreignSecret.secrets[0].id,
+      firstOrganizationSecret.secrets[0].id,
+    );
   },
 );
