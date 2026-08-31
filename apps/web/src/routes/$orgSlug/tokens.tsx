@@ -12,6 +12,7 @@ import {
 import { CreateTokenModal } from "@/components/create-token-modal";
 import { ConfirmModal } from "@/components/confirm-modal";
 import { appClient } from "@/lib/app-client";
+import type { AuthToken } from "@/lib/app-client";
 import { WorkspacePageHeader } from "@/components/workspace-page-header";
 
 export const Route = createFileRoute("/$orgSlug/tokens")({
@@ -21,21 +22,13 @@ export const Route = createFileRoute("/$orgSlug/tokens")({
   component: TokensSettingsView,
 });
 
-interface AuthToken {
-  id: string;
-  name: string;
-  lastUsedAt: string | null;
-  createdAt: string;
-  token?: string; // Only present when just created
-}
-
 function TokensSettingsView() {
   const { orgSlug } = Route.useParams();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [tokenToDelete, setTokenToDelete] = useState<string | null>(null);
 
-  const { data: tokens, isLoading } = useQuery({
+  const { data: tokens, isLoading, error } = useQuery({
     queryKey: ["auth-tokens", orgSlug],
     queryFn: async () => {
       if (!orgSlug) return [];
@@ -43,11 +36,7 @@ function TokensSettingsView() {
       if ("error" in response) {
         throw new Error(response.error);
       }
-      return response.tokens.map((token) => ({
-        ...token,
-        createdAt: token.createdAt.toString(),
-        lastUsedAt: token.lastUsedAt ? token.lastUsedAt.toString() : null,
-      })) as AuthToken[];
+      return response.tokens as AuthToken[];
     },
     enabled: !!orgSlug,
   });
@@ -77,7 +66,7 @@ function TokensSettingsView() {
           <button
             type="button"
             onClick={() => setIsCreating(true)}
-            className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-white px-3.5 text-[12px] font-medium text-black transition-colors hover:bg-zinc-200"
+            className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-zinc-200"
           >
             <HugeiconsIcon icon={Add01Icon} size={15} strokeWidth={1.9} />
             <span className="hidden sm:inline">New token</span>
@@ -98,16 +87,17 @@ function TokensSettingsView() {
             deleteMutation.mutate(tokenToDelete);
           }
         }}
-        title="Delete API Token"
-        message="Are you sure you want to delete this token? This action cannot be undone and any applications using this token will stop working."
-        confirmText="Delete Token"
+        title="Revoke API token"
+        message="This immediately stops every tunnel, deployment, and Secrets client using this credential. It cannot be made active again."
+        confirmText="Revoke token"
         isDestructive
       />
 
-      <section className="rounded-xl border border-white/[0.07]">
-        <div className="hidden grid-cols-[minmax(0,1fr)_160px_120px_32px] gap-4 border-b border-white/[0.07] px-5 py-3 text-[9px] font-medium uppercase tracking-[0.1em] text-zinc-700 sm:px-6 md:grid">
+      <section className="overflow-hidden rounded-2xl border border-white/[0.08]">
+        <div className="hidden grid-cols-[minmax(0,1.2fr)_minmax(180px,1fr)_130px_130px_40px] gap-5 border-b border-white/[0.08] px-6 py-3.5 text-[13px] font-medium uppercase tracking-[0.08em] text-zinc-600 lg:grid">
           <span>Token</span>
-          <span>Created</span>
+          <span>Access</span>
+          <span>Expires</span>
           <span>Last used</span>
           <span />
         </div>
@@ -117,7 +107,7 @@ function TokensSettingsView() {
             {[0, 1, 2, 3].map((row) => (
               <div
                 key={row}
-                className="grid animate-pulse gap-3 px-5 py-5 sm:px-6 md:grid-cols-[minmax(0,1fr)_160px_120px_32px] md:items-center md:gap-4"
+                className="grid animate-pulse gap-4 px-6 py-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(180px,1fr)_130px_130px_40px] lg:items-center lg:gap-5"
               >
                 <div className="flex items-center gap-3">
                   <div className="size-9 shrink-0 rounded-lg bg-white/[0.05]" />
@@ -126,11 +116,27 @@ function TokensSettingsView() {
                     <div className="mt-2 h-2.5 w-24 rounded bg-white/[0.04]" />
                   </div>
                 </div>
+                <div className="h-7 w-40 rounded-lg bg-white/[0.04]" />
                 <div className="h-2.5 w-20 rounded bg-white/[0.04]" />
                 <div className="h-2.5 w-14 rounded bg-white/[0.04]" />
                 <div className="size-8 rounded-lg bg-white/[0.035]" />
               </div>
             ))}
+          </div>
+        ) : error ? (
+          <div className="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
+            <HugeiconsIcon
+              icon={Key01Icon}
+              size={27}
+              strokeWidth={1.5}
+              className="mb-4 text-zinc-700"
+            />
+            <h3 className="text-sm font-medium text-zinc-300">
+              Token management is restricted
+            </h3>
+            <p className="mt-2 max-w-sm text-sm leading-6 text-zinc-600">
+              {error.message}
+            </p>
           </div>
         ) : tokens?.length === 0 ? (
           <div className="flex min-h-64 flex-col items-center justify-center py-12 text-center">
@@ -141,8 +147,8 @@ function TokensSettingsView() {
               className="mb-4 text-zinc-700"
             />
             <h3 className="text-sm font-medium text-zinc-300">No API tokens</h3>
-            <p className="mt-2 max-w-sm text-xs text-zinc-700">
-              Create a token to authenticate the CLI or your own integrations.
+            <p className="mt-2 max-w-sm text-sm text-zinc-700">
+              Create a scoped credential for tunnels, Secrets, or automation.
             </p>
           </div>
         ) : (
@@ -150,7 +156,7 @@ function TokensSettingsView() {
             {tokens?.map((token) => (
               <div
                 key={token.id}
-                className="grid gap-3 px-5 py-5 sm:px-6 md:grid-cols-[minmax(0,1fr)_160px_120px_32px] md:items-center md:gap-4"
+                className="grid gap-4 px-6 py-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(180px,1fr)_130px_130px_40px] lg:items-center lg:gap-5"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/[0.035] text-zinc-600">
@@ -161,22 +167,43 @@ function TokensSettingsView() {
                     />
                   </span>
                   <div className="min-w-0">
-                    <h3 className="truncate text-xs font-medium text-zinc-300">
+                    <h3 className="truncate text-sm font-medium text-zinc-300">
                       {token.name}
                     </h3>
-                    <p className="mt-1 font-mono text-[10px] text-zinc-700">
-                      outray_••••••••
+                    <p className="mt-1 font-mono text-[13px] text-zinc-600">
+                      {token.prefix}••••••••
                     </p>
                   </div>
                 </div>
-                <p className="text-[11px] text-zinc-600">
-                  <span className="mr-2 text-zinc-700 md:hidden">Created</span>
-                  {formatDistanceToNow(new Date(token.createdAt), {
-                    addSuffix: true,
-                  })}
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="rounded-lg border border-white/[0.08] bg-white/[0.025] px-2.5 py-1.5 text-[13px] font-medium text-zinc-500">
+                    {token.environmentId
+                      ? "Environment"
+                      : token.projectId
+                        ? "Project"
+                        : "Organization"}
+                  </span>
+                  {token.scopes.map((scope) => (
+                    <span
+                      key={scope}
+                      className="rounded-lg border border-white/[0.08] bg-white/[0.025] px-2.5 py-1.5 text-[13px] text-zinc-600"
+                    >
+                      {scope.replace("tunnel:", "").replace("secrets:", "")}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[13px] text-zinc-600">
+                  <span className="mr-2 text-zinc-700 lg:hidden">Expires</span>
+                  {token.revokedAt
+                    ? "Revoked"
+                    : token.expiresAt
+                      ? formatDistanceToNow(new Date(token.expiresAt), {
+                          addSuffix: true,
+                        })
+                      : "Never"}
                 </p>
-                <p className="text-[11px] text-zinc-600">
-                  <span className="mr-2 text-zinc-700 md:hidden">
+                <p className="text-[13px] text-zinc-600">
+                  <span className="mr-2 text-zinc-700 lg:hidden">
                     Last used
                   </span>
                   {token.lastUsedAt
@@ -188,9 +215,9 @@ function TokensSettingsView() {
                 <button
                   type="button"
                   onClick={() => setTokenToDelete(token.id)}
-                  disabled={deleteMutation.isPending}
-                  className="flex size-8 items-center justify-center rounded-md text-zinc-700 transition-colors hover:bg-red-500/[0.08] hover:text-red-400 disabled:opacity-40"
-                  aria-label={`Delete ${token.name}`}
+                  disabled={deleteMutation.isPending || !!token.revokedAt}
+                  className="flex size-9 items-center justify-center rounded-lg text-zinc-600 transition-colors hover:bg-red-500/[0.08] hover:text-red-400 disabled:opacity-30"
+                  aria-label={`Revoke ${token.name}`}
                 >
                   <HugeiconsIcon
                     icon={
