@@ -1,10 +1,68 @@
-import { INestApplication } from "@nestjs/common";
-import { OutrayClient, LocalAccessManager } from "@outray/core";
-import { OutrayPluginOptions } from "./types";
+import type { INestApplication } from "@nestjs/common";
+import {
+  OutrayClient,
+  LocalAccessManager,
+  createNodeHttpPayloadCaptureMiddleware,
+} from "@outray/core";
+import type { OutrayPayloadCaptureOptions, OutrayPluginOptions } from "./types";
 
 const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
 
 let localAccess: LocalAccessManager | null = null;
+const captureRegisteredApps = new WeakSet<INestApplication>();
+
+function installPayloadCapture(
+  app: INestApplication,
+  captureOptions: OutrayPayloadCaptureOptions,
+  silent: boolean,
+): boolean {
+  if (captureRegisteredApps.has(app)) return true;
+
+  try {
+    const adapterType = app.getHttpAdapter()?.getType?.();
+    if (adapterType && adapterType !== "express") {
+      if (!silent) {
+        console.warn(
+          `[Outray] Payload capture currently supports Nest's Express adapter; skipping ${adapterType}.`,
+        );
+      }
+      return false;
+    }
+
+    const httpServer = app.getHttpServer?.() as
+      | { listening?: boolean }
+      | undefined;
+    const initialized = (app as INestApplication & { isInitialized?: boolean })
+      .isInitialized;
+    if (httpServer?.listening || initialized) {
+      if (!silent) {
+        console.warn(
+          "[Outray] Payload capture must be registered before app.listen(). Call registerOutrayPayloadCapture(app) during bootstrap.",
+        );
+      }
+      return false;
+    }
+
+    app.use(createNodeHttpPayloadCaptureMiddleware(captureOptions));
+    captureRegisteredApps.add(app);
+    return true;
+  } catch (error) {
+    if (!silent) {
+      console.warn(
+        `[Outray] Payload capture could not be installed: ${error instanceof Error ? error.message : "unknown error"}`,
+      );
+    }
+    return false;
+  }
+}
+
+/** Register payload capture before `app.listen()` so it precedes controllers. */
+export function registerOutrayPayloadCapture(
+  app: INestApplication,
+  captureOptions: OutrayPayloadCaptureOptions = true,
+): boolean {
+  return installPayloadCapture(app, captureOptions, false);
+}
 
 /**
  * Expose your NestJS application via an Outray tunnel.
@@ -20,7 +78,13 @@ export async function outray(
     enabled = process.env.NODE_ENV !== "production",
     silent = false,
     local = false,
+    capturePayloads,
   } = options;
+
+  // Capture is opt-in and is useful in production even when the tunnel is off.
+  if (capturePayloads !== undefined && capturePayloads !== false) {
+    installPayloadCapture(app, capturePayloads, silent);
+  }
 
   if (!enabled) {
     return;
@@ -160,4 +224,4 @@ export async function outray(
   process.on("exit", cleanup);
 }
 
-export { OutrayPluginOptions };
+export type { OutrayPayloadCaptureOptions, OutrayPluginOptions };
