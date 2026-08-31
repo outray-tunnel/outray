@@ -26,7 +26,7 @@ export function assertActorScope(
 ) {
   if (actor.type !== "machine") return;
   if (actor.projectId && actor.projectId !== input.projectId) {
-    throw new SecretsError("Machine token is not scoped to this project", {
+    throw new SecretsError("Machine token is not scoped to this vault", {
       code: "FORBIDDEN",
       status: 403,
     });
