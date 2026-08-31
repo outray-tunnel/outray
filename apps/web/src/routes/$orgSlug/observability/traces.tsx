@@ -18,13 +18,17 @@ import {
 import type { TraceEvent } from "@/components/observability/mock-data";
 
 export const Route = createFileRoute("/$orgSlug/observability/traces")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    search: typeof search.search === "string" ? search.search : "",
+  }),
   head: () => ({ meta: [{ title: "Traces - OutRay Observability" }] }),
   component: TracesView,
 });
 
 function TracesView() {
   const { orgSlug } = Route.useParams();
-  const [query, setQuery] = useState("");
+  const { search: query } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [selected, setSelected] = useState<TraceEvent | null>(null);
   const [timeRange, setTimeRange] = useState("1h");
@@ -43,7 +47,10 @@ function TracesView() {
   useEffect(() => {
     const controller = new AbortController();
 
-    void fetch(`/api/${orgSlug}/observability/traces?range=${timeRange}`, {
+    const parameters = new URLSearchParams({ range: timeRange });
+    if (query.trim()) parameters.set("search", query.trim());
+
+    void fetch(`/api/${orgSlug}/observability/traces?${parameters}`, {
       signal: controller.signal,
     })
       .then(async (response) => {
@@ -70,7 +77,7 @@ function TracesView() {
       });
 
     return () => controller.abort();
-  }, [orgSlug, timeRange]);
+  }, [orgSlug, query, timeRange]);
 
   function changeTimeRange(value: string) {
     setLoading(true);
@@ -164,7 +171,12 @@ function TracesView() {
             <HugeiconsIcon icon={Search01Icon} size={14} strokeWidth={1.7} />
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) =>
+                void navigate({
+                  search: { search: event.target.value },
+                  replace: true,
+                })
+              }
               placeholder="Search route, service, or trace ID"
               className="min-w-0 flex-1 bg-transparent font-mono text-[10px] text-zinc-300 outline-none placeholder:text-zinc-700"
             />
