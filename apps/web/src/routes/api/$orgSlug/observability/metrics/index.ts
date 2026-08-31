@@ -175,6 +175,7 @@ function mapCatalogRow(metric: MetricCatalogRow) {
     lastSeen: metric.last_seen,
     dataPointCount: Number(metric.data_point_count),
     serviceCount: Number(metric.service_count),
+    services: Array.isArray(metric.services) ? metric.services : [],
     dimensions: Array.isArray(metric.dimensions) ? metric.dimensions : [],
   };
 }
