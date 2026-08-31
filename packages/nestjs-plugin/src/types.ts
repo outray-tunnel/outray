@@ -1,4 +1,7 @@
-import { OutrayClientOptions } from "@outray/core";
+import type {
+  HttpPayloadCaptureSetting,
+  OutrayClientOptions,
+} from "@outray/core";
 
 export interface OutrayPluginOptions extends Partial<
   Omit<
@@ -31,6 +34,14 @@ export interface OutrayPluginOptions extends Partial<
    */
   local?: boolean;
 
+  /**
+   * Opt in to adding redacted, bounded request/response payload attributes to
+   * active OpenTelemetry server spans. Supported by Nest's Express adapter.
+   * This remains independent of the tunnel's `enabled` setting.
+   * @default false
+   */
+  capturePayloads?: HttpPayloadCaptureSetting;
+
   // Event callbacks
   onTunnelReady?: (url: string) => void;
   onLocalReady?: (info: {
@@ -43,3 +54,8 @@ export interface OutrayPluginOptions extends Partial<
   onReconnecting?: () => void;
   onClose?: () => void;
 }
+
+export type OutrayPayloadCaptureOptions = Exclude<
+  HttpPayloadCaptureSetting,
+  false
+>;
