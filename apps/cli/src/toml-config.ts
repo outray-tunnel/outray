@@ -26,6 +26,8 @@ export interface OutRayTomlConfig {
   global?: GlobalConfig;
   secrets?: {
     org?: string;
+    vault?: string;
+    /** @deprecated Use vault. Retained for existing config files. */
     project?: string;
     environment?: string;
   };
@@ -108,6 +110,7 @@ const configSchema = Joi.object({
   global: globalConfigSchema.optional(),
   secrets: Joi.object({
     org: Joi.string().optional(),
+    vault: Joi.string().optional(),
     project: Joi.string().optional(),
     environment: Joi.string().optional(),
   }).optional(),
