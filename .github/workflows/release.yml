@@ -3,7 +3,7 @@ name: Release CLI
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
@@ -16,7 +16,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         env:
@@ -25,6 +25,9 @@ jobs:
 
       - name: Build CLI and workspace dependencies
         run: npm run build -- --filter=outray
+
+      - name: Test CLI Secrets and tunnel compatibility
+        run: npm test --workspace=outray
 
       - name: Build binaries
         run: npm run build:binaries --workspace=outray
@@ -58,8 +61,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         env:
