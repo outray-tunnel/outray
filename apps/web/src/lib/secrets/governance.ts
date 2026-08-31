@@ -27,10 +27,7 @@ import {
   normalizeMachineTokenScopes,
 } from "../machine-tokens";
 import { assertActorScope } from "./access-policy";
-import {
-  auditEvent,
-  lockOrganization,
-} from "./database";
+import { auditEvent, lockOrganization } from "./database";
 import {
   createOrganizationKey,
   nextOrganizationKeyVersion,
@@ -84,7 +81,9 @@ export async function listAuditEvents(
   let cursorValue: { createdAt: Date; id: string } | null = null;
   if (cursor) {
     try {
-      const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as {
+      const parsed = JSON.parse(
+        Buffer.from(cursor, "base64url").toString("utf8"),
+      ) as {
         createdAt?: unknown;
         id?: unknown;
       };
@@ -221,7 +220,9 @@ export async function listTrash(access: SecretsAccess) {
     eq(secretDeletionBatches.status, "active"),
   ];
   if (access.actor.type === "machine" && access.actor.projectId) {
-    conditions.push(eq(secretDeletionBatches.projectId, access.actor.projectId));
+    conditions.push(
+      eq(secretDeletionBatches.projectId, access.actor.projectId),
+    );
   }
   if (access.actor.type === "machine" && access.actor.environmentId) {
     conditions.push(
@@ -259,9 +260,7 @@ export async function listTrash(access: SecretsAccess) {
         .where(or(...productionConditions))
     : [];
   const productionEnvironmentIds = new Set(
-    environmentRows
-      .filter((row) => row.isProduction)
-      .map((row) => row.id),
+    environmentRows.filter((row) => row.isProduction).map((row) => row.id),
   );
   const productionProjectBatchIds = new Set(
     environmentRows
@@ -280,7 +279,8 @@ export async function listTrash(access: SecretsAccess) {
     isProduction:
       row.rootType === "project"
         ? productionProjectBatchIds.has(row.id)
-        : !!row.environmentId && productionEnvironmentIds.has(row.environmentId),
+        : !!row.environmentId &&
+          productionEnvironmentIds.has(row.environmentId),
     deletedByType: row.deletedByType,
     deletedById: row.deletedById,
     deletedAt: row.deletedAt,
@@ -386,7 +386,11 @@ export async function restoreTrash(
         .where(eq(secretProjects.id, lockedBatch.rootId))
         .limit(1)
         .for("update");
-      if (!project) throw new SecretsError("Project was already purged", { code: "NOT_FOUND", status: 404 });
+      if (!project)
+        throw new SecretsError("Vault was already purged", {
+          code: "NOT_FOUND",
+          status: 404,
+        });
       const projectEnvironments = await tx
         .select({
           id: secretEnvironments.id,
@@ -410,7 +414,11 @@ export async function restoreTrash(
           ),
         )
         .limit(1);
-      if (duplicate) throw new SecretsError("A project now uses this slug", { code: "RESTORE_CONFLICT", status: 409 });
+      if (duplicate)
+        throw new SecretsError("A vault now uses this slug", {
+          code: "RESTORE_CONFLICT",
+          status: 409,
+        });
       await tx
         .update(secretProjects)
         .set({ deletedAt: null, deletionBatchId: null, updatedAt: new Date() })
@@ -435,7 +443,11 @@ export async function restoreTrash(
         .where(eq(secretEnvironments.id, lockedBatch.rootId))
         .limit(1)
         .for("update");
-      if (!environment) throw new SecretsError("Environment was already purged", { code: "NOT_FOUND", status: 404 });
+      if (!environment)
+        throw new SecretsError("Environment was already purged", {
+          code: "NOT_FOUND",
+          status: 404,
+        });
       requireProductionConfirmation(environment, input.confirmProduction);
       const [parent] = await tx
         .select({ id: secretProjects.id })
@@ -449,7 +461,7 @@ export async function restoreTrash(
         .limit(1);
       if (!parent) {
         throw new SecretsError(
-          "Restore the parent project before restoring this environment",
+          "Restore the parent vault before restoring this environment",
           { code: "PARENT_DELETED", status: 409 },
         );
       }
@@ -464,7 +476,11 @@ export async function restoreTrash(
           ),
         )
         .limit(1);
-      if (duplicate) throw new SecretsError("An environment now uses this slug", { code: "RESTORE_CONFLICT", status: 409 });
+      if (duplicate)
+        throw new SecretsError("An environment now uses this slug", {
+          code: "RESTORE_CONFLICT",
+          status: 409,
+        });
       await tx
         .update(secretEnvironments)
         .set({
@@ -485,7 +501,11 @@ export async function restoreTrash(
         .where(eq(secretEntries.id, lockedBatch.rootId))
         .limit(1)
         .for("update");
-      if (!entry) throw new SecretsError("Secret was already purged", { code: "NOT_FOUND", status: 404 });
+      if (!entry)
+        throw new SecretsError("Secret was already purged", {
+          code: "NOT_FOUND",
+          status: 404,
+        });
       const [parentEnvironment] = await tx
         .select({
           environmentId: secretEnvironments.id,
@@ -516,14 +536,11 @@ export async function restoreTrash(
         : [];
       if (!parentEnvironment || !parentProject) {
         throw new SecretsError(
-          "Restore the parent project and environment before restoring this secret",
+          "Restore the parent vault and environment before restoring this secret",
           { code: "PARENT_DELETED", status: 409 },
         );
       }
-      requireProductionConfirmation(
-        parentEnvironment,
-        input.confirmProduction,
-      );
+      requireProductionConfirmation(parentEnvironment, input.confirmProduction);
       const [duplicate] = await tx
         .select({ id: secretEntries.id })
         .from(secretEntries)
@@ -535,7 +552,11 @@ export async function restoreTrash(
           ),
         )
         .limit(1);
-      if (duplicate) throw new SecretsError("A secret now uses this key", { code: "RESTORE_CONFLICT", status: 409 });
+      if (duplicate)
+        throw new SecretsError("A secret now uses this key", {
+          code: "RESTORE_CONFLICT",
+          status: 409,
+        });
       await tx
         .update(secretEntries)
         .set({ deletedAt: null, deletionBatchId: null, updatedAt: new Date() })
@@ -631,7 +652,7 @@ export async function purgeTrash(
         .limit(1)
         .for("update");
       if (!project) {
-        throw new SecretsError("Project was already purged", {
+        throw new SecretsError("Vault was already purged", {
           code: "NOT_FOUND",
           status: 404,
         });
@@ -662,7 +683,7 @@ export async function purgeTrash(
         .limit(1);
       if (dependentBatch) {
         throw new SecretsError(
-          "Purge or restore nested Trash items before purging this project",
+          "Purge or restore nested Trash items before purging this vault",
           { code: "DEPENDENT_TRASH_BATCHES", status: 409 },
         );
       }
@@ -687,7 +708,9 @@ export async function purgeTrash(
             tokenTarget,
           ),
         );
-      await tx.delete(secretProjects).where(eq(secretProjects.id, batch.rootId));
+      await tx
+        .delete(secretProjects)
+        .where(eq(secretProjects.id, batch.rootId));
     } else if (type === "environment") {
       const [environment] = await tx
         .select({
@@ -783,10 +806,7 @@ export async function purgeTrash(
           status: 409,
         });
       }
-      requireProductionConfirmation(
-        parentEnvironment,
-        input.confirmProduction,
-      );
+      requireProductionConfirmation(parentEnvironment, input.confirmProduction);
       await tx.delete(secretEntries).where(eq(secretEntries.id, entry.id));
     }
     await tx
@@ -845,11 +865,14 @@ export async function createSecretsMachineToken(
   const name = readRequiredString(input, "name", { maxLength: 100 });
   const scopes = normalizeMachineTokenScopes(input.scopes);
   if (!scopes) {
-    throw new SecretsError("scopes contains an unsupported machine-token scope", {
-      code: "VALIDATION_ERROR",
-      status: 400,
-      field: "scopes",
-    });
+    throw new SecretsError(
+      "scopes contains an unsupported machine-token scope",
+      {
+        code: "VALIDATION_ERROR",
+        status: 400,
+        field: "scopes",
+      },
+    );
   }
   const expiresAt = machineTokenExpiry(input.expiresIn);
   if (expiresAt === undefined) {
@@ -898,7 +921,7 @@ export async function createSecretsMachineToken(
         )
         .for("share");
       if (!project) {
-        throw new SecretsError("Project not found", {
+        throw new SecretsError("Vault not found", {
           code: "NOT_FOUND",
           status: 404,
           field: "projectSlug",
@@ -952,7 +975,10 @@ export async function createSecretsMachineToken(
       environmentId,
       metadata: { prefix: created.prefix, scopes: created.scopes, expiresAt },
     });
-    return { token: generated.token, machineToken: serializeMachineToken(created) };
+    return {
+      token: generated.token,
+      machineToken: serializeMachineToken(created),
+    };
   });
 }
 
@@ -992,9 +1018,7 @@ export async function revokeMachineToken(
   });
 }
 
-export async function rewrapOrganizationKeys(
-  access: SecretsAccess,
-) {
+export async function rewrapOrganizationKeys(access: SecretsAccess) {
   requireSessionAdmin(access);
   const keyring = readSecretsKeyring();
   const rows = await db
@@ -1098,9 +1122,7 @@ export async function rotateOrganizationDataKey(
         status: 500,
       });
     }
-    const version = nextOrganizationKeyVersion(
-      rows.map((row) => row.version),
-    );
+    const version = nextOrganizationKeyVersion(rows.map((row) => row.version));
     const organizationKey = createOrganizationKey();
     try {
       const wrapped = wrapOrganizationKey(
