@@ -56,6 +56,41 @@ outray(app, {
 app.listen(3000)
 ```
 
+### OpenTelemetry payload capture
+
+Payload capture is off by default. If your app already creates OpenTelemetry
+HTTP server spans, you can opt in by registering Outray before your routes:
+
+```typescript
+import express from 'express'
+import outray from '@outray/express'
+
+const app = express()
+
+outray(app, {
+  capturePayloads: {
+    maxBodyBytes: 16 * 1024,
+    redactedHeaders: ['x-workspace-secret'],
+    redactedFields: ['accountPin'],
+  },
+})
+
+app.use(express.json())
+app.post('/orders', createOrder)
+```
+
+This setting is independent of the development-only tunnel, so explicit
+capture still works in production when `enabled` is false. It is a safe no-op
+when there is no active OpenTelemetry span. Request streams are never consumed;
+request bodies are available when a body parser such as `express.json()` has
+populated `request.body`.
+
+Only JSON, `application/*+json`, and URL-encoded form bodies are eligible.
+Authorization, cookies, tokens, passwords, secrets, and API/private keys are
+redacted. Bodies default to 16 KiB (hard limit 64 KiB) and serialized headers
+default to 8 KiB (hard limit 32 KiB). Multipart, text, XML, binary, compressed,
+and streaming bodies are not captured.
+
 ## Options
 
 ```typescript
@@ -77,6 +112,9 @@ interface OutrayPluginOptions {
   
   /** Suppress logs */
   silent?: boolean;
+
+  /** Opt-in OpenTelemetry payload capture (default: false) */
+  capturePayloads?: boolean | HttpPayloadCaptureOptions;
   
   /** Callback when tunnel is ready */
   onTunnelReady?: (url: string) => void;
