@@ -20,8 +20,12 @@
     "dev:ingest": "dotenv -e .env -- node scripts/with-tinybird.mjs turbo run dev --env-mode=loose --filter=outray-ingest",
     "build": "turbo run build",
     "lint": "turbo run lint",
+    "test": "turbo run test",
     "db:migrate": "dotenv -e .env -- npm run db:migrate --workspace=outray-web",
-    "db:generate-auth": "dotenv -e .env -- npm run db:generate-auth --workspace=outray-web"
+    "db:generate-auth": "dotenv -e .env -- npm run db:generate-auth --workspace=outray-web",
+    "tokens:backfill": "dotenv -e .env -- npm run tokens:backfill --workspace=outray-web",
+    "secrets:rewrap": "dotenv -e .env -- npm run secrets:rewrap --workspace=outray-web --",
+    "secrets:rewrap:verify": "dotenv -e .env -- npm run secrets:rewrap:verify --workspace=outray-web --"
   },
   "devDependencies": {
     "dotenv-cli": "^10.0.0",
