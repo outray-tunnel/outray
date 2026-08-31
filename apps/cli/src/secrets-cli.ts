@@ -53,6 +53,7 @@ interface ParsedArguments {
 
 const commonOptions: OptionDefinition[] = [
   { name: "org", aliases: ["-o"] },
+  { name: "vault", aliases: ["-v"] },
   { name: "project", aliases: ["-p"] },
   { name: "env", aliases: ["-e"] },
   { name: "config" },
@@ -217,7 +218,7 @@ function apiUrl(parsed: ParsedArguments, context: CommandContext): string {
 }
 
 async function selectTargetItem<T extends { name: string; slug: string }>(
-  label: "organization" | "project" | "environment",
+  label: "organization" | "vault" | "environment",
   items: T[],
   requested: string | undefined,
   stdin: NodeJS.ReadStream,
@@ -236,7 +237,7 @@ async function selectTargetItem<T extends { name: string; slug: string }>(
         ? "--env"
         : label === "organization"
           ? "--org"
-          : "--project";
+          : "--vault";
     throw new Error(
       `Multiple Secrets ${label}s are available. Pass ${flag} in non-interactive environments.`,
     );
@@ -269,21 +270,21 @@ async function pickTarget(
     partial.organization,
     stdin,
   );
-  const project = await selectTargetItem<SecretTargetProject>(
-    "project",
+  const vault = await selectTargetItem<SecretTargetProject>(
+    "vault",
     organization.projects,
     partial.project,
     stdin,
   );
   const environment = await selectTargetItem<SecretTargetEnvironment>(
     "environment",
-    project.environments,
+    vault.environments,
     partial.environment,
     stdin,
   );
   return {
     organization: organization.slug,
-    project: project.slug,
+    project: vault.slug,
     environment: environment.slug,
   };
 }
@@ -315,6 +316,7 @@ async function resolveCommandTarget(
       : await context.resolveActiveOrganization?.();
   const input = {
     org: stringOption(parsed, "org"),
+    vault: stringOption(parsed, "vault"),
     project: stringOption(parsed, "project"),
     environment: stringOption(parsed, "env"),
     activeOrganization,
@@ -354,7 +356,7 @@ function printSecretsHelp(output: Pick<NodeJS.WriteStream, "write">): void {
 Usage: outray secrets <command> [options]
 
 Commands:
-  use                         Save the project and environment target
+  use                         Save the vault and environment target
   list [--values]             List metadata or explicitly reveal values
   pull [--force]              Export dotenv/JSON; never overwrite by default
   set <KEY>                   Set via hidden prompt or --value-stdin
@@ -365,7 +367,7 @@ Commands:
 
 Target options:
   --org, -o <slug>            Organization slug
-  --project, -p <slug>        Secrets project slug
+  --vault, -v <slug>          Secrets vault slug
   --env, -e <slug>            Environment slug
   --config <path>             Explicit outray/config.toml
   --confirm-production        Permit production value access or mutation
@@ -434,7 +436,7 @@ export async function runSecretsCommand(
     const parsed = parseArguments(args.slice(1), commonOptions);
     if (booleanOption(parsed, "help")) {
       stdout.write(
-        "Usage: outray secrets use [--org SLUG] [--project SLUG] [--env SLUG] [--config PATH]\n",
+        "Usage: outray secrets use [--org SLUG] [--vault SLUG] [--env SLUG] [--config PATH]\n",
       );
       return 0;
     }
@@ -449,7 +451,7 @@ export async function runSecretsCommand(
     const saved = saveNearestSecretsConfig(
       {
         org: target.organization,
-        project: target.project,
+        vault: target.project,
         environment: target.environment,
       },
       {
