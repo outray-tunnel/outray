@@ -92,6 +92,7 @@ import { Route as AdminOrganizationsSlugRouteImport } from './routes/admin/organ
 import { Route as OrgSlugTunnelsTunnelIdRouteImport } from './routes/$orgSlug/tunnels/$tunnelId'
 import { Route as OrgSlugSettingsProfileRouteImport } from './routes/$orgSlug/settings/profile'
 import { Route as OrgSlugSettingsOrganizationRouteImport } from './routes/$orgSlug/settings/organization'
+import { Route as OrgSlugSecretsVaultsRouteImport } from './routes/$orgSlug/secrets/vaults'
 import { Route as OrgSlugSecretsProjectsRouteImport } from './routes/$orgSlug/secrets/projects'
 import { Route as OrgSlugSecretsAuditRouteImport } from './routes/$orgSlug/secrets/audit'
 import { Route as OrgSlugObservabilityTracesRouteImport } from './routes/$orgSlug/observability/traces'
@@ -125,6 +126,7 @@ import { Route as ApiOrgSlugRequestsReplayRouteImport } from './routes/api/$orgS
 import { Route as ApiOrgSlugRequestsCaptureRouteImport } from './routes/api/$orgSlug/requests/capture'
 import { Route as ApiOrgSlugPortalPolarRouteImport } from './routes/api/$orgSlug/portal/polar'
 import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$orgSlug/domains/$domainId'
+import { Route as OrgSlugSecretsVaultsProjectSlugRouteImport } from './routes/$orgSlug/secrets/vaults_.$projectSlug'
 import { Route as OrgSlugSecretsProjectsProjectSlugRouteImport } from './routes/$orgSlug/secrets/projects_.$projectSlug'
 import { Route as OrgSlugObservabilityServicesServiceIdRouteImport } from './routes/$orgSlug/observability/services_.$serviceId'
 import { Route as OrgSlugObservabilityAlertsAlertIdRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId'
@@ -148,6 +150,7 @@ import { Route as ApiOrgSlugObservabilityAlertsAlertIdRouteImport } from './rout
 import { Route as ApiOrgSlugDomainsDomainIdVerifyRouteImport } from './routes/api/$orgSlug/domains/$domainId.verify'
 import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments'
 import { Route as ApiOrgSlugObservabilityAlertsAlertIdEvaluateRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId.evaluate'
+import { Route as OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRouteImport } from './routes/$orgSlug/secrets/vaults_.$projectSlug_.environments_.$environmentSlug'
 import { Route as OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteImport } from './routes/$orgSlug/secrets/projects_.$projectSlug_.environments_.$environmentSlug'
 import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
 import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets'
@@ -580,6 +583,11 @@ const OrgSlugSettingsOrganizationRoute =
     path: '/organization',
     getParentRoute: () => OrgSlugSettingsRoute,
   } as any)
+const OrgSlugSecretsVaultsRoute = OrgSlugSecretsVaultsRouteImport.update({
+  id: '/vaults',
+  path: '/vaults',
+  getParentRoute: () => OrgSlugSecretsRoute,
+} as any)
 const OrgSlugSecretsProjectsRoute = OrgSlugSecretsProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
@@ -763,6 +771,12 @@ const ApiOrgSlugDomainsDomainIdRoute =
     path: '/api/$orgSlug/domains/$domainId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OrgSlugSecretsVaultsProjectSlugRoute =
+  OrgSlugSecretsVaultsProjectSlugRouteImport.update({
+    id: '/vaults_/$projectSlug',
+    path: '/vaults/$projectSlug',
+    getParentRoute: () => OrgSlugSecretsRoute,
+  } as any)
 const OrgSlugSecretsProjectsProjectSlugRoute =
   OrgSlugSecretsProjectsProjectSlugRouteImport.update({
     id: '/projects_/$projectSlug',
@@ -900,6 +914,12 @@ const ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute =
     id: '/evaluate',
     path: '/evaluate',
     getParentRoute: () => ApiOrgSlugObservabilityAlertsAlertIdRoute,
+  } as any)
+const OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRoute =
+  OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRouteImport.update({
+    id: '/vaults_/$projectSlug_/environments_/$environmentSlug',
+    path: '/vaults/$projectSlug/environments/$environmentSlug',
+    getParentRoute: () => OrgSlugSecretsRoute,
   } as any)
 const OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute =
   OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteImport.update(
@@ -1041,6 +1061,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/observability/traces': typeof OrgSlugObservabilityTracesRoute
   '/$orgSlug/secrets/audit': typeof OrgSlugSecretsAuditRoute
   '/$orgSlug/secrets/projects': typeof OrgSlugSecretsProjectsRoute
+  '/$orgSlug/secrets/vaults': typeof OrgSlugSecretsVaultsRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
   '/$orgSlug/tunnels/$tunnelId': typeof OrgSlugTunnelsTunnelIdRoute
@@ -1087,6 +1108,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/observability/alerts/$alertId': typeof OrgSlugObservabilityAlertsAlertIdRoute
   '/$orgSlug/observability/services/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/$orgSlug/secrets/projects/$projectSlug': typeof OrgSlugSecretsProjectsProjectSlugRoute
+  '/$orgSlug/secrets/vaults/$projectSlug': typeof OrgSlugSecretsVaultsProjectSlugRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -1130,6 +1152,7 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/observability/traces': typeof ApiOrgSlugObservabilityTracesIndexRoute
   '/api/$orgSlug/secrets/projects': typeof ApiOrgSlugSecretsProjectsIndexRoute
   '/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug': typeof OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
+  '/$orgSlug/secrets/vaults/$projectSlug/environments/$environmentSlug': typeof OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRoute
   '/api/$orgSlug/observability/alerts/$alertId/evaluate': typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteWithChildren
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteWithChildren
@@ -1188,6 +1211,7 @@ export interface FileRoutesByTo {
   '/$orgSlug/observability/traces': typeof OrgSlugObservabilityTracesRoute
   '/$orgSlug/secrets/audit': typeof OrgSlugSecretsAuditRoute
   '/$orgSlug/secrets/projects': typeof OrgSlugSecretsProjectsRoute
+  '/$orgSlug/secrets/vaults': typeof OrgSlugSecretsVaultsRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
   '/$orgSlug/tunnels/$tunnelId': typeof OrgSlugTunnelsTunnelIdRoute
@@ -1234,6 +1258,7 @@ export interface FileRoutesByTo {
   '/$orgSlug/observability/alerts/$alertId': typeof OrgSlugObservabilityAlertsAlertIdRoute
   '/$orgSlug/observability/services/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/$orgSlug/secrets/projects/$projectSlug': typeof OrgSlugSecretsProjectsProjectSlugRoute
+  '/$orgSlug/secrets/vaults/$projectSlug': typeof OrgSlugSecretsVaultsProjectSlugRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -1277,6 +1302,7 @@ export interface FileRoutesByTo {
   '/api/$orgSlug/observability/traces': typeof ApiOrgSlugObservabilityTracesIndexRoute
   '/api/$orgSlug/secrets/projects': typeof ApiOrgSlugSecretsProjectsIndexRoute
   '/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug': typeof OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
+  '/$orgSlug/secrets/vaults/$projectSlug/environments/$environmentSlug': typeof OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRoute
   '/api/$orgSlug/observability/alerts/$alertId/evaluate': typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteWithChildren
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteWithChildren
@@ -1340,6 +1366,7 @@ export interface FileRoutesById {
   '/$orgSlug/observability/traces': typeof OrgSlugObservabilityTracesRoute
   '/$orgSlug/secrets/audit': typeof OrgSlugSecretsAuditRoute
   '/$orgSlug/secrets/projects': typeof OrgSlugSecretsProjectsRoute
+  '/$orgSlug/secrets/vaults': typeof OrgSlugSecretsVaultsRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
   '/$orgSlug/tunnels/$tunnelId': typeof OrgSlugTunnelsTunnelIdRoute
@@ -1386,6 +1413,7 @@ export interface FileRoutesById {
   '/$orgSlug/observability/alerts_/$alertId': typeof OrgSlugObservabilityAlertsAlertIdRoute
   '/$orgSlug/observability/services_/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/$orgSlug/secrets/projects_/$projectSlug': typeof OrgSlugSecretsProjectsProjectSlugRoute
+  '/$orgSlug/secrets/vaults_/$projectSlug': typeof OrgSlugSecretsVaultsProjectSlugRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -1429,6 +1457,7 @@ export interface FileRoutesById {
   '/api/$orgSlug/observability/traces/': typeof ApiOrgSlugObservabilityTracesIndexRoute
   '/api/$orgSlug/secrets/projects/': typeof ApiOrgSlugSecretsProjectsIndexRoute
   '/$orgSlug/secrets/projects_/$projectSlug_/environments_/$environmentSlug': typeof OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
+  '/$orgSlug/secrets/vaults_/$projectSlug_/environments_/$environmentSlug': typeof OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRoute
   '/api/$orgSlug/observability/alerts/$alertId/evaluate': typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteWithChildren
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteWithChildren
@@ -1493,6 +1522,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/observability/traces'
     | '/$orgSlug/secrets/audit'
     | '/$orgSlug/secrets/projects'
+    | '/$orgSlug/secrets/vaults'
     | '/$orgSlug/settings/organization'
     | '/$orgSlug/settings/profile'
     | '/$orgSlug/tunnels/$tunnelId'
@@ -1539,6 +1569,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/observability/alerts/$alertId'
     | '/$orgSlug/observability/services/$serviceId'
     | '/$orgSlug/secrets/projects/$projectSlug'
+    | '/$orgSlug/secrets/vaults/$projectSlug'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -1582,6 +1613,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/observability/traces'
     | '/api/$orgSlug/secrets/projects'
     | '/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
+    | '/$orgSlug/secrets/vaults/$projectSlug/environments/$environmentSlug'
     | '/api/$orgSlug/observability/alerts/$alertId/evaluate'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
@@ -1640,6 +1672,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/observability/traces'
     | '/$orgSlug/secrets/audit'
     | '/$orgSlug/secrets/projects'
+    | '/$orgSlug/secrets/vaults'
     | '/$orgSlug/settings/organization'
     | '/$orgSlug/settings/profile'
     | '/$orgSlug/tunnels/$tunnelId'
@@ -1686,6 +1719,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/observability/alerts/$alertId'
     | '/$orgSlug/observability/services/$serviceId'
     | '/$orgSlug/secrets/projects/$projectSlug'
+    | '/$orgSlug/secrets/vaults/$projectSlug'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -1729,6 +1763,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/observability/traces'
     | '/api/$orgSlug/secrets/projects'
     | '/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
+    | '/$orgSlug/secrets/vaults/$projectSlug/environments/$environmentSlug'
     | '/api/$orgSlug/observability/alerts/$alertId/evaluate'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
@@ -1791,6 +1826,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/observability/traces'
     | '/$orgSlug/secrets/audit'
     | '/$orgSlug/secrets/projects'
+    | '/$orgSlug/secrets/vaults'
     | '/$orgSlug/settings/organization'
     | '/$orgSlug/settings/profile'
     | '/$orgSlug/tunnels/$tunnelId'
@@ -1837,6 +1873,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/observability/alerts_/$alertId'
     | '/$orgSlug/observability/services_/$serviceId'
     | '/$orgSlug/secrets/projects_/$projectSlug'
+    | '/$orgSlug/secrets/vaults_/$projectSlug'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -1880,6 +1917,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/observability/traces/'
     | '/api/$orgSlug/secrets/projects/'
     | '/$orgSlug/secrets/projects_/$projectSlug_/environments_/$environmentSlug'
+    | '/$orgSlug/secrets/vaults_/$projectSlug_/environments_/$environmentSlug'
     | '/api/$orgSlug/observability/alerts/$alertId/evaluate'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
@@ -2565,6 +2603,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugSettingsOrganizationRouteImport
       parentRoute: typeof OrgSlugSettingsRoute
     }
+    '/$orgSlug/secrets/vaults': {
+      id: '/$orgSlug/secrets/vaults'
+      path: '/vaults'
+      fullPath: '/$orgSlug/secrets/vaults'
+      preLoaderRoute: typeof OrgSlugSecretsVaultsRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
     '/$orgSlug/secrets/projects': {
       id: '/$orgSlug/secrets/projects'
       path: '/projects'
@@ -2796,6 +2841,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugDomainsDomainIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$orgSlug/secrets/vaults_/$projectSlug': {
+      id: '/$orgSlug/secrets/vaults_/$projectSlug'
+      path: '/vaults/$projectSlug'
+      fullPath: '/$orgSlug/secrets/vaults/$projectSlug'
+      preLoaderRoute: typeof OrgSlugSecretsVaultsProjectSlugRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
     '/$orgSlug/secrets/projects_/$projectSlug': {
       id: '/$orgSlug/secrets/projects_/$projectSlug'
       path: '/projects/$projectSlug'
@@ -2957,6 +3009,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRouteImport
       parentRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdRoute
     }
+    '/$orgSlug/secrets/vaults_/$projectSlug_/environments_/$environmentSlug': {
+      id: '/$orgSlug/secrets/vaults_/$projectSlug_/environments_/$environmentSlug'
+      path: '/vaults/$projectSlug/environments/$environmentSlug'
+      fullPath: '/$orgSlug/secrets/vaults/$projectSlug/environments/$environmentSlug'
+      preLoaderRoute: typeof OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
     '/$orgSlug/secrets/projects_/$projectSlug_/environments_/$environmentSlug': {
       id: '/$orgSlug/secrets/projects_/$projectSlug_/environments_/$environmentSlug'
       path: '/projects/$projectSlug/environments/$environmentSlug'
@@ -3064,19 +3123,26 @@ const OrgSlugObservabilityRouteWithChildren =
 interface OrgSlugSecretsRouteChildren {
   OrgSlugSecretsAuditRoute: typeof OrgSlugSecretsAuditRoute
   OrgSlugSecretsProjectsRoute: typeof OrgSlugSecretsProjectsRoute
+  OrgSlugSecretsVaultsRoute: typeof OrgSlugSecretsVaultsRoute
   OrgSlugSecretsIndexRoute: typeof OrgSlugSecretsIndexRoute
   OrgSlugSecretsProjectsProjectSlugRoute: typeof OrgSlugSecretsProjectsProjectSlugRoute
+  OrgSlugSecretsVaultsProjectSlugRoute: typeof OrgSlugSecretsVaultsProjectSlugRoute
   OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute: typeof OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
+  OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRoute: typeof OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRoute
 }
 
 const OrgSlugSecretsRouteChildren: OrgSlugSecretsRouteChildren = {
   OrgSlugSecretsAuditRoute: OrgSlugSecretsAuditRoute,
   OrgSlugSecretsProjectsRoute: OrgSlugSecretsProjectsRoute,
+  OrgSlugSecretsVaultsRoute: OrgSlugSecretsVaultsRoute,
   OrgSlugSecretsIndexRoute: OrgSlugSecretsIndexRoute,
   OrgSlugSecretsProjectsProjectSlugRoute:
     OrgSlugSecretsProjectsProjectSlugRoute,
+  OrgSlugSecretsVaultsProjectSlugRoute: OrgSlugSecretsVaultsProjectSlugRoute,
   OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute:
     OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute,
+  OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRoute:
+    OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRoute,
 }
 
 const OrgSlugSecretsRouteWithChildren = OrgSlugSecretsRoute._addFileChildren(
