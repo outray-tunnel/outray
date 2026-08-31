@@ -67,8 +67,46 @@ The production workflow only applies files already committed under
 `apps/web/drizzle`. A missing or unreachable `DATABASE_URL`, or a failed
 migration, stops the server rollout.
 
+Before touching production, the workflow also migrates an isolated PostgreSQL
+service and runs the complete Secrets lifecycle, authorization, concurrency,
+and encryption integration suite against it. Those tests use an ephemeral
+CI-only master key and never connect to the production database.
+
 The web application is currently deployed by Vercel outside this workflow.
 GitHub Actions therefore cannot strictly order the migration ahead of an
 automatic Vercel production deployment. Configure Vercel production promotion
 to wait for the `Deploy` check, or promote web manually after that check passes,
 whenever a release depends on a new schema.
+
+## Secrets rollout and key custody
+
+Configure these server-only variables in the web runtime before enabling the
+Secrets routes:
+
+- `OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID`: stable identifier for the active key.
+- `OUTRAY_SECRETS_ACTIVE_MASTER_KEY`: base64-encoded 32-byte master key.
+- `OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS`: JSON object of prior key IDs to
+  base64-encoded keys during a rotation; use `{}` initially.
+
+Store an offline backup of every active master key outside the database. The
+database contains only wrapped organization data keys and cannot recover them
+after the last copy of a master key is lost. Production should configure these
+variables only on Vercel/web; the browser bundle never receives them.
+
+Durable API-token migration is intentionally staged. Release one applies the
+additive machine-token migration, deploys the hashed writer and hashed-first
+validator, and keeps the legacy fallback. The workflow's first idempotent
+backfill is only an initial pass because Vercel promotion is separate. After
+the new web and tunnel builds are both live, run `npm run tokens:backfill`
+again; its locked reconciliation must report `missing=0`, and a subsequent run
+should report `created=0`. A late legacy credential is also migrated on its
+first fallback use, which is logged as `legacy_auth_token_fallback`. After the
+final reconciliation and production logs show zero fallback use, release two
+may remove the fallback and plaintext `auth_tokens` table. Never remove that
+compatibility table in release one.
+
+Master-key rotation does not rewrite secret ciphertext. Add the new active key,
+keep the previous key in `OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS`, run
+`npm run secrets:rewrap`, then run `npm run secrets:rewrap:verify`. Remove the
+previous key only after verification reports zero old key references. Both
+commands accept `-- --organization=<organization-id>` to limit an operation.
