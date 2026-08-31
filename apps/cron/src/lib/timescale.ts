@@ -5,10 +5,13 @@ const { Pool } = pg;
 
 export const pool = new Pool({
   connectionString: config.tigerDataUrl,
-  ssl: config.tigerDataUrl?.includes("sslmode=require")
-    ? { rejectUnauthorized: false }
-    : false,
+  ssl: databaseSsl(config.tigerDataUrl),
 });
+
+function databaseSsl(connectionString: string) {
+  if (/localhost|127\.0\.0\.1/.test(connectionString)) return false;
+  return { rejectUnauthorized: false };
+}
 
 export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
   const result = await pool.query(text, params);
