@@ -35,6 +35,18 @@ const secretsProjectRoutePath = fileURLToPath(
     import.meta.url,
   ),
 );
+const secretsProjectsRoutePath = fileURLToPath(
+  new URL("../src/routes/$orgSlug/secrets/projects.tsx", import.meta.url),
+);
+const secretsVaultsRoutePath = fileURLToPath(
+  new URL("../src/routes/$orgSlug/secrets/vaults.tsx", import.meta.url),
+);
+const secretsDialogsPath = fileURLToPath(
+  new URL(
+    "../src/components/secrets/secret-dialogs.tsx",
+    import.meta.url,
+  ),
+);
 const secretsTablePath = fileURLToPath(
   new URL("../src/components/secrets/secrets-table.tsx", import.meta.url),
 );
@@ -176,6 +188,47 @@ test("Trash is not exposed on the Secrets product surface", async () => {
   assert.match(projectRoute, /label: "Delete vault"/);
   assert.match(projectRoute, /label: "Delete environment"/);
   assert.match(secretsTable, /label: "Delete secret"/);
+});
+
+test("Vault is the canonical Secrets product terminology and dashboard route", async () => {
+  const [
+    productSubSidebar,
+    mobileBottomNav,
+    overviewRoute,
+    projectsRoute,
+    projectRoute,
+    vaultsRoute,
+    dialogs,
+    routeTree,
+  ] = await Promise.all([
+    readFile(productSubSidebarPath, "utf8"),
+    readFile(mobileBottomNavPath, "utf8"),
+    readFile(secretsOverviewRoutePath, "utf8"),
+    readFile(secretsProjectsRoutePath, "utf8"),
+    readFile(secretsProjectRoutePath, "utf8"),
+    readFile(secretsVaultsRoutePath, "utf8"),
+    readFile(secretsDialogsPath, "utf8"),
+    readFile(routeTreePath, "utf8"),
+  ]);
+  const visibleSurface = [
+    productSubSidebar,
+    mobileBottomNav,
+    overviewRoute,
+    projectsRoute,
+    projectRoute,
+    vaultsRoute,
+    dialogs,
+  ].join("\n");
+
+  assert.match(productSubSidebar, /label: "Vaults"/);
+  assert.match(productSubSidebar, /to: "\/\$orgSlug\/secrets\/vaults"/);
+  assert.match(projectsRoute, /throw redirect\(\{[\s\S]*secrets\/vaults/);
+  assert.match(routeTree, /OrgSlugSecretsVaultsRouteImport/);
+  assert.match(routeTree, /OrgSlugSecretsProjectsRouteImport/);
+  assert.doesNotMatch(
+    visibleSurface,
+    /["'](?:Projects|Project|New project|Create project|Edit project|Delete project|Project actions)["']/,
+  );
 });
 
 test("machine scopes never grant admin and respect project/environment bounds", async () => {
