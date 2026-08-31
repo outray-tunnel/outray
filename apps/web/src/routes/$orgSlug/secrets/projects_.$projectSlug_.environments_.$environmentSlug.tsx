@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Add01Icon,
@@ -30,12 +35,28 @@ import { secretsClient } from "@/lib/secrets-client";
 export const Route = createFileRoute(
   "/$orgSlug/secrets/projects_/$projectSlug_/environments_/$environmentSlug",
 )({
-  head: () => ({ meta: [{ title: "Environment - OutRay Secrets" }] }),
-  component: SecretEnvironmentPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/$orgSlug/secrets/vaults/$projectSlug/environments/$environmentSlug",
+      params: {
+        orgSlug: params.orgSlug,
+        projectSlug: params.projectSlug,
+        environmentSlug: params.environmentSlug,
+      },
+      replace: true,
+    });
+  },
 });
 
-function SecretEnvironmentPage() {
-  const { orgSlug, projectSlug, environmentSlug } = Route.useParams();
+export function VaultEnvironmentPageView({
+  orgSlug,
+  projectSlug,
+  environmentSlug,
+}: {
+  orgSlug: string;
+  projectSlug: string;
+  environmentSlug: string;
+}) {
   const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -105,12 +126,12 @@ function SecretEnvironmentPage() {
       <SecretsHeader
         eyebrow={
           <Link
-            to="/$orgSlug/secrets/projects/$projectSlug"
+            to="/$orgSlug/secrets/vaults/$projectSlug"
             params={{ orgSlug, projectSlug }}
             className="inline-flex items-center gap-2 transition-colors hover:text-zinc-300"
           >
             <HugeiconsIcon icon={ArrowLeft01Icon} size={13} strokeWidth={1.8} />
-            {data?.project.name || "Project"}
+            {data?.project.name || "Vault"}
           </Link>
         }
         title={data?.environment.name || "Environment"}
@@ -201,7 +222,7 @@ function SecretEnvironmentPage() {
               onChange={(nextEnvironmentSlug) => {
                 if (nextEnvironmentSlug === environmentSlug) return;
                 void navigate({
-                  to: "/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug",
+                  to: "/$orgSlug/secrets/vaults/$projectSlug/environments/$environmentSlug",
                   params: {
                     orgSlug,
                     projectSlug,
