@@ -96,6 +96,7 @@ import { Route as OrgSlugObservabilityRequestsRouteImport } from './routes/$orgS
 import { Route as OrgSlugObservabilityMonitorsRouteImport } from './routes/$orgSlug/observability/monitors'
 import { Route as OrgSlugObservabilityMetricsRouteImport } from './routes/$orgSlug/observability/metrics'
 import { Route as OrgSlugObservabilityLogsRouteImport } from './routes/$orgSlug/observability/logs'
+import { Route as OrgSlugObservabilityAlertsRouteImport } from './routes/$orgSlug/observability/alerts'
 import { Route as ApiOrgSlugTunnelsIndexRouteImport } from './routes/api/$orgSlug/tunnels/index'
 import { Route as ApiOrgSlugSubdomainsIndexRouteImport } from './routes/api/$orgSlug/subdomains/index'
 import { Route as ApiOrgSlugDomainsIndexRouteImport } from './routes/api/$orgSlug/domains/index'
@@ -114,15 +115,19 @@ import { Route as ApiOrgSlugRequestsCaptureRouteImport } from './routes/api/$org
 import { Route as ApiOrgSlugPortalPolarRouteImport } from './routes/api/$orgSlug/portal/polar'
 import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$orgSlug/domains/$domainId'
 import { Route as OrgSlugObservabilityServicesServiceIdRouteImport } from './routes/$orgSlug/observability/services_.$serviceId'
+import { Route as OrgSlugObservabilityAlertsAlertIdRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId'
 import { Route as ApiOrgSlugObservabilityTracesIndexRouteImport } from './routes/api/$orgSlug/observability/traces/index'
 import { Route as ApiOrgSlugObservabilityServicesIndexRouteImport } from './routes/api/$orgSlug/observability/services/index'
 import { Route as ApiOrgSlugObservabilityRequestsIndexRouteImport } from './routes/api/$orgSlug/observability/requests/index'
 import { Route as ApiOrgSlugObservabilityMetricsIndexRouteImport } from './routes/api/$orgSlug/observability/metrics/index'
 import { Route as ApiOrgSlugObservabilityLogsIndexRouteImport } from './routes/api/$orgSlug/observability/logs/index'
+import { Route as ApiOrgSlugObservabilityAlertsIndexRouteImport } from './routes/api/$orgSlug/observability/alerts/index'
 import { Route as ApiOrgSlugTunnelsTunnelIdStopRouteImport } from './routes/api/$orgSlug/tunnels/$tunnelId.stop'
 import { Route as ApiOrgSlugObservabilityTracesTraceIdRouteImport } from './routes/api/$orgSlug/observability/traces/$traceId'
 import { Route as ApiOrgSlugObservabilityRequestsRequestIdRouteImport } from './routes/api/$orgSlug/observability/requests/$requestId'
+import { Route as ApiOrgSlugObservabilityAlertsAlertIdRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId'
 import { Route as ApiOrgSlugDomainsDomainIdVerifyRouteImport } from './routes/api/$orgSlug/domains/$domainId.verify'
+import { Route as ApiOrgSlugObservabilityAlertsAlertIdEvaluateRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId.evaluate'
 
 const ViteRoute = ViteRouteImport.update({
   id: '/vite',
@@ -571,6 +576,12 @@ const OrgSlugObservabilityLogsRoute =
     path: '/logs',
     getParentRoute: () => OrgSlugObservabilityRoute,
   } as any)
+const OrgSlugObservabilityAlertsRoute =
+  OrgSlugObservabilityAlertsRouteImport.update({
+    id: '/alerts',
+    path: '/alerts',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
 const ApiOrgSlugTunnelsIndexRoute = ApiOrgSlugTunnelsIndexRouteImport.update({
   id: '/api/$orgSlug/tunnels/',
   path: '/api/$orgSlug/tunnels/',
@@ -671,6 +682,12 @@ const OrgSlugObservabilityServicesServiceIdRoute =
     path: '/services/$serviceId',
     getParentRoute: () => OrgSlugObservabilityRoute,
   } as any)
+const OrgSlugObservabilityAlertsAlertIdRoute =
+  OrgSlugObservabilityAlertsAlertIdRouteImport.update({
+    id: '/alerts_/$alertId',
+    path: '/alerts/$alertId',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
 const ApiOrgSlugObservabilityTracesIndexRoute =
   ApiOrgSlugObservabilityTracesIndexRouteImport.update({
     id: '/api/$orgSlug/observability/traces/',
@@ -701,6 +718,12 @@ const ApiOrgSlugObservabilityLogsIndexRoute =
     path: '/api/$orgSlug/observability/logs/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiOrgSlugObservabilityAlertsIndexRoute =
+  ApiOrgSlugObservabilityAlertsIndexRouteImport.update({
+    id: '/api/$orgSlug/observability/alerts/',
+    path: '/api/$orgSlug/observability/alerts/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiOrgSlugTunnelsTunnelIdStopRoute =
   ApiOrgSlugTunnelsTunnelIdStopRouteImport.update({
     id: '/stop',
@@ -719,11 +742,23 @@ const ApiOrgSlugObservabilityRequestsRequestIdRoute =
     path: '/api/$orgSlug/observability/requests/$requestId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiOrgSlugObservabilityAlertsAlertIdRoute =
+  ApiOrgSlugObservabilityAlertsAlertIdRouteImport.update({
+    id: '/api/$orgSlug/observability/alerts/$alertId',
+    path: '/api/$orgSlug/observability/alerts/$alertId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiOrgSlugDomainsDomainIdVerifyRoute =
   ApiOrgSlugDomainsDomainIdVerifyRouteImport.update({
     id: '/verify',
     path: '/verify',
     getParentRoute: () => ApiOrgSlugDomainsDomainIdRoute,
+  } as any)
+const ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute =
+  ApiOrgSlugObservabilityAlertsAlertIdEvaluateRouteImport.update({
+    id: '/evaluate',
+    path: '/evaluate',
+    getParentRoute: () => ApiOrgSlugObservabilityAlertsAlertIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -767,6 +802,7 @@ export interface FileRoutesByFullPath {
   '/internal/domain-check': typeof InternalDomainCheckRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
   '/$orgSlug/': typeof OrgSlugIndexRoute
+  '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
   '/$orgSlug/observability/monitors': typeof OrgSlugObservabilityMonitorsRoute
@@ -814,6 +850,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/tunnels': typeof OrgSlugTunnelsIndexRoute
   '/admin/organizations': typeof AdminOrganizationsIndexRoute
   '/admin/users': typeof AdminUsersIndexRoute
+  '/$orgSlug/observability/alerts/$alertId': typeof OrgSlugObservabilityAlertsAlertIdRoute
   '/$orgSlug/observability/services/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
@@ -833,14 +870,17 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/subdomains': typeof ApiOrgSlugSubdomainsIndexRoute
   '/api/$orgSlug/tunnels': typeof ApiOrgSlugTunnelsIndexRoute
   '/api/$orgSlug/domains/$domainId/verify': typeof ApiOrgSlugDomainsDomainIdVerifyRoute
+  '/api/$orgSlug/observability/alerts/$alertId': typeof ApiOrgSlugObservabilityAlertsAlertIdRouteWithChildren
   '/api/$orgSlug/observability/requests/$requestId': typeof ApiOrgSlugObservabilityRequestsRequestIdRoute
   '/api/$orgSlug/observability/traces/$traceId': typeof ApiOrgSlugObservabilityTracesTraceIdRoute
   '/api/$orgSlug/tunnels/$tunnelId/stop': typeof ApiOrgSlugTunnelsTunnelIdStopRoute
+  '/api/$orgSlug/observability/alerts': typeof ApiOrgSlugObservabilityAlertsIndexRoute
   '/api/$orgSlug/observability/logs': typeof ApiOrgSlugObservabilityLogsIndexRoute
   '/api/$orgSlug/observability/metrics': typeof ApiOrgSlugObservabilityMetricsIndexRoute
   '/api/$orgSlug/observability/requests': typeof ApiOrgSlugObservabilityRequestsIndexRoute
   '/api/$orgSlug/observability/services': typeof ApiOrgSlugObservabilityServicesIndexRoute
   '/api/$orgSlug/observability/traces': typeof ApiOrgSlugObservabilityTracesIndexRoute
+  '/api/$orgSlug/observability/alerts/$alertId/evaluate': typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -880,6 +920,7 @@ export interface FileRoutesByTo {
   '/internal/domain-check': typeof InternalDomainCheckRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
   '/$orgSlug': typeof OrgSlugIndexRoute
+  '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
   '/$orgSlug/observability/monitors': typeof OrgSlugObservabilityMonitorsRoute
@@ -927,6 +968,7 @@ export interface FileRoutesByTo {
   '/$orgSlug/tunnels': typeof OrgSlugTunnelsIndexRoute
   '/admin/organizations': typeof AdminOrganizationsIndexRoute
   '/admin/users': typeof AdminUsersIndexRoute
+  '/$orgSlug/observability/alerts/$alertId': typeof OrgSlugObservabilityAlertsAlertIdRoute
   '/$orgSlug/observability/services/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
@@ -946,14 +988,17 @@ export interface FileRoutesByTo {
   '/api/$orgSlug/subdomains': typeof ApiOrgSlugSubdomainsIndexRoute
   '/api/$orgSlug/tunnels': typeof ApiOrgSlugTunnelsIndexRoute
   '/api/$orgSlug/domains/$domainId/verify': typeof ApiOrgSlugDomainsDomainIdVerifyRoute
+  '/api/$orgSlug/observability/alerts/$alertId': typeof ApiOrgSlugObservabilityAlertsAlertIdRouteWithChildren
   '/api/$orgSlug/observability/requests/$requestId': typeof ApiOrgSlugObservabilityRequestsRequestIdRoute
   '/api/$orgSlug/observability/traces/$traceId': typeof ApiOrgSlugObservabilityTracesTraceIdRoute
   '/api/$orgSlug/tunnels/$tunnelId/stop': typeof ApiOrgSlugTunnelsTunnelIdStopRoute
+  '/api/$orgSlug/observability/alerts': typeof ApiOrgSlugObservabilityAlertsIndexRoute
   '/api/$orgSlug/observability/logs': typeof ApiOrgSlugObservabilityLogsIndexRoute
   '/api/$orgSlug/observability/metrics': typeof ApiOrgSlugObservabilityMetricsIndexRoute
   '/api/$orgSlug/observability/requests': typeof ApiOrgSlugObservabilityRequestsIndexRoute
   '/api/$orgSlug/observability/services': typeof ApiOrgSlugObservabilityServicesIndexRoute
   '/api/$orgSlug/observability/traces': typeof ApiOrgSlugObservabilityTracesIndexRoute
+  '/api/$orgSlug/observability/alerts/$alertId/evaluate': typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -997,6 +1042,7 @@ export interface FileRoutesById {
   '/internal/domain-check': typeof InternalDomainCheckRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
   '/$orgSlug/': typeof OrgSlugIndexRoute
+  '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
   '/$orgSlug/observability/monitors': typeof OrgSlugObservabilityMonitorsRoute
@@ -1044,6 +1090,7 @@ export interface FileRoutesById {
   '/$orgSlug/tunnels/': typeof OrgSlugTunnelsIndexRoute
   '/admin/organizations/': typeof AdminOrganizationsIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
+  '/$orgSlug/observability/alerts_/$alertId': typeof OrgSlugObservabilityAlertsAlertIdRoute
   '/$orgSlug/observability/services_/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
@@ -1063,14 +1110,17 @@ export interface FileRoutesById {
   '/api/$orgSlug/subdomains/': typeof ApiOrgSlugSubdomainsIndexRoute
   '/api/$orgSlug/tunnels/': typeof ApiOrgSlugTunnelsIndexRoute
   '/api/$orgSlug/domains/$domainId/verify': typeof ApiOrgSlugDomainsDomainIdVerifyRoute
+  '/api/$orgSlug/observability/alerts/$alertId': typeof ApiOrgSlugObservabilityAlertsAlertIdRouteWithChildren
   '/api/$orgSlug/observability/requests/$requestId': typeof ApiOrgSlugObservabilityRequestsRequestIdRoute
   '/api/$orgSlug/observability/traces/$traceId': typeof ApiOrgSlugObservabilityTracesTraceIdRoute
   '/api/$orgSlug/tunnels/$tunnelId/stop': typeof ApiOrgSlugTunnelsTunnelIdStopRoute
+  '/api/$orgSlug/observability/alerts/': typeof ApiOrgSlugObservabilityAlertsIndexRoute
   '/api/$orgSlug/observability/logs/': typeof ApiOrgSlugObservabilityLogsIndexRoute
   '/api/$orgSlug/observability/metrics/': typeof ApiOrgSlugObservabilityMetricsIndexRoute
   '/api/$orgSlug/observability/requests/': typeof ApiOrgSlugObservabilityRequestsIndexRoute
   '/api/$orgSlug/observability/services/': typeof ApiOrgSlugObservabilityServicesIndexRoute
   '/api/$orgSlug/observability/traces/': typeof ApiOrgSlugObservabilityTracesIndexRoute
+  '/api/$orgSlug/observability/alerts/$alertId/evaluate': typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1115,6 +1165,7 @@ export interface FileRouteTypes {
     | '/internal/domain-check'
     | '/invitations/accept'
     | '/$orgSlug/'
+    | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
     | '/$orgSlug/observability/monitors'
@@ -1162,6 +1213,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/tunnels'
     | '/admin/organizations'
     | '/admin/users'
+    | '/$orgSlug/observability/alerts/$alertId'
     | '/$orgSlug/observability/services/$serviceId'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
@@ -1181,14 +1233,17 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/subdomains'
     | '/api/$orgSlug/tunnels'
     | '/api/$orgSlug/domains/$domainId/verify'
+    | '/api/$orgSlug/observability/alerts/$alertId'
     | '/api/$orgSlug/observability/requests/$requestId'
     | '/api/$orgSlug/observability/traces/$traceId'
     | '/api/$orgSlug/tunnels/$tunnelId/stop'
+    | '/api/$orgSlug/observability/alerts'
     | '/api/$orgSlug/observability/logs'
     | '/api/$orgSlug/observability/metrics'
     | '/api/$orgSlug/observability/requests'
     | '/api/$orgSlug/observability/services'
     | '/api/$orgSlug/observability/traces'
+    | '/api/$orgSlug/observability/alerts/$alertId/evaluate'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1228,6 +1283,7 @@ export interface FileRouteTypes {
     | '/internal/domain-check'
     | '/invitations/accept'
     | '/$orgSlug'
+    | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
     | '/$orgSlug/observability/monitors'
@@ -1275,6 +1331,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/tunnels'
     | '/admin/organizations'
     | '/admin/users'
+    | '/$orgSlug/observability/alerts/$alertId'
     | '/$orgSlug/observability/services/$serviceId'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
@@ -1294,14 +1351,17 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/subdomains'
     | '/api/$orgSlug/tunnels'
     | '/api/$orgSlug/domains/$domainId/verify'
+    | '/api/$orgSlug/observability/alerts/$alertId'
     | '/api/$orgSlug/observability/requests/$requestId'
     | '/api/$orgSlug/observability/traces/$traceId'
     | '/api/$orgSlug/tunnels/$tunnelId/stop'
+    | '/api/$orgSlug/observability/alerts'
     | '/api/$orgSlug/observability/logs'
     | '/api/$orgSlug/observability/metrics'
     | '/api/$orgSlug/observability/requests'
     | '/api/$orgSlug/observability/services'
     | '/api/$orgSlug/observability/traces'
+    | '/api/$orgSlug/observability/alerts/$alertId/evaluate'
   id:
     | '__root__'
     | '/'
@@ -1344,6 +1404,7 @@ export interface FileRouteTypes {
     | '/internal/domain-check'
     | '/invitations/accept'
     | '/$orgSlug/'
+    | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
     | '/$orgSlug/observability/monitors'
@@ -1391,6 +1452,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/tunnels/'
     | '/admin/organizations/'
     | '/admin/users/'
+    | '/$orgSlug/observability/alerts_/$alertId'
     | '/$orgSlug/observability/services_/$serviceId'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
@@ -1410,14 +1472,17 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/subdomains/'
     | '/api/$orgSlug/tunnels/'
     | '/api/$orgSlug/domains/$domainId/verify'
+    | '/api/$orgSlug/observability/alerts/$alertId'
     | '/api/$orgSlug/observability/requests/$requestId'
     | '/api/$orgSlug/observability/traces/$traceId'
     | '/api/$orgSlug/tunnels/$tunnelId/stop'
+    | '/api/$orgSlug/observability/alerts/'
     | '/api/$orgSlug/observability/logs/'
     | '/api/$orgSlug/observability/metrics/'
     | '/api/$orgSlug/observability/requests/'
     | '/api/$orgSlug/observability/services/'
     | '/api/$orgSlug/observability/traces/'
+    | '/api/$orgSlug/observability/alerts/$alertId/evaluate'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1489,8 +1554,10 @@ export interface RootRouteChildren {
   ApiOrgSlugDomainsIndexRoute: typeof ApiOrgSlugDomainsIndexRoute
   ApiOrgSlugSubdomainsIndexRoute: typeof ApiOrgSlugSubdomainsIndexRoute
   ApiOrgSlugTunnelsIndexRoute: typeof ApiOrgSlugTunnelsIndexRoute
+  ApiOrgSlugObservabilityAlertsAlertIdRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdRouteWithChildren
   ApiOrgSlugObservabilityRequestsRequestIdRoute: typeof ApiOrgSlugObservabilityRequestsRequestIdRoute
   ApiOrgSlugObservabilityTracesTraceIdRoute: typeof ApiOrgSlugObservabilityTracesTraceIdRoute
+  ApiOrgSlugObservabilityAlertsIndexRoute: typeof ApiOrgSlugObservabilityAlertsIndexRoute
   ApiOrgSlugObservabilityLogsIndexRoute: typeof ApiOrgSlugObservabilityLogsIndexRoute
   ApiOrgSlugObservabilityMetricsIndexRoute: typeof ApiOrgSlugObservabilityMetricsIndexRoute
   ApiOrgSlugObservabilityRequestsIndexRoute: typeof ApiOrgSlugObservabilityRequestsIndexRoute
@@ -2109,6 +2176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugObservabilityLogsRouteImport
       parentRoute: typeof OrgSlugObservabilityRoute
     }
+    '/$orgSlug/observability/alerts': {
+      id: '/$orgSlug/observability/alerts'
+      path: '/alerts'
+      fullPath: '/$orgSlug/observability/alerts'
+      preLoaderRoute: typeof OrgSlugObservabilityAlertsRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
     '/api/$orgSlug/tunnels/': {
       id: '/api/$orgSlug/tunnels/'
       path: '/api/$orgSlug/tunnels'
@@ -2235,6 +2309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugObservabilityServicesServiceIdRouteImport
       parentRoute: typeof OrgSlugObservabilityRoute
     }
+    '/$orgSlug/observability/alerts_/$alertId': {
+      id: '/$orgSlug/observability/alerts_/$alertId'
+      path: '/alerts/$alertId'
+      fullPath: '/$orgSlug/observability/alerts/$alertId'
+      preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
     '/api/$orgSlug/observability/traces/': {
       id: '/api/$orgSlug/observability/traces/'
       path: '/api/$orgSlug/observability/traces'
@@ -2270,6 +2351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugObservabilityLogsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/$orgSlug/observability/alerts/': {
+      id: '/api/$orgSlug/observability/alerts/'
+      path: '/api/$orgSlug/observability/alerts'
+      fullPath: '/api/$orgSlug/observability/alerts'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/$orgSlug/tunnels/$tunnelId/stop': {
       id: '/api/$orgSlug/tunnels/$tunnelId/stop'
       path: '/stop'
@@ -2291,6 +2379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugObservabilityRequestsRequestIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/$orgSlug/observability/alerts/$alertId': {
+      id: '/api/$orgSlug/observability/alerts/$alertId'
+      path: '/api/$orgSlug/observability/alerts/$alertId'
+      fullPath: '/api/$orgSlug/observability/alerts/$alertId'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/$orgSlug/domains/$domainId/verify': {
       id: '/api/$orgSlug/domains/$domainId/verify'
       path: '/verify'
@@ -2298,10 +2393,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugDomainsDomainIdVerifyRouteImport
       parentRoute: typeof ApiOrgSlugDomainsDomainIdRoute
     }
+    '/api/$orgSlug/observability/alerts/$alertId/evaluate': {
+      id: '/api/$orgSlug/observability/alerts/$alertId/evaluate'
+      path: '/evaluate'
+      fullPath: '/api/$orgSlug/observability/alerts/$alertId/evaluate'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRouteImport
+      parentRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdRoute
+    }
   }
 }
 
 interface OrgSlugObservabilityRouteChildren {
+  OrgSlugObservabilityAlertsRoute: typeof OrgSlugObservabilityAlertsRoute
   OrgSlugObservabilityLogsRoute: typeof OrgSlugObservabilityLogsRoute
   OrgSlugObservabilityMetricsRoute: typeof OrgSlugObservabilityMetricsRoute
   OrgSlugObservabilityMonitorsRoute: typeof OrgSlugObservabilityMonitorsRoute
@@ -2309,10 +2412,12 @@ interface OrgSlugObservabilityRouteChildren {
   OrgSlugObservabilityServicesRoute: typeof OrgSlugObservabilityServicesRoute
   OrgSlugObservabilityTracesRoute: typeof OrgSlugObservabilityTracesRoute
   OrgSlugObservabilityIndexRoute: typeof OrgSlugObservabilityIndexRoute
+  OrgSlugObservabilityAlertsAlertIdRoute: typeof OrgSlugObservabilityAlertsAlertIdRoute
   OrgSlugObservabilityServicesServiceIdRoute: typeof OrgSlugObservabilityServicesServiceIdRoute
 }
 
 const OrgSlugObservabilityRouteChildren: OrgSlugObservabilityRouteChildren = {
+  OrgSlugObservabilityAlertsRoute: OrgSlugObservabilityAlertsRoute,
   OrgSlugObservabilityLogsRoute: OrgSlugObservabilityLogsRoute,
   OrgSlugObservabilityMetricsRoute: OrgSlugObservabilityMetricsRoute,
   OrgSlugObservabilityMonitorsRoute: OrgSlugObservabilityMonitorsRoute,
@@ -2320,6 +2425,8 @@ const OrgSlugObservabilityRouteChildren: OrgSlugObservabilityRouteChildren = {
   OrgSlugObservabilityServicesRoute: OrgSlugObservabilityServicesRoute,
   OrgSlugObservabilityTracesRoute: OrgSlugObservabilityTracesRoute,
   OrgSlugObservabilityIndexRoute: OrgSlugObservabilityIndexRoute,
+  OrgSlugObservabilityAlertsAlertIdRoute:
+    OrgSlugObservabilityAlertsAlertIdRoute,
   OrgSlugObservabilityServicesServiceIdRoute:
     OrgSlugObservabilityServicesServiceIdRoute,
 }
@@ -2480,6 +2587,21 @@ const ApiOrgSlugTunnelsTunnelIdRouteWithChildren =
     ApiOrgSlugTunnelsTunnelIdRouteChildren,
   )
 
+interface ApiOrgSlugObservabilityAlertsAlertIdRouteChildren {
+  ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute
+}
+
+const ApiOrgSlugObservabilityAlertsAlertIdRouteChildren: ApiOrgSlugObservabilityAlertsAlertIdRouteChildren =
+  {
+    ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute:
+      ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute,
+  }
+
+const ApiOrgSlugObservabilityAlertsAlertIdRouteWithChildren =
+  ApiOrgSlugObservabilityAlertsAlertIdRoute._addFileChildren(
+    ApiOrgSlugObservabilityAlertsAlertIdRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OrgSlugRoute: OrgSlugRouteWithChildren,
@@ -2549,10 +2671,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOrgSlugDomainsIndexRoute: ApiOrgSlugDomainsIndexRoute,
   ApiOrgSlugSubdomainsIndexRoute: ApiOrgSlugSubdomainsIndexRoute,
   ApiOrgSlugTunnelsIndexRoute: ApiOrgSlugTunnelsIndexRoute,
+  ApiOrgSlugObservabilityAlertsAlertIdRoute:
+    ApiOrgSlugObservabilityAlertsAlertIdRouteWithChildren,
   ApiOrgSlugObservabilityRequestsRequestIdRoute:
     ApiOrgSlugObservabilityRequestsRequestIdRoute,
   ApiOrgSlugObservabilityTracesTraceIdRoute:
     ApiOrgSlugObservabilityTracesTraceIdRoute,
+  ApiOrgSlugObservabilityAlertsIndexRoute:
+    ApiOrgSlugObservabilityAlertsIndexRoute,
   ApiOrgSlugObservabilityLogsIndexRoute: ApiOrgSlugObservabilityLogsIndexRoute,
   ApiOrgSlugObservabilityMetricsIndexRoute:
     ApiOrgSlugObservabilityMetricsIndexRoute,
