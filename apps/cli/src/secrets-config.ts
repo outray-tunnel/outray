@@ -4,6 +4,8 @@ import TOML from "@iarna/toml";
 
 export interface SecretsFileConfig {
   org?: string;
+  vault?: string;
+  /** @deprecated Use vault. Retained for existing config files. */
   project?: string;
   environment?: string;
 }
@@ -23,6 +25,8 @@ export interface SecretsTarget {
 
 export interface SecretsTargetInput {
   org?: string;
+  vault?: string;
+  /** @deprecated Use vault. Retained for existing CLI integrations. */
   project?: string;
   environment?: string;
   activeOrganization?: string | null;
@@ -32,7 +36,7 @@ export interface SecretsTargetInput {
 
 export type PartialSecretsTarget = Partial<SecretsTarget>;
 
-const SECRETS_KEYS = new Set(["org", "project", "environment"]);
+const SECRETS_KEYS = new Set(["org", "vault", "project", "environment"]);
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -86,6 +90,7 @@ export function parseSecretsConfig(
   return {
     secrets: {
       org: optionalString(secretsObject, "org", source),
+      vault: optionalString(secretsObject, "vault", source),
       project: optionalString(secretsObject, "project", source),
       environment: optionalString(secretsObject, "environment", source),
     },
@@ -140,7 +145,8 @@ function tomlString(value: string): string {
 function renderSecretsSection(config: SecretsFileConfig): string {
   const lines = ["[secrets]"];
   if (config.org) lines.push(`org = ${tomlString(config.org)}`);
-  if (config.project) lines.push(`project = ${tomlString(config.project)}`);
+  const vault = config.vault ?? config.project;
+  if (vault) lines.push(`vault = ${tomlString(vault)}`);
   if (config.environment) {
     lines.push(`environment = ${tomlString(config.environment)}`);
   }
@@ -185,11 +191,20 @@ export function saveNearestSecretsConfig(
   const definedPatch = Object.fromEntries(
     Object.entries(patch).filter(([, value]) => value !== undefined),
   ) as SecretsFileConfig;
-  const next: SecretsFileConfig = { ...previous, ...definedPatch };
+  const next: SecretsFileConfig = {
+    ...previous,
+    ...definedPatch,
+    vault:
+      definedPatch.vault ??
+      definedPatch.project ??
+      previous.vault ??
+      previous.project,
+    project: undefined,
+  };
 
-  if (!next.project || !next.environment) {
+  if (!next.vault || !next.environment) {
     throw new Error(
-      "Secrets config requires both project and environment. Pass --project and --env.",
+      "Secrets config requires both vault and environment. Pass --vault and --env.",
     );
   }
 
@@ -217,8 +232,11 @@ export function resolveSecretsTargetPartial(
     input.activeOrganization,
   );
   const project = first(
+    input.vault,
     input.project,
+    env.OUTRAY_SECRETS_VAULT,
     env.OUTRAY_SECRETS_PROJECT,
+    input.config?.secrets.vault,
     input.config?.secrets.project,
   );
   const environment = first(
@@ -241,7 +259,7 @@ export function resolveSecretsTarget(input: SecretsTargetInput): SecretsTarget {
   }
   if (!project) {
     throw new Error(
-      "Secrets project is required. Pass --project, set OUTRAY_SECRETS_PROJECT, or run outray secrets use.",
+      "Secrets vault is required. Pass --vault, set OUTRAY_SECRETS_VAULT, or run outray secrets use.",
     );
   }
   if (!environment) {
