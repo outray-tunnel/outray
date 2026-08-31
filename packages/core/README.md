@@ -116,6 +116,26 @@ ErrorCodes.INVALID_SUBDOMAIN
 ErrorCodes.CUSTOM_DOMAIN_NOT_CONFIGURED
 ```
 
+### HTTP payload capture contract
+
+Framework plugins use the opt-in payload capture helpers in this package to add
+bounded values to the active OpenTelemetry server span. Bodies and headers are
+serialized as strings because OpenTelemetry attributes cannot contain objects.
+
+| Attribute | Type |
+|---|---|
+| `outray.http.capture.version` | string (`"1"`) |
+| `outray.http.request.headers` / `outray.http.response.headers` | JSON object string |
+| `outray.http.request.headers.truncated` / `outray.http.response.headers.truncated` | boolean |
+| `outray.http.request.body` / `outray.http.response.body` | redacted string |
+| `outray.http.request.body.size` / `outray.http.response.body.size` | number |
+| `outray.http.request.body.truncated` / `outray.http.response.body.truncated` | boolean |
+| `outray.http.request.body.content_type` / `outray.http.response.body.content_type` | lowercase MIME string |
+
+An absent attribute means the value was unavailable, unsupported, or not opted
+in. Consumers must still treat all telemetry as untrusted and re-sanitize these
+values at ingestion.
+
 ## Building Framework Plugins
 
 If you're building a framework plugin, use `@outray/core` as the foundation:
