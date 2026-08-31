@@ -43,6 +43,10 @@ outray/
    cp .env.example .env
    ```
 
+   Generate `OUTRAY_SECRETS_ACTIVE_MASTER_KEY` with
+   `openssl rand -base64 32` before exercising the Secrets product. This key
+   is consumed by the web runtime and must not be committed.
+
 3. **Install dependencies**
 
    Export the root environment while npm authenticates with the Hugeicons
