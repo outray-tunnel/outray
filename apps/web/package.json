@@ -8,8 +8,12 @@
     "build": "vite build",
     "start": "vite start",
     "lint": "eslint .",
+    "test": "tsx --test test/*.test.ts",
     "db:generate-auth": "npx @better-auth/cli generate --output=src/db/auth-schema.ts -y",
-    "db:migrate": "npx drizzle-kit generate && npx drizzle-kit migrate"
+    "db:migrate": "npx drizzle-kit generate && npx drizzle-kit migrate",
+    "tokens:backfill": "tsx scripts/backfill-machine-tokens.ts",
+    "secrets:rewrap": "tsx src/lib/secrets/rewrap-command.ts",
+    "secrets:rewrap:verify": "tsx src/lib/secrets/rewrap-command.ts --verify-only"
   },
   "dependencies": {
     "@hugeicons-pro/core-solid-rounded": "^4.3.0",
