@@ -1,15 +1,22 @@
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useLocation, useParams } from "@tanstack/react-router";
 import { LayoutDashboard, Network, History, Globe, Menu } from "lucide-react";
 import { useState } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Audit01Icon,
+  Folder01Icon,
+  Home01Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import { MobileNavSheet } from "./mobile-nav-sheet";
 
 const NAV_ICON_SIZE = 22;
 
 export function MobileBottomNav() {
   const { orgSlug } = useParams({ from: "/$orgSlug" });
+  const location = useLocation();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  const mainNavItems = [
+  const tunnelNavItems = [
     {
       to: "/$orgSlug",
       icon: <LayoutDashboard size={NAV_ICON_SIZE} />,
@@ -32,6 +39,47 @@ export function MobileBottomNav() {
       label: "Subdomains",
     },
   ];
+
+  const secretNavItems = [
+    {
+      to: "/$orgSlug/secrets",
+      icon: (
+        <HugeiconsIcon
+          icon={Home01Icon}
+          size={NAV_ICON_SIZE}
+          strokeWidth={1.7}
+        />
+      ),
+      label: "Overview",
+      activeOptions: { exact: true },
+    },
+    {
+      to: "/$orgSlug/secrets/projects",
+      icon: (
+        <HugeiconsIcon
+          icon={Folder01Icon}
+          size={NAV_ICON_SIZE}
+          strokeWidth={1.7}
+        />
+      ),
+      label: "Projects",
+    },
+    {
+      to: "/$orgSlug/secrets/audit",
+      icon: (
+        <HugeiconsIcon
+          icon={Audit01Icon}
+          size={NAV_ICON_SIZE}
+          strokeWidth={1.7}
+        />
+      ),
+      label: "Audit",
+    },
+  ];
+
+  const mainNavItems = location.pathname.startsWith(`/${orgSlug}/secrets`)
+    ? secretNavItems
+    : tunnelNavItems;
 
   return (
     <>
