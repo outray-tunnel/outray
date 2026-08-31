@@ -1,0 +1,275 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Cursor- or offset-paginated HTTP server requests for one OutRay organization.
+
+NODE http_spans
+SQL >
+    %
+    SELECT
+        Timestamp AS timestamp,
+        TraceId AS trace_id,
+        SpanId AS span_id,
+        concat(TraceId, ':', SpanId) AS id,
+        coalesce(
+            nullIf(SpanAttributes['outray.http.request.id'], ''),
+            nullIf(SpanAttributes['http.request.id'], ''),
+            nullIf(SpanAttributes['request.id'], ''),
+            nullIf(SpanAttributes['http.request.header.x-request-id'], ''),
+            ''
+        ) AS request_id,
+        upper(coalesce(
+            nullIf(nullIf(upper(HttpMethod), 'EVENT'), ''),
+            nullIf(upper(SpanAttributes['http.request.method']), ''),
+            nullIf(upper(SpanAttributes['http.method']), ''),
+            ''
+        )) AS method,
+        coalesce(
+            nullIf(SpanAttributes['http.route'], ''),
+            nullIf(SpanAttributes['url.template'], ''),
+            nullIf(SpanAttributes['url.path'], ''),
+            nullIf(SpanAttributes['http.target'], ''),
+            SpanName
+        ) AS route,
+        if(
+            notEmpty(SpanAttributes['url.path']),
+            concat(
+                SpanAttributes['url.path'],
+                if(
+                    empty(SpanAttributes['url.query']),
+                    '',
+                    concat('?', SpanAttributes['url.query'])
+                )
+            ),
+            coalesce(
+                nullIf(SpanAttributes['http.target'], ''),
+                nullIf(SpanAttributes['http.route'], ''),
+                SpanName
+            )
+        ) AS path,
+        coalesce(
+            nullIf(SpanAttributes['url.full'], ''),
+            nullIf(SpanAttributes['http.url'], ''),
+            ''
+        ) AS raw_url,
+        coalesce(
+            nullIf(SpanAttributes['url.scheme'], ''),
+            nullIf(SpanAttributes['http.scheme'], ''),
+            ''
+        ) AS scheme,
+        coalesce(
+            nullIf(SpanAttributes['server.address'], ''),
+            nullIf(SpanAttributes['net.host.name'], ''),
+            nullIf(SpanAttributes['http.host'], ''),
+            ''
+        ) AS server_address,
+        toUInt16OrZero(coalesce(
+            nullIf(SpanAttributes['server.port'], ''),
+            nullIf(SpanAttributes['net.host.port'], ''),
+            '0'
+        )) AS server_port,
+        if(
+            countSubstrings(server_address, ':') > 1
+                AND not startsWith(server_address, '['),
+            concat('[', server_address, ']'),
+            server_address
+        ) AS url_server_address,
+        if(
+            notEmpty(raw_url),
+            raw_url,
+            if(
+                notEmpty(scheme)
+                    AND notEmpty(server_address)
+                    AND startsWith(path, '/'),
+                concat(
+                    scheme,
+                    '://',
+                    url_server_address,
+                    if(
+                        server_port = 0 OR countSubstrings(server_address, ':') = 1,
+                        '',
+                        concat(':', toString(server_port))
+                    ),
+                    path
+                ),
+                path
+            )
+        ) AS url,
+        ServiceName AS service,
+        Environment AS environment,
+        Region AS region,
+        toUInt16OrZero(coalesce(
+            nullIf(SpanAttributes['http.response.status_code'], ''),
+            nullIf(SpanAttributes['http.status_code'], ''),
+            nullIf(SpanAttributes['outray.http.response.status_code'], ''),
+            '0'
+        )) AS status_code,
+        StatusCode = 2 OR status_code >= 400 AS is_error,
+        round(DurationNano / 1000000, 3) AS duration_ms,
+        toUInt64OrZero(coalesce(
+            nullIf(SpanAttributes['outray.http.request.body.size'], ''),
+            nullIf(SpanAttributes['http.request.body.size'], ''),
+            nullIf(SpanAttributes['http.request_content_length'], ''),
+            '0'
+        )) AS request_size,
+        toUInt64OrZero(coalesce(
+            nullIf(SpanAttributes['outray.http.response.body.size'], ''),
+            nullIf(SpanAttributes['http.response.body.size'], ''),
+            nullIf(SpanAttributes['http.response_content_length'], ''),
+            '0'
+        )) AS response_size,
+        mapContains(SpanAttributes, 'outray.http.request.headers')
+            OR mapContains(SpanAttributes, 'outray.http.request.body')
+            OR mapContains(SpanAttributes, 'outray.http.response.headers')
+            OR mapContains(SpanAttributes, 'outray.http.response.body') AS has_capture,
+        positionCaseInsensitive(
+            concat(
+                SpanAttributes['outray.http.request.headers'],
+                SpanAttributes['outray.http.request.body'],
+                SpanAttributes['outray.http.response.headers'],
+                SpanAttributes['outray.http.response.body']
+            ),
+            '[REDACTED]'
+        ) > 0
+            OR positionCaseInsensitive(
+                concat(
+                    SpanAttributes['outray.http.request.headers'],
+                    SpanAttributes['outray.http.request.body'],
+                    SpanAttributes['outray.http.response.headers'],
+                    SpanAttributes['outray.http.response.body']
+                ),
+                '%5BREDACTED%5D'
+            ) > 0 AS has_redaction,
+        multiIf(
+            not has_capture, 'metadata',
+            has_redaction, 'redacted',
+            'full'
+        ) AS capture_state
+    FROM otel_spans FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 1)}} HOUR
+      AND SpanKind = 2
+
+NODE server_requests
+SQL >
+    %
+    SELECT *
+    FROM http_spans
+    WHERE notEmpty(method)
+      AND method != 'EVENT'
+
+NODE filtered_requests
+SQL >
+    %
+    SELECT *
+    FROM server_requests
+    WHERE 1 = 1
+    {% if defined(service) %}
+      AND service = {{String(service)}}
+    {% end %}
+    {% if defined(method) %}
+      AND method = upper({{String(method)}})
+    {% end %}
+    {% if defined(status) %}
+      AND multiIf(
+          {{String(status)}} = 'errors', is_error,
+          {{String(status)}} = 'success', not is_error,
+          true
+      )
+    {% end %}
+    {% if defined(status_code) %}
+      AND status_code = {{UInt16(status_code)}}
+    {% end %}
+    {% if defined(capture) %}
+      AND capture_state = {{String(capture)}}
+    {% end %}
+    {% if defined(search) %}
+      AND (
+        positionCaseInsensitive(path, {{String(search)}}) > 0
+        OR positionCaseInsensitive(route, {{String(search)}}) > 0
+        OR positionCaseInsensitive(url, {{String(search)}}) > 0
+        OR positionCaseInsensitive(service, {{String(search)}}) > 0
+        OR positionCaseInsensitive(request_id, {{String(search)}}) > 0
+        OR positionCaseInsensitive(trace_id, {{String(search)}}) > 0
+        OR positionCaseInsensitive(span_id, {{String(search)}}) > 0
+        OR positionCaseInsensitive(id, {{String(search)}}) > 0
+      )
+    {% end %}
+
+NODE cursor_requests
+SQL >
+    %
+    SELECT *
+    FROM filtered_requests
+    WHERE 1 = 1
+    {% if defined(before_timestamp) %}
+      AND tuple(timestamp, trace_id, span_id) < tuple(
+          parseDateTime64BestEffort({{String(before_timestamp)}}, 9, 'UTC'),
+          {{String(before_trace_id)}},
+          {{String(before_span_id)}}
+      )
+    {% end %}
+
+NODE filtered_count
+SQL >
+    %
+    SELECT count() AS total_count
+    FROM filtered_requests
+
+NODE remaining_count
+SQL >
+    %
+    SELECT count() AS remaining_count
+    FROM cursor_requests
+
+NODE request_page
+SQL >
+    %
+    SELECT *
+    FROM cursor_requests
+    ORDER BY timestamp DESC, trace_id DESC, span_id DESC
+    LIMIT {{Int32(limit, 100)}}
+    {% if not defined(before_timestamp) %}
+    OFFSET {{Int32(offset, 0)}}
+    {% end %}
+
+NODE requests
+SQL >
+    %
+    SELECT
+        page.id,
+        page.timestamp,
+        page.request_id,
+        page.method,
+        page.route,
+        page.path,
+        page.url,
+        page.service,
+        page.environment,
+        page.region,
+        page.status_code,
+        page.is_error,
+        page.duration_ms,
+        page.trace_id,
+        page.span_id,
+        page.request_size,
+        page.response_size,
+        page.capture_state,
+        totals.total_count,
+        {{Int32(limit, 100)}} AS page_limit,
+        {% if defined(before_timestamp) %}
+        0 AS page_offset,
+        {% else %}
+        {{Int32(offset, 0)}} AS page_offset,
+        {% end %}
+        {% if defined(before_timestamp) %}
+        remaining.remaining_count > {{Int32(limit, 100)}} AS has_more
+        {% else %}
+        totals.total_count > {{Int32(offset, 0)}} + {{Int32(limit, 100)}} AS has_more
+        {% end %}
+    FROM request_page AS page
+    CROSS JOIN filtered_count AS totals
+    CROSS JOIN remaining_count AS remaining
+    ORDER BY page.timestamp DESC, page.trace_id DESC, page.span_id DESC
+
+TYPE endpoint
