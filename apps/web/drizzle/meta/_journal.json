@@ -78,6 +78,20 @@
       "when": 1769807645061,
       "tag": "0010_violet_vertigo",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788136654468,
+      "tag": "0011_observability_alerts",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788137027128,
+      "tag": "0012_alert_retention_and_intervals",
+      "breakpoints": true
     }
   ]
 }
