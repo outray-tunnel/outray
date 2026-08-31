@@ -1,0 +1,100 @@
+DESCRIPTION >
+    Returns fixed gauge aggregates for one exact metric instrument and alert window.
+
+TOKEN "OUTRAY_QUERY_TOKEN" READ
+
+NODE series_buckets
+SQL >
+    %
+    WITH
+        toDateTime64({{ DateTime64(evaluation_time) }}, 9, 'UTC') AS evaluation_boundary,
+        least(
+            greatest({{ UInt32(window_seconds, 300) }}, toUInt32(60)), toUInt32(3600)
+        ) AS effective_window_seconds
+    SELECT
+        toStartOfInterval(Timestamp, INTERVAL 60 SECOND) AS timestamp,
+        cityHash64(
+            ServiceName,
+            toString(
+                arrayMap(key -> (key, ResourceAttributes[key]), arraySort(mapKeys(ResourceAttributes)))
+            ),
+            toString(arrayMap(key -> (key, Attributes[key]), arraySort(mapKeys(Attributes)))),
+            ScopeName,
+            ScopeVersion,
+            toString(arrayMap(key -> (key, ScopeAttributes[key]), arraySort(mapKeys(ScopeAttributes))))
+        ) AS series_id,
+        count() AS raw_point_count,
+        argMax(coalesce(Value, toFloat64(ValueInt)), Timestamp) AS series_value,
+        max(Timestamp) AS series_last_seen
+    FROM otel_metrics FINAL
+    WHERE
+        OrganizationId = {{ String(organization_id) }}
+        AND ServiceName = {{ String(service) }}
+        AND MetricName = {{ String(metric_name) }}
+        AND MetricType = {{ String(metric_type) }}
+        AND MetricType = 'gauge'
+        AND Unit = if({{ String(metric_unit) }} = '__outray_empty__', '', {{ String(metric_unit) }})
+        AND AggregationTemporality = {{ UInt8(aggregation_temporality) }}
+        AND IsMonotonic = {{ UInt8(is_monotonic) }}
+        AND bitAnd(Flags, 1) = 0
+        AND coalesce(Value, toFloat64(ValueInt)) IS NOT NULL
+        AND Timestamp >= evaluation_boundary - toIntervalSecond(effective_window_seconds)
+        AND Timestamp < evaluation_boundary
+        {% if defined(environment) %} AND Environment = {{ String(environment) }} {% end %}
+    GROUP BY timestamp, series_id
+
+NODE bucket_values
+SQL >
+    %
+    SELECT
+        timestamp,
+        avg(series_value) AS bucket_value,
+        sum(raw_point_count) AS bucket_raw_point_count,
+        max(series_last_seen) AS bucket_last_seen
+    FROM series_buckets
+    GROUP BY timestamp
+
+NODE series_summary
+SQL >
+    %
+    SELECT sum(raw_point_count) AS raw_point_count, uniqExact(series_id) AS series_count
+    FROM series_buckets
+
+NODE value_summary
+SQL >
+    %
+    SELECT
+        count() AS bucket_count,
+        if(
+            bucket_count = 0, CAST(NULL, 'Nullable(Float64)'), argMax(bucket_value, timestamp)
+        ) AS latest_value,
+        if(bucket_count = 0, CAST(NULL, 'Nullable(Float64)'), avg(bucket_value)) AS avg_value,
+        if(bucket_count = 0, CAST(NULL, 'Nullable(Float64)'), max(bucket_value)) AS max_value,
+        if(bucket_count = 0, CAST(NULL, 'Nullable(Float64)'), min(bucket_value)) AS min_value,
+        maxOrNull(bucket_last_seen) AS latest_timestamp
+    FROM bucket_values
+
+NODE observation
+SQL >
+    %
+    WITH
+        toDateTime64({{ DateTime64(evaluation_time) }}, 9, 'UTC') AS evaluation_boundary,
+        least(
+            greatest({{ UInt32(window_seconds, 300) }}, toUInt32(60)), toUInt32(3600)
+        ) AS effective_window_seconds
+    SELECT
+        evaluation_boundary AS evaluation_end,
+        evaluation_boundary - toIntervalSecond(effective_window_seconds) AS window_start,
+        effective_window_seconds AS window_seconds,
+        series_summary.raw_point_count AS raw_point_count,
+        series_summary.series_count AS series_count,
+        value_summary.bucket_count AS bucket_count,
+        value_summary.latest_value AS latest_value,
+        value_summary.avg_value AS avg_value,
+        value_summary.max_value AS max_value,
+        value_summary.min_value AS min_value,
+        value_summary.latest_timestamp AS latest_timestamp
+    FROM series_summary
+    CROSS JOIN value_summary
+
+TYPE ENDPOINT
