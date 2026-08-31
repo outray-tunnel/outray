@@ -35,6 +35,44 @@ async function bootstrap() {
 bootstrap();
 ```
 
+### OpenTelemetry payload capture
+
+Payload capture is off by default and currently supports Nest's Express
+adapter. It must be registered before `app.listen()` so the middleware precedes
+compiled controllers:
+
+```typescript
+import { NestFactory } from '@nestjs/core';
+import {
+  outray,
+  registerOutrayPayloadCapture,
+} from '@outray/nest';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  registerOutrayPayloadCapture(app, {
+    maxBodyBytes: 16 * 1024,
+    redactedHeaders: ['x-workspace-secret'],
+    redactedFields: ['accountPin'],
+  });
+
+  await app.listen(3000);
+  await outray(app); // The development tunnel remains a separate concern.
+}
+```
+
+The application must already have an active OpenTelemetry HTTP server span.
+Without one, capture is a safe no-op. Explicit capture remains available in
+production even when the tunnel is disabled. Late registration and non-Express
+adapters are skipped with a warning instead of affecting the application.
+
+Only JSON, `application/*+json`, and URL-encoded form bodies are eligible.
+Authorization, cookies, tokens, passwords, secrets, and API/private keys are
+redacted. Bodies default to 16 KiB (hard limit 64 KiB) and serialized headers
+default to 8 KiB (hard limit 32 KiB). Multipart, text, XML, binary, compressed,
+and streaming bodies are not captured.
+
 ## Configuration
 
 You can pass options to the `outray` function:
@@ -64,6 +102,7 @@ await outray(app, {
 | `apiKey` | `string` | `process.env.OUTRAY_API_KEY` | Your Outray API key. |
 | `enabled` | `boolean` | `true` (in dev) | Whether to enable the tunnel. |
 | `silent` | `boolean` | `false` | specific to Console logs. |
+| `capturePayloads` | `boolean \| HttpPayloadCaptureOptions` | `false` | Register opt-in payload capture before the app is initialized. Prefer `registerOutrayPayloadCapture`. |
 | `onTunnelReady` | `(url: string) => void` | - | Callback when tunnel is ready. |
 
 ## License
