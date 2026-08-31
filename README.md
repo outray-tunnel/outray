@@ -14,6 +14,7 @@
 - **UDP Tunnels** - Tunnel UDP traffic (DNS, VoIP, TFTP, etc.)
 - **Custom Domains** - Bring your own domain with automatic TLS
 - **Dashboard** - Monitor traffic, view analytics, manage tunnels
+- **Secrets** - Version, audit, and inject encrypted environment secrets
 - **Team Support** - Collaborate with organizations and role-based access
 
 ## Quick Start
@@ -83,6 +84,33 @@ npm run dev
 Use `npm run dev:web`, `npm run dev:tunnel`, `npm run dev:cron`, or
 `npm run dev:internal-check` to run a single service and its workspace
 dependencies.
+
+### Secrets development
+
+Secrets are encrypted with a per-organization data key. Before using the
+Secrets dashboard locally, generate the web runtime's 32-byte master key and
+set it in the root `.env`:
+
+```bash
+openssl rand -base64 32
+```
+
+Set the result as `OUTRAY_SECRETS_ACTIVE_MASTER_KEY` and keep
+`OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID` stable for that key. Back up production
+master keys separately from the database: losing every configured copy makes
+the wrapped organization keys unrecoverable.
+
+The CLI uses the existing browser login and stores only the selected project
+and environment in `outray/config.toml`:
+
+```bash
+outray secrets use --project payments-api --env development
+outray secrets list
+outray secrets run -- npm run dev
+```
+
+For automation, provide a scoped machine credential through `OUTRAY_TOKEN`.
+Never commit tokens or exported `.env` files.
 
 ## Documentation
 
