@@ -192,12 +192,12 @@ export function CreateTokenModal({ isOpen, onClose }: CreateTokenModalProps) {
       {
         value: "organization",
         label: "Entire organization",
-        description: "Every Secrets project and environment.",
+        description: "Every Secrets vault and environment.",
       },
       {
         value: "project",
-        label: "One project",
-        description: "Every environment in a selected project.",
+        label: "One vault",
+        description: "Every environment in a selected vault.",
         disabled: !hasSecretsPermission,
       },
       {
@@ -396,7 +396,7 @@ export function CreateTokenModal({ isOpen, onClose }: CreateTokenModalProps) {
             {boundary !== "organization" && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className={boundary === "project" ? "sm:col-span-2" : ""}>
-                  <Label>Project</Label>
+                  <Label>Vault</Label>
                   <Select
                     className="mt-2"
                     value={projectId}
@@ -406,8 +406,8 @@ export function CreateTokenModal({ isOpen, onClose }: CreateTokenModalProps) {
                     }}
                     placeholder={
                       projectsQuery.isLoading
-                        ? "Loading projects…"
-                        : "Select project"
+                        ? "Loading vaults…"
+                        : "Select vault"
                     }
                     disabled={projectsQuery.isLoading}
                     options={(projectsQuery.data ?? []).map((project) => ({
@@ -426,7 +426,7 @@ export function CreateTokenModal({ isOpen, onClose }: CreateTokenModalProps) {
                       onChange={setEnvironmentId}
                       placeholder={
                         !projectId
-                          ? "Select a project first"
+                          ? "Select a vault first"
                           : environmentsQuery.isLoading
                             ? "Loading environments…"
                             : "Select environment"
