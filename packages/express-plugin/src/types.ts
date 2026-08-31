@@ -1,3 +1,5 @@
+import type { HttpPayloadCaptureSetting } from "@outray/core";
+
 /**
  * Configuration options for the Outray Express middleware
  */
@@ -46,6 +48,14 @@ export interface OutrayPluginOptions {
    * @default false
    */
   local?: boolean;
+
+  /**
+   * Opt in to adding redacted, bounded request/response payload attributes to
+   * the active OpenTelemetry server span. This remains independent of `enabled`
+   * so it can be used when tunnels are disabled in production.
+   * @default false
+   */
+  capturePayloads?: HttpPayloadCaptureSetting;
 
   /**
    * Callback fired when tunnel is successfully established
