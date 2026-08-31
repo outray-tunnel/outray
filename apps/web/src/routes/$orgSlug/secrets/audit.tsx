@@ -58,7 +58,7 @@ function SecretsAuditPage() {
       }
     }
     return [
-      { value: "all", label: "All projects" },
+      { value: "all", label: "All vaults" },
       ...Array.from(values.entries())
         .sort((a, b) => a[1].localeCompare(b[1]))
         .map(([value, label]) => ({ value, label })),
@@ -181,13 +181,13 @@ function SecretsAuditPage() {
               onChange={setResourceType}
               options={[
                 { value: "all", label: "All resource types" },
-                { value: "project", label: "Projects" },
+                { value: "project", label: "Vaults" },
                 { value: "environment", label: "Environments" },
                 { value: "secret", label: "Secrets" },
               ]}
             />
             <SecretsSelect
-              ariaLabel="Filter by project"
+              ariaLabel="Filter by vault"
               value={project}
               onChange={setProject}
               options={projectOptions}
