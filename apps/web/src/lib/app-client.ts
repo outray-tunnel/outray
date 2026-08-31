@@ -22,11 +22,22 @@ export interface Tunnel {
 
 export interface AuthToken {
   id: string;
-  userId: string;
-  token: string;
-  name: string | null;
-  lastUsedAt: Date | null;
-  createdAt: Date;
+  name: string;
+  prefix: string;
+  scopes: Array<
+    | "tunnel:connect"
+    | "secrets:read"
+    | "secrets:write"
+    | "secrets:delete"
+  >;
+  organizationId: string;
+  projectId: string | null;
+  environmentId: string | null;
+  createdById: string | null;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
 }
 
 export interface Subdomain {
@@ -61,6 +72,10 @@ export interface Subscription {
 interface CreateAuthTokenParams {
   name: string;
   orgSlug: string;
+  scopes?: AuthToken["scopes"];
+  projectId?: string | null;
+  environmentId?: string | null;
+  expiresIn?: "30d" | "90d" | "1y" | "never";
 }
 
 interface DeleteAuthTokenParams {
@@ -479,9 +494,18 @@ export const appClient = {
     list: async (orgSlug: string) =>
       apiCall<{ tokens: AuthToken[] }>("get", `/api/${orgSlug}/auth-tokens`),
 
-    create: async ({ name, orgSlug }: CreateAuthTokenParams) =>
-      apiCall<{ token: string }>("post", `/api/${orgSlug}/auth-tokens`, {
-        data: { name },
+    create: async ({ orgSlug, ...data }: CreateAuthTokenParams) =>
+      apiCall<{ token: string; machineToken: AuthToken }>(
+        "post",
+        `/api/${orgSlug}/auth-tokens`,
+        {
+          data,
+        },
+      ),
+
+    revoke: async ({ id, orgSlug }: DeleteAuthTokenParams) =>
+      apiCall<{ success: boolean }>("delete", `/api/${orgSlug}/auth-tokens`, {
+        data: { id },
       }),
 
     delete: async ({ id, orgSlug }: DeleteAuthTokenParams) =>
