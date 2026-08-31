@@ -141,7 +141,7 @@ export const Route = createFileRoute("/api/$orgSlug/auth-tokens")({
 
           if (environmentId && !projectId) {
             return Response.json(
-              { error: "Environment-scoped tokens must also select a project" },
+              { error: "Environment-scoped tokens must also select a vault" },
               { status: 400 },
             );
           }
@@ -153,7 +153,7 @@ export const Route = createFileRoute("/api/$orgSlug/auth-tokens")({
             return Response.json(
               {
                 error:
-                  "Project and environment scopes apply to Secrets permissions",
+                  "Vault and environment scopes apply to Secrets permissions",
               },
               { status: 400 },
             );
@@ -179,7 +179,7 @@ export const Route = createFileRoute("/api/$orgSlug/auth-tokens")({
                 .limit(1)
                 .for("share");
               if (!project) {
-                throw new SecretsError("Project not found", {
+                throw new SecretsError("Vault not found", {
                   code: "NOT_FOUND",
                   status: 404,
                   field: "projectId",
