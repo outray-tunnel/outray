@@ -42,6 +42,9 @@ SQL >
     {% if defined(service) %}
       AND ServiceName = {{String(service)}}
     {% end %}
+    {% if defined(trace_id) %}
+      AND TraceId = {{String(trace_id)}}
+    {% end %}
     {% if defined(level) %}
       AND SeverityLevel = {{String(level)}}
     {% end %}
