@@ -13,11 +13,16 @@ import { avatarLabel, formatAuditActor, formatRelativeDate } from "./utils";
 
 function actionIcon(action: string): IconSvgElement {
   const normalized = action.toLowerCase();
-  if (normalized.includes("delete") || normalized.includes("purge")) return Delete02Icon;
-  if (normalized.includes("create") || normalized.includes("add")) return Add01Icon;
-  if (normalized.includes("reveal") || normalized.includes("copy")) return ViewIcon;
-  if (normalized.includes("rollback") || normalized.includes("restore")) return RefreshIcon;
-  if (normalized.includes("update") || normalized.includes("edit")) return Edit02Icon;
+  if (normalized.includes("delete") || normalized.includes("purge"))
+    return Delete02Icon;
+  if (normalized.includes("create") || normalized.includes("add"))
+    return Add01Icon;
+  if (normalized.includes("reveal") || normalized.includes("copy"))
+    return ViewIcon;
+  if (normalized.includes("rollback") || normalized.includes("restore"))
+    return RefreshIcon;
+  if (normalized.includes("update") || normalized.includes("edit"))
+    return Edit02Icon;
   return SecurityLockIcon;
 }
 
@@ -26,7 +31,14 @@ function humanizeAction(action: string): string {
     .replace(/[._-]+/g, " ")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .trim()
+    .replace(/\bproject(s)?\b/gi, (_match, plural: string | undefined) =>
+      plural ? "vaults" : "vault",
+    )
     .replace(/^./, (character) => character.toUpperCase());
+}
+
+function humanizeResourceType(resourceType: string): string {
+  return resourceType.toLowerCase() === "project" ? "vault" : resourceType;
 }
 
 export function ActivityList({
@@ -41,11 +53,21 @@ export function ActivityList({
       {events.map((event) => {
         const actor = formatAuditActor(event);
         const resource =
-          event.resourceName || event.environmentName || event.projectName || event.resourceType;
+          event.resourceName ||
+          event.environmentName ||
+          event.projectName ||
+          humanizeResourceType(event.resourceType);
         return (
-          <div key={event.id} className={`flex items-start gap-3.5 px-4 sm:px-5 ${compact ? "py-3.5" : "py-4.5"}`}>
+          <div
+            key={event.id}
+            className={`flex items-start gap-3.5 px-4 sm:px-5 ${compact ? "py-3.5" : "py-4.5"}`}
+          >
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-zinc-600">
-              <HugeiconsIcon icon={actionIcon(event.action)} size={16} strokeWidth={1.7} />
+              <HugeiconsIcon
+                icon={actionIcon(event.action)}
+                size={16}
+                strokeWidth={1.7}
+              />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[13px] leading-5 text-zinc-400">
@@ -54,9 +76,23 @@ export function ActivityList({
                 <span className="font-mono text-zinc-300">{resource}</span>
               </p>
               <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[13px] text-zinc-500">
-                <span>{event.projectName || event.projectSlug || event.projectId || "Workspace"}</span>
-                {(event.environmentName || event.environmentSlug || event.environmentId) && (
-                  <><span aria-hidden="true">/</span><span>{event.environmentName || event.environmentSlug || event.environmentId}</span></>
+                <span>
+                  {event.projectName ||
+                    event.projectSlug ||
+                    event.projectId ||
+                    "Workspace"}
+                </span>
+                {(event.environmentName ||
+                  event.environmentSlug ||
+                  event.environmentId) && (
+                  <>
+                    <span aria-hidden="true">/</span>
+                    <span>
+                      {event.environmentName ||
+                        event.environmentSlug ||
+                        event.environmentId}
+                    </span>
+                  </>
                 )}
               </p>
             </div>
@@ -66,7 +102,9 @@ export function ActivityList({
                   {avatarLabel(actor, event.actorEmail)}
                 </span>
               )}
-              <span className="whitespace-nowrap text-[13px] text-zinc-500">{formatRelativeDate(event.createdAt)}</span>
+              <span className="whitespace-nowrap text-[13px] text-zinc-500">
+                {formatRelativeDate(event.createdAt)}
+              </span>
             </div>
           </div>
         );
@@ -78,8 +116,15 @@ export function ActivityList({
 export function ActivityEmpty() {
   return (
     <div className="rounded-2xl border border-white/[0.08] px-6 py-12 text-center">
-      <HugeiconsIcon icon={Key01Icon} size={20} strokeWidth={1.6} className="mx-auto text-zinc-500" />
-      <p className="mt-3 text-[13px] text-zinc-600">Secret activity will appear here.</p>
+      <HugeiconsIcon
+        icon={Key01Icon}
+        size={20}
+        strokeWidth={1.6}
+        className="mx-auto text-zinc-500"
+      />
+      <p className="mt-3 text-[13px] text-zinc-600">
+        Secret activity will appear here.
+      </p>
     </div>
   );
 }
