@@ -1,0 +1,59 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Available service and HTTP method filters for one organization and time range.
+
+NODE http_spans
+SQL >
+    %
+    SELECT
+        ServiceName AS service,
+        upper(coalesce(
+            nullIf(nullIf(upper(HttpMethod), 'EVENT'), ''),
+            nullIf(upper(SpanAttributes['http.request.method']), ''),
+            nullIf(upper(SpanAttributes['http.method']), ''),
+            ''
+        )) AS method
+    FROM otel_spans FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 1)}} HOUR
+      AND SpanKind = 2
+
+NODE server_requests
+SQL >
+    %
+    SELECT *
+    FROM http_spans
+    WHERE notEmpty(method)
+      AND method != 'EVENT'
+
+NODE facet_values
+SQL >
+    %
+    SELECT
+        'service' AS facet_type,
+        service AS value,
+        count() AS request_count
+    FROM server_requests
+    WHERE notEmpty(service)
+    GROUP BY service
+
+    UNION ALL
+
+    SELECT
+        'method' AS facet_type,
+        method AS value,
+        count() AS request_count
+    FROM server_requests
+    WHERE notEmpty(method)
+    GROUP BY method
+
+NODE facets
+SQL >
+    %
+    SELECT *
+    FROM facet_values
+    ORDER BY facet_type ASC, request_count DESC, value ASC
+    LIMIT 1000
+
+TYPE endpoint
