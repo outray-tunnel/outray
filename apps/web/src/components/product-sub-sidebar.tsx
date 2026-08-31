@@ -114,8 +114,8 @@ export function ProductSubSidebar() {
           icon: WorkflowSquare06Icon,
         },
         {
-          label: "Monitors",
-          to: "/$orgSlug/observability/monitors",
+          label: "Alerts",
+          to: "/$orgSlug/observability/alerts",
           icon: Alert02Icon,
         },
       ],
