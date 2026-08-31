@@ -4,11 +4,17 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -20,8 +26,72 @@ jobs:
           HUGEICONS_LICENSE_KEY: ${{ secrets.HUGEICONS_LICENSE_KEY }}
         run: npm ci
 
+      - name: Detect Alert Evaluator Changes
+        id: alert_evaluators
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          if [[ "$BEFORE_SHA" =~ ^0+$ ]] || ! git cat-file -e "$BEFORE_SHA^{commit}" 2>/dev/null; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$BEFORE_SHA" "$CURRENT_SHA" -- ':(glob)tinybird/endpoints/alert_*.pipe'; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check Tinybird Deployment Credentials
+        id: tinybird_credentials
+        if: steps.alert_evaluators.outputs.changed == 'true'
+        env:
+          TINYBIRD_HOST: ${{ secrets.TINYBIRD_HOST }}
+          TINYBIRD_TOKEN: ${{ secrets.TINYBIRD_TOKEN }}
+        run: |
+          if [ -n "$TINYBIRD_HOST" ] && [ -n "$TINYBIRD_TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Tinybird alert evaluators changed, but TINYBIRD_HOST/TINYBIRD_TOKEN are not configured. Refusing to roll out a cron worker whose query endpoints were not deployed."
+            exit 1
+          fi
+
+      - name: Setup Python for Tinybird
+        if: steps.tinybird_credentials.outputs.configured == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Tinybird CLI
+        if: steps.tinybird_credentials.outputs.configured == 'true'
+        run: python -m pip install tinybird==4.6.15
+
+      - name: Validate Tinybird Alert Evaluators
+        if: steps.tinybird_credentials.outputs.configured == 'true'
+        env:
+          TINYBIRD_HOST: ${{ secrets.TINYBIRD_HOST }}
+          TINYBIRD_TOKEN: ${{ secrets.TINYBIRD_TOKEN }}
+        run: tb --cloud --host "$TINYBIRD_HOST" --token "$TINYBIRD_TOKEN" deploy --check
+
       - name: Build Services
         run: npm run build -- --filter=outray-tunnel --filter=outray-internal-check --filter=outray-cron
+
+      - name: Deploy Tinybird Alert Evaluators
+        if: steps.tinybird_credentials.outputs.configured == 'true'
+        env:
+          TINYBIRD_HOST: ${{ secrets.TINYBIRD_HOST }}
+          TINYBIRD_TOKEN: ${{ secrets.TINYBIRD_TOKEN }}
+        run: tb --cloud --host "$TINYBIRD_HOST" --token "$TINYBIRD_TOKEN" deploy
+
+      - name: Apply Primary PostgreSQL Migrations
+        working-directory: apps/web
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL is required to apply committed production migrations." >&2
+            exit 1
+          fi
+          npx --no-install drizzle-kit check --config=drizzle.config.ts
+          npx --no-install drizzle-kit migrate --config=drizzle.config.ts
 
       - name: Deploy Tunnel Files
         uses: appleboy/scp-action@master
@@ -74,14 +144,25 @@ jobs:
           REDIS_HEARTBEAT_INTERVAL_MS: "20000"
           TIMESCALE_URL: ${{ secrets.TIMESCALE_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_SSL_REJECT_UNAUTHORIZED: ${{ vars.DATABASE_SSL_REJECT_UNAUTHORIZED || 'true' }}
           INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
           PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
+          TINYBIRD_API_HOST: ${{ vars.TINYBIRD_API_HOST || secrets.TINYBIRD_HOST }}
+          TINYBIRD_QUERY_TOKEN: ${{ secrets.TINYBIRD_QUERY_TOKEN }}
+          ZEPTO_API_KEY: ${{ secrets.ZEPTO_API_KEY }}
+          APP_URL: ${{ vars.APP_URL || 'https://outray.dev' }}
+          ALERT_POLL_INTERVAL_MS: ${{ vars.ALERT_POLL_INTERVAL_MS || '15000' }}
+          ALERT_BATCH_SIZE: ${{ vars.ALERT_BATCH_SIZE || '25' }}
+          ALERT_EVALUATION_CONCURRENCY: ${{ vars.ALERT_EVALUATION_CONCURRENCY || '5' }}
+          ALERT_LEASE_SECONDS: ${{ vars.ALERT_LEASE_SECONDS || '120' }}
+          ALERT_LATE_DATA_SECONDS: ${{ vars.ALERT_LATE_DATA_SECONDS || '60' }}
+          ALERT_EVALUATION_RETENTION_DAYS: ${{ vars.ALERT_EVALUATION_RETENTION_DAYS || '30' }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          envs: REDIS_URL,REDIS_TUNNEL_TTL_SECONDS,REDIS_HEARTBEAT_INTERVAL_MS,TIMESCALE_URL,DATABASE_URL,INTERNAL_API_SECRET,PAYSTACK_SECRET_KEY
+          envs: REDIS_URL,REDIS_TUNNEL_TTL_SECONDS,REDIS_HEARTBEAT_INTERVAL_MS,TIMESCALE_URL,DATABASE_URL,DATABASE_SSL_REJECT_UNAUTHORIZED,INTERNAL_API_SECRET,PAYSTACK_SECRET_KEY,TINYBIRD_API_HOST,TINYBIRD_QUERY_TOKEN,ZEPTO_API_KEY,APP_URL,ALERT_POLL_INTERVAL_MS,ALERT_BATCH_SIZE,ALERT_EVALUATION_CONCURRENCY,ALERT_LEASE_SECONDS,ALERT_LATE_DATA_SECONDS,ALERT_EVALUATION_RETENTION_DAYS
           script: |
             chmod +x /root/outray/deploy.sh
             /root/outray/deploy.sh
