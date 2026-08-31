@@ -93,7 +93,7 @@ export function ProjectDialog({
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Could not save project.",
+          : "Could not save vault.",
       );
     } finally {
       setSaving(false);
@@ -104,8 +104,8 @@ export function ProjectDialog({
     <SecretsDialog
       open={open}
       onClose={onClose}
-      title={editing ? "Edit project" : "Create a project"}
-      description="Projects isolate secret names and environments for one application or service."
+      title={editing ? "Edit vault" : "Create a vault"}
+      description="Vaults isolate secret names and environments for one application or service."
     >
       <DialogForm
         onSubmit={handleSubmit}
@@ -119,7 +119,7 @@ export function ProjectDialog({
               loading={saving}
               disabled={!name.trim() || !slug.trim()}
             >
-              {editing ? "Save changes" : "Create project"}
+              {editing ? "Save changes" : "Create vault"}
             </SecretsButton>
           </>
         }
@@ -127,7 +127,7 @@ export function ProjectDialog({
         {error && (
           <SecretsNotice message={error} onDismiss={() => setError(null)} />
         )}
-        <Field label="Project name">
+        <Field label="Vault name">
           <input
             className={fieldClassName}
             value={name}
