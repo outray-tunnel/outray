@@ -31,6 +31,17 @@ import {
 
 import { subscriptions, subscriptionsRelations } from "./subscription-schema";
 
+import {
+  observabilityAlerts,
+  observabilityAlertEvaluations,
+  incidents,
+  notifications,
+  observabilityAlertsRelations,
+  observabilityAlertEvaluationsRelations,
+  incidentsRelations,
+  notificationsRelations,
+} from "./alerts-schema";
+
 export {
   accounts,
   sessions,
@@ -48,6 +59,10 @@ export {
   authTokens,
   organizationSettings,
   subscriptions,
+  observabilityAlerts,
+  observabilityAlertEvaluations,
+  incidents,
+  notifications,
   tunnelsRelations,
   subdomainsRelations,
   domainsRelations,
@@ -59,4 +74,8 @@ export {
   cliUserTokensRelations,
   cliOrgTokensRelations,
   subscriptionsRelations,
+  observabilityAlertsRelations,
+  observabilityAlertEvaluationsRelations,
+  incidentsRelations,
+  notificationsRelations,
 };
