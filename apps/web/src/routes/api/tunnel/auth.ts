@@ -2,8 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { eq, and, gt } from "drizzle-orm";
 import { db } from "../../../db";
 import { authTokens, organizationSettings } from "../../../db/app-schema";
-import { cliOrgTokens } from "../../../db/auth-schema";
+import {
+  cliOrgTokens,
+  members,
+  organizations,
+} from "../../../db/auth-schema";
+import { machineTokens } from "../../../db/secrets-schema";
 import { subscriptions } from "../../../db/subscription-schema";
+import {
+  hashMachineToken,
+  machineTokenPrefix,
+} from "../../../lib/machine-tokens";
 import { SUBSCRIPTION_PLANS } from "../../../lib/subscription-plans";
 import {rateLimiters, getClientIdentifier, createRateLimitResponse,} from "../../../lib/rate-limiter";
 
@@ -20,12 +29,18 @@ export const Route = createFileRoute("/api/tunnel/auth")({
             return createRateLimitResponse(rateLimitResult);
           }
 
-          const body = await request.json();
-          const { token } = body;
+          const body: unknown = await request.json();
+          const token =
+            body &&
+            typeof body === "object" &&
+            "token" in body &&
+            typeof (body as { token?: unknown }).token === "string"
+              ? (body as { token: string }).token
+              : null;
 
-          if (!token) {
+          if (!token || token.length > 512) {
             return Response.json(
-              { valid: false, error: "Missing Auth Token" },
+              { valid: false, error: "Invalid Auth Token" },
               { status: 400 },
             );
           }
@@ -33,31 +48,80 @@ export const Route = createFileRoute("/api/tunnel/auth")({
           let organizationId: string | undefined;
           let userId: string | undefined;
           let organization: any;
-          let tokenType: "legacy" | "org" | undefined;
+          let tokenType: "legacy" | "machine" | "org" | undefined;
 
-          // Try CLI org token first
-          const cliOrgToken = await db.query.cliOrgTokens.findFirst({
-            where: and(
-              eq(cliOrgTokens.token, token),
-              gt(cliOrgTokens.expiresAt, new Date()),
-            ),
-            with: {
-              organization: true,
-            },
+          // Durable machine credentials are stored only as SHA-256 hashes.
+          // A matching but revoked/expired token must fail closed instead of
+          // falling through to the temporary plaintext compatibility table.
+          const machineToken = await db.query.machineTokens.findFirst({
+            where: eq(machineTokens.tokenHash, hashMachineToken(token)),
+            with: { organization: true },
           });
 
-          if (cliOrgToken) {
+          if (machineToken) {
+            const expired =
+              machineToken.expiresAt !== null &&
+              machineToken.expiresAt <= new Date();
+            const canConnect = machineToken.scopes.includes("tunnel:connect");
+
+            if (machineToken.revokedAt || expired || !canConnect) {
+              return Response.json(
+                { valid: false, error: "Invalid Auth Token" },
+                { status: 401 },
+              );
+            }
+
+            await db
+              .update(machineTokens)
+              .set({ lastUsedAt: new Date() })
+              .where(eq(machineTokens.id, machineToken.id));
+
+            organizationId = machineToken.organizationId;
+            userId = machineToken.createdById ?? undefined;
+            organization = machineToken.organization;
+            tokenType = "machine";
+          }
+
+          // Try CLI org token first
+          const [cliOrgCredential] = organizationId
+            ? []
+            : await db
+                .select({
+                  token: cliOrgTokens,
+                  organization: organizations,
+                })
+                .from(cliOrgTokens)
+                .innerJoin(
+                  organizations,
+                  eq(cliOrgTokens.organizationId, organizations.id),
+                )
+                .innerJoin(
+                  members,
+                  and(
+                    eq(members.organizationId, cliOrgTokens.organizationId),
+                    eq(members.userId, cliOrgTokens.userId),
+                  ),
+                )
+                .where(
+                  and(
+                    eq(cliOrgTokens.token, token),
+                    gt(cliOrgTokens.expiresAt, new Date()),
+                  ),
+                )
+                .limit(1);
+
+          if (cliOrgCredential) {
             // Update last used
             await db
               .update(cliOrgTokens)
               .set({ lastUsedAt: new Date() })
-              .where(eq(cliOrgTokens.id, cliOrgToken.id));
+              .where(eq(cliOrgTokens.id, cliOrgCredential.token.id));
 
-            organizationId = cliOrgToken.organizationId;
-            userId = cliOrgToken.userId;
-            organization = cliOrgToken.organization;
+            organizationId = cliOrgCredential.token.organizationId;
+            userId = cliOrgCredential.token.userId;
+            organization = cliOrgCredential.organization;
             tokenType = "org";
-          } else {
+          } else if (!organizationId) {
             // Fall back to legacy auth tokens
             const tokenRecord = await db.query.authTokens.findFirst({
               where: eq(authTokens.token, token),
@@ -67,10 +131,31 @@ export const Route = createFileRoute("/api/tunnel/auth")({
             });
 
             if (tokenRecord) {
-              await db
-                .update(authTokens)
-                .set({ lastUsedAt: new Date() })
-                .where(eq(authTokens.id, tokenRecord.id));
+              console.warn("legacy_auth_token_fallback", {
+                tokenId: tokenRecord.id,
+                organizationId: tokenRecord.organizationId,
+              });
+              const usedAt = new Date();
+              await db.transaction(async (tx) => {
+                await tx
+                  .update(authTokens)
+                  .set({ lastUsedAt: usedAt })
+                  .where(eq(authTokens.id, tokenRecord.id));
+                await tx
+                  .insert(machineTokens)
+                  .values({
+                    id: crypto.randomUUID(),
+                    organizationId: tokenRecord.organizationId,
+                    name: tokenRecord.name,
+                    tokenHash: hashMachineToken(token),
+                    prefix: machineTokenPrefix(token),
+                    scopes: ["tunnel:connect"],
+                    createdById: tokenRecord.userId,
+                    createdAt: tokenRecord.createdAt,
+                    lastUsedAt: usedAt,
+                  })
+                  .onConflictDoNothing({ target: machineTokens.tokenHash });
+              });
 
               organizationId = tokenRecord.organizationId;
               userId = tokenRecord.userId;
@@ -123,7 +208,7 @@ export const Route = createFileRoute("/api/tunnel/auth")({
           return Response.json(
             {
               valid: false,
-              error: error instanceof Error ? error.message : "Unknown error",
+              error: "Authentication could not be completed",
             },
             { status: 500 },
           );
