@@ -17,6 +17,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ReportBugModal } from "./report-bug-modal";
 import { useAppStore } from "@/lib/store";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  LockPasswordIcon,
+  Pulse02Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 
 interface MobileNavSheetProps {
   isOpen: boolean;
@@ -53,6 +58,28 @@ export function MobileNavSheet({
   };
 
   const moreNavItems = [
+    {
+      to: "/$orgSlug/observability",
+      icon: (
+        <HugeiconsIcon
+          icon={Pulse02Icon}
+          size={NAV_ICON_SIZE}
+          strokeWidth={1.7}
+        />
+      ),
+      label: "Observability",
+    },
+    {
+      to: "/$orgSlug/secrets",
+      icon: (
+        <HugeiconsIcon
+          icon={LockPasswordIcon}
+          size={NAV_ICON_SIZE}
+          strokeWidth={1.7}
+        />
+      ),
+      label: "Secrets",
+    },
     {
       to: "/$orgSlug/domains",
       icon: <Link2 size={NAV_ICON_SIZE} />,
