@@ -6,7 +6,6 @@
 
 **Expose your localhost to the internet.** Outray is an open-source tunneling solution that lets you share local servers with anyone, anywhere.
 
-
 ## Features
 
 - **HTTP Tunnels** - Expose web servers with custom subdomains
@@ -100,11 +99,11 @@ Set the result as `OUTRAY_SECRETS_ACTIVE_MASTER_KEY` and keep
 master keys separately from the database: losing every configured copy makes
 the wrapped organization keys unrecoverable.
 
-The CLI uses the existing browser login and stores only the selected project
+The CLI uses the existing browser login and stores only the selected vault
 and environment in `outray/config.toml`:
 
 ```bash
-outray secrets use --project payments-api --env development
+outray secrets use --vault payments-api --env development
 outray secrets list
 outray secrets run -- npm run dev
 ```
