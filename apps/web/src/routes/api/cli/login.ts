@@ -3,6 +3,7 @@ import { db } from "../../../db";
 import { cliLoginSessions } from "../../../db/auth-schema";
 import { randomUUID, randomBytes } from "crypto";
 import {rateLimiters, getClientIdentifier, createRateLimitResponse,} from "../../../lib/rate-limiter";
+import { privateJson, privateNoStore } from "../../../lib/private-json";
 
 export const Route = createFileRoute("/api/cli/login")({
   server: {
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/api/cli/login")({
           const rateLimitResult = await rateLimiters.cliLogin(clientId);
 
           if (!rateLimitResult.allowed) {
-            return createRateLimitResponse(rateLimitResult);
+            return privateNoStore(createRateLimitResponse(rateLimitResult));
           }
 
           const code = randomBytes(32).toString("hex");
@@ -32,14 +33,14 @@ export const Route = createFileRoute("/api/cli/login")({
 
           const baseUrl = process.env.APP_URL ?? new URL(request.url).origin;
 
-          return Response.json({
+          return privateJson({
             loginUrl: `${baseUrl}/cli/login?code=${code}`,
             code,
             expiresIn: 300,
           });
         } catch (error) {
           console.error("CLI login error:", error);
-          return Response.json(
+          return privateJson(
             { error: "Failed to create login session" },
             { status: 500 },
           );
