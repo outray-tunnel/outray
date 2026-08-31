@@ -69,14 +69,14 @@ function SecretsOverviewPage() {
     <SecretsPage>
       <SecretsHeader
         title="Overview"
-        description="Projects keep each application isolated, while environments keep development and production values safely separated."
+        description="Vaults keep each application isolated, while environments keep development and production values safely separated."
         action={
           <SecretsButton
             tone="primary"
             icon={Add01Icon}
             onClick={() => setCreatingProject(true)}
           >
-            New project
+            New vault
           </SecretsButton>
         }
       />
@@ -104,7 +104,7 @@ function SecretsOverviewPage() {
           >
             <SummaryCard
               icon={Folder01Icon}
-              label="Projects"
+              label="Vaults"
               value={resource.data.projectCount}
               detail="Application boundaries"
             />
@@ -126,15 +126,13 @@ function SecretsOverviewPage() {
             <section>
               <div className="mb-4 flex items-end justify-between gap-4">
                 <div>
-                  <h2 className="text-sm font-medium text-zinc-200">
-                    Projects
-                  </h2>
+                  <h2 className="text-sm font-medium text-zinc-200">Vaults</h2>
                   <p className="mt-1 text-[13px] text-zinc-500">
-                    Open a project to choose an environment.
+                    Open a vault to choose an environment.
                   </p>
                 </div>
                 <Link
-                  to="/$orgSlug/secrets/projects"
+                  to="/$orgSlug/secrets/vaults"
                   params={{ orgSlug }}
                   className="flex items-center gap-1.5 text-[13px] text-zinc-600 transition-colors hover:text-zinc-300"
                 >
@@ -149,7 +147,7 @@ function SecretsOverviewPage() {
               {resource.data.projects.length === 0 ? (
                 <SecretsEmptyState
                   icon={Folder01Icon}
-                  title="Create your first project"
+                  title="Create your first vault"
                   description="Start with one application, then add development, staging, or production environments."
                   action={
                     <SecretsButton
@@ -157,7 +155,7 @@ function SecretsOverviewPage() {
                       icon={Add01Icon}
                       onClick={() => setCreatingProject(true)}
                     >
-                      Create project
+                      Create vault
                     </SecretsButton>
                   }
                 />
@@ -166,7 +164,7 @@ function SecretsOverviewPage() {
                   {resource.data.projects.slice(0, 6).map((project) => (
                     <Link
                       key={project.id}
-                      to="/$orgSlug/secrets/projects/$projectSlug"
+                      to="/$orgSlug/secrets/vaults/$projectSlug"
                       params={{ orgSlug, projectSlug: project.slug }}
                       className="group flex items-center gap-4 px-4 py-4 transition-colors hover:bg-white/[0.02] sm:px-5"
                     >
