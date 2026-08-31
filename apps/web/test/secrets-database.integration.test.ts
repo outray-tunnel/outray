@@ -713,7 +713,7 @@ test(
           "integration-service",
           "development",
         ),
-      /Project not found/,
+      /Vault not found/,
     );
   },
 );
