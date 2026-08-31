@@ -92,6 +92,13 @@
       "when": 1788137027128,
       "tag": "0012_alert_retention_and_intervals",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788146042663,
+      "tag": "0013_secrets_vault",
+      "breakpoints": true
     }
   ]
 }
