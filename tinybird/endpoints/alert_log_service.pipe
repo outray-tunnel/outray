@@ -1,0 +1,75 @@
+DESCRIPTION >
+    Returns bounded log-match observations for alert evaluation.
+
+TOKEN "OUTRAY_QUERY_TOKEN" READ
+
+NODE base_logs
+SQL >
+    %
+    WITH
+        toDateTime64({{ DateTime64(evaluation_time) }}, 9, 'UTC') AS evaluation_boundary,
+        least(
+            greatest({{ UInt32(window_seconds, 300) }}, toUInt32(60)), toUInt32(3600)
+        ) AS effective_window_seconds
+    SELECT Timestamp, SeverityLevel, Body, EventName, TraceId
+    FROM otel_logs FINAL
+    WHERE
+        OrganizationId = {{ String(organization_id) }}
+        AND ServiceName = {{ String(service) }}
+        AND Timestamp >= evaluation_boundary - toIntervalSecond(effective_window_seconds)
+        AND Timestamp < evaluation_boundary
+        {% if defined(environment) %} AND Environment = {{ String(environment) }} {% end %}
+
+NODE matching_logs
+SQL >
+    %
+    SELECT Timestamp, SeverityLevel
+    FROM base_logs
+    WHERE
+        1 = 1
+        {% if defined(level) %} AND SeverityLevel = lower({{ String(level) }}) {% end %}
+        {% if defined(search) %}
+            AND (
+                positionCaseInsensitive(Body, {{ String(search) }}) > 0
+                OR positionCaseInsensitive(EventName, {{ String(search) }}) > 0
+                OR positionCaseInsensitive(TraceId, {{ String(search) }}) > 0
+            )
+        {% end %}
+
+NODE base_summary
+SQL >
+    %
+    SELECT count() AS sample_count FROM base_logs
+
+NODE match_summary
+SQL >
+    %
+    SELECT
+        count() AS matching_count,
+        countIf(SeverityLevel = 'error') AS error_count,
+        maxOrNull(Timestamp) AS latest_timestamp
+    FROM matching_logs
+
+NODE observation
+SQL >
+    %
+    WITH
+        toDateTime64({{ DateTime64(evaluation_time) }}, 9, 'UTC') AS evaluation_boundary,
+        least(
+            greatest({{ UInt32(window_seconds, 300) }}, toUInt32(60)), toUInt32(3600)
+        ) AS effective_window_seconds
+    SELECT
+        evaluation_boundary AS evaluation_end,
+        evaluation_boundary - toIntervalSecond(effective_window_seconds) AS window_start,
+        effective_window_seconds AS window_seconds,
+        base_summary.sample_count AS sample_count,
+        match_summary.matching_count AS matching_count,
+        match_summary.error_count AS error_count,
+        round(
+            match_summary.matching_count / (toFloat64(effective_window_seconds) / 60), 4
+        ) AS matching_per_minute,
+        match_summary.latest_timestamp AS latest_timestamp
+    FROM base_summary
+    CROSS JOIN match_summary
+
+TYPE ENDPOINT
