@@ -19,8 +19,12 @@ export interface IngestAuthContext {
 export class ApiTokenAuthenticator {
   private readonly pool: pg.Pool;
 
-  constructor(databaseUrl: string) {
-    this.pool = new Pool({ connectionString: databaseUrl, max: 10 });
+  constructor(databaseUrl: string, sslRejectUnauthorized = true) {
+    this.pool = new Pool({
+      connectionString: databaseUrl,
+      ssl: databaseSsl(databaseUrl, sslRejectUnauthorized),
+      max: 10,
+    });
   }
 
   async authenticate(apiKey: string): Promise<IngestAuthContext | null> {
@@ -51,7 +55,8 @@ export class ApiTokenAuthenticator {
 
     return {
       organizationId: token.organization_id,
-      retentionDays: RETENTION_DAYS[token.plan || "free"] || RETENTION_DAYS.free,
+      retentionDays:
+        RETENTION_DAYS[token.plan || "free"] || RETENTION_DAYS.free,
       tokenId: token.id,
     };
   }
@@ -59,6 +64,14 @@ export class ApiTokenAuthenticator {
   async close() {
     await this.pool.end();
   }
+}
+
+function databaseSsl(
+  connectionString: string,
+  rejectUnauthorized: boolean,
+): false | { rejectUnauthorized: boolean } {
+  if (/localhost|127\.0\.0\.1/.test(connectionString)) return false;
+  return { rejectUnauthorized };
 }
 
 export function apiKeyFromHeaders(headers: Headers): string | null {

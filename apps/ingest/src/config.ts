@@ -9,9 +9,19 @@ function required(name: string): string {
   return value;
 }
 
+function booleanValue(value: string | undefined, fallback: boolean): boolean {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return fallback;
+}
+
 export const config = {
   port: positiveInteger(process.env.INGEST_PORT, 4318),
   databaseUrl: required("DATABASE_URL"),
+  databaseSslRejectUnauthorized: booleanValue(
+    process.env.DATABASE_SSL_REJECT_UNAUTHORIZED,
+    true,
+  ),
   redisUrl: process.env.REDIS_URL || "redis://127.0.0.1:6379",
   tinybirdApiHost: required("TINYBIRD_API_HOST").replace(/\/$/, ""),
   tinybirdIngestToken: required("TINYBIRD_INGEST_TOKEN"),

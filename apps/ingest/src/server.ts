@@ -29,7 +29,10 @@ import {
   type TinybirdSpanRecord,
 } from "./tinybird.js";
 
-const authenticator = new ApiTokenAuthenticator(config.databaseUrl);
+const authenticator = new ApiTokenAuthenticator(
+  config.databaseUrl,
+  config.databaseSslRejectUnauthorized,
+);
 const tinybird = new TinybirdIngestClient(
   config.tinybirdApiHost,
   config.tinybirdIngestToken,
