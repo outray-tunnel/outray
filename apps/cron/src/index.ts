@@ -1,9 +1,7 @@
-// Allow self-signed certificates for Tiger Data cloud
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 import { redis } from "./lib/redis";
 import { pool, execute } from "./lib/timescale";
 import { chargePaystackSubscriptions } from "./lib/paystack";
+import { startAlertWorkers } from "./lib/alerts";
 
 async function connectRedis() {
   await redis.connect();
@@ -19,7 +17,7 @@ async function connectTimescaleDB() {
     client.release();
   } catch (error) {
     console.error("Failed to connect to TimescaleDB", error);
-    process.exit(1);
+    throw error;
   }
 }
 
@@ -206,28 +204,30 @@ async function rebuildGlobalOrgIndex() {
 }
 
 async function start() {
-  await connectRedis();
-  await connectTimescaleDB();
+  startAlertWorkers();
 
-  // Rebuild global index on startup to ensure consistency
-  await rebuildGlobalOrgIndex();
+  try {
+    await connectRedis();
+    await connectTimescaleDB();
+    await rebuildGlobalOrgIndex();
+    await sampleActiveTunnels();
+    await cleanupStaleTunnels();
+    setInterval(sampleActiveTunnels, 60_000);
+    setInterval(cleanupStaleTunnels, 5 * 60_000);
+    setInterval(rebuildGlobalOrgIndex, 60 * 60_000);
+  } catch (error) {
+    console.error(
+      "Tunnel analytics jobs are disabled; alert evaluation will continue",
+      error,
+    );
+  }
 
-  // Initial run
-  await sampleActiveTunnels();
-  await cleanupStaleTunnels();
-
-  // Sample active tunnels every minute
-  setInterval(sampleActiveTunnels, 60_000);
-
-  // Cleanup stale tunnel entries every 5 minutes
-  setInterval(cleanupStaleTunnels, 5 * 60_000);
-
-  // Rebuild global index every hour to ensure consistency
-  setInterval(rebuildGlobalOrgIndex, 60 * 60_000);
-
-  // Charge due Paystack subscriptions daily at midnight (run immediately on startup too)
-  await chargePaystackSubscriptions();
-  setInterval(chargePaystackSubscriptions, 24 * 60 * 60_000); // Every 24 hours
+  try {
+    await chargePaystackSubscriptions();
+    setInterval(chargePaystackSubscriptions, 24 * 60 * 60_000);
+  } catch (error) {
+    console.error("Paystack subscription job failed to start", error);
+  }
 }
 
 start();
