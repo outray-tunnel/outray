@@ -1,0 +1,73 @@
+DESCRIPTION >
+    Returns bounded per-signal service activity for missing-telemetry alerts.
+
+TOKEN "OUTRAY_QUERY_TOKEN" READ
+
+NODE signal_activity
+SQL >
+    %
+    WITH
+        toDateTime64({{ DateTime64(evaluation_time) }}, 9, 'UTC') AS evaluation_boundary,
+        least(
+            greatest({{ UInt32(lookback_seconds, 3600) }}, toUInt32(300)), toUInt32(86400)
+        ) AS effective_lookback_seconds
+    SELECT 'span' AS signal, count() AS record_count, maxOrNull(Timestamp) AS last_seen
+    FROM otel_spans FINAL
+    WHERE
+        OrganizationId = {{ String(organization_id) }}
+        AND ServiceName = {{ String(service) }}
+        AND Timestamp >= evaluation_boundary - toIntervalSecond(effective_lookback_seconds)
+        AND Timestamp < evaluation_boundary
+        {% if defined(environment) %} AND Environment = {{ String(environment) }} {% end %}
+    UNION ALL
+    WITH
+        toDateTime64({{ DateTime64(evaluation_time) }}, 9, 'UTC') AS evaluation_boundary,
+        least(
+            greatest({{ UInt32(lookback_seconds, 3600) }}, toUInt32(300)), toUInt32(86400)
+        ) AS effective_lookback_seconds
+    SELECT 'log' AS signal, count() AS record_count, maxOrNull(Timestamp) AS last_seen
+    FROM otel_logs FINAL
+    WHERE
+        OrganizationId = {{ String(organization_id) }}
+        AND ServiceName = {{ String(service) }}
+        AND Timestamp >= evaluation_boundary - toIntervalSecond(effective_lookback_seconds)
+        AND Timestamp < evaluation_boundary
+        {% if defined(environment) %} AND Environment = {{ String(environment) }} {% end %}
+    UNION ALL
+    WITH
+        toDateTime64({{ DateTime64(evaluation_time) }}, 9, 'UTC') AS evaluation_boundary,
+        least(
+            greatest({{ UInt32(lookback_seconds, 3600) }}, toUInt32(300)), toUInt32(86400)
+        ) AS effective_lookback_seconds
+    SELECT 'metric' AS signal, count() AS record_count, maxOrNull(Timestamp) AS last_seen
+    FROM otel_metrics FINAL
+    WHERE
+        OrganizationId = {{ String(organization_id) }}
+        AND ServiceName = {{ String(service) }}
+        AND Timestamp >= evaluation_boundary - toIntervalSecond(effective_lookback_seconds)
+        AND Timestamp < evaluation_boundary
+        {% if defined(environment) %} AND Environment = {{ String(environment) }} {% end %}
+
+NODE observation
+SQL >
+    %
+    WITH
+        toDateTime64({{ DateTime64(evaluation_time) }}, 9, 'UTC') AS evaluation_boundary,
+        least(
+            greatest({{ UInt32(lookback_seconds, 3600) }}, toUInt32(300)), toUInt32(86400)
+        ) AS effective_lookback_seconds
+    SELECT
+        evaluation_boundary AS evaluation_end,
+        evaluation_boundary - toIntervalSecond(effective_lookback_seconds) AS window_start,
+        effective_lookback_seconds AS lookback_seconds,
+        sumIf(record_count, signal = 'span') AS span_count,
+        sumIf(record_count, signal = 'log') AS log_count,
+        sumIf(record_count, signal = 'metric') AS metric_count,
+        sum(record_count) AS telemetry_count,
+        maxIf(last_seen, signal = 'span') AS last_span_at,
+        maxIf(last_seen, signal = 'log') AS last_log_at,
+        maxIf(last_seen, signal = 'metric') AS last_metric_at,
+        max(last_seen) AS last_telemetry_at
+    FROM signal_activity
+
+TYPE ENDPOINT
