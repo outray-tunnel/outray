@@ -6,12 +6,24 @@ import type { AttributeValue, ParsedSpan } from "./otlp.js";
 const SENSITIVE_KEY =
   /authorization|cookie|setcookie|password|passwd|secret|token|apikey|privatekey|clientsecret|accesstoken|refreshtoken/i;
 
+const CAPTURE_HEADER_ATTRIBUTES = new Set([
+  "outray.http.request.headers",
+  "outray.http.response.headers",
+]);
+
+const CAPTURE_BODY_ATTRIBUTES = new Set([
+  "outray.http.request.body",
+  "outray.http.response.body",
+]);
+
+const MAX_ATTRIBUTE_LENGTH = 16_384;
+
 function sensitiveKey(key: string) {
   return SENSITIVE_KEY.test(key.toLowerCase().replace(/[^a-z0-9]/g, ""));
 }
 
 function sanitizedValue(value: AttributeValue, depth = 0): AttributeValue {
-  if (typeof value === "string") return value.slice(0, 16_384);
+  if (typeof value === "string") return value.slice(0, MAX_ATTRIBUTE_LENGTH);
   if (
     value === null ||
     typeof value === "number" ||
@@ -34,11 +46,89 @@ function sanitizedValue(value: AttributeValue, depth = 0): AttributeValue {
   );
 }
 
-function safeAttributeValue(value: AttributeValue): string {
+function jsonAttribute(value: AttributeValue, fallback: string) {
+  const serialized = JSON.stringify(sanitizedValue(value));
+  return serialized.length <= MAX_ATTRIBUTE_LENGTH ? serialized : fallback;
+}
+
+function parsedJson(value: string): AttributeValue | null {
+  try {
+    return JSON.parse(value) as AttributeValue;
+  } catch {
+    return null;
+  }
+}
+
+function sanitizedTextCapture(value: string) {
+  return value
+    .replace(/\b(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, "$1[REDACTED]")
+    .replace(
+      /\b(authorization|cookie|set-cookie|password|passwd|secret|token|api[-_ ]?key|private[-_ ]?key|client[-_ ]?secret|access[-_ ]?token|refresh[-_ ]?token)(\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;&]+)/gi,
+      "$1$2[REDACTED]",
+    )
+    .slice(0, MAX_ATTRIBUTE_LENGTH);
+}
+
+function bodyContentType(
+  attributes: Record<string, AttributeValue>,
+  key: string,
+) {
+  const contentTypeKey = `${key}.content_type`;
+  const value = attributes[contentTypeKey];
+  return typeof value === "string" ? value.toLowerCase() : "";
+}
+
+function safeCaptureAttributeValue(
+  key: string,
+  value: string,
+  attributes: Record<string, AttributeValue>,
+) {
+  if (CAPTURE_HEADER_ATTRIBUTES.has(key)) {
+    const parsed = parsedJson(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return "{}";
+    }
+    return jsonAttribute(parsed, '{"_outray":"[TRUNCATED]"}');
+  }
+
+  if (!CAPTURE_BODY_ATTRIBUTES.has(key)) return null;
+
+  const contentType = bodyContentType(attributes, key);
+  const parsed = parsedJson(value);
+  if (parsed !== null && (contentType.includes("json") || /^[\s]*[\[{]/.test(value))) {
+    return jsonAttribute(parsed, '"[TRUNCATED]"');
+  }
+
+  if (contentType === "application/x-www-form-urlencoded") {
+    const result = new URLSearchParams();
+    for (const [name, item] of new URLSearchParams(value)) {
+      result.append(
+        name,
+        sensitiveKey(name) ? "[REDACTED]" : sanitizedTextCapture(item),
+      );
+    }
+    return result
+      .toString()
+      .replaceAll("%5BREDACTED%5D", "[REDACTED]")
+      .slice(0, MAX_ATTRIBUTE_LENGTH);
+  }
+
+  return sanitizedTextCapture(value);
+}
+
+function safeAttributeValue(
+  key: string,
+  value: AttributeValue,
+  attributes: Record<string, AttributeValue>,
+): string {
+  if (typeof value === "string") {
+    const captureValue = safeCaptureAttributeValue(key, value, attributes);
+    if (captureValue !== null) return captureValue;
+  }
   const safe = sanitizedValue(value);
   if (typeof safe === "string") return safe;
   if (safe === null) return "null";
-  return JSON.stringify(safe).slice(0, 16_384);
+  return JSON.stringify(safe).slice(0, MAX_ATTRIBUTE_LENGTH);
 }
 
 function sanitizedAttributes(attributes: Record<string, AttributeValue>) {
@@ -48,7 +138,9 @@ function sanitizedAttributes(attributes: Record<string, AttributeValue>) {
       .slice(0, 256)
       .map(([key, value]) => [
         key.slice(0, 256),
-        sensitiveKey(key) ? "[REDACTED]" : safeAttributeValue(value),
+        sensitiveKey(key)
+          ? "[REDACTED]"
+          : safeAttributeValue(key, value, attributes),
       ]),
   );
 }
