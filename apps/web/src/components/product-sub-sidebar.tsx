@@ -129,8 +129,8 @@ export function ProductSubSidebar() {
           exact: true,
         },
         {
-          label: "Projects",
-          to: "/$orgSlug/secrets/projects",
+          label: "Vaults",
+          to: "/$orgSlug/secrets/vaults",
           icon: Folder01Icon,
         },
         {
