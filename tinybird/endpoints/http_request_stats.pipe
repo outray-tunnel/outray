@@ -1,0 +1,163 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    HTTP request volume, errors, latency, and capture-state totals without page limits.
+
+NODE http_spans
+SQL >
+    %
+    SELECT
+        TraceId AS trace_id,
+        SpanId AS span_id,
+        concat(TraceId, ':', SpanId) AS id,
+        coalesce(
+            nullIf(SpanAttributes['outray.http.request.id'], ''),
+            nullIf(SpanAttributes['http.request.id'], ''),
+            nullIf(SpanAttributes['request.id'], ''),
+            nullIf(SpanAttributes['http.request.header.x-request-id'], ''),
+            ''
+        ) AS request_id,
+        upper(coalesce(
+            nullIf(nullIf(upper(HttpMethod), 'EVENT'), ''),
+            nullIf(upper(SpanAttributes['http.request.method']), ''),
+            nullIf(upper(SpanAttributes['http.method']), ''),
+            ''
+        )) AS method,
+        coalesce(
+            nullIf(SpanAttributes['http.route'], ''),
+            nullIf(SpanAttributes['url.template'], ''),
+            nullIf(SpanAttributes['url.path'], ''),
+            nullIf(SpanAttributes['http.target'], ''),
+            SpanName
+        ) AS route,
+        if(
+            notEmpty(SpanAttributes['url.path']),
+            concat(
+                SpanAttributes['url.path'],
+                if(
+                    empty(SpanAttributes['url.query']),
+                    '',
+                    concat('?', SpanAttributes['url.query'])
+                )
+            ),
+            coalesce(
+                nullIf(SpanAttributes['http.target'], ''),
+                nullIf(SpanAttributes['http.route'], ''),
+                SpanName
+            )
+        ) AS path,
+        coalesce(
+            nullIf(SpanAttributes['url.full'], ''),
+            nullIf(SpanAttributes['http.url'], ''),
+            ''
+        ) AS url,
+        ServiceName AS service,
+        toUInt16OrZero(coalesce(
+            nullIf(SpanAttributes['http.response.status_code'], ''),
+            nullIf(SpanAttributes['http.status_code'], ''),
+            nullIf(SpanAttributes['outray.http.response.status_code'], ''),
+            '0'
+        )) AS status_code,
+        StatusCode = 2 OR status_code >= 400 AS is_error,
+        DurationNano / 1000000 AS duration_ms,
+        mapContains(SpanAttributes, 'outray.http.request.headers')
+            OR mapContains(SpanAttributes, 'outray.http.request.body')
+            OR mapContains(SpanAttributes, 'outray.http.response.headers')
+            OR mapContains(SpanAttributes, 'outray.http.response.body') AS has_capture,
+        positionCaseInsensitive(
+            concat(
+                SpanAttributes['outray.http.request.headers'],
+                SpanAttributes['outray.http.request.body'],
+                SpanAttributes['outray.http.response.headers'],
+                SpanAttributes['outray.http.response.body']
+            ),
+            '[REDACTED]'
+        ) > 0
+            OR positionCaseInsensitive(
+                concat(
+                    SpanAttributes['outray.http.request.headers'],
+                    SpanAttributes['outray.http.request.body'],
+                    SpanAttributes['outray.http.response.headers'],
+                    SpanAttributes['outray.http.response.body']
+                ),
+                '%5BREDACTED%5D'
+            ) > 0 AS has_redaction,
+        multiIf(
+            not has_capture, 'metadata',
+            has_redaction, 'redacted',
+            'full'
+        ) AS capture_state
+    FROM otel_spans FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 1)}} HOUR
+      AND SpanKind = 2
+
+NODE server_requests
+SQL >
+    %
+    SELECT *
+    FROM http_spans
+    WHERE notEmpty(method)
+      AND method != 'EVENT'
+
+NODE filtered_requests
+SQL >
+    %
+    SELECT *
+    FROM server_requests
+    WHERE 1 = 1
+    {% if defined(service) %}
+      AND service = {{String(service)}}
+    {% end %}
+    {% if defined(method) %}
+      AND method = upper({{String(method)}})
+    {% end %}
+    {% if defined(status) %}
+      AND multiIf(
+          {{String(status)}} = 'errors', is_error,
+          {{String(status)}} = 'success', not is_error,
+          true
+      )
+    {% end %}
+    {% if defined(status_code) %}
+      AND status_code = {{UInt16(status_code)}}
+    {% end %}
+    {% if defined(capture) %}
+      AND capture_state = {{String(capture)}}
+    {% end %}
+    {% if defined(search) %}
+      AND (
+        positionCaseInsensitive(path, {{String(search)}}) > 0
+        OR positionCaseInsensitive(route, {{String(search)}}) > 0
+        OR positionCaseInsensitive(url, {{String(search)}}) > 0
+        OR positionCaseInsensitive(service, {{String(search)}}) > 0
+        OR positionCaseInsensitive(request_id, {{String(search)}}) > 0
+        OR positionCaseInsensitive(trace_id, {{String(search)}}) > 0
+        OR positionCaseInsensitive(span_id, {{String(search)}}) > 0
+        OR positionCaseInsensitive(id, {{String(search)}}) > 0
+      )
+    {% end %}
+
+NODE statistics
+SQL >
+    %
+    SELECT
+        count() AS total_requests,
+        countIf(is_error) AS error_requests,
+        if(
+            total_requests = 0,
+            0,
+            round(error_requests / total_requests * 100, 2)
+        ) AS error_rate,
+        if(
+            total_requests = 0,
+            0,
+            round(quantileTDigest(0.95)(duration_ms), 3)
+        ) AS p95_duration_ms,
+        countIf(capture_state != 'metadata') AS payload_capture_count,
+        countIf(capture_state = 'metadata') AS metadata_count,
+        countIf(capture_state = 'full') AS full_capture_count,
+        countIf(capture_state = 'redacted') AS redacted_capture_count
+    FROM filtered_requests
+
+TYPE endpoint
