@@ -28,7 +28,11 @@ function TokensSettingsView() {
   const [isCreating, setIsCreating] = useState(false);
   const [tokenToDelete, setTokenToDelete] = useState<string | null>(null);
 
-  const { data: tokens, isLoading, error } = useQuery({
+  const {
+    data: tokens,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["auth-tokens", orgSlug],
     queryFn: async () => {
       if (!orgSlug) return [];
@@ -180,7 +184,7 @@ function TokensSettingsView() {
                     {token.environmentId
                       ? "Environment"
                       : token.projectId
-                        ? "Project"
+                        ? "Vault"
                         : "Organization"}
                   </span>
                   {token.scopes.map((scope) => (
