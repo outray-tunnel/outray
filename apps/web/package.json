@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "start": "vite start",
+    "start": "node .output/server/index.mjs",
     "lint": "eslint .",
     "test": "tsx --test test/*.test.ts",
     "db:generate-auth": "npx @better-auth/cli generate --output=src/db/auth-schema.ts -y",
