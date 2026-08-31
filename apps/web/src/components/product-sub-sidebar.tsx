@@ -1,18 +1,17 @@
 import { useLocation, useParams } from "@tanstack/react-router";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import type { IconSvgElement } from "@hugeicons/react";
 import {
   Activity03Icon,
   Alert02Icon,
+  Audit01Icon,
+  Folder01Icon,
   Globe02Icon,
   HistoryIcon,
   Home01Icon,
-  Key01Icon,
   LinkSquare01Icon,
   LogsIcon,
   Route03Icon,
   ServerStack01Icon,
-  SecurityLockIcon,
-  ShieldKeyIcon,
   WorkflowSquare06Icon,
 } from "@hugeicons-pro/core-stroke-rounded";
 import { NavItem } from "./sidebar/nav-item";
@@ -27,7 +26,6 @@ interface SubNavItem {
 interface ProductNavigation {
   name: string;
   items: SubNavItem[];
-  upcoming?: Array<{ label: string; icon: IconSvgElement }>;
 }
 
 export function ProductSubSidebar() {
@@ -128,12 +126,18 @@ export function ProductSubSidebar() {
           label: "Overview",
           to: "/$orgSlug/secrets",
           icon: Home01Icon,
+          exact: true,
         },
-      ],
-      upcoming: [
-        { label: "Vaults", icon: ShieldKeyIcon },
-        { label: "Environments", icon: Key01Icon },
-        { label: "Access policies", icon: SecurityLockIcon },
+        {
+          label: "Projects",
+          to: "/$orgSlug/secrets/projects",
+          icon: Folder01Icon,
+        },
+        {
+          label: "Audit log",
+          to: "/$orgSlug/secrets/audit",
+          icon: Audit01Icon,
+        },
       ],
     };
   }
@@ -174,33 +178,6 @@ export function ProductSubSidebar() {
             />
           ))}
         </div>
-
-        {product.upcoming && (
-          <div className="mt-6">
-            <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-[0.11em] text-zinc-600">
-              Coming next
-            </p>
-            <div className="space-y-0.5">
-              {product.upcoming.map((item) => (
-                <div
-                  key={item.label}
-                  className="flex h-10 items-center gap-3 rounded-lg px-3 text-sm text-zinc-600"
-                >
-                  <HugeiconsIcon
-                    icon={item.icon}
-                    size={18}
-                    strokeWidth={1.6}
-                    aria-hidden="true"
-                  />
-                  <span className="flex-1">{item.label}</span>
-                  <span className="text-[10px] uppercase tracking-[0.08em] text-zinc-700">
-                    Soon
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </nav>
     </aside>
   );
