@@ -41,7 +41,7 @@ export const Route = createFileRoute("/api/tunnel/register")({
             name,
           } = body;
 
-          if (!userId || !organizationId) {
+          if (!organizationId) {
             return Response.json({ error: "Missing required fields" }, { status: 400 });
           }
 
@@ -170,7 +170,7 @@ export const Route = createFileRoute("/api/tunnel/register")({
               const tunnelRecord = {
                 id: dbTunnelId,
                 url: tunnelUrl,
-                userId,
+                userId: userId ?? null,
                 organizationId,
                 name: name || null,
                 protocol,
