@@ -205,7 +205,7 @@ function normalizeEnvironment(value: unknown): SecretEnvironment {
 
 function normalizeProject(value: unknown): SecretProject {
   const item = isRecord(value) ? value : {};
-  const name = text(item.name, text(item.slug, "Untitled project"));
+  const name = text(item.name, text(item.slug, "Untitled vault"));
   const environments = array(item.environments).map(normalizeEnvironment);
   return {
     id: text(item.id, text(item.slug, slugify(name))),
