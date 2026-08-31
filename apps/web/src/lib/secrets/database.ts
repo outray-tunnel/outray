@@ -40,7 +40,7 @@ export async function resolveProject(
     )
     .limit(1);
   if (!project) {
-    throw new SecretsError("Project not found", {
+    throw new SecretsError("Vault not found", {
       code: "NOT_FOUND",
       status: 404,
     });
