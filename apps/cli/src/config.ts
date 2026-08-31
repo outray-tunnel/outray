@@ -23,8 +23,9 @@ export class ConfigManager {
 
   ensureConfigDir(): void {
     if (!fs.existsSync(CONFIG_DIR)) {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true });
+      fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
     }
+    fs.chmodSync(CONFIG_DIR, 0o700);
   }
 
   load(): OutRayConfig | null {
@@ -33,6 +34,7 @@ export class ConfigManager {
     }
 
     try {
+      fs.chmodSync(this.configFile, 0o600);
       const data = fs.readFileSync(this.configFile, "utf-8");
       const config = JSON.parse(data) as OutRayConfig;
 
@@ -44,7 +46,10 @@ export class ConfigManager {
 
   save(config: OutRayConfig): void {
     this.ensureConfigDir();
-    fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+    fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2), {
+      mode: 0o600,
+    });
+    fs.chmodSync(this.configFile, 0o600);
   }
 
   clear(): void {
