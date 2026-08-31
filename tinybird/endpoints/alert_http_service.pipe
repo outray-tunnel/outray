@@ -1,0 +1,81 @@
+DESCRIPTION >
+    Returns bounded HTTP service observations for alert evaluation.
+
+TOKEN "OUTRAY_QUERY_TOKEN" READ
+
+NODE bounded_spans
+SQL >
+    %
+    WITH
+        toDateTime64({{ DateTime64(evaluation_time) }}, 9, 'UTC') AS evaluation_boundary,
+        least(
+            greatest({{ UInt32(window_seconds, 300) }}, toUInt32(60)), toUInt32(3600)
+        ) AS effective_window_seconds
+    SELECT
+        Timestamp,
+        StatusCode,
+        upper(
+            coalesce(
+                nullIf(nullIf(upper(HttpMethod), 'EVENT'), ''),
+                nullIf(upper(SpanAttributes['http.request.method']), ''),
+                nullIf(upper(SpanAttributes['http.method']), ''),
+                ''
+            )
+        ) AS method,
+        toUInt16OrZero(
+            coalesce(
+                nullIf(SpanAttributes['http.response.status_code'], ''),
+                nullIf(SpanAttributes['http.status_code'], ''),
+                nullIf(SpanAttributes['outray.http.response.status_code'], ''),
+                '0'
+            )
+        ) AS status_code,
+        DurationNano / 1000000 AS duration_ms
+    FROM otel_spans FINAL
+    WHERE
+        OrganizationId = {{ String(organization_id) }}
+        AND ServiceName = {{ String(service) }}
+        AND SpanKind = 2
+        AND Timestamp >= evaluation_boundary - toIntervalSecond(effective_window_seconds)
+        AND Timestamp < evaluation_boundary
+        {% if defined(environment) %} AND Environment = {{ String(environment) }} {% end %}
+
+NODE filtered_requests
+SQL >
+    %
+    SELECT * FROM bounded_spans WHERE notEmpty(method) AND method != 'EVENT'
+
+NODE observation
+SQL >
+    %
+    WITH
+        toDateTime64({{ DateTime64(evaluation_time) }}, 9, 'UTC') AS evaluation_boundary,
+        least(
+            greatest({{ UInt32(window_seconds, 300) }}, toUInt32(60)), toUInt32(3600)
+        ) AS effective_window_seconds
+    SELECT
+        evaluation_boundary AS evaluation_end,
+        evaluation_boundary - toIntervalSecond(effective_window_seconds) AS window_start,
+        effective_window_seconds AS window_seconds,
+        count() AS sample_count,
+        countIf(StatusCode = 2 OR status_code >= 500) AS failure_count,
+        if(
+            sample_count = 0,
+            CAST(NULL, 'Nullable(Float64)'),
+            round(failure_count / sample_count * 100, 4)
+        ) AS failure_rate_pct,
+        if(
+            sample_count = 0,
+            CAST(NULL, 'Nullable(Float64)'),
+            round(100 - failure_count / sample_count * 100, 4)
+        ) AS availability_pct,
+        if(
+            sample_count = 0,
+            CAST(NULL, 'Nullable(Float64)'),
+            round(quantileTDigest(0.95)(duration_ms), 3)
+        ) AS p95_duration_ms,
+        round(sample_count / (toFloat64(effective_window_seconds) / 60), 4) AS requests_per_minute,
+        maxOrNull(Timestamp) AS latest_timestamp
+    FROM filtered_requests
+
+TYPE ENDPOINT
