@@ -18,6 +18,7 @@
     "scripts": {
         "build": "tsup",
         "dev": "tsup --watch",
+        "test": "tsx --test test/*.test.ts",
         "prepublishOnly": "npm run build"
     },
     "keywords": [
@@ -40,6 +41,7 @@
         "@nestjs/core": "^11.1.12",
         "@types/node": "^25.0.10",
         "rxjs": "^7.8.2",
+        "tsx": "^4.20.0",
         "tsup": "^8.5.1",
         "typescript": "^5.9.3"
     },
