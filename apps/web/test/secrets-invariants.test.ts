@@ -173,7 +173,7 @@ test("Trash is not exposed on the Secrets product surface", async () => {
     routeTree,
     /^import \{ Route as OrgSlugSecretsTrashRouteImport \}/m,
   );
-  assert.match(projectRoute, /label: "Delete project"/);
+  assert.match(projectRoute, /label: "Delete vault"/);
   assert.match(projectRoute, /label: "Delete environment"/);
   assert.match(secretsTable, /label: "Delete secret"/);
 });
@@ -214,7 +214,7 @@ test("machine scopes never grant admin and respect project/environment bounds", 
         projectId: "project-2",
         environmentId: "environment-1",
       }),
-    /not scoped to this project/,
+    /not scoped to this vault/,
   );
   assert.throws(
     () =>
