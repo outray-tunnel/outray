@@ -54,7 +54,7 @@ export function MobileBottomNav() {
       activeOptions: { exact: true },
     },
     {
-      to: "/$orgSlug/secrets/projects",
+      to: "/$orgSlug/secrets/vaults",
       icon: (
         <HugeiconsIcon
           icon={Folder01Icon}
@@ -62,7 +62,7 @@ export function MobileBottomNav() {
           strokeWidth={1.7}
         />
       ),
-      label: "Projects",
+      label: "Vaults",
     },
     {
       to: "/$orgSlug/secrets/audit",
