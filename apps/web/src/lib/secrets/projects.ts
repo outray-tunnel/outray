@@ -49,7 +49,7 @@ function requireContainerManager(access: SecretsAccess) {
     (access.actor.role !== "owner" && access.actor.role !== "admin")
   ) {
     throw new SecretsError(
-      "Only organization owners and admins can manage projects and environments",
+      "Only organization owners and admins can manage vaults and environments",
       { code: "FORBIDDEN", status: 403 },
     );
   }
@@ -157,19 +157,20 @@ export async function listProjects(access: SecretsAccess) {
     .from(secretProjects)
     .where(and(...conditions))
     .orderBy(asc(secretProjects.name));
-  const counts = await projectCounts(access, rows.map((row) => row.id));
-  return rows.map((row) =>
-    ({
-      ...serializeProject(
-        row,
-        counts.environments.get(row.id) ?? 0,
-        counts.secrets.get(row.id) ?? 0,
-      ),
-      environments: counts.environmentRows
-        .filter((environment) => environment.projectId === row.id)
-        .map(({ projectId: _projectId, ...environment }) => environment),
-    }),
+  const counts = await projectCounts(
+    access,
+    rows.map((row) => row.id),
   );
+  return rows.map((row) => ({
+    ...serializeProject(
+      row,
+      counts.environments.get(row.id) ?? 0,
+      counts.secrets.get(row.id) ?? 0,
+    ),
+    environments: counts.environmentRows
+      .filter((environment) => environment.projectId === row.id)
+      .map(({ projectId: _projectId, ...environment }) => environment),
+  }));
 }
 
 export async function createProject(
@@ -197,7 +198,7 @@ export async function createProject(
       )
       .limit(1);
     if (duplicate) {
-      throw new SecretsError("A project with this slug already exists", {
+      throw new SecretsError("A vault with this slug already exists", {
         code: "CONFLICT",
         status: 409,
         field: "slug",
@@ -298,9 +299,7 @@ export async function projectDetails(
         )
         .groupBy(secretEntries.environmentId)
     : [];
-  const countMap = new Map(
-    counts.map((row) => [row.environmentId, row.total]),
-  );
+  const countMap = new Map(counts.map((row) => [row.environmentId, row.total]));
   const secretCount = counts.reduce((sum, row) => sum + row.total, 0);
   return {
     project: serializeProject(project, environments.length, secretCount),
@@ -341,7 +340,7 @@ export async function updateProject(
       )
       .for("update");
     if (!lockedProject) {
-      throw new SecretsError("Project is no longer available", {
+      throw new SecretsError("Vault is no longer available", {
         code: "CONFLICT",
         status: 409,
       });
@@ -370,7 +369,7 @@ export async function updateProject(
         )
         .limit(1);
       if (duplicate) {
-        throw new SecretsError("A project with this slug already exists", {
+        throw new SecretsError("A vault with this slug already exists", {
           code: "CONFLICT",
           status: 409,
           field: "slug",
@@ -393,7 +392,7 @@ export async function updateProject(
       )
       .returning();
     if (!updated) {
-      throw new SecretsError("Project not found", {
+      throw new SecretsError("Vault not found", {
         code: "NOT_FOUND",
         status: 404,
       });
@@ -422,7 +421,7 @@ export async function deleteProject(
   requireContainerManager(access);
   const project = await resolveProject(access, projectSlug);
   if (input.confirmation !== project.name) {
-    throw new SecretsError("confirmation must exactly match the project name", {
+    throw new SecretsError("confirmation must exactly match the vault name", {
       code: "CONFIRMATION_REQUIRED",
       status: 400,
       field: "confirmation",
@@ -444,7 +443,7 @@ export async function deleteProject(
       )
       .for("update");
     if (!lockedProject || input.confirmation !== lockedProject.name) {
-      throw new SecretsError("Project is no longer deletable", {
+      throw new SecretsError("Vault is no longer deletable", {
         code: "CONFLICT",
         status: 409,
       });
@@ -529,11 +528,18 @@ export async function deleteProject(
       targetId: lockedProject.id,
       targetName: lockedProject.name,
       projectId: lockedProject.id,
-      metadata: { batchId, itemCount: 1 + environmentRows.length + secretRows.length },
+      metadata: {
+        batchId,
+        itemCount: 1 + environmentRows.length + secretRows.length,
+      },
     });
     return {
       deleted: true,
-      batch: { id: batchId, type: "project", itemCount: 1 + environmentRows.length + secretRows.length },
+      batch: {
+        id: batchId,
+        type: "project",
+        itemCount: 1 + environmentRows.length + secretRows.length,
+      },
     };
   });
 }
@@ -561,10 +567,7 @@ export async function createEnvironment(
     typeof input.isProduction === "boolean"
       ? input.isProduction
       : isProductionEnvironment({ name, slug });
-  requireProductionConfirmation(
-    { isProduction },
-    input.confirmProduction,
-  );
+  requireProductionConfirmation({ isProduction }, input.confirmProduction);
 
   return db.transaction(async (tx) => {
     await lockOrganization(tx, access.organization.id);
@@ -579,7 +582,7 @@ export async function createEnvironment(
       )
       .for("update");
     if (!lockedProject) {
-      throw new SecretsError("Project is no longer available", {
+      throw new SecretsError("Vault is no longer available", {
         code: "CONFLICT",
         status: 409,
       });
@@ -694,7 +697,7 @@ export async function updateEnvironment(
       )
       .for("update");
     if (!lockedProject) {
-      throw new SecretsError("Project is no longer available", {
+      throw new SecretsError("Vault is no longer available", {
         code: "CONFLICT",
         status: 409,
       });
@@ -862,10 +865,7 @@ export async function deleteEnvironment(
         status: 409,
       });
     }
-    requireProductionConfirmation(
-      lockedEnvironment,
-      input.confirmProduction,
-    );
+    requireProductionConfirmation(lockedEnvironment, input.confirmProduction);
     if (input.confirmation !== lockedEnvironment.name) {
       throw new SecretsError("Environment name changed; confirm again", {
         code: "CONFIRMATION_REQUIRED",
@@ -996,7 +996,12 @@ export async function getOverview(access: SecretsAccess) {
                 inArray(secretEntries.projectId, projectIds),
                 ...(access.actor.type === "machine" &&
                 access.actor.environmentId
-                  ? [eq(secretEntries.environmentId, access.actor.environmentId)]
+                  ? [
+                      eq(
+                        secretEntries.environmentId,
+                        access.actor.environmentId,
+                      ),
+                    ]
                   : []),
                 isNull(secretEntries.deletedAt),
               ),
