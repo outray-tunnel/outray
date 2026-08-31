@@ -33,6 +33,7 @@ test("finds the nearest outray/config.toml and validates only [secrets]", (t) =>
   assert.equal(located.path, configPath);
   assert.deepEqual(located.secrets, {
     org: undefined,
+    vault: undefined,
     project: "api",
     environment: "dev",
   });
@@ -50,39 +51,77 @@ test("updates only [secrets] while preserving tunnel text and comments", (t) => 
   );
 
   const saved = saveNearestSecretsConfig(
-    { project: "new", environment: undefined },
+    { vault: "new", environment: undefined },
     { cwd: root },
   );
   const text = fs.readFileSync(configPath, "utf8");
   assert.ok(text.startsWith(tunnelText));
-  assert.match(text, /project = "new"/);
+  assert.match(text, /vault = "new"/);
+  assert.doesNotMatch(text, /^project\s*=/m);
   assert.match(text, /environment = "dev"/);
-  assert.equal(saved.secrets.project, "new");
+  assert.equal(saved.secrets.vault, "new");
+  assert.equal(saved.secrets.project, undefined);
 });
 
 test("creates an explicit config and resolves flags over env over TOML", (t) => {
   const root = temporaryDirectory(t);
   const explicitPath = path.join(root, "custom", "config.toml");
   saveNearestSecretsConfig(
-    { org: "file-org", project: "file-project", environment: "file-env" },
+    { org: "file-org", vault: "file-vault", environment: "file-env" },
     { cwd: root, explicitPath },
   );
 
   const config = findNearestSecretsConfig(root, explicitPath);
   const target = resolveSecretsTarget({
     org: "flag-org",
+    vault: "flag-vault",
+    project: "legacy-flag-vault",
     config,
     env: {
       OUTRAY_ORG: "env-org",
-      OUTRAY_SECRETS_PROJECT: "env-project",
+      OUTRAY_SECRETS_VAULT: "env-vault",
+      OUTRAY_SECRETS_PROJECT: "legacy-env-vault",
       OUTRAY_SECRETS_ENVIRONMENT: "env-env",
     },
   });
   assert.deepEqual(target, {
     organization: "flag-org",
-    project: "env-project",
+    project: "flag-vault",
     environment: "env-env",
   });
+
+  assert.deepEqual(
+    resolveSecretsTarget({
+      config,
+      env: {
+        OUTRAY_ORG: "env-org",
+        OUTRAY_SECRETS_VAULT: "env-vault",
+        OUTRAY_SECRETS_PROJECT: "legacy-env-vault",
+        OUTRAY_SECRETS_ENVIRONMENT: "env-env",
+      },
+    }),
+    {
+      organization: "env-org",
+      project: "env-vault",
+      environment: "env-env",
+    },
+  );
+
+  assert.deepEqual(
+    resolveSecretsTarget({
+      config,
+      env: {
+        OUTRAY_ORG: "env-org",
+        OUTRAY_SECRETS_PROJECT: "legacy-env-vault",
+        OUTRAY_SECRETS_ENVIRONMENT: "env-env",
+      },
+    }),
+    {
+      organization: "env-org",
+      project: "legacy-env-vault",
+      environment: "env-env",
+    },
+  );
 });
 
 test("rejects unknown Secrets options", () => {
@@ -97,13 +136,27 @@ test("the shared TOML parser accepts and returns a Secrets-only config", (t) => 
   const configPath = path.join(root, "config.toml");
   fs.writeFileSync(
     configPath,
-    `[secrets]\norg = "acme"\nproject = "api"\nenvironment = "dev"\n`,
+    `[secrets]\norg = "acme"\nvault = "api"\nenvironment = "dev"\n`,
   );
   const parsed = TomlConfigParser.loadTomlConfig(configPath);
   assert.deepEqual(parsed.tunnels, []);
   assert.deepEqual(parsed.secrets, {
     org: "acme",
-    project: "api",
+    vault: "api",
     environment: "dev",
   });
+});
+
+test("canonical vault TOML wins over a legacy project key in the same file", () => {
+  const parsed = parseSecretsConfig(
+    `[secrets]\nvault = "canonical"\nproject = "legacy"\nenvironment = "dev"\n`,
+  );
+  assert.deepEqual(
+    resolveSecretsTarget({ org: "acme", config: { path: "config.toml", exists: true, ...parsed } }),
+    {
+      organization: "acme",
+      project: "canonical",
+      environment: "dev",
+    },
+  );
 });
