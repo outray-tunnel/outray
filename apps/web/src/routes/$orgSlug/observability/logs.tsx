@@ -49,6 +49,9 @@ interface LogsResponse {
 }
 
 export const Route = createFileRoute("/$orgSlug/observability/logs")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    search: typeof search.search === "string" ? search.search : "",
+  }),
   head: () => ({ meta: [{ title: "Logs - OutRay Observability" }] }),
   component: LogsView,
 });
@@ -62,7 +65,8 @@ const levelStyles: Record<LogLevel, string> = {
 
 function LogsView() {
   const { orgSlug } = Route.useParams();
-  const [query, setQuery] = useState("");
+  const { search: query } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [level, setLevel] = useState<"all" | LogLevel>("all");
   const [service, setService] = useState("all");
   const [timeRange, setTimeRange] = useState("1h");
@@ -162,7 +166,12 @@ function LogsView() {
             <HugeiconsIcon icon={Search01Icon} size={15} strokeWidth={1.7} />
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) =>
+                void navigate({
+                  search: { search: event.target.value },
+                  replace: true,
+                })
+              }
               placeholder='Search logs — try "payment", a trace ID, or service name'
               className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-zinc-300 outline-none placeholder:text-zinc-700"
             />
