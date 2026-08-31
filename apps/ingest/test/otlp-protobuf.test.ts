@@ -24,13 +24,21 @@ import {
   parseMetricsPayload,
   type ParsedMetricsPayload,
 } from "../src/metrics.js";
-import { parseTracePayload, type ParsedTracePayload } from "../src/otlp.js";
+import {
+  parseTracePayload,
+  type ParsedSpan,
+  type ParsedTracePayload,
+} from "../src/otlp.js";
 import {
   decodeLogsRequest,
   decodeMetricsRequest,
   decodeTraceRequest,
 } from "../src/protobuf.js";
-import { TinybirdIngestClient, toTinybirdMetric } from "../src/tinybird.js";
+import {
+  TinybirdIngestClient,
+  toTinybirdMetric,
+  toTinybirdSpan,
+} from "../src/tinybird.js";
 
 let endpointBase = "";
 let received: ParsedTracePayload | null = null;
@@ -112,6 +120,75 @@ test("accepts traces from the official OTLP HTTP/protobuf exporter", async () =>
   assert.equal(received.spans[0]?.httpMethod, "POST");
   assert.match(received.spans[0]?.traceId || "", /^[0-9a-f]{32}$/);
   assert.match(received.spans[0]?.spanId || "", /^[0-9a-f]{16}$/);
+});
+
+test("re-sanitizes captured HTTP payloads before Tinybird storage", () => {
+  const span: ParsedSpan = {
+    timestamp: new Date("2026-08-31T10:00:00.000Z"),
+    endTimestamp: new Date("2026-08-31T10:00:00.050Z"),
+    traceId: "a".repeat(32),
+    spanId: "b".repeat(16),
+    parentSpanId: "",
+    traceState: "",
+    name: "POST /checkout",
+    kind: 2,
+    durationNano: "50000000",
+    statusCode: 1,
+    statusMessage: "",
+    serviceName: "checkout-api",
+    serviceNamespace: "",
+    serviceVersion: "1.0.0",
+    environment: "test",
+    region: "",
+    scopeName: "http-test",
+    scopeVersion: "1.0.0",
+    httpMethod: "POST",
+    resourceAttributes: {},
+    scopeAttributes: {},
+    events: [],
+    links: [],
+    spanAttributes: {
+      "outray.http.capture.version": "1",
+      "outray.http.request.headers": JSON.stringify({
+        authorization: "Bearer should-not-be-stored",
+        "x-request-id": "req_123",
+        nested: { apiKey: "also-secret" },
+      }),
+      "outray.http.request.body.content_type": "application/json",
+      "outray.http.request.body": JSON.stringify({
+        email: "customer@example.com",
+        password: "should-not-be-stored",
+        profile: { refresh_token: "also-secret" },
+      }),
+      "outray.http.response.body.content_type":
+        "application/x-www-form-urlencoded",
+      "outray.http.response.body":
+        "result=accepted&access_token=should-not-be-stored",
+    },
+  };
+
+  const stored = toTinybirdSpan("org_test", 3, span);
+  const headers = JSON.parse(
+    stored.span_attributes["outray.http.request.headers"] || "{}",
+  );
+  const requestBody = JSON.parse(
+    stored.span_attributes["outray.http.request.body"] || "{}",
+  );
+
+  assert.equal(headers.authorization, "[REDACTED]");
+  assert.equal(headers["x-request-id"], "req_123");
+  assert.equal(headers.nested.apiKey, "[REDACTED]");
+  assert.equal(requestBody.email, "customer@example.com");
+  assert.equal(requestBody.password, "[REDACTED]");
+  assert.equal(requestBody.profile.refresh_token, "[REDACTED]");
+  assert.doesNotMatch(
+    stored.span_attributes["outray.http.response.body"] || "",
+    /should-not-be-stored/,
+  );
+  assert.match(
+    stored.span_attributes["outray.http.response.body"] || "",
+    /access_token=\[REDACTED\]/,
+  );
 });
 
 test("accepts logs from the official OTLP HTTP/protobuf exporter", async () => {
