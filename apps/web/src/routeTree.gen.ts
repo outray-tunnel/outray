@@ -116,10 +116,12 @@ import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$org
 import { Route as OrgSlugObservabilityServicesServiceIdRouteImport } from './routes/$orgSlug/observability/services_.$serviceId'
 import { Route as ApiOrgSlugObservabilityTracesIndexRouteImport } from './routes/api/$orgSlug/observability/traces/index'
 import { Route as ApiOrgSlugObservabilityServicesIndexRouteImport } from './routes/api/$orgSlug/observability/services/index'
+import { Route as ApiOrgSlugObservabilityRequestsIndexRouteImport } from './routes/api/$orgSlug/observability/requests/index'
 import { Route as ApiOrgSlugObservabilityMetricsIndexRouteImport } from './routes/api/$orgSlug/observability/metrics/index'
 import { Route as ApiOrgSlugObservabilityLogsIndexRouteImport } from './routes/api/$orgSlug/observability/logs/index'
 import { Route as ApiOrgSlugTunnelsTunnelIdStopRouteImport } from './routes/api/$orgSlug/tunnels/$tunnelId.stop'
 import { Route as ApiOrgSlugObservabilityTracesTraceIdRouteImport } from './routes/api/$orgSlug/observability/traces/$traceId'
+import { Route as ApiOrgSlugObservabilityRequestsRequestIdRouteImport } from './routes/api/$orgSlug/observability/requests/$requestId'
 import { Route as ApiOrgSlugDomainsDomainIdVerifyRouteImport } from './routes/api/$orgSlug/domains/$domainId.verify'
 
 const ViteRoute = ViteRouteImport.update({
@@ -681,6 +683,12 @@ const ApiOrgSlugObservabilityServicesIndexRoute =
     path: '/api/$orgSlug/observability/services/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiOrgSlugObservabilityRequestsIndexRoute =
+  ApiOrgSlugObservabilityRequestsIndexRouteImport.update({
+    id: '/api/$orgSlug/observability/requests/',
+    path: '/api/$orgSlug/observability/requests/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiOrgSlugObservabilityMetricsIndexRoute =
   ApiOrgSlugObservabilityMetricsIndexRouteImport.update({
     id: '/api/$orgSlug/observability/metrics/',
@@ -703,6 +711,12 @@ const ApiOrgSlugObservabilityTracesTraceIdRoute =
   ApiOrgSlugObservabilityTracesTraceIdRouteImport.update({
     id: '/api/$orgSlug/observability/traces/$traceId',
     path: '/api/$orgSlug/observability/traces/$traceId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugObservabilityRequestsRequestIdRoute =
+  ApiOrgSlugObservabilityRequestsRequestIdRouteImport.update({
+    id: '/api/$orgSlug/observability/requests/$requestId',
+    path: '/api/$orgSlug/observability/requests/$requestId',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiOrgSlugDomainsDomainIdVerifyRoute =
@@ -819,10 +833,12 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/subdomains': typeof ApiOrgSlugSubdomainsIndexRoute
   '/api/$orgSlug/tunnels': typeof ApiOrgSlugTunnelsIndexRoute
   '/api/$orgSlug/domains/$domainId/verify': typeof ApiOrgSlugDomainsDomainIdVerifyRoute
+  '/api/$orgSlug/observability/requests/$requestId': typeof ApiOrgSlugObservabilityRequestsRequestIdRoute
   '/api/$orgSlug/observability/traces/$traceId': typeof ApiOrgSlugObservabilityTracesTraceIdRoute
   '/api/$orgSlug/tunnels/$tunnelId/stop': typeof ApiOrgSlugTunnelsTunnelIdStopRoute
   '/api/$orgSlug/observability/logs': typeof ApiOrgSlugObservabilityLogsIndexRoute
   '/api/$orgSlug/observability/metrics': typeof ApiOrgSlugObservabilityMetricsIndexRoute
+  '/api/$orgSlug/observability/requests': typeof ApiOrgSlugObservabilityRequestsIndexRoute
   '/api/$orgSlug/observability/services': typeof ApiOrgSlugObservabilityServicesIndexRoute
   '/api/$orgSlug/observability/traces': typeof ApiOrgSlugObservabilityTracesIndexRoute
 }
@@ -930,10 +946,12 @@ export interface FileRoutesByTo {
   '/api/$orgSlug/subdomains': typeof ApiOrgSlugSubdomainsIndexRoute
   '/api/$orgSlug/tunnels': typeof ApiOrgSlugTunnelsIndexRoute
   '/api/$orgSlug/domains/$domainId/verify': typeof ApiOrgSlugDomainsDomainIdVerifyRoute
+  '/api/$orgSlug/observability/requests/$requestId': typeof ApiOrgSlugObservabilityRequestsRequestIdRoute
   '/api/$orgSlug/observability/traces/$traceId': typeof ApiOrgSlugObservabilityTracesTraceIdRoute
   '/api/$orgSlug/tunnels/$tunnelId/stop': typeof ApiOrgSlugTunnelsTunnelIdStopRoute
   '/api/$orgSlug/observability/logs': typeof ApiOrgSlugObservabilityLogsIndexRoute
   '/api/$orgSlug/observability/metrics': typeof ApiOrgSlugObservabilityMetricsIndexRoute
+  '/api/$orgSlug/observability/requests': typeof ApiOrgSlugObservabilityRequestsIndexRoute
   '/api/$orgSlug/observability/services': typeof ApiOrgSlugObservabilityServicesIndexRoute
   '/api/$orgSlug/observability/traces': typeof ApiOrgSlugObservabilityTracesIndexRoute
 }
@@ -1045,10 +1063,12 @@ export interface FileRoutesById {
   '/api/$orgSlug/subdomains/': typeof ApiOrgSlugSubdomainsIndexRoute
   '/api/$orgSlug/tunnels/': typeof ApiOrgSlugTunnelsIndexRoute
   '/api/$orgSlug/domains/$domainId/verify': typeof ApiOrgSlugDomainsDomainIdVerifyRoute
+  '/api/$orgSlug/observability/requests/$requestId': typeof ApiOrgSlugObservabilityRequestsRequestIdRoute
   '/api/$orgSlug/observability/traces/$traceId': typeof ApiOrgSlugObservabilityTracesTraceIdRoute
   '/api/$orgSlug/tunnels/$tunnelId/stop': typeof ApiOrgSlugTunnelsTunnelIdStopRoute
   '/api/$orgSlug/observability/logs/': typeof ApiOrgSlugObservabilityLogsIndexRoute
   '/api/$orgSlug/observability/metrics/': typeof ApiOrgSlugObservabilityMetricsIndexRoute
+  '/api/$orgSlug/observability/requests/': typeof ApiOrgSlugObservabilityRequestsIndexRoute
   '/api/$orgSlug/observability/services/': typeof ApiOrgSlugObservabilityServicesIndexRoute
   '/api/$orgSlug/observability/traces/': typeof ApiOrgSlugObservabilityTracesIndexRoute
 }
@@ -1161,10 +1181,12 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/subdomains'
     | '/api/$orgSlug/tunnels'
     | '/api/$orgSlug/domains/$domainId/verify'
+    | '/api/$orgSlug/observability/requests/$requestId'
     | '/api/$orgSlug/observability/traces/$traceId'
     | '/api/$orgSlug/tunnels/$tunnelId/stop'
     | '/api/$orgSlug/observability/logs'
     | '/api/$orgSlug/observability/metrics'
+    | '/api/$orgSlug/observability/requests'
     | '/api/$orgSlug/observability/services'
     | '/api/$orgSlug/observability/traces'
   fileRoutesByTo: FileRoutesByTo
@@ -1272,10 +1294,12 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/subdomains'
     | '/api/$orgSlug/tunnels'
     | '/api/$orgSlug/domains/$domainId/verify'
+    | '/api/$orgSlug/observability/requests/$requestId'
     | '/api/$orgSlug/observability/traces/$traceId'
     | '/api/$orgSlug/tunnels/$tunnelId/stop'
     | '/api/$orgSlug/observability/logs'
     | '/api/$orgSlug/observability/metrics'
+    | '/api/$orgSlug/observability/requests'
     | '/api/$orgSlug/observability/services'
     | '/api/$orgSlug/observability/traces'
   id:
@@ -1386,10 +1410,12 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/subdomains/'
     | '/api/$orgSlug/tunnels/'
     | '/api/$orgSlug/domains/$domainId/verify'
+    | '/api/$orgSlug/observability/requests/$requestId'
     | '/api/$orgSlug/observability/traces/$traceId'
     | '/api/$orgSlug/tunnels/$tunnelId/stop'
     | '/api/$orgSlug/observability/logs/'
     | '/api/$orgSlug/observability/metrics/'
+    | '/api/$orgSlug/observability/requests/'
     | '/api/$orgSlug/observability/services/'
     | '/api/$orgSlug/observability/traces/'
   fileRoutesById: FileRoutesById
@@ -1463,9 +1489,11 @@ export interface RootRouteChildren {
   ApiOrgSlugDomainsIndexRoute: typeof ApiOrgSlugDomainsIndexRoute
   ApiOrgSlugSubdomainsIndexRoute: typeof ApiOrgSlugSubdomainsIndexRoute
   ApiOrgSlugTunnelsIndexRoute: typeof ApiOrgSlugTunnelsIndexRoute
+  ApiOrgSlugObservabilityRequestsRequestIdRoute: typeof ApiOrgSlugObservabilityRequestsRequestIdRoute
   ApiOrgSlugObservabilityTracesTraceIdRoute: typeof ApiOrgSlugObservabilityTracesTraceIdRoute
   ApiOrgSlugObservabilityLogsIndexRoute: typeof ApiOrgSlugObservabilityLogsIndexRoute
   ApiOrgSlugObservabilityMetricsIndexRoute: typeof ApiOrgSlugObservabilityMetricsIndexRoute
+  ApiOrgSlugObservabilityRequestsIndexRoute: typeof ApiOrgSlugObservabilityRequestsIndexRoute
   ApiOrgSlugObservabilityServicesIndexRoute: typeof ApiOrgSlugObservabilityServicesIndexRoute
   ApiOrgSlugObservabilityTracesIndexRoute: typeof ApiOrgSlugObservabilityTracesIndexRoute
 }
@@ -2221,6 +2249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugObservabilityServicesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/$orgSlug/observability/requests/': {
+      id: '/api/$orgSlug/observability/requests/'
+      path: '/api/$orgSlug/observability/requests'
+      fullPath: '/api/$orgSlug/observability/requests'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityRequestsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/$orgSlug/observability/metrics/': {
       id: '/api/$orgSlug/observability/metrics/'
       path: '/api/$orgSlug/observability/metrics'
@@ -2247,6 +2282,13 @@ declare module '@tanstack/react-router' {
       path: '/api/$orgSlug/observability/traces/$traceId'
       fullPath: '/api/$orgSlug/observability/traces/$traceId'
       preLoaderRoute: typeof ApiOrgSlugObservabilityTracesTraceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/observability/requests/$requestId': {
+      id: '/api/$orgSlug/observability/requests/$requestId'
+      path: '/api/$orgSlug/observability/requests/$requestId'
+      fullPath: '/api/$orgSlug/observability/requests/$requestId'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityRequestsRequestIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/$orgSlug/domains/$domainId/verify': {
@@ -2507,11 +2549,15 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOrgSlugDomainsIndexRoute: ApiOrgSlugDomainsIndexRoute,
   ApiOrgSlugSubdomainsIndexRoute: ApiOrgSlugSubdomainsIndexRoute,
   ApiOrgSlugTunnelsIndexRoute: ApiOrgSlugTunnelsIndexRoute,
+  ApiOrgSlugObservabilityRequestsRequestIdRoute:
+    ApiOrgSlugObservabilityRequestsRequestIdRoute,
   ApiOrgSlugObservabilityTracesTraceIdRoute:
     ApiOrgSlugObservabilityTracesTraceIdRoute,
   ApiOrgSlugObservabilityLogsIndexRoute: ApiOrgSlugObservabilityLogsIndexRoute,
   ApiOrgSlugObservabilityMetricsIndexRoute:
     ApiOrgSlugObservabilityMetricsIndexRoute,
+  ApiOrgSlugObservabilityRequestsIndexRoute:
+    ApiOrgSlugObservabilityRequestsIndexRoute,
   ApiOrgSlugObservabilityServicesIndexRoute:
     ApiOrgSlugObservabilityServicesIndexRoute,
   ApiOrgSlugObservabilityTracesIndexRoute:
