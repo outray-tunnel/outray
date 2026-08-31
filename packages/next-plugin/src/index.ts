@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
-import { OutrayClient, LocalAccessManager } from "@outray/core";
-import type { OutrayPluginOptions } from "./types";
+import {
+  OutrayClient,
+  LocalAccessManager,
+  captureFetchRequest,
+  captureFetchResponse,
+  isHttpPayloadCaptureActive,
+} from "@outray/core";
+import type { OutrayPayloadCaptureOptions, OutrayPluginOptions } from "./types";
 
 const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
 
@@ -169,6 +175,66 @@ function startTunnel(
   process.on("exit", cleanup);
 }
 
+/**
+ * Opt-in payload capture for App Router route handlers.
+ *
+ * The request and response streams returned to Next.js are never consumed or
+ * replaced. Bounded clones are inspected before the handler completes so the
+ * attributes reach the already-active OpenTelemetry server span.
+ *
+ * @example
+ * ```ts
+ * import { withOutrayPayloadCapture } from '@outray/next'
+ *
+ * export const POST = withOutrayPayloadCapture(async (request) => {
+ *   return Response.json({ ok: true })
+ * })
+ * ```
+ */
+export function withOutrayPayloadCapture<
+  Arguments extends unknown[],
+  Result extends Response,
+>(
+  handler: (request: Request, ...args: Arguments) => Result | Promise<Result>,
+  captureOptions: OutrayPayloadCaptureOptions = true,
+): (request: Request, ...args: Arguments) => Promise<Result> {
+  return async (request: Request, ...args: Arguments): Promise<Result> => {
+    if (!isHttpPayloadCaptureActive(captureOptions)) {
+      return handler(request, ...args);
+    }
+
+    let requestClone: Request | undefined;
+    try {
+      requestClone = request.clone();
+    } catch {
+      // A previously-consumed request cannot be cloned; the handler still runs.
+    }
+
+    // Invoke the handler before reading the clone so downstream owns the stream first.
+    const result = handler(request, ...args);
+    const requestCapture = requestClone
+      ? captureFetchRequest(requestClone, captureOptions).catch(() => undefined)
+      : Promise.resolve();
+
+    let response: Result;
+    try {
+      response = await result;
+    } catch (error) {
+      await requestCapture;
+      throw error;
+    }
+
+    await requestCapture;
+    try {
+      await captureFetchResponse(response.clone(), captureOptions);
+    } catch {
+      // Streaming/framework-specific responses are allowed to be unclonable.
+    }
+
+    return response;
+  };
+}
+
 // Named exports for better tree-shaking
 export { withOutray };
-export type { OutrayPluginOptions };
+export type { OutrayPayloadCaptureOptions, OutrayPluginOptions };
