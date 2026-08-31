@@ -2,6 +2,11 @@
 org = "my-team"
 # server_url = "wss://api.outray.dev/"  # Optional: custom server URL
 
+[secrets]
+org = "my-team"
+project = "my-app"
+environment = "dev"
+
 [tunnel.web]
 protocol = "http"
 local_port = 3000
@@ -24,4 +29,3 @@ remote_port = 20000
 protocol = "udp"
 local_port = 5000
 remote_port = 30000
-
