@@ -1,5 +1,9 @@
-import type { Application, Request, Response, NextFunction } from "express";
-import { OutrayClient, LocalAccessManager } from "@outray/core";
+import type { Application } from "express";
+import {
+  OutrayClient,
+  LocalAccessManager,
+  createNodeHttpPayloadCaptureMiddleware,
+} from "@outray/core";
 import type { OutrayPluginOptions } from "./types";
 import type { Server } from "http";
 
@@ -54,7 +58,21 @@ export default function outray(
     enabled = process.env.OUTRAY_ENABLED !== "false",
     silent = false,
     local = false,
+    capturePayloads,
   } = options;
+
+  // Payload capture is explicitly opt-in and independent from the dev-only tunnel.
+  if (capturePayloads !== undefined && capturePayloads !== false) {
+    try {
+      app.use(createNodeHttpPayloadCaptureMiddleware(capturePayloads));
+    } catch (error) {
+      if (!silent) {
+        console.warn(
+          `  \x1b[33m○\x1b[0m  Outray: Payload capture could not be installed (${error instanceof Error ? error.message : "unknown error"})`,
+        );
+      }
+    }
+  }
 
   // Only run in development
   if (process.env.NODE_ENV !== "development" || !enabled) {
