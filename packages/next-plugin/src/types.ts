@@ -1,3 +1,5 @@
+import type { HttpPayloadCaptureSetting } from "@outray/core";
+
 /**
  * Configuration options for the Outray Next.js plugin
  */
@@ -77,3 +79,8 @@ export interface OutrayPluginOptions {
    */
   onReconnecting?: () => void;
 }
+
+export type OutrayPayloadCaptureOptions = Exclude<
+  HttpPayloadCaptureSetting,
+  false
+>;
