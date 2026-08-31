@@ -11,6 +11,20 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: outray_test
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d outray_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
         with:
@@ -72,7 +86,23 @@ jobs:
         run: tb --cloud --host "$TINYBIRD_HOST" --token "$TINYBIRD_TOKEN" deploy --check
 
       - name: Build Services
-        run: npm run build -- --filter=outray-tunnel --filter=outray-internal-check --filter=outray-cron
+        run: npm run build -- --filter=outray-web --filter=outray-tunnel --filter=outray-internal-check --filter=outray-cron
+
+      - name: Prepare Secrets Integration Database
+        working-directory: apps/web
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/outray_test
+        run: npx --no-install drizzle-kit migrate --config=drizzle.config.ts
+
+      - name: Test Web Security and Database Boundaries
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/outray_test
+          OUTRAY_RUN_DB_INTEGRATION: "1"
+          OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID: ci-v1
+          OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS: "{}"
+        run: |
+          TEST_MASTER_KEY="$(node -e 'process.stdout.write(Buffer.alloc(32, 7).toString("base64"))')"
+          OUTRAY_SECRETS_ACTIVE_MASTER_KEY="$TEST_MASTER_KEY" npm run test --workspace=outray-web
 
       - name: Deploy Tinybird Alert Evaluators
         if: steps.tinybird_credentials.outputs.configured == 'true'
@@ -92,6 +122,12 @@ jobs:
           fi
           npx --no-install drizzle-kit check --config=drizzle.config.ts
           npx --no-install drizzle-kit migrate --config=drizzle.config.ts
+
+      - name: Backfill Hashed Machine Tokens
+        working-directory: apps/web
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run tokens:backfill
 
       - name: Deploy Tunnel Files
         uses: appleboy/scp-action@master
