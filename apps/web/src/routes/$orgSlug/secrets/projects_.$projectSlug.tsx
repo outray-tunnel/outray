@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Add01Icon,
@@ -34,8 +39,16 @@ import { secretsClient, type SecretEnvironment } from "@/lib/secrets-client";
 export const Route = createFileRoute(
   "/$orgSlug/secrets/projects_/$projectSlug",
 )({
-  head: () => ({ meta: [{ title: "Project - OutRay Secrets" }] }),
-  component: SecretProjectPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/$orgSlug/secrets/vaults/$projectSlug",
+      params: {
+        orgSlug: params.orgSlug,
+        projectSlug: params.projectSlug,
+      },
+      replace: true,
+    });
+  },
 });
 
 function environmentTone(
@@ -47,8 +60,13 @@ function environmentTone(
   return "neutral";
 }
 
-function SecretProjectPage() {
-  const { orgSlug, projectSlug } = Route.useParams();
+export function VaultPageView({
+  orgSlug,
+  projectSlug,
+}: {
+  orgSlug: string;
+  projectSlug: string;
+}) {
   const navigate = useNavigate();
   const resource = useSecretsResource(
     () => secretsClient.project(orgSlug, projectSlug),
@@ -106,12 +124,12 @@ function SecretProjectPage() {
         confirmProduction: productionConfirmed,
       });
       setDeletingProject(false);
-      await navigate({ to: "/$orgSlug/secrets/projects", params: { orgSlug } });
+      await navigate({ to: "/$orgSlug/secrets/vaults", params: { orgSlug } });
     } catch (requestError) {
       setMutationError(
         requestError instanceof Error
           ? requestError.message
-          : "Could not delete project.",
+          : "Could not delete vault.",
       );
     } finally {
       setMutating(false);
@@ -128,15 +146,15 @@ function SecretProjectPage() {
       <SecretsHeader
         eyebrow={
           <Link
-            to="/$orgSlug/secrets/projects"
+            to="/$orgSlug/secrets/vaults"
             params={{ orgSlug }}
             className="inline-flex items-center gap-2 transition-colors hover:text-zinc-300"
           >
             <HugeiconsIcon icon={ArrowLeft01Icon} size={13} strokeWidth={1.8} />{" "}
-            Projects
+            Vaults
           </Link>
         }
-        title={project?.name || "Project"}
+        title={project?.name || "Vault"}
         description={
           project?.description ||
           "Choose an environment to view and manage its secret keys."
@@ -145,15 +163,15 @@ function SecretProjectPage() {
           project && (
             <div className="flex items-center gap-2">
               <ActionMenu
-                label="Project actions"
+                label="Vault actions"
                 items={[
                   {
-                    label: "Edit project",
+                    label: "Edit vault",
                     icon: Edit02Icon,
                     onSelect: () => setEditingProject(true),
                   },
                   {
-                    label: "Delete project",
+                    label: "Delete vault",
                     icon: Delete02Icon,
                     onSelect: () => setDeletingProject(true),
                     danger: true,
@@ -187,7 +205,7 @@ function SecretProjectPage() {
       ) : resource.error && !project ? (
         <SecretsEmptyState
           icon={Folder01Icon}
-          title="Project could not be loaded"
+          title="Vault could not be loaded"
           description={resource.error}
           action={
             <SecretsButton onClick={resource.reload}>Try again</SecretsButton>
@@ -262,7 +280,7 @@ function SecretProjectPage() {
                 {project.environments.map((environment) => (
                   <article key={environment.id} className="relative">
                     <Link
-                      to="/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug"
+                      to="/$orgSlug/secrets/vaults/$projectSlug/environments/$environmentSlug"
                       params={{
                         orgSlug,
                         projectSlug,
@@ -346,7 +364,7 @@ function SecretProjectPage() {
             onSaved={(savedProject) => {
               if (savedProject.slug !== projectSlug) {
                 void navigate({
-                  to: "/$orgSlug/secrets/projects/$projectSlug",
+                  to: "/$orgSlug/secrets/vaults/$projectSlug",
                   params: { orgSlug, projectSlug: savedProject.slug },
                 });
               } else {
@@ -391,9 +409,9 @@ function SecretProjectPage() {
       <ConfirmSecretActionDialog
         open={deletingProject}
         onClose={() => setDeletingProject(false)}
-        title={project ? `Delete ${project.name}?` : "Delete project?"}
-        description="All environments and secrets in this project will become unavailable immediately."
-        confirmLabel="Delete project"
+        title={project ? `Delete ${project.name}?` : "Delete vault?"}
+        description="All environments and secrets in this vault will become unavailable immediately."
+        confirmLabel="Delete vault"
         confirmationText={project?.name}
         production={hasProduction}
         loading={mutating}
