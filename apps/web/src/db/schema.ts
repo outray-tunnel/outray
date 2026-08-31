@@ -42,6 +42,25 @@ import {
   notificationsRelations,
 } from "./alerts-schema";
 
+import {
+  secretProjects,
+  secretEnvironments,
+  secretEntries,
+  secretVersions,
+  secretOrganizationKeys,
+  secretDeletionBatches,
+  secretAuditEvents,
+  machineTokens,
+  secretProjectsRelations,
+  secretEnvironmentsRelations,
+  secretEntriesRelations,
+  secretVersionsRelations,
+  secretOrganizationKeysRelations,
+  secretDeletionBatchesRelations,
+  secretAuditEventsRelations,
+  machineTokensRelations,
+} from "./secrets-schema";
+
 export {
   accounts,
   sessions,
@@ -78,4 +97,20 @@ export {
   observabilityAlertEvaluationsRelations,
   incidentsRelations,
   notificationsRelations,
+  secretProjects,
+  secretEnvironments,
+  secretEntries,
+  secretVersions,
+  secretOrganizationKeys,
+  secretDeletionBatches,
+  secretAuditEvents,
+  machineTokens,
+  secretProjectsRelations,
+  secretEnvironmentsRelations,
+  secretEntriesRelations,
+  secretVersionsRelations,
+  secretOrganizationKeysRelations,
+  secretDeletionBatchesRelations,
+  secretAuditEventsRelations,
+  machineTokensRelations,
 };
