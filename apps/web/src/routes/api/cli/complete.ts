@@ -4,6 +4,7 @@ import { cliLoginSessions, cliUserTokens } from "../../../db/auth-schema";
 import { eq, and, gt } from "drizzle-orm";
 import { auth } from "../../../lib/auth";
 import { randomUUID, randomBytes } from "crypto";
+import { privateJson } from "../../../lib/private-json";
 
 export const Route = createFileRoute("/api/cli/complete")({
   server: {
@@ -15,14 +16,14 @@ export const Route = createFileRoute("/api/cli/complete")({
           });
 
           if (!session) {
-            return Response.json({ error: "Unauthorized" }, { status: 401 });
+            return privateJson({ error: "Unauthorized" }, { status: 401 });
           }
 
           const body = await request.json();
           const { code } = body;
 
           if (!code) {
-            return Response.json({ error: "Missing required fields" }, { status: 400 });
+            return privateJson({ error: "Missing required fields" }, { status: 400 });
           }
 
           // Verify session exists and is pending
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/api/cli/complete")({
           });
 
           if (!loginSession) {
-            return Response.json(
+            return privateJson(
               { error: "Invalid or expired session" },
               { status: 400 },
             );
@@ -63,10 +64,10 @@ export const Route = createFileRoute("/api/cli/complete")({
             })
             .where(eq(cliLoginSessions.id, loginSession.id));
 
-          return Response.json({ success: true });
+          return privateJson({ success: true });
         } catch (error) {
           console.error("CLI complete error:", error);
-          return Response.json(
+          return privateJson(
             { error: "Failed to complete authentication" },
             { status: 500 },
           );
