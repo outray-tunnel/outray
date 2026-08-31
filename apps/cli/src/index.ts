@@ -8,6 +8,7 @@ import { UDPTunnelClient } from "./udp-client";
 import { ConfigManager, OutRayConfig } from "./config";
 import { AuthManager } from "./auth";
 import { TomlConfigParser, ParsedTunnelConfig } from "./toml-config";
+import { runSecretsCommand } from "./secrets-cli";
 import { version } from "../package.json";
 
 function getFlagValue(args: string[], flag: string): string | undefined {
@@ -250,6 +251,31 @@ async function getOrgSlugForDisplay(
   }
 }
 
+async function resolveBrowserTokenForOrganization(
+  configManager: ConfigManager,
+  webUrl: string,
+  organizationSlug: string,
+): Promise<string | null> {
+  const config = configManager.load();
+  if (!config?.userToken || !config.activeOrgId) return null;
+
+  const authManager = new AuthManager(webUrl, config.userToken);
+  const organizations = await authManager.fetchOrganizations();
+  const organization = organizations.find(
+    (candidate) => candidate.slug === organizationSlug,
+  );
+  if (!organization) {
+    throw new Error(`Organization "${organizationSlug}" not found.`);
+  }
+
+  if (organization.id === config.activeOrgId) {
+    return ensureValidToken(configManager, config, webUrl);
+  }
+
+  const exchanged = await authManager.exchangeToken(organization.id);
+  return exchanged.orgToken;
+}
+
 async function handleStartFromConfig(
   configManager: ConfigManager,
   webUrl: string,
@@ -266,6 +292,15 @@ async function handleStartFromConfig(
     console.log(
       chalk.red(
         `Failed to load config: ${error instanceof Error ? error.message : "Unknown error"}`,
+      ),
+    );
+    process.exit(1);
+  }
+
+  if (parsedConfig.tunnels.length === 0) {
+    console.log(
+      chalk.red(
+        `No tunnels are configured in ${tomlConfigPath}. Add at least one [tunnel.<name>] section before running outray start.`,
       ),
     );
     process.exit(1);
@@ -390,6 +425,7 @@ function printHelp() {
   console.log(chalk.cyan("  outray udp <port>      Start UDP tunnel"));
   console.log(chalk.cyan("  outray switch [org]    Switch organization"));
   console.log(chalk.cyan("  outray whoami          Show current user"));
+  console.log(chalk.cyan("  outray secrets         Manage application secrets"));
   console.log(chalk.cyan("  outray logout          Logout"));
   console.log(chalk.cyan("  outray version         Show version"));
   console.log(chalk.cyan("  outray help            Show this help message"));
@@ -456,6 +492,31 @@ async function main() {
 
   if (command === "logout") {
     await handleLogout(configManager, isDev);
+    return;
+  }
+
+  if (command === "secrets") {
+    try {
+      const exitCode = await runSecretsCommand(args.slice(1), {
+        webUrl,
+        resolveActiveOrganization: async () => {
+          const config = configManager.load();
+          return config ? getOrgSlugForDisplay(config, webUrl) : null;
+        },
+        resolveBrowserToken: (organization) =>
+          resolveBrowserTokenForOrganization(
+            configManager,
+            webUrl,
+            organization,
+          ),
+      });
+      process.exitCode = exitCode;
+    } catch (error) {
+      console.error(
+        chalk.red(error instanceof Error ? error.message : "Secrets command failed."),
+      );
+      process.exitCode = 1;
+    }
     return;
   }
 
