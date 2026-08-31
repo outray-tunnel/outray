@@ -10,9 +10,9 @@ export const tunnels = pgTable(
     name: text("name"),
     protocol: text("protocol").notNull().default("http"), // http, tcp, udp
     remotePort: integer("remote_port"), // For TCP/UDP tunnels
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     organizationId: text("organization_id").references(() => organizations.id, {
       onDelete: "cascade",
     }),
