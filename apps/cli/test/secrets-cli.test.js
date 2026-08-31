@@ -31,7 +31,7 @@ test("uses OUTRAY_TOKEN before OUTRAY_API_KEY and lists metadata only", async (t
   };
   const output = outputBuffer();
   const code = await runSecretsCommand(
-    ["list", "--org", "acme", "--project", "api", "--env", "dev"],
+    ["list", "--org", "acme", "--vault", "api", "--env", "dev"],
     {
       webUrl: "https://outray.test",
       env: { OUTRAY_TOKEN: "primary", OUTRAY_API_KEY: "compat" },
@@ -40,6 +40,7 @@ test("uses OUTRAY_TOKEN before OUTRAY_API_KEY and lists metadata only", async (t
   );
   assert.equal(code, 0);
   assert.equal(request.init.headers.Authorization, "Bearer primary");
+  assert.equal(new URL(request.url).searchParams.get("project"), "api");
   assert.equal(new URL(request.url).searchParams.get("values"), "false");
   assert.match(output.value(), /API_KEY\t2\t2026-01-01/);
 });
@@ -185,7 +186,7 @@ test("secrets use creates the nearest config without disturbing tunnel settings"
   fs.writeFileSync(configPath, "# tunnel\n[tunnel.web]\nprotocol='http'\nlocal_port=3000\n");
   const output = outputBuffer();
   await runSecretsCommand(
-    ["use", "--org", "acme", "--project", "api", "--env", "dev"],
+    ["use", "--org", "acme", "--vault", "api", "--env", "dev"],
     { webUrl: "https://outray.test", cwd: nested, stdout: output.stream },
   );
   const text = fs.readFileSync(configPath, "utf8");
@@ -193,6 +194,8 @@ test("secrets use creates the nearest config without disturbing tunnel settings"
   assert.match(text, /\[tunnel\.web\]/);
   assert.match(text, /\[secrets\]/);
   assert.match(text, /org = "acme"/);
+  assert.match(text, /vault = "api"/);
+  assert.doesNotMatch(text, /^project\s*=/m);
 });
 
 test("secrets use discovers and persists a singleton target", async (t) => {
@@ -233,8 +236,43 @@ test("secrets use discovers and persists a singleton target", async (t) => {
     "utf8",
   );
   assert.match(config, /org = "acme"/);
-  assert.match(config, /project = "api"/);
+  assert.match(config, /vault = "api"/);
   assert.match(config, /environment = "dev"/);
+});
+
+test("Secrets help presents vault as the canonical target", async () => {
+  const output = outputBuffer();
+  await runSecretsCommand(["--help"], {
+    webUrl: "https://outray.test",
+    stdout: output.stream,
+  });
+  assert.match(output.value(), /Save the vault and environment target/);
+  assert.match(output.value(), /--vault, -v <slug>/);
+  assert.doesNotMatch(output.value(), /Secrets project slug/);
+});
+
+test("the -v vault alias resolves to the existing project API parameter", async (t) => {
+  const originalFetch = global.fetch;
+  t.after(() => { global.fetch = originalFetch; });
+  let requestUrl;
+  global.fetch = async (url) => {
+    requestUrl = String(url);
+    return new Response(
+      JSON.stringify({ organization: {}, project: {}, environment: {}, secrets: [] }),
+      { headers: { "content-type": "application/json" } },
+    );
+  };
+
+  await runSecretsCommand(
+    ["list", "--org", "acme", "-v", "api", "--env", "dev"],
+    {
+      webUrl: "https://outray.test",
+      env: { OUTRAY_TOKEN: "machine" },
+      stdout: outputBuffer().stream,
+    },
+  );
+
+  assert.equal(new URL(requestUrl).searchParams.get("project"), "api");
 });
 
 test("the target picker requires flags for ambiguous non-interactive choices", async (t) => {
