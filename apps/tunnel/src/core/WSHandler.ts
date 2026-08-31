@@ -87,7 +87,7 @@ export class WSHandler {
     organizationId?: string;
     organization?: any;
     error?: string;
-    tokenType?: "legacy" | "org";
+    tokenType?: "legacy" | "machine" | "org";
     bandwidthLimit?: number;
     retentionDays?: number;
     plan?: string;
@@ -105,7 +105,7 @@ export class WSHandler {
         organizationId?: string;
         organization?: any;
         error?: string;
-        tokenType?: "legacy" | "org";
+        tokenType?: "legacy" | "machine" | "org";
         bandwidthLimit?: number;
         retentionDays?: number;
         plan?: string;
@@ -143,7 +143,7 @@ export class WSHandler {
   }
 
   private async registerTunnelInDatabase(
-    userId: string,
+    userId: string | undefined,
     organizationId: string,
     url: string,
     options?: {
@@ -323,7 +323,7 @@ export class WSHandler {
 
                 // Register tunnel in database first to get dbTunnelId
                 let dbTunnelId: string | undefined;
-                if (userId && organizationId) {
+                if (organizationId) {
                   const dbResult = await this.registerTunnelInDatabase(
                     userId,
                     organizationId,
@@ -401,7 +401,7 @@ export class WSHandler {
 
                 // Register tunnel in database first to get dbTunnelId
                 let dbTunnelId: string | undefined;
-                if (userId && organizationId) {
+                if (organizationId) {
                   const dbResult = await this.registerTunnelInDatabase(
                     userId,
                     organizationId,
@@ -498,7 +498,7 @@ export class WSHandler {
 
               // Register tunnel in database and check limits
               let dbTunnelId: string | undefined;
-              if (userId && organizationId) {
+              if (organizationId) {
                 const result = await this.registerTunnelInDatabase(
                   userId,
                   organizationId,
@@ -694,7 +694,7 @@ export class WSHandler {
 
             // Register tunnel in database and check limits
             let dbTunnelId: string | undefined;
-            if (userId && organizationId) {
+            if (organizationId) {
               const result = await this.registerTunnelInDatabase(
                 userId,
                 organizationId,
