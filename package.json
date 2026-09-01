@@ -12,6 +12,7 @@
     "packages/*"
   ],
   "scripts": {
+    "start": "npm run start --workspace=outray-web",
     "dev": "dotenv -e .env -- node scripts/with-tinybird.mjs turbo run dev --env-mode=loose --filter=outray-web --filter=outray-tunnel --filter=outray-cron --filter=outray-internal-check --filter=outray-ingest",
     "dev:web": "dotenv -e .env -- node scripts/with-tinybird.mjs turbo run dev --env-mode=loose --filter=outray-web",
     "dev:tunnel": "dotenv -e .env -- turbo run dev --env-mode=loose --filter=outray-tunnel",
