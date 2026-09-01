@@ -4,7 +4,21 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".output/**"]
+      "outputs": ["dist/**", ".output/**"],
+      "env": [
+        "OUTRAY_API_KEY",
+        "TUNNEL_DOMAIN",
+        "VITE_POLAR_PRODUCT_BEAM",
+        "VITE_POLAR_PRODUCT_BEAM_YEARLY",
+        "VITE_POLAR_PRODUCT_PULSE",
+        "VITE_POLAR_PRODUCT_PULSE_YEARLY",
+        "VITE_POLAR_PRODUCT_RAY",
+        "VITE_POLAR_PRODUCT_RAY_YEARLY",
+        "VITE_PUBLIC_POSTHOG_HOST",
+        "VITE_PUBLIC_POSTHOG_KEY",
+        "VITE_TUNNEL_URL"
+      ],
+      "passThroughEnv": ["NODE_OPTIONS"]
     },
     "dev": {
       "dependsOn": ["^build"],
