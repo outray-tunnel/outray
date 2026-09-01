@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Building06Icon,
-  HashtagIcon,
-  TextIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Building06Icon from "@hugeicons-pro/core-stroke-rounded/Building06Icon";
+import HashtagIcon from "@hugeicons-pro/core-stroke-rounded/HashtagIcon";
+import TextIcon from "@hugeicons-pro/core-stroke-rounded/TextIcon";
 import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/$orgSlug/settings/organization")({

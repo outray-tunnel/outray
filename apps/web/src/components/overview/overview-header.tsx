@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Add01Icon } from "@hugeicons-pro/core-stroke-rounded";
+import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
 
 export function OverviewHeader({
   isAtLimit,

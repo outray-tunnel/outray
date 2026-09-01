@@ -2,11 +2,9 @@ import { Link, useLocation, useParams } from "@tanstack/react-router";
 import { LayoutDashboard, Network, History, Globe, Menu } from "lucide-react";
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Audit01Icon,
-  Folder01Icon,
-  Home01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Audit01Icon from "@hugeicons-pro/core-stroke-rounded/Audit01Icon";
+import Folder01Icon from "@hugeicons-pro/core-stroke-rounded/Folder01Icon";
+import Home01Icon from "@hugeicons-pro/core-stroke-rounded/Home01Icon";
 import { MobileNavSheet } from "./mobile-nav-sheet";
 
 const NAV_ICON_SIZE = 22;

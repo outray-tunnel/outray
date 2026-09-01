@@ -1,19 +1,17 @@
 import { useLocation, useParams } from "@tanstack/react-router";
 import type { IconSvgElement } from "@hugeicons/react";
-import {
-  Activity03Icon,
-  Alert02Icon,
-  Audit01Icon,
-  Folder01Icon,
-  Globe02Icon,
-  HistoryIcon,
-  Home01Icon,
-  LinkSquare01Icon,
-  LogsIcon,
-  Route03Icon,
-  ServerStack01Icon,
-  WorkflowSquare06Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Activity03Icon from "@hugeicons-pro/core-stroke-rounded/Activity03Icon";
+import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
+import Audit01Icon from "@hugeicons-pro/core-stroke-rounded/Audit01Icon";
+import Folder01Icon from "@hugeicons-pro/core-stroke-rounded/Folder01Icon";
+import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
+import HistoryIcon from "@hugeicons-pro/core-stroke-rounded/HistoryIcon";
+import Home01Icon from "@hugeicons-pro/core-stroke-rounded/Home01Icon";
+import LinkSquare01Icon from "@hugeicons-pro/core-stroke-rounded/LinkSquare01Icon";
+import LogsIcon from "@hugeicons-pro/core-stroke-rounded/LogsIcon";
+import Route03Icon from "@hugeicons-pro/core-stroke-rounded/Route03Icon";
+import ServerStack01Icon from "@hugeicons-pro/core-stroke-rounded/ServerStack01Icon";
+import WorkflowSquare06Icon from "@hugeicons-pro/core-stroke-rounded/WorkflowSquare06Icon";
 import { NavItem } from "./sidebar/nav-item";
 
 interface SubNavItem {

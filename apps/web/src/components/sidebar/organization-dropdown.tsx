@@ -1,11 +1,9 @@
 import { Link, useLocation, useParams } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Add01Icon,
-  ArrowDown01Icon,
-  CheckmarkCircle02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
+import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
+import CheckmarkCircle02Icon from "@hugeicons-pro/core-stroke-rounded/CheckmarkCircle02Icon";
 
 interface Organization {
   id: string;

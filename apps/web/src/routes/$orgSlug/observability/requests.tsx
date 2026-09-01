@@ -8,19 +8,17 @@ import {
 } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  Cancel01Icon,
-  Copy01Icon,
-  LogsIcon,
-  PauseIcon,
-  PlayIcon,
-  Search01Icon,
-  ServerStack01Icon,
-  Tick02Icon,
-  WorkflowSquare06Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
+import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
+import LogsIcon from "@hugeicons-pro/core-stroke-rounded/LogsIcon";
+import PauseIcon from "@hugeicons-pro/core-stroke-rounded/PauseIcon";
+import PlayIcon from "@hugeicons-pro/core-stroke-rounded/PlayIcon";
+import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
+import ServerStack01Icon from "@hugeicons-pro/core-stroke-rounded/ServerStack01Icon";
+import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
+import WorkflowSquare06Icon from "@hugeicons-pro/core-stroke-rounded/WorkflowSquare06Icon";
 import {
   ObservabilityHeader,
   ObservabilityPage,

@@ -1,15 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Activity03Icon,
-  ChartHistogramIcon,
-  Clock01Icon,
-  Database02Icon,
-  FilterIcon,
-  PauseIcon,
-  PlayIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Activity03Icon from "@hugeicons-pro/core-stroke-rounded/Activity03Icon";
+import ChartHistogramIcon from "@hugeicons-pro/core-stroke-rounded/ChartHistogramIcon";
+import Clock01Icon from "@hugeicons-pro/core-stroke-rounded/Clock01Icon";
+import Database02Icon from "@hugeicons-pro/core-stroke-rounded/Database02Icon";
+import FilterIcon from "@hugeicons-pro/core-stroke-rounded/FilterIcon";
+import PauseIcon from "@hugeicons-pro/core-stroke-rounded/PauseIcon";
+import PlayIcon from "@hugeicons-pro/core-stroke-rounded/PlayIcon";
 import {
   ObservabilityHeader,
   ObservabilityPage,

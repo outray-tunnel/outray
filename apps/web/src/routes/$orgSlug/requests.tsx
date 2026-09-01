@@ -2,14 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Activity03Icon,
-  Cancel01Icon,
-  DatabaseIcon,
-  InformationCircleIcon,
-  Search01Icon,
-  Settings02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Activity03Icon from "@hugeicons-pro/core-stroke-rounded/Activity03Icon";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import DatabaseIcon from "@hugeicons-pro/core-stroke-rounded/DatabaseIcon";
+import InformationCircleIcon from "@hugeicons-pro/core-stroke-rounded/InformationCircleIcon";
+import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
+import Settings02Icon from "@hugeicons-pro/core-stroke-rounded/Settings02Icon";
 import { toast } from "sonner";
 import { appClient } from "@/lib/app-client";
 import { authClient } from "@/lib/auth-client";

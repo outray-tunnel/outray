@@ -1,13 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ArrowLeft01Icon,
-  ArrowUpRight01Icon,
-  Copy01Icon,
-  Tick02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
-import { StopIcon } from "@hugeicons-pro/core-solid-rounded";
+import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
+import ArrowUpRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowUpRight01Icon";
+import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
+import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
+import StopIcon from "@hugeicons-pro/core-solid-rounded/StopIcon";
 import { ConfirmModal } from "../confirm-modal";
 import { useAppStore } from "@/lib/store";
 

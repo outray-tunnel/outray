@@ -2,13 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ArrowRight01Icon,
-  Cancel01Icon,
-  Clock01Icon,
-  Search01Icon,
-  WorkflowSquare06Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import Clock01Icon from "@hugeicons-pro/core-stroke-rounded/Clock01Icon";
+import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
+import WorkflowSquare06Icon from "@hugeicons-pro/core-stroke-rounded/WorkflowSquare06Icon";
 import {
   ObservabilityHeader,
   ObservabilityPage,

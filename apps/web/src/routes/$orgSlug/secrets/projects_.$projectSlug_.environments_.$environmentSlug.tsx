@@ -6,13 +6,11 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Add01Icon,
-  ArrowLeft01Icon,
-  Download04Icon,
-  Layers01Icon,
-  Upload04Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
+import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
+import Download04Icon from "@hugeicons-pro/core-stroke-rounded/Download04Icon";
+import Layers01Icon from "@hugeicons-pro/core-stroke-rounded/Layers01Icon";
+import Upload04Icon from "@hugeicons-pro/core-stroke-rounded/Upload04Icon";
 import {
   ImportDotenvDialog,
   SecretEditorDialog,

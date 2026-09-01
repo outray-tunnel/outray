@@ -2,10 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Add01Icon,
-  Globe02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
+import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
 import { appClient } from "@/lib/app-client";
 import { getPlanLimits } from "@/lib/subscription-plans";
 import { DomainHeader } from "@/components/domains/domain-header";

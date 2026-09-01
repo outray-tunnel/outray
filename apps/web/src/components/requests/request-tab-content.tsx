@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Copy01Icon, Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
+import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
+import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import type { TunnelEvent, RequestDetails } from "./types";
 import { JsonViewer, formatBody } from "./json-viewer";
 import { getHttpMethodColor } from "./utils";

@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Cancel01Icon,
-  Copy01Icon,
-  ReplayIcon,
-  Tick02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
+import ReplayIcon from "@hugeicons-pro/core-stroke-rounded/ReplayIcon";
+import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import type { TunnelEvent, InspectorTab } from "./types";
 import { generateCurl, getHttpMethodColor } from "./utils";
 import { RequestTabContent } from "./request-tab-content";

@@ -1,17 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Alert02Icon,
-  ArrowLeft01Icon,
-  Cancel01Icon,
-  Delete02Icon,
-  Notification02Icon,
-  PauseIcon,
-  PencilEdit02Icon,
-  PlayIcon,
-  RefreshIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
+import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
+import Notification02Icon from "@hugeicons-pro/core-stroke-rounded/Notification02Icon";
+import PauseIcon from "@hugeicons-pro/core-stroke-rounded/PauseIcon";
+import PencilEdit02Icon from "@hugeicons-pro/core-stroke-rounded/PencilEdit02Icon";
+import PlayIcon from "@hugeicons-pro/core-stroke-rounded/PlayIcon";
+import RefreshIcon from "@hugeicons-pro/core-stroke-rounded/RefreshIcon";
 import {
   Area,
   AreaChart,

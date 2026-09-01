@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import {
-  Add01Icon,
-  ArrowRight01Icon,
-  Folder01Icon,
-  Key01Icon,
-  Layers01Icon,
-  SecurityLockIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
+import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
+import Folder01Icon from "@hugeicons-pro/core-stroke-rounded/Folder01Icon";
+import Key01Icon from "@hugeicons-pro/core-stroke-rounded/Key01Icon";
+import Layers01Icon from "@hugeicons-pro/core-stroke-rounded/Layers01Icon";
+import SecurityLockIcon from "@hugeicons-pro/core-stroke-rounded/SecurityLockIcon";
 import {
   ActivityEmpty,
   ActivityList,

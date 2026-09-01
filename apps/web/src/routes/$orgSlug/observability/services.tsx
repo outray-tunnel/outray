@@ -1,11 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ArrowRight01Icon,
-  Search01Icon,
-  ServerStack01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
+import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
+import ServerStack01Icon from "@hugeicons-pro/core-stroke-rounded/ServerStack01Icon";
 import {
   HealthPill,
   ObservabilityHeader,

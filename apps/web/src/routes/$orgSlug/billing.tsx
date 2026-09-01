@@ -1,11 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ArrowUpRight01Icon,
-  CheckmarkCircle02Icon,
-  CreditCardIcon,
-  Loading03Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import ArrowUpRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowUpRight01Icon";
+import CheckmarkCircle02Icon from "@hugeicons-pro/core-stroke-rounded/CheckmarkCircle02Icon";
+import CreditCardIcon from "@hugeicons-pro/core-stroke-rounded/CreditCardIcon";
+import Loading03Icon from "@hugeicons-pro/core-stroke-rounded/Loading03Icon";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   SUBSCRIPTION_PLANS,

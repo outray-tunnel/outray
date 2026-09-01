@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Add01Icon,
-  Folder01Icon,
-  Search01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
+import Folder01Icon from "@hugeicons-pro/core-stroke-rounded/Folder01Icon";
+import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
 import { ProjectCard } from "@/components/secrets/project-card";
 import { ProjectDialog } from "@/components/secrets/secret-dialogs";
 import {

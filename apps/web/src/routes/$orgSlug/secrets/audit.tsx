@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Audit01Icon,
-  Search01Icon,
-  SecurityLockIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Audit01Icon from "@hugeicons-pro/core-stroke-rounded/Audit01Icon";
+import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
+import SecurityLockIcon from "@hugeicons-pro/core-stroke-rounded/SecurityLockIcon";
 import {
   ActivityEmpty,
   ActivityList,

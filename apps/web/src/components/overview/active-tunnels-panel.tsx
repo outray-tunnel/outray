@@ -1,9 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ArrowUpRight01Icon,
-  Route03Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import ArrowUpRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowUpRight01Icon";
+import Route03Icon from "@hugeicons-pro/core-stroke-rounded/Route03Icon";
 import { type Tunnel } from "@/lib/app-client";
 
 export function ActiveTunnelsPanel({

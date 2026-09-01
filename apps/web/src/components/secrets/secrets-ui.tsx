@@ -7,12 +7,10 @@ import {
   type ReactNode,
 } from "react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import {
-  Alert02Icon,
-  Cancel01Icon,
-  Loading03Icon,
-  MoreVerticalIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import Loading03Icon from "@hugeicons-pro/core-stroke-rounded/Loading03Icon";
+import MoreVerticalIcon from "@hugeicons-pro/core-stroke-rounded/MoreVerticalIcon";
 import { AnimatePresence, motion } from "motion/react";
 import { Select, type SelectOption } from "@/components/ui/select";
 

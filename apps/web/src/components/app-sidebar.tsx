@@ -2,27 +2,23 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import {
-  Cone01Icon,
-  LicenseIcon,
-  LockPasswordIcon,
-  PanelLeftCloseIcon,
-  PanelLeftOpenIcon,
-  Pulse02Icon,
-  Search01Icon,
-  Settings02Icon,
-  UserGroupIcon,
-  WalletCardsIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
-import {
-  Cone01Icon as Cone01SolidIcon,
-  LicenseIcon as LicenseSolidIcon,
-  LockPasswordIcon as LockPasswordSolidIcon,
-  Pulse02Icon as Pulse02SolidIcon,
-  Settings02Icon as Settings02SolidIcon,
-  UserGroupIcon as UserGroupSolidIcon,
-  WalletCardsIcon as WalletCardsSolidIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+import Cone01Icon from "@hugeicons-pro/core-stroke-rounded/Cone01Icon";
+import LicenseIcon from "@hugeicons-pro/core-stroke-rounded/LicenseIcon";
+import LockPasswordIcon from "@hugeicons-pro/core-stroke-rounded/LockPasswordIcon";
+import PanelLeftCloseIcon from "@hugeicons-pro/core-stroke-rounded/PanelLeftCloseIcon";
+import PanelLeftOpenIcon from "@hugeicons-pro/core-stroke-rounded/PanelLeftOpenIcon";
+import Pulse02Icon from "@hugeicons-pro/core-stroke-rounded/Pulse02Icon";
+import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
+import Settings02Icon from "@hugeicons-pro/core-stroke-rounded/Settings02Icon";
+import UserGroupIcon from "@hugeicons-pro/core-stroke-rounded/UserGroupIcon";
+import WalletCardsIcon from "@hugeicons-pro/core-stroke-rounded/WalletCardsIcon";
+import Cone01SolidIcon from "@hugeicons-pro/core-solid-rounded/Cone01Icon";
+import LicenseSolidIcon from "@hugeicons-pro/core-solid-rounded/LicenseIcon";
+import LockPasswordSolidIcon from "@hugeicons-pro/core-solid-rounded/LockPasswordIcon";
+import Pulse02SolidIcon from "@hugeicons-pro/core-solid-rounded/Pulse02Icon";
+import Settings02SolidIcon from "@hugeicons-pro/core-solid-rounded/Settings02Icon";
+import UserGroupSolidIcon from "@hugeicons-pro/core-solid-rounded/UserGroupIcon";
+import WalletCardsSolidIcon from "@hugeicons-pro/core-solid-rounded/WalletCardsIcon";
 import { useAppStore } from "@/lib/store";
 import { authClient, usePermission } from "@/lib/auth-client";
 import { appClient } from "@/lib/app-client";

@@ -4,10 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  DatabaseIcon,
-  InformationCircleIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import DatabaseIcon from "@hugeicons-pro/core-stroke-rounded/DatabaseIcon";
+import InformationCircleIcon from "@hugeicons-pro/core-stroke-rounded/InformationCircleIcon";
 import { appClient } from "@/lib/app-client";
 import type { TunnelEvent } from "./types";
 import { getHttpMethodColor } from "./utils";

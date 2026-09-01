@@ -1,13 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import {
-  Activity03Icon,
-  Alert02Icon,
-  Clock01Icon,
-  Pulse02Icon,
-  ServerStack01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Activity03Icon from "@hugeicons-pro/core-stroke-rounded/Activity03Icon";
+import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
+import Clock01Icon from "@hugeicons-pro/core-stroke-rounded/Clock01Icon";
+import Pulse02Icon from "@hugeicons-pro/core-stroke-rounded/Pulse02Icon";
+import ServerStack01Icon from "@hugeicons-pro/core-stroke-rounded/ServerStack01Icon";
 import {
   HealthPill,
   ObservabilityHeader,

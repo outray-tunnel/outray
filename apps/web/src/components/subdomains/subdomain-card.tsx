@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Globe02Icon,
-  Delete02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
+import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
 import { ConfirmModal } from "../confirm-modal";
 
 interface Subdomain {

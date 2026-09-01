@@ -18,10 +18,8 @@ import { useState } from "react";
 import { ReportBugModal } from "./report-bug-modal";
 import { useAppStore } from "@/lib/store";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  LockPasswordIcon,
-  Pulse02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import LockPasswordIcon from "@hugeicons-pro/core-stroke-rounded/LockPasswordIcon";
+import Pulse02Icon from "@hugeicons-pro/core-stroke-rounded/Pulse02Icon";
 
 interface MobileNavSheetProps {
   isOpen: boolean;

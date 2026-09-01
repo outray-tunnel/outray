@@ -1,19 +1,17 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Add01Icon,
-  Alert02Icon,
-  ArrowDown01Icon,
-  ArrowRight01Icon,
-  Cancel01Icon,
-  Clock01Icon,
-  Delete02Icon,
-  Edit02Icon,
-  Loading03Icon,
-  ReplayIcon,
-  Tick02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
+import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
+import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
+import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import Clock01Icon from "@hugeicons-pro/core-stroke-rounded/Clock01Icon";
+import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
+import Edit02Icon from "@hugeicons-pro/core-stroke-rounded/Edit02Icon";
+import Loading03Icon from "@hugeicons-pro/core-stroke-rounded/Loading03Icon";
+import ReplayIcon from "@hugeicons-pro/core-stroke-rounded/ReplayIcon";
+import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import type { RequestCapture, TunnelEvent } from "./types";
 import { formatBody, JsonViewer } from "./json-viewer";
 import { getHttpMethodColor } from "./utils";

@@ -6,17 +6,15 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Add01Icon,
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  Delete02Icon,
-  Edit02Icon,
-  Folder01Icon,
-  Key01Icon,
-  Layers01Icon,
-  Settings02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
+import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
+import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
+import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
+import Edit02Icon from "@hugeicons-pro/core-stroke-rounded/Edit02Icon";
+import Folder01Icon from "@hugeicons-pro/core-stroke-rounded/Folder01Icon";
+import Key01Icon from "@hugeicons-pro/core-stroke-rounded/Key01Icon";
+import Layers01Icon from "@hugeicons-pro/core-stroke-rounded/Layers01Icon";
+import Settings02Icon from "@hugeicons-pro/core-stroke-rounded/Settings02Icon";
 import {
   ConfirmSecretActionDialog,
   EnvironmentDialog,

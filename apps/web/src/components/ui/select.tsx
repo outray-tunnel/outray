@@ -11,10 +11,8 @@ import {
 import { createPortal } from "react-dom";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
-import {
-  ArrowDown01Icon,
-  Tick02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
+import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 
 export interface SelectOption {
   value: string;

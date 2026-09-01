@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Activity03Icon,
-  Search01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Activity03Icon from "@hugeicons-pro/core-stroke-rounded/Activity03Icon";
+import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
 import { appClient } from "@/lib/app-client";
 import { authClient } from "@/lib/auth-client";
 import { getHttpMethodColor } from "@/components/requests";

@@ -2,14 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Add01Icon,
-  Alert02Icon,
-  ArrowRight01Icon,
-  Copy01Icon,
-  Route03Icon,
-  Search01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
+import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
+import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
+import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
+import Route03Icon from "@hugeicons-pro/core-stroke-rounded/Route03Icon";
+import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
 import { appClient } from "@/lib/app-client";
 import { getPlanLimits } from "@/lib/subscription-plans";
 import { NewTunnelModal } from "@/components/new-tunnel-modal";

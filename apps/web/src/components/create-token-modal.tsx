@@ -2,11 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Copy01Icon,
-  Key01Icon,
-  Tick02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
+import Key01Icon from "@hugeicons-pro/core-stroke-rounded/Key01Icon";
+import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { appClient, type AuthToken } from "@/lib/app-client";
 import {
   Button,

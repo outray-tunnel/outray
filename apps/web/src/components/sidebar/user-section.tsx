@@ -1,9 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Bug01Icon,
-  Logout02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Bug01Icon from "@hugeicons-pro/core-stroke-rounded/Bug01Icon";
+import Logout02Icon from "@hugeicons-pro/core-stroke-rounded/Logout02Icon";
 import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
 import { ReportBugModal } from "../report-bug-modal";

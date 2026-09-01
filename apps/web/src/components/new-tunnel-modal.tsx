@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Cancel01Icon,
-  CommandLineIcon,
-  Copy01Icon,
-  Tick02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import CommandLineIcon from "@hugeicons-pro/core-stroke-rounded/CommandLineIcon";
+import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
+import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { Modal } from "@/components/ui";
 
 type Command = {

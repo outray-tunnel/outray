@@ -2,7 +2,6 @@ import { defineConfig, loadEnv } from "vite";
 import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import tsConfigPaths from "vite-tsconfig-paths";
 import { nitro } from "nitro/vite";
 import mdx from "fumadocs-mdx/vite";
 import * as MdxConfig from "./source.config";
@@ -15,7 +14,6 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      tsConfigPaths(),
       tanstackStart(),
       nitro(),
       viteReact(),

@@ -1,14 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Add01Icon,
-  Alert02Icon,
-  Cancel01Icon,
-  Mail01Icon,
-  MoreVerticalIcon,
-  ShieldUserIcon,
-  UserGroupIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
+import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import Mail01Icon from "@hugeicons-pro/core-stroke-rounded/Mail01Icon";
+import MoreVerticalIcon from "@hugeicons-pro/core-stroke-rounded/MoreVerticalIcon";
+import ShieldUserIcon from "@hugeicons-pro/core-stroke-rounded/ShieldUserIcon";
+import UserGroupIcon from "@hugeicons-pro/core-stroke-rounded/UserGroupIcon";
 import { authClient, usePermission } from "@/lib/auth-client";
 import { useState } from "react";
 import { useAppStore } from "@/lib/store";

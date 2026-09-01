@@ -1,9 +1,7 @@
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Activity03Icon,
-  Globe02Icon,
-  Route03Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Activity03Icon from "@hugeicons-pro/core-stroke-rounded/Activity03Icon";
+import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
+import Route03Icon from "@hugeicons-pro/core-stroke-rounded/Route03Icon";
 import { formatBytes, formatNumber } from "./format";
 
 export type OverviewStats = {

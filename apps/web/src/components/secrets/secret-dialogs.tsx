@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Add01Icon,
-  Alert02Icon,
-  Delete02Icon,
-  File01Icon,
-  Upload04Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
+import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
+import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
+import File01Icon from "@hugeicons-pro/core-stroke-rounded/File01Icon";
+import Upload04Icon from "@hugeicons-pro/core-stroke-rounded/Upload04Icon";
 import {
   secretsClient,
   type ImportReview,

@@ -1,10 +1,8 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Building06Icon,
-  UserIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Building06Icon from "@hugeicons-pro/core-stroke-rounded/Building06Icon";
+import UserIcon from "@hugeicons-pro/core-stroke-rounded/UserIcon";
 import { WorkspacePageHeader } from "@/components/workspace-page-header";
 
 export const Route = createFileRoute("/$orgSlug/settings")({

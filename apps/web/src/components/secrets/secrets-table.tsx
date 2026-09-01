@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  CheckmarkCircle02Icon,
-  Copy01Icon,
-  Delete02Icon,
-  Edit02Icon,
-  HistoryIcon,
-  Key01Icon,
-  Search01Icon,
-  ViewIcon,
-  ViewOffIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import CheckmarkCircle02Icon from "@hugeicons-pro/core-stroke-rounded/CheckmarkCircle02Icon";
+import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
+import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
+import Edit02Icon from "@hugeicons-pro/core-stroke-rounded/Edit02Icon";
+import HistoryIcon from "@hugeicons-pro/core-stroke-rounded/HistoryIcon";
+import Key01Icon from "@hugeicons-pro/core-stroke-rounded/Key01Icon";
+import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
+import ViewIcon from "@hugeicons-pro/core-stroke-rounded/ViewIcon";
+import ViewOffIcon from "@hugeicons-pro/core-stroke-rounded/ViewOffIcon";
 import {
   secretsClient,
   type SecretEnvironment,

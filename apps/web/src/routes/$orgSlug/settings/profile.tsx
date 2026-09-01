@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Mail01Icon, UserIcon } from "@hugeicons-pro/core-stroke-rounded";
+import Mail01Icon from "@hugeicons-pro/core-stroke-rounded/Mail01Icon";
+import UserIcon from "@hugeicons-pro/core-stroke-rounded/UserIcon";
 
 export const Route = createFileRoute("/$orgSlug/settings/profile")({
   head: () => ({

@@ -1,10 +1,8 @@
 import { useId, type ReactNode } from "react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import {
-  ArrowDownRight01Icon,
-  ArrowUpRight01Icon,
-  Clock01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import ArrowDownRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDownRight01Icon";
+import ArrowUpRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowUpRight01Icon";
+import Clock01Icon from "@hugeicons-pro/core-stroke-rounded/Clock01Icon";
 import {
   Area,
   AreaChart,

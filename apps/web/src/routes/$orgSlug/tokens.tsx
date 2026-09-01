@@ -3,12 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Add01Icon,
-  Delete02Icon,
-  Key01Icon,
-  Loading03Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
+import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
+import Key01Icon from "@hugeicons-pro/core-stroke-rounded/Key01Icon";
+import Loading03Icon from "@hugeicons-pro/core-stroke-rounded/Loading03Icon";
 import { CreateTokenModal } from "@/components/create-token-modal";
 import { ConfirmModal } from "@/components/confirm-modal";
 import { appClient } from "@/lib/app-client";
