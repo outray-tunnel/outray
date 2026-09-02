@@ -146,12 +146,10 @@ function MembersView() {
           organizationId: selectedOrganizationId,
         },
       });
-      // Filter out cancelled and accepted invitations
+      const now = Date.now();
       const activeInvitations = (res.data || []).filter(
         (inv: any) =>
-          inv.status !== "canceled" &&
-          inv.status !== "cancelled" &&
-          inv.status !== "accepted",
+          inv.status === "pending" && new Date(inv.expiresAt).getTime() > now,
       );
       return activeInvitations;
     },
@@ -406,8 +404,8 @@ function MembersView() {
             <button
               type="button"
               onClick={handleInviteClick}
-              disabled={isAtLimit}
-              className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-white px-3.5 text-[12px] font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-haspopup="dialog"
+              className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-white px-3.5 text-[12px] font-medium text-black transition-colors hover:bg-zinc-200"
             >
               <HugeiconsIcon icon={Add01Icon} size={15} strokeWidth={1.9} />
               <span className="hidden sm:inline">Invite member</span>
