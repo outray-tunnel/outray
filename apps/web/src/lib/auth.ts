@@ -6,6 +6,11 @@ import { sendViaZepto } from "./send-email";
 import { ac, admin, member, owner } from "./permissions";
 import { generateEmail } from "@/email/templates";
 import { isReservedSlug } from "../../../../shared/reserved-slugs";
+import {
+  assertOrganizationMemberCapacity,
+  getBetterAuthInvitationLimit,
+} from "./member-limits.server";
+import { BETTER_AUTH_MEMBERSHIP_CEILING } from "./member-limit-policy";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -25,10 +30,30 @@ export const auth = betterAuth({
   plugins: [
     organization({
       ac,
+      // Better Auth only supports a static membership ceiling. Plan-aware
+      // enforcement happens in the hooks below for every member write path.
+      membershipLimit: BETTER_AUTH_MEMBERSHIP_CEILING,
+      invitationLimit: ({ organization }) =>
+        getBetterAuthInvitationLimit(organization.id),
       roles: {
         owner,
         admin,
         member,
+      },
+      organizationHooks: {
+        beforeCreateInvitation: async ({ invitation }) => {
+          await assertOrganizationMemberCapacity(invitation.organizationId, {
+            includePendingInvitations: true,
+          });
+        },
+        beforeAcceptInvitation: async ({ invitation }) => {
+          await assertOrganizationMemberCapacity(invitation.organizationId);
+        },
+        beforeAddMember: async ({ member }) => {
+          await assertOrganizationMemberCapacity(member.organizationId, {
+            includePendingInvitations: true,
+          });
+        },
       },
       sendInvitationEmail: async ({
         email,
