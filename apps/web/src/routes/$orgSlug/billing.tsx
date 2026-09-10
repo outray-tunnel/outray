@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   SUBSCRIPTION_PLANS,
   getPlanLimits,
+  isUnlimitedPlanLimit,
   calculatePlanCost,
   calculatePlanCostNGN,
   type BillingInterval,
@@ -417,21 +418,25 @@ function BillingView() {
                 label="Tunnels"
                 value={data?.usage?.tunnels}
                 limit={planLimits.maxTunnels}
+                currentPlan={currentPlan}
               />
               <MetricBar
                 label="Domains"
                 value={data?.usage?.domains}
                 limit={planLimits.maxDomains}
+                currentPlan={currentPlan}
               />
               <MetricBar
                 label="Subdomains"
                 value={data?.usage?.subdomains}
                 limit={planLimits.maxSubdomains}
+                currentPlan={currentPlan}
               />
               <MetricBar
                 label="Members"
                 value={data?.usage?.members}
                 limit={planLimits.maxMembers}
+                currentPlan={currentPlan}
               />
             </div>
           </section>
@@ -735,13 +740,18 @@ function MetricBar({
   label,
   value,
   limit,
+  currentPlan,
 }: {
   label: string;
   value?: number;
   limit: number;
+  currentPlan: string;
 }) {
+  const isUnlimited = isUnlimitedPlanLimit(currentPlan, limit);
   const percentage =
-    limit === -1 ? 0 : Math.min(100, Math.max(0, ((value || 0) / limit) * 100));
+    isUnlimited
+      ? 0
+      : Math.min(100, Math.max(0, ((value || 0) / limit) * 100));
 
   return (
     <div className="border-b border-white/[0.07] px-5 py-5 last:border-b-0 sm:px-6 lg:border-b-0">
@@ -750,7 +760,7 @@ function MetricBar({
           {label}
         </span>
         <span className="text-[10px] font-medium text-zinc-500">
-          {value ?? "-"} / {limit === -1 ? "∞" : limit}
+          {value ?? "-"} / {isUnlimited ? "∞" : limit}
         </span>
       </div>
       <div className="h-px w-full bg-white/[0.07]">
