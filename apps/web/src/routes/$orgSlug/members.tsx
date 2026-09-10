@@ -9,9 +9,11 @@ import ShieldUserIcon from "@hugeicons-pro/core-stroke-rounded/ShieldUserIcon";
 import UserGroupIcon from "@hugeicons-pro/core-stroke-rounded/UserGroupIcon";
 import { authClient, usePermission } from "@/lib/auth-client";
 import { useState } from "react";
-import { useAppStore } from "@/lib/store";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getPlanLimits } from "@/lib/subscription-plans";
+import {
+  getPlanLimits,
+  isUnlimitedPlanLimit,
+} from "@/lib/subscription-plans";
 import { appClient } from "@/lib/app-client";
 import { AlertModal } from "@/components/alert-modal";
 import { LimitModal } from "@/components/limit-modal";
@@ -30,8 +32,11 @@ export const Route = createFileRoute("/$orgSlug/members")({
 
 function MembersView() {
   const { orgSlug } = Route.useParams();
-  const { selectedOrganization } = useAppStore();
-  const selectedOrganizationId = selectedOrganization?.id;
+  const { data: organizations, isPending: isLoadingOrganizations } =
+    authClient.useListOrganizations();
+  const selectedOrganizationId = organizations?.find(
+    (organization) => organization.slug === orgSlug,
+  )?.id;
   const queryClient = useQueryClient();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -110,20 +115,26 @@ function MembersView() {
     invitation: ["cancel"],
   });
 
-  const { data: subscriptionData, isLoading: isLoadingSubscription } = useQuery(
-    {
-      queryKey: ["subscription", orgSlug],
-      queryFn: async () => {
-        if (!orgSlug) return null;
-        const response = await appClient.subscriptions.get(orgSlug);
-        if ("error" in response) throw new Error(response.error);
-        return response;
-      },
-      enabled: !!selectedOrganizationId,
+  const {
+    data: subscriptionData,
+    isLoading: isLoadingSubscription,
+    error: subscriptionError,
+  } = useQuery({
+    queryKey: ["subscription", orgSlug],
+    queryFn: async () => {
+      if (!orgSlug) return null;
+      const response = await appClient.subscriptions.get(orgSlug);
+      if ("error" in response) throw new Error(response.error);
+      return response;
     },
-  );
+    enabled: !!selectedOrganizationId,
+  });
 
-  const { data: membersData, isLoading: isLoadingMembers } = useQuery({
+  const {
+    data: membersData,
+    isLoading: isLoadingMembers,
+    error: membersError,
+  } = useQuery({
     queryKey: ["members", selectedOrganizationId],
     queryFn: async () => {
       if (!selectedOrganizationId) return [];
@@ -132,12 +143,17 @@ function MembersView() {
           organizationId: selectedOrganizationId,
         },
       });
+      if (res.error) throw new Error(res.error.message);
       return res.data?.members || [];
     },
     enabled: !!selectedOrganizationId,
   });
 
-  const { data: invitationsData, isLoading: isLoadingInvitations } = useQuery({
+  const {
+    data: invitationsData,
+    isLoading: isLoadingInvitations,
+    error: invitationsError,
+  } = useQuery({
     queryKey: ["invitations", selectedOrganizationId],
     queryFn: async () => {
       if (!selectedOrganizationId) return [];
@@ -146,6 +162,7 @@ function MembersView() {
           organizationId: selectedOrganizationId,
         },
       });
+      if (res.error) throw new Error(res.error.message);
       const now = Date.now();
       const activeInvitations = (res.data || []).filter(
         (inv: any) =>
@@ -336,7 +353,11 @@ function MembersView() {
   const members = membersData || [];
   const invitations = invitationsData || [];
   const isLoading =
-    isLoadingMembers || isLoadingInvitations || isLoadingSubscription;
+    isLoadingOrganizations ||
+    isLoadingMembers ||
+    isLoadingInvitations ||
+    isLoadingSubscription;
+  const loadError = membersError || invitationsError || subscriptionError;
 
   const subscription = subscriptionData?.subscription;
   const currentPlan = subscription?.plan || "free";
@@ -344,8 +365,8 @@ function MembersView() {
 
   const currentMemberCount = members.length + invitations.length;
   const memberLimit = planLimits.maxMembers;
-  const isAtLimit =
-    memberLimit === -1 ? false : currentMemberCount >= memberLimit;
+  const isUnlimited = isUnlimitedPlanLimit(currentPlan, memberLimit);
+  const isAtLimit = !isUnlimited && currentMemberCount >= memberLimit;
 
   const handleInviteClick = () => {
     if (isAtLimit) {
@@ -389,6 +410,22 @@ function MembersView() {
     );
   }
 
+  if (loadError) {
+    return (
+      <div
+        className="mx-auto flex min-h-64 max-w-6xl flex-col items-center justify-center rounded-xl border border-red-500/15 px-6 text-center"
+        role="alert"
+      >
+        <h1 className="text-sm font-medium text-zinc-200">
+          Couldn&apos;t load members
+        </h1>
+        <p className="mt-2 text-xs text-zinc-600">
+          Refresh the page or try again in a moment.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="relative mx-auto max-w-6xl space-y-7">
       <WorkspacePageHeader
@@ -396,7 +433,7 @@ function MembersView() {
         description={
           <>
             Manage workspace access · {currentMemberCount} of{" "}
-            {memberLimit === -1 ? "∞" : memberLimit} seats used
+            {isUnlimited ? "∞" : memberLimit} seats used
           </>
         }
         action={
