@@ -7,6 +7,7 @@ import {
   hasAvailableMemberSeat,
   resolveSubscriptionPlan,
 } from "../src/lib/member-limit-policy";
+import { isUnlimitedPlanLimit } from "../src/lib/subscription-plans";
 
 test("member limits match every subscription plan", () => {
   assert.equal(getMemberLimitForPlan("free"), 1);
@@ -38,4 +39,10 @@ test("member limit errors identify the effective plan and limit", () => {
     getMemberLimitMessage("ray"),
     "Member limit reached. The ray plan allows 3 members.",
   );
+});
+
+test("internal plan ceilings are displayed as unlimited", () => {
+  assert.equal(isUnlimitedPlanLimit("pulse", -1), true);
+  assert.equal(isUnlimitedPlanLimit("unlimited", 999_999_999), true);
+  assert.equal(isUnlimitedPlanLimit("free", 1), false);
 });
