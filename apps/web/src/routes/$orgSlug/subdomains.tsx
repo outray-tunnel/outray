@@ -5,7 +5,10 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
 import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
 import { appClient } from "@/lib/app-client";
-import { getPlanLimits } from "@/lib/subscription-plans";
+import {
+  getPlanLimits,
+  isUnlimitedPlanLimit,
+} from "@/lib/subscription-plans";
 import { SubdomainHeader } from "@/components/subdomains/subdomain-header";
 import { SubdomainLimitWarning } from "@/components/subdomains/subdomain-limit-warning";
 import { CreateSubdomainModal } from "@/components/subdomains/create-subdomain-modal";
@@ -99,7 +102,7 @@ function SubdomainsView() {
 
   const currentSubdomainCount = subdomains.length;
   const subdomainLimit = planLimits.maxSubdomains;
-  const isUnlimited = subdomainLimit === -1;
+  const isUnlimited = isUnlimitedPlanLimit(currentPlan, subdomainLimit);
   const isAtLimit = !isUnlimited && currentSubdomainCount >= subdomainLimit;
 
   const handleAddSubdomainClick = () => {
