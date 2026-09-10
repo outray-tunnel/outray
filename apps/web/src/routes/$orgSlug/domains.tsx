@@ -5,7 +5,10 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
 import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
 import { appClient } from "@/lib/app-client";
-import { getPlanLimits } from "@/lib/subscription-plans";
+import {
+  getPlanLimits,
+  isUnlimitedPlanLimit,
+} from "@/lib/subscription-plans";
 import { DomainHeader } from "@/components/domains/domain-header";
 import { DomainLimitWarning } from "@/components/domains/domain-limit-warning";
 import { CreateDomainModal } from "@/components/domains/create-domain-modal";
@@ -122,8 +125,8 @@ function DomainsView() {
 
   const currentDomainCount = domains.length;
   const domainLimit = Number(planLimits.maxDomains);
-  const isAtLimit = domainLimit !== -1 && currentDomainCount >= domainLimit;
-  const isUnlimited = domainLimit === -1;
+  const isUnlimited = isUnlimitedPlanLimit(currentPlan, domainLimit);
+  const isAtLimit = !isUnlimited && currentDomainCount >= domainLimit;
 
   const handleAddDomainClick = () => {
     if (isAtLimit) {
