@@ -11,6 +11,7 @@ import { Sidebar } from "@/components/app-sidebar";
 import { ProductSubSidebar } from "@/components/product-sub-sidebar";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { MobileHeader } from "@/components/mobile-header";
+import { useAppStore } from "@/lib/store";
 import { ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/$orgSlug")({
@@ -26,17 +27,39 @@ function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { data: organizations, isPending } = authClient.useListOrganizations();
   const { data: activeOrg } = authClient.useActiveOrganization();
+  const setSelectedOrganization = useAppStore(
+    (state) => state.setSelectedOrganization,
+  );
 
   const matchedOrg = organizations?.find((org) => org.slug === orgSlug);
+  const matchedOrgId = matchedOrg?.id;
+  const matchedOrgName = matchedOrg?.name;
+  const matchedOrgSlug = matchedOrg?.slug;
+  const activeOrgId = activeOrg?.id;
 
   // Set the active organization when the orgSlug changes
   useEffect(() => {
-    if (matchedOrg && activeOrg?.id !== matchedOrg.id) {
-      authClient.organization.setActive({
-        organizationId: matchedOrg.id,
+    if (matchedOrgId && activeOrgId !== matchedOrgId) {
+      void authClient.organization.setActive({
+        organizationId: matchedOrgId,
       });
     }
-  }, [matchedOrg, activeOrg?.id]);
+  }, [matchedOrgId, activeOrgId]);
+
+  useEffect(() => {
+    if (!matchedOrgId || !matchedOrgName || !matchedOrgSlug) return;
+
+    setSelectedOrganization({
+      id: matchedOrgId,
+      name: matchedOrgName,
+      slug: matchedOrgSlug,
+    });
+  }, [
+    matchedOrgId,
+    matchedOrgName,
+    matchedOrgSlug,
+    setSelectedOrganization,
+  ]);
 
   if (isPending) {
     return null;
