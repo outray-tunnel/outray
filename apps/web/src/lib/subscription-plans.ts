@@ -116,8 +116,10 @@ export function canUseFeature(
   feature: keyof typeof SUBSCRIPTION_PLANS.free.features,
   currentUsage?: number,
 ): boolean {
-  const planFeatures = SUBSCRIPTION_PLANS[plan].features;
-  // @ts-ignore
+  const planFeatures: Record<
+    keyof (typeof SUBSCRIPTION_PLANS)["free"]["features"],
+    number | boolean
+  > = SUBSCRIPTION_PLANS[plan].features;
   const limit = planFeatures[feature];
 
   if (limit === -1) return true; // Unlimited
@@ -131,6 +133,13 @@ export function canUseFeature(
 
 export function getPlanLimits(plan: SubscriptionPlan) {
   return SUBSCRIPTION_PLANS[plan].features;
+}
+
+export function isUnlimitedPlanLimit(
+  plan: string | null | undefined,
+  limit: number,
+): boolean {
+  return limit === -1 || plan === "unlimited";
 }
 
 export function getYearlySavingsPercent(): number {
