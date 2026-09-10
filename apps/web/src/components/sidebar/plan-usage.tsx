@@ -1,3 +1,5 @@
+import { isUnlimitedPlanLimit } from "@/lib/subscription-plans";
+
 interface PlanUsageProps {
   activeTunnelsCount: number;
   limit: number;
@@ -9,8 +11,9 @@ export function PlanUsage({
   limit,
   currentPlan,
 }: PlanUsageProps) {
+  const isUnlimited = isUnlimitedPlanLimit(currentPlan, limit);
   const percentage =
-    limit === -1 ? 0 : Math.min(100, (activeTunnelsCount / limit) * 100);
+    isUnlimited ? 0 : Math.min(100, (activeTunnelsCount / limit) * 100);
 
   return (
     <div className="px-2 py-2">
@@ -19,10 +22,10 @@ export function PlanUsage({
           {currentPlan} plan
         </span>
         <span className="tabular-nums text-zinc-600">
-          {activeTunnelsCount} / {limit === -1 ? "∞" : limit} tunnels
+          {activeTunnelsCount} / {isUnlimited ? "∞" : limit} tunnels
         </span>
       </div>
-      {limit !== -1 && (
+      {!isUnlimited && (
         <div className="h-px overflow-hidden bg-white/[0.08]">
           <div
             className="h-full bg-accent transition-[width] duration-300"
