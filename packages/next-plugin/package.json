@@ -1,6 +1,6 @@
 {
   "name": "@outray/next",
-  "version": "0.0.4",
+  "version": "0.0.6",
   "description": "Next.js plugin to automatically expose your dev server via Outray tunnel",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -10,6 +10,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./observability": {
+      "types": "./dist/observability.d.ts",
+      "import": "./dist/observability.mjs",
+      "require": "./dist/observability.js"
     }
   },
   "files": [
@@ -35,7 +40,8 @@
     "next": "^13.0.0 || ^14.0.0 || ^15.0.0 || ^16.0.0"
   },
   "dependencies": {
-    "@outray/core": "^0.0.4"
+    "@outray/core": "^0.0.5",
+    "@outray/observability": "^0.1.1"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
