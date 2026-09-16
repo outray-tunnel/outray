@@ -4,12 +4,21 @@ import {
   LocalAccessManager,
   createNodeHttpPayloadCaptureMiddleware,
 } from "@outray/core";
-import type { OutrayPayloadCaptureOptions, OutrayPluginOptions } from "./types";
+import {
+  createOutrayNodeHttpMiddleware,
+  startOutrayObservability,
+} from "@outray/observability";
+import type {
+  OutrayNestObservabilityOptions,
+  OutrayPayloadCaptureOptions,
+  OutrayPluginOptions,
+} from "./types";
 
 const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
 
 let localAccess: LocalAccessManager | null = null;
 const captureRegisteredApps = new WeakSet<INestApplication>();
+const observabilityRegisteredApps = new WeakSet<INestApplication>();
 
 function installPayloadCapture(
   app: INestApplication,
@@ -64,6 +73,44 @@ export function registerOutrayPayloadCapture(
   return installPayloadCapture(app, captureOptions, false);
 }
 
+/** Register OutRay telemetry before `app.listen()` and controller setup. */
+export function registerOutrayObservability(
+  app: INestApplication,
+  options: OutrayNestObservabilityOptions,
+): boolean {
+  if (observabilityRegisteredApps.has(app)) return true;
+
+  const { capturePayloads, request, ...observabilityOptions } = options;
+  startOutrayObservability(observabilityOptions);
+
+  const adapterType = app.getHttpAdapter()?.getType?.();
+  if (adapterType && adapterType !== "express") {
+    console.warn(
+      `[Outray] Request instrumentation currently supports Nest's Express adapter; skipping ${adapterType}.`,
+    );
+    return false;
+  }
+
+  const httpServer = app.getHttpServer?.() as
+    | { listening?: boolean }
+    | undefined;
+  const initialized = (app as INestApplication & { isInitialized?: boolean })
+    .isInitialized;
+  if (httpServer?.listening || initialized) {
+    console.warn(
+      "[Outray] Observability must be registered before app.listen().",
+    );
+    return false;
+  }
+
+  app.use(createOutrayNodeHttpMiddleware(request));
+  if (capturePayloads !== undefined && capturePayloads !== false) {
+    installPayloadCapture(app, capturePayloads, false);
+  }
+  observabilityRegisteredApps.add(app);
+  return true;
+}
+
 /**
  * Expose your NestJS application via an Outray tunnel.
  *
@@ -81,8 +128,20 @@ export async function outray(
     capturePayloads,
   } = options;
 
+  if (options.observability) {
+    registerOutrayObservability(app, {
+      ...options.observability,
+      capturePayloads:
+        options.capturePayloads ?? options.observability.capturePayloads,
+    });
+  }
+
   // Capture is opt-in and is useful in production even when the tunnel is off.
-  if (capturePayloads !== undefined && capturePayloads !== false) {
+  if (
+    !options.observability &&
+    capturePayloads !== undefined &&
+    capturePayloads !== false
+  ) {
     installPayloadCapture(app, capturePayloads, silent);
   }
 
@@ -224,4 +283,8 @@ export async function outray(
   process.on("exit", cleanup);
 }
 
-export type { OutrayPayloadCaptureOptions, OutrayPluginOptions };
+export type {
+  OutrayNestObservabilityOptions,
+  OutrayPayloadCaptureOptions,
+  OutrayPluginOptions,
+};
