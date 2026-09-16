@@ -56,18 +56,21 @@ outray(app, {
 app.listen(3000)
 ```
 
-### OpenTelemetry payload capture
+### Observability
 
-Payload capture is off by default. If your app already creates OpenTelemetry
-HTTP server spans, you can opt in by registering Outray before your routes:
+Register telemetry in code before your routes. No `NODE_OPTIONS` preloader or
+OpenTelemetry environment-variable names are required:
 
 ```typescript
 import express from 'express'
-import outray from '@outray/express'
+import outray, { registerOutrayObservability } from '@outray/express'
 
 const app = express()
 
-outray(app, {
+registerOutrayObservability(app, {
+  apiKey: 'outray_your_observability_token',
+  serviceName: 'orders-api',
+  environment: 'production',
   capturePayloads: {
     maxBodyBytes: 16 * 1024,
     redactedHeaders: ['x-workspace-secret'],
@@ -77,13 +80,17 @@ outray(app, {
 
 app.use(express.json())
 app.post('/orders', createOrder)
+
+// Optional development tunnel; telemetry is independent from it.
+outray(app)
 ```
 
-This setting is independent of the development-only tunnel, so explicit
-capture still works in production when `enabled` is false. It is a safe no-op
-when there is no active OpenTelemetry span. Request streams are never consumed;
-request bodies are available when a body parser such as `express.json()` has
-populated `request.body`.
+Pass the token directly as shown, but do not commit a real token to source
+control. Production code can supply the same `apiKey` option from any
+server-only secret provider. Request spans, logs, and metrics are initialized
+by the adapter. Payload capture is optional and request streams are never
+consumed; parsed bodies become available after a body parser such as
+`express.json()` populates `request.body`.
 
 Only JSON, `application/*+json`, and URL-encoded form bodies are eligible.
 Authorization, cookies, tokens, passwords, secrets, and API/private keys are
