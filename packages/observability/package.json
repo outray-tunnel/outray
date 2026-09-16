@@ -1,0 +1,78 @@
+{
+  "name": "@outray/observability",
+  "version": "0.1.1",
+  "description": "OpenTelemetry SDK for sending Node.js traces, logs, and metrics to OutRay",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./register": {
+      "types": "./dist/register.d.ts",
+      "import": "./dist/register.js",
+      "require": "./dist/register.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts src/register.ts --format cjs,esm --dts --sourcemap --clean",
+    "dev": "tsup src/index.ts src/register.ts --format cjs,esm --dts --sourcemap --watch",
+    "test": "tsx --test test/*.test.ts",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "outray",
+    "observability",
+    "opentelemetry",
+    "otlp",
+    "tracing",
+    "metrics",
+    "logs"
+  ],
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/api-logs": "^0.222.0",
+    "@opentelemetry/exporter-logs-otlp-proto": "^0.222.0",
+    "@opentelemetry/exporter-metrics-otlp-proto": "^0.222.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.222.0",
+    "@opentelemetry/instrumentation-express": "^0.70.0",
+    "@opentelemetry/instrumentation-http": "^0.222.0",
+    "@opentelemetry/instrumentation-ioredis": "^0.70.0",
+    "@opentelemetry/instrumentation-nestjs-core": "^0.68.0",
+    "@opentelemetry/instrumentation-pg": "^0.74.0",
+    "@opentelemetry/instrumentation-pino": "^0.68.0",
+    "@opentelemetry/instrumentation-redis": "^0.70.0",
+    "@opentelemetry/instrumentation-undici": "^0.32.0",
+    "@opentelemetry/instrumentation-winston": "^0.66.0",
+    "@opentelemetry/resources": "^2.11.0",
+    "@opentelemetry/sdk-logs": "^0.222.0",
+    "@opentelemetry/sdk-metrics": "^2.11.0",
+    "@opentelemetry/sdk-node": "^0.222.0",
+    "@opentelemetry/sdk-trace-base": "^2.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "author": "xt42io",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xt42io/outray.git",
+    "directory": "packages/observability"
+  },
+  "homepage": "https://outray.dev"
+}
