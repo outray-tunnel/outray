@@ -48,6 +48,11 @@ const permissionOptions: Array<{
     description: "Authenticate tunnel clients for this organization.",
   },
   {
+    value: "observability:write",
+    label: "Send observability data",
+    description: "Ingest traces, logs, and metrics for this organization.",
+  },
+  {
     value: "secrets:read",
     label: "Read secrets",
     description: "List, reveal, export, pull, and inject secret values.",
