@@ -20,6 +20,14 @@ export const Route = createFileRoute("/$orgSlug/tokens")({
   component: TokensSettingsView,
 });
 
+const tokenScopeLabels: Record<AuthToken["scopes"][number], string> = {
+  "tunnel:connect": "Tunnel connect",
+  "observability:write": "Observability ingest",
+  "secrets:read": "Secrets read",
+  "secrets:write": "Secrets write",
+  "secrets:delete": "Secrets delete",
+};
+
 function TokensSettingsView() {
   const { orgSlug } = Route.useParams();
   const queryClient = useQueryClient();
@@ -150,7 +158,8 @@ function TokensSettingsView() {
             />
             <h3 className="text-sm font-medium text-zinc-300">No API tokens</h3>
             <p className="mt-2 max-w-sm text-sm text-zinc-700">
-              Create a scoped credential for tunnels, Secrets, or automation.
+              Create a scoped credential for tunnels, observability, Secrets,
+              or automation.
             </p>
           </div>
         ) : (
@@ -190,7 +199,7 @@ function TokensSettingsView() {
                       key={scope}
                       className="rounded-lg border border-white/[0.08] bg-white/[0.025] px-2.5 py-1.5 text-[13px] text-zinc-600"
                     >
-                      {scope.replace("tunnel:", "").replace("secrets:", "")}
+                      {tokenScopeLabels[scope]}
                     </span>
                   ))}
                 </div>
