@@ -4,13 +4,37 @@ import {
   LocalAccessManager,
   createNodeHttpPayloadCaptureMiddleware,
 } from "@outray/core";
-import type { OutrayPluginOptions } from "./types";
+import {
+  createOutrayNodeHttpMiddleware,
+  startOutrayObservability,
+} from "@outray/observability";
+import type {
+  OutrayExpressObservabilityOptions,
+  OutrayPluginOptions,
+} from "./types";
 import type { Server } from "http";
 
 const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
 
 let client: OutrayClient | null = null;
 let localAccess: LocalAccessManager | null = null;
+const observabilityRegisteredApps = new WeakSet<Application>();
+
+/** Register OutRay telemetry before application routes. */
+export function registerOutrayObservability(
+  app: Application,
+  options: OutrayExpressObservabilityOptions,
+): void {
+  if (observabilityRegisteredApps.has(app)) return;
+
+  const { capturePayloads, request, ...observabilityOptions } = options;
+  startOutrayObservability(observabilityOptions);
+  app.use(createOutrayNodeHttpMiddleware(request));
+  if (capturePayloads !== undefined && capturePayloads !== false) {
+    app.use(createNodeHttpPayloadCaptureMiddleware(capturePayloads));
+  }
+  observabilityRegisteredApps.add(app);
+}
 
 /**
  * Express middleware that automatically starts an Outray tunnel when the server starts.
@@ -61,8 +85,20 @@ export default function outray(
     capturePayloads,
   } = options;
 
+  if (options.observability) {
+    registerOutrayObservability(app, {
+      ...options.observability,
+      capturePayloads:
+        options.capturePayloads ?? options.observability.capturePayloads,
+    });
+  }
+
   // Payload capture is explicitly opt-in and independent from the dev-only tunnel.
-  if (capturePayloads !== undefined && capturePayloads !== false) {
+  if (
+    !options.observability &&
+    capturePayloads !== undefined &&
+    capturePayloads !== false
+  ) {
     try {
       app.use(createNodeHttpPayloadCaptureMiddleware(capturePayloads));
     } catch (error) {
@@ -229,4 +265,4 @@ export default function outray(
 
 // Named exports for better tree-shaking
 export { outray };
-export type { OutrayPluginOptions };
+export type { OutrayExpressObservabilityOptions, OutrayPluginOptions };
