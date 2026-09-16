@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { INestApplication } from "@nestjs/common";
-import { registerOutrayPayloadCapture } from "../src/index";
+import {
+  registerOutrayObservability,
+  registerOutrayPayloadCapture,
+} from "../src/index";
 
 function createApp(
   options: {
@@ -47,4 +50,20 @@ test("late and non-Express registration are safe no-ops", () => {
   } finally {
     console.warn = originalWarn;
   }
+});
+
+test("registers observability from code before Nest initializes", () => {
+  const { app, middleware } = createApp();
+  const options = {
+    apiKey: "test-token",
+    serviceName: "nest-test",
+    environment: "test",
+    enabled: false,
+    capturePayloads: true as const,
+  };
+
+  assert.equal(registerOutrayObservability(app, options), true);
+  assert.equal(registerOutrayObservability(app, options), true);
+  assert.equal(middleware.length, 2);
+  assert.equal(middleware.every((value) => typeof value === "function"), true);
 });
