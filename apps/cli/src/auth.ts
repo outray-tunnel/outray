@@ -25,6 +25,25 @@ interface ExchangeResponse {
   expiresAt: string;
 }
 
+async function readJsonResponse<T>(
+  response: Response,
+  operation: string,
+): Promise<T> {
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      `${operation} returned a non-JSON response from ${response.url}. Check the configured OutRay web URL.`,
+    );
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new Error(`${operation} returned invalid JSON from ${response.url}`);
+  }
+}
+
 export class AuthManager {
   constructor(
     private webUrl: string,
@@ -40,7 +59,7 @@ export class AuthManager {
       throw new Error(`Failed to initiate login: ${response.status}`);
     }
 
-    return (await response.json()) as LoginSession;
+    return readJsonResponse<LoginSession>(response, "Login");
   }
 
   async pollLoginStatus(code: string): Promise<string> {
@@ -56,7 +75,10 @@ export class AuthManager {
         throw new Error(`Failed to check login status: ${response.status}`);
       }
 
-      const status = (await response.json()) as LoginStatus;
+      const status = await readJsonResponse<LoginStatus>(
+        response,
+        "Login status",
+      );
 
       if (status.status === "authenticated" && status.userToken) {
         return status.userToken;
@@ -88,7 +110,7 @@ export class AuthManager {
       throw new Error(`Failed to fetch organizations: ${response.status}`);
     }
 
-    return (await response.json()) as Organization[];
+    return readJsonResponse<Organization[]>(response, "Organization lookup");
   }
 
   async exchangeToken(orgId: string): Promise<ExchangeResponse> {
@@ -109,7 +131,7 @@ export class AuthManager {
       throw new Error(`Failed to exchange token: ${response.status}`);
     }
 
-    return (await response.json()) as ExchangeResponse;
+    return readJsonResponse<ExchangeResponse>(response, "Token exchange");
   }
 
   async selectOrganization(orgs: Organization[]): Promise<Organization> {

@@ -45,6 +45,20 @@ function collectionToMap(
   );
 }
 
+function injectionMessage(
+  target: SecretsTarget,
+  count: number,
+  pollIntervalMs?: number,
+): string {
+  const noun = count === 1 ? "secret" : "secrets";
+  const source = `${target.organization}/${target.project}/${target.environment}`;
+  const watch =
+    pollIntervalMs === undefined
+      ? ""
+      : ` Watching for changes every ${pollIntervalMs / 1_000}s.`;
+  return `Injected ${count} ${noun} from ${source}.${watch}\n`;
+}
+
 export function buildChildEnvironment(
   base: NodeJS.ProcessEnv,
   secrets: Record<string, string>,
@@ -138,6 +152,7 @@ export async function runWithSecretsOnce(input: {
   target: SecretsTarget;
   command: string[];
   baseEnvironment?: NodeJS.ProcessEnv;
+  stderr?: Pick<NodeJS.WriteStream, "write">;
   confirmProduction?: boolean;
 }): Promise<number> {
   const collection = await input.api.list(input.target, {
@@ -145,6 +160,9 @@ export async function runWithSecretsOnce(input: {
     confirmProduction: input.confirmProduction,
   });
   const secrets = collectionToMap(collection);
+  (input.stderr ?? process.stderr).write(
+    injectionMessage(input.target, collection.secrets.length),
+  );
   return startChild(
     input.command,
     buildChildEnvironment(input.baseEnvironment ?? process.env, secrets),
@@ -207,6 +225,13 @@ export async function runWithSecretsWatch(input: {
     values: true,
     ...confirmation,
   });
+  stderr.write(
+    injectionMessage(
+      input.target,
+      initialCollection.secrets.length,
+      pollIntervalMs,
+    ),
+  );
   let revision = initialRevision.revision;
   let previousSnapshot = snapshot(initialCollection);
   const managedKeys = new Set(previousSnapshot.keys());

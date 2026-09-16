@@ -69,6 +69,7 @@ test("runs a child with remote secrets and no OutRay credential", async (t) => {
     },
   };
   const script = `require('fs').writeFileSync(process.argv[1], JSON.stringify({shared:process.env.SHARED,token:process.env.OUTRAY_TOKEN,key:process.env.OUTRAY_API_KEY}))`;
+  let stderr = "";
   const code = await runWithSecretsOnce({
     api,
     target: { organization: "acme", project: "api", environment: "dev" },
@@ -79,6 +80,7 @@ test("runs a child with remote secrets and no OutRay credential", async (t) => {
       OUTRAY_TOKEN: "credential",
       OUTRAY_API_KEY: "compat",
     },
+    stderr: { write(chunk) { stderr += String(chunk); return true; } },
     confirmProduction: true,
   });
   assert.equal(code, 0);
@@ -89,6 +91,7 @@ test("runs a child with remote secrets and no OutRay credential", async (t) => {
   assert.deepEqual(JSON.parse(fs.readFileSync(output, "utf8")), {
     shared: "remote",
   });
+  assert.equal(stderr, "Injected 1 secret from acme/api/dev.\n");
 });
 
 test("watch warns on the third transient failure and announces recovery", () => {
@@ -160,6 +163,10 @@ test("watch stops its child when authorization is lost", async () => {
     }),
   ]);
   assert.equal(code, 1);
+  assert.match(
+    stderr,
+    /Injected 1 secret from acme\/api\/prod\. Watching for changes every 1s\./,
+  );
   assert.match(stderr, /access ended \(401\); stopping command/);
   assert.deepEqual(revisionOptions, [
     { confirmProduction: true },

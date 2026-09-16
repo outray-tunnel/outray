@@ -711,6 +711,7 @@ export async function runSecretsCommand(
     target,
     command: parsed.passthrough,
     baseEnvironment: context.env ?? process.env,
+    stderr: context.stderr,
     confirmProduction: booleanOption(parsed, "confirm-production"),
   });
 }
