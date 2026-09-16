@@ -2,6 +2,18 @@ import type {
   HttpPayloadCaptureSetting,
   OutrayClientOptions,
 } from "@outray/core";
+import type {
+  OutrayNodeHttpMiddlewareOptions,
+  OutrayObservabilityOptions,
+} from "@outray/observability";
+
+export interface OutrayNestObservabilityOptions
+  extends OutrayObservabilityOptions {
+  /** Opt in to bounded and redacted request/response capture. */
+  capturePayloads?: HttpPayloadCaptureSetting;
+  /** Customize request filtering and low-cardinality route names. */
+  request?: OutrayNodeHttpMiddlewareOptions;
+}
 
 export interface OutrayPluginOptions extends Partial<
   Omit<
@@ -9,6 +21,8 @@ export interface OutrayPluginOptions extends Partial<
     "localPort" | "onTunnelReady" | "onError" | "onReconnecting" | "onClose"
   >
 > {
+  /** Start request tracing, logs, and metrics using in-code configuration. */
+  observability?: OutrayNestObservabilityOptions;
   /**
    * The port the NestJS application is running on.
    * If not provided, the plugin will attempt to resolve it from the NestJS app.
