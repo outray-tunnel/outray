@@ -1326,7 +1326,10 @@ test(
       backfilledLegacyCredential.tokenHash === legacyCredential.token,
       false,
     );
-    assert.deepEqual(backfilledLegacyCredential.scopes, ["tunnel:connect"]);
+    assert.deepEqual(backfilledLegacyCredential.scopes, [
+      "tunnel:connect",
+      "observability:write",
+    ]);
 
     const tunnelMachineCredential = await governance.createSecretsMachineToken(
       owner,
