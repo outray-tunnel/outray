@@ -149,7 +149,7 @@ export const Route = createFileRoute("/api/tunnel/auth")({
                     name: tokenRecord.name,
                     tokenHash: hashMachineToken(token),
                     prefix: machineTokenPrefix(token),
-                    scopes: ["tunnel:connect"],
+                    scopes: ["tunnel:connect", "observability:write"],
                     createdById: tokenRecord.userId,
                     createdAt: tokenRecord.createdAt,
                     lastUsedAt: usedAt,
