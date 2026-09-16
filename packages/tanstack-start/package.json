@@ -1,0 +1,66 @@
+{
+  "name": "@outray/tanstack-start",
+  "version": "0.1.1",
+  "description": "TanStack Start request tracing and safe HTTP payload capture for OutRay",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "require": "./dist/server.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts src/server.ts --format cjs,esm --dts --sourcemap --clean",
+    "dev": "tsup src/index.ts src/server.ts --format cjs,esm --dts --sourcemap --watch",
+    "test": "tsx --test test/*.test.ts",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "outray",
+    "tanstack-start",
+    "opentelemetry",
+    "observability",
+    "tracing"
+  ],
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@outray/core": "^0.0.5",
+    "@outray/observability": "^0.1.1"
+  },
+  "peerDependencies": {
+    "@tanstack/react-start": ">=1.141.0 <2.0.0"
+  },
+  "devDependencies": {
+    "@opentelemetry/context-async-hooks": "^2.11.0",
+    "@opentelemetry/sdk-trace-base": "^2.11.0",
+    "@tanstack/react-start": "1.147.0",
+    "@types/node": "^22.0.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "author": "xt42io",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xt42io/outray.git",
+    "directory": "packages/tanstack-start"
+  },
+  "homepage": "https://outray.dev"
+}
