@@ -26,7 +26,9 @@ async function main() {
           name: legacy.name,
           tokenHash,
           prefix: machineTokenPrefix(legacy.token),
-          scopes: ["tunnel:connect"],
+          // Legacy credentials could already connect tunnels and send OTLP
+          // data, so the hashed replacement must preserve both abilities.
+          scopes: ["tunnel:connect", "observability:write"],
           createdById: legacy.userId,
           createdAt: legacy.createdAt,
           lastUsedAt: legacy.lastUsedAt,
@@ -34,7 +36,17 @@ async function main() {
         .onConflictDoNothing({ target: machineTokens.tokenHash })
         .returning({ id: machineTokens.id });
       if (inserted) created += 1;
-      else existing += 1;
+      else {
+        existing += 1;
+        await tx.execute(sql`
+          UPDATE ${machineTokens}
+          SET scopes = CASE
+            WHEN scopes @> '["observability:write"]'::jsonb THEN scopes
+            ELSE scopes || '["observability:write"]'::jsonb
+          END
+          WHERE token_hash = ${tokenHash}
+        `);
+      }
     }
 
     const missing: string[] = [];
