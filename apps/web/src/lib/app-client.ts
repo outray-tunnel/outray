@@ -26,6 +26,7 @@ export interface AuthToken {
   prefix: string;
   scopes: Array<
     | "tunnel:connect"
+    | "observability:write"
     | "secrets:read"
     | "secrets:write"
     | "secrets:delete"
