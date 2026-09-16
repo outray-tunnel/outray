@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Application } from "express";
-import outray from "../src/index";
+import outray, { registerOutrayObservability } from "../src/index";
 
 test("explicit capture registers even when the tunnel is disabled", () => {
   const middleware: unknown[] = [];
@@ -34,4 +34,27 @@ test("capture is not registered by default", () => {
   outray(app, { enabled: false, silent: true });
 
   assert.equal(middleware.length, 0);
+});
+
+test("registers observability from code exactly once", () => {
+  const middleware: unknown[] = [];
+  const app = {
+    use(value: unknown) {
+      middleware.push(value);
+      return this;
+    },
+  } as unknown as Application;
+  const options = {
+    apiKey: "test-token",
+    serviceName: "express-test",
+    environment: "test",
+    enabled: false,
+    capturePayloads: true as const,
+  };
+
+  registerOutrayObservability(app, options);
+  registerOutrayObservability(app, options);
+
+  assert.equal(middleware.length, 2);
+  assert.equal(middleware.every((value) => typeof value === "function"), true);
 });
