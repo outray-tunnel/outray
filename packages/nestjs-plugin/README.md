@@ -35,26 +35,31 @@ async function bootstrap() {
 bootstrap();
 ```
 
-### OpenTelemetry payload capture
+### Observability
 
-Payload capture is off by default and currently supports Nest's Express
-adapter. It must be registered before `app.listen()` so the middleware precedes
-compiled controllers:
+Register telemetry in code before `app.listen()`. No `NODE_OPTIONS` preloader
+or OpenTelemetry environment-variable names are required. Request tracing and
+payload capture currently support Nest's Express adapter:
 
 ```typescript
 import { NestFactory } from '@nestjs/core';
 import {
   outray,
-  registerOutrayPayloadCapture,
+  registerOutrayObservability,
 } from '@outray/nest';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  registerOutrayPayloadCapture(app, {
-    maxBodyBytes: 16 * 1024,
-    redactedHeaders: ['x-workspace-secret'],
-    redactedFields: ['accountPin'],
+  registerOutrayObservability(app, {
+    apiKey: 'outray_your_observability_token',
+    serviceName: 'orders-api',
+    environment: 'production',
+    capturePayloads: {
+      maxBodyBytes: 16 * 1024,
+      redactedHeaders: ['x-workspace-secret'],
+      redactedFields: ['accountPin'],
+    },
   });
 
   await app.listen(3000);
@@ -62,10 +67,12 @@ async function bootstrap() {
 }
 ```
 
-The application must already have an active OpenTelemetry HTTP server span.
-Without one, capture is a safe no-op. Explicit capture remains available in
-production even when the tunnel is disabled. Late registration and non-Express
-adapters are skipped with a warning instead of affecting the application.
+Pass the token directly as shown, but do not commit a real token to source
+control. Production code can supply the same `apiKey` option from any
+server-only secret provider. Telemetry remains active in production when the
+development tunnel is disabled. Late registration and non-Express request
+instrumentation are skipped with a warning instead of affecting the
+application.
 
 Only JSON, `application/*+json`, and URL-encoded form bodies are eligible.
 Authorization, cookies, tokens, passwords, secrets, and API/private keys are
