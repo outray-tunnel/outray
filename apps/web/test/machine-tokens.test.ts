@@ -24,11 +24,12 @@ test("machine tokens are high entropy, prefixed, and hash-only comparable", () =
 test("machine-token scope normalization rejects unknown and empty grants", () => {
   assert.deepEqual(
     normalizeMachineTokenScopes([
+      "observability:write",
       "secrets:read",
       "secrets:read",
       "secrets:write",
     ]),
-    ["secrets:read", "secrets:write"],
+    ["observability:write", "secrets:read", "secrets:write"],
   );
   assert.equal(normalizeMachineTokenScopes([]), null);
   assert.equal(normalizeMachineTokenScopes(["secrets:admin"]), null);
