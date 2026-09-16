@@ -2,6 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 export const MACHINE_TOKEN_SCOPES = [
   "tunnel:connect",
+  "observability:write",
   "secrets:read",
   "secrets:write",
   "secrets:delete",
