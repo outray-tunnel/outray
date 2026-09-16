@@ -17,11 +17,31 @@ import withOutray from '@outray/next'
 export default withOutray({})
 ```
 
-## OpenTelemetry payload capture
+## Observability
 
-`next.config` never handles runtime requests, so payload capture is exposed as
-an explicit App Router route-handler wrapper. The application must already
-create an active OpenTelemetry server span.
+Next.js provides a server-side instrumentation hook. Configure OutRay there;
+no `NODE_OPTIONS` preloader or OpenTelemetry environment-variable names are
+required:
+
+```typescript
+// instrumentation.ts
+import { registerOutrayObservability } from '@outray/next/observability'
+
+export function register() {
+  if (process.env.NEXT_RUNTIME !== 'nodejs') return
+
+  registerOutrayObservability({
+    apiKey: 'outray_your_observability_token',
+    serviceName: 'storefront',
+    environment: 'production',
+  })
+}
+```
+
+Pass the token directly as shown, but do not commit a real token to source
+control. Production code can supply the same `apiKey` option from any
+server-only secret provider. For optional bounded request/response capture,
+wrap App Router route handlers:
 
 ```typescript
 // app/api/orders/route.ts
