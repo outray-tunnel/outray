@@ -5,6 +5,8 @@ import {
   SUBSCRIPTION_PLANS,
   getPlanLimits,
   calculatePlanCost,
+  calculatePlanCostNGN,
+  type BillingInterval,
 } from "@/lib/subscription-plans";
 import { initiateCheckout, POLAR_PRODUCT_IDS } from "@/lib/polar";
 import { isNigerianUser } from "@/lib/geolocation";
@@ -14,14 +16,13 @@ import { AlertModal } from "@/components/alert-modal";
 import { PaystackSubscriptionModal } from "@/components/paystack-subscription-modal";
 import { appClient } from "@/lib/app-client";
 import { Button } from "@/components/ui";
+import { SlidingToggle } from "@/components/ui/sliding-toggle";
 
 type Currency = "USD" | "NGN";
 
 export const Route = createFileRoute("/$orgSlug/billing")({
   head: () => ({
-    meta: [
-      { title: "Billing - OutRay" },
-    ],
+    meta: [{ title: "Billing - OutRay" }],
   }),
   component: BillingView,
   validateSearch: (search?: Record<string, unknown>): { success?: boolean } => {
@@ -36,11 +37,13 @@ export const Route = createFileRoute("/$orgSlug/billing")({
 
 function BillingView() {
   const { orgSlug } = Route.useParams();
-const {data:orgs}=authClient.useListOrganizations();
-  const selectedOrganizationId = orgs?.find((org)=>org.slug==orgSlug)?.id
+  const { data: orgs } = authClient.useListOrganizations();
+  const selectedOrganizationId = orgs?.find((org) => org.slug === orgSlug)?.id;
   const { success } = Route.useSearch();
   const [showPaystack, setShowPaystack] = useState(false);
   const [currency, setCurrency] = useState<Currency>("USD");
+  const [billingInterval, setBillingInterval] =
+    useState<BillingInterval>("month");
   const [isPaystackLoading, setIsPaystackLoading] = useState(false);
   const [showPaystackModal, setShowPaystackModal] = useState(false);
   const queryClient = useQueryClient();
@@ -89,11 +92,20 @@ const {data:orgs}=authClient.useListOrganizations();
 
   // Lock currency to match active subscription's provider
   useEffect(() => {
-    if (data?.subscription?.status === "active" && data?.subscription?.plan !== "free") {
+    if (
+      data?.subscription?.status === "active" &&
+      data?.subscription?.plan !== "free"
+    ) {
       if (data.subscription.paymentProvider === "paystack") {
         setCurrency("NGN");
       } else {
         setCurrency("USD");
+      }
+      // Also sync billing interval with active subscription
+      if (data.subscription.billingInterval) {
+        setBillingInterval(
+          data.subscription.billingInterval as BillingInterval,
+        );
       }
     }
   }, [data?.subscription]);
@@ -123,16 +135,20 @@ const {data:orgs}=authClient.useListOrganizations();
 
   const subscription = data?.subscription;
   const currentPlan = subscription?.plan || "free";
+  const currentInterval =
+    (subscription?.billingInterval as BillingInterval) || "month";
   const planLimits = getPlanLimits(currentPlan as any);
-  const monthlyCostUSD = calculatePlanCost(currentPlan as any);
   const isPaystackSubscription = subscription?.paymentProvider === "paystack";
-  const hasActiveSubscription = currentPlan !== "free" && subscription?.status === "active";
-  const planConfig = SUBSCRIPTION_PLANS[currentPlan as keyof typeof SUBSCRIPTION_PLANS];
-  const monthlyCostDisplay = isPaystackSubscription 
-    ? `₦${planConfig.priceNGN.toLocaleString()}`
-    : `$${monthlyCostUSD}`;
+  const hasActiveSubscription =
+    currentPlan !== "free" && subscription?.status === "active";
 
-  // Lock currency toggle if user has an active subscription
+  // Display current subscription cost based on their actual interval
+  const currentCostDisplay = isPaystackSubscription
+    ? `₦${calculatePlanCostNGN(currentPlan as any, currentInterval).toLocaleString()}`
+    : `$${calculatePlanCost(currentPlan as any, currentInterval)}`;
+  const intervalLabel = currentInterval === "year" ? "/year" : "/month";
+
+  // Lock currency and interval toggle if user has an active subscription
   const isProviderLocked = hasActiveSubscription;
   const lockedCurrency: Currency | null = hasActiveSubscription
     ? isPaystackSubscription
@@ -162,7 +178,10 @@ const {data:orgs}=authClient.useListOrganizations();
       return;
     }
 
-    const productId = POLAR_PRODUCT_IDS[plan];
+    // Get the correct product ID based on billing interval
+    const productKey = billingInterval === "year" ? `${plan}_yearly` : plan;
+    const productId =
+      POLAR_PRODUCT_IDS[productKey as keyof typeof POLAR_PRODUCT_IDS];
     if (!productId) {
       setAlertState({
         isOpen: true,
@@ -230,9 +249,9 @@ const {data:orgs}=authClient.useListOrganizations();
     setIsPaystackLoading(true);
 
     try {
-      // Initialize Paystack transaction
+      // Initialize Paystack transaction with billing interval
       const response = await fetch(
-        `/api/checkout/paystack?plan=${plan}&orgSlug=${orgSlug}`,
+        `/api/checkout/paystack?plan=${plan}&orgSlug=${orgSlug}&interval=${billingInterval}`,
       );
       const data = await response.json();
 
@@ -249,11 +268,14 @@ const {data:orgs}=authClient.useListOrganizations();
         onSuccess: async () => {
           // Verify payment and activate subscription
           try {
-            const verifyResponse = await fetch("/api/checkout/paystack-verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ reference: data.reference }),
-            });
+            const verifyResponse = await fetch(
+              "/api/checkout/paystack-verify",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ reference: data.reference }),
+              },
+            );
 
             const verifyData = await verifyResponse.json();
 
@@ -273,7 +295,8 @@ const {data:orgs}=authClient.useListOrganizations();
             setAlertState({
               isOpen: true,
               title: "Verification Error",
-              message: "Payment was successful but verification failed. Please contact support.",
+              message:
+                "Payment was successful but verification failed. Please contact support.",
               type: "error",
             });
           }
@@ -288,7 +311,8 @@ const {data:orgs}=authClient.useListOrganizations();
       setAlertState({
         isOpen: true,
         title: "Checkout Failed",
-        message: error instanceof Error ? error.message : "Failed to initiate payment",
+        message:
+          error instanceof Error ? error.message : "Failed to initiate payment",
         type: "error",
       });
       setIsPaystackLoading(false);
@@ -353,9 +377,9 @@ const {data:orgs}=authClient.useListOrganizations();
                 </div>
                 <div className="text-right">
                   <p className="text-3xl font-bold text-white">
-                    {monthlyCostDisplay}
+                    {currentCostDisplay}
                   </p>
-                  <p className="text-sm text-gray-500">/month</p>
+                  <p className="text-sm text-gray-500">{intervalLabel}</p>
                 </div>
               </div>
               {currentPlan !== "free" && (
@@ -395,52 +419,69 @@ const {data:orgs}=authClient.useListOrganizations();
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white">
-                Available Plans
-              </h3>
-              {showPaystack && (
-                <div className="flex flex-col items-end gap-2">
-                  <div className="flex items-center gap-1 p-1 bg-white/5 rounded-full">
-                    <button
-                      onClick={() => !isProviderLocked && setCurrency("USD")}
-                      disabled={isProviderLocked && lockedCurrency === "NGN"}
-                      className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all ${
-                        currency === "USD"
-                          ? "bg-white text-black"
-                          : isProviderLocked && lockedCurrency === "NGN"
-                            ? "text-gray-600 cursor-not-allowed"
-                            : "text-gray-400 hover:text-white"
-                      }`}
-                    >
-                      USD
-                    </button>
-                    <button
-                      onClick={() => !isProviderLocked && setCurrency("NGN")}
-                      disabled={isProviderLocked && lockedCurrency === "USD"}
-                      className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all ${
-                        currency === "NGN"
-                          ? "bg-green-600 text-white"
-                          : isProviderLocked && lockedCurrency === "USD"
-                            ? "text-gray-600 cursor-not-allowed"
-                            : "text-gray-400 hover:text-white"
-                      }`}
-                    >
-                      NGN
-                    </button>
-                  </div>
-                  {isProviderLocked && (
-                    <p className="text-xs text-gray-500">
-                      Cancel subscription to switch currency
-                    </p>
-                  )}
-                </div>
-              )}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              <h3 className="text-xl font-bold text-white">Available Plans</h3>
+              <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+                {/* Billing Interval Toggle */}
+                <SlidingToggle
+                  options={[
+                    {
+                      value: "month" as const,
+                      label: "Monthly",
+                      activeColor: "bg-white",
+                      activeTextColor: "text-black",
+                    },
+                    {
+                      value: "year" as const,
+                      label: (
+                        <span className="flex items-center gap-1.5">
+                          Yearly
+                          <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">
+                            2 months free
+                          </span>
+                        </span>
+                      ),
+                      activeColor: "bg-accent",
+                      activeTextColor: "text-white",
+                    },
+                  ]}
+                  value={billingInterval}
+                  onChange={setBillingInterval}
+                  disabled={isProviderLocked}
+                />
+                {/* Currency Toggle (for Nigerian users) */}
+                {showPaystack && (
+                  <SlidingToggle
+                    options={[
+                      {
+                        value: "USD" as const,
+                        label: "USD",
+                        activeColor: "bg-white",
+                        activeTextColor: "text-black",
+                      },
+                      {
+                        value: "NGN" as const,
+                        label: "NGN",
+                        activeColor: "bg-green-600",
+                        activeTextColor: "text-white",
+                      },
+                    ]}
+                    value={currency}
+                    onChange={setCurrency}
+                    disabled={isProviderLocked}
+                  />
+                )}
+              </div>
             </div>
+            {isProviderLocked && (
+              <p className="text-xs text-gray-500 mb-4 text-right">
+                Cancel your current subscription to change billing options
+              </p>
+            )}
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
               {(
                 Object.entries(SUBSCRIPTION_PLANS).filter(
-                  ([_, plan]) => !("hidden" in plan && plan.hidden)
+                  ([_, plan]) => !("hidden" in plan && plan.hidden),
                 ) as [
                   keyof typeof SUBSCRIPTION_PLANS,
                   (typeof SUBSCRIPTION_PLANS)[keyof typeof SUBSCRIPTION_PLANS],
@@ -485,20 +526,33 @@ const {data:orgs}=authClient.useListOrganizations();
                     planKey={key}
                     currentPlanKey={currentPlan}
                     name={plan.name}
-                    priceUSD={plan.price}
-                    priceNGN={plan.priceNGN}
+                    priceUSD={
+                      billingInterval === "year" ? plan.priceYearly : plan.price
+                    }
+                    priceNGN={
+                      billingInterval === "year"
+                        ? plan.priceNGNYearly
+                        : plan.priceNGN
+                    }
                     description={descriptions[key]}
                     features={features}
-                    current={currentPlan === key}
+                    current={
+                      currentPlan === key && currentInterval === billingInterval
+                    }
                     recommended={key === "beam"}
                     currency={currency}
+                    billingInterval={billingInterval}
                     isLoading={isPaystackLoading}
                     onSelect={
                       key === "free"
                         ? () => {}
                         : currency === "NGN"
-                          ? () => handlePaystackCheckout(key as "ray" | "beam" | "pulse")
-                          : () => handleCheckout(key as "ray" | "beam" | "pulse")
+                          ? () =>
+                              handlePaystackCheckout(
+                                key as "ray" | "beam" | "pulse",
+                              )
+                          : () =>
+                              handleCheckout(key as "ray" | "beam" | "pulse")
                     }
                   />
                 );
@@ -522,7 +576,9 @@ const {data:orgs}=authClient.useListOrganizations();
         subscription={subscription ?? null}
         orgSlug={orgSlug}
         onSubscriptionUpdated={() => {
-          queryClient.invalidateQueries({ queryKey: ["subscription", orgSlug] });
+          queryClient.invalidateQueries({
+            queryKey: ["subscription", orgSlug],
+          });
         }}
       />
     </div>
@@ -548,6 +604,7 @@ function PlanCard({
   current,
   recommended,
   currency,
+  billingInterval,
   isLoading,
   onSelect,
 }: {
@@ -561,14 +618,17 @@ function PlanCard({
   current?: boolean;
   recommended?: boolean;
   currency: Currency;
+  billingInterval: BillingInterval;
   isLoading?: boolean;
   onSelect: () => void;
 }) {
   const isFree = priceUSD === 0;
   const displayPrice = currency === "NGN" ? priceNGN : priceUSD;
   const currencySymbol = currency === "NGN" ? "₦" : "$";
-  const formattedPrice = currency === "NGN" ? displayPrice.toLocaleString() : displayPrice;
+  const formattedPrice =
+    currency === "NGN" ? displayPrice.toLocaleString() : displayPrice;
   const isDowngrade = PLAN_TIERS[planKey] < PLAN_TIERS[currentPlanKey];
+  const intervalLabel = billingInterval === "year" ? "/year" : "/month";
 
   return (
     <div
@@ -585,13 +645,14 @@ function PlanCard({
       )}
 
       <div className="mb-8 relative">
-        <h3 className="text-xl font-bold mb-2 text-white">
-          {name}
-        </h3>
+        <h3 className="text-xl font-bold mb-2 text-white">{name}</h3>
         <p className="text-xs text-gray-500 mb-4">{description}</p>
         <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-bold text-white">{currencySymbol}{formattedPrice}</span>
-          <span className="text-white/40">/month</span>
+          <span className="text-4xl font-bold text-white">
+            {currencySymbol}
+            {formattedPrice}
+          </span>
+          <span className="text-white/40">{intervalLabel}</span>
         </div>
       </div>
 
@@ -609,7 +670,9 @@ function PlanCard({
       <Button
         onClick={onSelect}
         disabled={current || isFree || isLoading}
-        variant={current || isFree ? "secondary" : recommended ? "primary" : "primary"}
+        variant={
+          current || isFree ? "secondary" : recommended ? "primary" : "primary"
+        }
         className={`w-full py-3 rounded-full font-medium ${
           current || isFree
             ? ""

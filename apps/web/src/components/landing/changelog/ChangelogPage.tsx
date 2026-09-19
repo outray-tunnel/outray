@@ -13,6 +13,18 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
   {
+    date: "February 2, 2026",
+    title: "Yearly Subscriptions",
+    description:
+      "Save money with yearly billing! Get 2 months free when you switch to annual subscriptions. Available for all paid plans via both Polar (USD) and Paystack (NGN).",
+    type: "feature",
+    highlights: [
+      "2 months free on yearly plans (~17% savings)",
+      "Available for Ray, Beam, and Pulse plans",
+      "Supports both USD and NGN payments",
+    ],
+  },
+  {
     date: "January 24, 2026",
     title: "Request Inspection & Replay",
     description:
@@ -54,7 +66,6 @@ export const ChangelogPage = () => {
     <div className="min-h-screen bg-black text-white selection:bg-accent/30">
       <Navbar />
 
-
       <section className="pt-32 pb-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
@@ -88,11 +99,9 @@ export const ChangelogPage = () => {
         </div>
       </section>
 
-
       <section className="pb-32 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="relative">
-
             <div className="absolute left-0 md:left-1/2 top-0 bottom-0 w-px bg-white/10 -translate-x-1/2 hidden md:block" />
 
             {changelog.map((entry, index) => {
@@ -107,17 +116,12 @@ export const ChangelogPage = () => {
                   transition={{ duration: 0.6, delay: 0.3 + index * 0.1 }}
                   className="relative mb-16 last:mb-0"
                 >
-
                   <div className="absolute left-0 md:left-1/2 top-0 w-4 h-4 rounded-full bg-accent border-4 border-black -translate-x-1/2 hidden md:block" />
 
                   <div className="md:grid md:grid-cols-2 md:gap-12">
-
                     <div className="md:text-right md:pr-12 mb-4 md:mb-0">
-                      <div className="text-white/40 text-sm">
-                        {entry.date}
-                      </div>
+                      <div className="text-white/40 text-sm">{entry.date}</div>
                     </div>
-
 
                     <div className="md:pl-12">
                       <div
@@ -158,7 +162,6 @@ export const ChangelogPage = () => {
               );
             })}
           </div>
-
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}

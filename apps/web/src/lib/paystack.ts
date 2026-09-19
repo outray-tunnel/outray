@@ -12,6 +12,10 @@ export const PAYSTACK_PRICES_NGN = {
   ray: 10000, // ₦10,000
   beam: 21000, // ₦21,000
   pulse: 170000, // ₦170,000
+  // Yearly (2 months free)
+  ray_yearly: 100000, // ₦100,000
+  beam_yearly: 210000, // ₦210,000
+  pulse_yearly: 1700000, // ₦1,700,000
 } as const;
 
 // Kobo pricing (Paystack uses smallest currency unit)
@@ -19,9 +23,14 @@ export const PAYSTACK_PRICES_KOBO = {
   ray: PAYSTACK_PRICES_NGN.ray * 100, // 1,000,000 kobo
   beam: PAYSTACK_PRICES_NGN.beam * 100, // 2,100,000 kobo
   pulse: PAYSTACK_PRICES_NGN.pulse * 100, // 17,000,000 kobo
+  // Yearly
+  ray_yearly: PAYSTACK_PRICES_NGN.ray_yearly * 100,
+  beam_yearly: PAYSTACK_PRICES_NGN.beam_yearly * 100,
+  pulse_yearly: PAYSTACK_PRICES_NGN.pulse_yearly * 100,
 } as const;
 
-export type PaystackPlan = keyof typeof PAYSTACK_PRICES_NGN;
+export type PaystackPlan = "ray" | "beam" | "pulse";
+export type PaystackPriceKey = keyof typeof PAYSTACK_PRICES_KOBO;
 
 const PAYSTACK_API_URL = "https://api.paystack.co";
 
@@ -131,7 +140,8 @@ export async function chargeAuthorization(
   params: ChargeAuthorizationParams,
 ): Promise<ChargeAuthorizationResponse> {
   const reference =
-    params.reference || `outray_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    params.reference ||
+    `outray_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
   return paystackRequest<ChargeAuthorizationResponse>(
     "/transaction/charge_authorization",
@@ -204,9 +214,7 @@ export function verifyWebhookSignature(
   body: string,
   signature: string,
 ): boolean {
-  const hash = createHmac("sha512", getSecretKey())
-    .update(body)
-    .digest("hex");
+  const hash = createHmac("sha512", getSecretKey()).update(body).digest("hex");
   return hash === signature;
 }
 

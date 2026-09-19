@@ -3,7 +3,9 @@ export const SUBSCRIPTION_PLANS = {
   free: {
     name: "Free",
     price: 0,
+    priceYearly: 0,
     priceNGN: 0,
+    priceNGNYearly: 0,
     features: {
       maxTunnels: 2,
       maxDomains: 0,
@@ -18,7 +20,9 @@ export const SUBSCRIPTION_PLANS = {
   ray: {
     name: "Ray",
     price: 7,
+    priceYearly: 70, // 2 months free ($7 × 10)
     priceNGN: 10000, // ₦10,000
+    priceNGNYearly: 100000, // ₦100,000 (2 months free)
     polarProductId: process.env.POLAR_RAY_PRODUCT_ID,
     features: {
       maxTunnels: 3,
@@ -34,7 +38,9 @@ export const SUBSCRIPTION_PLANS = {
   beam: {
     name: "Beam",
     price: 15,
+    priceYearly: 150, // 2 months free ($15 × 10)
     priceNGN: 21000, // ₦21,000
+    priceNGNYearly: 210000, // ₦210,000 (2 months free)
     polarProductId: process.env.POLAR_BEAM_PRODUCT_ID,
     features: {
       maxTunnels: 5,
@@ -50,7 +56,9 @@ export const SUBSCRIPTION_PLANS = {
   pulse: {
     name: "Pulse",
     price: 120,
+    priceYearly: 1200, // 2 months free ($120 × 10)
     priceNGN: 170000, // ₦170,000
+    priceNGNYearly: 1700000, // ₦1,700,000 (2 months free)
     polarProductId: process.env.POLAR_PULSE_PRODUCT_ID,
     features: {
       maxTunnels: 20,
@@ -67,7 +75,9 @@ export const SUBSCRIPTION_PLANS = {
   unlimited: {
     name: "Unlimited",
     price: 0,
+    priceYearly: 0,
     priceNGN: 0,
+    priceNGNYearly: 0,
     hidden: true,
     features: {
       maxTunnels: 999999999,
@@ -83,9 +93,22 @@ export const SUBSCRIPTION_PLANS = {
 } as const;
 
 export type SubscriptionPlan = keyof typeof SUBSCRIPTION_PLANS;
+export type BillingInterval = "month" | "year";
 
-export function calculatePlanCost(plan: SubscriptionPlan): number {
-  return SUBSCRIPTION_PLANS[plan].price;
+export function calculatePlanCost(
+  plan: SubscriptionPlan,
+  interval: BillingInterval = "month",
+): number {
+  const planConfig = SUBSCRIPTION_PLANS[plan];
+  return interval === "year" ? planConfig.priceYearly : planConfig.price;
+}
+
+export function calculatePlanCostNGN(
+  plan: SubscriptionPlan,
+  interval: BillingInterval = "month",
+): number {
+  const planConfig = SUBSCRIPTION_PLANS[plan];
+  return interval === "year" ? planConfig.priceNGNYearly : planConfig.priceNGN;
 }
 
 export function canUseFeature(
@@ -108,4 +131,8 @@ export function canUseFeature(
 
 export function getPlanLimits(plan: SubscriptionPlan) {
   return SUBSCRIPTION_PLANS[plan].features;
+}
+
+export function getYearlySavingsPercent(): number {
+  return 17; // ~2 months free (10/12 = 83%, so 17% savings)
 }

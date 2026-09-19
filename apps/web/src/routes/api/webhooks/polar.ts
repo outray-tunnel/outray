@@ -55,17 +55,18 @@ export const Route = createFileRoute("/api/webhooks/polar")({
 });
 
 async function handleSubscriptionCreated(subscription: any) {
-  const planName = mapPolarProductToPlan(subscription.productId);
+  const { plan, interval } = mapPolarProductToPlan(subscription.productId);
 
   try {
     await db.insert(subscriptions).values({
       id: crypto.randomUUID(),
       organizationId: subscription.metadata?.organizationId as string,
-      plan: planName,
+      plan,
       status: subscription.status,
       polarCustomerId: subscription.customerId,
       polarSubscriptionId: subscription.id,
       polarProductId: subscription.productId,
+      billingInterval: interval,
       currentPeriodEnd: subscription.currentPeriodEnd
         ? new Date(subscription.currentPeriodEnd)
         : null,
@@ -77,6 +78,10 @@ async function handleSubscriptionCreated(subscription: any) {
       subscription.id,
       "for organization:",
       subscription.metadata?.organizationId,
+      "plan:",
+      plan,
+      "interval:",
+      interval,
     );
   } catch (error) {
     console.error("[Polar Webhook] Error creating subscription:", error);
@@ -105,14 +110,15 @@ async function handleSubscriptionActive(subscription: any) {
 }
 
 async function handleSubscriptionUpdated(subscription: any) {
-  const planName = mapPolarProductToPlan(subscription.productId);
+  const { plan, interval } = mapPolarProductToPlan(subscription.productId);
 
   try {
     await db
       .update(subscriptions)
       .set({
-        plan: planName,
+        plan,
         status: subscription.status,
+        billingInterval: interval,
         currentPeriodEnd: subscription.currentPeriodEnd
           ? new Date(subscription.currentPeriodEnd)
           : null,
@@ -184,11 +190,29 @@ async function handleSubscriptionRevoked(subscription: any) {
   }
 }
 
-function mapPolarProductToPlan(productId: string): string {
-  const productPlanMap: Record<string, string> = {
-    [process.env.POLAR_PRODUCT_RAY!]: "ray",
-    [process.env.POLAR_PRODUCT_BEAM!]: "beam",
+function mapPolarProductToPlan(productId: string): {
+  plan: string;
+  interval: "month" | "year";
+} {
+  const productPlanMap: Record<
+    string,
+    { plan: string; interval: "month" | "year" }
+  > = {
+    // Monthly products
+    [process.env.POLAR_PRODUCT_RAY!]: { plan: "ray", interval: "month" },
+    [process.env.POLAR_PRODUCT_BEAM!]: { plan: "beam", interval: "month" },
+    [process.env.POLAR_PRODUCT_PULSE!]: { plan: "pulse", interval: "month" },
+    // Yearly products
+    [process.env.POLAR_PRODUCT_RAY_YEARLY!]: { plan: "ray", interval: "year" },
+    [process.env.POLAR_PRODUCT_BEAM_YEARLY!]: {
+      plan: "beam",
+      interval: "year",
+    },
+    [process.env.POLAR_PRODUCT_PULSE_YEARLY!]: {
+      plan: "pulse",
+      interval: "year",
+    },
   };
 
-  return productPlanMap[productId] || "free";
+  return productPlanMap[productId] || { plan: "free", interval: "month" };
 }

@@ -20,6 +20,7 @@ export const subscriptions = pgTable(
     paystackAuthorizationCode: text("paystack_authorization_code"),
     paystackEmail: text("paystack_email"), // Email tied to authorization (required for charging)
     paymentProvider: text("payment_provider").default("polar"), // 'polar' | 'paystack'
+    billingInterval: text("billing_interval").default("month").notNull(), // 'month' | 'year'
     currentPeriodEnd: timestamp("current_period_end"),
     cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
     canceledAt: timestamp("canceled_at"),

@@ -6,12 +6,13 @@ import { WSHandler } from "./core/WSHandler";
 import { HTTPProxy } from "./core/HTTPProxy";
 import { TCPProxy } from "./core/TCPProxy";
 import { UDPProxy } from "./core/UDPProxy";
+import { WSProxy } from "./core/WSProxy";
 import { LogManager } from "./core/LogManager";
 import { config } from "./config";
 import {
   checkTimescaleDBConnection,
   shutdownLoggers,
-} from "./lib/tigerdata";
+} from "./lib/timescale";
 
 const redis = new Redis(config.redisUrl, {
   lazyConnect: true,
@@ -71,9 +72,11 @@ const udpProxy = new UDPProxy(
   redis,
 );
 
-const wsHandler = new WSHandler(wssTunnel, router, tcpProxy, udpProxy);
+const wsProxy = new WSProxy(router);
+const wsHandler = new WSHandler(wssTunnel, router, tcpProxy, udpProxy, wsProxy);
 
 console.log("✅ TCP/UDP tunnel support enabled");
+console.log("✅ WebSocket passthrough enabled");
 
 const webApiUrl = process.env.WEB_API_URL || "http://localhost:3000/api";
 const internalApiSecret = process.env.INTERNAL_API_SECRET;
@@ -136,7 +139,7 @@ wssDashboard.on("connection", async (ws, req) => {
     return;
   }
 
-  // Validate the token with the web API
+
   const authResult = await validateDashboardToken(token);
 
   if (!authResult.valid || !authResult.orgId) {
@@ -149,16 +152,25 @@ wssDashboard.on("connection", async (ws, req) => {
 });
 
 httpServer.on("upgrade", (request, socket, head) => {
+  const host = (request.headers.host || "").split(":")[0].toLowerCase();
   const { pathname } = new URL(request.url || "", "http://localhost");
 
   if (pathname === "/dashboard/events") {
     wssDashboard.handleUpgrade(request, socket, head, (ws) => {
       wssDashboard.emit("connection", ws, request);
     });
-  } else {
+  } else if (
+    host === config.baseDomain.toLowerCase() ||
+    host === "localhost" ||
+    host.startsWith("api.")
+  ) {
+    // Control plane WebSocket (CLI clients connecting)
     wssTunnel.handleUpgrade(request, socket, head, (ws) => {
       wssTunnel.emit("connection", ws, request);
     });
+  } else {
+    // End-user WebSocket to a tunneled subdomain
+    wsProxy.handleUpgrade(request, socket, head);
   }
 });
 
@@ -166,8 +178,11 @@ httpServer.on("request", async (req, res) => {
   const host = req.headers.host || "";
   const url = new URL(req.url || "", "http://localhost");
   
-  // Health check endpoint
-  if (url.pathname === "/health") {
+  // Health check endpoint — only for the tunnel server itself, not tunneled subdomains
+  const cleanHost = host.split(":")[0].toLowerCase();
+  const isBaseDomain = cleanHost === config.baseDomain.toLowerCase() || cleanHost === "localhost";
+  
+  if (url.pathname === "/health" && isBaseDomain) {
     const redisStatus = redis.status === "ready" ? "healthy" : "unhealthy";
     const isHealthy = redisStatus === "healthy";
     

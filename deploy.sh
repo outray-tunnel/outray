@@ -9,7 +9,7 @@ REDIS_URL="${REDIS_URL:-redis://127.0.0.1:6379}"
 REDIS_TUNNEL_TTL_SECONDS="${REDIS_TUNNEL_TTL_SECONDS:-120}"
 REDIS_HEARTBEAT_INTERVAL_MS="${REDIS_HEARTBEAT_INTERVAL_MS:-20000}"
 
-TIGER_DATA_URL="${TIGER_DATA_URL}"
+TIMESCALE_URL="${TIMESCALE_URL}"
 
 # Tunnel Server Config
 BLUE_PORT=3547
@@ -20,19 +20,19 @@ GREEN_NAME="outray-green"
 # Run Tiger Data (TimescaleDB) migrations
 echo "🐯 Running Tiger Data migrations..."
 cd /root/outray
-if [ -n "$TIGER_DATA_URL" ]; then
+if [ -n "$TIMESCALE_URL" ]; then
   # Run migration files (not the full setup script which drops tables)
   for migration in deploy/migrations/*.sql; do
     if [ -f "$migration" ]; then
       echo "  Running $migration..."
-      if ! psql "$TIGER_DATA_URL" -f "$migration"; then
+      if ! psql "$TIMESCALE_URL" -f "$migration"; then
         echo "❌ Failed to run migration: $migration" >&2
       fi
     fi
   done
   echo "✅ Tiger Data migrations complete."
 else
-  echo "⚠️ TIGER_DATA_URL not set, skipping migrations."
+  echo "⚠️ TIMESCALE_URL not set, skipping migrations."
 fi
 
 cd $APP_DIR
@@ -79,7 +79,7 @@ PORT=$TARGET_PORT \
 REDIS_URL="$REDIS_URL" \
 REDIS_TUNNEL_TTL_SECONDS="$REDIS_TUNNEL_TTL_SECONDS" \
 REDIS_HEARTBEAT_INTERVAL_MS="$REDIS_HEARTBEAT_INTERVAL_MS" \
-TIGER_DATA_URL="$TIGER_DATA_URL" \
+TIMESCALE_URL="$TIMESCALE_URL" \
 pm2 start dist/server.js --name $TARGET_NAME --update-env --force
 
 # 1.5 Start Internal Check Service
@@ -105,13 +105,13 @@ npm install --production
 # Restart if exists, otherwise start new (prevents duplicates without downtime)
 if pm2 list | grep -q "outray-cron"; then
   REDIS_URL="$REDIS_URL" \
-  TIGER_DATA_URL="$TIGER_DATA_URL" \
+  TIMESCALE_URL="$TIMESCALE_URL" \
   DATABASE_URL="$DATABASE_URL" \
   PAYSTACK_SECRET_KEY="$PAYSTACK_SECRET_KEY" \
   pm2 restart "outray-cron" --update-env
 else
   REDIS_URL="$REDIS_URL" \
-  TIGER_DATA_URL="$TIGER_DATA_URL" \
+  TIMESCALE_URL="$TIMESCALE_URL" \
   DATABASE_URL="$DATABASE_URL" \
   PAYSTACK_SECRET_KEY="$PAYSTACK_SECRET_KEY" \
   pm2 start dist/index.js --name "outray-cron"
@@ -155,18 +155,18 @@ caddy reload --config $CADDYFILE
 echo "✅ Traffic switched to $TARGET_COLOR."
 
 # 4. Stop old tunnel server instance
-if pm2 list | grep -q "$OLD_NAME.*online"; then
+if pm2 describe "$OLD_NAME" >/dev/null 2>&1; then
   echo "🛑 Stopping $OLD_NAME..."
-  pm2 stop $OLD_NAME
-  pm2 delete $OLD_NAME
+  pm2 stop "$OLD_NAME" || true
+  pm2 delete "$OLD_NAME" || true
 fi
 
 # Clean up any legacy web servers
 for web_name in "outray-web-blue" "outray-web-green"; do
-  if pm2 list | grep -q "$web_name.*online"; then
+  if pm2 describe "$web_name" >/dev/null 2>&1; then
     echo "🧹 Cleaning up legacy web server: $web_name..."
-    pm2 stop $web_name
-    pm2 delete $web_name
+    pm2 stop "$web_name" || true
+    pm2 delete "$web_name" || true
   fi
 done
 

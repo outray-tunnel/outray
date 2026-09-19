@@ -1,6 +1,6 @@
 {
   "name": "outray",
-  "version": "0.1.5",
+  "version": "0.1.9",
   "description": "OutRay CLI - Expose your local server to the internet",
   "main": "dist/index.js",
   "bin": {
@@ -34,16 +34,16 @@
     "tunneling",
     "development"
   ],
-  "author": "akinloluwami",
+  "author": "xt42io",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/akinloluwami/outray.git",
+    "url": "git+https://github.com/xt42io/outray.git",
     "directory": "apps/cli"
   },
-  "homepage": "https://github.com/akinloluwami/outray#readme",
+  "homepage": "https://github.com/xt42io/outray#readme",
   "bugs": {
-    "url": "https://github.com/akinloluwami/outray/issues"
+    "url": "https://github.com/xt42io/outray/issues"
   },
   "engines": {
     "node": ">=16.0.0"
@@ -54,17 +54,19 @@
   ],
   "dependencies": {
     "@iarna/toml": "^2.2.5",
-    "@outray/core": "^0.0.1",
+    "@outray/core": "^0.0.4",
     "@types/prompts": "^2.4.9",
     "chalk": "^4.1.2",
     "http-proxy": "^1.18.1",
     "joi": "^17.13.3",
     "prompts": "^2.4.2",
+    "qrcode-terminal": "^0.12.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/http-proxy": "^1.17.14",
     "@types/node": "^20.10.0",
+    "@types/qrcode-terminal": "^0.12.2",
     "@types/ws": "^8.5.10",
     "pkg": "^5.8.1",
     "typescript": "^5.3.3"

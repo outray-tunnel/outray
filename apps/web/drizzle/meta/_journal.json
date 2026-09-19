@@ -71,6 +71,13 @@
       "when": 1769465818553,
       "tag": "0009_right_devos",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1769807645061,
+      "tag": "0010_violet_vertigo",
+      "breakpoints": true
     }
   ]
 }

@@ -72,6 +72,7 @@ export const Route = createFileRoute("/api/checkout/paystack-verify")({
           const metadata = verification.data.metadata as {
             organizationId?: string;
             plan?: string;
+            interval?: "month" | "year";
             userId?: string;
           };
 
@@ -82,7 +83,7 @@ export const Route = createFileRoute("/api/checkout/paystack-verify")({
             );
           }
 
-          const { organizationId, plan, userId } = metadata;
+          const { organizationId, plan, interval = "month", userId } = metadata;
 
           // Verify that the transaction was initiated by the current user
           if (userId !== session.user.id) {
@@ -116,9 +117,13 @@ export const Route = createFileRoute("/api/checkout/paystack-verify")({
           const customerEmail = verification.data.customer.email;
           const customerCode = verification.data.customer.customer_code;
 
-          // Calculate next billing date (1 month from now)
+          // Calculate next billing date based on the checkout interval
           const currentPeriodEnd = new Date();
-          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+          if (interval === "year") {
+            currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
+          } else {
+            currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+          }
 
           // Check if subscription exists
           const existingSubscription = await db
@@ -138,6 +143,7 @@ export const Route = createFileRoute("/api/checkout/paystack-verify")({
                 paystackCustomerCode: customerCode,
                 paystackAuthorizationCode: authorization.authorization_code,
                 paystackEmail: customerEmail,
+                billingInterval: interval,
                 currentPeriodEnd,
                 cancelAtPeriodEnd: false,
                 canceledAt: null,
@@ -155,6 +161,7 @@ export const Route = createFileRoute("/api/checkout/paystack-verify")({
               paystackCustomerCode: customerCode,
               paystackAuthorizationCode: authorization.authorization_code,
               paystackEmail: customerEmail,
+              billingInterval: interval,
               currentPeriodEnd,
               cancelAtPeriodEnd: false,
             });

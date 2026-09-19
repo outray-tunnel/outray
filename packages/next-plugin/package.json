@@ -1,6 +1,6 @@
 {
   "name": "@outray/next",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Next.js plugin to automatically expose your dev server via Outray tunnel",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -34,7 +34,7 @@
     "next": "^13.0.0 || ^14.0.0 || ^15.0.0 || ^16.0.0"
   },
   "dependencies": {
-    "@outray/core": "^0.0.1"
+    "@outray/core": "^0.0.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

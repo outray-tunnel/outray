@@ -2,7 +2,7 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 import { redis } from "./lib/redis";
-import { pool, execute } from "./lib/tigerdata";
+import { pool, execute } from "./lib/timescale";
 import { chargePaystackSubscriptions } from "./lib/paystack";
 
 async function connectRedis() {

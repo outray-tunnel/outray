@@ -8,7 +8,7 @@ import {
   TCPCloseMessage,
 } from "./Protocol";
 import { generateId, getBandwidthKey } from "../../../../shared/utils";
-import { protocolLogger } from "../lib/tigerdata";
+import { protocolLogger } from "../lib/timescale";
 import { PortAllocator } from "./PortAllocator";
 
 interface TCPConnection {

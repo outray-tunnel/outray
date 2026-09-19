@@ -1,6 +1,15 @@
 // Core client
 export { OutrayClient } from "./client";
 
+// mDNS / Local access
+export {
+  MDNSAdvertiser,
+  LocalProxy,
+  LocalHttpsProxy,
+  LocalAccessManager,
+} from "./mdns";
+export type { LocalAccessInfo } from "./mdns";
+
 // Protocol utilities
 export { encodeMessage, decodeMessage } from "./protocol";
 
@@ -26,6 +35,11 @@ export type {
   UDPResponseMessage,
   ErrorMessage,
   ErrorCode,
+  // WebSocket passthrough
+  WSUpgradeMessage,
+  WSUpgradeResponseMessage,
+  WSFrameMessage,
+  WSCloseMessage,
 } from "./types";
 
 // Error codes constant

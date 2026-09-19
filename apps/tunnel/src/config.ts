@@ -13,8 +13,8 @@ export const config = {
     10,
   ),
   requestTimeoutMs: parseInt(process.env.REQUEST_TIMEOUT_MS || "60000", 10),
-  tigerDataUrl:
-    process.env.TIGER_DATA_URL || "postgresql://localhost:5432/outray",
+  timeScaleUrl:
+    process.env.TIMESCALE_URL || "postgresql://localhost:5432/outray",
   // TCP/UDP port ranges
   tcpPortRangeMin: parseInt(process.env.TCP_PORT_RANGE_MIN || "20000", 10),
   tcpPortRangeMax: parseInt(process.env.TCP_PORT_RANGE_MAX || "30000", 10),

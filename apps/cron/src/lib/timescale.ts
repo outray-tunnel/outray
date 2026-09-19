@@ -5,9 +5,9 @@ const { Pool } = pg;
 
 export const pool = new Pool({
   connectionString: config.tigerDataUrl,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ssl: config.tigerDataUrl?.includes("sslmode=require")
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {

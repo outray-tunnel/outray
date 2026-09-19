@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { TunnelRouter } from "./TunnelRouter";
 import { getBandwidthKey } from "../../../../shared/utils";
-import { logger, requestCaptureLogger } from "../lib/tigerdata";
+import { logger, requestCaptureLogger } from "../lib/timescale";
 import { LogManager } from "./LogManager";
 
 export class HTTPProxy {
@@ -61,6 +61,32 @@ export class HTTPProxy {
       });
 
       const metadata = this.router.getTunnelMetadata(tunnelId);
+
+      if (metadata?.password) {
+        const authHeader = req.headers.authorization;
+        let authenticated = false;
+
+        if (authHeader && authHeader.startsWith("Basic ")) {
+          const base64Credentials = authHeader.substring(6);
+          const credentials = Buffer.from(base64Credentials, "base64").toString("ascii");
+          const colonIdx = credentials.indexOf(":");
+          if (colonIdx !== -1) {
+            const password = credentials.substring(colonIdx + 1);
+            if (password === metadata.password) {
+              authenticated = true;
+            }
+          }
+        }
+
+        if (!authenticated) {
+          res.writeHead(401, {
+            "WWW-Authenticate": 'Basic realm="Restricted Tunnel"',
+            "Content-Type": "text/plain",
+          });
+          res.end("Unauthorized");
+          return;
+        }
+      }
       const redis = this.router.getRedis();
       const bandwidthKey =
         metadata?.organizationId && redis
@@ -174,6 +200,7 @@ export class HTTPProxy {
               requestBody = bodyBuffer
                 .subarray(0, maxBodySize)
                 .toString("base64");
+              requestBodySize = maxBodySize;
             }
           }
 
@@ -187,7 +214,7 @@ export class HTTPProxy {
               responseBody = responseBuffer
                 .subarray(0, maxBodySize)
                 .toString("base64");
-              responseBodySize = responseBuffer.subarray(0, maxBodySize).length;
+              responseBodySize = maxBodySize;
             }
           }
 

@@ -83,10 +83,11 @@ CREATE INDEX IF NOT EXISTS idx_protocol_events_organization_id ON protocol_event
 -- Request captures (full request/response bodies)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS request_captures (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT NOT NULL,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     tunnel_id TEXT NOT NULL,
     organization_id TEXT NOT NULL,
+    retention_days SMALLINT DEFAULT 3,
     
     -- Request data
     request_headers JSONB,
@@ -96,7 +97,9 @@ CREATE TABLE IF NOT EXISTS request_captures (
     -- Response data
     response_headers JSONB,
     response_body TEXT,
-    response_body_size INTEGER DEFAULT 0
+    response_body_size INTEGER DEFAULT 0,
+    
+    PRIMARY KEY (id, timestamp)
 );
 
 -- Convert to hypertable if not already
@@ -234,12 +237,28 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function to clean up expired request captures
+CREATE OR REPLACE FUNCTION cleanup_expired_request_captures()
+RETURNS INTEGER AS $
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    DELETE FROM request_captures
+    WHERE timestamp < NOW() - (retention_days * INTERVAL '1 day');
+    
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RAISE NOTICE 'Deleted % expired rows from request_captures', deleted_count;
+    RETURN deleted_count;
+END;
+$ LANGUAGE plpgsql;
+
 -- Combined cleanup function for the scheduled job (must return void for add_job)
 CREATE OR REPLACE FUNCTION cleanup_expired_events(job_id INTEGER, config JSONB)
 RETURNS VOID AS $$
 BEGIN
     PERFORM cleanup_expired_tunnel_events();
     PERFORM cleanup_expired_protocol_events();
+    PERFORM cleanup_expired_request_captures();
 END;
 $$ LANGUAGE plpgsql;
 

@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../../../../db";
 import { tunnels } from "../../../../db/app-schema";
 import { requireOrgFromSlug } from "../../../../lib/org";
-import { tigerData } from "../../../../lib/tigerdata";
+import { tigerData } from "../../../../lib/timescale";
 
 export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
   server: {

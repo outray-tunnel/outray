@@ -4,7 +4,7 @@ import { users, organizations, tunnels, subscriptions } from "../../../db/schema
 import { redis } from "../../../lib/redis";
 import { hashToken } from "../../../lib/hash";
 import { sql, count, gte, desc, eq } from "drizzle-orm";
-import { tigerData } from "../../../lib/tigerdata";
+import { tigerData } from "../../../lib/timescale";
 
 export const Route = createFileRoute("/api/admin/charts")({
   server: {

@@ -4,10 +4,10 @@ import { config } from "../config";
 const { Pool } = pg;
 
 export const pool = new Pool({
-  connectionString: config.tigerDataUrl,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  connectionString: config.timeScaleUrl,
+  ssl: config.timeScaleUrl?.includes("sslmode=require")
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {

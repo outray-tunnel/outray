@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireOrgFromSlug } from "../../../../lib/org";
-import { tigerData } from "../../../../lib/tigerdata";
+import { tigerData } from "../../../../lib/timescale";
 
 export const Route = createFileRoute("/api/$orgSlug/requests/capture")({
   server: {

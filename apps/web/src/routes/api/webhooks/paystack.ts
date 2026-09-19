@@ -14,7 +14,6 @@ export const Route = createFileRoute("/api/webhooks/paystack")({
        * Primary event: charge.success (for both initial and recurring payments)
        */
       POST: async ({ request }) => {
-
         // Get raw body for signature verification
         const body = await request.text();
 
@@ -77,6 +76,7 @@ interface ChargeSuccessData {
   metadata?: {
     organizationId?: string;
     plan?: string;
+    interval?: "month" | "year";
     isRenewal?: boolean;
   };
   customer: {
@@ -109,11 +109,15 @@ async function handleChargeSuccess(data: unknown) {
     return;
   }
 
-  const { organizationId, plan, isRenewal } = metadata;
+  const { organizationId, plan, interval = "month", isRenewal } = metadata;
 
-  // Calculate next billing date
+  // Calculate next billing date based on interval
   const currentPeriodEnd = new Date();
-  currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+  if (interval === "year") {
+    currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
+  } else {
+    currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+  }
 
   if (isRenewal) {
     // This is a recurring charge from cron job
@@ -132,7 +136,7 @@ async function handleChargeSuccess(data: unknown) {
       );
 
     console.log(
-      `[Paystack Webhook] Renewal processed for org ${organizationId}`,
+      `[Paystack Webhook] Renewal processed for org ${organizationId}, interval: ${interval}`,
     );
   } else {
     // Initial payment - update or create subscription
@@ -150,8 +154,10 @@ async function handleChargeSuccess(data: unknown) {
           status: "active",
           paymentProvider: "paystack",
           paystackCustomerCode: chargeData.customer.customer_code,
-          paystackAuthorizationCode: chargeData.authorization.authorization_code,
+          paystackAuthorizationCode:
+            chargeData.authorization.authorization_code,
           paystackEmail: chargeData.customer.email,
+          billingInterval: interval,
           currentPeriodEnd,
           cancelAtPeriodEnd: false,
           canceledAt: null,
@@ -168,13 +174,14 @@ async function handleChargeSuccess(data: unknown) {
         paystackCustomerCode: chargeData.customer.customer_code,
         paystackAuthorizationCode: chargeData.authorization.authorization_code,
         paystackEmail: chargeData.customer.email,
+        billingInterval: interval,
         currentPeriodEnd,
         cancelAtPeriodEnd: false,
       });
     }
 
     console.log(
-      `[Paystack Webhook] Initial payment processed for org ${organizationId}, plan: ${plan}`,
+      `[Paystack Webhook] Initial payment processed for org ${organizationId}, plan: ${plan}, interval: ${interval}`,
     );
   }
 }

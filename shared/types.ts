@@ -14,6 +14,7 @@ export interface OpenTunnelMessage {
   forceTakeover?: boolean;
   protocol?: TunnelProtocol;
   remotePort?: number; // For TCP/UDP: the port to expose on the server
+  password?: string;
 }
 
 export interface TunnelOpenedMessage {
@@ -48,6 +49,36 @@ export interface UDPDataMessage {
   sourceAddress: string;
   sourcePort: number;
   data: string; // base64 encoded
+}
+
+// WebSocket passthrough messages
+export interface WSUpgradeMessage {
+  type: "ws_upgrade";
+  wsConnectionId: string;
+  path: string;
+  headers: Record<string, string | string[]>;
+  protocol?: string; // Sec-WebSocket-Protocol
+}
+
+export interface WSUpgradeResponseMessage {
+  type: "ws_upgrade_response";
+  wsConnectionId: string;
+  success: boolean;
+  error?: string;
+}
+
+export interface WSFrameMessage {
+  type: "ws_frame";
+  wsConnectionId: string;
+  data: string; // base64 encoded
+  isBinary: boolean;
+}
+
+export interface WSCloseMessage {
+  type: "ws_close";
+  wsConnectionId: string;
+  code?: number;
+  reason?: string;
 }
 
 export interface UDPResponseMessage {
@@ -102,4 +133,8 @@ export type Message =
   | TCPDataMessage
   | TCPCloseMessage
   | UDPDataMessage
-  | UDPResponseMessage;
+  | UDPResponseMessage
+  | WSUpgradeMessage
+  | WSUpgradeResponseMessage
+  | WSFrameMessage
+  | WSCloseMessage;

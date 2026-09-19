@@ -1,21 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Navbar } from "@/components/landing/navbar";
-import { SUBSCRIPTION_PLANS } from "@/lib/subscription-plans";
+import {
+  SUBSCRIPTION_PLANS,
+  type BillingInterval,
+} from "@/lib/subscription-plans";
 import { isNigerianUser } from "@/lib/geolocation";
 import { Check, X } from "lucide-react";
 import { useState, useEffect } from "react";
+import { SlidingToggle } from "@/components/ui/sliding-toggle";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
-    meta: [
-      { title: "Pricing - OutRay" },
-    ],
+    meta: [{ title: "Pricing - OutRay" }],
   }),
   component: PricingPage,
 });
 
 function PricingPage() {
   const [showNGN, setShowNGN] = useState(false);
+  const [billingInterval, setBillingInterval] =
+    useState<BillingInterval>("month");
 
   // Check if user is in Nigeria to show NGN prices
   useEffect(() => {
@@ -37,6 +41,8 @@ function PricingPage() {
     return `${gb}GB`;
   };
 
+  const intervalLabel = billingInterval === "year" ? "/year" : "/month";
+
   return (
     <div className="min-h-screen bg-black text-white selection:bg-accent/30 font-sans">
       <Navbar />
@@ -47,9 +53,38 @@ function PricingPage() {
             <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
               Simple, transparent pricing
             </h1>
-            <p className="text-xl text-white/60 max-w-2xl mx-auto">
+            <p className="text-xl text-white/60 max-w-2xl mx-auto mb-8">
               Start for free, upgrade as you grow. No hidden fees.
             </p>
+
+            {/* Billing Interval Toggle */}
+            <div className="flex items-center justify-center gap-2">
+              <SlidingToggle
+                options={[
+                  {
+                    value: "month" as const,
+                    label: "Monthly",
+                    activeColor: "bg-white",
+                    activeTextColor: "text-black",
+                  },
+                  {
+                    value: "year" as const,
+                    label: (
+                      <span className="flex items-center gap-2">
+                        Yearly
+                        <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
+                          2 months free
+                        </span>
+                      </span>
+                    ),
+                    activeColor: "bg-accent",
+                    activeTextColor: "text-white",
+                  },
+                ]}
+                value={billingInterval}
+                onChange={setBillingInterval}
+              />
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -64,6 +99,12 @@ function PricingPage() {
                 customDomains: boolean;
                 prioritySupport: boolean;
               };
+              const displayPriceUSD =
+                billingInterval === "year" ? plan.priceYearly : plan.price;
+              const displayPriceNGN =
+                billingInterval === "year"
+                  ? plan.priceNGNYearly
+                  : plan.priceNGN;
               return (
                 <div
                   key={plan.id}
@@ -91,13 +132,19 @@ function PricingPage() {
                       {plan.name}
                     </h3>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold">${plan.price}</span>
-                      <span className="text-white/40">/month</span>
+                      <span className="text-4xl font-bold">
+                        ${displayPriceUSD}
+                      </span>
+                      <span className="text-white/40">{intervalLabel}</span>
                     </div>
-                    {showNGN && plan.priceNGN > 0 && (
+                    {showNGN && displayPriceNGN > 0 && (
                       <div className="flex items-baseline gap-1 mt-1">
-                        <span className="text-lg text-white/60">₦{plan.priceNGN.toLocaleString()}</span>
-                        <span className="text-white/40 text-sm">/month</span>
+                        <span className="text-lg text-white/60">
+                          ₦{displayPriceNGN.toLocaleString()}
+                        </span>
+                        <span className="text-white/40 text-sm">
+                          {intervalLabel}
+                        </span>
                       </div>
                     )}
                   </div>

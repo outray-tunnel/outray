@@ -2,8 +2,15 @@ import WebSocket from "ws";
 import chalk from "chalk";
 import prompts from "prompts";
 import { encodeMessage, decodeMessage } from "@outray/core";
-import type { TunnelDataMessage, TunnelResponseMessage } from "@outray/core";
+import type {
+  TunnelDataMessage,
+  TunnelResponseMessage,
+  WSUpgradeMessage,
+  WSFrameMessage,
+  WSCloseMessage,
+} from "@outray/core";
 import http from "http";
+import { MDNSAdvertiser, LocalProxy, LocalHttpsProxy } from "./mdns";
 
 export class OutRayClient {
   private ws: WebSocket | null = null;
@@ -23,8 +30,15 @@ export class OutRayClient {
   private reconnectAttempts = 0;
   private lastPongReceived = Date.now();
   private noLog: boolean;
+  private enableLocal: boolean;
+  private mdnsAdvertiser: MDNSAdvertiser | null = null;
+  private localProxy: LocalProxy | null = null;
+  private localHttpsProxy: LocalHttpsProxy | null = null;
   private readonly PING_INTERVAL_MS = 25000; // 25 seconds
   private readonly PONG_TIMEOUT_MS = 10000; // 10 seconds to wait for pong
+  private localWebSockets = new Map<string, WebSocket>();
+  private password?: string;
+  private showQr: boolean;
 
   constructor(
     localPort: number,
@@ -33,6 +47,9 @@ export class OutRayClient {
     subdomain?: string,
     customDomain?: string,
     noLog: boolean = false,
+    enableLocal: boolean = false,
+    password?: string,
+    showQr: boolean = false,
   ) {
     this.localPort = localPort;
     this.serverUrl = serverUrl;
@@ -41,6 +58,9 @@ export class OutRayClient {
     this.customDomain = customDomain;
     this.requestedSubdomain = subdomain;
     this.noLog = noLog;
+    this.enableLocal = enableLocal;
+    this.password = password;
+    this.showQr = showQr;
   }
 
   public start(): void {
@@ -57,10 +77,93 @@ export class OutRayClient {
 
     this.stopPing();
     this.stopPongTimeout();
+    this.stopMDNS();
 
     if (this.ws) {
       this.ws.close();
       this.ws = null;
+    }
+
+    // Clean up all local WebSocket connections
+    for (const [_id, localWs] of this.localWebSockets) {
+      localWs.close();
+    }
+    this.localWebSockets.clear();
+  }
+
+  private stopMDNS(): void {
+    if (this.localHttpsProxy) {
+      this.localHttpsProxy.stop();
+      this.localHttpsProxy = null;
+    }
+    if (this.localProxy) {
+      this.localProxy.stop();
+      this.localProxy = null;
+    }
+    if (this.mdnsAdvertiser) {
+      this.mdnsAdvertiser.stop();
+      this.mdnsAdvertiser = null;
+    }
+  }
+
+  private async startMDNS(subdomain: string): Promise<void> {
+    if (!this.enableLocal) return;
+
+    this.stopMDNS();
+
+    try {
+      this.mdnsAdvertiser = new MDNSAdvertiser(subdomain, this.localPort);
+      await this.mdnsAdvertiser.start();
+      const info = this.mdnsAdvertiser.getInfo();
+
+      // Try to start HTTPS proxy on port 443
+      this.localHttpsProxy = new LocalHttpsProxy(this.localPort, info.hostname);
+      const httpsStarted = await this.localHttpsProxy.start();
+
+      // Try to start HTTP proxy on port 80
+      this.localProxy = new LocalProxy(this.localPort);
+      const httpStarted = await this.localProxy.start();
+
+      console.log(chalk.blue(`📡 LAN access:`));
+
+      if (httpsStarted) {
+        if (this.localHttpsProxy.isTrusted) {
+          console.log(chalk.blue(`   https://${info.hostname}`));
+        } else {
+          console.log(
+            chalk.blue(`   https://${info.hostname}`) +
+            chalk.dim(` (self-signed)`),
+          );
+          console.log(
+            chalk.dim(
+              `   Install mkcert for trusted certs: brew install mkcert && mkcert -install`,
+            ),
+          );
+        }
+      }
+
+      if (httpStarted) {
+        console.log(chalk.blue(`   http://${info.hostname}`));
+      }
+
+      if (!httpsStarted && !httpStarted) {
+        console.log(chalk.blue(`   http://${info.hostname}:${this.localPort}`));
+        console.log(
+          chalk.dim(`   (Run with sudo for https://${info.hostname})`),
+        );
+      }
+
+      // Always show IP for Android devices
+      console.log(
+        chalk.dim(`   http://${info.ip}:${this.localPort} (Android)`),
+      );
+      console.log(chalk.dim(`   (Accessible from devices on your network)`));
+    } catch (err) {
+      console.log(
+        chalk.dim(
+          `mDNS unavailable: ${err instanceof Error ? err.message : "unknown error"}`,
+        ),
+      );
     }
   }
 
@@ -99,11 +202,12 @@ export class OutRayClient {
       subdomain: this.subdomain,
       customDomain: this.customDomain,
       forceTakeover: this.forceTakeover,
+      password: this.password,
     });
     this.ws?.send(handshake);
   }
 
-  private handleMessage(data: string): void {
+  private async handleMessage(data: string): Promise<void> {
     try {
       const message = decodeMessage(data);
 
@@ -112,6 +216,8 @@ export class OutRayClient {
         const derivedSubdomain = this.extractSubdomain(message.url);
         if (derivedSubdomain) {
           this.subdomain = derivedSubdomain;
+          // Start mDNS advertising if enabled
+          this.startMDNS(derivedSubdomain);
         }
         // Reset forceTakeover flag after successful connection
         // Keep subdomainConflictHandled to detect takeovers
@@ -121,6 +227,12 @@ export class OutRayClient {
         console.log(
           chalk.yellow("Keep this running to keep your tunnel active."),
         );
+        // Render a QR code of the tunnel url if flag is present
+        if (this.showQr) {
+          const qrcode = await import("qrcode-terminal");
+          console.log();
+          qrcode.generate(message.url, { small: true });
+        }
       } else if (message.type === "error") {
         if (message.code === "SUBDOMAIN_IN_USE") {
           if (this.assignedUrl) {
@@ -170,11 +282,27 @@ export class OutRayClient {
           this.shouldReconnect = false;
           this.stop();
           process.exit(1);
+        } else if (message.code === "PASSWORD_REQUIRES_PAID") {
+          console.log(chalk.red(`❌ Error: ${message.message}`));
+          console.log(
+            chalk.dim(
+              "Password-protected tunnels are available on paid plans.",
+            ),
+          );
+          this.shouldReconnect = false;
+          this.stop();
+          process.exit(1);
         } else {
           console.log(chalk.red(`❌ Error: ${message.message}`));
         }
       } else if (message.type === "request") {
         this.handleTunnelData(message);
+      } else if (message.type === "ws_upgrade") {
+        this.handleWSUpgrade(message as WSUpgradeMessage);
+      } else if (message.type === "ws_frame") {
+        this.handleWSFrame(message as WSFrameMessage);
+      } else if (message.type === "ws_close") {
+        this.handleWSClose(message as WSCloseMessage);
       }
     } catch (error) {
       console.log(chalk.red(`❌ Failed to parse message: ${error}`));
@@ -213,7 +341,7 @@ export class OutRayClient {
         if (!this.noLog) {
           console.log(
             chalk.dim("←") +
-              ` ${chalk.bold(message.method)} ${message.path} ${statusColor(statusCode)} ${chalk.dim(`${duration}ms`)}`,
+            ` ${chalk.bold(message.method)} ${message.path} ${statusColor(statusCode)} ${chalk.dim(`${duration}ms`)}`,
           );
         }
 
@@ -238,7 +366,7 @@ export class OutRayClient {
       if (!this.noLog) {
         console.log(
           chalk.dim("←") +
-            ` ${chalk.bold(message.method)} ${message.path} ${chalk.red("502")} ${chalk.dim(`${duration}ms`)} ${chalk.red(err.message)}`,
+          ` ${chalk.bold(message.method)} ${message.path} ${chalk.red("502")} ${chalk.dim(`${duration}ms`)} ${chalk.red(err.message)}`,
         );
       }
 
@@ -274,6 +402,125 @@ export class OutRayClient {
       );
       return null;
     }
+  }
+
+  private handleWSUpgrade(message: WSUpgradeMessage): void {
+    const wsUrl = `ws://localhost:${this.localPort}${message.path}`;
+
+    try {
+      const headers: Record<string, string> = {};
+      if (message.protocol) {
+        headers["Sec-WebSocket-Protocol"] = message.protocol;
+      }
+
+      const localWs = new WebSocket(wsUrl, { headers });
+
+      localWs.on("open", () => {
+        this.localWebSockets.set(message.wsConnectionId, localWs);
+
+        this.ws?.send(
+          encodeMessage({
+            type: "ws_upgrade_response",
+            wsConnectionId: message.wsConnectionId,
+            success: true,
+          })
+        );
+
+        if (!this.noLog) {
+          console.log(
+            chalk.dim("⚡") +
+            ` ${chalk.bold("WS")} ${message.path} ${chalk.green("connected")}`,
+          );
+        }
+      });
+
+      localWs.on("message", (data: WebSocket.RawData, isBinary: boolean) => {
+        if (this.ws?.readyState === WebSocket.OPEN) {
+          const buffer = Buffer.isBuffer(data)
+            ? data
+            : Buffer.from(data as ArrayBuffer);
+          this.ws.send(
+            encodeMessage({
+              type: "ws_frame",
+              wsConnectionId: message.wsConnectionId,
+              data: buffer.toString("base64"),
+              isBinary,
+            })
+          );
+        }
+      });
+
+      localWs.on("close", (code, reason) => {
+        this.localWebSockets.delete(message.wsConnectionId);
+        if (this.ws?.readyState === WebSocket.OPEN) {
+          this.ws.send(
+            encodeMessage({
+              type: "ws_close",
+              wsConnectionId: message.wsConnectionId,
+              code,
+              reason: reason?.toString(),
+            })
+          );
+        }
+        if (!this.noLog) {
+          console.log(
+            chalk.dim("⚡") +
+            ` ${chalk.bold("WS")} ${message.path} ${chalk.yellow("closed")} ${chalk.dim(`(${code})`)}`,
+          );
+        }
+      });
+
+      localWs.on("error", (error) => {
+        this.localWebSockets.delete(message.wsConnectionId);
+
+        if (localWs.readyState === WebSocket.CONNECTING) {
+          this.ws?.send(
+            encodeMessage({
+              type: "ws_upgrade_response",
+              wsConnectionId: message.wsConnectionId,
+              success: false,
+              error: `Failed to connect to local WebSocket: ${error.message}`,
+            })
+          );
+        }
+
+        if (!this.noLog) {
+          console.log(
+            chalk.dim("⚡") +
+            ` ${chalk.bold("WS")} ${message.path} ${chalk.red("error")} ${chalk.dim(error.message)}`,
+          );
+        }
+      });
+    } catch (error) {
+      this.ws?.send(
+        encodeMessage({
+          type: "ws_upgrade_response",
+          wsConnectionId: message.wsConnectionId,
+          success: false,
+          error: `Failed to create WebSocket connection: ${error instanceof Error ? error.message : String(error)}`,
+        })
+      );
+    }
+  }
+
+  private handleWSFrame(message: WSFrameMessage): void {
+    const localWs = this.localWebSockets.get(message.wsConnectionId);
+    if (!localWs || localWs.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    const data = Buffer.from(message.data, "base64");
+    localWs.send(data, { binary: message.isBinary });
+  }
+
+  private handleWSClose(message: WSCloseMessage): void {
+    const localWs = this.localWebSockets.get(message.wsConnectionId);
+    if (!localWs) {
+      return;
+    }
+
+    this.localWebSockets.delete(message.wsConnectionId);
+    localWs.close(message.code || 1000, message.reason || "");
   }
 
   private startPing(): void {

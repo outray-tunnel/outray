@@ -1,11 +1,88 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Play, Loader2, Clock, ArrowRight, CheckCircle2, XCircle, AlertCircle, Plus, Trash2, Edit3, FileText, ListTree } from "lucide-react";
+import { X, Play, Loader2, Clock, ArrowRight, CheckCircle2, XCircle, AlertCircle, Plus, Trash2, Edit3, FileText, ListTree, ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { TunnelEvent, RequestCapture } from "./types";
 import { JsonViewer, formatBody } from "./json-viewer";
 import { Button, IconButton } from "@/components/ui";
 
 type RequestTab = "headers" | "body";
+
+const METHOD_COLORS: Record<string, { text: string; bg: string; border: string }> = {
+  GET: { text: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/20" },
+  POST: { text: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+  PUT: { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+  PATCH: { text: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+  DELETE: { text: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" },
+  HEAD: { text: "text-teal-400", bg: "bg-teal-500/10", border: "border-teal-500/20" },
+  OPTIONS: { text: "text-gray-400", bg: "bg-gray-500/10", border: "border-gray-500/20" },
+};
+
+const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
+
+function MethodBadge({ method, className = "" }: { method: string; className?: string }) {
+  const colors = METHOD_COLORS[method] || METHOD_COLORS.GET;
+  return (
+    <span className={`font-mono font-medium text-sm ${colors.text} ${className}`}>
+      {method}
+    </span>
+  );
+}
+
+function MethodDropdown({ value, onChange }: { value: string; onChange: (m: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const colors = METHOD_COLORS[value] || METHOD_COLORS.GET;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`flex items-center gap-2 ${colors.bg} border ${colors.border} rounded-lg px-3 py-2.5 text-sm font-mono font-medium ${colors.text} hover:brightness-125 transition-all focus:outline-none focus:ring-1 focus:ring-accent/50`}
+      >
+        {value}
+        <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-full left-0 mt-1 z-50 bg-[#141414] border border-white/10 rounded-lg overflow-hidden shadow-xl min-w-[140px]"
+          >
+            {HTTP_METHODS.map((m) => {
+              const c = METHOD_COLORS[m];
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => { onChange(m); setOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-mono font-medium transition-colors hover:bg-white/5 ${
+                    m === value ? `${c.bg}` : ""
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${c.bg} ${c.border} border`} />
+                  <span className={c.text}>{m}</span>
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 interface ReplayResult {
   status: number;
@@ -239,18 +316,10 @@ export function ReplayModal({ isOpen, onClose, request, capture, orgSlug }: Repl
         <div className="p-4 border-b border-white/10 space-y-2">
           <div className="flex gap-2">
             {isEditing ? (
-              <select
-                value={method}
-                onChange={(e) => setMethod(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-accent/50"
-              >
-                {['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'].map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+              <MethodDropdown value={method} onChange={setMethod} />
             ) : (
-              <div className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white font-mono">
-                {method}
+              <div className={`${(METHOD_COLORS[method] || METHOD_COLORS.GET).bg} border ${(METHOD_COLORS[method] || METHOD_COLORS.GET).border} rounded-lg px-3 py-2.5`}>
+                <MethodBadge method={method} />
               </div>
             )}
             {isEditing ? (
