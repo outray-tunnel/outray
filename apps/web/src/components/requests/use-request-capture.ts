@@ -16,9 +16,19 @@ export function useRequestCapture(
       return;
     }
 
-    const fetchCapture = async () => {
+    let cancelled = false;
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+    let abortController: AbortController | null = null;
+    const maxRetries = 6;
+    const retryDelayMs = 2_000;
+
+    setCapture(null);
+
+    const fetchCapture = async (attempt = 0) => {
       setLoading(true);
       setError(null);
+      abortController = new AbortController();
+      let retryScheduled = false;
 
       try {
         const response = await fetch(`/api/${orgSlug}/requests/capture`, {
@@ -31,10 +41,16 @@ export function useRequestCapture(
             timestamp: request.timestamp,
             requestId: request.request_id,
           }),
+          signal: abortController.signal,
         });
 
         if (!response.ok) {
-          if (response.status === 404) {
+          if (response.status === 404 && attempt < maxRetries) {
+            retryScheduled = true;
+            retryTimeout = setTimeout(() => {
+              void fetchCapture(attempt + 1);
+            }, retryDelayMs);
+          } else if (response.status === 404) {
             setError("Request capture not found");
           } else {
             setError("Failed to fetch request capture");
@@ -43,17 +59,31 @@ export function useRequestCapture(
         }
 
         const data = await response.json();
-        setCapture(data.capture);
+        if (!cancelled) {
+          setCapture(data.capture);
+        }
       } catch (err) {
-        setError("Failed to fetch request capture");
-        console.error("Error fetching request capture:", err);
+        if (!cancelled && !(err instanceof DOMException && err.name === "AbortError")) {
+          setError("Failed to fetch request capture");
+          console.error("Error fetching request capture:", err);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled && !retryScheduled) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchCapture();
-  }, [orgSlug, request?.tunnel_id, request?.timestamp, request?.request_id]);
+    void fetchCapture();
+
+    return () => {
+      cancelled = true;
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+      abortController?.abort();
+    };
+  }, [orgSlug, request]);
 
   return { capture, loading, error };
 }
