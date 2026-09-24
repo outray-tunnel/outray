@@ -97,39 +97,92 @@ export function TunnelRequests({ tunnelId }: TunnelRequestsProps) {
       return;
     }
 
-    const wsUrl = import.meta.env.VITE_TUNNEL_URL;
-    const ws = new WebSocket(`${wsUrl}/dashboard/events?orgId=${activeOrgId}`);
+    let ws: WebSocket | null = null;
+    let cancelled = false;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelayMs = 2_000;
 
-    ws.onopen = () => {
-      wsRef.current = ws;
+    const scheduleReconnect = () => {
+      if (cancelled || reconnectAttempts >= maxReconnectAttempts) return;
+
+      reconnectAttempts += 1;
+      reconnectTimeout = setTimeout(connectWebSocket, reconnectDelayMs);
     };
 
-    ws.onmessage = (event) => {
+    const connectWebSocket = async () => {
+      if (cancelled) return;
+
       try {
-        const message = JSON.parse(event.data);
-        if (message.type === "history") {
-          const tunnelRequests = message.data.filter(
-            (request: TunnelEvent) => request.tunnel_id === tunnelId,
+        const tokenResponse = await fetch("/api/dashboard/ws-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ orgId: activeOrgId }),
+        });
+
+        if (!tokenResponse.ok) {
+          console.error(
+            "Failed to get WebSocket token:",
+            tokenResponse.status,
           );
-          setRequests(tunnelRequests);
-        } else if (message.type === "log") {
-          if (message.data.tunnel_id === tunnelId) {
-            setRequests((prev) => [message.data, ...prev].slice(0, 100));
-          }
+          scheduleReconnect();
+          return;
         }
-      } catch (e) {
-        console.error("Failed to parse WebSocket message", e);
+
+        const { token } = await tokenResponse.json();
+        if (cancelled) return;
+
+        const wsUrl = import.meta.env.VITE_TUNNEL_URL;
+        ws = new WebSocket(`${wsUrl}/dashboard/events?token=${token}`);
+
+        ws.onopen = () => {
+          wsRef.current = ws;
+          reconnectAttempts = 0;
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            if (message.type === "history") {
+              const tunnelRequests = message.data.filter(
+                (request: TunnelEvent) => request.tunnel_id === tunnelId,
+              );
+              setRequests(tunnelRequests);
+            } else if (
+              message.type === "log" &&
+              message.data.tunnel_id === tunnelId
+            ) {
+              setRequests((prev) => [message.data, ...prev].slice(0, 100));
+            }
+          } catch (error) {
+            console.error("Failed to parse WebSocket message", error);
+          }
+        };
+
+        ws.onclose = () => {
+          if (wsRef.current === ws) {
+            wsRef.current = null;
+          }
+          scheduleReconnect();
+        };
+      } catch (error) {
+        console.error("Failed to connect to WebSocket:", error);
+        scheduleReconnect();
       }
     };
 
-    ws.onclose = () => {
-      if (wsRef.current === ws) {
-        wsRef.current = null;
-      }
-    };
+    void connectWebSocket();
 
     return () => {
-      ws.close();
+      cancelled = true;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (ws) {
+        ws.close();
+      }
     };
   }, [activeOrgId, timeRange, tunnelId]);
 
