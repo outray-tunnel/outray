@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { eq } from "drizzle-orm";
+import { db } from "../../../db";
+import { tunnels } from "../../../db/app-schema";
 import { requireOrgFromSlug } from "../../../lib/org";
 import { tigerData } from "../../../lib/timescale";
+import { getTunnelEventIdentifiers } from "../../../lib/tunnel-event-identifiers";
 
 export const Route = createFileRoute("/api/$orgSlug/requests")({
   server: {
@@ -30,6 +34,23 @@ export const Route = createFileRoute("/api/$orgSlug/requests")({
         try {
           const queryParams: any[] = [organizationId, intervalValue];
           let paramIndex = 3;
+          let tunnelIdentifiers: string[] | null = null;
+
+          if (tunnelId) {
+            const [tunnel] = await db
+              .select()
+              .from(tunnels)
+              .where(eq(tunnels.id, tunnelId));
+
+            if (!tunnel || tunnel.organizationId !== organizationId) {
+              return Response.json(
+                { error: "Tunnel not found" },
+                { status: 404 },
+              );
+            }
+
+            tunnelIdentifiers = getTunnelEventIdentifiers(tunnel);
+          }
 
           let query = `
               SELECT 
@@ -51,9 +72,9 @@ export const Route = createFileRoute("/api/$orgSlug/requests")({
                 AND timestamp >= NOW() - $2::interval
           `;
 
-          if (tunnelId) {
-            query += ` AND tunnel_id = $${paramIndex}`;
-            queryParams.push(tunnelId);
+          if (tunnelIdentifiers) {
+            query += ` AND tunnel_id = ANY($${paramIndex}::text[])`;
+            queryParams.push(tunnelIdentifiers);
             paramIndex++;
           }
 
