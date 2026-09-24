@@ -73,6 +73,42 @@ export class TunnelRouter {
         console.log(`Received kill command for tunnel ${tunnelId}`);
         ws.close(1000, "Tunnel stopped by user");
       }
+      return;
+    }
+
+    try {
+      const controlMessage = JSON.parse(message) as {
+        type?: string;
+        organizationId?: string;
+        enabled?: boolean;
+      };
+
+      if (
+        controlMessage.type !== "full_capture_setting" ||
+        !controlMessage.organizationId ||
+        typeof controlMessage.enabled !== "boolean"
+      ) {
+        return;
+      }
+
+      let updatedTunnels = 0;
+      for (const [tunnelId, metadata] of this.tunnelMetadata.entries()) {
+        if (metadata.organizationId !== controlMessage.organizationId) {
+          continue;
+        }
+
+        this.tunnelMetadata.set(tunnelId, {
+          ...metadata,
+          fullCaptureEnabled: controlMessage.enabled,
+        });
+        updatedTunnels += 1;
+      }
+
+      console.log(
+        `Updated full capture setting for ${updatedTunnels} active tunnel(s) in organization ${controlMessage.organizationId}`,
+      );
+    } catch {
+      // Ignore control messages owned by older or unrelated producers.
     }
   }
 
