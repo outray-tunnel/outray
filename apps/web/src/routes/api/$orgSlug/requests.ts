@@ -33,6 +33,7 @@ export const Route = createFileRoute("/api/$orgSlug/requests")({
 
           let query = `
               SELECT 
+                request_id,
                 timestamp,
                 tunnel_id,
                 organization_id,
