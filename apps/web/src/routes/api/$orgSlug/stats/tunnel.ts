@@ -4,6 +4,7 @@ import { db } from "../../../../db";
 import { tunnels } from "../../../../db/app-schema";
 import { requireOrgFromSlug } from "../../../../lib/org";
 import { tigerData } from "../../../../lib/timescale";
+import { getTunnelEventIdentifiers } from "../../../../lib/tunnel-event-identifiers";
 
 export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
   server: {
@@ -36,6 +37,9 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
           return Response.json({ error: "Unauthorized" }, { status: 403 });
         }
 
+        const tunnelIdentifiers = getTunnelEventIdentifiers(tunnel);
+        const organizationId = orgContext.organization.id;
+
         let intervalValue = "24 hours";
         if (timeRange === "1h") {
           intervalValue = "1 hour";
@@ -48,8 +52,11 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
         try {
           // Total requests
           const totalRequestsResult = await tigerData.query(
-            `SELECT COUNT(*) as total FROM tunnel_events WHERE tunnel_id = $1`,
-            [tunnelId],
+            `SELECT COUNT(*) as total
+             FROM tunnel_events
+             WHERE tunnel_id = ANY($1::text[])
+               AND organization_id = $2`,
+            [tunnelIdentifiers, organizationId],
           );
           const totalRequests = parseInt(
             totalRequestsResult.rows[0]?.total || "0",
@@ -59,8 +66,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
           const durationResult = await tigerData.query(
             `SELECT AVG(request_duration_ms) as avg_duration
              FROM tunnel_events
-             WHERE tunnel_id = $1 AND timestamp >= NOW() - $2::interval`,
-            [tunnelId, intervalValue],
+             WHERE tunnel_id = ANY($1::text[])
+               AND organization_id = $2
+               AND timestamp >= NOW() - $3::interval`,
+            [tunnelIdentifiers, organizationId, intervalValue],
           );
           const avgDuration = parseFloat(
             durationResult.rows[0]?.avg_duration || "0",
@@ -69,8 +78,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
           // Total bandwidth
           const bandwidthResult = await tigerData.query(
             `SELECT SUM(bytes_in + bytes_out) as total_bytes
-             FROM tunnel_events WHERE tunnel_id = $1`,
-            [tunnelId],
+             FROM tunnel_events
+             WHERE tunnel_id = ANY($1::text[])
+               AND organization_id = $2`,
+            [tunnelIdentifiers, organizationId],
           );
           const totalBandwidth = parseInt(
             bandwidthResult.rows[0]?.total_bytes || "0",
@@ -79,11 +90,13 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
           // Error rate
           const errorRateResult = await tigerData.query(
             `SELECT 
-               COUNT(*) FILTER (WHERE status_code >= 400) as errors,
+             COUNT(*) FILTER (WHERE status_code >= 400) as errors,
                COUNT(*) as total
              FROM tunnel_events
-             WHERE tunnel_id = $1 AND timestamp >= NOW() - $2::interval`,
-            [tunnelId, intervalValue],
+             WHERE tunnel_id = ANY($1::text[])
+               AND organization_id = $2
+               AND timestamp >= NOW() - $3::interval`,
+            [tunnelIdentifiers, organizationId, intervalValue],
           );
           const errorCount = parseInt(errorRateResult.rows[0]?.errors || "0");
           const totalCount = parseInt(errorRateResult.rows[0]?.total || "0");
@@ -92,7 +105,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
 
           // Chart data
           let chartQuery = "";
-          let chartParams: (string | number)[] = [tunnelId];
+          let chartParams: unknown[] = [tunnelIdentifiers, organizationId];
 
           if (timeRange === "1h") {
             chartQuery = `
@@ -109,7 +122,8 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
                 AVG(e.request_duration_ms) as duration
               FROM times t
               LEFT JOIN tunnel_events e ON time_bucket('1 minute', e.timestamp) = t.time
-                AND e.tunnel_id = $1
+                AND e.tunnel_id = ANY($1::text[])
+                AND e.organization_id = $2
               GROUP BY t.time
               ORDER BY t.time ASC
             `;
@@ -128,7 +142,8 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
                 AVG(e.request_duration_ms) as duration
               FROM times t
               LEFT JOIN tunnel_events e ON time_bucket('1 hour', e.timestamp) = t.time
-                AND e.tunnel_id = $1
+                AND e.tunnel_id = ANY($1::text[])
+                AND e.organization_id = $2
               GROUP BY t.time
               ORDER BY t.time ASC
             `;
@@ -137,7 +152,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
             chartQuery = `
               WITH times AS (
                 SELECT generate_series(
-                  time_bucket('1 day', NOW()) - $2::interval,
+                  time_bucket('1 day', NOW()) - $3::interval,
                   time_bucket('1 day', NOW()),
                   '1 day'::interval
                 ) AS time
@@ -148,11 +163,16 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
                 AVG(e.request_duration_ms) as duration
               FROM times t
               LEFT JOIN tunnel_events e ON time_bucket('1 day', e.timestamp) = t.time
-                AND e.tunnel_id = $1
+                AND e.tunnel_id = ANY($1::text[])
+                AND e.organization_id = $2
               GROUP BY t.time
               ORDER BY t.time ASC
             `;
-            chartParams = [tunnelId, `${days} days`];
+            chartParams = [
+              tunnelIdentifiers,
+              organizationId,
+              `${days} days`,
+            ];
           }
 
           const chartResult = await tigerData.query(chartQuery, chartParams);
@@ -168,10 +188,11 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
                request_duration_ms,
                bytes_in + bytes_out as size
              FROM tunnel_events
-             WHERE tunnel_id = $1
+             WHERE tunnel_id = ANY($1::text[])
+               AND organization_id = $2
              ORDER BY timestamp DESC
              LIMIT 50`,
-            [tunnelId],
+            [tunnelIdentifiers, organizationId],
           );
           const requests = requestsResult.rows;
 
