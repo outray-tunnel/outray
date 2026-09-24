@@ -1,0 +1,62 @@
+{
+  "name": "@outray/hono",
+  "version": "0.1.0",
+  "description": "Hono request tracing and safe HTTP payload capture for OutRay",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --sourcemap --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --sourcemap --watch",
+    "test": "tsx --test test/*.test.ts",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "outray",
+    "hono",
+    "bun",
+    "opentelemetry",
+    "observability",
+    "tracing"
+  ],
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@outray/core": "^0.0.5",
+    "@outray/observability": "^0.1.1"
+  },
+  "peerDependencies": {
+    "hono": ">=4.0.0 <5.0.0"
+  },
+  "devDependencies": {
+    "@opentelemetry/context-async-hooks": "^2.11.0",
+    "@opentelemetry/sdk-trace-base": "^2.11.0",
+    "@types/node": "^22.0.0",
+    "hono": "^4.13.8",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "author": "xt42io",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/outray-tunnel/outray.git",
+    "directory": "packages/hono"
+  },
+  "homepage": "https://outray.dev"
+}
