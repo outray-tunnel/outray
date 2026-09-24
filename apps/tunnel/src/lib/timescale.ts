@@ -3,6 +3,21 @@ import { config } from "../config";
 
 const { Pool } = pg;
 
+// Timescale stores per-row retention in SMALLINT columns. Internal plans can
+// represent "unlimited" with a much larger sentinel, so normalize at the
+// persistence boundary instead of allowing one event to reject an entire
+// batch. 32,767 days is effectively unlimited while remaining valid SMALLINT.
+const MAX_PERSISTED_RETENTION_DAYS = 32_767;
+
+export function normalizeRetentionDays(retentionDays: number): number {
+  if (!Number.isFinite(retentionDays)) return 3;
+
+  return Math.min(
+    MAX_PERSISTED_RETENTION_DAYS,
+    Math.max(1, Math.trunc(retentionDays)),
+  );
+}
+
 export const pool = new Pool({
   connectionString: config.timeScaleUrl,
   ssl: config.timeScaleUrl?.includes("sslmode=require")
@@ -101,7 +116,7 @@ class TimescaleDBLogger {
           new Date(event.timestamp),
           event.tunnel_id,
           event.organization_id,
-          event.retention_days,
+          normalizeRetentionDays(event.retention_days),
           event.host,
           event.method,
           event.path,
@@ -176,7 +191,7 @@ class RequestCaptureLogger {
           new Date(capture.timestamp),
           capture.tunnel_id,
           capture.organization_id,
-          capture.retention_days,
+          normalizeRetentionDays(capture.retention_days),
           JSON.stringify(capture.request_headers),
           capture.request_body,
           capture.request_body_size,
@@ -363,7 +378,7 @@ class ProtocolLogger {
           new Date(event.timestamp),
           event.tunnel_id,
           event.organization_id,
-          event.retention_days,
+          normalizeRetentionDays(event.retention_days),
           event.protocol,
           event.event_type,
           event.connection_id,

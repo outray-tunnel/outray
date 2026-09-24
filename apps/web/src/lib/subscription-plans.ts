@@ -85,7 +85,9 @@ export const SUBSCRIPTION_PLANS = {
       maxSubdomains: 999999999,
       maxMembers: 999999999,
       bandwidthPerMonth: 1024 * 1024 * 1024 * 1024 * 1024, // 1PB
-      retentionDays: 999999999,
+      // Stored in Timescale SMALLINT columns. 32,767 days (~89 years) is the
+      // database-safe representation of effectively unlimited retention.
+      retentionDays: 32_767,
       customDomains: true,
       prioritySupport: true,
     },
