@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Activity03Icon from "@hugeicons-pro/core-stroke-rounded/Activity03Icon";
 import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
 import { appClient } from "@/lib/app-client";
 import { authClient } from "@/lib/auth-client";
-import { getHttpMethodColor } from "@/components/requests";
+import { useFeatureFlag } from "@/lib/feature-flags";
+import {
+  getHttpMethodColor,
+  RequestInspectorDrawer,
+  type TunnelEvent,
+} from "@/components/requests";
 import { TimeRangeControl } from "@/components/observability/observability-ui";
 
 function formatBytes(bytes: number): string {
@@ -17,21 +23,6 @@ function formatBytes(bytes: number): string {
     return `${(bytes / 1_024).toFixed(1)} KB`;
   }
   return `${bytes} B`;
-}
-
-interface TunnelEvent {
-  timestamp: number;
-  tunnel_id: string;
-  organization_id: string;
-  host: string;
-  method: string;
-  path: string;
-  status_code: number;
-  request_duration_ms: number;
-  bytes_in: number;
-  bytes_out: number;
-  client_ip: string;
-  user_agent: string;
 }
 
 interface TunnelRequestsProps {
@@ -53,10 +44,29 @@ export function TunnelRequests({ tunnelId }: TunnelRequestsProps) {
   const [requests, setRequests] = useState<TunnelEvent[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>("live");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<TunnelEvent | null>(
+    null,
+  );
   const { orgSlug } = useParams({ from: "/$orgSlug/tunnels/$tunnelId" });
   const { data: organizations = [] } = authClient.useListOrganizations();
   const activeOrgId = organizations?.find((org) => org.slug === orgSlug)?.id;
   const wsRef = useRef<WebSocket | null>(null);
+  const inspectorEnabled = useFeatureFlag("request_inspector");
+  const fullCaptureFeatureEnabled = useFeatureFlag("full_capture");
+
+  const { data: orgSettings } = useQuery({
+    queryKey: ["org-settings", orgSlug],
+    queryFn: async () => {
+      const response = await appClient.settings.get(orgSlug);
+      if ("error" in response) throw new Error(response.error);
+      return response;
+    },
+    enabled: !!orgSlug,
+  });
+
+  const fullCaptureEnabled =
+    fullCaptureFeatureEnabled &&
+    (orgSettings?.fullCaptureEnabled ?? false);
 
   const fetchHistoricalRequests = useCallback(
     async (range: TimeRange) => {
@@ -282,7 +292,8 @@ export function TunnelRequests({ tunnelId }: TunnelRequestsProps) {
                 filteredRequests.map((req, i) => (
                   <tr
                     key={`${req.tunnel_id}-${req.timestamp}-${i}`}
-                    className="group transition-colors hover:bg-white/[0.025]"
+                    onClick={() => inspectorEnabled && setSelectedRequest(req)}
+                    className={`group transition-colors hover:bg-white/[0.025] ${inspectorEnabled ? "cursor-pointer" : ""}`}
                   >
                     <td className="px-4 py-3.5">
                       <span
@@ -333,6 +344,13 @@ export function TunnelRequests({ tunnelId }: TunnelRequestsProps) {
           </table>
         </div>
       </div>
+
+      <RequestInspectorDrawer
+        request={selectedRequest}
+        onClose={() => setSelectedRequest(null)}
+        fullCaptureEnabled={fullCaptureEnabled}
+        orgSlug={orgSlug}
+      />
     </div>
   );
 }
