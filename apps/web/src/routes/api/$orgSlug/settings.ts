@@ -3,6 +3,25 @@ import { eq } from "drizzle-orm";
 import { db } from "../../../db";
 import { organizationSettings } from "../../../db/app-schema";
 import { requireOrgFromSlug } from "../../../lib/org";
+import { redis } from "../../../lib/redis";
+
+async function publishFullCaptureSetting(
+  organizationId: string,
+  enabled: boolean,
+) {
+  try {
+    await redis.publish(
+      "tunnel:control",
+      JSON.stringify({
+        type: "full_capture_setting",
+        organizationId,
+        enabled,
+      }),
+    );
+  } catch (error) {
+    console.error("Failed to publish full capture setting:", error);
+  }
+}
 
 export const Route = createFileRoute("/api/$orgSlug/settings")({
   server: {
@@ -18,9 +37,13 @@ export const Route = createFileRoute("/api/$orgSlug/settings")({
             where: eq(organizationSettings.organizationId, organization.id),
           });
 
-          return Response.json({
-            fullCaptureEnabled: settings?.fullCaptureEnabled ?? false,
-          });
+          const fullCaptureEnabled = settings?.fullCaptureEnabled ?? false;
+          await publishFullCaptureSetting(
+            organization.id,
+            fullCaptureEnabled,
+          );
+
+          return Response.json({ fullCaptureEnabled });
         } catch (error) {
           console.error("Error fetching organization settings:", error);
           return Response.json(
@@ -59,6 +82,11 @@ export const Route = createFileRoute("/api/$orgSlug/settings")({
                 fullCaptureEnabled,
               },
             });
+
+          await publishFullCaptureSetting(
+            organization.id,
+            fullCaptureEnabled,
+          );
 
           return Response.json({ success: true, fullCaptureEnabled });
         } catch (error) {
