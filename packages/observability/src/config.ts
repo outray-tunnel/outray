@@ -26,6 +26,8 @@ export interface OutrayObservabilityOptions {
   enabled?: boolean;
   /** Enable OpenTelemetry diagnostic output. Off by default. */
   diagnostics?: "none" | "error" | "warn" | "info" | "debug";
+  /** Capture console.debug/info/log/warn/error while preserving local output. */
+  captureConsole?: boolean;
 }
 
 export interface ResolvedOutrayObservabilityOptions {
@@ -40,6 +42,7 @@ export interface ResolvedOutrayObservabilityOptions {
   headers: Record<string, string>;
   metricExportIntervalMillis: number;
   diagnostics: NonNullable<OutrayObservabilityOptions["diagnostics"]>;
+  captureConsole: boolean;
 }
 
 function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
@@ -149,5 +152,7 @@ export function resolveOutrayObservabilityOptions(
     headers: exporterHeaders(options.headers, apiKey ?? ""),
     metricExportIntervalMillis,
     diagnostics: options.diagnostics ?? "none",
+    captureConsole:
+      options.captureConsole ?? parseBoolean(env.OUTRAY_CAPTURE_CONSOLE, false),
   };
 }
