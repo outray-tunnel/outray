@@ -13,10 +13,32 @@ import {
 import {
   getOutrayTracer,
   startOutrayObservability,
+  type OutrayLogMethods,
   type OutrayObservability,
   type OutrayObservabilityOptions,
 } from "@outray/observability";
-import type { Context, MiddlewareHandler } from "hono";
+import packageMetadata from "../package.json" with { type: "json" };
+
+const OUTRAY_HONO_VERSION = packageMetadata.version;
+
+/**
+ * The small portion of Hono's context contract used by this adapter.
+ * Keeping this structural prevents Hono patch releases from creating
+ * incompatible private request types in consuming applications.
+ */
+export interface OutrayHonoContext {
+  req: {
+    raw: Request;
+    routePath: string;
+  };
+  res: Response;
+}
+
+export type OutrayHonoNext = () => Promise<void>;
+export type OutrayHonoMiddleware = (
+  context: OutrayHonoContext,
+  next: OutrayHonoNext,
+) => Promise<void>;
 
 const UUID_SEGMENT =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -25,7 +47,7 @@ const LONG_HEX_SEGMENT = /^[0-9a-f]{16,}$/i;
 const ULID_SEGMENT = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
 
 export interface OutrayHonoRequestContext {
-  context: Context;
+  context: OutrayHonoContext;
   request: Request;
   pathname: string;
 }
@@ -45,8 +67,8 @@ export interface OutrayHonoOptions
   extends OutrayObservabilityOptions,
     OutrayHonoRequestOptions {}
 
-export interface OutrayHonoRegistration {
-  middleware: MiddlewareHandler;
+export interface OutrayHonoRegistration extends OutrayLogMethods {
+  middleware: OutrayHonoMiddleware;
   observability: OutrayObservability;
 }
 
@@ -123,8 +145,8 @@ async function captureResponseSafely(
 }
 
 async function runInstrumentedRequest(
-  context: Context,
-  next: () => Promise<void>,
+  context: OutrayHonoContext,
+  next: OutrayHonoNext,
   options: OutrayHonoRequestOptions,
   span: Span,
   pathname: string,
@@ -163,8 +185,8 @@ async function runInstrumentedRequest(
  */
 export function createOutrayHonoMiddleware(
   options: OutrayHonoRequestOptions = {},
-): MiddlewareHandler {
-  const tracer = getOutrayTracer("@outray/hono", "0.1.0");
+): OutrayHonoMiddleware {
+  const tracer = getOutrayTracer("@outray/hono", OUTRAY_HONO_VERSION);
 
   return async (context, next) => {
     const request = context.req.raw;
@@ -234,7 +256,14 @@ export function outray(options: OutrayHonoOptions): OutrayHonoRegistration {
     routeResolver,
     ignore,
   });
-  return { middleware, observability };
+  return {
+    middleware,
+    observability,
+    debug: observability.debug,
+    error: observability.error,
+    info: observability.info,
+    warn: observability.warn,
+  };
 }
 
 /** Add a meaningful application operation to the currently active trace. */
@@ -243,7 +272,7 @@ export async function withOutraySpan<TResult>(
   operation: (span: Span) => TResult | Promise<TResult>,
   options: OutrayChildSpanOptions = {},
 ): Promise<TResult> {
-  const tracer = getOutrayTracer("@outray/hono", "0.1.0");
+  const tracer = getOutrayTracer("@outray/hono", OUTRAY_HONO_VERSION);
   return tracer.startActiveSpan(
     name,
     { attributes: options.attributes },
