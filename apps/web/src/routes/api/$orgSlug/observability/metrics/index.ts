@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { queryObservabilityServiceNames } from "@/lib/observability-services";
 import { requireOrgFromSlug } from "@/lib/org";
 import { queryTinybird } from "@/lib/tinybird";
 
@@ -67,14 +68,14 @@ export const Route = createFileRoute("/api/$orgSlug/observability/metrics/")({
         const organizationId = orgResult.organization.id;
 
         try {
-          const catalog = await queryTinybird<MetricCatalogRow>(
-            "metric_catalog",
-            {
+          const [catalog, services] = await Promise.all([
+            queryTinybird<MetricCatalogRow>("metric_catalog", {
               organization_id: organizationId,
               hours,
               limit: 500,
-            },
-          );
+            }),
+            queryObservabilityServiceNames(organizationId),
+          ]);
           const selectedRow =
             catalog.find((item) => item.metric_key === requestedMetricKey) ||
             catalog[0];
@@ -83,7 +84,7 @@ export const Route = createFileRoute("/api/$orgSlug/observability/metrics/")({
             return Response.json({
               metrics: [],
               selectedMetric: null,
-              services: [],
+              services,
               points: [],
               breakdown: [],
               range,
@@ -135,7 +136,7 @@ export const Route = createFileRoute("/api/$orgSlug/observability/metrics/")({
             selectedMetric:
               metrics.find((item) => item.key === selectedRow.metric_key) ||
               null,
-            services: breakdown.map((item) => item.service),
+            services,
             points: series
               .filter((item) => isFiniteMetricValue(item.value))
               .map((item) => ({
