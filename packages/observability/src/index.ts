@@ -1,5 +1,4 @@
 import {
-  DiagConsoleLogger,
   DiagLogLevel,
   SpanKind,
   SpanStatusCode,
@@ -34,6 +33,11 @@ import {
   type OutrayObservabilityOptions,
   type ResolvedOutrayObservabilityOptions,
 } from "./config";
+import {
+  captureConsoleLogs,
+  createOutrayLogMethods,
+  type OutrayLogMethods,
+} from "./logging";
 
 export {
   DEFAULT_OUTRAY_OTLP_ENDPOINT,
@@ -44,8 +48,13 @@ export type {
   OutrayObservabilityOptions,
   ResolvedOutrayObservabilityOptions,
 } from "./config";
+export type {
+  OutrayLogLevel,
+  OutrayLogMethod,
+  OutrayLogMethods,
+} from "./logging";
 
-export interface OutrayObservability {
+export interface OutrayObservability extends OutrayLogMethods {
   readonly config: Readonly<ResolvedOutrayObservabilityOptions>;
   readonly tracer: Tracer;
   readonly meter: Meter;
@@ -149,7 +158,7 @@ function configureNodeSpan(
 export function createOutrayNodeHttpMiddleware(
   options: OutrayNodeHttpMiddlewareOptions = {},
 ): OutrayNodeHttpMiddleware {
-  const tracer = getOutrayTracer("@outray/node-http-middleware", "0.1.1");
+  const tracer = getOutrayTracer("@outray/node-http-middleware", "0.1.2");
 
   return (request, response, next) => {
     try {
@@ -223,7 +232,18 @@ function configureDiagnostics(
     info: DiagLogLevel.INFO,
     debug: DiagLogLevel.DEBUG,
   };
-  diag.setLogger(new DiagConsoleLogger(), levels[level]);
+  // Bind the original functions before console interception is installed. This
+  // keeps OpenTelemetry's own diagnostics from being exported as user logs.
+  diag.setLogger(
+    {
+      debug: console.debug.bind(console),
+      error: console.error.bind(console),
+      info: console.info.bind(console),
+      verbose: console.debug.bind(console),
+      warn: console.warn.bind(console),
+    },
+    levels[level],
+  );
 }
 
 function resourceAttributes(
@@ -242,7 +262,7 @@ function resourceAttributes(
       ? { "deployment.environment.name": options.environment }
       : {}),
     "telemetry.distro.name": "outray",
-    "telemetry.distro.version": "0.1.1",
+    "telemetry.distro.version": "0.1.2",
   };
 }
 
@@ -262,14 +282,19 @@ export function startOutrayObservability(
   configureDiagnostics(config.diagnostics);
 
   if (!config.enabled) {
+    const logger = logs.getLogger(config.serviceName, config.serviceVersion);
+    const logMethods = createOutrayLogMethods(logger);
     const disabled: OutrayObservability = {
+      ...logMethods,
       config,
       tracer: trace.getTracer(config.serviceName, config.serviceVersion),
       meter: metrics.getMeter(config.serviceName, config.serviceVersion),
-      logger: logs.getLogger(config.serviceName, config.serviceVersion),
+      logger,
       started: false,
       async forceFlush() {},
-      async shutdown() {},
+      async shutdown() {
+        if (activeInstance === disabled) activeInstance = undefined;
+      },
     };
     activeInstance = disabled;
     return disabled;
@@ -316,12 +341,24 @@ export function startOutrayObservability(
   });
   sdk.start();
 
+  const logger = logs.getLogger(config.serviceName, config.serviceVersion);
+  const logMethods = createOutrayLogMethods(logger);
+  const restoreConsole = config.captureConsole
+    ? captureConsoleLogs(logger)
+    : () => {};
+  let consoleRestored = false;
+  const restoreConsoleOnce = () => {
+    if (consoleRestored) return;
+    consoleRestored = true;
+    restoreConsole();
+  };
   let shutdownPromise: Promise<void> | undefined;
   const instance: OutrayObservability = {
+    ...logMethods,
     config,
     tracer: trace.getTracer(config.serviceName, config.serviceVersion),
     meter: metrics.getMeter(config.serviceName, config.serviceVersion),
-    logger: logs.getLogger(config.serviceName, config.serviceVersion),
+    logger,
     started: true,
     async forceFlush() {
       await Promise.all([
@@ -331,7 +368,14 @@ export function startOutrayObservability(
       ]);
     },
     shutdown() {
-      shutdownPromise ??= sdk.shutdown();
+      shutdownPromise ??= (async () => {
+        restoreConsoleOnce();
+        try {
+          await sdk.shutdown();
+        } finally {
+          if (activeInstance === instance) activeInstance = undefined;
+        }
+      })();
       return shutdownPromise;
     },
   };
@@ -366,3 +410,20 @@ export function getOutrayLogger(name?: string, version?: string): Logger {
     version ?? config?.serviceVersion,
   );
 }
+
+/**
+ * Application logger backed by the active OutRay instance. Before OutRay is
+ * initialized it behaves like console, so logging never blocks startup.
+ */
+export const outray: OutrayLogMethods = {
+  debug: (...args) =>
+    activeInstance ? activeInstance.debug(...args) : console.debug(...args),
+  error: (...args) =>
+    activeInstance ? activeInstance.error(...args) : console.error(...args),
+  info: (...args) =>
+    activeInstance ? activeInstance.info(...args) : console.info(...args),
+  warn: (...args) =>
+    activeInstance ? activeInstance.warn(...args) : console.warn(...args),
+};
+
+export default outray;
