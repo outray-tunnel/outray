@@ -22,6 +22,7 @@ const telemetry = outray({
   serviceName: "orders-api",
   serviceVersion: process.env.GIT_COMMIT_SHA,
   environment: process.env.NODE_ENV,
+  captureConsole: true,
   capturePayloads: {
     maxBodyBytes: 16 * 1024,
   },
@@ -35,6 +36,18 @@ app.get("/orders/:orderId", async (context) => {
 
 export default app
 ```
+
+The returned object also exposes first-class logging methods:
+
+```ts
+telemetry.info("order created", { orderId })
+telemetry.error("order failed", error, { orderId })
+```
+
+With `captureConsole: true`, existing `console.debug`, `console.info`,
+`console.log`, `console.warn`, and `console.error` calls are sent to OutRay too,
+without removing their normal process output. Console capture is opt-in and is
+restored when `telemetry.observability.shutdown()` runs.
 
 Pass the token from a server-only secret provider and do not commit it to source
 control. `OPTIONS` requests and `/health` are ignored by default. Hono's matched
