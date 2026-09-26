@@ -38,10 +38,7 @@ test("exports traces, logs, and metrics to OutRay-compatible OTLP endpoints", as
   });
 
   observability.tracer.startSpan("checkout").end();
-  observability.logger.emit({
-    severityText: "INFO",
-    body: "checkout accepted",
-  });
+  observability.info("checkout accepted", { orderId: "order_123" });
   observability.meter.createCounter("checkouts").add(1);
 
   await observability.forceFlush();
