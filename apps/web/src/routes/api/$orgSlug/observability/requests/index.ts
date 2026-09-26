@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { queryObservabilityServiceNames } from "@/lib/observability-services";
 import { requireOrgFromSlug } from "@/lib/org";
 import { queryTinybird } from "@/lib/tinybird";
 
@@ -87,7 +88,7 @@ export const Route = createFileRoute("/api/$orgSlug/observability/requests/")({
         const organizationId = orgResult.organization.id;
 
         try {
-          const [rows, statistics, facets] = await Promise.all([
+          const [rows, statistics, facets, services] = await Promise.all([
             queryTinybird<HttpRequestRow>("http_requests", {
               organization_id: organizationId,
               hours,
@@ -116,6 +117,9 @@ export const Route = createFileRoute("/api/$orgSlug/observability/requests/")({
                   hours,
                 })
               : Promise.resolve([] as HttpRequestFacetRow[]),
+            includeFacets
+              ? queryObservabilityServiceNames(organizationId)
+              : Promise.resolve([] as string[]),
           ]);
 
           const requests = rows.map(mapRequestRow);
@@ -137,7 +141,7 @@ export const Route = createFileRoute("/api/$orgSlug/observability/requests/")({
             },
             ...(includeFacets
               ? {
-                  services: facetValues(facets, "service"),
+                  services,
                   methods: facetValues(facets, "method"),
                 }
               : {}),
