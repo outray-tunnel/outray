@@ -15,6 +15,7 @@ test("resolves the OutRay environment contract without exposing credentials", ()
       OTEL_SERVICE_VERSION: "2.1.0",
       OTEL_SERVICE_NAMESPACE: "payments",
       NODE_ENV: "staging",
+      OUTRAY_CAPTURE_CONSOLE: "true",
     },
   );
 
@@ -26,10 +27,25 @@ test("resolves the OutRay environment contract without exposing credentials", ()
   assert.equal(resolved.headers.Authorization, "Bearer secret-token");
   assert.equal(resolved.headers.authorization, undefined);
   assert.equal(resolved.headers["x-tenant"], "test");
+  assert.equal(resolved.captureConsole, true);
   assert.equal(
     signalEndpoint(resolved.endpoint, "logs"),
     "https://ingest.example.test/base/v1/logs",
   );
+});
+
+test("captureConsole stays off by default and an in-code option takes precedence", () => {
+  const defaults = resolveOutrayObservabilityOptions(
+    { apiKey: "token", serviceName: "api" },
+    {},
+  );
+  assert.equal(defaults.captureConsole, false);
+
+  const overridden = resolveOutrayObservabilityOptions(
+    { apiKey: "token", serviceName: "api", captureConsole: false },
+    { OUTRAY_CAPTURE_CONSOLE: "true" },
+  );
+  assert.equal(overridden.captureConsole, false);
 });
 
 test("fails closed when enabled configuration is incomplete", () => {
