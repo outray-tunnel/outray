@@ -1,6 +1,6 @@
 {
   "name": "@outray/observability",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "OpenTelemetry SDK for sending Node.js traces, logs, and metrics to OutRay",
   "type": "module",
   "main": "dist/index.cjs",
