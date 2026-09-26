@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { queryObservabilityServiceNames } from "@/lib/observability-services";
 import { requireOrgFromSlug } from "@/lib/org";
 import { queryTinybird } from "@/lib/tinybird";
 
@@ -24,10 +25,6 @@ interface LogRow {
   attributes: Record<string, string>;
   resource_attributes: Record<string, string>;
   scope_attributes: Record<string, string>;
-}
-
-interface LogServiceRow {
-  service: string;
 }
 
 const RANGE_HOURS: Record<string, number> = {
@@ -73,10 +70,7 @@ export const Route = createFileRoute("/api/$orgSlug/observability/logs/")({
               level,
               limit,
             }),
-            queryTinybird<LogServiceRow>("log_services", {
-              organization_id: organizationId,
-              hours: Math.max(hours, 24),
-            }),
+            queryObservabilityServiceNames(organizationId),
           ]);
 
           return Response.json({
@@ -103,7 +97,7 @@ export const Route = createFileRoute("/api/$orgSlug/observability/logs/")({
               resourceAttributes: log.resource_attributes,
               scopeAttributes: log.scope_attributes,
             })),
-            services: services.map((item) => item.service).filter(Boolean),
+            services,
             range,
           });
         } catch (error) {
