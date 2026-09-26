@@ -1,0 +1,62 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Lists services seen in traces, logs, or metrics for one OutRay organization.
+
+NODE service_name_trace_rows
+SQL >
+    %
+    SELECT
+        toString(ServiceName) AS service,
+        max(Timestamp) AS last_seen
+    FROM otel_spans FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 720)}} HOUR
+      AND notEmpty(ServiceName)
+    GROUP BY ServiceName
+
+NODE service_name_log_rows
+SQL >
+    %
+    SELECT
+        toString(ServiceName) AS service,
+        max(Timestamp) AS last_seen
+    FROM otel_logs FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 720)}} HOUR
+      AND notEmpty(ServiceName)
+    GROUP BY ServiceName
+
+NODE service_name_metric_rows
+SQL >
+    %
+    SELECT
+        toString(ServiceName) AS service,
+        max(Timestamp) AS last_seen
+    FROM otel_metrics FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+      AND Timestamp >= now() - INTERVAL {{Int32(hours, 720)}} HOUR
+      AND notEmpty(ServiceName)
+    GROUP BY ServiceName
+
+NODE service_name_combined_rows
+SQL >
+    %
+    SELECT * FROM service_name_trace_rows
+    UNION ALL
+    SELECT * FROM service_name_log_rows
+    UNION ALL
+    SELECT * FROM service_name_metric_rows
+
+NODE services
+SQL >
+    %
+    SELECT
+        service,
+        max(last_seen) AS last_seen
+    FROM service_name_combined_rows
+    GROUP BY service
+    ORDER BY service ASC
+    LIMIT {{Int32(limit, 250)}}
+
+TYPE endpoint
