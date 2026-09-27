@@ -1,59 +1,65 @@
 {
-    "name": "@outray/nest",
-    "version": "0.0.4",
-    "description": "NestJS plugin to automatically expose your dev server via Outray tunnel",
-    "main": "dist/index.js",
-    "module": "dist/index.mjs",
-    "types": "dist/index.d.ts",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js"
-        }
-    },
-    "files": [
-        "dist"
-    ],
-    "scripts": {
-        "build": "tsup",
-        "dev": "tsup --watch",
-        "test": "tsx --test test/*.test.ts",
-        "prepublishOnly": "npm run build"
-    },
-    "keywords": [
-        "nestjs",
-        "nest",
-        "tunnel",
-        "outray",
-        "localhost",
-        "development"
-    ],
-    "peerDependencies": {
-        "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0",
-        "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0"
-    },
-    "dependencies": {
-        "@outray/core": "^0.0.5",
-        "@outray/observability": "^0.1.1"
-    },
-    "devDependencies": {
-        "@nestjs/common": "^11.1.12",
-        "@nestjs/core": "^11.1.12",
-        "@types/node": "^25.0.10",
-        "rxjs": "^7.8.2",
-        "tsx": "^4.20.0",
-        "tsup": "^8.5.1",
-        "typescript": "^5.9.3"
-    },
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/akinloluwami/outray.git",
-        "directory": "packages/nestjs-plugin"
-    },
-    "homepage": "https://outray.dev",
-    "bugs": {
-        "url": "https://github.com/akinloluwami/outray/issues"
+  "name": "@outray/nest",
+  "version": "0.0.5",
+  "description": "NestJS tunnels and OpenTelemetry observability for OutRay",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "tsx --test test/*.test.ts",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "nestjs",
+    "nest",
+    "tunnel",
+    "outray",
+    "localhost",
+    "development",
+    "observability",
+    "opentelemetry",
+    "tracing",
+    "metrics"
+  ],
+  "peerDependencies": {
+    "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0",
+    "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0"
+  },
+  "dependencies": {
+    "@outray/core": "^0.0.5",
+    "@outray/observability": "^0.1.4"
+  },
+  "devDependencies": {
+    "@nestjs/common": "^11.1.12",
+    "@nestjs/core": "^11.1.12",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/sdk-metrics": "^2.11.0",
+    "@types/node": "^25.0.10",
+    "rxjs": "^7.8.2",
+    "tsx": "^4.20.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akinloluwami/outray.git",
+    "directory": "packages/nestjs-plugin"
+  },
+  "homepage": "https://outray.dev",
+  "bugs": {
+    "url": "https://github.com/akinloluwami/outray/issues"
+  }
 }
