@@ -189,7 +189,6 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
         `${basePath}/requests`,
         `${basePath}/subdomains`,
         `${basePath}/domains`,
-        `${basePath}/install`,
       ];
 
       return tunnelPaths.some((path) =>
