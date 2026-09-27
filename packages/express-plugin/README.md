@@ -13,21 +13,21 @@ npm install @outray/express
 ### Basic Usage
 
 ```typescript
-import express from 'express'
-import outray from '@outray/express'
+import express from "express";
+import outray from "@outray/express";
 
-const app = express()
+const app = express();
 
 // Apply Outray middleware
-outray(app)
+outray(app);
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
 
 app.listen(3000, () => {
-  console.log('Server running on port 3000')
-})
+  console.log("Server running on port 3000");
+});
 ```
 
 When you start your server in development mode, you'll see:
@@ -40,20 +40,20 @@ Server running on port 3000
 ### With Options
 
 ```typescript
-import express from 'express'
-import outray from '@outray/express'
+import express from "express";
+import outray from "@outray/express";
 
-const app = express()
+const app = express();
 
 outray(app, {
-  subdomain: 'my-app',
+  subdomain: "my-app",
   apiKey: process.env.OUTRAY_API_KEY,
   onTunnelReady: (url) => {
-    console.log('Tunnel ready at:', url)
-  }
-})
+    console.log("Tunnel ready at:", url);
+  },
+});
 
-app.listen(3000)
+app.listen(3000);
 ```
 
 ### Observability
@@ -62,27 +62,30 @@ Register telemetry in code before your routes. No `NODE_OPTIONS` preloader or
 OpenTelemetry environment-variable names are required:
 
 ```typescript
-import express from 'express'
-import outray, { registerOutrayObservability } from '@outray/express'
+import express from "express";
+import outray, { registerOutrayObservability } from "@outray/express";
 
-const app = express()
+const app = express();
 
-registerOutrayObservability(app, {
-  apiKey: 'outray_your_observability_token',
-  serviceName: 'orders-api',
-  environment: 'production',
+const telemetry = registerOutrayObservability(app, {
+  apiKey: "outray_your_observability_token",
+  serviceName: "orders-api",
+  environment: "production",
+  captureConsole: true,
   capturePayloads: {
     maxBodyBytes: 16 * 1024,
-    redactedHeaders: ['x-workspace-secret'],
-    redactedFields: ['accountPin'],
+    redactedHeaders: ["x-workspace-secret"],
+    redactedFields: ["accountPin"],
   },
-})
+});
 
-app.use(express.json())
-app.post('/orders', createOrder)
+telemetry.info("orders API started");
+
+app.use(express.json());
+app.post("/orders", createOrder);
 
 // Optional development tunnel; telemetry is independent from it.
-outray(app)
+outray(app);
 ```
 
 Pass the token directly as shown, but do not commit a real token to source
@@ -91,6 +94,16 @@ server-only secret provider. Request spans, logs, and metrics are initialized
 by the adapter. Payload capture is optional and request streams are never
 consumed; parsed bodies become available after a body parser such as
 `express.json()` populates `request.body`.
+
+Every instrumented request records `http.server.request.count`,
+`http.server.request.duration`, and `http.server.active_requests`. The returned
+object exposes `debug`, `info`, `warn`, and `error`. Use `withOutraySpan` from
+`@outray/express` for application operations that need a child span inside the
+current request trace.
+
+`captureConsole: true` also sends existing `console.debug`, `console.info`,
+`console.log`, `console.warn`, and `console.error` calls while preserving their
+normal local output.
 
 Only JSON, `application/*+json`, and URL-encoded form bodies are eligible.
 Authorization, cookies, tokens, passwords, secrets, and API/private keys are
@@ -104,34 +117,34 @@ and streaming bodies are not captured.
 interface OutrayPluginOptions {
   /** Subdomain to use (requires authentication) */
   subdomain?: string;
-  
+
   /** Custom domain (must be configured in dashboard) */
   customDomain?: string;
-  
+
   /** API key for authentication */
   apiKey?: string;
-  
+
   /** Outray server URL */
   serverUrl?: string;
-  
+
   /** Enable/disable tunnel (default: true in development) */
   enabled?: boolean;
-  
+
   /** Suppress logs */
   silent?: boolean;
 
   /** Opt-in OpenTelemetry payload capture (default: false) */
   capturePayloads?: boolean | HttpPayloadCaptureOptions;
-  
+
   /** Callback when tunnel is ready */
   onTunnelReady?: (url: string) => void;
-  
+
   /** Callback on error */
   onError?: (error: Error) => void;
-  
+
   /** Callback on reconnecting */
   onReconnecting?: () => void;
-  
+
   /** Callback on close */
   onClose?: () => void;
 }
