@@ -1,7 +1,7 @@
 {
   "name": "@outray/next",
-  "version": "0.0.6",
-  "description": "Next.js plugin to automatically expose your dev server via Outray tunnel",
+  "version": "0.0.7",
+  "description": "Next.js tunnels and OpenTelemetry observability for OutRay",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -24,7 +24,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "tsx --test test/*.test.ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
     "next",
@@ -34,17 +34,24 @@
     "outray",
     "ngrok",
     "localhost",
-    "development"
+    "development",
+    "observability",
+    "opentelemetry",
+    "tracing",
+    "metrics"
   ],
   "peerDependencies": {
     "next": "^13.0.0 || ^14.0.0 || ^15.0.0 || ^16.0.0"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
     "@outray/core": "^0.0.5",
-    "@outray/observability": "^0.1.1"
+    "@outray/observability": "^0.1.4"
   },
   "devDependencies": {
-    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/context-async-hooks": "^2.11.0",
+    "@opentelemetry/sdk-metrics": "^2.11.0",
+    "@opentelemetry/sdk-trace-base": "^2.11.0",
     "@types/node": "^22.0.0",
     "next": "^16.0.0",
     "tsx": "^4.20.0",
