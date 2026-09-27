@@ -1,21 +1,20 @@
-const DEFAULT_DASHBOARD_URL = "https://beta.outray.dev";
-
-export const SITE_URL = "https://outray.co";
-
-function normalizePublicUrl(value: string | undefined, fallback: string): string {
-  const candidate = value?.trim() || fallback;
+function requiredPublicUrl(value: string | undefined, name: string): string {
+  const candidate = value?.trim();
+  if (!candidate) {
+    throw new Error(`${name} must be set for the OutRay website.`);
+  }
 
   try {
     const url = new URL(candidate);
     if (url.protocol !== "http:" && url.protocol !== "https:") {
-      return fallback;
+      throw new Error("Unsupported URL protocol");
     }
 
     url.hash = "";
     url.search = "";
     return url.toString().replace(/\/$/, "");
   } catch {
-    return fallback;
+    throw new Error(`${name} must be a valid HTTP(S) URL.`);
   }
 }
 
@@ -36,9 +35,14 @@ function dashboardLink(pathname: string): string {
   return new URL(pathname, `${DASHBOARD_URL}/`).toString();
 }
 
-export const DASHBOARD_URL = normalizePublicUrl(
+export const SITE_URL = requiredPublicUrl(
+  import.meta.env.PUBLIC_SITE_URL,
+  "PUBLIC_SITE_URL",
+);
+
+export const DASHBOARD_URL = requiredPublicUrl(
   import.meta.env.PUBLIC_DASHBOARD_URL,
-  DEFAULT_DASHBOARD_URL,
+  "PUBLIC_DASHBOARD_URL",
 );
 
 export const siteLinks = Object.freeze({
