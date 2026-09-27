@@ -4102,124 +4102,285 @@ html:not(.js) [data-reveal],
 
 /* Exact open-source markup */
 .open-source {
-  padding-block: clamp(100px, 12vw, 164px);
+  padding-block: clamp(100px, 11vw, 148px);
 }
 
 .product-showcase + .open-source {
   padding-top: 0;
 }
 
-.open-source-shell {
-  position: relative;
-  display: grid;
-  min-height: 430px;
-  grid-template-columns: 120px minmax(280px, 0.8fr) minmax(360px, 1.1fr);
+.open-source-layout {
+  min-width: 0;
+}
+
+.open-source-topline {
+  display: flex;
   align-items: center;
-  gap: clamp(30px, 5vw, 70px);
-  padding: clamp(38px, 6vw, 74px);
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  background:
-    radial-gradient(
-      circle at 82% 50%,
-      rgb(var(--accent-rgb) / 0.16),
-      transparent 28rem
-    ),
-    linear-gradient(145deg, #0c0c0e, #080809);
-  box-shadow: var(--shadow-card);
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line-strong);
 }
 
-.open-source-shell::before {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgb(255 255 255 / 0.026) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 0.026) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: linear-gradient(90deg, transparent, black);
-  content: "";
-  pointer-events: none;
+.open-source-topline .eyebrow {
+  margin: 0;
 }
 
-.open-source-mark,
-.open-source-copy,
-.license-grid {
-  position: relative;
-  z-index: 1;
+.open-source-topline > span {
+  color: #666670;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
 }
 
-.open-source-mark {
+.open-source-main {
   display: grid;
-  width: 108px;
-  height: 108px;
-  place-items: center;
-  border: 1px solid rgb(var(--accent-rgb) / 0.32);
-  border-radius: 28px;
-  background: radial-gradient(
-    circle at 35% 30%,
-    rgb(var(--accent-rgb) / 0.28),
-    rgb(var(--accent-rgb) / 0.08)
-  );
-  box-shadow:
-    inset 0 1px rgb(255 255 255 / 0.06),
-    0 20px 50px rgb(0 0 0 / 0.3);
-  color: #ded5f2;
-  transform: rotate(-4deg);
+  grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
+  align-items: center;
+  gap: clamp(44px, 7vw, 104px);
+  padding-block: clamp(52px, 6vw, 82px);
 }
 
-.open-source-mark svg {
-  width: 47px;
-  height: 47px;
-}
-
-.open-source-copy h2 {
-  margin-top: 18px;
-  font-size: clamp(2.6rem, 4.8vw, 4.7rem);
+.open-source-intro h2 {
+  max-width: 12ch;
+  font-size: clamp(3rem, 4.4vw, 4.4rem);
   font-weight: 570;
   letter-spacing: -0.062em;
-  line-height: 0.98;
+  line-height: 1.02;
 }
 
-.open-source-copy > p:not(.eyebrow) {
-  margin-top: 22px;
-  color: var(--muted);
+.open-source-intro > p {
+  max-width: 49ch;
+  margin-top: 27px;
+  color: #a0a0aa;
+  font-size: clamp(1rem, 1.25vw, 1.08rem);
   line-height: 1.7;
 }
 
-.license-grid {
-  display: grid;
-  gap: 10px;
+.open-source-link {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 16px;
+  margin-top: 30px;
+  color: #eee9f8;
+  font-size: 0.96rem;
+  font-weight: 620;
+  transition: color 160ms ease;
 }
 
-.license-grid > div {
-  display: grid;
-  gap: 7px;
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: rgb(8 8 9 / 0.72);
-  box-shadow: inset 0 1px rgb(255 255 255 / 0.025);
+.open-source-link:hover {
+  color: #c9baf0;
 }
 
-.license-grid small {
-  color: #a0a0aa;
-  font-size: 0.62rem;
-  font-weight: 670;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.open-source-link svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 180ms var(--ease-out);
 }
 
-.license-grid strong {
-  color: #efeff1;
+.open-source-link:hover svg {
+  transform: translate(3px, -3px);
+}
+
+.open-source-repo {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 80% 25%, rgb(var(--accent-rgb) / 0.11), transparent 20rem),
+    #0b0b0d;
+  box-shadow: 0 32px 90px rgb(0 0 0 / 0.3);
+}
+
+.open-source-repo__bar {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--line);
+  color: #888891;
   font-family: var(--font-mono);
-  font-size: 1.15rem;
+  font-size: 0.64rem;
+}
+
+.open-source-repo__bar > span:nth-child(2) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.open-source-repo__bar > svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: #777781;
+}
+
+.open-source-repo__dots {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 5px;
+}
+
+.open-source-repo__dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #505057;
+}
+
+.open-source-repo__identity {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: clamp(28px, 4vw, 48px) 28px;
+}
+
+.open-source-repo__mark {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(var(--accent-rgb) / 0.34);
+  border-radius: 15px;
+  background: rgb(var(--accent-rgb) / 0.13);
+  color: #d8caf3;
+}
+
+.open-source-repo__mark svg {
+  width: 27px;
+  height: 27px;
+}
+
+.open-source-repo__identity > div {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.open-source-repo__identity small {
+  color: #9283b4;
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  letter-spacing: 0.12em;
+}
+
+.open-source-repo__identity strong {
+  overflow: hidden;
+  color: #f2f2f4;
+  font-size: clamp(1rem, 1.55vw, 1.22rem);
+  font-weight: 610;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.open-source-repo__identity strong span {
+  color: #676770;
+}
+
+.open-source-repo__tree > div {
+  display: grid;
+  min-height: 59px;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding-inline: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.open-source-repo__tree code {
+  color: #d1d1d7;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+}
+
+.open-source-repo__tree small {
+  color: #777780;
+  font-size: 0.68rem;
+}
+
+.open-source-repo__folder,
+.open-source-repo__file {
+  display: block;
+  width: 15px;
+  height: 12px;
+  border: 1px solid #9f8bc8;
+  border-radius: 3px;
+}
+
+.open-source-repo__folder {
+  position: relative;
+  background: rgb(var(--accent-rgb) / 0.12);
+}
+
+.open-source-repo__folder::before {
+  position: absolute;
+  top: -4px;
+  left: 0;
+  width: 7px;
+  height: 3px;
+  border: 1px solid #9f8bc8;
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+  content: "";
+}
+
+.open-source-repo__file {
+  width: 13px;
+  height: 16px;
+  border-color: #777781;
+  background: rgb(255 255 255 / 0.035);
+}
+
+.open-source-licenses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  border-block: 1px solid var(--line-strong);
+  list-style: none;
+}
+
+.open-source-licenses li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px 20px;
+  padding: 26px 30px 28px;
+}
+
+.open-source-licenses li:first-child {
+  padding-left: 0;
+}
+
+.open-source-licenses li + li {
+  border-left: 1px solid var(--line);
+}
+
+.open-source-licenses span {
+  color: #a996d5;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+}
+
+.open-source-licenses strong {
+  color: #eeeef1;
+  font-family: var(--font-mono);
+  font-size: 1.14rem;
   font-weight: 570;
 }
 
-.license-grid span {
-  color: #a0a0aa;
-  font-size: 0.72rem;
+.open-source-licenses p {
+  grid-column: 1 / -1;
+  color: #898992;
+  font-size: 0.85rem;
 }
 
 /* Exact final CTA and footer markup */
@@ -4959,6 +5120,74 @@ html:not(.js) [data-reveal],
     grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
     gap: 8px;
     padding-inline: 10px;
+  }
+}
+
+@media (max-width: 860px) {
+  .open-source-main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 42px;
+  }
+
+  .open-source-intro h2 {
+    max-width: 16ch;
+  }
+}
+
+@media (max-width: 620px) {
+  .open-source-topline > span {
+    display: none;
+  }
+
+  .open-source-main {
+    gap: 36px;
+    padding-block: 42px 50px;
+  }
+
+  .open-source-intro h2 {
+    font-size: clamp(2.55rem, 10vw, 3.3rem);
+  }
+
+  .open-source-intro > p {
+    margin-top: 20px;
+  }
+
+  .open-source-repo__bar {
+    padding-inline: 14px;
+  }
+
+  .open-source-repo__identity {
+    gap: 12px;
+    padding: 28px 18px;
+  }
+
+  .open-source-repo__mark {
+    width: 46px;
+    height: 46px;
+  }
+
+  .open-source-repo__tree > div {
+    padding-inline: 18px;
+  }
+
+  .open-source-licenses {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .open-source-licenses li,
+  .open-source-licenses li:first-child {
+    padding: 23px 0;
+  }
+
+  .open-source-licenses li + li {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .open-source-repo__tree small {
+    display: none;
   }
 }
 
