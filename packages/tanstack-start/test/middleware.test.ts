@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, test } from "node:test";
-import { context, trace } from "@opentelemetry/api";
+import { context, metrics, trace } from "@opentelemetry/api";
 import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
+import {
+  AggregationTemporality,
+  InMemoryMetricExporter,
+  MeterProvider,
+  PeriodicExportingMetricReader,
+} from "@opentelemetry/sdk-metrics";
 import {
   BasicTracerProvider,
   InMemorySpanExporter,
@@ -20,19 +26,32 @@ const provider = new BasicTracerProvider({
   spanProcessors: [new SimpleSpanProcessor(exporter)],
 });
 const contextManager = new AsyncLocalStorageContextManager();
+const metricExporter = new InMemoryMetricExporter(
+  AggregationTemporality.CUMULATIVE,
+);
+const metricReader = new PeriodicExportingMetricReader({
+  exporter: metricExporter,
+  exportIntervalMillis: 60_000,
+});
+const meterProvider = new MeterProvider({ readers: [metricReader] });
 
 before(() => {
   context.setGlobalContextManager(contextManager.enable());
   trace.setGlobalTracerProvider(provider);
+  metrics.setGlobalMeterProvider(meterProvider);
 });
 
-beforeEach(() => exporter.reset());
+beforeEach(() => {
+  exporter.reset();
+  metricExporter.reset();
+});
 
 after(async () => {
-  await provider.shutdown();
+  await Promise.all([provider.shutdown(), meterProvider.shutdown()]);
   contextManager.disable();
   context.disable();
   trace.disable();
+  metrics.disable();
 });
 
 test("normalizes obvious route identifiers without touching stable slugs", () => {
@@ -42,7 +61,10 @@ test("normalizes obvious route identifiers without touching stable slugs", () =>
     ),
     "/api/orders/:id/items/:id",
   );
-  assert.equal(normalizeTanStackRoute("/titanium/settings"), "/titanium/settings");
+  assert.equal(
+    normalizeTanStackRoute("/titanium/settings"),
+    "/titanium/settings",
+  );
   assert.equal(isDefaultIgnoredTanStackPath("/@vite/client"), true);
   assert.equal(isDefaultIgnoredTanStackPath("/api/orders"), false);
 });
@@ -114,6 +136,30 @@ test("uses an application route resolver and preserves the original response", a
   );
 });
 
+test("records HTTP metrics with the resolved TanStack route", async () => {
+  await instrumentTanStackRequest(
+    {
+      request: new Request("https://app.test/api/orders/order_123"),
+      next: () => new Response("ok", { status: 202 }),
+    },
+    { routeResolver: () => "/api/orders/:orderId" },
+  );
+  await meterProvider.forceFlush();
+
+  const requestCount = metricExporter
+    .getMetrics()
+    .flatMap((resource) => resource.scopeMetrics)
+    .flatMap((scope) => scope.metrics)
+    .find((metric) => metric.descriptor.name === "http.server.request.count");
+  const dataPoint = requestCount?.dataPoints.find(
+    (point) => point.attributes["http.route"] === "/api/orders/:orderId",
+  );
+
+  assert.ok(dataPoint);
+  assert.equal(dataPoint.attributes["outray.framework"], "tanstack-start");
+  assert.equal(dataPoint.attributes["http.response.status_code"], 202);
+});
+
 test("renames the existing HTTP span instead of creating a duplicate", async () => {
   const httpSpan = provider.getTracer("http-test").startSpan("GET");
   const activeContext = trace.setSpan(context.active(), httpSpan);
@@ -160,7 +206,10 @@ test("records failures without swallowing them", async () => {
   const [span] = exporter.getFinishedSpans();
   assert.ok(span);
   assert.equal(span.status.code, 2);
-  assert.equal(span.events.some((event) => event.name === "exception"), true);
+  assert.equal(
+    span.events.some((event) => event.name === "exception"),
+    true,
+  );
 });
 
 test("capture failures never change the handler result", async () => {
@@ -187,10 +236,7 @@ test("capture failures never change the handler result", async () => {
   );
 
   assert.equal(result, response);
-  assert.equal(
-    exporter.getFinishedSpans()[0]?.name,
-    "POST /api/consumed",
-  );
+  assert.equal(exporter.getFinishedSpans()[0]?.name, "POST /api/consumed");
 });
 
 test("exposes a TanStack Start request middleware", async () => {
