@@ -1,0 +1,83 @@
+---
+import FinalCta from "../components/FinalCta.astro";
+import Footer from "../components/Footer.astro";
+import Hero from "../components/Hero.astro";
+import Navigation from "../components/Navigation.astro";
+import OpenSource from "../components/OpenSource.astro";
+import ProductStories from "../components/ProductStories.astro";
+import { SITE_URL, siteLinks } from "../lib/site";
+import "../styles/global.css";
+
+const title = "OutRay — Everything between localhost and production.";
+const description = "Developer infrastructure for secure tunnels, server-side observability, and encrypted runtime secrets.";
+const canonicalUrl = new URL("/", SITE_URL).toString();
+const ogImageUrl = new URL("/og-image.png", SITE_URL).toString();
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "OutRay",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Linux, macOS, Windows",
+  url: canonicalUrl,
+  description,
+  codeRepository: siteLinks.github,
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#050505" />
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="preload" href="/fonts/geom-latin.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OutRay" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:alt" content="OutRay connects Tunnels, Observability, and Secrets in one developer platform." />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    <meta name="twitter:image:alt" content="OutRay connects Tunnels, Observability, and Secrets in one developer platform." />
+    <title>{title}</title>
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)}></script>
+    <script is:inline>document.documentElement.classList.add("js");</script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <Navigation
+      loginUrl={siteLinks.login}
+      signupUrl={siteLinks.signup}
+      docsUrl={siteLinks.docs}
+      githubUrl={siteLinks.github}
+    />
+    <main class="site-main" id="main-content">
+      <Hero signupUrl={siteLinks.signup} githubUrl={siteLinks.github} />
+      <ProductStories docsUrl={siteLinks.docs} />
+      <OpenSource githubUrl={siteLinks.github} />
+      <FinalCta signupUrl={siteLinks.signup} githubUrl={siteLinks.github} />
+    </main>
+    <Footer
+      docsUrl={siteLinks.docs}
+      statusUrl={siteLinks.status}
+      loginUrl={siteLinks.login}
+      privacyUrl={siteLinks.privacy}
+      termsUrl={siteLinks.terms}
+      githubUrl={siteLinks.github}
+    />
+    <script>
+      import "../scripts/home";
+    </script>
+  </body>
+</html>
