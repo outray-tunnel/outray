@@ -1,0 +1,135 @@
+---
+import ProductIcon from "./ProductIcon.astro";
+
+interface Props {
+  loginUrl: string;
+  signupUrl: string;
+  docsUrl: string;
+  githubUrl: string;
+}
+
+const { loginUrl, signupUrl, docsUrl, githubUrl } = Astro.props;
+
+const productLinks = [
+  { id: "tunnels", label: "Tunnels", href: "#tunnels", description: "Put a local service on a public URL." },
+  { id: "observability", label: "Observability", href: "#observability", description: "Follow requests through traces, logs, and metrics." },
+  { id: "secrets", label: "Secrets", href: "#secrets", description: "Deliver encrypted values to every environment." },
+] as const;
+---
+
+<header class="site-header" data-site-header>
+  <div class="nav-shell page-shell">
+    <a class="brand-link" href="#top" aria-label="OutRay home" data-track="navigation" data-track-label="logo">
+      <img src="/brand/outray-mark.svg" width="34" height="34" alt="" />
+      <span>OutRay</span>
+    </a>
+
+    <nav class="desktop-nav" aria-label="Primary navigation">
+      <details class="products-menu" data-products-menu data-active-product="tunnels">
+        <summary class="products-menu__trigger">
+          Products
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+        </summary>
+        <div class="products-menu__popover">
+          <div class="products-menu__panel">
+            <div class="products-menu__links">
+              <p class="products-menu__label">Products</p>
+              {productLinks.map(({ id, label, href, description }) => (
+                <a
+                  class="products-menu__item"
+                  href={href}
+                  aria-label={label}
+                  data-menu-product={id}
+                  data-select-product={id}
+                  data-target-tabs="showcase"
+                  data-track="navigation"
+                  data-track-label={id}
+                >
+                  <span class="products-menu__icon"><ProductIcon product={id} /></span>
+                  <span class="products-menu__item-copy"><strong>{label}</strong><small>{description}</small></span>
+                  <svg class="products-menu__item-arrow" aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4"></path></svg>
+                </a>
+              ))}
+            </div>
+            <div class="products-menu__preview" aria-hidden="true">
+              <div class="products-menu__preview-content" data-menu-preview="tunnels">
+                <p class="products-menu__preview-kicker">TUNNELS / 01</p>
+                <p class="products-menu__preview-title">From local to live.</p>
+                <div class="products-menu__terminal">
+                  <span><i></i><i></i><i></i></span>
+                  <code><span>$</span> outray 3000</code>
+                  <div class="products-menu__result"><span>https://orders.outray.app</span><em>Live</em></div>
+                </div>
+              </div>
+              <div class="products-menu__preview-content" data-menu-preview="observability">
+                <p class="products-menu__preview-kicker">OBSERVABILITY / 02</p>
+                <p class="products-menu__preview-title">See the whole request.</p>
+                <div class="products-menu__trace">
+                  <div><span>GET /api/orders</span><em>200</em></div>
+                  <span class="products-menu__trace-bar products-menu__trace-bar--request"></span>
+                  <span class="products-menu__trace-bar products-menu__trace-bar--database"></span>
+                  <span class="products-menu__trace-bar products-menu__trace-bar--response"></span>
+                </div>
+              </div>
+              <div class="products-menu__preview-content" data-menu-preview="secrets">
+                <p class="products-menu__preview-kicker">SECRETS / 03</p>
+                <p class="products-menu__preview-title">Values where they run.</p>
+                <div class="products-menu__vault">
+                  <div><span>production</span><span>3 secrets</span></div>
+                  <p>DATABASE_URL <span>••••••••</span></p>
+                  <p>API_KEY <span>••••••••</span></p>
+                  <p>WEBHOOK_SECRET <span>••••••••</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+      <ul class="nav-list nav-list--resources">
+        <li><a href={docsUrl} data-track="navigation" data-track-label="docs">Docs</a></li>
+        <li>
+          <a href={githubUrl} target="_blank" rel="noreferrer" data-track="github" data-track-label="navigation">
+            GitHub
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="nav-actions">
+      <a class="text-link" href={loginUrl} data-track="cta" data-track-label="nav-login">Log in</a>
+      <a class="button button-primary button-compact" href={signupUrl} data-track="cta" data-track-label="nav-start-free">
+        Start free
+      </a>
+    </div>
+
+    <details class="mobile-nav">
+      <summary aria-label="Navigation menu">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22">
+          <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8"></path>
+        </svg>
+        <span class="sr-only">Menu</span>
+      </summary>
+      <div class="mobile-menu">
+        <nav aria-label="Mobile navigation">
+          <p class="mobile-menu__label">Products</p>
+          <ul class="mobile-menu__products">
+            {productLinks.map(({ id, label, href }) => (
+              <li><a href={href} data-select-product={id} data-target-tabs="showcase" data-track="navigation" data-track-label={`mobile-${id}`}>
+                <span>{label}</span>
+                <svg class="mobile-menu__arrow" aria-hidden="true" viewBox="0 0 20 20"><path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+              </a></li>
+            ))}
+          </ul>
+          <p class="mobile-menu__label">Explore</p>
+          <ul class="mobile-menu__resources">
+            <li><a href={docsUrl} data-track="navigation" data-track-label="mobile-docs">Docs</a></li>
+            <li><a href={githubUrl} target="_blank" rel="noreferrer" data-track="github" data-track-label="mobile-navigation">GitHub</a></li>
+          </ul>
+        </nav>
+        <div class="mobile-menu-actions">
+          <a href={loginUrl} data-track="cta" data-track-label="mobile-login">Log in to console <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </details>
+  </div>
+</header>
