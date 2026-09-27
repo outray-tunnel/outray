@@ -1,8 +1,12 @@
 import {
+  outray,
   startOutrayObservability,
+  withOutraySpan,
   type OutrayObservability,
   type OutrayObservabilityOptions,
 } from "@outray/observability";
+
+export { outray, withOutraySpan };
 
 /** Initialize OutRay from Next.js's server-side instrumentation hook. */
 export function registerOutrayObservability(
