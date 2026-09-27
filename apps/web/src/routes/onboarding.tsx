@@ -1,23 +1,17 @@
-import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
-import { authClient } from "@/lib/auth-client";
+import { HugeiconsIcon } from "@hugeicons/react";
+import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
+import Building06Icon from "@hugeicons-pro/core-stroke-rounded/Building06Icon";
+import CancelCircleIcon from "@hugeicons-pro/core-stroke-rounded/CancelCircleIcon";
+import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { appClient } from "@/lib/app-client";
-import {
-  Building2,
-  ArrowRight,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-} from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 import { useAppStore } from "@/lib/store";
-import { Button } from "@/components/ui";
-
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
-    meta: [
-      { title: "Create Organization - OutRay" },
-    ],
+    meta: [{ title: "Create a workspace - OutRay" }],
   }),
   component: Onboarding,
 });
@@ -30,21 +24,21 @@ function Onboarding() {
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [isSlugAvailable, setIsSlugAvailable] = useState<boolean | null>(null);
   const navigate = useNavigate();
-
-  const { setSelectedOrganization } = useAppStore();
-  
+  const setSelectedOrganization = useAppStore(
+    (state) => state.setSelectedOrganization,
+  );
   const { data: sessionData, isPending: sessionPending } =
     authClient.useSession();
 
   const validateSlug = useCallback((value: string) => {
     if (!/^[a-z0-9-]+$/.test(value)) {
-      return "Slug can only contain lowercase letters, numbers, and hyphens.";
+      return "Use lowercase letters, numbers, and hyphens only.";
     }
     if (value.includes("--")) {
-      return "Slug cannot contain consecutive hyphens.";
+      return "The workspace URL cannot contain consecutive hyphens.";
     }
     if (value.startsWith("-") || value.endsWith("-")) {
-      return "Slug cannot start or end with a hyphen.";
+      return "The workspace URL cannot start or end with a hyphen.";
     }
     return null;
   }, []);
@@ -69,7 +63,7 @@ function Onboarding() {
 
         if ("error" in data) {
           setIsSlugAvailable(false);
-          setError(data.error || "Failed to check slug availability.");
+          setError(data.error || "We could not check this workspace URL.");
           return;
         }
 
@@ -80,12 +74,14 @@ function Onboarding() {
           setIsSlugAvailable(false);
           setError(
             data.reason === "reserved"
-              ? "This slug is reserved. Contact support@outray.dev to claim it."
-              : "This slug is already taken."
+              ? "This URL is reserved. Contact support@outray.dev to claim it."
+              : "This workspace URL is already in use.",
           );
         }
-      } catch (error) {
-        console.error("Failed to check slug:", error);
+      } catch (checkError) {
+        console.error("Failed to check slug:", checkError);
+        setIsSlugAvailable(false);
+        setError("We could not check this workspace URL. Try again.");
       } finally {
         setIsCheckingSlug(false);
       }
@@ -94,36 +90,40 @@ function Onboarding() {
   );
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       if (slug) {
-        checkSlugAvailability(slug);
+        void checkSlugAvailability(slug);
       } else {
         setIsSlugAvailable(null);
         setError(null);
       }
     }, 500);
 
-    return () => clearTimeout(timer);
+    return () => window.clearTimeout(timer);
   }, [slug, checkSlugAvailability]);
 
   if (sessionPending) {
-    return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <img src="/logo.png" alt="OutRay" className="w-16 h-16 animate-pulse" />
-      </div>
-    );
+    return <OnboardingSkeleton />;
   }
 
   if (!sessionData?.session.id) {
     return <Navigate to="/login" replace />;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (isSlugAvailable === false) {
-      return;
+  const handleNameChange = (nextName: string) => {
+    const previousGeneratedSlug = toSlug(name);
+    setName(nextName);
+    if (!slug || slug === previousGeneratedSlug) {
+      setSlug(toSlug(nextName));
+      setError(null);
+      setIsSlugAvailable(null);
     }
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (isSlugAvailable === false) return;
 
     const slugError = validateSlug(slug);
     if (slugError) {
@@ -135,180 +135,311 @@ function Onboarding() {
     setError(null);
 
     try {
-      const { data, error } = await authClient.organization.create({
-        name,
-        slug,
-      });
+      const { data, error: createError } =
+        await authClient.organization.create({
+          name: name.trim(),
+          slug,
+        });
 
-      if (error) {
-        console.error(error);
+      if (createError) {
         if (
-          error.code === "DUPLICATE_SLUG" ||
-          error.code === "ORGANIZATION_ALREADY_EXISTS" ||
-          error.message?.toLowerCase().includes("slug")
+          createError.code === "DUPLICATE_SLUG" ||
+          createError.code === "ORGANIZATION_ALREADY_EXISTS" ||
+          createError.message?.toLowerCase().includes("slug")
         ) {
-          setError("This slug is already taken. Please choose another one.");
+          setError("This workspace URL is already in use.");
           setIsSlugAvailable(false);
         } else {
-          setError(error.message || "Failed to create organization.");
+          setError(createError.message || "We could not create this workspace.");
         }
         return;
       }
 
       if (data) {
-        await authClient.organization.setActive({
-          organizationId: data.id,
-        });
-
+        await authClient.organization.setActive({ organizationId: data.id });
         setSelectedOrganization(data);
-
-        navigate({ to: "/$orgSlug/install", params: { orgSlug: data.slug } });
+        await navigate({
+          to: "/$orgSlug/get-started",
+          params: { orgSlug: data.slug },
+        });
       }
-    } catch (err) {
-      console.error(err);
+    } catch (createError) {
+      console.error("Failed to create workspace:", createError);
+      setError("We could not create this workspace. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  const user = sessionData.user;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black text-white relative overflow-hidden selection:bg-white/20">
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-white/5 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-white/5 blur-[120px]" />
-      </div>
-      <div className="w-full max-w-md relative z-10 p-6">
-        <div className="mb-8 text-center">
-          <div className="w-16 h-16 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-black/50 backdrop-blur-sm group">
-            <Building2
-              size={32}
-              className="text-white group-hover:text-accent transition-colors duration-500"
+    <main className="min-h-screen bg-[#080808] text-white selection:bg-white/15">
+      <header className="border-b border-white/[0.08]">
+        <div className="mx-auto flex h-[76px] w-full max-w-[1180px] items-center justify-between px-5 sm:px-8">
+          <Link to="/" className="flex items-center gap-3" aria-label="OutRay home">
+            <img src="/logo.png" alt="" className="size-9 object-contain" />
+            <span className="text-[18px] font-semibold tracking-[-0.025em]">
+              OutRay
+            </span>
+          </Link>
+
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="hidden min-w-0 text-right sm:block">
+              <p className="truncate text-[13px] font-medium text-zinc-200">
+                {user.name || "Your account"}
+              </p>
+              <p className="max-w-60 truncate text-[12px] text-zinc-600">
+                {user.email}
+              </p>
+            </div>
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-[12px] font-semibold text-zinc-200">
+              {getInitials(user.name || user.email)}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto grid w-full max-w-[1180px] gap-12 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[minmax(250px,0.7fr)_minmax(0,1.3fr)] lg:gap-20 lg:py-24">
+        <section className="lg:sticky lg:top-16 lg:self-start">
+          <div className="mb-7 flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045]">
+            <HugeiconsIcon
+              icon={Building06Icon}
+              size={23}
+              strokeWidth={1.7}
+              className="text-zinc-300"
             />
           </div>
-          <h2 className="text-3xl font-bold tracking-tight text-white">
-            Create Organization
-          </h2>
-          <p className="mt-2 text-gray-400">
-            Set up your workspace to get started
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
+            New workspace
           </p>
-        </div>
+          <h1 className="max-w-md text-[38px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[44px]">
+            Bring your team into OutRay.
+          </h1>
+          <p className="mt-5 max-w-sm text-[15px] leading-7 text-zinc-500">
+            A workspace keeps your tunnels, telemetry, secrets, members, and
+            billing together.
+          </p>
 
-        <div className="bg-white/2 border border-white/5 rounded-3xl p-8 backdrop-blur-xl shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-gray-400 mb-1.5"
-                >
-                  Organization Name
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => {
-                    const newName = e.target.value;
-                    setName(newName);
+          <Link
+            to="/select"
+            className="mt-8 inline-flex h-11 items-center rounded-xl border border-white/10 bg-white/[0.04] px-4 text-[13px] font-medium text-zinc-400 transition-colors hover:border-white/20 hover:bg-white/[0.075] hover:text-white"
+          >
+            Back to workspaces
+          </Link>
+        </section>
 
-                    // Auto-generate slug if it matches the previous pattern or is empty
-                    const currentSlugPattern = name
-                      .toLowerCase()
-                      .replace(/[^a-z0-9]+/g, "-")
-                      .replace(/^-+|-+$/g, "");
-                    if (!slug || slug === currentSlugPattern) {
-                      setSlug(
-                        newName
-                          .toLowerCase()
-                          .replace(/[^a-z0-9]+/g, "-")
-                          .replace(/^-+/, "")
-                          .replace(/-+$/, ""),
-                      );
-                    }
-                  }}
-                  className="block w-full rounded-2xl border border-white/5 bg-black/20 px-4 py-3 text-white placeholder-white/20 outline-none transition-all focus:border-accent/50 focus:bg-black/40 focus:ring-1 focus:ring-accent/50"
-                  placeholder="Acme Corp"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="slug"
-                  className="block text-sm font-medium text-gray-400 mb-1.5"
-                >
-                  Organization Slug
-                </label>
-                <div className="relative">
-                  <input
-                    id="slug"
-                    name="slug"
-                    type="text"
-                    required
-                    value={slug}
-                    onChange={(e) => {
-                      setSlug(e.target.value);
-                      setError(null);
-                      setIsSlugAvailable(null);
-                    }}
-                    className={`block w-full rounded-2xl border bg-black/20 px-4 py-3 text-white placeholder-white/20 outline-none transition-all focus:bg-black/40 focus:ring-1 font-mono text-sm ${
-                      error
-                        ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/50"
-                        : isSlugAvailable
-                          ? "border-green-500/50 focus:border-green-500 focus:ring-green-500/50"
-                          : "border-white/5 focus:border-accent/50 focus:ring-accent/50"
-                    }`}
-                    placeholder="acme-corp"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    {isCheckingSlug ? (
-                      <Loader2
-                        size={16}
-                        className="animate-spin text-gray-400"
-                      />
-                    ) : isSlugAvailable === true ? (
-                      <CheckCircle2 size={16} className="text-green-500" />
-                    ) : isSlugAvailable === false ? (
-                      <XCircle size={16} className="text-red-500" />
-                    ) : null}
-                  </div>
-                </div>
-                {error && (
-                  <p className="mt-1.5 text-xs text-red-400">{error}</p>
-                )}
-              </div>
+        <section aria-labelledby="create-workspace-title" className="min-w-0">
+          <div className="rounded-[26px] border border-white/[0.09] bg-[#0b0b0b]">
+            <div className="border-b border-white/[0.075] px-6 py-6 sm:px-8 sm:py-7">
+              <h2
+                id="create-workspace-title"
+                className="text-[19px] font-semibold tracking-[-0.025em]"
+              >
+                Create your workspace
+              </h2>
+              <p className="mt-1.5 text-[13px] leading-5 text-zinc-600">
+                You can invite members and configure products after setup.
+              </p>
             </div>
 
-            <Button
-              type="submit"
-              disabled={loading || isCheckingSlug || !!error}
-              isLoading={loading}
-              rightIcon={!loading ? <ArrowRight size={16} /> : undefined}
-              className="w-full rounded-2xl py-3.5 hover:scale-[1.02] active:scale-[0.98] disabled:hover:scale-100"
-            >
-              Create Organization
-            </Button>
-          </form>
-        </div>
+            <form onSubmit={handleSubmit} className="px-6 py-7 sm:px-8 sm:py-8">
+              <div className="space-y-7">
+                <div>
+                  <label
+                    htmlFor="name"
+                    className="mb-2.5 block text-[13px] font-medium text-zinc-300"
+                  >
+                    Workspace name
+                  </label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required
+                    autoFocus
+                    autoComplete="organization"
+                    value={name}
+                    onChange={(event) => handleNameChange(event.target.value)}
+                    className="h-13 w-full rounded-2xl border border-white/10 bg-black/20 px-4 text-[15px] text-white outline-none transition-colors placeholder:text-zinc-700 hover:border-white/15 focus:border-white/25 focus:bg-black/30"
+                    placeholder="Acme"
+                  />
+                  <p className="mt-2 text-[12px] leading-5 text-zinc-700">
+                    Use the name your team will recognize.
+                  </p>
+                </div>
 
-        <p className="mt-8 text-center text-xs text-gray-500">
-          By creating an organization, you agree to our{" "}
-          <a
-            href="#"
-            className="text-gray-400 hover:text-white underline decoration-gray-600 underline-offset-2"
-          >
-            Terms of Service
-          </a>{" "}
-          and{" "}
-          <a
-            href="#"
-            className="text-gray-400 hover:text-white underline decoration-gray-600 underline-offset-2"
-          >
-            Privacy Policy
-          </a>
-        </p>
+                <div>
+                  <div className="mb-2.5 flex items-center justify-between gap-4">
+                    <label
+                      htmlFor="slug"
+                      className="block text-[13px] font-medium text-zinc-300"
+                    >
+                      Workspace URL
+                    </label>
+                    <SlugStatus
+                      checking={isCheckingSlug}
+                      available={isSlugAvailable}
+                    />
+                  </div>
+
+                  <div
+                    className={`flex h-13 items-center overflow-hidden rounded-2xl border bg-black/20 transition-colors focus-within:bg-black/30 ${
+                      error
+                        ? "border-red-500/35 focus-within:border-red-500/55"
+                        : isSlugAvailable
+                          ? "border-emerald-500/30 focus-within:border-emerald-500/45"
+                          : "border-white/10 hover:border-white/15 focus-within:border-white/25"
+                    }`}
+                  >
+                    <span className="shrink-0 border-r border-white/[0.075] px-4 font-mono text-[13px] text-zinc-600">
+                      outray.dev/
+                    </span>
+                    <input
+                      id="slug"
+                      name="slug"
+                      type="text"
+                      required
+                      autoComplete="off"
+                      spellCheck={false}
+                      value={slug}
+                      onChange={(event) => {
+                        setSlug(event.target.value.toLowerCase());
+                        setError(null);
+                        setIsSlugAvailable(null);
+                      }}
+                      className="min-w-0 flex-1 bg-transparent px-4 font-mono text-[13px] text-zinc-100 outline-none placeholder:text-zinc-700"
+                      placeholder="acme"
+                    />
+                  </div>
+
+                  {error ? (
+                    <div className="mt-2.5 flex items-start gap-2 text-[12px] leading-5 text-red-400">
+                      <HugeiconsIcon
+                        icon={CancelCircleIcon}
+                        size={15}
+                        strokeWidth={1.8}
+                        className="mt-0.5 shrink-0"
+                      />
+                      <span>{error}</span>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-[12px] leading-5 text-zinc-700">
+                      This becomes the permanent URL for your workspace.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-8 border-t border-white/[0.075] pt-6">
+                <button
+                  type="submit"
+                  disabled={
+                    loading ||
+                    isCheckingSlug ||
+                    !!error ||
+                    !name.trim() ||
+                    !slug
+                  }
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 text-[14px] font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
+                >
+                  {loading ? (
+                    <>
+                      <span className="size-4 animate-spin rounded-full border-2 border-zinc-500/40 border-t-zinc-600" />
+                      Creating workspace
+                    </>
+                  ) : (
+                    <>
+                      Continue to setup
+                      <HugeiconsIcon
+                        icon={ArrowRight01Icon}
+                        size={16}
+                        strokeWidth={1.9}
+                      />
+                    </>
+                  )}
+                </button>
+
+                <p className="mt-4 text-center text-[11px] leading-5 text-zinc-700">
+                  By continuing, you agree to the{" "}
+                  <Link to="/terms" className="text-zinc-500 hover:text-zinc-300">
+                    Terms
+                  </Link>{" "}
+                  and{" "}
+                  <Link to="/privacy" className="text-zinc-500 hover:text-zinc-300">
+                    Privacy Policy
+                  </Link>
+                  .
+                </p>
+              </div>
+            </form>
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
+}
+
+function SlugStatus({
+  checking,
+  available,
+}: {
+  checking: boolean;
+  available: boolean | null;
+}) {
+  if (checking) {
+    return (
+      <span className="flex items-center gap-1.5 text-[11px] text-zinc-600">
+        <span className="size-3 animate-spin rounded-full border border-zinc-700 border-t-zinc-400" />
+        Checking
+      </span>
+    );
+  }
+
+  if (available === true) {
+    return (
+      <span className="flex items-center gap-1.5 text-[11px] text-emerald-400">
+        <HugeiconsIcon icon={Tick02Icon} size={13} strokeWidth={2} />
+        Available
+      </span>
+    );
+  }
+
+  return null;
+}
+
+function OnboardingSkeleton() {
+  return (
+    <main className="min-h-screen bg-[#080808] text-white">
+      <header className="border-b border-white/[0.08]">
+        <div className="mx-auto flex h-[76px] w-full max-w-[1180px] items-center justify-between px-5 sm:px-8">
+          <div className="h-9 w-28 animate-pulse rounded-xl bg-white/[0.055]" />
+          <div className="size-9 animate-pulse rounded-full bg-white/[0.055]" />
+        </div>
+      </header>
+      <div className="mx-auto grid w-full max-w-[1180px] gap-12 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[minmax(250px,0.7fr)_minmax(0,1.3fr)] lg:gap-20 lg:py-24">
+        <div className="space-y-4">
+          <div className="size-12 animate-pulse rounded-2xl bg-white/[0.055]" />
+          <div className="h-3 w-28 animate-pulse rounded-full bg-white/[0.04]" />
+          <div className="h-10 w-72 max-w-full animate-pulse rounded-xl bg-white/[0.055]" />
+          <div className="h-4 w-80 max-w-full animate-pulse rounded-full bg-white/[0.035]" />
+        </div>
+        <div className="h-[510px] animate-pulse rounded-[26px] border border-white/[0.075] bg-white/[0.025]" />
+      </div>
+    </main>
+  );
+}
+
+function toSlug(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getInitials(value: string) {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "OR";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
 }
