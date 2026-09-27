@@ -1,7 +1,7 @@
 {
   "name": "@outray/express",
-  "version": "0.0.4",
-  "description": "Express middleware to automatically expose your dev server via Outray tunnel",
+  "version": "0.0.5",
+  "description": "Express tunnels and OpenTelemetry observability for OutRay",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -19,7 +19,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "tsx --test test/*.test.ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
     "express",
@@ -28,16 +28,22 @@
     "outray",
     "ngrok",
     "localhost",
-    "development"
+    "development",
+    "observability",
+    "opentelemetry",
+    "tracing",
+    "metrics"
   ],
   "peerDependencies": {
     "express": "^4.0.0 || ^5.0.0"
   },
   "dependencies": {
     "@outray/core": "^0.0.5",
-    "@outray/observability": "^0.1.1"
+    "@outray/observability": "^0.1.4"
   },
   "devDependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/sdk-metrics": "^2.11.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.0.0",
     "express": "^4.19.2",
