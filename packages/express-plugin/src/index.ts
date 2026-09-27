@@ -7,7 +7,9 @@ import {
 import {
   createOutrayNodeHttpMiddleware,
   startOutrayObservability,
+  type OutrayObservability,
 } from "@outray/observability";
+export { withOutraySpan } from "@outray/observability";
 import type {
   OutrayExpressObservabilityOptions,
   OutrayPluginOptions,
@@ -18,22 +20,32 @@ const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
 
 let client: OutrayClient | null = null;
 let localAccess: LocalAccessManager | null = null;
-const observabilityRegisteredApps = new WeakSet<Application>();
+const observabilityRegisteredApps = new WeakMap<
+  Application,
+  OutrayObservability
+>();
 
 /** Register OutRay telemetry before application routes. */
 export function registerOutrayObservability(
   app: Application,
   options: OutrayExpressObservabilityOptions,
-): void {
-  if (observabilityRegisteredApps.has(app)) return;
+): OutrayObservability {
+  const registered = observabilityRegisteredApps.get(app);
+  if (registered) return registered;
 
   const { capturePayloads, request, ...observabilityOptions } = options;
-  startOutrayObservability(observabilityOptions);
-  app.use(createOutrayNodeHttpMiddleware(request));
+  const observability = startOutrayObservability(observabilityOptions);
+  app.use(
+    createOutrayNodeHttpMiddleware({
+      ...request,
+      framework: "express",
+    }),
+  );
   if (capturePayloads !== undefined && capturePayloads !== false) {
     app.use(createNodeHttpPayloadCaptureMiddleware(capturePayloads));
   }
-  observabilityRegisteredApps.add(app);
+  observabilityRegisteredApps.set(app, observability);
+  return observability;
 }
 
 /**
