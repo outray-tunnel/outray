@@ -1,10 +1,4 @@
-import {
-  SpanKind,
-  SpanStatusCode,
-  trace,
-  type Attributes,
-  type Span,
-} from "@opentelemetry/api";
+import { SpanKind, SpanStatusCode, trace, type Span } from "@opentelemetry/api";
 import {
   captureFetchRequest,
   captureFetchResponse,
@@ -18,6 +12,7 @@ import {
   type OutrayObservability,
   type OutrayObservabilityOptions,
 } from "@outray/observability";
+export { withOutraySpan } from "@outray/observability";
 import packageMetadata from "../package.json" with { type: "json" };
 
 const OUTRAY_HONO_VERSION = packageMetadata.version;
@@ -65,16 +60,11 @@ export interface OutrayHonoRequestOptions {
 }
 
 export interface OutrayHonoOptions
-  extends OutrayObservabilityOptions,
-    OutrayHonoRequestOptions {}
+  extends OutrayObservabilityOptions, OutrayHonoRequestOptions {}
 
 export interface OutrayHonoRegistration extends OutrayLogMethods {
   middleware: OutrayHonoMiddleware;
   observability: OutrayObservability;
-}
-
-export interface OutrayChildSpanOptions {
-  attributes?: Attributes;
 }
 
 /** Convert common identifier segments to `:id` for bounded route cardinality. */
@@ -298,30 +288,6 @@ export function outray(options: OutrayHonoOptions): OutrayHonoRegistration {
     info: observability.info,
     warn: observability.warn,
   };
-}
-
-/** Add a meaningful application operation to the currently active trace. */
-export async function withOutraySpan<TResult>(
-  name: string,
-  operation: (span: Span) => TResult | Promise<TResult>,
-  options: OutrayChildSpanOptions = {},
-): Promise<TResult> {
-  const tracer = getOutrayTracer("@outray/hono", OUTRAY_HONO_VERSION);
-  return tracer.startActiveSpan(
-    name,
-    { attributes: options.attributes },
-    async (span) => {
-      try {
-        return await operation(span);
-      } catch (error) {
-        span.setStatus({ code: SpanStatusCode.ERROR });
-        if (error instanceof Error) span.recordException(error);
-        throw error;
-      } finally {
-        span.end();
-      }
-    },
-  );
 }
 
 export default outray;
