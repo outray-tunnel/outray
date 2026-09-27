@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
 import Key01Icon from "@hugeicons-pro/core-stroke-rounded/Key01Icon";
@@ -20,6 +19,9 @@ import {
 interface CreateTokenModalProps {
   isOpen: boolean;
   onClose: () => void;
+  orgSlug: string;
+  defaultName?: string;
+  defaultScopes?: AuthToken["scopes"];
 }
 
 interface ProjectOption {
@@ -75,17 +77,22 @@ async function readJson<T>(response: Response): Promise<T> {
   return payload;
 }
 
-export function CreateTokenModal({ isOpen, onClose }: CreateTokenModalProps) {
+export function CreateTokenModal({
+  isOpen,
+  onClose,
+  orgSlug,
+  defaultName = "",
+  defaultScopes = ["tunnel:connect"],
+}: CreateTokenModalProps) {
   const queryClient = useQueryClient();
-  const { orgSlug } = useParams({ from: "/$orgSlug/tokens" });
-  const [name, setName] = useState("");
+  const [name, setName] = useState(defaultName);
   const [boundary, setBoundary] = useState<Boundary>("organization");
   const [projectId, setProjectId] = useState("");
   const [environmentId, setEnvironmentId] = useState("");
   const [expiresIn, setExpiresIn] = useState<"30d" | "90d" | "1y" | "never">(
     "90d",
   );
-  const [scopes, setScopes] = useState<TokenScope[]>(["tunnel:connect"]);
+  const [scopes, setScopes] = useState<TokenScope[]>(defaultScopes);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -195,7 +202,7 @@ export function CreateTokenModal({ isOpen, onClose }: CreateTokenModalProps) {
       {
         value: "organization",
         label: "Entire organization",
-        description: "Every Secrets vault and environment.",
+        description: "Resources allowed by the selected permissions.",
       },
       {
         value: "project",
@@ -216,12 +223,12 @@ export function CreateTokenModal({ isOpen, onClose }: CreateTokenModalProps) {
   const resetAndClose = () => {
     createRequestRef.current += 1;
     clearTokenTimer();
-    setName("");
+    setName(defaultName);
     setBoundary("organization");
     setProjectId("");
     setEnvironmentId("");
     setExpiresIn("90d");
-    setScopes(["tunnel:connect"]);
+    setScopes(defaultScopes);
     setCreatedToken(null);
     setCopied(false);
     setIsCreating(false);
