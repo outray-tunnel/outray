@@ -7,7 +7,9 @@ import {
 import {
   createOutrayNodeHttpMiddleware,
   startOutrayObservability,
+  type OutrayObservability,
 } from "@outray/observability";
+export { withOutraySpan } from "@outray/observability";
 import type {
   OutrayNestObservabilityOptions,
   OutrayPayloadCaptureOptions,
@@ -18,7 +20,10 @@ const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
 
 let localAccess: LocalAccessManager | null = null;
 const captureRegisteredApps = new WeakSet<INestApplication>();
-const observabilityRegisteredApps = new WeakSet<INestApplication>();
+const observabilityRegisteredApps = new WeakMap<
+  INestApplication,
+  OutrayObservability
+>();
 
 function installPayloadCapture(
   app: INestApplication,
@@ -77,11 +82,12 @@ export function registerOutrayPayloadCapture(
 export function registerOutrayObservability(
   app: INestApplication,
   options: OutrayNestObservabilityOptions,
-): boolean {
-  if (observabilityRegisteredApps.has(app)) return true;
+): OutrayObservability | false {
+  const registered = observabilityRegisteredApps.get(app);
+  if (registered) return registered;
 
   const { capturePayloads, request, ...observabilityOptions } = options;
-  startOutrayObservability(observabilityOptions);
+  const observability = startOutrayObservability(observabilityOptions);
 
   const adapterType = app.getHttpAdapter()?.getType?.();
   if (adapterType && adapterType !== "express") {
@@ -103,12 +109,17 @@ export function registerOutrayObservability(
     return false;
   }
 
-  app.use(createOutrayNodeHttpMiddleware(request));
+  app.use(
+    createOutrayNodeHttpMiddleware({
+      ...request,
+      framework: "nestjs",
+    }),
+  );
   if (capturePayloads !== undefined && capturePayloads !== false) {
     installPayloadCapture(app, capturePayloads, false);
   }
-  observabilityRegisteredApps.add(app);
-  return true;
+  observabilityRegisteredApps.set(app, observability);
+  return observability;
 }
 
 /**
