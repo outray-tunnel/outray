@@ -52,9 +52,15 @@ test("registers observability from code exactly once", () => {
     capturePayloads: true as const,
   };
 
-  registerOutrayObservability(app, options);
-  registerOutrayObservability(app, options);
+  const observability = registerOutrayObservability(app, options);
+  const duplicate = registerOutrayObservability(app, options);
 
   assert.equal(middleware.length, 2);
-  assert.equal(middleware.every((value) => typeof value === "function"), true);
+  assert.equal(
+    middleware.every((value) => typeof value === "function"),
+    true,
+  );
+  assert.equal(observability, duplicate);
+  assert.equal(typeof observability.info, "function");
+  assert.equal(typeof observability.error, "function");
 });
