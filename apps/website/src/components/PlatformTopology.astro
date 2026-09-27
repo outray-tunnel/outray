@@ -1,0 +1,60 @@
+<div class="topology" data-topology role="group" aria-label="OutRay platform topology">
+  <div class="topology-backdrop" aria-hidden="true"></div>
+  <svg class="topology-lines topology-svg" viewBox="0 0 1040 520" role="img" aria-labelledby="topology-title topology-description">
+    <title id="topology-title">One local service connected to OutRay's three products</title>
+    <desc id="topology-description">A local application flows through OutRay Edge, with paths to Tunnels, Observability, and Secrets.</desc>
+    <defs>
+      <linearGradient id="path-gradient" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#4c3a78"></stop>
+        <stop offset="0.55" stop-color="#8367c7"></stop>
+        <stop offset="1" stop-color="#9f8bd5"></stop>
+      </linearGradient>
+      <filter id="soft-glow" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="5" result="blur"></feGaussianBlur>
+        <feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+      </filter>
+    </defs>
+    <path class="topology-path topology-trunk" d="M220 260H452" pathLength="1"></path>
+    <path class="topology-path" data-topology-path="tunnels" data-product-path="tunnels" d="M590 260C690 260 686 102 822 102" pathLength="1"></path>
+    <path class="topology-path" data-topology-path="observability" data-product-path="observability" d="M590 260H822" pathLength="1"></path>
+    <path class="topology-path" data-topology-path="secrets" data-product-path="secrets" d="M590 260C690 260 686 418 822 418" pathLength="1"></path>
+    <circle class="topology-pulse" cx="452" cy="260" r="7" filter="url(#soft-glow)"></circle>
+  </svg>
+
+  <div class="topology-node topology-node-local">
+    <span class="node-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 6.5h16v11H4zM7 10l2 2-2 2m4 0h3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></svg>
+    </span>
+    <span class="node-kicker">Your machine</span>
+    <strong>localhost:3000</strong>
+    <span class="node-status"><i></i> Running locally</span>
+  </div>
+
+  <div class="topology-node topology-node-core">
+    <span class="node-orbit" aria-hidden="true"></span>
+    <img src="/brand/outray-mark.svg" width="42" height="42" alt="" />
+    <span class="node-kicker">OutRay</span>
+    <strong>Developer edge</strong>
+  </div>
+
+  <a class="topology-node topology-node-product topology-node-tunnels" href="#tunnels" data-topology-node="tunnels" data-track="navigation" data-track-label="topology-tunnels">
+    <span class="node-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="m5 16 4-4 3 3 7-7M15 8h4v4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"></path></svg>
+    </span>
+    <span><span class="node-kicker">Expose</span><strong>Tunnels</strong></span>
+  </a>
+
+  <a class="topology-node topology-node-product topology-node-observability" href="#observability" data-topology-node="observability" data-track="navigation" data-track-label="topology-observability">
+    <span class="node-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M3 12h4l2-5 4 10 2-5h6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"></path></svg>
+    </span>
+    <span><span class="node-kicker">Observe</span><strong>Observability</strong></span>
+  </a>
+
+  <a class="topology-node topology-node-product topology-node-secrets" href="#secrets" data-topology-node="secrets" data-track="navigation" data-track-label="topology-secrets">
+    <span class="node-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5zM12 15v2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"></path></svg>
+    </span>
+    <span><span class="node-kicker">Secure</span><strong>Secrets</strong></span>
+  </a>
+</div>
