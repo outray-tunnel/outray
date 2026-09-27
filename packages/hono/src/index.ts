@@ -11,6 +11,7 @@ import {
   type HttpPayloadCaptureSetting,
 } from "@outray/core";
 import {
+  createOutrayHttpServerMetrics,
   getOutrayTracer,
   startOutrayObservability,
   type OutrayLogMethods,
@@ -187,6 +188,11 @@ export function createOutrayHonoMiddleware(
   options: OutrayHonoRequestOptions = {},
 ): OutrayHonoMiddleware {
   const tracer = getOutrayTracer("@outray/hono", OUTRAY_HONO_VERSION);
+  const requestMetrics = createOutrayHttpServerMetrics({
+    framework: "hono",
+    instrumentationName: "@outray/hono",
+    instrumentationVersion: OUTRAY_HONO_VERSION,
+  });
 
   return async (context, next) => {
     const request = context.req.raw;
@@ -211,17 +217,34 @@ export function createOutrayHonoMiddleware(
       // Fall back to the bounded route normalizer.
     }
     route ||= normalizeHonoRoute(pathname);
+    const finishMetrics = requestMetrics.start({
+      method: request.method,
+      route,
+    });
 
     const activeSpan = trace.getActiveSpan();
     if (activeSpan?.isRecording()) {
-      await runInstrumentedRequest(
-        context,
-        next,
-        options,
-        activeSpan,
-        pathname,
-        route,
-      );
+      try {
+        await runInstrumentedRequest(
+          context,
+          next,
+          options,
+          activeSpan,
+          pathname,
+          route,
+        );
+        finishMetrics({
+          statusCode: context.res.status,
+          route: context.req.routePath || route,
+        });
+      } catch (error) {
+        finishMetrics({
+          statusCode: context.res?.status >= 500 ? context.res.status : 500,
+          errorType: error instanceof Error ? error.name : "Error",
+          route: context.req.routePath || route,
+        });
+        throw error;
+      }
       return;
     }
 
@@ -238,6 +261,17 @@ export function createOutrayHonoMiddleware(
             pathname,
             route!,
           );
+          finishMetrics({
+            statusCode: context.res.status,
+            route: context.req.routePath || route!,
+          });
+        } catch (error) {
+          finishMetrics({
+            statusCode: context.res?.status >= 500 ? context.res.status : 500,
+            errorType: error instanceof Error ? error.name : "Error",
+            route: context.req.routePath || route!,
+          });
+          throw error;
         } finally {
           span.end();
         }
