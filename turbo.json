@@ -8,6 +8,7 @@
       "env": [
         "OUTRAY_API_KEY",
         "PUBLIC_DASHBOARD_URL",
+        "PUBLIC_SITE_URL",
         "PUBLIC_POSTHOG_HOST",
         "PUBLIC_POSTHOG_KEY",
         "TUNNEL_DOMAIN",
@@ -29,6 +30,7 @@
       "persistent": true,
       "env": [
         "PUBLIC_DASHBOARD_URL",
+        "PUBLIC_SITE_URL",
         "PUBLIC_POSTHOG_HOST",
         "PUBLIC_POSTHOG_KEY"
       ]
