@@ -23,23 +23,46 @@ variables are required.
 Create `src/server.ts`:
 
 ```ts
-import { createOutrayTanStackServerEntry } from '@outray/tanstack-start/server'
+import { createOutrayTanStackServerEntry } from "@outray/tanstack-start/server";
 
 export default createOutrayTanStackServerEntry({
-  apiKey: 'outray_your_observability_token',
-  serviceName: 'my-tanstack-app',
-  environment: 'production',
+  apiKey: "outray_your_observability_token",
+  serviceName: "my-tanstack-app",
+  environment: "production",
+  captureConsole: true,
   capturePayloads: {
     maxBodyBytes: 16 * 1024,
-    redactedHeaders: ['x-workspace-secret'],
-    redactedFields: ['accountPin'],
+    redactedHeaders: ["x-workspace-secret"],
+    redactedFields: ["accountPin"],
   },
   routeResolver: ({ pathname }) => {
-    if (pathname.startsWith('/api/orders/')) return '/api/orders/:orderId'
-    return null
+    if (pathname.startsWith("/api/orders/")) return "/api/orders/:orderId";
+    return null;
   },
-})
+});
 ```
+
+The returned server entry also exposes structured logging methods. Exporting a
+named value makes them available elsewhere in the server without a second SDK
+instance:
+
+```ts
+export const outray = createOutrayTanStackServerEntry({
+  apiKey: "outray_your_observability_token",
+  serviceName: "my-tanstack-app",
+  environment: "production",
+});
+
+export default outray;
+
+outray.info("server started");
+```
+
+Call `outray.error("request failed", error)` from an error handler to preserve
+the exception and active trace context.
+
+For application operations that need their own child span, import
+`withOutraySpan` from `@outray/tanstack-start`.
 
 Your ordinary scripts stay unchanged:
 
