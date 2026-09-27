@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { SpanKind, SpanStatusCode, trace, type Span } from "@opentelemetry/api";
 import {
   OutrayClient,
   LocalAccessManager,
@@ -6,9 +7,40 @@ import {
   captureFetchResponse,
   isHttpPayloadCaptureActive,
 } from "@outray/core";
-import type { OutrayPayloadCaptureOptions, OutrayPluginOptions } from "./types";
+import {
+  createOutrayHttpServerMetrics,
+  getOutrayTracer,
+} from "@outray/observability";
+import type {
+  OutrayNextRequestContext,
+  OutrayNextRequestOptions,
+  OutrayPayloadCaptureOptions,
+  OutrayPluginOptions,
+} from "./types";
+import packageMetadata from "../package.json" with { type: "json" };
+export { withOutraySpan } from "@outray/observability";
 
 const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
+const OUTRAY_NEXT_VERSION = packageMetadata.version;
+let nextRequestMetrics:
+  | ReturnType<typeof createOutrayHttpServerMetrics>
+  | undefined;
+
+const UUID_SEGMENT =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const INTEGER_SEGMENT = /^\d+$/;
+const LONG_HEX_SEGMENT = /^[0-9a-f]{16,}$/i;
+const ULID_SEGMENT = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
+const DEFAULT_IGNORED_PREFIXES = ["/_next/", "/assets/"] as const;
+
+function getNextRequestMetrics() {
+  nextRequestMetrics ??= createOutrayHttpServerMetrics({
+    framework: "nextjs",
+    instrumentationName: "@outray/next",
+    instrumentationVersion: OUTRAY_NEXT_VERSION,
+  });
+  return nextRequestMetrics;
+}
 
 let client: OutrayClient | null = null;
 let localAccess: LocalAccessManager | null = null;
@@ -175,6 +207,201 @@ function startTunnel(
   process.on("exit", cleanup);
 }
 
+function pathnameFrom(request: Request): string {
+  try {
+    return new URL(request.url).pathname;
+  } catch {
+    return "/";
+  }
+}
+
+/** Convert common identifier segments to `:id` for bounded route cardinality. */
+export function normalizeNextRoute(pathname: string): string {
+  const normalized = pathname
+    .split("/")
+    .map((segment) =>
+      UUID_SEGMENT.test(segment) ||
+      INTEGER_SEGMENT.test(segment) ||
+      LONG_HEX_SEGMENT.test(segment) ||
+      ULID_SEGMENT.test(segment)
+        ? ":id"
+        : segment,
+    )
+    .join("/");
+  const route = normalized.startsWith("/") ? normalized : `/${normalized}`;
+  return (route || "/").slice(0, 256);
+}
+
+function isDefaultIgnoredNextPath(pathname: string): boolean {
+  return (
+    pathname === "/favicon.ico" ||
+    pathname === "/robots.txt" ||
+    DEFAULT_IGNORED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  );
+}
+
+function configureNextSpan(
+  span: Span,
+  request: Request,
+  pathname: string,
+  route: string,
+): void {
+  const method = request.method.toUpperCase();
+  span.updateName(`${method} ${route}`);
+  span.setAttributes({
+    "http.request.method": method,
+    "http.route": route,
+    "url.path": pathname,
+    "outray.framework": "nextjs",
+  });
+}
+
+async function runNextHandler<
+  Arguments extends unknown[],
+  Result extends Response,
+>(
+  handler: (request: Request, ...args: Arguments) => Result | Promise<Result>,
+  request: Request,
+  args: Arguments,
+  options: OutrayNextRequestOptions,
+  span: Span,
+  pathname: string,
+  route: string,
+): Promise<Result> {
+  configureNextSpan(span, request, pathname, route);
+
+  let requestClone: Request | undefined;
+  if (
+    options.capturePayloads &&
+    isHttpPayloadCaptureActive(options.capturePayloads)
+  ) {
+    try {
+      requestClone = request.clone();
+    } catch {
+      // A previously-consumed request cannot be cloned; the handler still runs.
+    }
+  }
+
+  let result: Result | Promise<Result>;
+  try {
+    result = handler(request, ...args);
+  } catch (error) {
+    span.setStatus({ code: SpanStatusCode.ERROR });
+    if (error instanceof Error) span.recordException(error);
+    throw error;
+  }
+
+  const requestCapture =
+    requestClone && options.capturePayloads
+      ? captureFetchRequest(requestClone, options.capturePayloads).catch(
+          () => undefined,
+        )
+      : Promise.resolve();
+
+  let response: Result;
+  try {
+    response = await result;
+  } catch (error) {
+    await requestCapture;
+    span.setStatus({ code: SpanStatusCode.ERROR });
+    if (error instanceof Error) span.recordException(error);
+    throw error;
+  }
+
+  await requestCapture;
+  span.setAttribute("http.response.status_code", response.status);
+  if (response.status >= 500) {
+    span.setStatus({ code: SpanStatusCode.ERROR });
+  }
+
+  if (
+    options.capturePayloads &&
+    isHttpPayloadCaptureActive(options.capturePayloads)
+  ) {
+    try {
+      await captureFetchResponse(response.clone(), options.capturePayloads);
+    } catch {
+      // Streaming/framework-specific responses are allowed to be unclonable.
+    }
+  }
+
+  return response;
+}
+
+/**
+ * Instrument an App Router route handler with route-aware traces and HTTP
+ * server metrics. Payload capture remains opt-in.
+ */
+export function withOutrayRequest<
+  Arguments extends unknown[],
+  Result extends Response,
+>(
+  handler: (request: Request, ...args: Arguments) => Result | Promise<Result>,
+  options: OutrayNextRequestOptions = {},
+): (request: Request, ...args: Arguments) => Promise<Result> {
+  return async (request: Request, ...args: Arguments): Promise<Result> => {
+    const pathname = pathnameFrom(request);
+    const requestContext: OutrayNextRequestContext = { request, pathname };
+    let ignored = isDefaultIgnoredNextPath(pathname);
+    try {
+      ignored ||= options.ignore?.(requestContext) === true;
+    } catch {
+      // A telemetry filter cannot block the application request.
+    }
+    if (ignored) return handler(request, ...args);
+
+    let route: string | null | undefined;
+    try {
+      route = options.routeResolver?.(requestContext);
+    } catch {
+      // Fall back to bounded identifier normalization.
+    }
+    route ||= normalizeNextRoute(pathname);
+
+    const finishMetrics = getNextRequestMetrics().start({
+      method: request.method,
+      route,
+    });
+    const execute = async (span: Span): Promise<Result> => {
+      try {
+        const response = await runNextHandler(
+          handler,
+          request,
+          args,
+          options,
+          span,
+          pathname,
+          route!,
+        );
+        finishMetrics({ statusCode: response.status, route: route! });
+        return response;
+      } catch (error) {
+        finishMetrics({
+          statusCode: 500,
+          errorType: error instanceof Error ? error.name : "Error",
+          route: route!,
+        });
+        throw error;
+      }
+    };
+
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan?.isRecording()) return execute(activeSpan);
+
+    return getOutrayTracer("@outray/next", OUTRAY_NEXT_VERSION).startActiveSpan(
+      `${request.method.toUpperCase()} ${route}`,
+      { kind: SpanKind.SERVER },
+      async (span) => {
+        try {
+          return await execute(span);
+        } finally {
+          span.end();
+        }
+      },
+    );
+  };
+}
+
 /**
  * Opt-in payload capture for App Router route handlers.
  *
@@ -198,43 +425,14 @@ export function withOutrayPayloadCapture<
   handler: (request: Request, ...args: Arguments) => Result | Promise<Result>,
   captureOptions: OutrayPayloadCaptureOptions = true,
 ): (request: Request, ...args: Arguments) => Promise<Result> {
-  return async (request: Request, ...args: Arguments): Promise<Result> => {
-    if (!isHttpPayloadCaptureActive(captureOptions)) {
-      return handler(request, ...args);
-    }
-
-    let requestClone: Request | undefined;
-    try {
-      requestClone = request.clone();
-    } catch {
-      // A previously-consumed request cannot be cloned; the handler still runs.
-    }
-
-    // Invoke the handler before reading the clone so downstream owns the stream first.
-    const result = handler(request, ...args);
-    const requestCapture = requestClone
-      ? captureFetchRequest(requestClone, captureOptions).catch(() => undefined)
-      : Promise.resolve();
-
-    let response: Result;
-    try {
-      response = await result;
-    } catch (error) {
-      await requestCapture;
-      throw error;
-    }
-
-    await requestCapture;
-    try {
-      await captureFetchResponse(response.clone(), captureOptions);
-    } catch {
-      // Streaming/framework-specific responses are allowed to be unclonable.
-    }
-
-    return response;
-  };
+  return withOutrayRequest(handler, { capturePayloads: captureOptions });
 }
 
 // Named exports for better tree-shaking
 export { withOutray };
-export type { OutrayPayloadCaptureOptions, OutrayPluginOptions };
+export type {
+  OutrayNextRequestContext,
+  OutrayNextRequestOptions,
+  OutrayPayloadCaptureOptions,
+  OutrayPluginOptions,
+};
