@@ -83,9 +83,9 @@ export interface OutrayNodeHttpResponse {
 }
 
 export interface OutrayNodeHttpMiddlewareOptions {
-  routeResolver?: (
-    request: OutrayNodeHttpRequest,
-  ) => string | null | undefined;
+  /** Framework adapter reporting the request. Defaults to `node-http`. */
+  framework?: string;
+  routeResolver?: (request: OutrayNodeHttpRequest) => string | null | undefined;
   ignore?: (request: OutrayNodeHttpRequest) => boolean;
 }
 
@@ -114,6 +114,10 @@ export interface OutrayHttpServerRequestMetrics {
   start(
     request: OutrayHttpServerRequestMetricStart,
   ): (result: OutrayHttpServerRequestMetricEnd) => void;
+}
+
+export interface OutraySpanOptions {
+  attributes?: Attributes;
 }
 
 export type OutrayNodeHttpMiddleware = (
@@ -188,7 +192,8 @@ export function createOutrayHttpServerMetrics(
           "http.response.status_code": statusCode,
           ...(errorType ? { "error.type": errorType } : {}),
         };
-        const durationSeconds = Math.max(0, performance.now() - startedAt) / 1000;
+        const durationSeconds =
+          Math.max(0, performance.now() - startedAt) / 1000;
         try {
           activeRequests.add(-1, activeRequestAttributes);
           requestCount.add(1, resultAttributes);
@@ -204,8 +209,10 @@ export function createOutrayHttpServerMetrics(
 function nodeRequestPath(request: OutrayNodeHttpRequest): string {
   if (request.path?.startsWith("/")) return request.path;
   try {
-    return new URL(request.originalUrl ?? request.url ?? "/", "http://outray.local")
-      .pathname;
+    return new URL(
+      request.originalUrl ?? request.url ?? "/",
+      "http://outray.local",
+    ).pathname;
   } catch {
     return "/";
   }
@@ -242,6 +249,7 @@ function configureNodeSpan(
   span: Span,
   request: OutrayNodeHttpRequest,
   route: string,
+  framework: string,
 ): void {
   const method = (request.method ?? "GET").toUpperCase();
   span.updateName(`${method} ${route}`);
@@ -249,6 +257,7 @@ function configureNodeSpan(
     "http.request.method": method,
     "http.route": route,
     "url.path": nodeRequestPath(request),
+    "outray.framework": framework,
   });
 }
 
@@ -260,12 +269,13 @@ function configureNodeSpan(
 export function createOutrayNodeHttpMiddleware(
   options: OutrayNodeHttpMiddlewareOptions = {},
 ): OutrayNodeHttpMiddleware {
+  const framework = options.framework ?? "node-http";
   const tracer = getOutrayTracer(
     "@outray/node-http-middleware",
     OUTRAY_OBSERVABILITY_VERSION,
   );
   const requestMetrics = createOutrayHttpServerMetrics({
-    framework: "node-http",
+    framework,
     instrumentationName: "@outray/node-http-middleware",
     instrumentationVersion: OUTRAY_OBSERVABILITY_VERSION,
   });
@@ -294,13 +304,13 @@ export function createOutrayNodeHttpMiddleware(
     });
 
     const run = (span: Span, ownsSpan: boolean) => {
-      configureNodeSpan(span, request, route!);
+      configureNodeSpan(span, request, route!, framework);
       let completed = false;
       const complete = (error?: unknown) => {
         if (completed) return;
         completed = true;
         const finalRoute = matchedNodeRoute(request, route!);
-        configureNodeSpan(span, request, finalRoute);
+        configureNodeSpan(span, request, finalRoute, framework);
         const statusCode =
           error && (response.statusCode ?? 200) < 500
             ? 500
@@ -430,14 +440,12 @@ export function startOutrayObservability(
       headers: config.headers,
     }),
   );
-  const logProcessor = new BatchLogRecordProcessor(
-    {
-      exporter: new OTLPLogExporter({
-        url: signalEndpoint(config.endpoint, "logs"),
-        headers: config.headers,
-      }),
-    },
-  );
+  const logProcessor = new BatchLogRecordProcessor({
+    exporter: new OTLPLogExporter({
+      url: signalEndpoint(config.endpoint, "logs"),
+      headers: config.headers,
+    }),
+  });
   const metricReader = new PeriodicExportingMetricReader({
     exporter: new OTLPMetricExporter({
       url: signalEndpoint(config.endpoint, "metrics"),
@@ -516,6 +524,33 @@ export function getOutrayTracer(name?: string, version?: string): Tracer {
   return trace.getTracer(
     name ?? config?.serviceName ?? "outray",
     version ?? config?.serviceVersion,
+  );
+}
+
+/**
+ * Run an application operation as a child of the currently active trace.
+ * Errors are recorded and rethrown, and the span is always ended.
+ */
+export async function withOutraySpan<TResult>(
+  name: string,
+  operation: (span: Span) => TResult | Promise<TResult>,
+  options: OutraySpanOptions = {},
+): Promise<TResult> {
+  const tracer = getOutrayTracer();
+  return tracer.startActiveSpan(
+    name,
+    { attributes: options.attributes },
+    async (span) => {
+      try {
+        return await operation(span);
+      } catch (error) {
+        span.setStatus({ code: SpanStatusCode.ERROR });
+        if (error instanceof Error) span.recordException(error);
+        throw error;
+      } finally {
+        span.end();
+      }
+    },
   );
 }
 
