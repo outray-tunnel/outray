@@ -80,6 +80,22 @@ export interface OutrayPluginOptions {
   onReconnecting?: () => void;
 }
 
+export interface OutrayNextRequestContext {
+  request: Request;
+  pathname: string;
+}
+
+export interface OutrayNextRequestOptions {
+  /** Opt in to bounded, redacted request and response capture. */
+  capturePayloads?: HttpPayloadCaptureSetting;
+  /** Resolve a stable route template when pathname normalization is not enough. */
+  routeResolver?: (
+    context: OutrayNextRequestContext,
+  ) => string | null | undefined;
+  /** Skip telemetry for a request. Next.js assets are ignored by default. */
+  ignore?: (context: OutrayNextRequestContext) => boolean;
+}
+
 export type OutrayPayloadCaptureOptions = Exclude<
   HttpPayloadCaptureSetting,
   false
