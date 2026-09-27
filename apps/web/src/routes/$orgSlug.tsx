@@ -151,6 +151,14 @@ function DashboardLayout() {
     );
   }
 
+  const onboardingPath = location.pathname.replace(/\/+$/, "");
+  if (
+    onboardingPath === `/${orgSlug}/get-started` ||
+    onboardingPath === `/${orgSlug}/setup`
+  ) {
+    return <Outlet />;
+  }
+
   return (
     <div className="workspace-ui min-h-screen bg-[#070707] text-gray-300 font-sans selection:bg-accent/30">
       {/* Mobile header */}
