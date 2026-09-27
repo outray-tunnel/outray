@@ -1,37 +1,98 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(860 330) rotate(180) scale(520 430)">
-      <stop stop-color="#8367C7" stop-opacity="0.34"/>
-      <stop offset="1" stop-color="#8367C7" stop-opacity="0"/>
-    </radialGradient>
-    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-      <path d="M40 0H0V40" stroke="#FFFFFF" stroke-opacity="0.045"/>
+    <style>
+      @font-face {
+        font-family: Geom;
+        src: url("fonts/geom-latin.woff2") format("woff2");
+        font-style: normal;
+        font-weight: 300 900;
+      }
+      .geom { font-family: Geom, Arial, sans-serif; }
+      .mono { font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+    </style>
+    <clipPath id="frame-clip"><rect x="28" y="28" width="1144" height="574" rx="28"/></clipPath>
+    <pattern id="grid" width="52" height="52" patternUnits="userSpaceOnUse">
+      <path d="M52 0H0V52" stroke="#FFFFFF" stroke-opacity=".035"/>
     </pattern>
-    <linearGradient id="beam" x1="700" y1="315" x2="1080" y2="315" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#8367C7" stop-opacity="0"/>
-      <stop offset="0.5" stop-color="#A78BFA"/>
-      <stop offset="1" stop-color="#8367C7" stop-opacity="0"/>
+    <linearGradient id="card-fill" x1="704" y1="139" x2="1138" y2="528" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#141219"/>
+      <stop offset="1" stop-color="#0C0C0F"/>
+    </linearGradient>
+    <linearGradient id="card-stroke" x1="710" y1="141" x2="1134" y2="528" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6B568F"/>
+      <stop offset=".34" stop-color="#35303D"/>
+      <stop offset="1" stop-color="#26252B"/>
     </linearGradient>
   </defs>
-  <rect width="1200" height="630" fill="#09090B"/>
-  <rect width="1200" height="630" fill="url(#grid)"/>
-  <rect width="1200" height="630" fill="url(#glow)"/>
-  <g transform="translate(70 64) scale(.25)">
-    <path d="M2.54688 69.0371C34.9492 54.512 71.4883 58.7316 94.1689 82.6191C115.062 104.625 118.677 137.51 106.465 167.264C100.649 168.777 94.592 169.688 88.3623 169.931C103.925 145.463 102.096 113.376 82.0039 92.2148C60.6364 69.71 25.8588 67.1916 0 84.7705C0.0139808 79.4947 0.508598 74.3316 1.44238 69.3232C1.80382 69.2936 2.17561 69.2035 2.54688 69.0371ZM0.396484 93.2607C22.6416 86.6935 47.2006 92.139 63.7324 109.551C79.2799 125.926 83.8902 148.843 77.9697 169.71C73.0962 169.311 68.3394 168.5 63.7334 167.313C72.3879 150.763 70.0698 129.867 56.4922 115.566C42.278 100.596 20.2053 97.5726 2.82812 106.821C1.66514 102.43 0.843937 97.9001 0.396484 93.2607ZM5.04883 113.923C18.9587 111.941 33.5857 116.494 43.9971 127.46C53.8606 137.849 57.7793 151.718 55.8682 164.873C50.5667 162.939 45.5128 160.491 40.7646 157.592C42.2487 153.413 42.5813 148.771 41.4678 144.138C38.4078 131.407 25.606 123.567 12.875 126.627C12.2896 126.768 11.7145 126.928 11.1504 127.109C8.75847 122.924 6.71068 118.516 5.04883 113.923ZM84.999 0C131.943 0.000177301 169.998 38.0562 169.998 85C169.998 118.651 150.442 147.733 122.076 161.506C145.102 127.778 145.223 84.9804 119.838 58.2432C91.1585 28.0369 40.319 29.2765 3.70508 60.1006C14.3493 25.3058 46.7188 0 84.999 0Z" fill="white"/>
+
+  <rect width="1200" height="630" fill="#050505"/>
+  <rect x="28.5" y="28.5" width="1143" height="573" rx="27.5" fill="#09090A" stroke="#252529"/>
+  <g clip-path="url(#frame-clip)">
+    <rect x="675" y="28" width="497" height="574" fill="url(#grid)"/>
+    <path d="M676 82V548" stroke="#27262B"/>
+    <path d="M28 520H676" stroke="#202025"/>
   </g>
-  <text x="126" y="99" fill="white" font-family="Arial, sans-serif" font-size="34" font-weight="700">OutRay</text>
-  <text x="70" y="285" fill="white" font-family="Arial, sans-serif" font-size="72" font-weight="700" letter-spacing="-3">Expose. Observe. Secure.</text>
-  <text x="72" y="345" fill="#A1A1AA" font-family="Arial, sans-serif" font-size="27">Developer infrastructure for small teams.</text>
-  <g opacity="0.95">
-    <path d="M720 202H1064" stroke="#27272A" stroke-width="2"/>
-    <path d="M720 315H1064" stroke="url(#beam)" stroke-width="3"/>
-    <path d="M720 428H1064" stroke="#27272A" stroke-width="2"/>
-    <circle cx="720" cy="315" r="18" fill="#18181B" stroke="#8367C7" stroke-width="2"/>
-    <circle cx="892" cy="202" r="18" fill="#18181B" stroke="#52525B" stroke-width="2"/>
-    <circle cx="892" cy="315" r="24" fill="#8367C7"/>
-    <circle cx="892" cy="428" r="18" fill="#18181B" stroke="#52525B" stroke-width="2"/>
-    <circle cx="1064" cy="315" r="18" fill="#18181B" stroke="#10B981" stroke-width="2"/>
-    <path d="M738 315H868M916 315H1046M892 226V291M892 339V404" stroke="#8367C7" stroke-width="2"/>
+
+  <g transform="translate(72 65) scale(.255)">
+    <path d="M2.54688 69.0371C34.9492 54.512 71.4883 58.7316 94.1689 82.6191C115.062 104.625 118.677 137.51 106.465 167.264C100.649 168.777 94.592 169.688 88.3623 169.931C103.925 145.463 102.096 113.376 82.0039 92.2148C60.6364 69.71 25.8588 67.1916 0 84.7705C0.0139808 79.4947 0.508598 74.3316 1.44238 69.3232C1.80382 69.2936 2.17561 69.2035 2.54688 69.0371ZM0.396484 93.2607C22.6416 86.6935 47.2006 92.139 63.7324 109.551C79.2799 125.926 83.8902 148.843 77.9697 169.71C73.0962 169.311 68.3394 168.5 63.7334 167.313C72.3879 150.763 70.0698 129.867 56.4922 115.566C42.278 100.596 20.2053 97.5726 2.82812 106.821C1.66514 102.43 0.843937 97.9001 0.396484 93.2607ZM5.04883 113.923C18.9587 111.941 33.5857 116.494 43.9971 127.46C53.8606 137.849 57.7793 151.718 55.8682 164.873C50.5667 162.939 45.5128 160.491 40.7646 157.592C42.2487 153.413 42.5813 148.771 41.4678 144.138C38.4078 131.407 25.606 123.567 12.875 126.627C12.2896 126.768 11.7145 126.928 11.1504 127.109C8.75847 122.924 6.71068 118.516 5.04883 113.923ZM84.999 0C131.943 0.000177301 169.998 38.0562 169.998 85C169.998 118.651 150.442 147.733 122.076 161.506C145.102 127.778 145.223 84.9804 119.838 58.2432C91.1585 28.0369 40.319 29.2765 3.70508 60.1006C14.3493 25.3058 46.7188 0 84.999 0Z" fill="#F7F7F8"/>
   </g>
-  <text x="72" y="553" fill="#8367C7" font-family="monospace" font-size="22">TUNNELS  /  OBSERVABILITY  /  SECRETS</text>
+  <text class="geom" x="128" y="100" fill="#F7F7F8" font-size="34" font-weight="700" letter-spacing="-.9">OutRay</text>
+
+  <text class="geom" x="72" y="221" fill="#F7F7F8" font-size="57" font-weight="670" letter-spacing="-2.4">Everything between</text>
+  <text class="geom" x="72" y="317" fill="#F7F7F8" font-size="81" font-weight="680" letter-spacing="-3.7">localhost</text>
+  <path d="M75 335H391" stroke="#65656E" stroke-width="2.5" stroke-dasharray="9 8"/>
+  <text class="geom" x="72" y="407" fill="#F7F7F8" font-size="62" font-weight="670" letter-spacing="-2.7">and production.</text>
+  <path d="M187 425H506" stroke="#34D399" stroke-width="3"/>
+  <circle cx="508" cy="425" r="7" fill="#34D399"/>
+  <circle cx="508" cy="425" r="13" stroke="#34D399" stroke-opacity=".18" stroke-width="8"/>
+  <text class="geom" x="74" y="478" fill="#A9A9B1" font-size="21" font-weight="450">Secure tunnels, observability, and secrets.</text>
+
+  <circle cx="76" cy="558" r="4" fill="#A78BFA"/>
+  <text class="geom" x="91" y="564" fill="#B5B0BE" font-size="16" font-weight="620" letter-spacing=".2">Tunnels</text>
+  <circle cx="200" cy="558" r="4" fill="#A78BFA"/>
+  <text class="geom" x="215" y="564" fill="#B5B0BE" font-size="16" font-weight="620" letter-spacing=".2">Observability</text>
+  <circle cx="372" cy="558" r="4" fill="#A78BFA"/>
+  <text class="geom" x="387" y="564" fill="#B5B0BE" font-size="16" font-weight="620" letter-spacing=".2">Secrets</text>
+
+  <rect x="704.5" y="138.5" width="433" height="387" rx="23.5" fill="url(#card-fill)" stroke="url(#card-stroke)"/>
+  <rect x="705" y="139" width="432" height="61" rx="23" fill="#16131B"/>
+  <path d="M705 180H1137V200H705V180Z" fill="#16131B"/>
+  <path d="M705 200H1137" stroke="#34303B"/>
+  <circle cx="737" cy="169" r="4.5" fill="#A78BFA"/>
+  <text class="mono" x="753" y="174" fill="#B9B0C9" font-size="13" font-weight="600" letter-spacing="1.2">OUTRAY / CONNECTED STACK</text>
+  <circle cx="1101" cy="169" r="4" fill="#34D399"/>
+
+  <rect x="731" y="221" width="42" height="42" rx="12" fill="#211A2C" stroke="#4D3B6C"/>
+  <g transform="translate(739 229)" stroke="#B99BFA" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 18C21 15.7909 16.9706 14 12 14C7.02944 14 3 15.7909 3 18C3 20.2091 7.02944 22 12 22C16.9706 22 21 20.2091 21 18Z"/>
+    <path d="M20.5 16.5L16.1561 7.39413C14.3427 3.79804 13.436 2 12 2C10.564 2 9.65732 3.79804 7.84393 7.39413L3.5 16.5"/>
+  </g>
+  <text class="mono" x="790" y="232" fill="#9388A9" font-size="11" font-weight="600" letter-spacing="1.3">TUNNELS</text>
+  <text class="geom" x="790" y="258" fill="#F1EFF5" font-size="21" font-weight="600">orders.outray.app</text>
+  <text class="mono" x="790" y="280" fill="#8E8C96" font-size="12">localhost:3000  →  public URL</text>
+  <path d="M731 301H1111" stroke="#29272F"/>
+
+  <rect x="731" y="323" width="42" height="42" rx="12" fill="#211A2C" stroke="#4D3B6C"/>
+  <g transform="translate(739 331)" stroke="#B99BFA" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 12H5L6.5 8L9 15L10.5 12H12.5L14.5 7L16.5 17L19 12H22"/>
+  </g>
+  <text class="mono" x="790" y="335" fill="#9388A9" font-size="11" font-weight="600" letter-spacing="1.3">OBSERVABILITY</text>
+  <text class="mono" x="790" y="360" fill="#E5E3E9" font-size="16" font-weight="600">GET /api/orders</text>
+  <rect x="1051" y="342" width="48" height="24" rx="7" fill="#123225"/>
+  <text class="mono" x="1060" y="358" fill="#56DFA2" font-size="12" font-weight="700">200</text>
+  <path d="M790 381H1097" stroke="#28262E" stroke-width="7" stroke-linecap="round"/>
+  <path d="M790 381H996" stroke="#8367C7" stroke-width="7" stroke-linecap="round"/>
+  <path d="M731 402H1111" stroke="#29272F"/>
+
+  <rect x="731" y="424" width="42" height="42" rx="12" fill="#211A2C" stroke="#4D3B6C"/>
+  <g transform="translate(739 432)" stroke="#B99BFA" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.26781 18.8447C4.49269 20.515 5.87613 21.8235 7.55966 21.9009C8.97627 21.966 10.4153 22 12 22C13.5847 22 15.0237 21.966 16.4403 21.9009C18.1239 21.8235 19.5073 20.515 19.7322 18.8447C19.879 17.7547 20 16.6376 20 15.5C20 14.3624 19.879 13.2453 19.7322 12.1553C19.5073 10.485 18.1239 9.17649 16.4403 9.09909C15.0237 9.03397 13.5847 9 12 9C10.4153 9 8.97627 9.03397 7.55966 9.09909C5.87613 9.17649 4.49269 10.485 4.26781 12.1553C4.12105 13.2453 4 14.3624 4 15.5C4 16.6376 4.12105 17.7547 4.26781 18.8447Z"/>
+    <path d="M7.5 9V6.5C7.5 4.01472 9.51472 2 12 2C14.4853 2 16.5 4.01472 16.5 6.5V9"/>
+  </g>
+  <text class="mono" x="790" y="436" fill="#9388A9" font-size="11" font-weight="600" letter-spacing="1.3">SECRETS</text>
+  <text class="mono" x="790" y="462" fill="#E5E3E9" font-size="16" font-weight="600">DATABASE_URL</text>
+  <text class="geom" x="790" y="484" fill="#8E8C96" font-size="14">Encrypted runtime delivery</text>
+
+  <path d="M705 547H1137" stroke="#252429"/>
+  <text class="mono" x="710" y="569" fill="#77747F" font-size="12" letter-spacing="1">EXPOSE  ·  OBSERVE  ·  SECURE</text>
 </svg>
