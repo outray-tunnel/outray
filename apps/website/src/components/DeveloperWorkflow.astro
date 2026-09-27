@@ -1,0 +1,139 @@
+---
+interface Props {
+  docsUrl: string;
+}
+
+const { docsUrl } = Astro.props;
+
+const workflows = [
+  {
+    id: "tunnels",
+    label: "Tunnels",
+    title: "A public URL in one command",
+    description: "Run the CLI beside any local HTTP service. OutRay provisions the tunnel and keeps request inspection in the same workspace.",
+    language: "shell",
+    filename: "Terminal",
+    code: "outray 3000",
+  },
+  {
+    id: "observability",
+    label: "Observability",
+    title: "Server telemetry with code-first configuration",
+    description: "Start once with your service identity and API key. Framework integrations add route-aware spans, logs, and request metrics.",
+    language: "ts",
+    filename: "observability.ts",
+    code: `import { startOutrayObservability } from "@outray/observability";
+
+startOutrayObservability({
+  apiKey: process.env.OUTRAY_API_KEY!,
+  serviceName: "orders-api",
+  environment: "production",
+});`,
+  },
+  {
+    id: "secrets",
+    label: "Secrets",
+    title: "Inject secrets when the process starts",
+    description: "Choose a vault and environment once, then run your existing command with encrypted remote values overriding inherited variables.",
+    language: "shell",
+    filename: "Terminal",
+    code: "outray secrets run -- npm run dev",
+  },
+];
+
+const frameworks = [
+  { name: "Node.js", slug: "nodejs" },
+  { name: "Express", slug: "express" },
+  { name: "NestJS", slug: "nestjs" },
+  { name: "Next.js", slug: "nextjs" },
+  { name: "Hono", slug: "hono" },
+  { name: "TanStack Start", slug: "tanstack-start" },
+  { name: "Vite", slug: "vite" },
+];
+---
+
+<section class="developer-workflow workflow" id="workflow" aria-labelledby="workflow-title">
+  <div class="page-shell">
+    <div class="section-intro section-intro-split">
+      <div>
+        <p class="eyebrow"><span></span> Developer workflow</p>
+        <h2 id="workflow-title">Add OutRay without rebuilding your stack.</h2>
+      </div>
+      <p>Use one CLI for tunnels and secrets, plus small server-side SDKs for observability. Your application stays yours.</p>
+    </div>
+
+    <div class="workflow-tabs" data-product-tabs data-default-tab="tunnels" data-tab-group="workflow">
+      <div class="tab-list workflow-tablist product-tabs" role="tablist" aria-label="OutRay product workflows">
+        {workflows.map((workflow, index) => (
+          <button
+            class="workflow-tab product-tab"
+            type="button"
+            id={`tab-${workflow.id}`}
+            role="tab"
+            aria-selected={index === 0 ? "true" : "false"}
+            aria-controls={`panel-${workflow.id}`}
+            tabindex={index === 0 ? 0 : -1}
+            data-product-tab={workflow.id}
+          >
+            <span class={`tab-number tab-number-${workflow.id}`}>0{index + 1}</span>
+            {workflow.label}
+          </button>
+        ))}
+      </div>
+
+      <div class="workflow-panels">
+        {workflows.map((workflow, index) => (
+          <div
+            class="workflow-panel product-tab-panel"
+            id={`panel-${workflow.id}`}
+            role="tabpanel"
+            aria-labelledby={`tab-${workflow.id}`}
+            data-product-panel={workflow.id}
+            data-active={index === 0 ? "true" : "false"}
+          >
+            <div class="workflow-copy">
+              <p class="code-language">{workflow.language}</p>
+              <h3>{workflow.title}</h3>
+              <p>{workflow.description}</p>
+              <a class="inline-link" href={docsUrl} data-track="cta" data-track-label={`${workflow.id}-read-docs`}>
+                Read the documentation
+                <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+              </a>
+            </div>
+            <div class="code-panel">
+              <div class="code-toolbar code-panel-header">
+                <span>{workflow.filename}</span>
+                <button
+                  class="copy-button"
+                  type="button"
+                  data-copy={workflow.code}
+                  aria-label={`Copy ${workflow.label} example`}
+                  data-track="command-copy"
+                  data-track-label={`${workflow.id}-example`}
+                >
+                  <svg class="copy-icon" aria-hidden="true" viewBox="0 0 20 20"><path d="M7 6V4.8C7 3.8 7.8 3 8.8 3h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8H14M4.8 7h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8H4.8c-1 0-1.8-.8-1.8-1.8V8.8C3 7.8 3.8 7 4.8 7Z" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>
+                  <svg class="check-icon" aria-hidden="true" viewBox="0 0 20 20"><path d="m4 10 4 4 8-8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"></path></svg>
+                  <span data-copy-label>Copy</span>
+                </button>
+              </div>
+              <pre><code>{workflow.code}</code></pre>
+              <span class="sr-only" aria-live="polite" data-copy-status></span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div class="framework-strip" role="region" aria-labelledby="frameworks-title">
+      <p id="frameworks-title">Built for the Node.js tools you already use</p>
+      <ul class="frameworks framework-list">
+        {frameworks.map(({ name, slug }) => (
+          <li class="framework-item" title={name}>
+            <img src={`/frameworks/${slug}.svg`} width="24" height="24" alt="" loading="lazy" />
+            <span>{name}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>
