@@ -5,6 +5,7 @@ import {
   diag,
   metrics,
   trace,
+  type Attributes,
   type Span,
   type Meter,
   type Tracer,
@@ -38,6 +39,9 @@ import {
   createOutrayLogMethods,
   type OutrayLogMethods,
 } from "./logging";
+import packageMetadata from "../package.json" with { type: "json" };
+
+const OUTRAY_OBSERVABILITY_VERSION = packageMetadata.version;
 
 export {
   DEFAULT_OUTRAY_OTLP_ENDPOINT,
@@ -85,6 +89,33 @@ export interface OutrayNodeHttpMiddlewareOptions {
   ignore?: (request: OutrayNodeHttpRequest) => boolean;
 }
 
+export interface OutrayHttpServerMetricOptions {
+  /** Framework or adapter reporting the request, such as `hono`. */
+  framework: string;
+  /** Instrumentation scope name. */
+  instrumentationName?: string;
+  /** Instrumentation scope version. */
+  instrumentationVersion?: string;
+}
+
+export interface OutrayHttpServerRequestMetricStart {
+  method: string;
+  route: string;
+}
+
+export interface OutrayHttpServerRequestMetricEnd {
+  statusCode: number;
+  errorType?: string;
+  /** Final framework route template when it becomes known after dispatch. */
+  route?: string;
+}
+
+export interface OutrayHttpServerRequestMetrics {
+  start(
+    request: OutrayHttpServerRequestMetricStart,
+  ): (result: OutrayHttpServerRequestMetricEnd) => void;
+}
+
 export type OutrayNodeHttpMiddleware = (
   request: OutrayNodeHttpRequest,
   response: OutrayNodeHttpResponse,
@@ -98,6 +129,77 @@ const UUID_SEGMENT =
 const INTEGER_SEGMENT = /^\d+$/;
 const LONG_HEX_SEGMENT = /^[0-9a-f]{16,}$/i;
 const ULID_SEGMENT = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
+
+/**
+ * Create the low-cardinality HTTP server instruments shared by OutRay's
+ * framework adapters. Durations use seconds to follow OpenTelemetry's stable
+ * HTTP metric conventions.
+ */
+export function createOutrayHttpServerMetrics(
+  options: OutrayHttpServerMetricOptions,
+): OutrayHttpServerRequestMetrics {
+  const meter = getOutrayMeter(
+    options.instrumentationName ?? "@outray/http-server",
+    options.instrumentationVersion,
+  );
+  const requestCount = meter.createCounter("http.server.request.count", {
+    description: "Number of HTTP requests completed by the server.",
+    unit: "{request}",
+  });
+  const requestDuration = meter.createHistogram(
+    "http.server.request.duration",
+    {
+      description: "Duration of HTTP requests handled by the server.",
+      unit: "s",
+    },
+  );
+  const activeRequests = meter.createUpDownCounter(
+    "http.server.active_requests",
+    {
+      description: "Number of HTTP requests currently being handled.",
+      unit: "{request}",
+    },
+  );
+
+  return {
+    start({ method, route }) {
+      const startedAt = performance.now();
+      const activeRequestAttributes: Attributes = {
+        "http.request.method": method.toUpperCase(),
+        "outray.framework": options.framework,
+      };
+      const requestAttributes: Attributes = {
+        ...activeRequestAttributes,
+        "http.route": route,
+      };
+      try {
+        activeRequests.add(1, activeRequestAttributes);
+      } catch {
+        // Metrics must never interfere with an application request.
+      }
+
+      let completed = false;
+      return ({ statusCode, errorType, route: finalRoute }) => {
+        if (completed) return;
+        completed = true;
+        const resultAttributes: Attributes = {
+          ...requestAttributes,
+          ...(finalRoute ? { "http.route": finalRoute } : {}),
+          "http.response.status_code": statusCode,
+          ...(errorType ? { "error.type": errorType } : {}),
+        };
+        const durationSeconds = Math.max(0, performance.now() - startedAt) / 1000;
+        try {
+          activeRequests.add(-1, activeRequestAttributes);
+          requestCount.add(1, resultAttributes);
+          requestDuration.record(durationSeconds, resultAttributes);
+        } catch {
+          // Metrics must never interfere with an application response.
+        }
+      };
+    },
+  };
+}
 
 function nodeRequestPath(request: OutrayNodeHttpRequest): string {
   if (request.path?.startsWith("/")) return request.path;
@@ -158,7 +260,15 @@ function configureNodeSpan(
 export function createOutrayNodeHttpMiddleware(
   options: OutrayNodeHttpMiddlewareOptions = {},
 ): OutrayNodeHttpMiddleware {
-  const tracer = getOutrayTracer("@outray/node-http-middleware", "0.1.2");
+  const tracer = getOutrayTracer(
+    "@outray/node-http-middleware",
+    OUTRAY_OBSERVABILITY_VERSION,
+  );
+  const requestMetrics = createOutrayHttpServerMetrics({
+    framework: "node-http",
+    instrumentationName: "@outray/node-http-middleware",
+    instrumentationVersion: OUTRAY_OBSERVABILITY_VERSION,
+  });
 
   return (request, response, next) => {
     try {
@@ -178,22 +288,36 @@ export function createOutrayNodeHttpMiddleware(
       // Fall back to bounded identifier normalization.
     }
     route ||= normalizeNodeRoute(pathname);
+    const finishMetrics = requestMetrics.start({
+      method: request.method ?? "GET",
+      route,
+    });
 
     const run = (span: Span, ownsSpan: boolean) => {
       configureNodeSpan(span, request, route!);
       let completed = false;
-      const complete = () => {
+      const complete = (error?: unknown) => {
         if (completed) return;
         completed = true;
         const finalRoute = matchedNodeRoute(request, route!);
         configureNodeSpan(span, request, finalRoute);
-        const statusCode = response.statusCode;
+        const statusCode =
+          error && (response.statusCode ?? 200) < 500
+            ? 500
+            : (response.statusCode ?? 200);
         if (statusCode !== undefined) {
           span.setAttribute("http.response.status_code", statusCode);
           if (statusCode >= 500) {
             span.setStatus({ code: SpanStatusCode.ERROR });
           }
         }
+        finishMetrics({
+          statusCode,
+          route: finalRoute,
+          ...(error
+            ? { errorType: error instanceof Error ? error.name : "Error" }
+            : {}),
+        });
         if (ownsSpan) span.end();
       };
       response.once("finish", complete);
@@ -203,7 +327,7 @@ export function createOutrayNodeHttpMiddleware(
       } catch (error) {
         span.setStatus({ code: SpanStatusCode.ERROR });
         if (error instanceof Error) span.recordException(error);
-        complete();
+        complete(error);
         throw error;
       }
     };
@@ -262,7 +386,7 @@ function resourceAttributes(
       ? { "deployment.environment.name": options.environment }
       : {}),
     "telemetry.distro.name": "outray",
-    "telemetry.distro.version": "0.1.2",
+    "telemetry.distro.version": OUTRAY_OBSERVABILITY_VERSION,
   };
 }
 
