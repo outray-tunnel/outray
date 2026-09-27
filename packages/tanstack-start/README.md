@@ -1,5 +1,9 @@
 # @outray/tanstack-start
 
+Every instrumented request automatically records
+`http.server.request.count`, `http.server.request.duration`, and
+`http.server.active_requests` using bounded route attributes.
+
 TanStack Start server-request instrumentation for OutRay. It gives incoming
 requests low-cardinality route names, records response status and failures, and
 can opt in to bounded, redacted request/response capture.
