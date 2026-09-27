@@ -12,6 +12,9 @@ test("accepts observability configuration in the server entry", () => {
   });
 
   assert.equal(typeof entry.fetch, "function");
+  assert.equal(entry.observability.started, false);
+  assert.equal(typeof entry.info, "function");
+  assert.equal(typeof entry.error, "function");
   assert.equal(getOutrayObservability()?.config.serviceName, "tanstack-test");
   assert.equal(getOutrayObservability()?.config.environment, "test");
 });
