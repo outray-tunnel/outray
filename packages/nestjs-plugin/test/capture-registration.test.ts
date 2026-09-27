@@ -62,8 +62,17 @@ test("registers observability from code before Nest initializes", () => {
     capturePayloads: true as const,
   };
 
-  assert.equal(registerOutrayObservability(app, options), true);
-  assert.equal(registerOutrayObservability(app, options), true);
+  const observability = registerOutrayObservability(app, options);
+  const duplicate = registerOutrayObservability(app, options);
+  assert.notEqual(observability, false);
+  assert.equal(observability, duplicate);
   assert.equal(middleware.length, 2);
-  assert.equal(middleware.every((value) => typeof value === "function"), true);
+  assert.equal(
+    middleware.every((value) => typeof value === "function"),
+    true,
+  );
+  if (observability) {
+    assert.equal(typeof observability.info, "function");
+    assert.equal(typeof observability.error, "function");
+  }
 });
