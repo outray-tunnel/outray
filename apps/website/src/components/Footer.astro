@@ -1,0 +1,39 @@
+---
+interface Props {
+  docsUrl: string;
+  statusUrl: string;
+  loginUrl: string;
+  privacyUrl: string;
+  termsUrl: string;
+  githubUrl: string;
+}
+
+const { docsUrl, statusUrl, loginUrl, privacyUrl, termsUrl, githubUrl } = Astro.props;
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="page-shell footer-shell">
+    <div class="footer-brand">
+      <a class="brand-link" href="#top" aria-label="OutRay home" data-track="navigation" data-track-label="footer-logo">
+        <img src="/brand/outray-mark.svg" width="34" height="34" alt="" loading="lazy" />
+        <span>OutRay</span>
+      </a>
+      <p>Developer infrastructure for exposing, observing, and securing your services.</p>
+    </div>
+    <nav aria-label="Footer navigation">
+      <ul class="footer-links">
+        <li><a class="footer-link" href={docsUrl} data-track="navigation" data-track-label="footer-docs">Docs</a></li>
+        <li><a class="footer-link" href={statusUrl} target="_blank" rel="noreferrer" data-track="navigation" data-track-label="footer-status">Status</a></li>
+        <li><a class="footer-link" href={loginUrl} data-track="cta" data-track-label="footer-login">Log in</a></li>
+        <li><a class="footer-link" href={privacyUrl} data-track="navigation" data-track-label="footer-privacy">Privacy</a></li>
+        <li><a class="footer-link" href={termsUrl} data-track="navigation" data-track-label="footer-terms">Terms</a></li>
+        <li><a class="footer-link" href={githubUrl} target="_blank" rel="noreferrer" data-track="github" data-track-label="footer">GitHub</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="page-shell footer-bottom">
+    <p>© {currentYear} OutRay.</p>
+    <p>Built for the people on call.</p>
+  </div>
+</footer>
