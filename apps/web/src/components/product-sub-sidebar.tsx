@@ -37,7 +37,6 @@ export function ProductSubSidebar() {
     `${basePath}/requests`,
     `${basePath}/subdomains`,
     `${basePath}/domains`,
-    `${basePath}/install`,
   ];
   const isTunnelRoute = tunnelPaths.some((path) =>
     path === basePath
