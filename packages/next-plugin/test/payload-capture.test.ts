@@ -52,10 +52,27 @@ class AttributeSpan {
     return true;
   }
 
+  updateName(): this {
+    return this;
+  }
+
+  setAttributes(values: Record<string, string | number | boolean>): this {
+    for (const [name, value] of Object.entries(values)) {
+      this.attributes.set(name, value);
+    }
+    return this;
+  }
+
   setAttribute(name: string, value: string | number | boolean): this {
     this.attributes.set(name, value);
     return this;
   }
+
+  setStatus(): this {
+    return this;
+  }
+
+  recordException(): void {}
 }
 
 const manager = new AsyncContextManager();
