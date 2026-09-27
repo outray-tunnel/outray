@@ -1,15 +1,11 @@
-import {
-  SpanKind,
-  SpanStatusCode,
-  trace,
-  type Span,
-} from "@opentelemetry/api";
+import { SpanKind, SpanStatusCode, trace, type Span } from "@opentelemetry/api";
 import {
   captureFetchRequest,
   captureFetchResponse,
   type HttpPayloadCaptureSetting,
 } from "@outray/core";
 import { createOutrayHttpServerMetrics } from "@outray/observability";
+export { outray, withOutraySpan } from "@outray/observability";
 import { createMiddleware } from "@tanstack/react-start";
 import packageMetadata from "../package.json" with { type: "json" };
 
@@ -18,11 +14,18 @@ const tracer = trace.getTracer(
   "@outray/tanstack-start",
   OUTRAY_TANSTACK_START_VERSION,
 );
-const requestMetrics = createOutrayHttpServerMetrics({
-  framework: "tanstack-start",
-  instrumentationName: "@outray/tanstack-start",
-  instrumentationVersion: OUTRAY_TANSTACK_START_VERSION,
-});
+let requestMetrics:
+  | ReturnType<typeof createOutrayHttpServerMetrics>
+  | undefined;
+
+function getRequestMetrics() {
+  requestMetrics ??= createOutrayHttpServerMetrics({
+    framework: "tanstack-start",
+    instrumentationName: "@outray/tanstack-start",
+    instrumentationVersion: OUTRAY_TANSTACK_START_VERSION,
+  });
+  return requestMetrics;
+}
 
 const DEFAULT_IGNORED_PREFIXES = [
   "/@fs/",
@@ -219,7 +222,7 @@ export async function instrumentTanStackRequest<TResult>(
     // Fall back to the bounded route normalizer.
   }
   route ||= normalizeTanStackRoute(pathname);
-  const finishMetrics = requestMetrics.start({
+  const finishMetrics = getRequestMetrics().start({
     method: context.request.method,
     route,
   });
