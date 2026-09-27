@@ -1,0 +1,229 @@
+---
+import ProductIcon from "./ProductIcon.astro";
+
+interface Props {
+  docsUrl: string;
+}
+
+const { docsUrl } = Astro.props;
+
+const tunnelFeatures = [
+  "HTTP, TCP, and UDP forwarding",
+  "Custom domains with managed TLS",
+  "Request inspection when you need the full exchange",
+  "One command from localhost to a public URL",
+];
+
+const observabilityFeatures = [
+  "Correlated traces, logs, and metrics",
+  "Server-side request and dependency spans",
+  "Framework-aware route names",
+  "Payload capture you explicitly control",
+];
+
+const secretFeatures = [
+  "Vaults organized by environment",
+  "Encrypted values and version history",
+  "Audit records for sensitive actions",
+  "Runtime injection through the OutRay CLI",
+];
+---
+
+<section class="products product-showcase" aria-label="Explore OutRay products">
+  <div class="page-shell product-switcher" data-product-tabs data-default-tab="tunnels" data-tab-group="showcase">
+    <div class="product-switcher__frame" data-product-outline>
+      <div class="product-switcher__pills" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="product-switcher__tabs" role="tablist" aria-label="OutRay products">
+      <button
+        class="product-switcher__tab"
+        type="button"
+        id="showcase-tab-tunnels"
+        role="tab"
+        aria-selected="true"
+        aria-controls="tunnels"
+        tabindex="0"
+        data-product-tab="tunnels"
+      >
+        <ProductIcon product="tunnels" class="product-switcher__icon" />
+        <span>Tunnels</span>
+      </button>
+      <button
+        class="product-switcher__tab"
+        type="button"
+        id="showcase-tab-observability"
+        role="tab"
+        aria-selected="false"
+        aria-controls="observability"
+        tabindex="-1"
+        data-product-tab="observability"
+      >
+        <ProductIcon product="observability" class="product-switcher__icon" />
+        <span>Observability</span>
+      </button>
+      <button
+        class="product-switcher__tab"
+        type="button"
+        id="showcase-tab-secrets"
+        role="tab"
+        aria-selected="false"
+        aria-controls="secrets"
+        tabindex="-1"
+        data-product-tab="secrets"
+      >
+        <ProductIcon product="secrets" class="product-switcher__icon" />
+        <span>Secrets</span>
+      </button>
+      </div>
+
+      <div class="product-switcher__stage">
+      <div class="product-switcher__panels">
+    <article
+      class="product-section product-switcher__panel"
+      id="tunnels"
+      role="tabpanel"
+      aria-labelledby="showcase-tab-tunnels"
+      data-product-panel="tunnels"
+      data-product-section="tunnels"
+      data-active="true"
+    >
+      <div class="product-copy">
+        <p class="product-index">01 / Tunnels</p>
+        <h2 class="product-title">Give localhost a real address.</h2>
+        <p class="product-description">Put a local service online in seconds, keep a stable domain, and inspect the requests that cross the tunnel.</p>
+        <a class="inline-link product-link" href={docsUrl} data-track="cta" data-track-label="tunnels-read-docs">
+          Read the docs
+          <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+        </a>
+      </div>
+
+      <div class="product-panel tunnel-panel" role="group" aria-label="Tunnel request interface">
+        <div class="panel-toolbar">
+          <div class="panel-title">
+            <span class="product-glyph"><ProductIcon product="tunnels" /></span>
+            <span><small>Tunnel</small><strong>orders-api</strong></span>
+          </div>
+          <span class="status-pill"><i></i>Live</span>
+        </div>
+        <div class="tunnel-url">
+          <span>https://orders.outray.app</span>
+          <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 6V4.8C7 3.8 7.8 3 8.8 3h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8H14M4.8 7h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8H4.8c-1 0-1.8-.8-1.8-1.8V8.8C3 7.8 3.8 7 4.8 7Z" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>
+        </div>
+        <div class="request-table" role="table" aria-label="Recent tunnel requests">
+          <div class="request-row request-heading" role="row">
+            <span role="columnheader">Method</span><span role="columnheader">Path</span><span role="columnheader">Status</span><span role="columnheader">Duration</span>
+          </div>
+          <div class="request-row" role="row">
+            <span role="cell" class="method method-post">POST</span><span role="cell">/api/orders</span><span role="cell" class="status-code">201</span><span role="cell">124ms</span>
+          </div>
+          <div class="request-row" role="row">
+            <span role="cell" class="method">GET</span><span role="cell">/api/orders/:id</span><span role="cell" class="status-code">200</span><span role="cell">48ms</span>
+          </div>
+          <div class="request-row" role="row">
+            <span role="cell" class="method method-patch">PATCH</span><span role="cell">/api/orders/:id</span><span role="cell" class="status-code">200</span><span role="cell">82ms</span>
+          </div>
+        </div>
+        <div class="panel-footer"><span>HTTP</span><span>localhost:3000</span><span>Request capture enabled</span></div>
+      </div>
+      <ul class="feature-list product-features" aria-label="Tunnel capabilities">
+        {tunnelFeatures.map((feature) => (
+          <li><span aria-hidden="true"></span>{feature}</li>
+        ))}
+      </ul>
+    </article>
+
+    <article
+      class="product-section product-switcher__panel"
+      id="observability"
+      role="tabpanel"
+      aria-labelledby="showcase-tab-observability"
+      data-product-panel="observability"
+      data-product-section="observability"
+      data-active="false"
+    >
+      <div class="product-copy">
+        <p class="product-index">02 / Observability</p>
+        <h2 class="product-title">Follow a request all the way through.</h2>
+        <p class="product-description">See what your server did, where it spent time, and which log belongs to which request—without instrumenting every handler by hand.</p>
+        <a class="inline-link product-link" href={docsUrl} data-track="cta" data-track-label="observability-read-docs">
+          Read the docs
+          <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+        </a>
+      </div>
+
+      <div class="product-panel trace-panel" role="group" aria-label="Distributed trace interface">
+        <div class="panel-toolbar">
+          <div class="panel-title">
+            <span class="product-glyph"><ProductIcon product="observability" /></span>
+            <span><small>Trace details</small><strong>POST /api/orders</strong></span>
+          </div>
+          <span class="trace-duration">412ms</span>
+        </div>
+        <div class="trace-summary">
+          <span><small>Status</small><strong class="ok-text"><i></i>OK</strong></span>
+          <span><small>Service</small><strong>orders-api</strong></span>
+          <span><small>Spans</small><strong>6</strong></span>
+        </div>
+        <div class="waterfall" role="list" aria-label="Trace span waterfall">
+          <div class="span-row span-root" role="listitem"><span>POST /api/orders</span><i style="--span-start: 0%; --span-width: 100%"></i><small>412ms</small></div>
+          <div class="span-row" role="listitem"><span>auth middleware</span><i style="--span-start: 2%; --span-width: 19%"></i><small>78ms</small></div>
+          <div class="span-row" role="listitem"><span>db select user</span><i style="--span-start: 6%; --span-width: 12%"></i><small>49ms</small></div>
+          <div class="span-row" role="listitem"><span>validate order</span><i style="--span-start: 23%; --span-width: 8%"></i><small>31ms</small></div>
+          <div class="span-row" role="listitem"><span>db insert order</span><i style="--span-start: 34%; --span-width: 45%"></i><small>185ms</small></div>
+          <div class="span-row" role="listitem"><span>queue publish</span><i style="--span-start: 81%; --span-width: 15%"></i><small>62ms</small></div>
+        </div>
+      </div>
+      <ul class="feature-list product-features" aria-label="Observability capabilities">
+        {observabilityFeatures.map((feature) => (
+          <li><span aria-hidden="true"></span>{feature}</li>
+        ))}
+      </ul>
+    </article>
+
+    <article
+      class="product-section product-switcher__panel"
+      id="secrets"
+      role="tabpanel"
+      aria-labelledby="showcase-tab-secrets"
+      data-product-panel="secrets"
+      data-product-section="secrets"
+      data-active="false"
+    >
+      <div class="product-copy">
+        <p class="product-index">03 / Secrets</p>
+        <h2 class="product-title">Keep configuration out of the repo.</h2>
+        <p class="product-description">Store encrypted values in a vault, organize them across environments, and inject them only when your process starts.</p>
+        <a class="inline-link product-link" href={docsUrl} data-track="cta" data-track-label="secrets-read-docs">
+          Read the docs
+          <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+        </a>
+      </div>
+
+      <div class="product-panel secrets-panel" role="group" aria-label="Secrets vault interface">
+        <div class="panel-toolbar">
+          <div class="panel-title">
+            <span class="product-glyph"><ProductIcon product="secrets" /></span>
+            <span><small>Vault</small><strong>orders-service</strong></span>
+          </div>
+          <span class="environment-pill">Production</span>
+        </div>
+        <div class="secret-heading"><span>Key</span><span>Value</span><span>Updated</span></div>
+        <div class="secret-row"><span>DATABASE_URL</span><code>••••••••••••</code><small>just now</small></div>
+        <div class="secret-row"><span>STRIPE_SECRET_KEY</span><code>••••••••••••</code><small>2m ago</small></div>
+        <div class="secret-row"><span>REDIS_URL</span><code>••••••••••••</code><small>5m ago</small></div>
+        <div class="secret-row"><span>WEBHOOK_SECRET</span><code>••••••••••••</code><small>1h ago</small></div>
+        <div class="secret-sync"><i></i><span>Encrypted at rest · decrypted on explicit reveal or runtime delivery</span></div>
+      </div>
+      <ul class="feature-list product-features" aria-label="Secrets capabilities">
+        {secretFeatures.map((feature) => (
+          <li><span aria-hidden="true"></span>{feature}</li>
+        ))}
+      </ul>
+    </article>
+      </div>
+    </div>
+      <svg class="product-switcher__outline" data-product-outline-svg aria-hidden="true" preserveAspectRatio="none">
+        <path data-product-outline-path></path>
+      </svg>
+    </div>
+  </div>
+</section>
