@@ -1,5 +1,7 @@
 import {
   startOutrayObservability,
+  type OutrayLogMethods,
+  type OutrayObservability,
   type OutrayObservabilityOptions,
 } from "@outray/observability";
 import {
@@ -13,11 +15,11 @@ import {
 } from "./index.js";
 
 export interface OutrayTanStackServerOptions
-  extends OutrayObservabilityOptions,
-    OutrayTanStackStartOptions {}
+  extends OutrayObservabilityOptions, OutrayTanStackStartOptions {}
 
-export interface OutrayTanStackServerEntry {
+export interface OutrayTanStackServerEntry extends OutrayLogMethods {
   fetch: RequestHandler<unknown>;
+  observability: OutrayObservability;
 }
 
 /**
@@ -30,10 +32,15 @@ export function createOutrayTanStackServerEntry(
   const { capturePayloads, routeResolver, ignore, ...observabilityOptions } =
     options;
 
-  startOutrayObservability(observabilityOptions);
+  const observability = startOutrayObservability(observabilityOptions);
 
   const handleRequest = createStartHandler(defaultStreamHandler);
   return {
+    observability,
+    debug: observability.debug,
+    error: observability.error,
+    info: observability.info,
+    warn: observability.warn,
     fetch(request, requestOptions) {
       return instrumentTanStackRequest(
         {
