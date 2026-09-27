@@ -9,9 +9,20 @@ import {
   captureFetchResponse,
   type HttpPayloadCaptureSetting,
 } from "@outray/core";
+import { createOutrayHttpServerMetrics } from "@outray/observability";
 import { createMiddleware } from "@tanstack/react-start";
+import packageMetadata from "../package.json" with { type: "json" };
 
-const tracer = trace.getTracer("@outray/tanstack-start", "0.1.1");
+const OUTRAY_TANSTACK_START_VERSION = packageMetadata.version;
+const tracer = trace.getTracer(
+  "@outray/tanstack-start",
+  OUTRAY_TANSTACK_START_VERSION,
+);
+const requestMetrics = createOutrayHttpServerMetrics({
+  framework: "tanstack-start",
+  instrumentationName: "@outray/tanstack-start",
+  instrumentationVersion: OUTRAY_TANSTACK_START_VERSION,
+});
 
 const DEFAULT_IGNORED_PREFIXES = [
   "/@fs/",
@@ -208,9 +219,28 @@ export async function instrumentTanStackRequest<TResult>(
     // Fall back to the bounded route normalizer.
   }
   route ||= normalizeTanStackRoute(pathname);
+  const finishMetrics = requestMetrics.start({
+    method: context.request.method,
+    route,
+  });
   const activeSpan = trace.getActiveSpan();
   if (activeSpan?.isRecording()) {
-    return runInstrumentedRequest(context, options, activeSpan, route);
+    try {
+      const result = await runInstrumentedRequest(
+        context,
+        options,
+        activeSpan,
+        route,
+      );
+      finishMetrics({ statusCode: responseFrom(result)?.status ?? 200 });
+      return result;
+    } catch (error) {
+      finishMetrics({
+        statusCode: 500,
+        errorType: error instanceof Error ? error.name : "Error",
+      });
+      throw error;
+    }
   }
 
   return tracer.startActiveSpan(
@@ -218,7 +248,20 @@ export async function instrumentTanStackRequest<TResult>(
     { kind: SpanKind.SERVER },
     async (span) => {
       try {
-        return await runInstrumentedRequest(context, options, span, route);
+        const result = await runInstrumentedRequest(
+          context,
+          options,
+          span,
+          route,
+        );
+        finishMetrics({ statusCode: responseFrom(result)?.status ?? 200 });
+        return result;
+      } catch (error) {
+        finishMetrics({
+          statusCode: 500,
+          errorType: error instanceof Error ? error.name : "Error",
+        });
+        throw error;
       } finally {
         span.end();
       }
