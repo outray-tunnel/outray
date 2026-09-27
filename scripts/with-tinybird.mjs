@@ -1,6 +1,8 @@
 import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 
+const tinybirdBranch = process.env.TINYBIRD_BRANCH?.trim() || "development";
+
 function localApiHost() {
   if (process.env.TINYBIRD_API_HOST) return {};
   try {
@@ -23,12 +25,20 @@ function localTinybirdTokens() {
   try {
     output = execFileSync(
       "tb",
-      ["--cloud", "--show-tokens", "token", "ls", "--match", "OUTRAY"],
+      [
+        "--branch",
+        tinybirdBranch,
+        "--show-tokens",
+        "token",
+        "ls",
+        "--match",
+        "OUTRAY",
+      ],
       { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
     );
   } catch {
     throw new Error(
-      "Tinybird credentials are missing. Run `tb login` and `tb deploy`, or set TINYBIRD_INGEST_TOKEN and TINYBIRD_QUERY_TOKEN in the root .env.",
+      `Tinybird credentials are missing for branch ${tinybirdBranch}. Run \`tb login\` and create/deploy the branch, or set TINYBIRD_INGEST_TOKEN and TINYBIRD_QUERY_TOKEN in the root .env.`,
     );
   }
 
@@ -43,7 +53,7 @@ function localTinybirdTokens() {
   const queryToken = tokens.OUTRAY_QUERY_TOKEN;
   if (!ingestToken || !queryToken) {
     throw new Error(
-      "OutRay's scoped Tinybird tokens do not exist. Run `tb deploy` before starting development.",
+      `OutRay's scoped Tinybird tokens do not exist on branch ${tinybirdBranch}. Run \`tb --branch ${tinybirdBranch} deploy\` before starting development.`,
     );
   }
 
@@ -57,7 +67,12 @@ const [command, ...args] = process.argv.slice(2);
 if (!command) throw new Error("No command was provided");
 
 const child = spawn(command, args, {
-  env: { ...process.env, ...localApiHost(), ...localTinybirdTokens() },
+  env: {
+    ...process.env,
+    TINYBIRD_BRANCH: tinybirdBranch,
+    ...localApiHost(),
+    ...localTinybirdTokens(),
+  },
   stdio: "inherit",
 });
 
