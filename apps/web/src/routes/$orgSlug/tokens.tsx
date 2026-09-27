@@ -87,6 +87,7 @@ function TokensSettingsView() {
       <CreateTokenModal
         isOpen={isCreating}
         onClose={() => setIsCreating(false)}
+        orgSlug={orgSlug}
       />
 
       <ConfirmModal
