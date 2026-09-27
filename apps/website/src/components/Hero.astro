@@ -1,0 +1,29 @@
+---
+interface Props {
+  signupUrl: string;
+  githubUrl: string;
+}
+
+const { signupUrl, githubUrl } = Astro.props;
+---
+
+<section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="page-shell hero-content hero-shell">
+    <h1 class="hero-title" id="hero-title">Everything between <span class="hero-endpoint hero-endpoint-local">localhost</span> and <span class="hero-endpoint hero-endpoint-production">production</span></h1>
+    <p class="hero-lede">
+      Secure tunnels, server-side observability, and encrypted runtime secrets in one developer platform.
+    </p>
+    <div class="hero-actions">
+      <a class="button button-primary" href={signupUrl} data-track="cta" data-track-label="hero-start-free">
+        Start free
+        <svg aria-hidden="true" viewBox="0 0 20 20"><path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></svg>
+      </a>
+      <a class="button button-secondary" href={githubUrl} target="_blank" rel="noreferrer" data-track="github" data-track-label="hero">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2.8a9.4 9.4 0 0 0-3 18.3c.5.1.6-.2.6-.5v-1.8c-2.6.6-3.1-1.1-3.1-1.1-.4-1.1-1-1.4-1-1.4-.9-.6 0-.6 0-.6 1 0 1.5 1 1.5 1 .8 1.5 2.2 1.1 2.7.9.1-.6.3-1.1.6-1.3-2.1-.2-4.3-1-4.3-4.6 0-1 .4-1.9 1-2.5-.1-.3-.4-1.2.1-2.5 0 0 .8-.3 2.6 1a9 9 0 0 1 4.8 0c1.8-1.2 2.6-1 2.6-1 .5 1.3.2 2.2.1 2.5.6.6 1 1.5 1 2.5 0 3.6-2.2 4.4-4.3 4.6.4.3.7.9.7 1.7v2.5c0 .3.2.6.7.5A9.4 9.4 0 0 0 12 2.8Z" fill="currentColor"></path></svg>
+        GitHub
+      </a>
+    </div>
+
+  </div>
+
+</section>
