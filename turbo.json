@@ -7,6 +7,9 @@
       "outputs": ["dist/**", ".output/**"],
       "env": [
         "OUTRAY_API_KEY",
+        "PUBLIC_DASHBOARD_URL",
+        "PUBLIC_POSTHOG_HOST",
+        "PUBLIC_POSTHOG_KEY",
         "TUNNEL_DOMAIN",
         "VITE_POLAR_PRODUCT_BEAM",
         "VITE_POLAR_PRODUCT_BEAM_YEARLY",
@@ -23,7 +26,12 @@
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "PUBLIC_DASHBOARD_URL",
+        "PUBLIC_POSTHOG_HOST",
+        "PUBLIC_POSTHOG_KEY"
+      ]
     },
     "lint": {
       "outputs": []
