@@ -74,8 +74,22 @@ import outray from "@outray/observability";
 outray.error("background job failed", error);
 ```
 
-Use the lower-level OpenTelemetry accessors when you need custom spans, metrics,
-or complete control over a log record:
+Use `withOutraySpan` for application operations that are not already
+instrumented. It joins the active request trace, records thrown errors, and
+always closes the span:
+
+```ts
+import { withOutraySpan } from "@outray/observability";
+
+const order = await withOutraySpan(
+  "db findOne order",
+  () => database.orders.findOne({ id: orderId }),
+  { attributes: { "db.system.name": "postgresql" } },
+);
+```
+
+Use the lower-level OpenTelemetry accessors when you need custom metrics or
+complete control over a span or log record:
 
 ```ts
 import {
