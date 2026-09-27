@@ -41,12 +41,13 @@ import { Route as AdminChartsRouteImport } from './routes/admin/charts'
 import { Route as AdminActionsRouteImport } from './routes/admin/actions'
 import { Route as OrgSlugTokensRouteImport } from './routes/$orgSlug/tokens'
 import { Route as OrgSlugSubdomainsRouteImport } from './routes/$orgSlug/subdomains'
+import { Route as OrgSlugSetupRouteImport } from './routes/$orgSlug/setup'
 import { Route as OrgSlugSettingsRouteImport } from './routes/$orgSlug/settings'
 import { Route as OrgSlugSecretsRouteImport } from './routes/$orgSlug/secrets'
 import { Route as OrgSlugRequestsRouteImport } from './routes/$orgSlug/requests'
 import { Route as OrgSlugObservabilityRouteImport } from './routes/$orgSlug/observability'
 import { Route as OrgSlugMembersRouteImport } from './routes/$orgSlug/members'
-import { Route as OrgSlugInstallRouteImport } from './routes/$orgSlug/install'
+import { Route as OrgSlugGetStartedRouteImport } from './routes/$orgSlug/get-started'
 import { Route as OrgSlugDomainsRouteImport } from './routes/$orgSlug/domains'
 import { Route as OrgSlugBillingRouteImport } from './routes/$orgSlug/billing'
 import { Route as AdminUsersIndexRouteImport } from './routes/admin/users.index'
@@ -322,6 +323,11 @@ const OrgSlugSubdomainsRoute = OrgSlugSubdomainsRouteImport.update({
   path: '/subdomains',
   getParentRoute: () => OrgSlugRoute,
 } as any)
+const OrgSlugSetupRoute = OrgSlugSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
 const OrgSlugSettingsRoute = OrgSlugSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -347,9 +353,9 @@ const OrgSlugMembersRoute = OrgSlugMembersRouteImport.update({
   path: '/members',
   getParentRoute: () => OrgSlugRoute,
 } as any)
-const OrgSlugInstallRoute = OrgSlugInstallRouteImport.update({
-  id: '/install',
-  path: '/install',
+const OrgSlugGetStartedRoute = OrgSlugGetStartedRouteImport.update({
+  id: '/get-started',
+  path: '/get-started',
   getParentRoute: () => OrgSlugRoute,
 } as any)
 const OrgSlugDomainsRoute = OrgSlugDomainsRouteImport.update({
@@ -1033,12 +1039,13 @@ export interface FileRoutesByFullPath {
   '/vite': typeof ViteRoute
   '/$orgSlug/billing': typeof OrgSlugBillingRoute
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
-  '/$orgSlug/install': typeof OrgSlugInstallRoute
+  '/$orgSlug/get-started': typeof OrgSlugGetStartedRoute
   '/$orgSlug/members': typeof OrgSlugMembersRoute
   '/$orgSlug/observability': typeof OrgSlugObservabilityRouteWithChildren
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
   '/$orgSlug/secrets': typeof OrgSlugSecretsRouteWithChildren
   '/$orgSlug/settings': typeof OrgSlugSettingsRouteWithChildren
+  '/$orgSlug/setup': typeof OrgSlugSetupRoute
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
   '/admin/actions': typeof AdminActionsRoute
@@ -1186,9 +1193,10 @@ export interface FileRoutesByTo {
   '/vite': typeof ViteRoute
   '/$orgSlug/billing': typeof OrgSlugBillingRoute
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
-  '/$orgSlug/install': typeof OrgSlugInstallRoute
+  '/$orgSlug/get-started': typeof OrgSlugGetStartedRoute
   '/$orgSlug/members': typeof OrgSlugMembersRoute
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
+  '/$orgSlug/setup': typeof OrgSlugSetupRoute
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
   '/admin/actions': typeof AdminActionsRoute
@@ -1338,12 +1346,13 @@ export interface FileRoutesById {
   '/vite': typeof ViteRoute
   '/$orgSlug/billing': typeof OrgSlugBillingRoute
   '/$orgSlug/domains': typeof OrgSlugDomainsRoute
-  '/$orgSlug/install': typeof OrgSlugInstallRoute
+  '/$orgSlug/get-started': typeof OrgSlugGetStartedRoute
   '/$orgSlug/members': typeof OrgSlugMembersRoute
   '/$orgSlug/observability': typeof OrgSlugObservabilityRouteWithChildren
   '/$orgSlug/requests': typeof OrgSlugRequestsRoute
   '/$orgSlug/secrets': typeof OrgSlugSecretsRouteWithChildren
   '/$orgSlug/settings': typeof OrgSlugSettingsRouteWithChildren
+  '/$orgSlug/setup': typeof OrgSlugSetupRoute
   '/$orgSlug/subdomains': typeof OrgSlugSubdomainsRoute
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
   '/admin/actions': typeof AdminActionsRoute
@@ -1494,12 +1503,13 @@ export interface FileRouteTypes {
     | '/vite'
     | '/$orgSlug/billing'
     | '/$orgSlug/domains'
-    | '/$orgSlug/install'
+    | '/$orgSlug/get-started'
     | '/$orgSlug/members'
     | '/$orgSlug/observability'
     | '/$orgSlug/requests'
     | '/$orgSlug/secrets'
     | '/$orgSlug/settings'
+    | '/$orgSlug/setup'
     | '/$orgSlug/subdomains'
     | '/$orgSlug/tokens'
     | '/admin/actions'
@@ -1647,9 +1657,10 @@ export interface FileRouteTypes {
     | '/vite'
     | '/$orgSlug/billing'
     | '/$orgSlug/domains'
-    | '/$orgSlug/install'
+    | '/$orgSlug/get-started'
     | '/$orgSlug/members'
     | '/$orgSlug/requests'
+    | '/$orgSlug/setup'
     | '/$orgSlug/subdomains'
     | '/$orgSlug/tokens'
     | '/admin/actions'
@@ -1798,12 +1809,13 @@ export interface FileRouteTypes {
     | '/vite'
     | '/$orgSlug/billing'
     | '/$orgSlug/domains'
-    | '/$orgSlug/install'
+    | '/$orgSlug/get-started'
     | '/$orgSlug/members'
     | '/$orgSlug/observability'
     | '/$orgSlug/requests'
     | '/$orgSlug/secrets'
     | '/$orgSlug/settings'
+    | '/$orgSlug/setup'
     | '/$orgSlug/subdomains'
     | '/$orgSlug/tokens'
     | '/admin/actions'
@@ -2246,6 +2258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugSubdomainsRouteImport
       parentRoute: typeof OrgSlugRoute
     }
+    '/$orgSlug/setup': {
+      id: '/$orgSlug/setup'
+      path: '/setup'
+      fullPath: '/$orgSlug/setup'
+      preLoaderRoute: typeof OrgSlugSetupRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
     '/$orgSlug/settings': {
       id: '/$orgSlug/settings'
       path: '/settings'
@@ -2281,11 +2300,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugMembersRouteImport
       parentRoute: typeof OrgSlugRoute
     }
-    '/$orgSlug/install': {
-      id: '/$orgSlug/install'
-      path: '/install'
-      fullPath: '/$orgSlug/install'
-      preLoaderRoute: typeof OrgSlugInstallRouteImport
+    '/$orgSlug/get-started': {
+      id: '/$orgSlug/get-started'
+      path: '/get-started'
+      fullPath: '/$orgSlug/get-started'
+      preLoaderRoute: typeof OrgSlugGetStartedRouteImport
       parentRoute: typeof OrgSlugRoute
     }
     '/$orgSlug/domains': {
@@ -3168,12 +3187,13 @@ const OrgSlugSettingsRouteWithChildren = OrgSlugSettingsRoute._addFileChildren(
 interface OrgSlugRouteChildren {
   OrgSlugBillingRoute: typeof OrgSlugBillingRoute
   OrgSlugDomainsRoute: typeof OrgSlugDomainsRoute
-  OrgSlugInstallRoute: typeof OrgSlugInstallRoute
+  OrgSlugGetStartedRoute: typeof OrgSlugGetStartedRoute
   OrgSlugMembersRoute: typeof OrgSlugMembersRoute
   OrgSlugObservabilityRoute: typeof OrgSlugObservabilityRouteWithChildren
   OrgSlugRequestsRoute: typeof OrgSlugRequestsRoute
   OrgSlugSecretsRoute: typeof OrgSlugSecretsRouteWithChildren
   OrgSlugSettingsRoute: typeof OrgSlugSettingsRouteWithChildren
+  OrgSlugSetupRoute: typeof OrgSlugSetupRoute
   OrgSlugSubdomainsRoute: typeof OrgSlugSubdomainsRoute
   OrgSlugTokensRoute: typeof OrgSlugTokensRoute
   OrgSlugIndexRoute: typeof OrgSlugIndexRoute
@@ -3184,12 +3204,13 @@ interface OrgSlugRouteChildren {
 const OrgSlugRouteChildren: OrgSlugRouteChildren = {
   OrgSlugBillingRoute: OrgSlugBillingRoute,
   OrgSlugDomainsRoute: OrgSlugDomainsRoute,
-  OrgSlugInstallRoute: OrgSlugInstallRoute,
+  OrgSlugGetStartedRoute: OrgSlugGetStartedRoute,
   OrgSlugMembersRoute: OrgSlugMembersRoute,
   OrgSlugObservabilityRoute: OrgSlugObservabilityRouteWithChildren,
   OrgSlugRequestsRoute: OrgSlugRequestsRoute,
   OrgSlugSecretsRoute: OrgSlugSecretsRouteWithChildren,
   OrgSlugSettingsRoute: OrgSlugSettingsRouteWithChildren,
+  OrgSlugSetupRoute: OrgSlugSetupRoute,
   OrgSlugSubdomainsRoute: OrgSlugSubdomainsRoute,
   OrgSlugTokensRoute: OrgSlugTokensRoute,
   OrgSlugIndexRoute: OrgSlugIndexRoute,
