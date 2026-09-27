@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, test } from "node:test";
-import { context, SpanKind, trace } from "@opentelemetry/api";
+import { context, metrics, SpanKind, trace } from "@opentelemetry/api";
 import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
+import {
+  AggregationTemporality,
+  InMemoryMetricExporter,
+  MeterProvider,
+  PeriodicExportingMetricReader,
+} from "@opentelemetry/sdk-metrics";
 import {
   BasicTracerProvider,
   InMemorySpanExporter,
@@ -19,19 +25,32 @@ const provider = new BasicTracerProvider({
   spanProcessors: [new SimpleSpanProcessor(exporter)],
 });
 const contextManager = new AsyncLocalStorageContextManager();
+const metricExporter = new InMemoryMetricExporter(
+  AggregationTemporality.CUMULATIVE,
+);
+const metricReader = new PeriodicExportingMetricReader({
+  exporter: metricExporter,
+  exportIntervalMillis: 60_000,
+});
+const meterProvider = new MeterProvider({ readers: [metricReader] });
 
 before(() => {
   context.setGlobalContextManager(contextManager.enable());
   trace.setGlobalTracerProvider(provider);
+  metrics.setGlobalMeterProvider(meterProvider);
 });
 
-beforeEach(() => exporter.reset());
+beforeEach(() => {
+  exporter.reset();
+  metricExporter.reset();
+});
 
 after(async () => {
-  await provider.shutdown();
+  await Promise.all([provider.shutdown(), meterProvider.shutdown()]);
   contextManager.disable();
   context.disable();
   trace.disable();
+  metrics.disable();
 });
 
 test("normalizes obvious route identifiers", () => {
@@ -102,8 +121,14 @@ test("keeps application spans inside the request trace", async () => {
   const databaseSpan = spans.find((span) => span.name === "db findOne file");
   assert.ok(requestSpan);
   assert.ok(databaseSpan);
-  assert.equal(databaseSpan.spanContext().traceId, requestSpan.spanContext().traceId);
-  assert.equal(databaseSpan.parentSpanContext?.spanId, requestSpan.spanContext().spanId);
+  assert.equal(
+    databaseSpan.spanContext().traceId,
+    requestSpan.spanContext().traceId,
+  );
+  assert.equal(
+    databaseSpan.parentSpanContext?.spanId,
+    requestSpan.spanContext().spanId,
+  );
 });
 
 test("marks 5xx responses as errors", async () => {
@@ -117,6 +142,30 @@ test("marks 5xx responses as errors", async () => {
   assert.ok(span);
   assert.equal(span.status.code, 2);
   assert.equal(span.attributes["http.response.status_code"], 503);
+});
+
+test("records HTTP metrics with the matched Hono route", async () => {
+  const app = new Hono();
+  app.use("*", createOutrayHonoMiddleware());
+  app.get("/v1/files/:id", (context) => context.json({ ok: true }, 202));
+
+  await app.request("/v1/files/42");
+  await meterProvider.forceFlush();
+
+  const requestCount = metricExporter
+    .getMetrics()
+    .flatMap((resource) => resource.scopeMetrics)
+    .flatMap((scope) => scope.metrics)
+    .find((metric) => metric.descriptor.name === "http.server.request.count");
+  const dataPoint = requestCount?.dataPoints.find(
+    (point) =>
+      point.attributes["http.route"] === "/v1/files/:id" &&
+      point.attributes["http.response.status_code"] === 202,
+  );
+
+  assert.ok(dataPoint);
+  assert.equal(dataPoint.attributes["outray.framework"], "hono");
+  assert.equal(dataPoint.attributes["http.response.status_code"], 202);
 });
 
 test("ignores health checks and preflight requests by default", async () => {
