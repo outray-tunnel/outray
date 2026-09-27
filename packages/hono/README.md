@@ -2,6 +2,10 @@
 
 Hono request tracing, logs, metrics, and safe payload capture for OutRay.
 
+Every instrumented request automatically records
+`http.server.request.count`, `http.server.request.duration`, and
+`http.server.active_requests` with the matched Hono route template.
+
 ## Installation
 
 ```bash
