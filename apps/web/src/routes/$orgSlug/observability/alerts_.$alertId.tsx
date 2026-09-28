@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
@@ -26,6 +26,13 @@ import {
 } from "@/components/observability/observability-ui";
 import { Modal } from "@/components/ui/modal";
 import {
+  AlertDetailContext,
+  useAlertDetail,
+  type AlertDetailsResponse,
+  type AlertEvaluation,
+  type AlertIncident,
+} from "@/components/observability/alert-detail-context";
+import {
   AlertFormModal,
   AlertIcon,
   AlertStatePill,
@@ -33,52 +40,13 @@ import {
   type AlertState,
 } from "./alerts";
 
-interface AlertEvaluation {
-  id: string;
-  value: number | null;
-  state?: AlertState | string;
-  status?: string;
-  resultingState?: AlertState | string;
-  previousState?: AlertState | string | null;
-  sampleCount?: number;
-  message?: string | null;
-  error?: string | null;
-  evaluatedAt?: string;
-  createdAt?: string;
-  timestamp?: string;
-}
-
-interface AlertIncident {
-  id: string;
-  status: "open" | "resolved" | string;
-  startedAt?: string;
-  openedAt?: string;
-  createdAt?: string;
-  resolvedAt?: string | null;
-  triggerValue?: number | null;
-  resolvedValue?: number | null;
-  lastValue?: number | null;
-}
-
-interface AlertNotification {
-  id: string;
-  channel?: string;
-  type?: string;
-  destination?: string;
-  recipient?: string;
-  status: string;
-  sentAt?: string | null;
-  createdAt?: string;
-  error?: string | null;
-  lastError?: string | null;
-}
-
-interface AlertDetailsResponse {
-  alert: AlertRecord;
-  evaluations: AlertEvaluation[];
-  incidents: AlertIncident[];
-  notifications: AlertNotification[];
-}
+const detailTabs = [
+  { label: "Overview", to: "/$orgSlug/observability/alerts/$alertId" },
+  { label: "Condition", to: "/$orgSlug/observability/alerts/$alertId/condition" },
+  { label: "Evaluations", to: "/$orgSlug/observability/alerts/$alertId/evaluations" },
+  { label: "Incidents", to: "/$orgSlug/observability/alerts/$alertId/incidents" },
+  { label: "Notifications", to: "/$orgSlug/observability/alerts/$alertId/notifications" },
+] as const;
 
 export const Route = createFileRoute(
   "/$orgSlug/observability/alerts_/$alertId",
@@ -264,11 +232,12 @@ function AlertDetailView() {
     );
   }
 
-  const { alert, evaluations, incidents, notifications } = data;
+  const { alert } = data;
   const effectiveState = getEffectiveState(alert);
   const muted = effectiveState === "muted";
 
   return (
+    <AlertDetailContext.Provider value={{ data, refreshing }}>
     <ObservabilityPage>
       <header className="border-b border-white/[0.07] pb-7">
         <Link
@@ -360,6 +329,23 @@ function AlertDetailView() {
         </div>
       </header>
 
+      <nav aria-label="Alert details" className="overflow-x-auto border-b border-white/[0.07]">
+        <div className="flex min-w-max items-center gap-7">
+          {detailTabs.map((tab) => (
+            <Link
+              key={tab.label}
+              to={tab.to}
+              params={{ orgSlug, alertId }}
+              activeOptions={{ exact: true }}
+              className="border-b-2 border-transparent pb-3 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-200"
+              activeProps={{ className: "!border-violet-400 !text-white" }}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
+
       {(error || actionNotice || actionError) && (
         <div
           className={`flex items-center justify-between gap-4 rounded-xl border px-4 py-3 text-xs ${
@@ -395,218 +381,7 @@ function AlertDetailView() {
         </div>
       )}
 
-      <section className="grid overflow-hidden rounded-xl border border-white/[0.07] sm:grid-cols-2 xl:grid-cols-5">
-        <DetailMetric
-          label="Current value"
-          value={formatAlertValue(alert.currentValue, alert)}
-          detail={signalLabel(alert.signal)}
-          tone={effectiveState === "firing" ? "rose" : "neutral"}
-        />
-        <DetailMetric
-          label="Threshold"
-          value={formatAlertValue(alert.threshold, alert)}
-          detail={operatorText(alert.operator)}
-        />
-        <DetailMetric
-          label="Window"
-          value={formatWindow(alert.windowMinutes)}
-          detail={`${alert.consecutiveFailures} failures to fire`}
-        />
-        <DetailMetric
-          label="Last evaluated"
-          value={formatRelativeTime(alert.lastEvaluatedAt)}
-          detail={
-            alert.nextEvaluationAt
-              ? `Next ${formatRelativeFuture(alert.nextEvaluationAt)}`
-              : "No evaluation scheduled"
-          }
-        />
-        <DetailMetric
-          label="Open incident"
-          value={alert.openIncidentId ? "Active" : "None"}
-          detail={alert.openIncidentId || "No unresolved incident"}
-          tone={alert.openIncidentId ? "rose" : "neutral"}
-        />
-      </section>
-
-      <div className="grid gap-7 lg:grid-cols-3">
-        <Panel
-          title="Evaluation history"
-          description="Observed value with the configured threshold"
-          action={
-            <span className="text-[11px] text-zinc-700">
-              {refreshing ? "Updating…" : `${evaluations.length} evaluations`}
-            </span>
-          }
-          className="lg:col-span-2"
-        >
-          <EvaluationChart alert={alert} evaluations={evaluations} />
-        </Panel>
-
-        <Panel title="Condition" description="Current rule configuration">
-          <div className="divide-y divide-white/[0.06] px-5 sm:px-6">
-            <DetailRow label="Signal" value={signalLabel(alert.signal)} />
-            <DetailRow
-              label="Scope"
-              value={[alert.service, alert.environment]
-                .filter(Boolean)
-                .join(" · ")}
-            />
-            <DetailRow label="Rule" value={conditionLabel(alert)} />
-            <DetailRow
-              label="Minimum samples"
-              value={alert.minimumSamples.toLocaleString()}
-            />
-            <DetailRow
-              label="Recovery"
-              value={`${alert.consecutiveRecoveries} healthy evaluations`}
-            />
-            <DetailRow
-              label="No data"
-              value={noDataLabel(alert.noDataState)}
-            />
-            <DetailRow
-              label="Notification"
-              value={alert.notificationEmail || "Not configured"}
-            />
-          </div>
-        </Panel>
-      </div>
-
-      <Panel title="Evaluations" description="The latest rule decisions">
-        <div className="hidden grid-cols-[150px_110px_120px_100px_minmax(0,1fr)] gap-4 border-b border-white/[0.07] px-5 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700 sm:px-6 lg:grid">
-          <span>Evaluated</span>
-          <span>State</span>
-          <span>Value</span>
-          <span>Samples</span>
-          <span>Result</span>
-        </div>
-        <div className="divide-y divide-white/[0.06]">
-          {evaluations.length === 0 ? (
-            <EmptyPanel message="No evaluations have run yet." />
-          ) : (
-            evaluations.slice(0, 25).map((evaluation) => (
-              <div
-                key={evaluation.id}
-                className="grid gap-3 px-5 py-4 sm:px-6 lg:grid-cols-[150px_110px_120px_100px_minmax(0,1fr)] lg:items-center lg:gap-4"
-              >
-                <span className="text-xs text-zinc-600">
-                  {formatDateTime(evaluationTime(evaluation))}
-                </span>
-                <EvaluationState
-                  state={
-                    evaluation.resultingState ||
-                    evaluation.state ||
-                    evaluation.status ||
-                    "no_data"
-                  }
-                />
-                <span className="font-mono text-xs text-zinc-400">
-                  {formatAlertValue(evaluation.value, alert)}
-                </span>
-                <span className="text-xs text-zinc-600">
-                  {evaluation.sampleCount?.toLocaleString() || "—"}
-                </span>
-                <span
-                  className={`truncate text-xs ${evaluation.error ? "text-rose-400" : "text-zinc-600"}`}
-                >
-                  {evaluation.error || evaluation.message || "Evaluation completed"}
-                </span>
-              </div>
-            ))
-          )}
-        </div>
-      </Panel>
-
-      <div className="grid gap-7 lg:grid-cols-2">
-        <Panel title="Incidents" description="Firing and recovery history">
-          <div className="divide-y divide-white/[0.06]">
-            {incidents.length === 0 ? (
-              <EmptyPanel message="No incidents have been opened." compact />
-            ) : (
-              incidents.slice(0, 10).map((incident) => (
-                <div
-                  key={incident.id}
-                  className="flex items-center gap-4 px-5 py-4 sm:px-6"
-                >
-                  <span
-                    className={`size-2 shrink-0 rounded-full ${
-                      incident.status === "open"
-                        ? "bg-rose-400"
-                        : "bg-emerald-400"
-                    }`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs capitalize text-zinc-300">
-                      {incident.status} incident
-                    </p>
-                    <p className="mt-1 truncate text-[11px] text-zinc-700">
-                      Started {formatDateTime(incidentStart(incident))}
-                    </p>
-                  </div>
-                  <span className="font-mono text-xs text-zinc-500">
-                    {formatAlertValue(
-                      incident.lastValue ?? incident.triggerValue,
-                      alert,
-                    )}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </Panel>
-
-        <Panel title="Notifications" description="Recent delivery attempts">
-          <div className="divide-y divide-white/[0.06]">
-            {notifications.length === 0 ? (
-              <EmptyPanel message="No notifications have been sent." compact />
-            ) : (
-              notifications.slice(0, 10).map((notification) => (
-                <div
-                  key={notification.id}
-                  className="flex items-center gap-4 px-5 py-4 sm:px-6"
-                >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-zinc-600">
-                    <HugeiconsIcon
-                      icon={Notification02Icon}
-                      size={15}
-                      strokeWidth={1.7}
-                    />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs text-zinc-300">
-                      {notification.destination ||
-                        notification.recipient ||
-                        alert.notificationEmail ||
-                        "Notification destination"}
-                    </p>
-                    <p className="mt-1 text-[11px] text-zinc-700">
-                      {formatDateTime(
-                        notification.sentAt || notification.createdAt || null,
-                      )}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-xs capitalize ${
-                      notification.status === "sent" ||
-                      notification.status === "delivered"
-                        ? "text-emerald-400"
-                        : notification.status === "failed"
-                          ? "text-rose-400"
-                          : notification.status === "suppressed"
-                            ? "text-zinc-500"
-                          : "text-amber-400"
-                    }`}
-                  >
-                    {notification.status}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </Panel>
-      </div>
-
+      <Outlet />
       <AlertFormModal
         isOpen={isEditing}
         onClose={() => setIsEditing(false)}
@@ -636,6 +411,312 @@ function AlertDetailView() {
         }
       />
     </ObservabilityPage>
+    </AlertDetailContext.Provider>
+  );
+}
+
+export function AlertOverviewTab() {
+  const { data, refreshing } = useAlertDetail();
+  const { alert, evaluations, incidents, notifications } = data;
+  const effectiveState = getEffectiveState(alert);
+
+  return (
+    <div className="space-y-7">
+      <section
+        aria-label="Alert at a glance"
+        className="grid gap-px overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.07] sm:grid-cols-2 xl:grid-cols-4"
+      >
+        <DetailMetric
+          label="Current value"
+          value={formatAlertValue(alert.currentValue, alert)}
+          detail={signalLabel(alert.signal)}
+          tone={effectiveState === "firing" ? "rose" : "neutral"}
+        />
+        <DetailMetric
+          label={alert.signal === "no_telemetry" ? "Quiet window" : "Threshold"}
+          value={alert.signal === "no_telemetry" ? formatWindow(alert.windowMinutes) : formatAlertValue(alert.threshold, alert)}
+          detail={alert.signal === "no_telemetry" ? "Without telemetry" : operatorText(alert.operator)}
+        />
+        <DetailMetric
+          label="Last evaluated"
+          value={formatRelativeTime(alert.lastEvaluatedAt)}
+          detail={
+            alert.nextEvaluationAt
+              ? `Next ${formatRelativeFuture(alert.nextEvaluationAt)}`
+              : "No evaluation scheduled"
+          }
+        />
+        <DetailMetric
+          label="Open incident"
+          value={alert.openIncidentId ? "Active" : "None"}
+          detail={alert.openIncidentId || "No unresolved incident"}
+          tone={alert.openIncidentId ? "rose" : "neutral"}
+        />
+      </section>
+
+      <Panel
+        title="Evaluation trend"
+        description="Observed values against the configured threshold"
+        action={
+          <span className="text-xs text-zinc-500">
+            {refreshing ? "Updating…" : `${evaluations.length} recent evaluations`}
+          </span>
+        }
+      >
+        <EvaluationChart alert={alert} evaluations={evaluations} />
+      </Panel>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Panel title="Incidents" description="Firing and recovery history">
+          <div className="px-5 py-5 sm:px-6">
+            <p className="text-2xl font-semibold text-zinc-200">{incidents.length}</p>
+            <p className="mt-1 text-sm text-zinc-500">Recent incidents for this alert</p>
+          </div>
+        </Panel>
+        <Panel title="Notifications" description="Delivery attempts">
+          <div className="px-5 py-5 sm:px-6">
+            <p className="text-2xl font-semibold text-zinc-200">{notifications.length}</p>
+            <p className="mt-1 text-sm text-zinc-500">Recent notification attempts</p>
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+export function AlertConditionTab() {
+  const { data } = useAlertDetail();
+  const { alert } = data;
+
+  return (
+    <div className="space-y-6">
+      <TabHeading
+        title="Condition"
+        description="The signal, scope, and evaluation rules for this alert."
+      />
+      <div className="rounded-xl border border-violet-400/15 bg-violet-400/[0.035] px-5 py-4 text-sm leading-6 text-zinc-300 sm:px-6">
+        {conditionLabel(alert)}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Panel title="Signal and scope">
+          <div className="divide-y divide-white/[0.06] px-5 sm:px-6">
+            <DetailRow label="Signal" value={signalLabel(alert.signal)} />
+            <DetailRow label="Service" value={alert.service} />
+            <DetailRow label="Environment" value={alert.environment || "All environments"} />
+            {alert.signal === "metric_value" && (
+              <>
+                <DetailRow label="Metric" value={alert.metricName || alert.metricKey || "—"} />
+                <DetailRow label="Aggregation" value={alert.metricAggregation || "—"} />
+              </>
+            )}
+            {alert.signal === "log_count" && (
+              <>
+                <DetailRow label="Log level" value={alert.logLevel || "All levels"} />
+                <DetailRow label="Contains" value={alert.logQuery || "Any message"} />
+              </>
+            )}
+          </div>
+        </Panel>
+        <Panel title="Evaluation behavior">
+          <div className="divide-y divide-white/[0.06] px-5 sm:px-6">
+            {alert.signal !== "no_telemetry" && (
+              <>
+                <DetailRow label="Operator" value={operatorText(alert.operator)} />
+                <DetailRow label="Threshold" value={formatAlertValue(alert.threshold, alert)} />
+              </>
+            )}
+            <DetailRow label="Window" value={formatWindow(alert.windowMinutes)} />
+            <DetailRow label="Evaluate every" value={formatWindow(alert.evaluationIntervalSeconds / 60)} />
+            <DetailRow label="Failures to fire" value={String(alert.consecutiveFailures)} />
+            <DetailRow label="Recoveries to resolve" value={String(alert.consecutiveRecoveries)} />
+            <DetailRow label="Minimum samples" value={alert.minimumSamples.toLocaleString()} />
+            <DetailRow label="When data is missing" value={noDataLabel(alert.noDataState)} />
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+export function AlertEvaluationsTab() {
+  const { data, refreshing } = useAlertDetail();
+  const { alert, evaluations } = data;
+
+  return (
+    <div className="space-y-6">
+      <TabHeading
+        title="Evaluations"
+        description="Each decision made against the alert condition."
+        count={evaluations.length}
+      />
+      <Panel title="Observed values" description="Values compared with the alert threshold">
+        <EvaluationChart alert={alert} evaluations={evaluations} />
+      </Panel>
+      <Panel
+        title="Evaluation history"
+        description="Most recent decisions first"
+        action={refreshing ? <span className="text-xs text-zinc-500">Updating…</span> : undefined}
+      >
+        <div className="hidden grid-cols-[150px_110px_120px_100px_minmax(0,1fr)] gap-4 border-b border-white/[0.07] px-5 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-600 sm:px-6 lg:grid">
+          <span>Evaluated</span>
+          <span>State</span>
+          <span>Value</span>
+          <span>Samples</span>
+          <span>Result</span>
+        </div>
+        <div className="divide-y divide-white/[0.06]">
+          {evaluations.length === 0 ? (
+            <EmptyPanel message="No evaluations have run yet." />
+          ) : (
+            evaluations.map((evaluation) => (
+              <div
+                key={evaluation.id}
+                className="grid gap-3 px-5 py-4 sm:px-6 lg:grid-cols-[150px_110px_120px_100px_minmax(0,1fr)] lg:items-center lg:gap-4"
+              >
+                <span className="text-xs text-zinc-500">
+                  {formatDateTime(evaluationTime(evaluation))}
+                </span>
+                <EvaluationState
+                  state={evaluation.resultingState || evaluation.state || evaluation.status || "no_data"}
+                />
+                <span className="font-mono text-xs text-zinc-400">
+                  {formatAlertValue(evaluation.value, alert)}
+                </span>
+                <span className="text-xs text-zinc-500">
+                  {evaluation.sampleCount?.toLocaleString() ?? "—"}
+                </span>
+                <span className={`text-xs ${evaluation.error ? "text-rose-400" : "text-zinc-500"}`}>
+                  {evaluation.error || evaluation.message || "Evaluation completed"}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+export function AlertIncidentsTab() {
+  const { data } = useAlertDetail();
+  const { alert, incidents } = data;
+
+  return (
+    <div className="space-y-6">
+      <TabHeading
+        title="Incidents"
+        description="When this alert fired and when it recovered."
+        count={incidents.length}
+      />
+      <Panel title="Incident history" description="Most recent incidents first">
+        <div className="divide-y divide-white/[0.06]">
+          {incidents.length === 0 ? (
+            <EmptyPanel message="No incidents have been opened." />
+          ) : (
+            incidents.map((incident) => (
+              <div key={incident.id} className="flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-center sm:gap-5 sm:px-6">
+                <span className={`size-2 shrink-0 rounded-full ${incident.status === "open" ? "bg-rose-400" : "bg-emerald-400"}`} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium capitalize text-zinc-200">{incident.status} incident</p>
+                  <p className="mt-1 text-xs text-zinc-500">Started {formatDateTime(incidentStart(incident))}</p>
+                  {incident.resolvedAt && (
+                    <p className="mt-1 text-xs text-zinc-500">Resolved {formatDateTime(incident.resolvedAt)}</p>
+                  )}
+                </div>
+                <div className="sm:text-right">
+                  <p className="font-mono text-sm text-zinc-300">
+                    {formatAlertValue(incident.lastValue ?? incident.triggerValue, alert)}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-600">Last observed value</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+export function AlertNotificationsTab() {
+  const { data } = useAlertDetail();
+  const { alert, notifications } = data;
+
+  return (
+    <div className="space-y-6">
+      <TabHeading
+        title="Notifications"
+        description="Where alert updates go and the outcome of each delivery attempt."
+        count={notifications.length}
+      />
+      <Panel title="Email recipient">
+        <div className="px-5 py-5 text-sm text-zinc-300 sm:px-6">
+          {alert.notificationEmail || "No email recipient configured"}
+        </div>
+      </Panel>
+      <Panel title="Delivery history" description="Most recent attempts first">
+        <div className="divide-y divide-white/[0.06]">
+          {notifications.length === 0 ? (
+            <EmptyPanel message="No notifications have been sent." />
+          ) : (
+            notifications.map((notification) => (
+              <div key={notification.id} className="flex items-start gap-4 px-5 py-5 sm:px-6">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-zinc-500">
+                  <HugeiconsIcon icon={Notification02Icon} size={15} strokeWidth={1.7} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="break-all text-sm text-zinc-300">
+                    {notification.destination || notification.recipient || alert.notificationEmail || "Notification destination"}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {formatDateTime(notification.sentAt || notification.createdAt || null)}
+                    {notification.type ? ` · ${notification.type}` : ""}
+                  </p>
+                  {(notification.error || notification.lastError) && (
+                    <p className="mt-2 text-xs text-rose-300">{notification.error || notification.lastError}</p>
+                  )}
+                </div>
+                <span className={`shrink-0 text-xs capitalize ${
+                  notification.status === "sent" || notification.status === "delivered"
+                    ? "text-emerald-400"
+                    : notification.status === "failed"
+                      ? "text-rose-400"
+                      : notification.status === "suppressed"
+                        ? "text-zinc-500"
+                        : "text-amber-400"
+                }`}>
+                  {notification.status}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+function TabHeading({
+  title,
+  description,
+  count,
+}: {
+  title: string;
+  description: string;
+  count?: number;
+}) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
+        <p className="mt-1 text-sm text-zinc-500">{description}</p>
+      </div>
+      {count !== undefined && (
+        <span className="rounded-lg border border-white/[0.08] px-3 py-1.5 text-xs text-zinc-500">
+          {count} recent
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -714,18 +795,20 @@ function EvaluationChart({
               "Observed",
             ]}
           />
-          <ReferenceLine
-            y={alert.threshold}
-            ifOverflow="extendDomain"
-            stroke="#fb7185"
-            strokeDasharray="5 5"
-            label={{
-              value: `Threshold ${formatAlertValue(alert.threshold, alert)}`,
-              position: "insideTopRight",
-              fill: "#fb7185",
-              fontSize: 10,
-            }}
-          />
+          {alert.signal !== "no_telemetry" && (
+            <ReferenceLine
+              y={alert.threshold}
+              ifOverflow="extendDomain"
+              stroke="#fb7185"
+              strokeDasharray="5 5"
+              label={{
+                value: `Threshold ${formatAlertValue(alert.threshold, alert)}`,
+                position: "insideTopRight",
+                fill: "#fb7185",
+                fontSize: 10,
+              }}
+            />
+          )}
           <Area
             type="monotone"
             dataKey="value"
@@ -784,8 +867,8 @@ function DetailMetric({
   tone?: "neutral" | "rose";
 }) {
   return (
-    <div className="border-b border-white/[0.07] px-5 py-5 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:px-6">
-      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-600">
+    <div className="min-w-0 bg-[#080808] px-5 py-5 sm:px-6">
+      <p className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </p>
       <p
@@ -793,7 +876,7 @@ function DetailMetric({
       >
         {value}
       </p>
-      <p className="mt-1 truncate text-[11px] text-zinc-700">{detail}</p>
+      <p className="mt-1 truncate text-xs text-zinc-500">{detail}</p>
     </div>
   );
 }
@@ -859,19 +942,12 @@ function AlertDetailSkeleton({ orgSlug }: { orgSlug: string }) {
             </div>
           </div>
         </header>
-        <div className="grid overflow-hidden rounded-xl border border-white/[0.07] sm:grid-cols-5">
+        <div className="flex gap-7 border-b border-white/[0.07] pb-3">
           {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="border-r border-white/[0.07] px-5 py-5 last:border-r-0">
-              <div className="h-2.5 w-20 rounded bg-white/[0.04]" />
-              <div className="mt-4 h-5 w-24 rounded bg-white/[0.07]" />
-              <div className="mt-3 h-2.5 w-28 rounded bg-white/[0.035]" />
-            </div>
+            <div key={index} className="h-4 w-20 rounded bg-white/[0.04]" />
           ))}
         </div>
-        <div className="grid gap-7 lg:grid-cols-3">
-          <div className="h-96 rounded-xl border border-white/[0.07] bg-white/[0.015] lg:col-span-2" />
-          <div className="h-96 rounded-xl border border-white/[0.07] bg-white/[0.015]" />
-        </div>
+        <div className="h-72 rounded-xl border border-white/[0.07] bg-white/[0.015]" />
       </div>
     </ObservabilityPage>
   );
