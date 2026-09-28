@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Activity03Icon from "@hugeicons-pro/core-stroke-rounded/Activity03Icon";
 import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
 import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
+import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
 import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
 import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import CheckmarkCircle02Icon from "@hugeicons-pro/core-stroke-rounded/CheckmarkCircle02Icon";
@@ -29,13 +30,7 @@ export type AlertSignal =
 
 export type AlertOperator = "gt" | "gte" | "lt" | "lte";
 export type AlertState =
-  | "healthy"
-  | "pending"
-  | "firing"
-  | "no_data"
-  | "error"
-  | "muted"
-  | "paused";
+  "healthy" | "pending" | "firing" | "no_data" | "error" | "muted" | "paused";
 
 export interface AlertRecord {
   id: string;
@@ -154,6 +149,28 @@ const signalOptions: Array<{
   },
 ];
 
+const alertFormSteps = [
+  {
+    label: "Signal & scope",
+    shortLabel: "Signal",
+    title: "What should OutRay watch?",
+    description:
+      "Name the alert, then choose the telemetry and service it covers.",
+  },
+  {
+    label: "Condition",
+    shortLabel: "Condition",
+    title: "When should it fire?",
+    description: "Set the threshold, evaluation window, and recovery behavior.",
+  },
+  {
+    label: "Review & notify",
+    shortLabel: "Review",
+    title: "Ready to create this alert?",
+    description: "Choose a recipient and check the rule before saving.",
+  },
+] as const;
+
 function AlertsView() {
   const { orgSlug } = Route.useParams();
   const [data, setData] = useState<AlertsResponse | null>(null);
@@ -214,10 +231,11 @@ function AlertsView() {
   const serviceOptions = useMemo(
     () =>
       Array.from(
-        new Set([
-          ...(data?.services || []),
-          ...alerts.map((alert) => alert.service),
-        ].map(normalizeServiceName).filter(Boolean)),
+        new Set(
+          [...(data?.services || []), ...alerts.map((alert) => alert.service)]
+            .map(normalizeServiceName)
+            .filter(Boolean),
+        ),
       ).sort(),
     [alerts, data?.services],
   );
@@ -282,7 +300,10 @@ function AlertsView() {
         </div>
       )}
 
-      <section className="grid overflow-hidden rounded-xl border border-white/[0.07] sm:grid-cols-2 xl:grid-cols-8">
+      <section
+        aria-label="Alert status overview"
+        className="grid gap-px overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.07] sm:grid-cols-2 xl:grid-cols-4"
+      >
         {[
           ["Total", summary.total, "All rules", "text-zinc-200"],
           ["Firing", summary.firing, "Needs attention", "text-rose-400"],
@@ -291,21 +312,26 @@ function AlertsView() {
           ["Error", summary.error, "Evaluation failed", "text-rose-300"],
           ["Muted", summary.muted, "Notifications held", "text-violet-300"],
           ["No data", summary.noData, "Awaiting telemetry", "text-zinc-400"],
-          ["Paused", summary.paused || 0, "Evaluations stopped", "text-zinc-500"],
-        ].map(([label, value, detail, color], index) => (
+          [
+            "Paused",
+            summary.paused || 0,
+            "Evaluations stopped",
+            "text-zinc-500",
+          ],
+        ].map(([label, value, detail, color]) => (
           <div
             key={String(label)}
-            className={`px-5 py-5 sm:px-6 ${index ? "border-t border-white/[0.07] sm:border-t-0 sm:border-l" : ""}`}
+            className="min-w-0 bg-[#080808] px-6 py-6 sm:px-7"
           >
-            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-600">
+            <p className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
               {label}
             </p>
             <p
-              className={`mt-2 text-2xl font-semibold tracking-[-0.04em] ${color}`}
+              className={`mt-3 text-3xl font-semibold tracking-[-0.04em] ${color}`}
             >
               {value}
             </p>
-            <p className="mt-1 text-[11px] text-zinc-700">{detail}</p>
+            <p className="mt-1.5 text-xs text-zinc-500">{detail}</p>
           </div>
         ))}
       </section>
@@ -479,10 +505,7 @@ function AlertRowsSkeleton() {
   return (
     <div className="animate-pulse" aria-busy="true">
       {Array.from({ length: 5 }).map((_, index) => (
-        <div
-          key={index}
-          className="flex items-center gap-4 px-5 py-5 sm:px-6"
-        >
+        <div key={index} className="flex items-center gap-4 px-5 py-5 sm:px-6">
           <span className="size-10 rounded-lg bg-white/[0.05]" />
           <span className="h-3 w-48 rounded bg-white/[0.06]" />
           <span className="ml-auto h-3 w-24 rounded bg-white/[0.04]" />
@@ -581,7 +604,9 @@ function getEffectiveState(alert: AlertRecord): AlertState {
 }
 
 function signalLabel(signal: AlertSignal) {
-  return signalOptions.find((option) => option.value === signal)?.label || signal;
+  return (
+    signalOptions.find((option) => option.value === signal)?.label || signal
+  );
 }
 
 function signalIcon(signal: AlertSignal) {
@@ -608,13 +633,18 @@ function formatAlertValue(
   value: number | null | undefined,
   alert: Pick<AlertRecord, "signal" | "metricUnit">,
 ) {
-  if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+  if (
+    value === null ||
+    value === undefined ||
+    !Number.isFinite(Number(value))
+  ) {
     return "—";
   }
   const numeric = Number(value);
   if (alert.signal === "request_error_rate") return `${formatNumber(numeric)}%`;
   if (alert.signal === "request_latency_p95") return formatDuration(numeric);
-  if (alert.signal === "request_throughput") return `${formatNumber(numeric)} rpm`;
+  if (alert.signal === "request_throughput")
+    return `${formatNumber(numeric)} rpm`;
   if (alert.signal === "log_count") return numeric.toLocaleString();
   if (alert.signal === "metric_value") {
     return `${formatNumber(numeric)}${alert.metricUnit ? ` ${alert.metricUnit}` : ""}`;
@@ -638,7 +668,9 @@ function formatDuration(milliseconds: number) {
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("en", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("en", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }
 
 function formatRelativeTime(value: string | null | undefined) {
@@ -708,9 +740,19 @@ export function AlertFormModal({
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  const loadedAlertRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      loadedAlertRef.current = null;
+      return;
+    }
+    const alertId = initialAlert?.id ?? "new";
+    if (loadedAlertRef.current === alertId) return;
+    loadedAlertRef.current = alertId;
     const alert = initialAlert;
     const initialSignal = alert?.signal || "request_error_rate";
     setName(alert?.name || "");
@@ -741,8 +783,15 @@ export function AlertFormModal({
     );
     setNoDataState(alert?.noDataState || "no_data");
     setNotificationEmail(alert?.notificationEmail || "");
+    setStep(0);
     setError(null);
   }, [initialAlert, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+    if (step > 0) stepHeadingRef.current?.focus();
+  }, [isOpen, step]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -814,8 +863,7 @@ export function AlertFormModal({
   );
   const availableMetrics = useMemo(() => {
     const serviceMetrics = metrics.filter(
-      (metric) =>
-        !metric.services?.length || metric.services.includes(service),
+      (metric) => !metric.services?.length || metric.services.includes(service),
     );
     if (
       initialAlert?.metricKey &&
@@ -881,26 +929,88 @@ export function AlertFormModal({
     }
   };
 
+  const validateStep = (stepIndex: number): string | null => {
+    if (stepIndex === 0) {
+      if (!name.trim()) return "Give this alert a name.";
+      if (name.trim().length > 120)
+        return "Keep the alert name under 120 characters.";
+      if (description.trim().length > 1_000)
+        return "Keep the description under 1,000 characters.";
+      if (!service.trim()) return "Choose a service for this alert.";
+      if (signal === "metric_value" && !selectedMetric)
+        return "Choose a gauge metric to evaluate.";
+      if (signal === "log_count" && logQuery.trim().length > 500)
+        return "Keep the log search under 500 characters.";
+    }
+
+    if (stepIndex === 1) {
+      const numericThreshold = Number(threshold);
+      if (
+        signal !== "no_telemetry" &&
+        (!threshold.trim() || !Number.isFinite(numericThreshold))
+      ) {
+        return "Enter a valid threshold.";
+      }
+      if (
+        signal === "request_error_rate" &&
+        (numericThreshold < 0 || numericThreshold > 100)
+      ) {
+        return "Error rate must be between 0% and 100%.";
+      }
+      if (
+        signal !== "no_telemetry" &&
+        signal !== "metric_value" &&
+        numericThreshold < 0
+      ) {
+        return "The threshold cannot be negative.";
+      }
+      if (signal === "no_telemetry" && Number(windowMinutes) < 5)
+        return "No-telemetry alerts need a window of at least 5 minutes.";
+      if (!integerInRange(consecutiveFailures, 1, 10))
+        return "Failures to fire must be between 1 and 10.";
+      if (!integerInRange(consecutiveRecoveries, 1, 10))
+        return "Recoveries to resolve must be between 1 and 10.";
+      if (!integerInRange(minimumSamples, 1, 1_000_000))
+        return "Minimum samples must be between 1 and 1,000,000.";
+    }
+
+    if (stepIndex === 2) {
+      const email = notificationEmail.trim();
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+        return "Enter a valid notification email address.";
+    }
+    return null;
+  };
+
+  const showError = (message: string) => {
+    setError(message);
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+  };
+
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (step < alertFormSteps.length - 1) {
+      const stepError = validateStep(step);
+      if (stepError) {
+        showError(stepError);
+        return;
+      }
+      setError(null);
+      setStep(step + 1);
+      return;
+    }
+
+    for (let index = 0; index < alertFormSteps.length; index += 1) {
+      const stepError = validateStep(index);
+      if (stepError) {
+        setStep(index);
+        showError(stepError);
+        return;
+      }
+    }
+
     const normalizedName = name.trim();
     const numericThreshold = Number(threshold);
-    if (!normalizedName) {
-      setError("Give this alert a name.");
-      return;
-    }
-    if (!service.trim()) {
-      setError("Choose a service for this alert.");
-      return;
-    }
-    if (signal === "metric_value" && !selectedMetric) {
-      setError("Choose a gauge metric to evaluate.");
-      return;
-    }
-    if (signal !== "no_telemetry" && !Number.isFinite(numericThreshold)) {
-      setError("Enter a valid threshold.");
-      return;
-    }
 
     const payload = {
       name: normalizedName,
@@ -921,17 +1031,13 @@ export function AlertFormModal({
           : null,
       isMonotonic:
         signal === "metric_value" ? Boolean(selectedMetric?.isMonotonic) : null,
-      metricAggregation:
-        signal === "metric_value" ? metricAggregation : null,
+      metricAggregation: signal === "metric_value" ? metricAggregation : null,
       logLevel: signal === "log_count" ? logLevel : null,
       logQuery: signal === "log_count" ? logQuery.trim() || null : null,
       operator,
       threshold: signal === "no_telemetry" ? 0 : numericThreshold,
       windowMinutes: positiveInteger(windowMinutes, 5),
-      evaluationIntervalSeconds: positiveInteger(
-        evaluationIntervalSeconds,
-        60,
-      ),
+      evaluationIntervalSeconds: positiveInteger(evaluationIntervalSeconds, 60),
       consecutiveFailures: positiveInteger(consecutiveFailures, 2),
       consecutiveRecoveries: positiveInteger(consecutiveRecoveries, 2),
       minimumSamples: positiveInteger(minimumSamples, 1),
@@ -951,15 +1057,18 @@ export function AlertFormModal({
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const result = (await response.json().catch(() => null)) as
-        | { alert?: AlertRecord; error?: string }
-        | null;
+      const result = (await response.json().catch(() => null)) as {
+        alert?: AlertRecord;
+        error?: string;
+        field?: string;
+      } | null;
       if (!response.ok || !result?.alert) {
+        if (result?.field) setStep(alertFieldStep(result.field));
         throw new Error(result?.error || "Could not save this alert");
       }
       onSaved(result.alert);
     } catch (requestError) {
-      setError(
+      showError(
         requestError instanceof Error
           ? requestError.message
           : "Could not save this alert.",
@@ -1010,17 +1119,28 @@ export function AlertFormModal({
     updatedAt: "",
     openIncidentId: null,
   };
+  const activeStep = alertFormSteps[step] ?? alertFormSteps[0];
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl" appearance="flat">
-      <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-start justify-between gap-5 border-b border-white/[0.07] px-5 py-5 sm:px-6">
+      <form
+        onSubmit={submit}
+        noValidate
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="alert-dialog-title"
+        className="flex min-h-0 flex-1 flex-col"
+      >
+        <header className="flex shrink-0 items-start justify-between gap-5 px-5 pb-5 pt-6 sm:px-6">
           <div>
-            <h2 className="text-lg font-semibold tracking-[-0.025em] text-white">
+            <h2
+              id="alert-dialog-title"
+              className="text-lg font-semibold tracking-[-0.025em] text-white"
+            >
               {initialAlert ? "Edit alert" : "Create alert"}
             </h2>
-            <p className="mt-1 text-xs text-zinc-600">
-              Evaluate incoming telemetry against a reliable, repeatable rule.
+            <p className="mt-1 text-sm text-zinc-500">
+              Set up a rule in three short steps.
             </p>
           </div>
           <button
@@ -1033,329 +1153,475 @@ export function AlertFormModal({
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 sm:px-6">
+        <ol
+          aria-label="Alert setup progress"
+          className="grid shrink-0 grid-cols-3 border-y border-white/[0.07]"
+        >
+          {alertFormSteps.map((item, index) => (
+            <li
+              key={item.label}
+              aria-current={step === index ? "step" : undefined}
+              className={`flex min-w-0 items-center gap-2.5 px-3 py-3.5 sm:px-5 ${
+                index > 0 ? "border-l border-white/[0.07]" : ""
+              } ${step === index ? "bg-violet-400/[0.07]" : ""}`}
+            >
+              <span
+                className={`flex size-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold ${
+                  index < step
+                    ? "border-violet-400/40 bg-violet-400/15 text-violet-200"
+                    : index === step
+                      ? "border-violet-300 bg-violet-300 text-[#0a0710]"
+                      : "border-white/[0.12] text-zinc-600"
+                }`}
+              >
+                {index < step ? (
+                  <HugeiconsIcon
+                    icon={CheckmarkCircle02Icon}
+                    size={14}
+                    strokeWidth={2}
+                  />
+                ) : (
+                  index + 1
+                )}
+              </span>
+              <span
+                className={`truncate text-[11px] font-medium sm:text-xs ${
+                  step === index ? "text-white" : "text-zinc-500"
+                }`}
+              >
+                <span className="sm:hidden">{item.shortLabel}</span>
+                <span className="hidden sm:inline">{item.label}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+
+        <div
+          ref={contentRef}
+          className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 sm:px-6"
+        >
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-violet-300">
+              Step {step + 1} of {alertFormSteps.length}
+            </p>
+            <h3
+              ref={stepHeadingRef}
+              tabIndex={-1}
+              className="mt-2 text-xl font-semibold tracking-[-0.025em] text-white outline-none"
+            >
+              {step === 2 && initialAlert
+                ? "Ready to save your changes?"
+                : activeStep.title}
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-zinc-500">
+              {activeStep.description}
+            </p>
+          </div>
           {error && (
-            <div className="rounded-xl border border-rose-400/15 bg-rose-400/[0.035] px-4 py-3 text-xs text-rose-300">
+            <div
+              role="alert"
+              className="rounded-xl border border-rose-400/15 bg-rose-400/[0.035] px-4 py-3 text-sm text-rose-300"
+            >
               {error}
             </div>
           )}
 
-          <FormSection title="Alert details">
-            <label className="block">
-              <FieldLabel>Name</FieldLabel>
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="e.g. Checkout 5xx rate"
-                className={inputClassName}
-                autoFocus
-              />
-            </label>
-            <label className="block">
-              <FieldLabel>Description</FieldLabel>
-              <textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="What this alert protects and who should respond"
-                rows={2}
-                className={`${inputClassName} min-h-20 resize-none py-3`}
-              />
-            </label>
-          </FormSection>
-
-          <FormSection title="Signal and scope">
-            <div>
-              <FieldLabel>Signal</FieldLabel>
-              <Select
-                value={signal}
-                onChange={selectSignal}
-                ariaLabel="Alert signal"
-                icon={
-                  <HugeiconsIcon
-                    icon={signalIcon(signal)}
-                    size={15}
-                    strokeWidth={1.7}
-                  />
-                }
-                options={signalOptions}
-                className="mt-2"
-              />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <FieldLabel>Service</FieldLabel>
-                <Select
-                  value={service}
-                  onChange={(value) => {
-                    setService(value);
-                    setEnvironment("all");
-                    setMetricKey("");
-                  }}
-                  ariaLabel="Alert service"
-                  disabled={optionsLoading && !availableServices.length}
-                  options={availableServices.map((item) => ({
-                    value: item,
-                    label: item,
-                  }))}
-                  placeholder={optionsLoading ? "Loading services…" : "Choose service"}
-                  className="mt-2"
-                />
-              </div>
-              <div>
-                <FieldLabel>Environment</FieldLabel>
-                <Select
-                  value={environment}
-                  onChange={setEnvironment}
-                  ariaLabel="Alert environment"
-                  options={[
-                    { value: "all", label: "All environments" },
-                    ...environments.map((item) => ({
-                      value: item,
-                      label: item,
-                    })),
-                  ]}
-                  className="mt-2"
-                />
-              </div>
-            </div>
-
-            {signal === "metric_value" && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <FieldLabel>Gauge metric</FieldLabel>
-                  <Select
-                    value={metricKey}
-                    onChange={setMetricKey}
-                    ariaLabel="Gauge metric"
-                    disabled={optionsLoading || !availableMetrics.length}
-                    placeholder={
-                      optionsLoading ? "Loading metrics…" : "No gauges reported"
-                    }
-                    options={availableMetrics.map((metric) => ({
-                      value: metric.key,
-                      label: metric.name,
-                      description: [metric.type, metric.unit]
-                        .filter(Boolean)
-                        .join(" · "),
-                    }))}
-                    className="mt-2"
-                  />
-                </div>
-                <div>
-                  <FieldLabel>Aggregation</FieldLabel>
-                  <Select
-                    value={metricAggregation}
-                    onChange={setMetricAggregation}
-                    ariaLabel="Metric aggregation"
-                    options={[
-                      { value: "latest", label: "Latest value" },
-                      { value: "avg", label: "Average" },
-                      { value: "max", label: "Maximum" },
-                      { value: "min", label: "Minimum" },
-                    ]}
-                    className="mt-2"
-                  />
-                </div>
-              </div>
-            )}
-
-            {signal === "log_count" && (
-              <div className="grid gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
-                <div>
-                  <FieldLabel>Log level</FieldLabel>
-                  <Select
-                    value={logLevel}
-                    onChange={setLogLevel}
-                    ariaLabel="Log level"
-                    options={[
-                      { value: "all", label: "All levels" },
-                      { value: "debug", label: "Debug" },
-                      { value: "info", label: "Info" },
-                      { value: "warn", label: "Warning" },
-                      { value: "error", label: "Error" },
-                    ]}
-                    className="mt-2"
-                  />
-                </div>
-                <label>
-                  <FieldLabel>Contains</FieldLabel>
+          {step === 0 && (
+            <>
+              <FormSection title="Alert details">
+                <label className="block">
+                  <FieldLabel>Name</FieldLabel>
                   <input
-                    value={logQuery}
-                    onChange={(event) => setLogQuery(event.target.value)}
-                    placeholder="Optional message search"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="e.g. Checkout 5xx rate"
                     className={inputClassName}
+                    autoFocus
                   />
                 </label>
-              </div>
-            )}
-          </FormSection>
+                <label className="block">
+                  <FieldLabel>Description</FieldLabel>
+                  <textarea
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder="What this alert protects and who should respond"
+                    rows={2}
+                    className={`${inputClassName} min-h-20 resize-none py-3`}
+                  />
+                </label>
+              </FormSection>
 
-          <FormSection title="Condition">
-            {signal === "no_telemetry" ? (
-              <div className="rounded-lg border border-white/[0.07] bg-white/[0.02] px-4 py-3 text-xs leading-5 text-zinc-500">
-                Fire when the selected service sends no telemetry during the
-                configured window.
-              </div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
+              <FormSection title="Signal and scope">
                 <div>
-                  <FieldLabel>Operator</FieldLabel>
+                  <FieldLabel>Signal</FieldLabel>
                   <Select
-                    value={operator}
-                    onChange={(value) => setOperator(value as AlertOperator)}
-                    ariaLabel="Alert operator"
+                    value={signal}
+                    onChange={selectSignal}
+                    ariaLabel="Alert signal"
+                    icon={
+                      <HugeiconsIcon
+                        icon={signalIcon(signal)}
+                        size={15}
+                        strokeWidth={1.7}
+                      />
+                    }
+                    options={signalOptions}
+                    className="mt-2"
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <FieldLabel>Service</FieldLabel>
+                    <Select
+                      value={service}
+                      onChange={(value) => {
+                        setService(value);
+                        setEnvironment("all");
+                        setMetricKey("");
+                      }}
+                      ariaLabel="Alert service"
+                      disabled={optionsLoading && !availableServices.length}
+                      options={availableServices.map((item) => ({
+                        value: item,
+                        label: item,
+                      }))}
+                      placeholder={
+                        optionsLoading ? "Loading services…" : "Choose service"
+                      }
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Environment</FieldLabel>
+                    <Select
+                      value={environment}
+                      onChange={setEnvironment}
+                      ariaLabel="Alert environment"
+                      options={[
+                        { value: "all", label: "All environments" },
+                        ...environments.map((item) => ({
+                          value: item,
+                          label: item,
+                        })),
+                      ]}
+                      className="mt-2"
+                    />
+                  </div>
+                </div>
+
+                {signal === "metric_value" && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <FieldLabel>Gauge metric</FieldLabel>
+                      <Select
+                        value={metricKey}
+                        onChange={setMetricKey}
+                        ariaLabel="Gauge metric"
+                        disabled={optionsLoading || !availableMetrics.length}
+                        placeholder={
+                          optionsLoading
+                            ? "Loading metrics…"
+                            : "No gauges reported"
+                        }
+                        options={availableMetrics.map((metric) => ({
+                          value: metric.key,
+                          label: metric.name,
+                          description: [metric.type, metric.unit]
+                            .filter(Boolean)
+                            .join(" · "),
+                        }))}
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <FieldLabel>Aggregation</FieldLabel>
+                      <Select
+                        value={metricAggregation}
+                        onChange={setMetricAggregation}
+                        ariaLabel="Metric aggregation"
+                        options={[
+                          { value: "latest", label: "Latest value" },
+                          { value: "avg", label: "Average" },
+                          { value: "max", label: "Maximum" },
+                          { value: "min", label: "Minimum" },
+                        ]}
+                        className="mt-2"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {signal === "log_count" && (
+                  <div className="grid gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
+                    <div>
+                      <FieldLabel>Log level</FieldLabel>
+                      <Select
+                        value={logLevel}
+                        onChange={setLogLevel}
+                        ariaLabel="Log level"
+                        options={[
+                          { value: "all", label: "All levels" },
+                          { value: "debug", label: "Debug" },
+                          { value: "info", label: "Info" },
+                          { value: "warn", label: "Warning" },
+                          { value: "error", label: "Error" },
+                        ]}
+                        className="mt-2"
+                      />
+                    </div>
+                    <label>
+                      <FieldLabel>Contains</FieldLabel>
+                      <input
+                        value={logQuery}
+                        onChange={(event) => setLogQuery(event.target.value)}
+                        placeholder="Optional message search"
+                        className={inputClassName}
+                      />
+                    </label>
+                  </div>
+                )}
+              </FormSection>
+            </>
+          )}
+
+          {step === 1 && (
+            <FormSection title="Condition">
+              {signal === "no_telemetry" ? (
+                <div className="rounded-lg border border-white/[0.07] bg-white/[0.02] px-4 py-3 text-xs leading-5 text-zinc-500">
+                  Fire when the selected service sends no telemetry during the
+                  configured window.
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
+                  <div>
+                    <FieldLabel>Operator</FieldLabel>
+                    <Select
+                      value={operator}
+                      onChange={(value) => setOperator(value as AlertOperator)}
+                      ariaLabel="Alert operator"
+                      options={[
+                        { value: "gt", label: "Greater than" },
+                        { value: "gte", label: "Greater than or equal" },
+                        { value: "lt", label: "Less than" },
+                        { value: "lte", label: "Less than or equal" },
+                      ]}
+                      className="mt-2"
+                    />
+                  </div>
+                  <label>
+                    <FieldLabel>
+                      {thresholdLabel(signal, selectedMetric)}
+                    </FieldLabel>
+                    <input
+                      type="number"
+                      step="any"
+                      value={threshold}
+                      onChange={(event) => setThreshold(event.target.value)}
+                      className={inputClassName}
+                    />
+                  </label>
+                </div>
+              )}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <FieldLabel>Window</FieldLabel>
+                  <Select
+                    value={windowMinutes}
+                    onChange={setWindowMinutes}
+                    ariaLabel="Evaluation window"
                     options={[
-                      { value: "gt", label: "Greater than" },
-                      { value: "gte", label: "Greater than or equal" },
-                      { value: "lt", label: "Less than" },
-                      { value: "lte", label: "Less than or equal" },
+                      {
+                        value: "1",
+                        label: "1 minute",
+                        disabled: signal === "no_telemetry",
+                      },
+                      { value: "5", label: "5 minutes" },
+                      { value: "10", label: "10 minutes" },
+                      { value: "15", label: "15 minutes" },
+                      { value: "30", label: "30 minutes" },
+                      { value: "60", label: "1 hour" },
                     ]}
                     className="mt-2"
                   />
                 </div>
                 <label>
-                  <FieldLabel>{thresholdLabel(signal, selectedMetric)}</FieldLabel>
+                  <FieldLabel>Failures to fire</FieldLabel>
                   <input
                     type="number"
-                    step="any"
-                    value={threshold}
-                    onChange={(event) => setThreshold(event.target.value)}
+                    min="1"
+                    max="10"
+                    value={consecutiveFailures}
+                    onChange={(event) =>
+                      setConsecutiveFailures(event.target.value)
+                    }
+                    className={inputClassName}
+                  />
+                </label>
+                <label>
+                  <FieldLabel>Recoveries to resolve</FieldLabel>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={consecutiveRecoveries}
+                    onChange={(event) =>
+                      setConsecutiveRecoveries(event.target.value)
+                    }
                     className={inputClassName}
                   />
                 </label>
               </div>
-            )}
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <FieldLabel>Window</FieldLabel>
-                <Select
-                  value={windowMinutes}
-                  onChange={setWindowMinutes}
-                  ariaLabel="Evaluation window"
-                  options={[
-                    { value: "1", label: "1 minute" },
-                    { value: "5", label: "5 minutes" },
-                    { value: "10", label: "10 minutes" },
-                    { value: "15", label: "15 minutes" },
-                    { value: "30", label: "30 minutes" },
-                    { value: "60", label: "1 hour" },
-                  ]}
-                  className="mt-2"
-                />
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <FieldLabel>Evaluate every</FieldLabel>
+                  <Select
+                    value={evaluationIntervalSeconds}
+                    onChange={setEvaluationIntervalSeconds}
+                    ariaLabel="Evaluation interval"
+                    options={[
+                      { value: "60", label: "1 minute" },
+                      { value: "300", label: "5 minutes" },
+                      { value: "900", label: "15 minutes" },
+                    ]}
+                    className="mt-2"
+                  />
+                </div>
+                <label>
+                  <FieldLabel>Minimum samples</FieldLabel>
+                  <input
+                    type="number"
+                    min="1"
+                    value={minimumSamples}
+                    onChange={(event) => setMinimumSamples(event.target.value)}
+                    className={inputClassName}
+                  />
+                </label>
+                <div>
+                  <FieldLabel>When data is missing</FieldLabel>
+                  <Select
+                    value={noDataState}
+                    onChange={setNoDataState}
+                    ariaLabel="No data behavior"
+                    options={[
+                      { value: "no_data", label: "Show no data" },
+                      { value: "healthy", label: "Treat as healthy" },
+                      { value: "alerting", label: "Treat as firing" },
+                    ]}
+                    className="mt-2"
+                  />
+                </div>
               </div>
-              <label>
-                <FieldLabel>Failures to fire</FieldLabel>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={consecutiveFailures}
-                  onChange={(event) => setConsecutiveFailures(event.target.value)}
-                  className={inputClassName}
-                />
-              </label>
-              <label>
-                <FieldLabel>Recoveries to resolve</FieldLabel>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={consecutiveRecoveries}
-                  onChange={(event) => setConsecutiveRecoveries(event.target.value)}
-                  className={inputClassName}
-                />
-              </label>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <FieldLabel>Evaluate every</FieldLabel>
-                <Select
-                  value={evaluationIntervalSeconds}
-                  onChange={setEvaluationIntervalSeconds}
-                  ariaLabel="Evaluation interval"
-                  options={[
-                    { value: "60", label: "1 minute" },
-                    { value: "300", label: "5 minutes" },
-                    { value: "900", label: "15 minutes" },
-                  ]}
-                  className="mt-2"
-                />
-              </div>
-              <label>
-                <FieldLabel>Minimum samples</FieldLabel>
-                <input
-                  type="number"
-                  min="1"
-                  value={minimumSamples}
-                  onChange={(event) => setMinimumSamples(event.target.value)}
-                  className={inputClassName}
-                />
-              </label>
-              <div>
-                <FieldLabel>When data is missing</FieldLabel>
-                <Select
-                  value={noDataState}
-                  onChange={setNoDataState}
-                  ariaLabel="No data behavior"
-                  options={[
-                    { value: "no_data", label: "Show no data" },
-                    { value: "healthy", label: "Treat as healthy" },
-                    { value: "alerting", label: "Treat as firing" },
-                  ]}
-                  className="mt-2"
-                />
-              </div>
-            </div>
-          </FormSection>
+            </FormSection>
+          )}
 
-          <FormSection title="Notification">
-            <label className="block">
-              <FieldLabel>Email recipient</FieldLabel>
-              <input
-                type="email"
-                value={notificationEmail}
-                onChange={(event) => setNotificationEmail(event.target.value)}
-                placeholder="on-call@example.com (optional)"
-                className={inputClassName}
-              />
-              <p className="mt-2 text-[11px] leading-5 text-zinc-700">
-                OutRay sends firing and recovery notifications to this address.
-              </p>
-            </label>
-          </FormSection>
+          {step === 2 && (
+            <>
+              <FormSection title="Notification">
+                <label className="block">
+                  <FieldLabel>Email recipient</FieldLabel>
+                  <input
+                    type="email"
+                    value={notificationEmail}
+                    onChange={(event) =>
+                      setNotificationEmail(event.target.value)
+                    }
+                    placeholder="on-call@example.com (optional)"
+                    className={inputClassName}
+                  />
+                  <p className="mt-2 text-[11px] leading-5 text-zinc-700">
+                    OutRay sends firing and recovery notifications to this
+                    address.
+                  </p>
+                </label>
+              </FormSection>
 
-          <div className="rounded-xl border border-violet-400/15 bg-violet-400/[0.035] px-4 py-4">
-            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-violet-300">
-              Rule preview
-            </p>
-            <p className="mt-2 text-xs leading-5 text-zinc-400">
-              {conditionLabel(previewAlert)}. Confirm after {consecutiveFailures}{" "}
-              consecutive {consecutiveFailures === "1" ? "evaluation" : "evaluations"}.
-            </p>
-          </div>
+              <FormSection title="Review rule">
+                <dl className="divide-y divide-white/[0.07] text-sm">
+                  <div className="flex justify-between gap-5 pb-3">
+                    <dt className="text-zinc-500">Alert</dt>
+                    <dd className="text-right font-medium text-zinc-200">
+                      {name.trim()}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-5 py-3">
+                    <dt className="text-zinc-500">Service</dt>
+                    <dd className="text-right text-zinc-300">
+                      {service}
+                      {environment === "all"
+                        ? " · All environments"
+                        : ` · ${environment}`}
+                    </dd>
+                  </div>
+                  <div className="py-3">
+                    <dt className="text-zinc-500">Fires when</dt>
+                    <dd className="mt-1.5 leading-6 text-zinc-300">
+                      {conditionLabel(previewAlert)}
+                    </dd>
+                  </div>
+                  <div className="py-3">
+                    <dt className="text-zinc-500">Evaluation</dt>
+                    <dd className="mt-1.5 leading-6 text-zinc-300">
+                      Every{" "}
+                      {formatWindow(Number(evaluationIntervalSeconds) / 60)}
+                      {` · Fires after ${consecutiveFailures} failing ${consecutiveFailures === "1" ? "evaluation" : "evaluations"}`}
+                      {` · Resolves after ${consecutiveRecoveries} recovering ${consecutiveRecoveries === "1" ? "evaluation" : "evaluations"}`}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-5 pt-3">
+                    <dt className="text-zinc-500">Notification</dt>
+                    <dd className="text-right text-zinc-300">
+                      {notificationEmail.trim() || "No email recipient"}
+                    </dd>
+                  </div>
+                </dl>
+              </FormSection>
+            </>
+          )}
         </div>
 
-        <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-white/[0.07] px-5 py-4 sm:px-6">
+        <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-white/[0.07] px-5 py-4 sm:px-6">
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => {
+              if (step === 0) onClose();
+              else {
+                setError(null);
+                setStep(step - 1);
+              }
+            }}
             disabled={submitting}
-            className="h-10 rounded-lg px-4 text-xs text-zinc-500 transition-colors hover:bg-white/[0.04] hover:text-zinc-200 disabled:opacity-40"
+            className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-white/[0.04] hover:text-zinc-200 disabled:opacity-40"
           >
-            Cancel
+            {step > 0 && (
+              <HugeiconsIcon
+                icon={ArrowLeft01Icon}
+                size={15}
+                strokeWidth={1.7}
+              />
+            )}
+            {step === 0 ? "Cancel" : "Back"}
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="h-10 rounded-lg bg-white px-4 text-xs font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting
-              ? initialAlert
-                ? "Saving…"
-                : "Creating…"
-              : initialAlert
-                ? "Save changes"
-                : "Create alert"}
+            {step < alertFormSteps.length - 1
+              ? "Continue"
+              : submitting
+                ? initialAlert
+                  ? "Saving…"
+                  : "Creating…"
+                : initialAlert
+                  ? "Save changes"
+                  : "Create alert"}
+            {step < alertFormSteps.length - 1 && (
+              <HugeiconsIcon
+                icon={ArrowRight01Icon}
+                size={15}
+                strokeWidth={1.7}
+              />
+            )}
           </button>
         </footer>
       </form>
@@ -1372,14 +1638,16 @@ function FormSection({
 }) {
   return (
     <section className="space-y-4 rounded-xl border border-white/[0.07] p-4 sm:p-5">
-      <h3 className="text-xs font-medium text-zinc-300">{title}</h3>
+      <h4 className="text-xs font-medium text-zinc-300">{title}</h4>
       {children}
     </section>
   );
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <span className="text-[11px] font-medium text-zinc-500">{children}</span>;
+  return (
+    <span className="text-[11px] font-medium text-zinc-500">{children}</span>
+  );
 }
 
 const inputClassName =
@@ -1399,4 +1667,27 @@ function thresholdLabel(signal: AlertSignal, metric?: MetricOption) {
 function positiveInteger(value: string, fallback: number) {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function integerInRange(value: string, minimum: number, maximum: number) {
+  const number = Number(value);
+  return Number.isInteger(number) && number >= minimum && number <= maximum;
+}
+
+function alertFieldStep(field: string) {
+  if (
+    [
+      "operator",
+      "threshold",
+      "windowMinutes",
+      "evaluationIntervalSeconds",
+      "consecutiveFailures",
+      "consecutiveRecoveries",
+      "minimumSamples",
+      "noDataState",
+    ].includes(field)
+  ) {
+    return 1;
+  }
+  return field === "notificationEmail" ? 2 : 0;
 }
