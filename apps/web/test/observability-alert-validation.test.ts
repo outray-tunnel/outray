@@ -16,6 +16,16 @@ const requestAlert = {
   windowMinutes: 5,
 };
 
+test("rejects direct webhook credentials; provider connections require OAuth", () => {
+  assert.equal(validateAlertCreateInput({
+    ...requestAlert,
+    slackWebhookUrl: "https://hooks.slack.com/services/T/B/token",
+  }).success, false);
+  assert.equal(validateAlertPatchInput({
+    discordWebhookUrl: "https://discord.com/api/webhooks/123/token",
+  }, { ...requestAlert, enabled: true } as never).success, false);
+});
+
 test("normalizes a request alert and applies safe defaults", () => {
   const result = validateAlertCreateInput(requestAlert);
 
@@ -194,6 +204,15 @@ test("exposes paused, muted, and evaluation-error states by precedence", () => {
     minimumSamples: 20,
     noDataState: "no_data",
     notificationEmail: null,
+    notificationSlackWebhook: {
+      algorithm: "AES-256-GCM",
+      organizationKeyVersion: 1,
+      ciphertext: "private-ciphertext",
+      iv: "private-iv",
+      authTag: "private-tag",
+      fingerprint: "private-fingerprint",
+    },
+    notificationDiscordWebhook: null,
     enabled: true,
     underlyingState: "healthy",
     currentValue: 1,
@@ -232,4 +251,8 @@ test("exposes paused, muted, and evaluation-error states by precedence", () => {
     "paused",
   );
   assert.equal(serializeAlert(row, now).underlyingState, "healthy");
+  const serialized = serializeAlert(row, now);
+  assert.equal(serialized.notificationSlackConfigured, true);
+  assert.equal(serialized.notificationDiscordConfigured, false);
+  assert.equal(JSON.stringify(serialized).includes("private-"), false);
 });
