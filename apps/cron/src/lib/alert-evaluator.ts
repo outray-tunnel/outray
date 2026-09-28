@@ -7,6 +7,7 @@ import {
   type AlertState,
 } from "./alert-state";
 import { queryTinybird } from "./tinybird";
+import type { EncryptedAlertWebhook } from "./alert-webhook-crypto";
 
 export type AlertSignal =
   | "request_error_rate"
@@ -42,6 +43,8 @@ export interface AlertRule {
   failureStreak: number;
   recoveryStreak: number;
   notificationEmail: string | null;
+  notificationSlackWebhook: EncryptedAlertWebhook | null;
+  notificationDiscordWebhook: EncryptedAlertWebhook | null;
   mutedUntil: Date | null;
   leaseOwner: string;
 }
