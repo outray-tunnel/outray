@@ -46,11 +46,16 @@ export interface AlertDetailsResponse {
   evaluations: AlertEvaluation[];
   incidents: AlertIncident[];
   notifications: AlertNotification[];
+  integrationAvailability: { slack: boolean; discord: boolean };
 }
 
 export const AlertDetailContext = createContext<{
   data: AlertDetailsResponse;
   refreshing: boolean;
+  orgSlug: string;
+  onEditCondition: () => void;
+  onEditDetails: () => void;
+  onReload: () => void;
 } | null>(null);
 
 export function useAlertDetail() {
