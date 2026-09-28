@@ -3,6 +3,15 @@ import type { PoolClient } from "pg";
 import { config } from "../config";
 import { sendAlertEmail, type AlertEmailPayload } from "./alert-email";
 import {
+  resolveAlertWebhook,
+  sendAlertWebhook,
+  webhookKeyringAvailable,
+} from "./alert-webhook";
+import type {
+  AlertWebhookChannel,
+  EncryptedAlertWebhook,
+} from "./alert-webhook-crypto";
+import {
   alertEvaluationWindow,
   evaluateAlertRule,
   type AlertMeasurement,
@@ -37,6 +46,8 @@ interface ClaimedAlertRow {
   failure_streak: number;
   recovery_streak: number;
   notification_email: string | null;
+  notification_slack_webhook: EncryptedAlertWebhook | null;
+  notification_discord_webhook: EncryptedAlertWebhook | null;
   muted_until: Date | null;
   lease_owner: string;
 }
@@ -45,14 +56,16 @@ interface NotificationRow {
   id: string;
   organization_id: string;
   source_id: string;
+  channel: "email" | AlertWebhookChannel;
   destination: string;
-  payload: AlertEmailPayload;
+  payload: AlertEmailPayload & { webhookFingerprint?: string };
   attempts: number;
   lease_owner: string;
 }
 
 const workerId = `cron-alerts-${randomUUID()}`;
 const notificationConcurrency = 3;
+let enabledNotificationChannels: Array<NotificationRow["channel"]> = [];
 let alertsPolling = false;
 let notificationsPolling = false;
 let retentionPolling = false;
@@ -67,11 +80,11 @@ export function startAlertWorkers() {
     setInterval(() => void pollAlerts(), config.alertPollIntervalMs);
   }
 
-  if (!config.zeptoApiKey) {
-    console.warn(
-      "[Alerts] ZEPTO_API_KEY is missing; notification delivery is disabled",
-    );
-  } else {
+  if (config.zeptoApiKey) enabledNotificationChannels.push("email");
+  else console.warn("[Alerts] ZEPTO_API_KEY is missing; email delivery is disabled");
+  if (webhookKeyringAvailable()) enabledNotificationChannels.push("slack", "discord");
+  else console.warn("[Alerts] Secrets master key is unavailable; Slack and Discord delivery are disabled");
+  if (enabledNotificationChannels.length) {
     void pollNotifications();
     setInterval(() => void pollNotifications(), config.alertPollIntervalMs);
   }
@@ -267,11 +280,10 @@ async function persistMeasurement(
     );
     if (
       incident &&
-      current.notificationEmail &&
       !muted &&
       transition.incidentAction
     ) {
-      await enqueueEmail(
+      await enqueueNotifications(
         client,
         current,
         incident,
@@ -431,15 +443,13 @@ async function resolveIncident(
     : null;
 }
 
-async function enqueueEmail(
+async function enqueueNotifications(
   client: PoolClient,
   alert: AlertRule & { organizationSlug?: string },
   incident: { id: string; startedAt: Date },
   event: "firing" | "resolved",
   value: number | null,
 ) {
-  const destination = alert.notificationEmail;
-  if (!destination) return;
   const payload: AlertEmailPayload = {
     alertId: alert.id,
     alertName: alert.name,
@@ -451,24 +461,49 @@ async function enqueueEmail(
     threshold: alert.threshold,
     incidentStartedAt: incident.startedAt.toISOString(),
   };
-  await client.query(
-    `INSERT INTO notifications (
+  const destinations: Array<{
+    channel: NotificationRow["channel"];
+    recipient: string;
+    fingerprint?: string;
+  }> = [];
+  if (alert.notificationEmail) {
+    destinations.push({ channel: "email", recipient: alert.notificationEmail });
+  }
+  if (alert.notificationSlackWebhook) {
+    destinations.push({
+      channel: "slack",
+      recipient: "Slack webhook",
+      fingerprint: alert.notificationSlackWebhook.fingerprint,
+    });
+  }
+  if (alert.notificationDiscordWebhook) {
+    destinations.push({
+      channel: "discord",
+      recipient: "Discord webhook",
+      fingerprint: alert.notificationDiscordWebhook.fingerprint,
+    });
+  }
+  for (const destination of destinations) {
+    await client.query(
+      `INSERT INTO notifications (
        id, organization_id, incident_id, source_type, source_id, event,
        channel, recipient, payload, idempotency_key, status, attempts,
        max_attempts, next_attempt_at, created_at, updated_at
-     ) VALUES ($1,$2,$3,'observability_alert',$4,$5,'email',$6,$7,$8,'pending',0,5,NOW(),NOW(),NOW())
+     ) VALUES ($1,$2,$3,'observability_alert',$4,$5,$6,$7,$8,$9,'pending',0,5,NOW(),NOW(),NOW())
      ON CONFLICT (idempotency_key) DO NOTHING`,
-    [
-      randomUUID(),
-      alert.organizationId,
-      incident.id,
-      alert.id,
-      event,
-      destination,
-      JSON.stringify(payload),
-      `${incident.id}:${event}:email:${destination.toLowerCase()}`,
-    ],
-  );
+      [
+        randomUUID(),
+        alert.organizationId,
+        incident.id,
+        alert.id,
+        event,
+        destination.channel,
+        destination.recipient,
+        JSON.stringify({ ...payload, webhookFingerprint: destination.fingerprint }),
+        `${incident.id}:${event}:${destination.channel}:${destination.channel === "email" ? destination.recipient.toLowerCase() : "configured"}`,
+      ],
+    );
+  }
 }
 
 async function pollNotifications() {
@@ -494,7 +529,7 @@ async function claimNotifications(): Promise<NotificationRow[]> {
     `WITH due AS (
        SELECT id
        FROM notifications
-       WHERE channel = 'email'
+       WHERE channel = ANY($4::text[])
          AND attempts < max_attempts
          AND next_attempt_at <= NOW()
          AND (
@@ -512,12 +547,14 @@ async function claimNotifications(): Promise<NotificationRow[]> {
      WHERE notification.id = due.id
      RETURNING notification.id, notification.organization_id,
                notification.source_id,
+               notification.channel,
                notification.recipient AS destination, notification.payload,
                notification.attempts, notification.lease_owner`,
     [
       Math.min(config.alertBatchSize, notificationConcurrency),
       workerId,
       config.alertLeaseSeconds,
+      enabledNotificationChannels,
     ],
   );
   return result.rows;
@@ -525,7 +562,19 @@ async function claimNotifications(): Promise<NotificationRow[]> {
 
 async function deliverNotification(notification: NotificationRow) {
   try {
-    if (await alertSuppressesNotification(notification)) {
+    const webhookUrl = notification.channel === "email"
+      ? null
+      : await resolveAlertWebhook({
+          organizationId: notification.organization_id,
+          alertId: notification.source_id,
+          channel: notification.channel,
+          fingerprint: notification.payload.webhookFingerprint,
+        });
+    if (
+      notification.channel === "email"
+        ? await alertSuppressesNotification(notification)
+        : !webhookUrl
+    ) {
       await databasePool.query(
         `UPDATE notifications
          SET status = 'suppressed', lease_owner = NULL, lease_until = NULL,
@@ -535,7 +584,11 @@ async function deliverNotification(notification: NotificationRow) {
       );
       return;
     }
-    await sendAlertEmail(notification.destination, notification.payload);
+    if (notification.channel === "email") {
+      await sendAlertEmail(notification.destination, notification.payload);
+    } else {
+      await sendAlertWebhook(notification.channel, webhookUrl!, notification.payload);
+    }
     await databasePool.query(
       `UPDATE notifications
        SET status = 'sent', sent_at = NOW(), attempts = attempts + 1,
@@ -576,7 +629,7 @@ async function suppressMutedNotifications() {
      SET status = 'suppressed', lease_owner = NULL, lease_until = NULL,
          last_error = NULL, updated_at = NOW()
      WHERE notification.source_type = 'observability_alert'
-       AND notification.channel = 'email'
+       AND notification.channel IN ('email', 'slack', 'discord')
        AND (
          notification.status = 'pending'
          OR (
@@ -589,7 +642,7 @@ async function suppressMutedNotifications() {
          FROM observability_alerts AS alert
          WHERE alert.id = notification.source_id
            AND alert.organization_id = notification.organization_id
-           AND (alert.deleted_at IS NOT NULL OR alert.muted_until > NOW())
+           AND (alert.deleted_at IS NOT NULL OR alert.enabled = false OR alert.muted_until > NOW())
        )`,
   );
 }
@@ -602,6 +655,7 @@ async function alertSuppressesNotification(notification: NotificationRow) {
          FROM observability_alerts AS alert
          WHERE alert.id = $1
            AND alert.organization_id = $2
+           AND alert.enabled = true
            AND alert.deleted_at IS NULL
            AND (alert.muted_until IS NULL OR alert.muted_until <= NOW())
            AND lower(alert.notification_email) = lower($3)
@@ -679,6 +733,8 @@ function mapAlertRow(row: ClaimedAlertRow): AlertRule {
     failureStreak: Number(row.failure_streak),
     recoveryStreak: Number(row.recovery_streak),
     notificationEmail: row.notification_email,
+    notificationSlackWebhook: row.notification_slack_webhook,
+    notificationDiscordWebhook: row.notification_discord_webhook,
     mutedUntil: row.muted_until,
     leaseOwner: row.lease_owner,
   };
