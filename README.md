@@ -99,6 +99,27 @@ Set the result as `OUTRAY_SECRETS_ACTIVE_MASTER_KEY` and keep
 master keys separately from the database: losing every configured copy makes
 the wrapped organization keys unrecoverable.
 
+Slack and Discord alert destinations also use these organization data keys.
+Deploy the alert-webhook migration before updating the web and cron services,
+and give cron the same `OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID`,
+`OUTRAY_SECRETS_ACTIVE_MASTER_KEY`, and
+`OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS` as web. Without a valid keyring, cron
+leaves provider notifications pending rather than attempting delivery.
+
+For alert notification OAuth, configure `OUTRAY_SLACK_CLIENT_ID` and
+`OUTRAY_SLACK_CLIENT_SECRET` for a Slack app with the `incoming-webhook` scope,
+and/or `OUTRAY_DISCORD_CLIENT_ID` and `OUTRAY_DISCORD_CLIENT_SECRET` for a
+Discord app with the `webhook.incoming` scope. Register these exact redirect
+URLs for the deployed `APP_URL`:
+
+`{APP_URL}/api/observability/alerts/integrations/slack/callback`
+`{APP_URL}/api/observability/alerts/integrations/discord/callback`
+
+The provider's authorization screen selects the channel. OutRay encrypts the
+delivery credential returned by OAuth, never returns it from alert APIs, and
+lets an alert manager change the selected channel or remove each destination from the alert's
+Notifications page.
+
 The CLI uses the existing browser login and stores only the selected vault
 and environment in `outray/config.toml`:
 
