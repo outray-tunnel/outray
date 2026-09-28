@@ -173,10 +173,11 @@ export const Route = createFileRoute(
             .limit(200);
           if (existing.length >= 200) return { limitReached: true } as const;
 
+          const alertId = crypto.randomUUID();
           const [created] = await tx
             .insert(observabilityAlerts)
             .values({
-              id: crypto.randomUUID(),
+              id: alertId,
               organizationId,
               createdBy: access.session!.user.id,
               ...alertConfigValues(validation.data),
