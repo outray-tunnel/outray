@@ -296,3 +296,112 @@ export function decryptSecretValue(
 ): string {
   return decrypt(organizationKey, input, secretValueAad(input)).toString("utf8");
 }
+
+export type AlertWebhookChannel = "slack" | "discord";
+
+export type EncryptedAlertWebhook = EncryptedPayload & {
+  organizationKeyVersion: number;
+  fingerprint: string;
+  target?: {
+    workspaceName?: string;
+    workspaceId?: string;
+    channelName?: string;
+    channelId?: string;
+    guildId?: string;
+    connectedAt: string;
+  };
+};
+
+function alertWebhookAad(
+  organizationId: string,
+  alertId: string,
+  channel: AlertWebhookChannel,
+  organizationKeyVersion: number,
+) {
+  return `outray:alerts:webhook:v1:${organizationId}:${alertId}:${channel}:${organizationKeyVersion}`;
+}
+
+export function encryptAlertWebhook(
+  organizationKey: Buffer,
+  input: {
+    organizationId: string;
+    alertId: string;
+    channel: AlertWebhookChannel;
+    organizationKeyVersion: number;
+    url: string;
+  },
+): EncryptedAlertWebhook {
+  return {
+    ...encrypt(
+      organizationKey,
+      Buffer.from(input.url, "utf8"),
+      alertWebhookAad(
+        input.organizationId,
+        input.alertId,
+        input.channel,
+        input.organizationKeyVersion,
+      ),
+    ),
+    organizationKeyVersion: input.organizationKeyVersion,
+    fingerprint: createHmac("sha256", organizationKey)
+      .update(`outray:alerts:webhook-fingerprint:v1:${input.channel}\0`)
+      .update(input.url)
+      .digest("hex"),
+  };
+}
+
+export function decryptAlertWebhook(
+  organizationKey: Buffer,
+  input: {
+    organizationId: string;
+    alertId: string;
+    channel: AlertWebhookChannel;
+    payload: EncryptedAlertWebhook;
+  },
+): string {
+  return decrypt(
+    organizationKey,
+    input.payload,
+    alertWebhookAad(
+      input.organizationId,
+      input.alertId,
+      input.channel,
+      input.payload.organizationKeyVersion,
+    ),
+  ).toString("utf8");
+}
+
+export function validAlertWebhookUrl(
+  value: string,
+  channel: AlertWebhookChannel,
+): boolean {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (
+    url.protocol !== "https:" ||
+    url.username ||
+    url.password ||
+    url.port ||
+    url.search ||
+    url.hash
+  ) {
+    return false;
+  }
+  if (channel === "slack") {
+    return (
+      (url.hostname === "hooks.slack.com" ||
+        url.hostname === "hooks.slack-gov.com") &&
+      /^\/services\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/.test(
+        url.pathname,
+      )
+    );
+  }
+  return (
+    url.hostname === "discord.com" &&
+    /^\/api\/webhooks\/[0-9]+\/[A-Za-z0-9_-]+$/.test(url.pathname)
+  );
+}
