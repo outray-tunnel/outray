@@ -13,6 +13,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { organizations, users } from "./auth-schema";
+import type { EncryptedAlertWebhook } from "@/lib/secrets/crypto";
 
 const timestampWithTimezone = (name: string) =>
   timestamp(name, { withTimezone: true, precision: 3 });
@@ -57,6 +58,8 @@ export const observabilityAlerts = pgTable(
     minimumSamples: integer("minimum_samples").notNull().default(1),
     noDataState: text("no_data_state").notNull().default("no_data"),
     notificationEmail: text("notification_email"),
+    notificationSlackWebhook: jsonb("notification_slack_webhook").$type<EncryptedAlertWebhook>(),
+    notificationDiscordWebhook: jsonb("notification_discord_webhook").$type<EncryptedAlertWebhook>(),
 
     enabled: boolean("enabled").notNull().default(true),
     underlyingState: text("underlying_state").notNull().default("no_data"),
@@ -301,7 +304,7 @@ export const notifications = pgTable(
     ),
     check(
       "notifications_channel_check",
-      sql`${table.channel} IN ('email', 'webhook', 'slack')`,
+      sql`${table.channel} IN ('email', 'webhook', 'slack', 'discord')`,
     ),
     check(
       "notifications_status_check",
