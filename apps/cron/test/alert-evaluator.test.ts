@@ -31,6 +31,8 @@ const rule: AlertRule = {
   failureStreak: 0,
   recoveryStreak: 0,
   notificationEmail: null,
+  notificationSlackWebhook: null,
+  notificationDiscordWebhook: null,
   mutedUntil: null,
   leaseOwner: "worker-1",
 };
