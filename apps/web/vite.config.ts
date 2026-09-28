@@ -15,7 +15,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       tanstackStart(),
-      nitro(),
+      nitro({
+        externals: { inline: ["decimal.js-light"] },
+      }),
       viteReact(),
       tailwindcss(),
       mdx(MdxConfig),
