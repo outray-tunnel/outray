@@ -10,6 +10,7 @@ import PauseIcon from "@hugeicons-pro/core-stroke-rounded/PauseIcon";
 import PencilEdit02Icon from "@hugeicons-pro/core-stroke-rounded/PencilEdit02Icon";
 import PlayIcon from "@hugeicons-pro/core-stroke-rounded/PlayIcon";
 import RefreshIcon from "@hugeicons-pro/core-stroke-rounded/RefreshIcon";
+import Settings02Icon from "@hugeicons-pro/core-stroke-rounded/Settings02Icon";
 import {
   Area,
   AreaChart,
@@ -65,6 +66,7 @@ function AlertDetailView() {
   const [lastSuccessAt, setLastSuccessAt] = useState<number | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [action, setAction] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
@@ -237,7 +239,7 @@ function AlertDetailView() {
   const muted = effectiveState === "muted";
 
   return (
-    <AlertDetailContext.Provider value={{ data, refreshing }}>
+    <AlertDetailContext.Provider value={{ data, refreshing, orgSlug, onEditCondition: () => setIsEditing(true), onEditDetails: () => setIsEditingDetails(true), onReload: () => setReloadKey((value) => value + 1) }}>
     <ObservabilityPage>
       <header className="border-b border-white/[0.07] pb-7">
         <Link
@@ -313,12 +315,6 @@ function AlertDetailView() {
               disabled={Boolean(action) || !alert.enabled}
             />
             <ActionButton
-              icon={PencilEdit02Icon}
-              label="Edit"
-              onClick={() => setIsEditing(true)}
-              disabled={Boolean(action)}
-            />
-            <ActionButton
               icon={Delete02Icon}
               label="Delete"
               onClick={() => setIsDeleting(true)}
@@ -388,12 +384,26 @@ function AlertDetailView() {
         orgSlug={orgSlug}
         services={alert.service ? [alert.service] : []}
         initialAlert={alert}
+        mode="condition"
         onSaved={(updatedAlert) => {
           setData((current) =>
             current ? { ...current, alert: updatedAlert } : current,
           );
           setIsEditing(false);
           setActionNotice("Alert updated.");
+          setReloadKey((value) => value + 1);
+        }}
+      />
+
+      <AlertDetailsEditModal
+        isOpen={isEditingDetails}
+        onClose={() => setIsEditingDetails(false)}
+        alert={alert}
+        orgSlug={orgSlug}
+        onSaved={(updatedAlert) => {
+          setData((current) => current ? { ...current, alert: updatedAlert } : current);
+          setIsEditingDetails(false);
+          setActionNotice("Alert details updated.");
           setReloadKey((value) => value + 1);
         }}
       />
@@ -415,13 +425,86 @@ function AlertDetailView() {
   );
 }
 
+function AlertDetailsEditModal({
+  isOpen,
+  onClose,
+  alert,
+  orgSlug,
+  onSaved,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  alert: AlertRecord;
+  orgSlug: string;
+  onSaved: (alert: AlertRecord) => void;
+}) {
+  const [name, setName] = useState(alert.name);
+  const [description, setDescription] = useState(alert.description || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setName(alert.name);
+    setDescription(alert.description || "");
+    setError(null);
+  }, [alert.name, alert.description, isOpen]);
+
+  const save = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alert.id)}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), description: description.trim() || null }),
+      });
+      const result = await response.json() as { alert?: AlertRecord; error?: string };
+      if (!response.ok || !result.alert) throw new Error(result.error || "Could not save alert details");
+      onSaved(result.alert);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not save alert details");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return <Modal isOpen={isOpen} onClose={onClose} size="md" appearance="flat">
+    <form onSubmit={(event) => void save(event)} className="space-y-5 p-6">
+      <div>
+        <h2 className="text-lg font-semibold text-white">Edit alert details</h2>
+        <p className="mt-1 text-sm text-zinc-500">Update the name and description without changing its condition.</p>
+      </div>
+      <label className="block text-xs text-zinc-400">Name
+        <input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} required className="mt-2 h-10 w-full rounded-lg border border-white/[0.1] bg-white/[0.025] px-3 text-sm text-zinc-200 outline-none focus:border-violet-400/50" />
+      </label>
+      <label className="block text-xs text-zinc-400">Description
+        <textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} rows={3} className="mt-2 w-full rounded-lg border border-white/[0.1] bg-white/[0.025] px-3 py-2 text-sm text-zinc-200 outline-none focus:border-violet-400/50" />
+      </label>
+      {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onClose} className="h-9 rounded-lg px-3 text-xs text-zinc-400 hover:text-white">Cancel</button>
+        <button type="submit" disabled={saving || !name.trim()} className="h-9 rounded-lg bg-white px-4 text-xs font-medium text-black hover:bg-zinc-200 disabled:opacity-50">{saving ? "Saving…" : "Save details"}</button>
+      </div>
+    </form>
+  </Modal>;
+}
+
 export function AlertOverviewTab() {
-  const { data, refreshing } = useAlertDetail();
+  const { data, refreshing, onEditDetails } = useAlertDetail();
   const { alert, evaluations, incidents, notifications } = data;
   const effectiveState = getEffectiveState(alert);
 
   return (
     <div className="space-y-7">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold text-zinc-100">Overview</h2>
+        <button type="button" onClick={onEditDetails} className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/[0.1] px-3 text-xs font-medium text-zinc-200 hover:bg-white/[0.06]">
+          <HugeiconsIcon icon={PencilEdit02Icon} size={15} strokeWidth={1.7} />
+          Edit details
+        </button>
+      </div>
       <section
         aria-label="Alert at a glance"
         className="grid gap-px overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.07] sm:grid-cols-2 xl:grid-cols-4"
@@ -485,7 +568,7 @@ export function AlertOverviewTab() {
 }
 
 export function AlertConditionTab() {
-  const { data } = useAlertDetail();
+  const { data, onEditCondition } = useAlertDetail();
   const { alert } = data;
 
   return (
@@ -494,8 +577,12 @@ export function AlertConditionTab() {
         title="Condition"
         description="The signal, scope, and evaluation rules for this alert."
       />
-      <div className="rounded-xl border border-violet-400/15 bg-violet-400/[0.035] px-5 py-4 text-sm leading-6 text-zinc-300 sm:px-6">
-        {conditionLabel(alert)}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-violet-400/15 bg-violet-400/[0.035] px-5 py-4 text-sm leading-6 text-zinc-300 sm:px-6">
+        <span>{conditionLabel(alert)}</span>
+        <button type="button" onClick={onEditCondition} className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-white/[0.1] px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/[0.06]">
+          <HugeiconsIcon icon={PencilEdit02Icon} size={15} strokeWidth={1.7} />
+          Edit condition
+        </button>
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel title="Signal and scope">
@@ -639,8 +726,61 @@ export function AlertIncidentsTab() {
 }
 
 export function AlertNotificationsTab() {
-  const { data } = useAlertDetail();
+  const { data, orgSlug, onReload } = useAlertDetail();
   const { alert, notifications } = data;
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [email, setEmail] = useState(alert.notificationEmail || "");
+  const [settingsProvider, setSettingsProvider] = useState<"slack" | "discord" | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const integrationResult = typeof window === "undefined"
+    ? null
+    : new URLSearchParams(window.location.search).get("integration");
+
+  useEffect(() => {
+    if (!editingEmail) setEmail(alert.notificationEmail || "");
+  }, [alert.notificationEmail, editingEmail]);
+
+  const base = `/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alert.id)}/integrations`;
+  const saveEmail = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alert.id)}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ notificationEmail: email.trim() || null }),
+      });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Could not save email notifications");
+      setEditingEmail(false);
+      setNotice("Email destination updated.");
+      onReload();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not save email notifications");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const disconnect = async (provider: "slack" | "discord") => {
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch(`${base}/${provider}`, { method: "DELETE" });
+      if (!response.ok) throw new Error(`Could not disconnect ${provider}`);
+      setSettingsProvider(null);
+      setNotice(`${provider === "slack" ? "Slack" : "Discord"} removed from this alert.`);
+      onReload();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not disconnect destination");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const selectedTarget = settingsProvider === "slack"
+    ? alert.notificationSlackTarget
+    : alert.notificationDiscordTarget;
 
   return (
     <div className="space-y-6">
@@ -649,9 +789,53 @@ export function AlertNotificationsTab() {
         description="Where alert updates go and the outcome of each delivery attempt."
         count={notifications.length}
       />
-      <Panel title="Email recipient">
-        <div className="px-5 py-5 text-sm text-zinc-300 sm:px-6">
-          {alert.notificationEmail || "No email recipient configured"}
+      {(error || notice || integrationResult) && (
+        <p role="status" className={`rounded-xl border px-4 py-3 text-sm ${error || integrationResult === "failed" || integrationResult === "invalid_state" ? "border-rose-400/20 text-rose-300" : "border-emerald-400/20 text-emerald-300"}`}>
+          {error || notice || (integrationResult === "connected" ? "Destination connected. Alerts will be delivered to the selected channel." : integrationResult === "cancelled" ? "Connection cancelled." : "Could not connect the destination. Please try again.")}
+        </p>
+      )}
+      <Panel title="Notification methods" description="Choose where firing and recovery updates should go.">
+        <div className="divide-y divide-white/[0.07]">
+          <div className="flex flex-wrap items-center gap-4 px-5 py-5 sm:px-6">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-zinc-300">
+              <HugeiconsIcon icon={Notification02Icon} size={19} strokeWidth={1.7} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-zinc-100">Email</p>
+              <p className="mt-1 text-xs text-zinc-500">{alert.notificationEmail || "No recipient configured"}</p>
+            </div>
+            <button type="button" onClick={() => { setEditingEmail((value) => !value); setError(null); }} className="h-9 rounded-lg border border-white/[0.1] px-3 text-xs font-medium text-zinc-200 hover:bg-white/[0.06]">
+              {editingEmail ? "Cancel" : alert.notificationEmail ? "Edit" : "Add email"}
+            </button>
+            {editingEmail && <div className="flex w-full flex-wrap items-center gap-2 pl-0 sm:pl-[60px]">
+              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Member email address" aria-label="Notification email" className="h-10 min-w-52 flex-1 rounded-lg border border-white/[0.1] bg-white/[0.025] px-3 text-sm text-zinc-200 outline-none focus:border-violet-400/50" />
+              <button type="button" disabled={saving} onClick={() => void saveEmail()} className="h-10 rounded-lg bg-white px-4 text-xs font-medium text-black hover:bg-zinc-200 disabled:opacity-50">Save</button>
+            </div>}
+          </div>
+          {(["slack", "discord"] as const).map((provider) => {
+            const connected = provider === "slack" ? alert.notificationSlackConfigured : alert.notificationDiscordConfigured;
+            const target = provider === "slack" ? alert.notificationSlackTarget : alert.notificationDiscordTarget;
+            const available = data.integrationAvailability?.[provider];
+            const title = provider === "slack" ? "Slack" : "Discord";
+            return <div key={provider} className="flex flex-wrap items-center gap-4 px-5 py-5 sm:px-6">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03]">
+                <img src={`/logos/${provider}.svg`} alt="" className="size-6 object-contain" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-zinc-100">{title}</p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {connected
+                    ? provider === "slack"
+                      ? [target?.workspaceName, target?.channelName].filter(Boolean).join(" · ") || "Connected channel"
+                      : target?.channelId ? `Channel ${target.channelId}` : "Connected channel"
+                    : available ? "Connect and select a channel" : "OAuth app not configured"}
+                </p>
+              </div>
+              {connected ? <button type="button" onClick={() => setSettingsProvider(provider)} aria-label={`${title} settings`} className="flex size-9 items-center justify-center rounded-lg border border-white/[0.1] text-zinc-300 hover:bg-white/[0.06]">
+                <HugeiconsIcon icon={Settings02Icon} size={17} strokeWidth={1.7} />
+              </button> : available ? <a href={`${base}/${provider}/start`} className="inline-flex h-9 items-center rounded-lg bg-white px-3 text-xs font-medium text-black hover:bg-zinc-200">Connect</a> : null}
+            </div>;
+          })}
         </div>
       </Panel>
       <Panel title="Delivery history" description="Most recent attempts first">
@@ -666,7 +850,11 @@ export function AlertNotificationsTab() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="break-all text-sm text-zinc-300">
-                    {notification.destination || notification.recipient || alert.notificationEmail || "Notification destination"}
+                    {notification.channel === "slack"
+                      ? "Slack webhook"
+                      : notification.channel === "discord"
+                        ? "Discord webhook"
+                        : notification.destination || notification.recipient || alert.notificationEmail || "Email recipient"}
                   </p>
                   <p className="mt-1 text-xs text-zinc-500">
                     {formatDateTime(notification.sentAt || notification.createdAt || null)}
@@ -692,6 +880,21 @@ export function AlertNotificationsTab() {
           )}
         </div>
       </Panel>
+      <Modal isOpen={settingsProvider !== null} onClose={() => setSettingsProvider(null)} size="sm" appearance="flat">
+        <div className="p-6">
+          <h3 className="text-lg font-semibold text-white">{settingsProvider === "slack" ? "Slack" : "Discord"} settings</h3>
+          <p className="mt-2 text-sm text-zinc-500">Alerts are sent to the channel selected during authorization. Removing this destination stops delivery for this alert; provider-side app access can be managed in Slack or Discord.</p>
+          <dl className="mt-5 space-y-3 rounded-xl border border-white/[0.08] p-4 text-sm">
+            {settingsProvider === "slack" && <div><dt className="text-zinc-500">Workspace</dt><dd className="mt-1 text-zinc-200">{alert.notificationSlackTarget?.workspaceName || "Connected workspace"}</dd></div>}
+            <div><dt className="text-zinc-500">Channel</dt><dd className="mt-1 text-zinc-200">{settingsProvider === "slack" ? selectedTarget?.channelName || selectedTarget?.channelId || "Selected channel" : selectedTarget?.channelId || "Selected channel"}</dd></div>
+          </dl>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {settingsProvider && <a href={`${base}/${settingsProvider}/start`} className="inline-flex h-9 items-center rounded-lg bg-white px-3 text-xs font-medium text-black hover:bg-zinc-200">Change channel</a>}
+            {settingsProvider && <button type="button" disabled={saving} onClick={() => void disconnect(settingsProvider)} className="h-9 rounded-lg border border-rose-400/20 px-3 text-xs font-medium text-rose-300 hover:bg-rose-400/[0.06] disabled:opacity-50">Remove from alert</button>}
+            <button type="button" onClick={() => setSettingsProvider(null)} className="h-9 rounded-lg px-3 text-xs text-zinc-400 hover:text-white">Close</button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
