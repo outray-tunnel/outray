@@ -20,6 +20,7 @@ import {
   requireAlertManager,
 } from "@/lib/observability/alert-access";
 import { metricIdentityExists } from "@/lib/observability/alert-metric";
+import { alertOAuthCredentials } from "@/lib/observability/alert-oauth";
 import { validateAlertPatchInput } from "@/lib/observability/alert-validation";
 import { requireOrgFromSlug } from "@/lib/org";
 
@@ -139,6 +140,10 @@ export const Route = createFileRoute(
           evaluations: evaluationRows.map(serializeEvaluation),
           incidents: incidentRows.map(serializeIncident),
           notifications: notificationRows.map(serializeNotification),
+          integrationAvailability: {
+            slack: Boolean(alertOAuthCredentials("slack")),
+            discord: Boolean(alertOAuthCredentials("discord")),
+          },
         });
       },
 
@@ -152,10 +157,7 @@ export const Route = createFileRoute(
 
         const body = await readJsonObject(request);
         if ("error" in body) return body.error;
-        const validation = validateAlertPatchInput(
-          body.data,
-          alertConfigFromRow(existing),
-        );
+        const validation = validateAlertPatchInput(body.data, alertConfigFromRow(existing));
         if (!validation.success) return validationError(validation);
 
         const ownsEmail = await notificationEmailBelongsToOrganization(
