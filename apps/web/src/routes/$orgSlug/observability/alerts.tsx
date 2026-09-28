@@ -57,6 +57,10 @@ export interface AlertRecord {
   minimumSamples: number;
   noDataState: "no_data" | "healthy" | "alerting";
   notificationEmail: string | null;
+  notificationSlackConfigured: boolean;
+  notificationDiscordConfigured: boolean;
+  notificationSlackTarget: { workspaceName?: string; channelName?: string; channelId?: string; guildId?: string; connectedAt: string } | null;
+  notificationDiscordTarget: { workspaceName?: string; channelName?: string; channelId?: string; guildId?: string; connectedAt: string } | null;
   enabled: boolean;
   state: AlertState;
   underlyingState: Exclude<AlertState, "muted" | "paused"> | null;
@@ -707,6 +711,7 @@ export function AlertFormModal({
   services,
   initialAlert,
   onSaved,
+  mode = "create",
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -714,7 +719,9 @@ export function AlertFormModal({
   services: string[];
   initialAlert?: AlertRecord | null;
   onSaved: (alert: AlertRecord) => void;
+  mode?: "create" | "condition";
 }) {
+  const conditionMode = mode === "condition";
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [signal, setSignal] = useState<AlertSignal>("request_error_rate");
@@ -931,10 +938,10 @@ export function AlertFormModal({
 
   const validateStep = (stepIndex: number): string | null => {
     if (stepIndex === 0) {
-      if (!name.trim()) return "Give this alert a name.";
-      if (name.trim().length > 120)
+      if (!conditionMode && !name.trim()) return "Give this alert a name.";
+      if (!conditionMode && name.trim().length > 120)
         return "Keep the alert name under 120 characters.";
-      if (description.trim().length > 1_000)
+      if (!conditionMode && description.trim().length > 1_000)
         return "Keep the description under 1,000 characters.";
       if (!service.trim()) return "Choose a service for this alert.";
       if (signal === "metric_value" && !selectedMetric)
@@ -989,7 +996,7 @@ export function AlertFormModal({
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (step < alertFormSteps.length - 1) {
+    if (!conditionMode && step < alertFormSteps.length - 1) {
       const stepError = validateStep(step);
       if (stepError) {
         showError(stepError);
@@ -1000,10 +1007,10 @@ export function AlertFormModal({
       return;
     }
 
-    for (let index = 0; index < alertFormSteps.length; index += 1) {
+    for (let index = 0; index < (conditionMode ? 2 : alertFormSteps.length); index += 1) {
       const stepError = validateStep(index);
       if (stepError) {
-        setStep(index);
+        if (!conditionMode) setStep(index);
         showError(stepError);
         return;
       }
@@ -1013,8 +1020,7 @@ export function AlertFormModal({
     const numericThreshold = Number(threshold);
 
     const payload = {
-      name: normalizedName,
-      description: description.trim() || null,
+      ...(!conditionMode ? { name: normalizedName, description: description.trim() || null } : {}),
       signal,
       service,
       environment: environment === "all" ? null : environment,
@@ -1042,8 +1048,7 @@ export function AlertFormModal({
       consecutiveRecoveries: positiveInteger(consecutiveRecoveries, 2),
       minimumSamples: positiveInteger(minimumSamples, 1),
       noDataState,
-      notificationEmail: notificationEmail.trim() || null,
-      enabled: initialAlert?.enabled ?? true,
+      ...(!conditionMode ? { notificationEmail: notificationEmail.trim() || null, enabled: initialAlert?.enabled ?? true } : {}),
     };
 
     setSubmitting(true);
@@ -1063,7 +1068,7 @@ export function AlertFormModal({
         field?: string;
       } | null;
       if (!response.ok || !result?.alert) {
-        if (result?.field) setStep(alertFieldStep(result.field));
+        if (result?.field && !conditionMode) setStep(alertFieldStep(result.field));
         throw new Error(result?.error || "Could not save this alert");
       }
       onSaved(result.alert);
@@ -1103,6 +1108,10 @@ export function AlertFormModal({
     minimumSamples: positiveInteger(minimumSamples, 1),
     noDataState: noDataState as AlertRecord["noDataState"],
     notificationEmail,
+    notificationSlackConfigured: Boolean(initialAlert?.notificationSlackConfigured),
+    notificationDiscordConfigured: Boolean(initialAlert?.notificationDiscordConfigured),
+    notificationSlackTarget: initialAlert?.notificationSlackTarget ?? null,
+    notificationDiscordTarget: initialAlert?.notificationDiscordTarget ?? null,
     enabled: true,
     state: "healthy",
     underlyingState: "healthy",
@@ -1137,10 +1146,10 @@ export function AlertFormModal({
               id="alert-dialog-title"
               className="text-lg font-semibold tracking-[-0.025em] text-white"
             >
-              {initialAlert ? "Edit alert" : "Create alert"}
+              {conditionMode ? "Edit condition" : initialAlert ? "Edit alert" : "Create alert"}
             </h2>
             <p className="mt-1 text-sm text-zinc-500">
-              Set up a rule in three short steps.
+              {conditionMode ? "Update the signal, scope, and evaluation behavior." : "Set up a rule in three short steps."}
             </p>
           </div>
           <button
@@ -1153,7 +1162,7 @@ export function AlertFormModal({
           </button>
         </header>
 
-        <ol
+        {!conditionMode && <ol
           aria-label="Alert setup progress"
           className="grid shrink-0 grid-cols-3 border-y border-white/[0.07]"
         >
@@ -1194,27 +1203,27 @@ export function AlertFormModal({
               </span>
             </li>
           ))}
-        </ol>
+        </ol>}
 
         <div
           ref={contentRef}
           className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 sm:px-6"
         >
           <div>
-            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-violet-300">
+            {!conditionMode && <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-violet-300">
               Step {step + 1} of {alertFormSteps.length}
-            </p>
+            </p>}
             <h3
               ref={stepHeadingRef}
               tabIndex={-1}
               className="mt-2 text-xl font-semibold tracking-[-0.025em] text-white outline-none"
             >
-              {step === 2 && initialAlert
+              {conditionMode ? "Condition" : step === 2 && initialAlert
                 ? "Ready to save your changes?"
                 : activeStep.title}
             </h3>
             <p className="mt-1 text-sm leading-6 text-zinc-500">
-              {activeStep.description}
+              {conditionMode ? "These changes will reset the current evaluation window." : activeStep.description}
             </p>
           </div>
           {error && (
@@ -1226,9 +1235,9 @@ export function AlertFormModal({
             </div>
           )}
 
-          {step === 0 && (
+          {(step === 0 || conditionMode) && (
             <>
-              <FormSection title="Alert details">
+              {!conditionMode && <FormSection title="Alert details">
                 <label className="block">
                   <FieldLabel>Name</FieldLabel>
                   <input
@@ -1249,7 +1258,7 @@ export function AlertFormModal({
                     className={`${inputClassName} min-h-20 resize-none py-3`}
                   />
                 </label>
-              </FormSection>
+              </FormSection>}
 
               <FormSection title="Signal and scope">
                 <div>
@@ -1384,7 +1393,7 @@ export function AlertFormModal({
             </>
           )}
 
-          {step === 1 && (
+          {(step === 1 || conditionMode) && (
             <FormSection title="Condition">
               {signal === "no_telemetry" ? (
                 <div className="rounded-lg border border-white/[0.07] bg-white/[0.02] px-4 py-3 text-xs leading-5 text-zinc-500">
@@ -1514,9 +1523,9 @@ export function AlertFormModal({
             </FormSection>
           )}
 
-          {step === 2 && (
+          {step === 2 && !conditionMode && (
             <>
-              <FormSection title="Notification">
+              <FormSection title="Notifications">
                 <label className="block">
                   <FieldLabel>Email recipient</FieldLabel>
                   <input
@@ -1533,6 +1542,9 @@ export function AlertFormModal({
                     address.
                   </p>
                 </label>
+                <p className="mt-4 text-xs leading-5 text-zinc-500">
+                  Connect Slack or Discord from the alert’s Notifications page after creating it.
+                </p>
               </FormSection>
 
               <FormSection title="Review rule">
@@ -1568,9 +1580,13 @@ export function AlertFormModal({
                     </dd>
                   </div>
                   <div className="flex justify-between gap-5 pt-3">
-                    <dt className="text-zinc-500">Notification</dt>
+                    <dt className="text-zinc-500">Notifications</dt>
                     <dd className="text-right text-zinc-300">
-                      {notificationEmail.trim() || "No email recipient"}
+                      {[
+                        notificationEmail.trim() && "Email",
+                        previewAlert.notificationSlackConfigured && "Slack",
+                        previewAlert.notificationDiscordConfigured && "Discord",
+                      ].filter(Boolean).join(", ") || "None configured"}
                     </dd>
                   </div>
                 </dl>
@@ -1583,7 +1599,7 @@ export function AlertFormModal({
           <button
             type="button"
             onClick={() => {
-              if (step === 0) onClose();
+              if (conditionMode || step === 0) onClose();
               else {
                 setError(null);
                 setStep(step - 1);
@@ -1592,21 +1608,21 @@ export function AlertFormModal({
             disabled={submitting}
             className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-white/[0.04] hover:text-zinc-200 disabled:opacity-40"
           >
-            {step > 0 && (
+            {step > 0 && !conditionMode && (
               <HugeiconsIcon
                 icon={ArrowLeft01Icon}
                 size={15}
                 strokeWidth={1.7}
               />
             )}
-            {step === 0 ? "Cancel" : "Back"}
+            {conditionMode || step === 0 ? "Cancel" : "Back"}
           </button>
           <button
             type="submit"
             disabled={submitting}
             className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {step < alertFormSteps.length - 1
+            {conditionMode ? (submitting ? "Saving…" : "Save condition") : step < alertFormSteps.length - 1
               ? "Continue"
               : submitting
                 ? initialAlert
@@ -1615,7 +1631,7 @@ export function AlertFormModal({
                 : initialAlert
                   ? "Save changes"
                   : "Create alert"}
-            {step < alertFormSteps.length - 1 && (
+            {step < alertFormSteps.length - 1 && !conditionMode && (
               <HugeiconsIcon
                 icon={ArrowRight01Icon}
                 size={15}
@@ -1689,5 +1705,7 @@ function alertFieldStep(field: string) {
   ) {
     return 1;
   }
-  return field === "notificationEmail" ? 2 : 0;
+  return field === "notificationEmail"
+    ? 2
+    : 0;
 }
