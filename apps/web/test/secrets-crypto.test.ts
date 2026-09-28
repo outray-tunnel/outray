@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   createOrganizationKey,
+  decryptAlertWebhook,
   decryptSecretValue,
+  encryptAlertWebhook,
   encryptSecretValue,
   nextOrganizationKeyVersion,
   readSecretsKeyring,
   unwrapOrganizationKey,
+  validAlertWebhookUrl,
   wrapOrganizationKey,
   type EncryptedPayload,
   type MasterKey,
@@ -60,6 +63,38 @@ test("organization envelope encryption round-trips through a configured previous
   assert.equal(wrapped.wrappingKeyId, oldMaster.id);
   assert.equal(wrapped.organizationKeyVersion, 7);
   assert.deepEqual(unwrapOrganizationKey("org-1", wrapped, keyring), organizationKey);
+});
+
+test("alert webhook URLs encrypt nondeterministically and authenticate alert identity", () => {
+  const key = createOrganizationKey();
+  const input = {
+    organizationId: "org-1",
+    alertId: "alert-1",
+    channel: "slack" as const,
+    organizationKeyVersion: 2,
+    url: "https://hooks.slack.com/services/T123/B123/token",
+  };
+  const first = encryptAlertWebhook(key, input);
+  const second = encryptAlertWebhook(key, input);
+  assert.notEqual(first.ciphertext, second.ciphertext);
+  assert.equal(first.fingerprint, second.fingerprint);
+  assert.equal(decryptAlertWebhook(key, { ...input, payload: first }), input.url);
+  assert.throws(
+    () => decryptAlertWebhook(key, { ...input, alertId: "alert-2", payload: first }),
+    assertAuthenticationFailure,
+  );
+  assert.throws(
+    () => decryptAlertWebhook(key, { ...input, channel: "discord", payload: first }),
+    assertAuthenticationFailure,
+  );
+});
+
+test("alert webhooks accept only provider-owned HTTPS endpoints", () => {
+  assert.equal(validAlertWebhookUrl("https://hooks.slack.com/services/T/B/token", "slack"), true);
+  assert.equal(validAlertWebhookUrl("https://discord.com/api/webhooks/123/token", "discord"), true);
+  assert.equal(validAlertWebhookUrl("https://hooks.slack.com.evil.test/services/T/B/token", "slack"), false);
+  assert.equal(validAlertWebhookUrl("http://discord.com/api/webhooks/123/token", "discord"), false);
+  assert.equal(validAlertWebhookUrl("https://discord.com/api/webhooks/123/token?wait=true", "discord"), false);
 });
 
 test("organization-key envelopes authenticate organization, key version, and master-key identity", () => {
