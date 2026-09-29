@@ -405,3 +405,105 @@ export function validAlertWebhookUrl(
     /^\/api\/webhooks\/[0-9]+\/[A-Za-z0-9_-]+$/.test(url.pathname)
   );
 }
+
+export type EncryptedUptimeHeaders = EncryptedPayload & {
+  organizationKeyVersion: number;
+};
+
+export type EncryptedUptimeWebhook = EncryptedAlertWebhook;
+
+function uptimeHeadersAad(
+  organizationId: string,
+  monitorId: string,
+  organizationKeyVersion: number,
+) {
+  return `outray:uptime:monitor-headers:v1:${organizationId}:${monitorId}:${organizationKeyVersion}`;
+}
+
+export function encryptUptimeHeaders(
+  organizationKey: Buffer,
+  input: {
+    organizationId: string;
+    monitorId: string;
+    organizationKeyVersion: number;
+    headers: Record<string, string>;
+  },
+): EncryptedUptimeHeaders {
+  return {
+    ...encrypt(
+      organizationKey,
+      Buffer.from(JSON.stringify(input.headers), "utf8"),
+      uptimeHeadersAad(input.organizationId, input.monitorId, input.organizationKeyVersion),
+    ),
+    organizationKeyVersion: input.organizationKeyVersion,
+  };
+}
+
+export function decryptUptimeHeaders(
+  organizationKey: Buffer,
+  input: {
+    organizationId: string;
+    monitorId: string;
+    payload: EncryptedUptimeHeaders;
+  },
+): Record<string, string> {
+  const value = JSON.parse(
+    decrypt(
+      organizationKey,
+      input.payload,
+      uptimeHeadersAad(input.organizationId, input.monitorId, input.payload.organizationKeyVersion),
+    ).toString("utf8"),
+  ) as unknown;
+  if (!value || typeof value !== "object" || Array.isArray(value) ||
+    Object.entries(value).some(([name, headerValue]) =>
+      typeof name !== "string" || typeof headerValue !== "string")) {
+    throw new SecretsError("Invalid stored monitor headers", { code: "SECRETS_DECRYPTION_FAILED", status: 500 });
+  }
+  return value as Record<string, string>;
+}
+
+function uptimeWebhookAad(
+  organizationId: string,
+  channel: AlertWebhookChannel,
+  organizationKeyVersion: number,
+) {
+  return `outray:uptime:webhook:v1:${organizationId}:${channel}:${organizationKeyVersion}`;
+}
+
+export function encryptUptimeWebhook(
+  organizationKey: Buffer,
+  input: {
+    organizationId: string;
+    channel: AlertWebhookChannel;
+    organizationKeyVersion: number;
+    url: string;
+  },
+): EncryptedUptimeWebhook {
+  return {
+    ...encrypt(
+      organizationKey,
+      Buffer.from(input.url, "utf8"),
+      uptimeWebhookAad(input.organizationId, input.channel, input.organizationKeyVersion),
+    ),
+    organizationKeyVersion: input.organizationKeyVersion,
+    fingerprint: createHmac("sha256", organizationKey)
+      .update(`outray:uptime:webhook-fingerprint:v1:${input.channel}\0`)
+      .update(input.url)
+      .digest("hex"),
+  };
+}
+
+export function decryptUptimeWebhook(
+  organizationKey: Buffer,
+  input: {
+    organizationId: string;
+    channel: AlertWebhookChannel;
+    payload: EncryptedUptimeWebhook;
+  },
+): string {
+  return decrypt(
+    organizationKey,
+    input.payload,
+    uptimeWebhookAad(input.organizationId, input.channel, input.payload.organizationKeyVersion),
+  ).toString("utf8");
+}
