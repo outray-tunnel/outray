@@ -12,7 +12,10 @@ for diagnostics. The health endpoint is `https://ci.outray.dev/healthz` (HTTP 20
 
 The repository workflow is `.woodpecker/ci.yaml`. Pushes to either `main` or
 `next` install dependencies, build the edge, status renderer, and uptime probe,
-deploy Tinybird endpoints, then copy built artifacts and run `deploy.sh`.
+deploy Tinybird endpoints, then deploy Status, Edge, and the uptime probe as
+separate, health-gated steps. Status is deployed first so the edge has a healthy
+upstream; the probe is deployed last. Each step copies only its own artifacts.
+These are serial steps in one workflow, not independently triggered workflows.
 Woodpecker serializes these workflows across both branches. Both branches use
 the **same production Tinybird workspace and edge VPS**, so the latest successful deploy
 from either branch becomes live. The GitHub Actions deploy is a manual fallback,
@@ -36,12 +39,12 @@ to the CI server's IP in the edge VPS's `/root/.ssh/authorized_keys`. The deploy
 script pins the edge's ED25519 SSH host key. The edge, status renderer, and
 uptime probe credentials used by this workflow live in Unbe's `OutRay / OutRay /
 Production` environment. Woodpecker holds only a project-scoped, read-only
-Unbe token. The deploy script streams it to the edge over SSH standard input;
+Unbe token. Each deploy step streams it to the edge over SSH standard input;
 it is never passed as a command argument or written to disk by the CI job.
-`run-edge-deploy.mjs` retrieves the required credentials directly on the edge,
+`run-service-deploy.mjs` retrieves the required credentials directly on the edge,
 combines them with the currently online tunnel PM2 process settings, and
-passes them to `deploy.sh` without printing or transferring application secret
-values to Woodpecker. A separate read-only token remains in the edge's
+passes them to the selected service script without printing or transferring
+application secret values to Woodpecker. A separate read-only token remains in the edge's
 root-owned `/etc/outray/unbe-token` (mode `0600`) for manual fallback deploys.
 If Unbe or the token is unavailable, the pre-deploy check fails and the
 running services stay up. Rotate CI and edge tokens independently. The helper
