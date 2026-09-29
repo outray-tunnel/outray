@@ -39,10 +39,25 @@ interface MonitorEvidenceRow {
   deleted_at: Date | null;
 }
 
-interface CheckSummaryRow {
-  checks: string;
-  successes: string;
-  latency_ms: number | null;
+interface DailyCheckRow {
+  day: string;
+  checks: number;
+  successes: number;
+  reported_monitors: number;
+  max_failed_checks?: number;
+}
+
+interface ComponentDailyCheckRow extends DailyCheckRow {
+  component_id: string;
+}
+
+interface ComponentIncidentRow {
+  component_id: string;
+  id: string;
+  title: string;
+  source_type: string;
+  started_at: Date;
+  resolved_at: Date | null;
 }
 
 interface IncidentRow {
@@ -71,6 +86,8 @@ export interface PublicComponent {
   state: PublicState;
   manual: boolean;
   updatedAt: Date | null;
+  history: PublicComponentHistoryDay[];
+  observedUptime90d: number | null;
 }
 
 export interface PublicGroup {
@@ -78,6 +95,22 @@ export interface PublicGroup {
   name: string;
   state: PublicState;
   components: PublicComponent[];
+}
+
+export interface PublicHistoryDay {
+  date: string;
+  state: PublicState;
+  checks: number;
+  successes: number;
+  detectedFailureMinutes: number;
+  reportedMonitors: number;
+  expectedMonitors: number;
+}
+
+export interface PublicComponentHistoryDay extends PublicHistoryDay {
+  incidentMinutes: number;
+  incidentKind: "downtime" | "incident" | null;
+  incidents: Array<{ id: string; title: string; minutes: number; automatic: boolean }>;
 }
 
 export interface PublicIncident {
@@ -103,13 +136,12 @@ export interface PublicStatusPage {
   state: PublicState;
   groups: PublicGroup[];
   incidents: PublicIncident[];
-  observedUptime: number | null;
-  averageLatencyMs: number | null;
-  checkCount: number;
   canonicalUrl: string;
 }
 
 const STALE_AFTER_MS = 180_000;
+const DAY_MS = 86_400_000;
+const HISTORY_DAYS = 90;
 
 export function normalizeRequestHost(request: Request): string | null {
   const header = request.headers.get("host") || new URL(request.url).host;
@@ -180,7 +212,10 @@ export async function findPublishedPageById(pageId: string): Promise<PageRow | n
 }
 
 export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
-  const [groups, components, evidence, summary, incidentRows] = await Promise.all([
+  const now = Date.now();
+  const todayUtc = now - (now % DAY_MS);
+  const historyStart = new Date(todayUtc - (HISTORY_DAYS - 1) * DAY_MS);
+  const [groups, components, evidence, componentDailyChecks, componentIncidents, incidentRows] = await Promise.all([
     query<GroupRow>(
       `SELECT id, name, sort_order FROM uptime_status_groups
        WHERE page_id = $1 AND organization_id = $2 AND visible = true
@@ -210,27 +245,52 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
          AND cm.organization_id = $2 AND m.organization_id = $2`,
       [page.id, page.organization_id],
     ),
-    query<CheckSummaryRow>(
-      `WITH page_monitors AS (
-         SELECT DISTINCT cm.monitor_id
-         FROM uptime_component_monitors cm
-         JOIN uptime_status_components c ON c.id = cm.component_id
+    query<ComponentDailyCheckRow>(
+      `WITH component_monitors AS (
+         SELECT DISTINCT c.id AS component_id, cm.monitor_id
+         FROM uptime_status_components c
          JOIN uptime_status_groups g ON g.id = c.group_id
-         WHERE c.page_id = $1 AND c.organization_id = $2
-           AND c.visible = true AND g.visible = true AND g.page_id = $1
-           AND g.organization_id = $2
+         JOIN uptime_component_monitors cm ON cm.component_id = c.id
+         WHERE c.page_id = $1 AND c.organization_id = $2 AND c.visible = true
+           AND g.page_id = $1 AND g.organization_id = $2 AND g.visible = true
            AND cm.organization_id = $2
-       ), page_checks AS (
-         SELECT ch.success, ch.latency_ms
-         FROM uptime_checks ch
-         JOIN page_monitors pm ON pm.monitor_id = ch.monitor_id
-         WHERE ch.organization_id = $2 AND ch.checked_at >= NOW() - INTERVAL '30 days'
        )
-       SELECT COUNT(*)::text AS checks,
-              COUNT(*) FILTER (WHERE success)::text AS successes,
-              AVG(latency_ms) FILTER (WHERE success)::double precision AS latency_ms
-       FROM page_checks`,
-      [page.id, page.organization_id],
+       SELECT cm.component_id, daily.day::text AS day,
+              SUM(daily.checks)::integer AS checks,
+              SUM(daily.successes)::integer AS successes,
+              MAX(daily.checks - daily.successes)::integer AS max_failed_checks,
+              COUNT(*)::integer AS reported_monitors
+       FROM component_monitors cm
+       JOIN uptime_daily_checks daily ON daily.monitor_id = cm.monitor_id
+         AND daily.organization_id = $2
+       WHERE daily.day >= $3::date AND daily.day <= (NOW() AT TIME ZONE 'UTC')::date
+       GROUP BY cm.component_id, daily.day
+       ORDER BY cm.component_id, daily.day`,
+      [page.id, page.organization_id, historyStart.toISOString().slice(0, 10)],
+    ),
+    query<ComponentIncidentRow>(
+      `WITH public_incidents AS (
+         SELECT i.id, i.organization_id, i.title, i.source_type,
+                CASE WHEN i.source_type = 'uptime_manual' THEN
+                  (SELECT MIN(u.published_at) FROM uptime_incident_updates u
+                   WHERE u.incident_id = i.id AND u.organization_id = $2 AND u.published_at IS NOT NULL)
+                ELSE i.started_at END AS started_at,
+                i.resolved_at
+         FROM incidents i
+         WHERE i.organization_id = $2 AND i.source_type IN ('uptime_monitor', 'uptime_manual')
+       )
+       SELECT DISTINCT c.id AS component_id, i.id, i.title, i.source_type,
+              i.started_at, i.resolved_at
+       FROM public_incidents i
+       JOIN uptime_incident_components ic ON ic.incident_id = i.id AND ic.organization_id = $2
+       JOIN uptime_status_components c ON c.id = ic.component_id
+         AND c.organization_id = $2 AND c.page_id = $1 AND c.visible = true
+       JOIN uptime_status_groups g ON g.id = c.group_id
+         AND g.organization_id = $2 AND g.page_id = $1 AND g.visible = true
+       WHERE i.started_at IS NOT NULL AND i.started_at <= NOW()
+         AND COALESCE(i.resolved_at, NOW()) >= $3::timestamptz
+       ORDER BY c.id, i.started_at DESC`,
+      [page.id, page.organization_id, historyStart],
     ),
     query<IncidentRow>(
       `SELECT i.id, i.title, i.status, i.started_at, i.resolved_at,
@@ -265,7 +325,7 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
              SELECT 1 FROM uptime_incident_updates u
              WHERE u.incident_id = i.id AND u.organization_id = $2
                AND u.published_at IS NOT NULL)))
-       ORDER BY i.started_at DESC LIMIT 25`,
+       ORDER BY CASE WHEN i.status = 'resolved' THEN 1 ELSE 0 END, i.started_at DESC LIMIT 25`,
       [page.id, page.organization_id],
     ),
   ]);
@@ -293,9 +353,29 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
     bucket.push(item);
     evidenceByComponent.set(item.component_id, bucket);
   }
+  const dailyByComponent = new Map<string, Map<string, ComponentDailyCheckRow>>();
+  for (const daily of componentDailyChecks) {
+    const bucket = dailyByComponent.get(daily.component_id) || new Map<string, ComponentDailyCheckRow>();
+    bucket.set(daily.day, daily);
+    dailyByComponent.set(daily.component_id, bucket);
+  }
+  const incidentsByComponent = new Map<string, ComponentIncidentRow[]>();
+  for (const incident of componentIncidents) {
+    const bucket = incidentsByComponent.get(incident.component_id) || [];
+    bucket.push(incident);
+    incidentsByComponent.set(incident.component_id, bucket);
+  }
   const componentsByGroup = new Map<string, PublicComponent[]>();
   for (const component of components) {
     const monitors = evidenceByComponent.get(component.id) || [];
+    const expectedMonitors = new Set(monitors.map((monitor) => monitor.monitor_id)).size;
+    const history = addIncidentsToHistory(
+      buildDailyHistory(dailyByComponent.get(component.id) || new Map(), todayUtc, expectedMonitors),
+      incidentsByComponent.get(component.id) || [],
+      now,
+    );
+    const completedChecks = history.reduce((sum, day) => sum + day.checks, 0);
+    const successfulChecks = history.reduce((sum, day) => sum + day.successes, 0);
     const state = monitors.length > 0
       ? aggregateMonitorEvidence(monitors)
       : component.manual_updated_at
@@ -309,6 +389,8 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
       state,
       manual: monitors.length === 0,
       updatedAt: monitors.length === 0 ? component.manual_updated_at : newestCheck(monitors),
+      history,
+      observedUptime90d: completedChecks > 0 ? successfulChecks / completedChecks * 100 : null,
     });
     componentsByGroup.set(component.group_id, bucket);
   }
@@ -322,8 +404,6 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
     };
   });
   const allComponents = publicGroups.flatMap((group) => group.components);
-  const checkCount = Number(summary[0]?.checks || 0);
-  const successes = Number(summary[0]?.successes || 0);
   const logoUrl = safeLogoUrl(page.logo_url);
   const accentColor = /^#[0-9a-fA-F]{6}$/.test(page.accent_color)
     ? page.accent_color
@@ -349,11 +429,128 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
       latestNoteAt: incident.latest_note_at,
       updates: updatesByIncident.get(incident.id) || [],
     })),
-    observedUptime: checkCount > 0 ? (successes / checkCount) * 100 : null,
-    averageLatencyMs: summary[0]?.latency_ms ?? null,
-    checkCount,
     canonicalUrl: statusPageUrl(page.slug).toString(),
   };
+}
+
+export async function loadPublicIncident(page: PageRow, incidentId: string): Promise<PublicIncident | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(incidentId)) return null;
+  const rows = await query<IncidentRow>(
+    `SELECT i.id, i.title, i.status,
+            CASE WHEN i.source_type = 'uptime_manual' THEN
+              (SELECT MIN(u.published_at) FROM uptime_incident_updates u
+               WHERE u.incident_id = i.id AND u.organization_id = $2 AND u.published_at IS NOT NULL)
+            ELSE i.started_at END AS started_at,
+            i.resolved_at,
+            COALESCE((SELECT array_agg(DISTINCT c.name ORDER BY c.name)
+                      FROM uptime_incident_components ic
+                      JOIN uptime_status_components c ON c.id = ic.component_id
+                      JOIN uptime_status_groups g ON g.id = c.group_id
+                      WHERE ic.incident_id = i.id AND ic.organization_id = $2
+                        AND c.page_id = $1 AND c.organization_id = $2 AND c.visible = true
+                        AND g.page_id = $1 AND g.organization_id = $2 AND g.visible = true), ARRAY[]::text[]) AS components,
+            (SELECT u.note FROM uptime_incident_updates u
+             WHERE u.incident_id = i.id AND u.organization_id = $2 AND u.published_at IS NOT NULL
+             ORDER BY u.published_at DESC LIMIT 1) AS latest_note,
+            (SELECT u.published_at FROM uptime_incident_updates u
+             WHERE u.incident_id = i.id AND u.organization_id = $2 AND u.published_at IS NOT NULL
+             ORDER BY u.published_at DESC LIMIT 1) AS latest_note_at
+     FROM incidents i
+     WHERE i.id = $3 AND i.organization_id = $2
+       AND i.source_type IN ('uptime_monitor', 'uptime_manual')
+       AND EXISTS (
+         SELECT 1 FROM uptime_incident_components ic
+         JOIN uptime_status_components c ON c.id = ic.component_id
+         JOIN uptime_status_groups g ON g.id = c.group_id
+         WHERE ic.incident_id = i.id AND ic.organization_id = $2
+           AND c.page_id = $1 AND c.organization_id = $2 AND c.visible = true
+           AND g.page_id = $1 AND g.organization_id = $2 AND g.visible = true
+       )
+       AND (i.source_type = 'uptime_monitor' OR EXISTS (
+         SELECT 1 FROM uptime_incident_updates u
+         WHERE u.incident_id = i.id AND u.organization_id = $2 AND u.published_at IS NOT NULL
+       ))
+     LIMIT 1`,
+    [page.id, page.organization_id, incidentId],
+  );
+  const incident = rows[0];
+  if (!incident || !incident.started_at) return null;
+  const updates = await query<IncidentUpdateRow>(
+    `SELECT id, incident_id, note, status, published_at
+     FROM uptime_incident_updates
+     WHERE incident_id = $1 AND organization_id = $2 AND published_at IS NOT NULL
+     ORDER BY published_at DESC`,
+    [incident.id, page.organization_id],
+  );
+  return {
+    id: incident.id,
+    title: incident.title,
+    status: incident.status === "resolved" ? "resolved" : "open",
+    startedAt: incident.started_at,
+    resolvedAt: incident.resolved_at,
+    components: incident.components || [],
+    latestNote: incident.latest_note,
+    latestNoteAt: incident.latest_note_at,
+    updates: updates.map((update) => ({
+      id: update.id, note: update.note, status: update.status, publishedAt: update.published_at,
+    })),
+  };
+}
+
+export function buildDailyHistory(rows: Map<string, Pick<DailyCheckRow, "checks" | "successes" | "reported_monitors"> & Partial<Pick<DailyCheckRow, "max_failed_checks">>>, todayUtc: number, expectedMonitors: number): PublicHistoryDay[] {
+  return Array.from({ length: HISTORY_DAYS }, (_, index) => {
+    const date = new Date(todayUtc - (HISTORY_DAYS - 1 - index) * DAY_MS).toISOString().slice(0, 10);
+    const row = rows.get(date);
+    const checks = Number(row?.checks || 0);
+    const successes = Number(row?.successes || 0);
+    // Probes run once a minute. Use the most affected monitor rather than summing
+    // failures across monitors, which would overstate a component's downtime.
+    const detectedFailureMinutes = Math.min(1440, Math.max(0,
+      Number(row?.max_failed_checks ?? checks - successes),
+    ));
+    const reportedMonitors = Number(row?.reported_monitors || 0);
+    const state: PublicState = checks === 0 || reportedMonitors < expectedMonitors ? "unknown"
+      : successes === checks ? "operational"
+      : successes === 0 ? "outage"
+      : "degraded";
+    return { date, state, checks, successes, detectedFailureMinutes, reportedMonitors, expectedMonitors };
+  });
+}
+
+export function addIncidentsToHistory(
+  history: PublicHistoryDay[],
+  incidents: Array<Pick<ComponentIncidentRow, "id" | "title" | "source_type" | "started_at" | "resolved_at">>,
+  now: number,
+): PublicComponentHistoryDay[] {
+  return history.map((day) => {
+    const dayStart = Date.parse(`${day.date}T00:00:00Z`);
+    const dayEnd = dayStart + DAY_MS;
+    const overlaps = incidents.flatMap((incident) => {
+      const start = Math.max(dayStart, incident.started_at.getTime());
+      const end = Math.min(dayEnd, incident.resolved_at?.getTime() ?? now, now);
+      return end > start ? [{ incident, start, end }] : [];
+    });
+    const intervals = overlaps.map(({ start, end }) => [start, end] as const).sort((a, b) => a[0] - b[0]);
+    let coveredMs = 0;
+    let lastEnd = dayStart;
+    for (const [start, end] of intervals) {
+      coveredMs += Math.max(0, end - Math.max(start, lastEnd));
+      lastEnd = Math.max(lastEnd, end);
+    }
+    const automatic = overlaps.some(({ incident }) => incident.source_type === "uptime_monitor");
+    return {
+      ...day,
+      state: overlaps.length && (day.state === "operational" || day.state === "unknown") ? "degraded" : day.state,
+      incidentMinutes: coveredMs > 0 ? Math.max(1, Math.ceil(coveredMs / 60_000)) : 0,
+      incidentKind: overlaps.length ? automatic ? "downtime" : "incident" : null,
+      incidents: overlaps.map(({ incident, start, end }) => ({
+        id: incident.id,
+        title: incident.title,
+        minutes: Math.max(1, Math.ceil((end - start) / 60_000)),
+        automatic: incident.source_type === "uptime_monitor",
+      })),
+    };
+  });
 }
 
 function newestCheck(monitors: MonitorEvidenceRow[]): Date | null {
