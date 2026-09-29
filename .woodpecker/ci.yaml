@@ -38,6 +38,8 @@ steps:
     environment:
       EDGE_SSH_KEY:
         from_secret: edge_ssh_key
+      UNBE_TOKEN:
+        from_secret: unbe_token
     commands:
       - apt-get update -qq && apt-get install -y -qq openssh-client
       - bash deploy/woodpecker/deploy-edge.sh
