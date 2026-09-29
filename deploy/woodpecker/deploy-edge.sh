@@ -2,6 +2,7 @@
 set -euo pipefail
 
 : "${EDGE_SSH_KEY:?Set the Woodpecker edge_ssh_key repository secret}"
+: "${UNBE_TOKEN:?Set the Woodpecker unbe_token repository secret}"
 
 temporary_dir="$(mktemp -d)"
 cleanup() {
@@ -33,7 +34,8 @@ edge=root@209.74.86.123
 
 ssh "${ssh_options[@]}" "$edge" 'mkdir -p /root/outray/tunnel /root/outray/internal-check /root/outray/status /root/outray/uptime-probe /root/outray/deploy/woodpecker'
 scp "${scp_options[@]}" deploy/woodpecker/run-edge-deploy.mjs "$edge:/root/outray/deploy/woodpecker/"
-ssh "${ssh_options[@]}" "$edge" 'node /root/outray/deploy/woodpecker/run-edge-deploy.mjs --check'
+printf '%s' "$UNBE_TOKEN" | ssh "${ssh_options[@]}" "$edge" \
+  'node /root/outray/deploy/woodpecker/run-edge-deploy.mjs --token-stdin --check'
 
 for service in tunnel internal-check status uptime-probe; do
   scp "${scp_options[@]}" -r "apps/$service/dist" "apps/$service/package.json" "$edge:/root/outray/$service/"
@@ -41,4 +43,5 @@ done
 scp "${scp_options[@]}" deploy.sh "$edge:/root/outray/"
 scp "${scp_options[@]}" deploy/uptime-probe.service "$edge:/root/outray/deploy/"
 
-ssh "${ssh_options[@]}" "$edge" 'node /root/outray/deploy/woodpecker/run-edge-deploy.mjs'
+printf '%s' "$UNBE_TOKEN" | ssh "${ssh_options[@]}" "$edge" \
+  'node /root/outray/deploy/woodpecker/run-edge-deploy.mjs --token-stdin'
