@@ -8,6 +8,7 @@ import LockPasswordIcon from "@hugeicons-pro/core-stroke-rounded/LockPasswordIco
 import PanelLeftCloseIcon from "@hugeicons-pro/core-stroke-rounded/PanelLeftCloseIcon";
 import PanelLeftOpenIcon from "@hugeicons-pro/core-stroke-rounded/PanelLeftOpenIcon";
 import Pulse02Icon from "@hugeicons-pro/core-stroke-rounded/Pulse02Icon";
+import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
 import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
 import Settings02Icon from "@hugeicons-pro/core-stroke-rounded/Settings02Icon";
 import UserGroupIcon from "@hugeicons-pro/core-stroke-rounded/UserGroupIcon";
@@ -16,6 +17,7 @@ import Cone01SolidIcon from "@hugeicons-pro/core-solid-rounded/Cone01Icon";
 import LicenseSolidIcon from "@hugeicons-pro/core-solid-rounded/LicenseIcon";
 import LockPasswordSolidIcon from "@hugeicons-pro/core-solid-rounded/LockPasswordIcon";
 import Pulse02SolidIcon from "@hugeicons-pro/core-solid-rounded/Pulse02Icon";
+import HeartPulseSolidIcon from "@hugeicons-pro/core-solid-rounded/HeartPulseIcon";
 import Settings02SolidIcon from "@hugeicons-pro/core-solid-rounded/Settings02Icon";
 import UserGroupSolidIcon from "@hugeicons-pro/core-solid-rounded/UserGroupIcon";
 import WalletCardsSolidIcon from "@hugeicons-pro/core-solid-rounded/WalletCardsIcon";
@@ -48,7 +50,8 @@ interface SidebarNavGroup {
 
 export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const { setSelectedOrganization } = useAppStore();
-  const { data: organizations = [] } = authClient.useListOrganizations();
+  const { data: orgData } = authClient.useListOrganizations();
+  const organizations = orgData ?? [];
   const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
   const [activeTunnelsCount, setActiveTunnelsCount] = useState(0);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -120,6 +123,12 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
             label: "Secrets",
             icon: LockPasswordIcon,
             activeIcon: LockPasswordSolidIcon,
+          },
+          {
+            to: "/$orgSlug/uptime",
+            label: "Uptime",
+            icon: HeartPulseIcon,
+            activeIcon: HeartPulseSolidIcon,
           },
         ],
       },
