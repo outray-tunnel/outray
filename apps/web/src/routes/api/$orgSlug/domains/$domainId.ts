@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../../../../db";
 import { domains } from "../../../../db/app-schema";
 import { requireOrgFromSlug } from "../../../../lib/org";
@@ -22,7 +22,7 @@ export const Route = createFileRoute(
         }
 
         const domain = await db.query.domains.findFirst({
-          where: eq(domains.id, domainId),
+          where: and(eq(domains.id, domainId), eq(domains.purpose, "tunnel")),
         });
 
         if (!domain) {
