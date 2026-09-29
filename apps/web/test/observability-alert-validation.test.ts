@@ -168,6 +168,29 @@ test("patch validation merges focused updates into the current config", () => {
   assert.equal(patched.data.notificationEmail, "admin@example.com");
 });
 
+test("normalizes multiple email recipients and preserves them through focused patches", () => {
+  const created = validateAlertCreateInput({
+    ...requestAlert,
+    notificationEmails: ["ADMIN@EXAMPLE.COM", "member@example.com", "admin@example.com"],
+  });
+  assert.equal(created.success, true);
+  if (!created.success) return;
+  assert.deepEqual(created.data.notificationEmails, ["admin@example.com", "member@example.com"]);
+  assert.equal(created.data.notificationEmail, "admin@example.com");
+
+  const patched = validateAlertPatchInput({ enabled: false }, created.data);
+  assert.equal(patched.success, true);
+  if (patched.success) assert.deepEqual(patched.data.notificationEmails, created.data.notificationEmails);
+
+  const cleared = validateAlertPatchInput({ notificationEmails: [] }, created.data);
+  assert.equal(cleared.success, true);
+  if (cleared.success) assert.equal(cleared.data.notificationEmail, null);
+
+  const invalid = validateAlertCreateInput({ ...requestAlert, notificationEmails: ["not-an-email"] });
+  assert.equal(invalid.success, false);
+  if (!invalid.success) assert.equal(invalid.field, "notificationEmails");
+});
+
 test("only organization owners and admins can manage alerts", () => {
   assert.equal(isAlertManagerRole("owner"), true);
   assert.equal(isAlertManagerRole("admin"), true);
