@@ -1,0 +1,13 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { inspectConfirmation, maskEmail } from "../lib/subscriptions";
+
+Astro.response.headers.set("Cache-Control", "no-store");
+const token = Astro.url.searchParams.get("token") || "";
+const subscription = await inspectConfirmation(token);
+Astro.response.status = subscription ? 200 : 404;
+---
+<BaseLayout title="Confirm status updates" noindex>
+  <main class="shell card"><p class="eyebrow">EMAIL CONFIRMATION</p>{subscription ? <><h1>One last step</h1><p>Confirm <strong>{maskEmail(subscription.email)}</strong> to receive team-published incident updates from {subscription.name}.</p><form method="post" action="/api/confirm"><input type="hidden" name="token" value={token} /><button type="submit">Confirm subscription</button></form></> : <><h1>Link unavailable</h1><p>This confirmation link has expired or has already been used. You can subscribe again from the status page.</p></>}</main>
+  <style>.card{min-height:70vh;padding-top:clamp(70px,12vw,140px);max-width:620px}.eyebrow{font-size:11px;letter-spacing:.15em;color:#a78bfa;font-weight:700}h1{font-size:clamp(34px,6vw,50px);letter-spacing:-.05em;margin:10px 0 18px}p{line-height:1.7;color:#a1a1aa}strong{color:white}button{margin-top:20px;padding:13px 20px;background:#8367c7;border:0;border-radius:10px;color:#fff;font-weight:700}</style>
+</BaseLayout>
