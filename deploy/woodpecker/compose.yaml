@@ -1,0 +1,64 @@
+name: outray-woodpecker
+
+services:
+  server:
+    image: woodpeckerci/woodpecker-server:v3.18.1
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data/server:/var/lib/woodpecker
+    environment:
+      WOODPECKER_HOST: https://ci.outray.dev
+      WOODPECKER_GITHUB: "true"
+      WOODPECKER_GITHUB_PUBLIC_ONLY: "true"
+      WOODPECKER_GITHUB_CLIENT_FILE: /run/secrets/github-client
+      WOODPECKER_GITHUB_SECRET_FILE: /run/secrets/github-secret
+      WOODPECKER_AGENT_SECRET_FILE: /run/secrets/agent-secret
+      WOODPECKER_GRPC_SECRET_FILE: /run/secrets/grpc-secret
+      WOODPECKER_OPEN: "true"
+      WOODPECKER_ORGS: outray-tunnel
+      WOODPECKER_REPO_OWNERS: outray-tunnel
+      WOODPECKER_ADMIN: xt42io
+      WOODPECKER_DISABLE_USER_AGENT_REGISTRATION: "true"
+    secrets:
+      - github-client
+      - github-secret
+      - agent-secret
+      - grpc-secret
+
+  agent:
+    image: woodpeckerci/woodpecker-agent:v3.18.1
+    command: agent
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      - server
+    volumes:
+      - ./data/agent:/etc/woodpecker
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WOODPECKER_SERVER: server:9000
+      WOODPECKER_AGENT_SECRET_FILE: /run/secrets/agent-secret
+      WOODPECKER_MAX_WORKFLOWS: "1"
+    secrets:
+      - agent-secret
+
+secrets:
+  github-client:
+    file: ./secrets/github-client
+  github-secret:
+    file: ./secrets/github-secret
+  agent-secret:
+    file: ./secrets/agent-secret
+  grpc-secret:
+    file: ./secrets/grpc-secret
