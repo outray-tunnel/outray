@@ -7,6 +7,7 @@ import Folder01Icon from "@hugeicons-pro/core-stroke-rounded/Folder01Icon";
 import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
 import HistoryIcon from "@hugeicons-pro/core-stroke-rounded/HistoryIcon";
 import Home01Icon from "@hugeicons-pro/core-stroke-rounded/Home01Icon";
+import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
 import LinkSquare01Icon from "@hugeicons-pro/core-stroke-rounded/LinkSquare01Icon";
 import LogsIcon from "@hugeicons-pro/core-stroke-rounded/LogsIcon";
 import Route03Icon from "@hugeicons-pro/core-stroke-rounded/Route03Icon";
@@ -135,6 +136,16 @@ export function ProductSubSidebar() {
           to: "/$orgSlug/secrets/audit",
           icon: Audit01Icon,
         },
+      ],
+    };
+  } else if (location.pathname.startsWith(`${basePath}/uptime`)) {
+    product = {
+      name: "Uptime",
+      items: [
+        { label: "Overview", to: "/$orgSlug/uptime", icon: Home01Icon, exact: true },
+        { label: "Monitors", to: "/$orgSlug/uptime/monitors", icon: HeartPulseIcon },
+        { label: "Incidents", to: "/$orgSlug/uptime/incidents", icon: Alert02Icon },
+        { label: "Status page", to: "/$orgSlug/uptime/status-page", icon: Globe02Icon },
       ],
     };
   }
