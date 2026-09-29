@@ -913,8 +913,17 @@ export function AlertNotificationsTab() {
       </Panel>
       <Modal isOpen={settingsProvider !== null} onClose={() => setSettingsProvider(null)} size="sm" appearance="flat">
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-white">{settingsProvider === "slack" ? "Slack" : "Discord"} settings</h3>
-          <p className="mt-2 text-sm text-zinc-500">Alerts are sent to the channel selected during authorization. Removing this destination stops delivery for this alert; provider-side app access can be managed in Slack or Discord.</p>
+          <div className="flex items-start justify-between gap-4">
+            <h3 className="text-lg font-semibold text-white">{settingsProvider === "slack" ? "Slack" : "Discord"} settings</h3>
+            <button type="button" onClick={() => setSettingsProvider(null)} aria-label="Close settings" className="flex size-9 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+              <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={1.7} />
+            </button>
+          </div>
+          <p className="mt-2 text-sm text-zinc-500">
+            {settingsProvider === "slack"
+              ? "Alerts go to this Slack channel. Removing it stops Slack notifications for this alert."
+              : "Alerts go to this Discord channel. Removing it stops Discord notifications for this alert."}
+          </p>
           <dl className="mt-5 space-y-3 rounded-xl border border-white/[0.08] p-4 text-sm">
             {settingsProvider === "slack" && <div><dt className="text-zinc-500">Workspace</dt><dd className="mt-1 text-zinc-200">{alert.notificationSlackTarget?.workspaceName || "Connected workspace"}</dd></div>}
             <div><dt className="text-zinc-500">Channel</dt><dd className="mt-1 text-zinc-200">{settingsProvider === "slack" ? selectedTarget?.channelName || selectedTarget?.channelId || "Selected channel" : selectedTarget?.channelId || "Selected channel"}</dd></div>
@@ -922,7 +931,6 @@ export function AlertNotificationsTab() {
           <div className="mt-6 flex flex-wrap gap-2">
             {settingsProvider && <a href={`${base}/${settingsProvider}/start`} className="inline-flex h-9 items-center rounded-lg bg-white px-3 text-xs font-medium text-black hover:bg-zinc-200">Change channel</a>}
             {settingsProvider && <button type="button" disabled={saving} onClick={() => void disconnect(settingsProvider)} className="h-9 rounded-lg border border-rose-400/20 px-3 text-xs font-medium text-rose-300 hover:bg-rose-400/[0.06] disabled:opacity-50">Remove from alert</button>}
-            <button type="button" onClick={() => setSettingsProvider(null)} className="h-9 rounded-lg px-3 text-xs text-zinc-400 hover:text-white">Close</button>
           </div>
         </div>
       </Modal>
