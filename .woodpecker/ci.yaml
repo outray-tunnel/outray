@@ -1,12 +1,10 @@
-# Keep production deployment on GitHub Actions until the Woodpecker build,
-# edge access, and production secrets have all been verified.
+# Both branches deploy to the same production database and edge. Serialize the
+# entire workflow so migrations and artifact copies cannot overlap.
 when:
-  - event: push
-    branch: main
-  - event: push
-    branch: next
-  - event: manual
-    branch: main
+  - event: [push, manual]
+    branch: [main, next]
+
+concurrency: 1
 
 services:
   - name: postgres
@@ -50,13 +48,9 @@ steps:
       - npm exec --workspace=outray-web -- drizzle-kit migrate --config=drizzle.config.ts
       - npm run test --workspace=outray-web
 
-  # Keep the GitHub Actions deployment active until this manual path has been
-  # exercised successfully. Never expose production secrets to pull requests.
+  # The workflow is push/manual only; production secrets never reach PR builds.
   - name: deploy-tinybird
     image: python:3.11-slim
-    when:
-      - event: manual
-        branch: main
     environment:
       TINYBIRD_HOST:
         from_secret: tinybird_host
@@ -69,9 +63,6 @@ steps:
 
   - name: migrate-production-database
     image: node:20-bookworm
-    when:
-      - event: manual
-        branch: main
     environment:
       DATABASE_URL:
         from_secret: database_url
@@ -83,9 +74,6 @@ steps:
 
   - name: deploy-edge
     image: node:20-bookworm
-    when:
-      - event: manual
-        branch: main
     environment:
       EDGE_SSH_KEY:
         from_secret: edge_ssh_key
