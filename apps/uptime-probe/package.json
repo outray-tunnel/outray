@@ -1,0 +1,25 @@
+{
+  "name": "outray-uptime-probe",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup src/index.ts --format cjs --target node20",
+    "check": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "ipaddr.js": "^1.9.1",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.11.10",
+    "tsup": "^8.5.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
