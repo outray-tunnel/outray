@@ -5,6 +5,9 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import Audit01Icon from "@hugeicons-pro/core-stroke-rounded/Audit01Icon";
 import Folder01Icon from "@hugeicons-pro/core-stroke-rounded/Folder01Icon";
 import Home01Icon from "@hugeicons-pro/core-stroke-rounded/Home01Icon";
+import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
+import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
+import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
 import { MobileNavSheet } from "./mobile-nav-sheet";
 
 const NAV_ICON_SIZE = 22;
@@ -75,8 +78,17 @@ export function MobileBottomNav() {
     },
   ];
 
+  const uptimeNavItems = [
+    { to: "/$orgSlug/uptime", icon: <HugeiconsIcon icon={Home01Icon} size={NAV_ICON_SIZE} strokeWidth={1.7} />, label: "Overview", activeOptions: { exact: true } },
+    { to: "/$orgSlug/uptime/monitors", icon: <HugeiconsIcon icon={HeartPulseIcon} size={NAV_ICON_SIZE} strokeWidth={1.7} />, label: "Monitors" },
+    { to: "/$orgSlug/uptime/incidents", icon: <HugeiconsIcon icon={Alert02Icon} size={NAV_ICON_SIZE} strokeWidth={1.7} />, label: "Incidents" },
+    { to: "/$orgSlug/uptime/status-page", icon: <HugeiconsIcon icon={Globe02Icon} size={NAV_ICON_SIZE} strokeWidth={1.7} />, label: "Status page" },
+  ];
+
   const mainNavItems = location.pathname.startsWith(`/${orgSlug}/secrets`)
     ? secretNavItems
+    : location.pathname.startsWith(`/${orgSlug}/uptime`)
+      ? uptimeNavItems
     : tunnelNavItems;
 
   return (
