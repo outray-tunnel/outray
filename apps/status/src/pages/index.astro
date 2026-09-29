@@ -1,0 +1,11 @@
+---
+import StatusPage from "../components/StatusPage.astro";
+import { findPageForRequest, loadPublicPage } from "../lib/status-data";
+
+Astro.response.headers.set("Cache-Control", "public, max-age=15, s-maxage=15");
+const row = await findPageForRequest(Astro.request, null);
+if (!row) return Astro.redirect("/not-found", 302);
+const page = await loadPublicPage(row);
+const subscribed = Astro.url.searchParams.get("subscribed") === "1";
+---
+<StatusPage page={page} subscribed={subscribed} />

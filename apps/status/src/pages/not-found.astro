@@ -1,0 +1,5 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+Astro.response.status = 404;
+---
+<BaseLayout title="Status page not found"><main class="shell"><p>STATUS</p><h1>Page not found</h1><p>This status page is unavailable or has not been published.</p><a href="https://outray.co">OutRay home →</a></main><style>main{min-height:70vh;padding-top:100px}h1{font-size:clamp(32px,7vw,62px);letter-spacing:-.05em}p{color:#a1a1aa}a{color:#c4b5fd}</style></BaseLayout>
