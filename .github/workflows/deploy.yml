@@ -86,7 +86,13 @@ jobs:
         run: tb --cloud --host "$TINYBIRD_HOST" --token "$TINYBIRD_TOKEN" deploy --check
 
       - name: Build Services
-        run: npm run build -- --filter=outray-web --filter=outray-tunnel --filter=outray-internal-check --filter=outray-cron
+        run: npm run build -- --filter=outray-web --filter=outray-tunnel --filter=outray-internal-check --filter=outray-cron --filter=outray-status --filter=outray-uptime-probe
+
+      - name: Test Uptime Routing and Probes
+        run: |
+          npm run test --workspace=outray-tunnel
+          npm run test --workspace=outray-status
+          npm run test --workspace=outray-uptime-probe
 
       - name: Prepare Secrets Integration Database
         working-directory: apps/web
@@ -97,6 +103,7 @@ jobs:
       - name: Test Web Security and Database Boundaries
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/outray_test
+          OUTRAY_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/outray_test
           OUTRAY_RUN_DB_INTEGRATION: "1"
           OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID: ci-v1
           OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS: "{}"
@@ -162,6 +169,28 @@ jobs:
           target: "/root/outray/cron"
           strip_components: 2
 
+      - name: Deploy Status Renderer Files
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "apps/status/dist,apps/status/package.json"
+          target: "/root/outray/status"
+          strip_components: 2
+
+      - name: Deploy Uptime Worker Files
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "apps/uptime-probe/dist,apps/uptime-probe/package.json"
+          target: "/root/outray/uptime-probe"
+          strip_components: 2
+
       - name: Deploy Script
         uses: appleboy/scp-action@master
         with:
@@ -169,7 +198,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: "deploy.sh,deploy/migrations"
+          source: "deploy.sh,deploy/migrations,deploy/uptime-probe.service"
           target: "/root/outray"
 
       - name: Restart Server (Blue/Green)
@@ -193,12 +222,24 @@ jobs:
           ALERT_LEASE_SECONDS: ${{ vars.ALERT_LEASE_SECONDS || '120' }}
           ALERT_LATE_DATA_SECONDS: ${{ vars.ALERT_LATE_DATA_SECONDS || '60' }}
           ALERT_EVALUATION_RETENTION_DAYS: ${{ vars.ALERT_EVALUATION_RETENTION_DAYS || '30' }}
+          UPTIME_ENABLED: ${{ vars.UPTIME_ENABLED || 'false' }}
+          UPTIME_PROBES_ENABLED: ${{ vars.UPTIME_PROBES_ENABLED || 'false' }}
+          UPTIME_NOTIFICATIONS_ENABLED: ${{ vars.UPTIME_NOTIFICATIONS_ENABLED || 'false' }}
+          UPTIME_EGRESS_POLICY_READY: ${{ vars.UPTIME_EGRESS_POLICY_READY || 'false' }}
+          OUTRAY_DASHBOARD_URL: ${{ vars.OUTRAY_DASHBOARD_URL }}
+          OUTRAY_STATUS_URL: ${{ vars.OUTRAY_STATUS_URL }}
+          STATUS_EDGE_SECRET: ${{ secrets.STATUS_EDGE_SECRET }}
+          UPTIME_RATE_LIMIT_SECRET: ${{ secrets.UPTIME_RATE_LIMIT_SECRET }}
+          UPTIME_UNSUBSCRIBE_SECRET: ${{ secrets.UPTIME_UNSUBSCRIBE_SECRET }}
+          OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID: ${{ secrets.OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID }}
+          OUTRAY_SECRETS_ACTIVE_MASTER_KEY: ${{ secrets.OUTRAY_SECRETS_ACTIVE_MASTER_KEY }}
+          OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS: ${{ secrets.OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          envs: REDIS_URL,REDIS_TUNNEL_TTL_SECONDS,REDIS_HEARTBEAT_INTERVAL_MS,TIMESCALE_URL,DATABASE_URL,DATABASE_SSL_REJECT_UNAUTHORIZED,INTERNAL_API_SECRET,PAYSTACK_SECRET_KEY,TINYBIRD_API_HOST,TINYBIRD_QUERY_TOKEN,ZEPTO_API_KEY,APP_URL,ALERT_POLL_INTERVAL_MS,ALERT_BATCH_SIZE,ALERT_EVALUATION_CONCURRENCY,ALERT_LEASE_SECONDS,ALERT_LATE_DATA_SECONDS,ALERT_EVALUATION_RETENTION_DAYS
+          envs: REDIS_URL,REDIS_TUNNEL_TTL_SECONDS,REDIS_HEARTBEAT_INTERVAL_MS,TIMESCALE_URL,DATABASE_URL,DATABASE_SSL_REJECT_UNAUTHORIZED,INTERNAL_API_SECRET,PAYSTACK_SECRET_KEY,TINYBIRD_API_HOST,TINYBIRD_QUERY_TOKEN,ZEPTO_API_KEY,APP_URL,ALERT_POLL_INTERVAL_MS,ALERT_BATCH_SIZE,ALERT_EVALUATION_CONCURRENCY,ALERT_LEASE_SECONDS,ALERT_LATE_DATA_SECONDS,ALERT_EVALUATION_RETENTION_DAYS,UPTIME_ENABLED,UPTIME_PROBES_ENABLED,UPTIME_NOTIFICATIONS_ENABLED,UPTIME_EGRESS_POLICY_READY,OUTRAY_DASHBOARD_URL,OUTRAY_STATUS_URL,STATUS_EDGE_SECRET,UPTIME_RATE_LIMIT_SECRET,UPTIME_UNSUBSCRIBE_SECRET,OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID,OUTRAY_SECRETS_ACTIVE_MASTER_KEY,OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS
           script: |
             chmod +x /root/outray/deploy.sh
             /root/outray/deploy.sh
