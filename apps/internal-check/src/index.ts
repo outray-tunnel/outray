@@ -4,6 +4,7 @@ import pg from "pg";
 import { pgTable, text } from "drizzle-orm/pg-core";
 import { eq } from "drizzle-orm";
 import dotenv from "dotenv";
+import { isStatusNamespaceHost, statusPageSlugFromHost } from "./status-host";
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ const domains = pgTable("domains", {
   id: text("id").primaryKey(),
   domain: text("domain").notNull().unique(),
   status: text("status").notNull(),
+  purpose: text("purpose").notNull(),
 });
 
 // --- Database Connection ---
@@ -50,9 +52,11 @@ const app = express();
 const port = process.env.INTERNAL_CHECK_PORT || process.env.PORT || 3001;
 
 app.get("/internal/domain-check", async (req, res) => {
-  const domain = req.query.domain as string;
+  const domain = typeof req.query.domain === "string"
+    ? req.query.domain.toLowerCase().replace(/\.$/, "")
+    : "";
 
-  if (!domain) {
+  if (!domain || domain.length > 253 || !/^[a-z0-9.-]+$/.test(domain) || domain.includes("..")) {
     return res.status(400).send(); // Caddy expects 200 for allow, non-200 for deny
   }
 
@@ -66,10 +70,24 @@ app.get("/internal/domain-check", async (req, res) => {
       "edge.outray.app",
       "api.outray.app",
       "api.outray.dev",
+      "status.outray.app",
     ];
 
     if (ALLOWED_INFRA_DOMAINS.includes(domain)) {
       return res.status(200).send();
+    }
+
+    // A page hostname can never be authorized as a tunnel or custom tunnel
+    // domain. The wildcard certificate handles normal page traffic; this
+    // fail-closed check also protects the catch-all on-demand TLS path.
+    if (isStatusNamespaceHost(domain)) {
+      const slug = statusPageSlugFromHost(domain);
+      if (process.env.UPTIME_ENABLED !== "true" || !slug) return res.status(403).send();
+      const page = await pool.query(
+        "SELECT 1 FROM uptime_status_pages WHERE slug = $1 AND published = true LIMIT 1",
+        [slug],
+      );
+      return res.status(page.rowCount === 1 ? 200 : 403).send();
     }
 
     // 1. Check if it's a subdomain of outray.app
@@ -96,8 +114,16 @@ app.get("/internal/domain-check", async (req, res) => {
       .where(eq(domains.domain, domain))
       .limit(1);
 
-    if (customDomain?.status === "active") {
+    if (customDomain?.status === "active" && customDomain.purpose === "tunnel") {
       return res.status(200).send();
+    }
+
+    if (customDomain?.status === "active" && customDomain.purpose === "status") {
+      const statusPage = await pool.query(
+        "SELECT 1 FROM uptime_status_pages WHERE domain_id = $1 AND published = true LIMIT 1",
+        [customDomain.id],
+      );
+      if (statusPage.rowCount === 1) return res.status(200).send();
     }
 
     // Deny
