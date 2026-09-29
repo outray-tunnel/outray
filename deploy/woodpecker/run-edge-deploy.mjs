@@ -62,6 +62,8 @@ const runtime = Object.fromEntries(
 
 // Cron runs separately on Aeroplane. Do not start a second evaluator here.
 runtime.DEPLOY_CRON = "false";
+// Brimble owns database migrations; deploying edge artifacts must not run them.
+runtime.DEPLOY_TIMESCALE_MIGRATIONS = "false";
 
 const required = [
   "REDIS_URL",
