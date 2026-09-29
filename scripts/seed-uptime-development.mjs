@@ -160,6 +160,50 @@ async function seed(client) {
       [JSON.stringify(checks)],
     );
 
+    // Keep the preview's 90-day strip populated without retaining synthetic
+    // individual probes beyond the worker's 30-day raw-history policy.
+    const todayUtc = Math.floor(Date.now() / DAY_MS) * DAY_MS;
+    const dailyHistory = [];
+    for (const monitor of monitors) {
+      for (let daysAgo = 3; daysAgo < 90; daysAgo += 1) {
+        const day = new Date(todayUtc - daysAgo * DAY_MS).toISOString().slice(0, 10);
+        const outage = monitor.key === "checkout" && [12, 47, 74].includes(daysAgo);
+        const failures = outage ? 1440
+          : monitor.key === "checkout" && daysAgo % 13 === 0 ? 22
+          : monitor.key === "api" && daysAgo % 19 === 0 ? 8
+          : monitor.key === "web" && daysAgo % 31 === 0 ? 4
+          : 0;
+        dailyHistory.push({
+          organization_id: org.id,
+          monitor_id: id(`monitor:${monitor.key}`),
+          day,
+          checks: 1440,
+          successes: 1440 - failures,
+        });
+      }
+    }
+    await client.query(
+      `INSERT INTO uptime_daily_checks (organization_id, monitor_id, day, checks, successes)
+       SELECT organization_id, monitor_id, day, checks, successes
+       FROM jsonb_to_recordset($1::jsonb) AS row(
+         organization_id text, monitor_id text, day date, checks integer, successes integer)
+       ON CONFLICT (monitor_id, day) DO UPDATE SET
+         checks = EXCLUDED.checks, successes = EXCLUDED.successes`,
+      [JSON.stringify(dailyHistory)],
+    );
+    await client.query(
+      `INSERT INTO uptime_daily_checks (organization_id, monitor_id, day, checks, successes)
+       SELECT organization_id, monitor_id, (checked_at AT TIME ZONE 'UTC')::date,
+              COUNT(*)::integer, COUNT(*) FILTER (WHERE success)::integer
+       FROM uptime_checks
+       WHERE organization_id = $1 AND monitor_id = ANY($2::text[])
+         AND checked_at >= $3::timestamptz
+       GROUP BY organization_id, monitor_id, (checked_at AT TIME ZONE 'UTC')::date
+       ON CONFLICT (monitor_id, day) DO UPDATE SET
+         checks = EXCLUDED.checks, successes = EXCLUDED.successes`,
+      [org.id, monitors.map((monitor) => id(`monitor:${monitor.key}`)), new Date(todayUtc - 2 * DAY_MS)],
+    );
+
     const incidentSpecs = [
       { key: "checkout", sourceType: "uptime_monitor", sourceId: id("monitor:checkout"),
         title: "Checkout is unavailable", status: "open", startedHoursAgo: 0.7,
@@ -231,7 +275,7 @@ async function seed(client) {
     }
 
     await client.query("COMMIT");
-    console.log(`Seeded ${org.name}: ${monitors.length} monitors, ${checks.length} checks, ` +
+    console.log(`Seeded ${org.name}: ${monitors.length} monitors, ${checks.length} checks, 90 days of daily history, ` +
       `${groups.length} groups, ${components.length} components, ${incidentSpecs.length} incidents.`);
     console.log("Preview: http://localhost:4323/acme");
     console.log("Monitor evidence becomes Unknown after 3 minutes without new checks; rerun this seed to refresh it.");
