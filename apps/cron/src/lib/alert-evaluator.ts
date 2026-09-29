@@ -43,6 +43,7 @@ export interface AlertRule {
   failureStreak: number;
   recoveryStreak: number;
   notificationEmail: string | null;
+  notificationEmails: string[];
   notificationSlackWebhook: EncryptedAlertWebhook | null;
   notificationDiscordWebhook: EncryptedAlertWebhook | null;
   mutedUntil: Date | null;
