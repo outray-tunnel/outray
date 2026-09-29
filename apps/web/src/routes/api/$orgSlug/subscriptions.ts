@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { eq, count } from "drizzle-orm";
+import { and, eq, count } from "drizzle-orm";
 
 import { db } from "../../../db";
 import { subscriptions } from "../../../db/subscription-schema";
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/api/$orgSlug/subscriptions")({
               db
                 .select({ value: count() })
                 .from(domains)
-                .where(eq(domains.organizationId, organizationId)),
+                .where(and(eq(domains.organizationId, organizationId), eq(domains.purpose, "tunnel"))),
               db
                 .select({ value: count() })
                 .from(subdomains)
