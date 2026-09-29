@@ -1,0 +1,1 @@
+CREATE INDEX "notifications_uptime_subscriber_sent_idx" ON "notifications" USING btree ("organization_id",("payload"->>'subscriberId'),"sent_at") WHERE "notifications"."source_type" = 'uptime_incident_update' AND "notifications"."status" = 'sent';
