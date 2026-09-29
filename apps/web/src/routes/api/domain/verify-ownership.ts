@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../../db";
 import { domains } from "../../../db/app-schema";
+import { isReservedStatusDomain } from "../../../lib/reserved-status-domain";
 
 export const Route = createFileRoute("/api/domain/verify-ownership")({
   server: {
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/api/domain/verify-ownership")({
 
           const { domain, organizationId } = body;
 
-          if (!domain) {
+          if (typeof domain !== "string" || !domain) {
             return Response.json(
               { valid: false, error: "Missing required fields" },
               { status: 400 },
@@ -29,6 +30,10 @@ export const Route = createFileRoute("/api/domain/verify-ownership")({
             );
           }
 
+          if (isReservedStatusDomain(domain)) {
+            return Response.json({ valid: false, error: "Hostname reserved for Uptime status pages" });
+          }
+
           const [existingDomain] = await db
             .select()
             .from(domains)
@@ -36,6 +41,7 @@ export const Route = createFileRoute("/api/domain/verify-ownership")({
               and(
                 eq(domains.domain, domain),
                 eq(domains.organizationId, organizationId),
+                eq(domains.purpose, "tunnel"),
               ),
             );
 
