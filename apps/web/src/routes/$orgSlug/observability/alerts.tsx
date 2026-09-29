@@ -19,6 +19,7 @@ import {
 } from "@/components/observability/observability-ui";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { AlertEmailRecipients } from "@/components/observability/alert-email-recipients";
 
 export type AlertSignal =
   | "request_error_rate"
@@ -57,6 +58,7 @@ export interface AlertRecord {
   minimumSamples: number;
   noDataState: "no_data" | "healthy" | "alerting";
   notificationEmail: string | null;
+  notificationEmails: string[];
   notificationSlackConfigured: boolean;
   notificationDiscordConfigured: boolean;
   notificationSlackTarget: { workspaceName?: string; channelName?: string; channelId?: string; guildId?: string; connectedAt: string } | null;
@@ -93,6 +95,7 @@ interface AlertsResponse {
   alerts: AlertRecord[];
   summary: AlertSummary;
   services: Array<string | { name: string }>;
+  integrationAvailability: { slack: boolean; discord: boolean };
 }
 
 interface ServiceOption {
@@ -171,7 +174,7 @@ const alertFormSteps = [
     label: "Review & notify",
     shortLabel: "Review",
     title: "Ready to create this alert?",
-    description: "Choose a recipient and check the rule before saving.",
+    description: "Choose notification methods and check the rule before saving.",
   },
 ] as const;
 
@@ -496,8 +499,14 @@ function AlertsView() {
         onClose={() => setIsCreating(false)}
         orgSlug={orgSlug}
         services={serviceOptions}
-        onSaved={() => {
+        integrationAvailability={data?.integrationAvailability}
+        onSaved={(alert, setupProviders) => {
           setIsCreating(false);
+          if (setupProviders.length) {
+            window.sessionStorage.setItem(`outray-alert-setup:${alert.id}`, JSON.stringify(setupProviders));
+            window.location.assign(`/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alert.id)}/notifications?setup=${setupProviders.join(",")}`);
+            return;
+          }
           setReloadKey((value) => value + 1);
         }}
       />
@@ -710,6 +719,7 @@ export function AlertFormModal({
   orgSlug,
   services,
   initialAlert,
+  integrationAvailability,
   onSaved,
   mode = "create",
 }: {
@@ -718,7 +728,8 @@ export function AlertFormModal({
   orgSlug: string;
   services: string[];
   initialAlert?: AlertRecord | null;
-  onSaved: (alert: AlertRecord) => void;
+  integrationAvailability?: { slack: boolean; discord: boolean };
+  onSaved: (alert: AlertRecord, setupProviders: Array<"slack" | "discord">) => void;
   mode?: "create" | "condition";
 }) {
   const conditionMode = mode === "condition";
@@ -740,7 +751,8 @@ export function AlertFormModal({
   const [consecutiveRecoveries, setConsecutiveRecoveries] = useState("2");
   const [minimumSamples, setMinimumSamples] = useState("20");
   const [noDataState, setNoDataState] = useState("no_data");
-  const [notificationEmail, setNotificationEmail] = useState("");
+  const [notificationEmails, setNotificationEmails] = useState<string[]>([]);
+  const [setupProviders, setSetupProviders] = useState<Array<"slack" | "discord">>([]);
   const [serviceCatalog, setServiceCatalog] = useState<ServiceOption[]>([]);
   const [logServices, setLogServices] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<MetricOption[]>([]);
@@ -789,7 +801,8 @@ export function AlertFormModal({
       ),
     );
     setNoDataState(alert?.noDataState || "no_data");
-    setNotificationEmail(alert?.notificationEmail || "");
+    setNotificationEmails(alert?.notificationEmails?.length ? alert.notificationEmails : alert?.notificationEmail ? [alert.notificationEmail] : []);
+    setSetupProviders([]);
     setStep(0);
     setError(null);
   }, [initialAlert, isOpen]);
@@ -981,11 +994,8 @@ export function AlertFormModal({
         return "Minimum samples must be between 1 and 1,000,000.";
     }
 
-    if (stepIndex === 2) {
-      const email = notificationEmail.trim();
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-        return "Enter a valid notification email address.";
-    }
+    if (stepIndex === 2 && notificationEmails.length > 100)
+      return "Select no more than 100 email recipients.";
     return null;
   };
 
@@ -1048,7 +1058,7 @@ export function AlertFormModal({
       consecutiveRecoveries: positiveInteger(consecutiveRecoveries, 2),
       minimumSamples: positiveInteger(minimumSamples, 1),
       noDataState,
-      ...(!conditionMode ? { notificationEmail: notificationEmail.trim() || null, enabled: initialAlert?.enabled ?? true } : {}),
+      ...(!conditionMode ? { notificationEmails, enabled: initialAlert?.enabled ?? true } : {}),
     };
 
     setSubmitting(true);
@@ -1071,7 +1081,7 @@ export function AlertFormModal({
         if (result?.field && !conditionMode) setStep(alertFieldStep(result.field));
         throw new Error(result?.error || "Could not save this alert");
       }
-      onSaved(result.alert);
+      onSaved(result.alert, setupProviders);
     } catch (requestError) {
       showError(
         requestError instanceof Error
@@ -1107,7 +1117,8 @@ export function AlertFormModal({
     consecutiveRecoveries: positiveInteger(consecutiveRecoveries, 2),
     minimumSamples: positiveInteger(minimumSamples, 1),
     noDataState: noDataState as AlertRecord["noDataState"],
-    notificationEmail,
+    notificationEmail: notificationEmails[0] ?? null,
+    notificationEmails,
     notificationSlackConfigured: Boolean(initialAlert?.notificationSlackConfigured),
     notificationDiscordConfigured: Boolean(initialAlert?.notificationDiscordConfigured),
     notificationSlackTarget: initialAlert?.notificationSlackTarget ?? null,
@@ -1526,25 +1537,26 @@ export function AlertFormModal({
           {step === 2 && !conditionMode && (
             <>
               <FormSection title="Notifications">
-                <label className="block">
-                  <FieldLabel>Email recipient</FieldLabel>
-                  <input
-                    type="email"
-                    value={notificationEmail}
-                    onChange={(event) =>
-                      setNotificationEmail(event.target.value)
-                    }
-                    placeholder="on-call@example.com (optional)"
-                    className={inputClassName}
-                  />
-                  <p className="mt-2 text-[11px] leading-5 text-zinc-700">
-                    OutRay sends firing and recovery notifications to this
-                    address.
-                  </p>
-                </label>
-                <p className="mt-4 text-xs leading-5 text-zinc-500">
-                  Connect Slack or Discord from the alert’s Notifications page after creating it.
-                </p>
+                <AlertEmailRecipients orgSlug={orgSlug} value={notificationEmails} onChange={setNotificationEmails} />
+                <div className="mt-5 space-y-2" role="group" aria-label="Other notification methods">
+                  {(["slack", "discord"] as const).map((provider) => {
+                    const available = integrationAvailability?.[provider] ?? false;
+                    const selected = setupProviders.includes(provider);
+                    const title = provider === "slack" ? "Slack" : "Discord";
+                    return <label key={provider} className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${available ? "cursor-pointer border-white/[0.1] hover:bg-white/[0.035]" : "border-white/[0.06] opacity-55"}`}>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        disabled={!available}
+                        onChange={() => setSetupProviders((current) => selected ? current.filter((item) => item !== provider) : [...current, provider])}
+                        className="size-4 accent-violet-400"
+                      />
+                      <img src={`/logos/${provider}.svg`} alt="" className="size-6 object-contain" />
+                      <span className="min-w-0 flex-1"><span className="block text-sm font-medium text-zinc-200">{title}</span><span className="block text-xs text-zinc-500">{available ? "Choose a channel after creating the alert" : "OAuth app not configured"}</span></span>
+                    </label>;
+                  })}
+                </div>
+                {setupProviders.length > 0 && <p className="mt-3 text-xs leading-5 text-zinc-500">After creation, you’ll be taken to Notifications to authorize {setupProviders.map((provider) => provider === "slack" ? "Slack" : "Discord").join(" and ")} and choose a channel.</p>}
               </FormSection>
 
               <FormSection title="Review rule">
@@ -1583,10 +1595,9 @@ export function AlertFormModal({
                     <dt className="text-zinc-500">Notifications</dt>
                     <dd className="text-right text-zinc-300">
                       {[
-                        notificationEmail.trim() && "Email",
-                        previewAlert.notificationSlackConfigured && "Slack",
-                        previewAlert.notificationDiscordConfigured && "Discord",
-                      ].filter(Boolean).join(", ") || "None configured"}
+                        notificationEmails.length > 0 && `Email (${notificationEmails.length})`,
+                        ...setupProviders.map((provider) => `${provider === "slack" ? "Slack" : "Discord"} (connect next)`),
+                      ].filter(Boolean).join(", ") || "None selected"}
                     </dd>
                   </div>
                 </dl>
@@ -1705,7 +1716,7 @@ function alertFieldStep(field: string) {
   ) {
     return 1;
   }
-  return field === "notificationEmail"
+  return field === "notificationEmail" || field === "notificationEmails"
     ? 2
     : 0;
 }
