@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { members, users } from "@/db/auth-schema";
 import { requireOrgFromSlug } from "@/lib/org";
@@ -35,23 +35,18 @@ export async function requireAlertManager(request: Request, orgSlug: string) {
   return { ...orgResult, role: membership.role };
 }
 
-export async function notificationEmailBelongsToOrganization(
+export async function notificationEmailsBelongToOrganization(
   organizationId: string,
-  email: string | null,
+  emails: string[],
 ) {
-  if (!email) return true;
+  if (!emails.length) return true;
 
   const rows = await db
-    .select({ id: members.id })
+    .select({ email: users.email })
     .from(members)
     .innerJoin(users, eq(members.userId, users.id))
-    .where(
-      and(
-        eq(members.organizationId, organizationId),
-        sql`lower(${users.email}) = lower(${email})`,
-      ),
-    )
-    .limit(1);
+    .where(eq(members.organizationId, organizationId));
 
-  return rows.length > 0;
+  const memberEmails = new Set(rows.map((row) => row.email.toLowerCase()));
+  return emails.every((email) => memberEmails.has(email.toLowerCase()));
 }
