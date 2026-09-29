@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsup && cp src/offline.html src/bandwidth_exceeded.html dist/",
+    "test": "tsx --test test/*.test.ts",
     "start": "node dist/server.js"
   },
   "dependencies": {
