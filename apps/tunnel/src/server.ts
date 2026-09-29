@@ -13,6 +13,13 @@ import {
   checkTimescaleDBConnection,
   shutdownLoggers,
 } from "./lib/timescale";
+import {
+  closeStatusRouting,
+  isActiveStatusCustomDomain,
+  isStatusPlatformHost,
+  normalizeHost,
+  proxyToStatus,
+} from "./lib/status-routing";
 
 const redis = new Redis(config.redisUrl, {
   lazyConnect: true,
@@ -152,8 +159,29 @@ wssDashboard.on("connection", async (ws, req) => {
 });
 
 httpServer.on("upgrade", (request, socket, head) => {
-  const host = (request.headers.host || "").split(":")[0].toLowerCase();
+  void (async () => {
+  const host = normalizeHost(request.headers.host);
   const { pathname } = new URL(request.url || "", "http://localhost");
+
+  // Public status pages have no WebSocket endpoint. In particular, never
+  // permit a status host to fall through to a tunnel with the same hostname.
+  if (isStatusPlatformHost(host)) {
+    socket.end("HTTP/1.1 426 Upgrade Required\r\nConnection: close\r\n\r\n");
+    return;
+  }
+  if (!host) {
+    socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
+    return;
+  }
+  try {
+    if (await isActiveStatusCustomDomain(host, config.baseDomain.toLowerCase())) {
+      socket.end("HTTP/1.1 426 Upgrade Required\r\nConnection: close\r\n\r\n");
+      return;
+    }
+  } catch {
+    socket.end("HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n");
+    return;
+  }
 
   if (pathname === "/dashboard/events") {
     wssDashboard.handleUpgrade(request, socket, head, (ws) => {
@@ -172,14 +200,35 @@ httpServer.on("upgrade", (request, socket, head) => {
     // End-user WebSocket to a tunneled subdomain
     wsProxy.handleUpgrade(request, socket, head);
   }
+  })();
 });
 
 httpServer.on("request", async (req, res) => {
-  const host = req.headers.host || "";
+  const host = normalizeHost(req.headers.host);
   const url = new URL(req.url || "", "http://localhost");
+
+  if (!host) {
+    res.writeHead(400, { "Content-Type": "text/plain" });
+    res.end("Invalid Host");
+    return;
+  }
+  if (isStatusPlatformHost(host)) {
+    proxyToStatus(req, res);
+    return;
+  }
+  try {
+    if (await isActiveStatusCustomDomain(host, config.baseDomain.toLowerCase())) {
+      proxyToStatus(req, res);
+      return;
+    }
+  } catch {
+    res.writeHead(503, { "Content-Type": "text/plain", "Cache-Control": "no-store" });
+    res.end("Host routing temporarily unavailable");
+    return;
+  }
   
   // Health check endpoint — only for the tunnel server itself, not tunneled subdomains
-  const cleanHost = host.split(":")[0].toLowerCase();
+  const cleanHost = host;
   const isBaseDomain = cleanHost === config.baseDomain.toLowerCase() || cleanHost === "localhost";
   
   if (url.pathname === "/health" && isBaseDomain) {
@@ -210,8 +259,8 @@ httpServer.on("request", async (req, res) => {
   proxy.handleRequest(req, res);
 });
 
-httpServer.listen(config.port, () => {
-  console.log(`OutRay Server running on port ${config.port}`);
+httpServer.listen(config.port, config.bindHost, () => {
+  console.log(`OutRay Server running on ${config.bindHost}:${config.port}`);
   console.log(`Base domain: ${config.baseDomain}`);
   void checkTimescaleDBConnection();
 });
@@ -221,6 +270,7 @@ const shutdown = async () => {
   wsHandler.shutdown();
   await router.shutdown();
   await redis.quit();
+  await closeStatusRouting();
   
   // Flush buffered logs and close database connection
   await shutdownLoggers();
