@@ -8,10 +8,11 @@ import {
   serializeAlert,
 } from "@/lib/observability/alert-api";
 import {
-  notificationEmailBelongsToOrganization,
+  notificationEmailsBelongToOrganization,
   requireAlertManager,
 } from "@/lib/observability/alert-access";
 import { metricIdentityExists } from "@/lib/observability/alert-metric";
+import { alertOAuthCredentials } from "@/lib/observability/alert-oauth";
 import { validateAlertCreateInput } from "@/lib/observability/alert-validation";
 import { requireOrgFromSlug } from "@/lib/org";
 
@@ -100,7 +101,15 @@ export const Route = createFileRoute(
           new Set(rows.map((row) => row.service).filter(Boolean) as string[]),
         ).sort((left, right) => left.localeCompare(right));
 
-        return Response.json({ alerts, services, summary });
+        return Response.json({
+          alerts,
+          services,
+          summary,
+          integrationAvailability: {
+            slack: Boolean(alertOAuthCredentials("slack")),
+            discord: Boolean(alertOAuthCredentials("discord")),
+          },
+        });
       },
 
       POST: async ({ request, params }) => {
@@ -113,16 +122,16 @@ export const Route = createFileRoute(
         if (!validation.success) return validationError(validation);
 
         const organizationId = access.organization.id;
-        const ownsEmail = await notificationEmailBelongsToOrganization(
+        const ownsEmail = await notificationEmailsBelongToOrganization(
           organizationId,
-          validation.data.notificationEmail,
+          validation.data.notificationEmails,
         );
         if (!ownsEmail) {
           return Response.json(
             {
               error:
-                "notificationEmail must belong to a current organization member",
-              field: "notificationEmail",
+                "Email recipients must be current organization members",
+              field: "notificationEmails",
             },
             { status: 400 },
           );
