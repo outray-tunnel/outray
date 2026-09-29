@@ -64,6 +64,7 @@ import {
 import {
   uptimeMonitors,
   uptimeChecks,
+  uptimeDailyChecks,
   uptimeStatusPages,
   uptimeStatusGroups,
   uptimeStatusComponents,
@@ -129,6 +130,7 @@ export {
   machineTokensRelations,
   uptimeMonitors,
   uptimeChecks,
+  uptimeDailyChecks,
   uptimeStatusPages,
   uptimeStatusGroups,
   uptimeStatusComponents,
