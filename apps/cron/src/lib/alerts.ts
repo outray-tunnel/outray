@@ -46,6 +46,7 @@ interface ClaimedAlertRow {
   failure_streak: number;
   recovery_streak: number;
   notification_email: string | null;
+  notification_emails: string[];
   notification_slack_webhook: EncryptedAlertWebhook | null;
   notification_discord_webhook: EncryptedAlertWebhook | null;
   muted_until: Date | null;
@@ -466,8 +467,8 @@ async function enqueueNotifications(
     recipient: string;
     fingerprint?: string;
   }> = [];
-  if (alert.notificationEmail) {
-    destinations.push({ channel: "email", recipient: alert.notificationEmail });
+  for (const recipient of new Set(alert.notificationEmails.length ? alert.notificationEmails : alert.notificationEmail ? [alert.notificationEmail] : [])) {
+    destinations.push({ channel: "email", recipient });
   }
   if (alert.notificationSlackWebhook) {
     destinations.push({
@@ -658,7 +659,13 @@ async function alertSuppressesNotification(notification: NotificationRow) {
            AND alert.enabled = true
            AND alert.deleted_at IS NULL
            AND (alert.muted_until IS NULL OR alert.muted_until <= NOW())
-           AND lower(alert.notification_email) = lower($3)
+           AND (
+             (cardinality(alert.notification_emails) > 0 AND EXISTS (
+               SELECT 1 FROM unnest(alert.notification_emails) AS configured(email)
+               WHERE lower(configured.email) = lower($3)
+             ))
+             OR (cardinality(alert.notification_emails) = 0 AND lower(alert.notification_email) = lower($3))
+           )
        )
        OR NOT EXISTS (
          SELECT 1
@@ -733,6 +740,7 @@ function mapAlertRow(row: ClaimedAlertRow): AlertRule {
     failureStreak: Number(row.failure_streak),
     recoveryStreak: Number(row.recovery_streak),
     notificationEmail: row.notification_email,
+    notificationEmails: row.notification_emails ?? [],
     notificationSlackWebhook: row.notification_slack_webhook,
     notificationDiscordWebhook: row.notification_discord_webhook,
     mutedUntil: row.muted_until,
