@@ -16,12 +16,14 @@ const { title, description = "Live service status and incident updates.", accent
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#09090b" />
+    <link rel="preload" href="/fonts/geom-latin.woff2" as="font" type="font/woff2" crossorigin />
     <title>{title}</title>
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
     {canonical && <link rel="canonical" href={canonical} />}
     <style is:global define:vars={{ accent }}>
-      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #09090b; color: #f4f4f5; }
+      @font-face { font-family: "Geom"; font-style: normal; font-weight: 300 900; font-display: swap; src: url("/fonts/geom-latin.woff2") format("woff2"); }
+      :root { color-scheme: dark; font-family: "Geom", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #09090b; color: #f4f4f5; }
       * { box-sizing: border-box; }
       body { margin: 0; min-width: 320px; background: #09090b; }
       button, input { font: inherit; }
