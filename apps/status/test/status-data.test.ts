@@ -1,0 +1,109 @@
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { test } from "node:test";
+import { statusPageUrl } from "../src/lib/config";
+import { aggregateMonitorEvidence, aggregateStates, normalizeRequestHost, safeLogoUrl, slugFromStatusHost } from "../src/lib/status-data";
+import { isSameOrigin, makeUnsubscribeToken, safeClientIp, verifyUnsubscribeToken } from "../src/lib/security";
+
+const now = Date.parse("2026-09-29T10:00:00.000Z");
+const fresh = new Date(now - 30_000);
+const stale = new Date(now - 181_000);
+const monitor = (state: string, last_checked_at: Date | null = fresh) => ({
+  component_id: "component-1", monitor_id: randomUUID(), state,
+  last_checked_at, enabled: true, deleted_at: null,
+});
+
+test("monitor rollup never calls stale or missing evidence operational", () => {
+  assert.equal(aggregateMonitorEvidence([monitor("up", stale)], now), "unknown");
+  assert.equal(aggregateMonitorEvidence([monitor("up"), monitor("unknown")], now), "unknown");
+  assert.equal(aggregateMonitorEvidence([monitor("up"), monitor("up")], now), "operational");
+});
+
+test("monitor rollup distinguishes outage and partial degradation", () => {
+  assert.equal(aggregateMonitorEvidence([monitor("down"), monitor("down")], now), "outage");
+  assert.equal(aggregateMonitorEvidence([monitor("up"), monitor("down")], now), "degraded");
+  assert.equal(aggregateMonitorEvidence([monitor("down"), monitor("up", stale)], now), "degraded");
+});
+
+test("group and page rollups preserve unknown", () => {
+  assert.equal(aggregateStates([]), "unknown");
+  assert.equal(aggregateStates(["operational", "unknown"]), "unknown");
+  assert.equal(aggregateStates(["outage", "outage"]), "outage");
+  assert.equal(aggregateStates(["operational", "outage"]), "degraded");
+});
+
+test("unsubscribe token is signed and expires", () => {
+  process.env.UPTIME_UNSUBSCRIBE_SECRET = "test-secret-only";
+  const valid = makeUnsubscribeToken("subscriber-1", "page-1", Date.now() + 60_000);
+  assert.deepEqual(verifyUnsubscribeToken(valid), { subscriberId: "subscriber-1", pageId: "page-1" });
+  assert.equal(verifyUnsubscribeToken(valid + "a"), null);
+  assert.equal(verifyUnsubscribeToken(makeUnsubscribeToken("subscriber-1", "page-1", Date.now() - 1)), null);
+});
+
+test("subscription POST origin must match the served status host", () => {
+  const same = new Request("http://127.0.0.1:4323/api/subscribe", {
+    method: "POST", headers: { host: "status.outray.app", origin: "https://status.outray.app" },
+  });
+  const cross = new Request("http://127.0.0.1:4323/api/subscribe", {
+    method: "POST", headers: { host: "status.outray.app", origin: "https://attacker.example" },
+  });
+  assert.equal(isSameOrigin(same), true);
+  assert.equal(isSameOrigin(cross), false);
+});
+
+test("signup rate limit key ignores untrusted forwarded-for", () => {
+  const before = process.env.STATUS_EDGE_SECRET;
+  process.env.STATUS_EDGE_SECRET = "private-edge-secret";
+  try {
+    const request = new Request("https://status.outray.app/api/subscribe", {
+      headers: {
+        "x-outray-edge-secret": "private-edge-secret",
+        "x-outray-client-ip": "203.0.113.4",
+        "x-forwarded-for": "10.0.0.1",
+      },
+    });
+    assert.equal(safeClientIp(request, "127.0.0.1"), "203.0.113.4");
+  } finally {
+    if (before === undefined) delete process.env.STATUS_EDGE_SECRET;
+    else process.env.STATUS_EDGE_SECRET = before;
+  }
+});
+
+test("public host parsing rejects host-header authority tricks", () => {
+  assert.equal(normalizeRequestHost(new Request("https://status.outray.app/foo", {
+    headers: { host: "Status.Outray.App:443" },
+  })), "status.outray.app");
+  assert.equal(normalizeRequestHost(new Request("https://status.outray.app/foo", {
+    headers: { host: "status.outray.app@evil.example" },
+  })), null);
+});
+
+test("canonical status pages use a single page-slug subdomain", () => {
+  const base = { publicUrl: new URL("https://status.outray.app"), canonicalHost: "status.outray.app" };
+  assert.equal(statusPageUrl("acme", base).toString(), "https://acme.status.outray.app/");
+  assert.equal(slugFromStatusHost("acme.status.outray.app", base.canonicalHost), "acme");
+  assert.equal(slugFromStatusHost("status.outray.app", base.canonicalHost), null);
+  assert.equal(slugFromStatusHost("a.b.status.outray.app", base.canonicalHost), null);
+  assert.equal(slugFromStatusHost("acme.status.outray.app.evil.example", base.canonicalHost), null);
+  assert.equal(slugFromStatusHost("-bad.status.outray.app", base.canonicalHost), null);
+  assert.throws(() => statusPageUrl("a.b", base), /Invalid status page slug/);
+});
+
+test("subscription POST origin must match a status page subdomain", () => {
+  const same = new Request("http://127.0.0.1:4323/api/subscribe", {
+    method: "POST", headers: { host: "acme.status.outray.app", origin: "https://acme.status.outray.app" },
+  });
+  const otherPage = new Request("http://127.0.0.1:4323/api/subscribe", {
+    method: "POST", headers: { host: "acme.status.outray.app", origin: "https://other.status.outray.app" },
+  });
+  assert.equal(isSameOrigin(same), true);
+  assert.equal(isSameOrigin(otherPage), false);
+});
+
+test("status logos accept validated PNG/WebP data URLs but not SVG", () => {
+  const pngBytes = Buffer.from("89504e470d0a1a0a0000000049454e44ae426082", "hex");
+  const png = `data:image/png;base64,${pngBytes.toString("base64")}`;
+  assert.equal(safeLogoUrl(png), png);
+  assert.equal(safeLogoUrl("data:image/svg+xml;base64,PHN2Zy8+"), null);
+  assert.equal(safeLogoUrl("data:image/png;base64,PHN2Zy8+"), null);
+});
