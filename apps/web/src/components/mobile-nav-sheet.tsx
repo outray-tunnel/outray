@@ -20,6 +20,7 @@ import { useAppStore } from "@/lib/store";
 import { HugeiconsIcon } from "@hugeicons/react";
 import LockPasswordIcon from "@hugeicons-pro/core-stroke-rounded/LockPasswordIcon";
 import Pulse02Icon from "@hugeicons-pro/core-stroke-rounded/Pulse02Icon";
+import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
 
 interface MobileNavSheetProps {
   isOpen: boolean;
@@ -77,6 +78,11 @@ export function MobileNavSheet({
         />
       ),
       label: "Secrets",
+    },
+    {
+      to: "/$orgSlug/uptime",
+      icon: <HugeiconsIcon icon={HeartPulseIcon} size={NAV_ICON_SIZE} strokeWidth={1.7} />,
+      label: "Uptime",
     },
     {
       to: "/$orgSlug/domains",
