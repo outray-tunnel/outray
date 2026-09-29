@@ -26,7 +26,7 @@ steps:
   - name: build
     image: node:20-bookworm
     commands:
-      - npm run build -- --concurrency=1 --filter=outray-web --filter=outray-tunnel --filter=outray-internal-check --filter=outray-cron --filter=outray-status --filter=outray-uptime-probe
+      - npm run build -- --concurrency=1 --filter=outray-tunnel --filter=outray-internal-check --filter=outray-status --filter=outray-uptime-probe
 
   - name: test-services
     image: node:20-bookworm
