@@ -1,0 +1,1 @@
+ALTER TABLE "domains" ADD CONSTRAINT "domains_purpose_check" CHECK ("domains"."purpose" IN ('tunnel', 'status'));
