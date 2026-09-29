@@ -67,6 +67,7 @@ export interface AlertConfig {
   minimumSamples: number;
   noDataState: AlertNoDataState;
   notificationEmail: string | null;
+  notificationEmails: string[];
   enabled: boolean;
   mutedUntil: Date | null;
 }
@@ -99,6 +100,7 @@ const CREATE_FIELDS = new Set([
   "minimumSamples",
   "noDataState",
   "notificationEmail",
+  "notificationEmails",
   "enabled",
 ]);
 
@@ -122,10 +124,17 @@ export function validateAlertPatchInput(
     return { success: false, error: "At least one field is required" };
   }
 
-  return normalizeAlertConfig({
+  const merged = {
     ...alertConfigToInput(current),
     ...objectResult.data,
-  });
+  };
+  if (Object.hasOwn(objectResult.data, "notificationEmail") &&
+      !Object.hasOwn(objectResult.data, "notificationEmails")) {
+    merged.notificationEmails = objectResult.data.notificationEmail
+      ? [objectResult.data.notificationEmail]
+      : [];
+  }
+  return normalizeAlertConfig(merged);
 }
 
 export function isAlertManagerRole(role: string | null | undefined) {
@@ -224,8 +233,10 @@ function normalizeAlertConfig(input: Record<string, unknown>): AlertValidationRe
   const logQuery = nullableString(input.logQuery, "logQuery", 500);
   if (!logQuery.success) return logQuery;
 
-  const notificationEmail = nullableEmail(input.notificationEmail);
-  if (!notificationEmail.success) return notificationEmail;
+  const notificationEmails = emailRecipients(
+    input.notificationEmails ?? (input.notificationEmail ? [input.notificationEmail] : []),
+  );
+  if (!notificationEmails.success) return notificationEmails;
   const enabled = booleanValue(input.enabled ?? true, "enabled");
   if (!enabled.success) return enabled;
   const mutedUntil = nullableDate(input.mutedUntil, "mutedUntil");
@@ -334,7 +345,8 @@ function normalizeAlertConfig(input: Record<string, unknown>): AlertValidationRe
       minimumSamples:
         signal.data === "no_telemetry" ? 1 : minimumSamples.data,
       noDataState: noDataState.data,
-      notificationEmail: notificationEmail.data,
+      notificationEmail: notificationEmails.data[0] ?? null,
+      notificationEmails: notificationEmails.data,
       enabled: enabled.data,
       mutedUntil: mutedUntil.data,
     },
@@ -425,17 +437,26 @@ function nullableStringAllowEmpty(
   return { success: true, data: value };
 }
 
-function nullableEmail(input: unknown): ValueResult<string | null> {
-  const value = nullableString(input, "notificationEmail", 254);
-  if (!value.success || value.data === null) return value;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.data)) {
+function emailRecipients(input: unknown): ValueResult<string[]> {
+  if (!Array.isArray(input) || input.length > 100) {
     return {
       success: false,
-      field: "notificationEmail",
-      error: "notificationEmail must be a valid email address",
+      field: "notificationEmails",
+      error: "Select at most 100 email recipients.",
     };
   }
-  return { success: true, data: value.data.toLowerCase() };
+  const emails = new Set<string>();
+  for (const item of input) {
+    if (typeof item !== "string") {
+      return { success: false, field: "notificationEmails", error: "Invalid email recipient." };
+    }
+    const email = item.trim().toLowerCase();
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return { success: false, field: "notificationEmails", error: "Enter valid member email addresses." };
+    }
+    emails.add(email);
+  }
+  return { success: true, data: [...emails] };
 }
 
 function enumValue<const T extends readonly string[]>(
