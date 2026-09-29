@@ -61,6 +61,20 @@ import {
   machineTokensRelations,
 } from "./secrets-schema";
 
+import {
+  uptimeMonitors,
+  uptimeChecks,
+  uptimeStatusPages,
+  uptimeStatusGroups,
+  uptimeStatusComponents,
+  uptimeComponentMonitors,
+  uptimeIncidentComponents,
+  uptimeIncidentUpdates,
+  uptimeSubscribers,
+  uptimeSubscriptionAttempts,
+  uptimeIntegrations,
+} from "./uptime-schema";
+
 export {
   accounts,
   sessions,
@@ -113,4 +127,15 @@ export {
   secretDeletionBatchesRelations,
   secretAuditEventsRelations,
   machineTokensRelations,
+  uptimeMonitors,
+  uptimeChecks,
+  uptimeStatusPages,
+  uptimeStatusGroups,
+  uptimeStatusComponents,
+  uptimeComponentMonitors,
+  uptimeIncidentComponents,
+  uptimeIncidentUpdates,
+  uptimeSubscribers,
+  uptimeSubscriptionAttempts,
+  uptimeIntegrations,
 };
