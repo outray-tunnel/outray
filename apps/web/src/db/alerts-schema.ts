@@ -58,6 +58,10 @@ export const observabilityAlerts = pgTable(
     minimumSamples: integer("minimum_samples").notNull().default(1),
     noDataState: text("no_data_state").notNull().default("no_data"),
     notificationEmail: text("notification_email"),
+    notificationEmails: text("notification_emails")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
     notificationSlackWebhook: jsonb("notification_slack_webhook").$type<EncryptedAlertWebhook>(),
     notificationDiscordWebhook: jsonb("notification_discord_webhook").$type<EncryptedAlertWebhook>(),
 
