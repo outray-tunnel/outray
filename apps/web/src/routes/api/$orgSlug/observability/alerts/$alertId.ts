@@ -16,7 +16,7 @@ import {
   serializeNotification,
 } from "@/lib/observability/alert-api";
 import {
-  notificationEmailBelongsToOrganization,
+  notificationEmailsBelongToOrganization,
   requireAlertManager,
 } from "@/lib/observability/alert-access";
 import { metricIdentityExists } from "@/lib/observability/alert-metric";
@@ -160,16 +160,16 @@ export const Route = createFileRoute(
         const validation = validateAlertPatchInput(body.data, alertConfigFromRow(existing));
         if (!validation.success) return validationError(validation);
 
-        const ownsEmail = await notificationEmailBelongsToOrganization(
+        const ownsEmail = await notificationEmailsBelongToOrganization(
           organizationId,
-          validation.data.notificationEmail,
+          validation.data.notificationEmails,
         );
         if (!ownsEmail) {
           return Response.json(
             {
               error:
-                "notificationEmail must belong to a current organization member",
-              field: "notificationEmail",
+                "Email recipients must be current organization members",
+              field: "notificationEmails",
             },
             { status: 400 },
           );
