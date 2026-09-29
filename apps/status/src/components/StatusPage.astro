@@ -1,7 +1,9 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import ComponentHistoryChart from "./ComponentHistoryChart";
 import { getStatusConfig } from "../lib/config";
-import type { PublicState, PublicStatusPage } from "../lib/status-data";
+import { formatDuration } from "../lib/format-duration";
+import type { PublicIncident, PublicState, PublicStatusPage } from "../lib/status-data";
 
 interface Props { page: PublicStatusPage; subscribed?: boolean; }
 const { page, subscribed = false } = Astro.props;
@@ -21,53 +23,90 @@ const stateLabel: Record<PublicState, string> = {
 const formatDate = (date: Date | null) => date
   ? new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(date) + " UTC"
   : "Not yet updated";
-const uptime = page.observedUptime === null ? "—" : `${page.observedUptime.toFixed(2)}%`;
-const latency = page.averageLatencyMs === null ? "—" : `${Math.round(page.averageLatencyMs)} ms`;
+const showStatusSuffix = !/\bstatus$/i.test(page.name.trim());
+const localSlugPath = Astro.url.pathname === `/${page.slug}` || Astro.url.pathname === `/${page.slug}/`;
+const incidentBasePath = localSlugPath ? `/${page.slug}/incidents` : "/incidents";
+const activeIncidents = page.incidents.filter((incident) => incident.status === "open");
+const pastIncidents = page.incidents.filter((incident) => incident.status === "resolved");
+const currentState: PublicState = activeIncidents.length > 0 && (page.state === "operational" || page.state === "unknown") ? "degraded" : page.state;
+const hasIssues = activeIncidents.length > 0 || currentState === "degraded" || currentState === "outage";
+const affectedComponents = [...new Set(activeIncidents.length > 0
+  ? activeIncidents.flatMap((incident) => incident.components)
+  : page.groups.flatMap((group) => group.components.filter((component) => component.state === "degraded" || component.state === "outage").map((component) => component.name)))];
+const incidentStage = (incident: PublicIncident) => {
+  const status = incident.updates.at(-1)?.status ?? "investigating";
+  return status.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
+};
+const ongoingFor = (startedAt: Date) => `Ongoing for ${formatDuration(Math.max(1, Math.floor((Date.now() - startedAt.getTime()) / 60_000)))}`;
 ---
-<BaseLayout title={`${page.name} status`} description={page.description || `Current status and incident history for ${page.name}.`} accent={page.accentColor} canonical={page.canonicalUrl}>
+<BaseLayout title={showStatusSuffix ? `${page.name} status` : page.name} description={page.description || `Current status and incident history for ${page.name}.`} accent={page.accentColor} canonical={page.canonicalUrl}>
   <main class="shell main">
     <header class="header">
       <div class="brand">
-        {page.logoUrl ? <img class="logo" src={page.logoUrl} alt="" width="48" height="48" /> : <div class="logo fallback" aria-hidden="true">{page.name.slice(0, 1).toUpperCase()}</div>}
-        <div><p class="eyebrow">STATUS PAGE</p><h1>{page.name}</h1></div>
+        {page.logoUrl ? <img class="logo" src={page.logoUrl} alt="" width="40" height="40" /> : <div class="logo fallback" aria-hidden="true">{page.name.slice(0, 1).toUpperCase()}</div>}
+        <h1>{page.name}{showStatusSuffix && <span> Status</span>}</h1>
       </div>
-      {page.description && <p class="description">{page.description}</p>}
+      {subscriptionsEnabled && <button class="subscribe-link" type="button" id="open-subscribe">Get updates</button>}
     </header>
 
-    <section class:list={["overall", page.state]} aria-labelledby="overall-heading" aria-live="polite">
-      <span class="status-dot" aria-hidden="true"></span>
-      <div><p class="eyebrow">CURRENT STATUS</p><h2 id="overall-heading">{stateCopy[page.state]}</h2></div>
-      <span class="overall-time">Published states and live checks</span>
+    <section class:list={["overall", currentState]} aria-labelledby="overall-heading">
+      <div class="overall-heading">
+        <span class="overall-icon" aria-hidden="true">
+          {currentState === "operational"
+            ? <svg viewBox="0 0 24 24" fill="none"><path d="m5 12 4.5 4.5L19 7" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            : currentState === "unknown"
+              ? <svg viewBox="0 0 24 24" fill="none"><path d="M12 16v.01M9.1 9a3 3 0 1 1 5.5 1.6c-.8 1-2.6 1.2-2.6 3.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              : <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.4 21.1 19a1 1 0 0 1-.9 1.5H3.8a1 1 0 0 1-.9-1.5L12 3.4Z" fill="currentColor" /><path d="M12 9v5m0 3v.1" stroke="#17120a" stroke-width="2" stroke-linecap="round" /></svg>}
+        </span>
+        <h2 id="overall-heading">{hasIssues ? "We’re currently experiencing issues" : stateCopy[currentState]}</h2>
+      </div>
+      {hasIssues ? <>
+        {affectedComponents.length > 0 && <ul class="affected-components" aria-label="Affected components">{affectedComponents.map((name) => <li>{name}</li>)}</ul>}
+        {activeIncidents.length > 0
+          ? <ol class="active-incidents">{activeIncidents.map((incident) => <li>
+              <span class="active-marker" aria-hidden="true"></span>
+              <div class="active-copy">
+                <h3><a href={`${incidentBasePath}/${encodeURIComponent(incident.id)}`}>{incident.title}</a></h3>
+                {incident.latestNote && <p>{incident.latestNote}</p>}
+                <div class="active-meta"><span>{incidentStage(incident)}</span><span aria-hidden="true">·</span><span>{ongoingFor(incident.startedAt)}</span>{incident.components.length > 0 && <><span aria-hidden="true">·</span><span>Affects {incident.components.join(", ")}</span></>}</div>
+              </div>
+            </li>)}</ol>
+          : <p class="unreported-issue">Monitoring has detected an issue. No incident report has been published yet.</p>}
+      </> : <p class="overall-description">{page.description || "Current service health and incident updates."}</p>}
     </section>
 
-    <div class="metrics" aria-label="Observed results over the last 30 days">
-      <div><span>Observed uptime</span><strong>{uptime}</strong></div>
-      <div><span>Average response</span><strong>{latency}</strong></div>
-      <div><span>Checks observed</span><strong>{page.checkCount.toLocaleString()}</strong></div>
-    </div>
-    <p class="metric-note">Based only on completed checks in the past 30 days. An unknown status is not counted as operational.</p>
-
     <section class="section" aria-labelledby="components-heading">
-      <div class="section-heading"><div><p class="eyebrow">SERVICES</p><h2 id="components-heading">Components</h2></div><span>{page.groups.reduce((count, group) => count + group.components.length, 0)} visible</span></div>
-      {page.groups.length === 0 ? <div class="empty">No components have been published yet.</div> : page.groups.map((group) => (
-        <div class="group">
-          <div class="group-heading"><h3>{group.name}</h3><span class:list={["state", group.state]}><span class="status-dot" aria-hidden="true"></span>{stateLabel[group.state]}</span></div>
-          {group.components.length === 0 ? <p class="empty group-empty">No visible components in this group.</p> : group.components.map((component) => (
-            <div class="component">
-              <div class="component-copy"><strong>{component.name}</strong>{component.description && <p>{component.description}</p>}{component.manual && <small>{formatDate(component.updatedAt)}</small>}</div>
-              <span class:list={["state", component.state]}><span class="status-dot" aria-hidden="true"></span>{stateLabel[component.state]}</span>
-            </div>
-          ))}
-        </div>
-      ))}
+      <div class="section-heading"><h2 id="components-heading">System status</h2><span>{page.groups.reduce((count, group) => count + group.components.length, 0)} components</span></div>
+      {page.groups.length === 0 ? <div class="empty">No components have been published yet.</div> : <div class="groups">{page.groups.map((group) => (
+        <details class="group">
+          <summary class="group-summary">
+            <span class="group-heading">
+              <span class="group-title"><strong>{group.name}</strong><span class:list={["state", group.state]}><span class="status-dot" aria-hidden="true"></span>{stateLabel[group.state]}</span></span>
+              <span class="group-meta"><span class="group-count">{group.components.length} {group.components.length === 1 ? "component" : "components"}</span><svg class="group-chevron" aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="m6 8 4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+            </span>
+          </summary>
+          <div class="group-components">
+            {group.components.length === 0 ? <p class="empty group-empty">No visible components in this group.</p> : group.components.map((component) => (
+              <div class="component">
+                <div class="component-heading">
+                  <div class="component-copy"><span class="component-title"><span class:list={["component-indicator", component.state]} aria-label={stateLabel[component.state]}><span class="status-dot" aria-hidden="true"></span></span><strong>{component.name}</strong></span>{component.description && <p>{component.description}</p>}{component.manual && <small>{formatDate(component.updatedAt)}</small>}</div>
+                  <span class:list={["component-uptime", { unavailable: component.observedUptime90d === null }]}>{component.observedUptime90d === null ? "No uptime data" : `${component.observedUptime90d.toFixed(3)}% uptime`}</span>
+                </div>
+                <ComponentHistoryChart name={component.name} history={component.history} incidentBasePath={incidentBasePath} client:visible />
+              </div>
+            ))}
+          </div>
+        </details>
+      ))}</div>}
+      {page.groups.length > 0 && <p class="history-note">Component history covers the last 90 days. Gray days have no complete monitoring evidence; published manual incidents appear on affected components.</p>}
     </section>
 
     <section class="section" aria-labelledby="incidents-heading">
-      <div class="section-heading"><div><p class="eyebrow">HISTORY</p><h2 id="incidents-heading">Recent incidents</h2></div><span>Latest 25</span></div>
-      {page.incidents.length === 0 ? <div class="empty">No incidents to show.</div> : <ol class="incidents">{page.incidents.map((incident) => (
+      <div class="section-heading"><h2 id="incidents-heading">Incident history</h2><span>{pastIncidents.length} resolved</span></div>
+      {pastIncidents.length === 0 ? <div class="empty">No past incidents to show.</div> : <ol class="incidents">{pastIncidents.map((incident) => (
         <li class="incident">
           <span class:list={["incident-marker", incident.status]} aria-hidden="true"></span>
-          <div><div class="incident-heading"><strong>{incident.title}</strong><span class:list={["incident-state", incident.status]}>{incident.status === "resolved" ? "Resolved" : "Investigating"}</span></div>
+          <div><div class="incident-heading"><strong><a href={`${incidentBasePath}/${encodeURIComponent(incident.id)}`}>{incident.title}</a></strong><span class:list={["incident-state", incident.status]}>{incident.status === "resolved" ? "Resolved" : "Investigating"}</span></div>
             {incident.components.length > 0 && <p class="incident-components">Affects {incident.components.join(", ")}</p>}
             {incident.latestNote && <p class="incident-note">{incident.latestNote}</p>}
             <time datetime={incident.startedAt.toISOString()}>{formatDate(incident.startedAt)}</time>
@@ -77,79 +116,173 @@ const latency = page.averageLatencyMs === null ? "—" : `${Math.round(page.aver
       ))}</ol>}
     </section>
 
-    <section class="subscribe section" aria-labelledby="subscribe-heading">
-      <div><p class="eyebrow">STAY INFORMED</p><h2 id="subscribe-heading">Get incident updates</h2><p>Subscribe for team-published incident updates. Automatic health changes appear above but do not send subscriber email.</p></div>
-      {subscriptionsEnabled ? <form method="post" action="/api/subscribe">
+    {subscriptionsEnabled && <dialog class="subscribe-dialog" id="subscribe-dialog" aria-labelledby="subscribe-heading" data-subscribed={subscribed ? "true" : "false"}>
+      <div class="dialog-heading"><h2 id="subscribe-heading">Get incident updates</h2><button type="button" class="dialog-close" aria-label="Close" id="close-subscribe"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></button></div>
+      <p>Email is sent for team-published incident updates. Automatic health changes remain visible on this page.</p>
+      {subscribed ? <p class="subscription-result">If this address is not already subscribed, check your inbox to confirm it.</p> : <form method="post" action="/api/subscribe">
         <label for="subscription-email">Email address</label>
         <div class="form-row"><input id="subscription-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" maxlength="254" required /><button type="submit">Subscribe</button></div>
         <input type="hidden" name="pageId" value={page.id} />
-        <small>{subscribed ? "If this address is not already subscribed, check your inbox to confirm it." : "Confirm your email before updates begin. Unsubscribe at any time."}</small>
-      </form> : <p class="subscriptions-unavailable">Email subscriptions are temporarily unavailable. Current status and incidents remain visible here.</p>}
-    </section>
+        <small>Confirm your email before updates begin. Unsubscribe at any time.</small>
+      </form>}
+    </dialog>}
   </main>
+  <script>
+    const dialog = document.querySelector<HTMLDialogElement>("#subscribe-dialog");
+    document.querySelector("#open-subscribe")?.addEventListener("click", () => dialog?.showModal());
+    document.querySelector("#close-subscribe")?.addEventListener("click", () => dialog?.close());
+    dialog?.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+    if (dialog?.dataset.subscribed === "true") dialog.showModal();
+  </script>
   <style>
-    .main { padding-top: clamp(44px, 8vw, 80px); padding-bottom: 100px; }
-    .header { margin-bottom: 42px; }
-    .brand { display: flex; gap: 18px; align-items: center; }
-    .logo { width: 48px; height: 48px; object-fit: cover; border-radius: 12px; background: #18181b; }
-    .fallback { display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 25%, #151519); font-size: 25px; font-weight: 750; }
-    .eyebrow { margin: 0 0 7px; color: #85858f; font-size: 11px; font-weight: 700; letter-spacing: .15em; }
-    h1,h2,h3,p { margin-top: 0; }
-    h1 { margin-bottom: 0; font-size: clamp(26px, 4vw, 36px); line-height: 1.1; letter-spacing: -.04em; }
-    .description { color: #a1a1aa; margin: 16px 0 0 66px; line-height: 1.6; max-width: 62ch; }
-    .overall { display: flex; align-items: center; gap: 16px; border: 1px solid #303035; background: #151518; border-radius: 18px; padding: 25px 28px; }
-    .overall.operational { border-color: #155e48; background: linear-gradient(110deg,#10241d,#121518 65%); }
-    .overall.degraded { border-color: #846327; background: linear-gradient(110deg,#292114,#151518 65%); }
-    .overall.outage { border-color: #8f3343; background: linear-gradient(110deg,#2c161c,#151518 65%); }
-    .overall h2 { font-size: clamp(18px, 3vw, 23px); margin: 0; line-height: 1.3; }
-    .overall .eyebrow { margin-bottom: 3px; }
-    .status-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #92929c; box-shadow: 0 0 0 4px #a1a1aa1a; }
-    .operational .status-dot { background: #34d399; box-shadow: 0 0 0 4px #34d39922; }
-    .degraded .status-dot { background: #fbbf24; box-shadow: 0 0 0 4px #fbbf2422; }
-    .outage .status-dot { background: #fb7185; box-shadow: 0 0 0 4px #fb718522; }
-    .overall-time { color: #888891; font-size: 12px; margin-left: auto; }
-    .metrics { display: grid; grid-template-columns: repeat(3,1fr); border: 1px solid #28282e; border-radius: 16px; margin-top: 16px; overflow: hidden; }
-    .metrics>div { display: flex; flex-direction: column; gap: 8px; padding: 20px 24px; }
-    .metrics>div+div { border-left: 1px solid #28282e; }
-    .metrics span { font-size: 12px; color: #92929c; }
-    .metrics strong { font-size: 21px; font-weight: 650; font-variant-numeric: tabular-nums; }
-    .metric-note { font-size: 12px; color: #777780; margin: 12px 0 0; }
-    .section { margin-top: 62px; }
-    .section-heading { display:flex; justify-content:space-between; align-items:end; gap:16px; margin-bottom:18px; }
-    .section-heading h2,.subscribe h2 { margin:0; font-size:24px; letter-spacing:-.035em; }
-    .section-heading>span { color:#777780; font-size:12px; }
-    .group { border:1px solid #2b2b31; border-radius:16px; overflow:hidden; margin-bottom:14px; background:#101012; }
-    .group-heading,.component { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:19px 24px; }
-    .group-heading { border-bottom:1px solid #28282d; background:#151518; }
-    .group-heading h3 { margin:0; font-size:15px; }
-    .component+.component { border-top:1px solid #26262a; }
-    .component-copy strong { font-size:14px; font-weight:600; }
-    .component-copy p { margin:5px 0 0; color:#9999a2; font-size:13px; line-height:1.5; }
-    .component-copy small { display:block; color:#71717a; margin-top:7px; font-size:11px; }
-    .state { display:inline-flex; align-items:center; gap:9px; white-space:nowrap; font-size:12px; color:#a1a1aa; }
-    .state.operational { color:#6ee7b7; }.state.degraded { color:#fcd34d; }.state.outage { color:#fda4af; }
-    .state .status-dot { width:7px; height:7px; box-shadow:none; }
-    .empty { padding:26px; color:#85858f; border:1px solid #2b2b31; border-radius:16px; font-size:13px; }
-    .group-empty { border:0; border-radius:0; margin:0; }
-    .incidents { padding:0; margin:0; list-style:none; border:1px solid #2b2b31; border-radius:16px; background:#101012; overflow:hidden; }
-    .incident { display:grid; grid-template-columns:9px 1fr; gap:17px; padding:22px 24px; }
-    .incident+.incident { border-top:1px solid #28282d; }
-    .incident-marker { width:9px; height:9px; border-radius:50%; margin-top:5px; background:#fb7185; }.incident-marker.resolved { background:#34d399; }
-    .incident-heading { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }.incident-heading strong { font-size:14px; }
-    .incident-state { border:1px solid #673943; color:#fda4af; border-radius:99px; padding:3px 8px; font-size:11px; }.incident-state.resolved { border-color:#315e4a; color:#6ee7b7; }
-    .incident-components,.incident-note { color:#a1a1aa; font-size:13px; line-height:1.55; margin:8px 0 0; }
-    .incident-note { color:#d4d4d8; white-space:pre-wrap; }
-    .incident time { display:block; color:#777780; font-size:11px; margin-top:10px; }
-    .updates { margin-top:15px; }.updates summary { color:#c4b5fd; font-size:12px; cursor:pointer; width:max-content; }.updates ol { border-left:1px solid #36303f; padding:0 0 0 20px; margin:15px 0 0; list-style:none; }.updates li+li { margin-top:18px; }.updates li div { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }.updates li strong { color:#d4d4d8; font-size:12px; font-weight:600; text-transform:capitalize; }.updates li time { display:inline; margin:0; }.updates li p { margin:7px 0 0; color:#a1a1aa; white-space:pre-wrap; font-size:13px; line-height:1.55; }
-    .subscribe { display:grid; grid-template-columns:1fr 1.05fr; gap:40px; padding:30px; border:1px solid #39313e; border-radius:18px; background:linear-gradient(130deg,#19151f,#111114 64%); }
-    .subscribe p:last-child { margin:12px 0 0; color:#a1a1aa; font-size:13px; line-height:1.6; }
-    .subscribe form { display:flex; flex-direction:column; justify-content:center; gap:8px; }
-    .subscribe label { font-size:12px; font-weight:600; }.form-row { display:flex; gap:9px; }
-    .subscribe input[type=email] { min-width:0; flex:1; padding:11px 12px; border:1px solid #424149; border-radius:10px; background:#0c0c0e; color:#fff; font-size:13px; }
-    .subscribe button { flex:none; border:0; border-radius:10px; background:var(--accent); color:#fff; padding:11px 14px; font-size:12px; font-weight:700; }
-    .subscribe button:hover { filter:brightness(1.16); }.subscribe small { font-size:11px; color:#898991; line-height:1.5; }
-    .subscriptions-unavailable { align-self:center; color:#a1a1aa; font-size:13px; line-height:1.6; }
-    @media(max-width:650px) { .overall { padding:21px; }.overall-time { display:none; }.metrics>div { padding:16px; }.metrics strong { font-size:17px; }.subscribe { grid-template-columns:1fr; gap:24px; padding:22px; }.description { margin-left:0; } }
-    @media(max-width:450px) { .metrics { grid-template-columns:1fr 1fr; }.metrics>div:last-child { grid-column:1/-1; border-top:1px solid #28282e; border-left:0; }.group-heading,.component { padding:16px; }.form-row { flex-direction:column; }.subscribe button { width:100%; min-height:42px; } }
+    :global(body) { background: #09090b; }
+    :global(.footer) { border-top: 1px solid #27272a; padding: 24px 0 40px; color: #a1a1aa; font-size: 13px; }
+    :global(.footer .shell) { display: flex; justify-content: center; align-items: center; width: min(100% - 48px, 800px); margin-inline: auto; }
+    :global(.footer a) { display: inline-flex; align-items: center; gap: 8px; color: #e4e4e7; text-decoration: none; }
+    :global(.footer a span) { color: #a1a1aa; }
+    :global(.footer a strong) { font-weight: 650; }
+    :global(.footer img) { display: block; width: 18px; height: 18px; }
+    .main { width: min(100% - 48px, 800px); margin-inline: auto; padding-top: 38px; padding-bottom: 88px; }
+    .header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 64px; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .logo { width: 40px; height: 40px; flex: none; object-fit: cover; border-radius: 10px; background: #18181b; }
+    .fallback { display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 28%, #18181b); font-size: 20px; font-weight: 750; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin: 0; overflow-wrap: anywhere; font-size: 17px; font-weight: 600; letter-spacing: -.025em; }
+    h1 span { color: #a1a1aa; font-weight: 450; }
+    .subscribe-link { flex: none; padding: 9px 13px; border: 1px solid #3f3f46; border-radius: 9px; background: #18181b; color: #f4f4f5; font-size: 12px; font-weight: 600; }
+    .subscribe-link:hover { background: #27272a; }
+    .overall { overflow: hidden; border: 1px solid #3f3f46; border-radius: 14px; background: #101012; }
+    .overall.operational { border-color: #27664e; }
+    .overall.degraded { border-color: #9a711d; }
+    .overall.outage { border-color: #9d4355; }
+    .overall-heading { display: flex; align-items: center; gap: 14px; min-height: 74px; padding: 20px 24px; background: #1b1b1f; }
+    .operational .overall-heading { background: #10221b; }
+    .degraded .overall-heading { background: #30260f; }
+    .outage .overall-heading { background: #30191e; }
+    .overall-icon { display: inline-flex; flex: none; width: 24px; height: 24px; color: #a1a1aa; }
+    .overall-icon svg { width: 100%; height: 100%; }
+    .overall.operational .overall-icon { color: #34d399; }
+    .overall.degraded .overall-icon { color: #fbbf24; }
+    .overall.outage .overall-icon { color: #fb7185; }
+    .status-dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: #a1a1aa; }
+    .operational .status-dot { background: #34d399; }
+    .degraded .status-dot { background: #fbbf24; }
+    .outage .status-dot { background: #fb7185; }
+    .overall h2 { margin: 0; font-size: clamp(19px, 3vw, 23px); font-weight: 600; line-height: 1.3; letter-spacing: -.03em; }
+    .overall .overall-description { margin: 0; padding: 20px 24px; color: #a1a1aa; font-size: 13px; line-height: 1.6; }
+    .affected-components { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 17px 24px; border-top: 1px solid #3d3527; list-style: none; }
+    .affected-components li { padding: 5px 9px; border: 1px solid #6d5222; border-radius: 7px; background: #302510; color: #fcd984; font-size: 12px; font-weight: 600; }
+    .outage .affected-components { border-color: #473039; }
+    .outage .affected-components li { border-color: #754050; background: #321c23; color: #fda4af; }
+    .active-incidents { margin: 0; padding: 0; border-top: 1px solid #3d3527; list-style: none; }
+    .active-incidents li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 13px; padding: 19px 24px; }
+    .active-incidents li + li { border-top: 1px solid #303036; }
+    .active-marker { display: block; width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: #fbbf24; }
+    .outage .active-marker { background: #fb7185; }
+    .active-copy h3 { margin: 0; font-size: 15px; font-weight: 560; line-height: 1.45; }
+    .active-copy h3 a { color: #f4f4f5; text-decoration: none; }
+    .active-copy h3 a:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .active-copy p { margin: 8px 0 0; color: #d4d4d8; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
+    .active-meta { display: flex; flex-wrap: wrap; gap: 5px 8px; margin-top: 10px; color: #a1a1aa; font-size: 11px; line-height: 1.5; }
+    .unreported-issue { margin: 0; padding: 18px 24px; border-top: 1px solid #3d3527; color: #a1a1aa; font-size: 13px; line-height: 1.55; }
+    .section { margin-top: 68px; }
+    .section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 16px; }
+    .section-heading h2 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.03em; }
+    .section-heading > span { color: #85858f; font-size: 12px; white-space: nowrap; }
+    .groups, .incidents, .empty { border: 1px solid #303036; border-radius: 13px; background: #101012; overflow: hidden; }
+    .group + .group { border-top: 1px solid #303036; }
+    .group-summary { display: block; background: #18181b; cursor: pointer; list-style: none; }
+    .group-summary::-webkit-details-marker { display: none; }
+    .group-summary:hover { background: #1d1d21; }
+    .group-heading, .component-heading { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+    .component-heading { align-items: flex-start; }
+    .group-heading { padding: 20px; }
+    .group-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .group-title strong { font-size: 13px; font-weight: 600; }
+    .group-meta { display: flex; align-items: center; gap: 17px; }
+    .group-count { flex: none; color: #a1a1aa; font-size: 12px; }
+    .group-chevron { display: block; flex: none; color: #a1a1aa; transition: transform .16s ease; }
+    .group[open] .group-chevron { transform: rotate(180deg); }
+    .history-note { margin: 10px 0 0; color: #85858f; font-size: 11px; line-height: 1.5; }
+    .group-components { border-top: 1px solid #303036; }
+    .component { padding: 20px; }
+    .component + .component { border-top: 1px solid #28282d; }
+    .component-copy { min-width: 0; }
+    .component-title { display: flex; align-items: center; gap: 9px; }
+    .component-indicator { display: inline-flex; flex: none; }
+    .component-indicator .status-dot { width: 13px; height: 13px; }
+    .component-copy strong { font-size: 13px; font-weight: 580; }
+    .component-copy p { margin: 5px 0 0 22px; color: #a1a1aa; font-size: 12px; line-height: 1.45; }
+    .component-copy small { display: block; margin: 5px 0 0 22px; color: #85858f; font-size: 11px; }
+    .component-uptime { flex: none; margin-top: 1px; color: #6ee7b7; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .component-uptime.unavailable { color: #85858f; }
+    .state { display: inline-flex; align-items: center; gap: 8px; flex: none; color: #b4b4bd; font-size: 12px; white-space: nowrap; }
+    .state.operational { color: #6ee7b7; }
+    .state.degraded { color: #fcd34d; }
+    .state.outage { color: #fda4af; }
+    .state .status-dot { width: 7px; height: 7px; }
+    .empty { padding: 22px; color: #a1a1aa; font-size: 13px; }
+    .group-empty { border: 0; border-radius: 0; margin: 0; background: transparent; }
+    .incidents { padding: 0; margin: 0; list-style: none; }
+    .incident { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 15px; padding: 18px 20px; }
+    .incident + .incident { border-top: 1px solid #303036; }
+    .incident-marker { width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: #fb7185; }
+    .incident-marker.resolved { background: #34d399; }
+    .incident-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; }
+    .incident-heading strong { font-size: 13px; font-weight: 580; }
+    .incident-heading a { text-decoration: none; }
+    .incident-heading a:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .incident-state { color: #fda4af; font-size: 11px; }
+    .incident-state.resolved { color: #6ee7b7; }
+    .incident-components, .incident-note { margin: 7px 0 0; color: #a1a1aa; font-size: 12px; line-height: 1.55; }
+    .incident-note { color: #d4d4d8; white-space: pre-wrap; }
+    .incident time { display: block; margin-top: 8px; color: #85858f; font-size: 11px; }
+    .updates { margin-top: 12px; }
+    .updates summary { width: max-content; color: #c4b5fd; cursor: pointer; font-size: 12px; }
+    .updates ol { margin: 12px 0 0; padding: 0 0 0 16px; border-left: 1px solid #36303f; list-style: none; }
+    .updates li + li { margin-top: 16px; }
+    .updates li div { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .updates li strong { color: #d4d4d8; font-size: 12px; font-weight: 600; text-transform: capitalize; }
+    .updates li time { display: inline; margin: 0; }
+    .updates li p { margin: 6px 0 0; color: #a1a1aa; white-space: pre-wrap; font-size: 12px; line-height: 1.5; }
+    .subscribe-dialog { width: min(100% - 32px, 440px); max-height: calc(100dvh - 32px); padding: 24px; border: 1px solid #3f3f46; border-radius: 16px; background: #18181b; color: #f4f4f5; box-shadow: 0 24px 70px #000b; }
+    .subscribe-dialog::backdrop { background: #000b; }
+    .dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .dialog-heading h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.03em; }
+    .dialog-close { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border: 0; border-radius: 8px; background: transparent; color: #a1a1aa; }
+    .dialog-close:hover { background: #27272a; color: #fff; }
+    .subscribe-dialog p { margin: 12px 0 0; color: #a1a1aa; font-size: 13px; line-height: 1.55; }
+    .subscribe-dialog .subscription-result { margin-top: 20px; color: #6ee7b7; }
+    .subscribe-dialog form { margin-top: 24px; }
+    .subscribe-dialog label { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 600; }
+    .form-row { display: flex; gap: 9px; }
+    .subscribe-dialog input[type=email] { min-width: 0; flex: 1; padding: 11px 12px; border: 1px solid #424149; border-radius: 8px; background: #09090b; color: #fff; font-size: 13px; }
+    .subscribe-dialog button[type=submit] { flex: none; min-height: 42px; padding: 11px 16px; border: 1px solid #f4f4f5; border-radius: 8px; background: #f4f4f5; color: #09090b; font-size: 12px; font-weight: 700; }
+    .subscribe-dialog button[type=submit]:hover { background: #d4d4d8; }
+    .subscribe-dialog small { display: block; margin-top: 9px; color: #a1a1aa; font-size: 11px; line-height: 1.5; }
+    @media (max-width: 600px) {
+      :global(.footer .shell) { width: min(100% - 32px, 800px); }
+      .main { width: min(100% - 32px, 800px); padding-top: 24px; padding-bottom: 62px; }
+      .header { margin-bottom: 54px; }
+      .section { margin-top: 56px; }
+      .group-heading, .component { padding: 15px; }
+      .group-heading { align-items: flex-start; }
+      .group-count { font-size: 11px; }
+      .group-meta { gap: 9px; }
+      .overall-heading { min-height: 64px; padding: 17px; }
+      .affected-components { padding: 14px 17px; }
+      .active-incidents li { padding: 17px; }
+      .overall .overall-description, .unreported-issue { padding: 17px; }
+    }
+    @media (max-width: 420px) {
+      .header { align-items: flex-start; }
+      .subscribe-link { padding: 8px; }
+      .component-heading { align-items: flex-start; }
+      .component-uptime { font-size: 11px; }
+      .state { font-size: 11px; }
+      .form-row { flex-direction: column; }
+      .subscribe button { width: 100%; }
+    }
   </style>
 </BaseLayout>
