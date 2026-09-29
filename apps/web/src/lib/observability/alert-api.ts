@@ -64,6 +64,7 @@ export function serializeAlert(
     minimumSamples: row.minimumSamples,
     noDataState: row.noDataState as AlertNoDataState,
     notificationEmail: row.notificationEmail,
+    notificationEmails: row.notificationEmails,
     notificationSlackConfigured: Boolean(row.notificationSlackWebhook),
     notificationDiscordConfigured: Boolean(row.notificationDiscordWebhook),
     notificationSlackTarget: row.notificationSlackWebhook?.target ?? null,
@@ -114,6 +115,7 @@ export function alertConfigFromRow(row: AlertRow): AlertConfig {
     minimumSamples: row.minimumSamples,
     noDataState: row.noDataState as AlertNoDataState,
     notificationEmail: row.notificationEmail,
+    notificationEmails: row.notificationEmails,
     enabled: row.enabled,
     mutedUntil: row.mutedUntil,
   };
@@ -144,6 +146,7 @@ export function alertConfigValues(config: AlertConfig) {
     minimumSamples: config.minimumSamples,
     noDataState: config.noDataState,
     notificationEmail: config.notificationEmail,
+    notificationEmails: config.notificationEmails,
     enabled: config.enabled,
     mutedUntil: config.mutedUntil,
   };
