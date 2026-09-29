@@ -14,6 +14,7 @@ const productLinks = [
   { id: "tunnels", label: "Tunnels", href: "#tunnels", description: "Put a local service on a public URL." },
   { id: "observability", label: "Observability", href: "#observability", description: "Follow requests through traces, logs, and metrics." },
   { id: "secrets", label: "Secrets", href: "#secrets", description: "Deliver encrypted values to every environment." },
+  { id: "uptime", label: "Uptime", href: "#uptime", description: "Check endpoints and share service status." },
 ] as const;
 ---
 
@@ -79,6 +80,16 @@ const productLinks = [
                   <p>DATABASE_URL <span>••••••••</span></p>
                   <p>API_KEY <span>••••••••</span></p>
                   <p>WEBHOOK_SECRET <span>••••••••</span></p>
+                </div>
+              </div>
+              <div class="products-menu__preview-content" data-menu-preview="uptime">
+                <p class="products-menu__preview-kicker">UPTIME / 04</p>
+                <p class="products-menu__preview-title">Know before your users do.</p>
+                <div class="products-menu__uptime">
+                  <div><span>Current status</span><em>Operational</em></div>
+                  <p><span>API</span><i></i></p>
+                  <p><span>Dashboard</span><i></i></p>
+                  <small>Checks every minute</small>
                 </div>
               </div>
             </div>
