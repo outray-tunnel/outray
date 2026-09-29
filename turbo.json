@@ -11,6 +11,7 @@
         "PUBLIC_SITE_URL",
         "PUBLIC_POSTHOG_HOST",
         "PUBLIC_POSTHOG_KEY",
+        "VITE_OUTRAY_STATUS_URL",
         "TUNNEL_DOMAIN",
         "VITE_POLAR_PRODUCT_BEAM",
         "VITE_POLAR_PRODUCT_BEAM_YEARLY",
@@ -32,7 +33,8 @@
         "PUBLIC_DASHBOARD_URL",
         "PUBLIC_SITE_URL",
         "PUBLIC_POSTHOG_HOST",
-        "PUBLIC_POSTHOG_KEY"
+        "PUBLIC_POSTHOG_KEY",
+        "VITE_OUTRAY_STATUS_URL"
       ]
     },
     "lint": {
