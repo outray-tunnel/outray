@@ -11,15 +11,14 @@ compose ps` to inspect services, and `docker compose logs --tail=100 server agen
 for diagnostics. The health endpoint is `https://ci.outray.dev/healthz` (HTTP 204).
 
 The repository workflow is `.woodpecker/ci.yaml`. Pushes to either `main` or
-`next` build the edge, status renderer, and uptime probe, run tests, deploy
-Tinybird endpoints, apply production PostgreSQL migrations, then copy built
-artifacts and run `deploy.sh`.
+`next` install dependencies, build the edge, status renderer, and uptime probe,
+deploy Tinybird endpoints, then copy built artifacts and run `deploy.sh`.
 Woodpecker serializes these workflows across both branches. Both branches use
-the **same production database and edge VPS**, so the latest successful deploy
+the **same production Tinybird workspace and edge VPS**, so the latest successful deploy
 from either branch becomes live. The GitHub Actions deploy is a manual fallback,
 not a second automatic deploy path.
-The Vercel-hosted web app is not built or deployed by this workflow; its
-database integration tests still run before migrations.
+The web app is not built or deployed by this workflow. Brimble handles database
+migrations separately; Woodpecker does not run PostgreSQL or Timescale migrations.
 
 Required repository secrets, with pull-request exposure disabled:
 
@@ -28,7 +27,6 @@ Required repository secrets, with pull-request exposure disabled:
 | `hugeicons_license_key` | Push, Manual | Install private icon packages. |
 | `tinybird_host` | Push, Manual | Deploy alert evaluator pipes. |
 | `tinybird_token` | Push, Manual | Tinybird deployment token, not the query token. |
-| `database_url` | Push, Manual | Apply production PostgreSQL migrations. |
 | `edge_ssh_key` | Push, Manual | SSH from CI to the edge VPS. |
 
 The edge deployment key is already generated in
@@ -46,5 +44,5 @@ and `/opt/woodpecker/secrets` in encrypted VPS backups.
 
 The workflow and this deploy helper must be committed to both branches before
 either branch can trigger Woodpecker. The first pushed run should be watched
-through Tinybird, migrations, and the edge health checks before relying on it
+through Tinybird and the edge health checks before relying on it
 for unattended deployments.
