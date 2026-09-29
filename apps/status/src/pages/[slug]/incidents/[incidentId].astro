@@ -1,0 +1,14 @@
+---
+import IncidentReport from "../../../components/IncidentReport.astro";
+import { statusPageUrl } from "../../../lib/config";
+import { findPageForRequest, loadPublicIncident } from "../../../lib/status-data";
+
+Astro.response.headers.set("Cache-Control", "public, max-age=15, s-maxage=15");
+const row = await findPageForRequest(Astro.request, Astro.params.slug || null);
+const incident = row && Astro.params.incidentId ? await loadPublicIncident(row, Astro.params.incidentId) : null;
+if (!row || !incident) return new Response("Not found", { status: 404 });
+const canonical = new URL(`incidents/${incident.id}`, statusPageUrl(row.slug)).toString();
+if (import.meta.env.PROD) return Astro.redirect(canonical, 308);
+const pageHref = `/${row.slug}`;
+---
+<IncidentReport pageName={row.name} pageHref={pageHref} accent={row.accent_color} canonical={canonical} incident={incident} />
