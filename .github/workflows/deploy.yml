@@ -198,7 +198,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: "deploy.sh,deploy/migrations,deploy/uptime-probe.service"
+          source: "deploy.sh,deploy-status.sh,deploy-uptime-probe.sh,deploy/migrations,deploy/uptime-probe.service"
           target: "/root/outray"
 
       - name: Restart Server (Blue/Green)
@@ -242,4 +242,7 @@ jobs:
           envs: REDIS_URL,REDIS_TUNNEL_TTL_SECONDS,REDIS_HEARTBEAT_INTERVAL_MS,TIMESCALE_URL,DATABASE_URL,DATABASE_SSL_REJECT_UNAUTHORIZED,INTERNAL_API_SECRET,PAYSTACK_SECRET_KEY,TINYBIRD_API_HOST,TINYBIRD_QUERY_TOKEN,ZEPTO_API_KEY,APP_URL,ALERT_POLL_INTERVAL_MS,ALERT_BATCH_SIZE,ALERT_EVALUATION_CONCURRENCY,ALERT_LEASE_SECONDS,ALERT_LATE_DATA_SECONDS,ALERT_EVALUATION_RETENTION_DAYS,UPTIME_ENABLED,UPTIME_PROBES_ENABLED,UPTIME_NOTIFICATIONS_ENABLED,UPTIME_EGRESS_POLICY_READY,OUTRAY_DASHBOARD_URL,OUTRAY_STATUS_URL,STATUS_EDGE_SECRET,UPTIME_RATE_LIMIT_SECRET,UPTIME_UNSUBSCRIBE_SECRET,OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID,OUTRAY_SECRETS_ACTIVE_MASTER_KEY,OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS
           script: |
             chmod +x /root/outray/deploy.sh
+            chmod +x /root/outray/deploy-status.sh /root/outray/deploy-uptime-probe.sh
+            /root/outray/deploy-status.sh
             /root/outray/deploy.sh
+            /root/outray/deploy-uptime-probe.sh
