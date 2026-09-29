@@ -169,7 +169,7 @@ const ongoingFor = (startedAt: Date) => `Ongoing for ${formatDuration(Math.max(1
     .operational .status-dot { background: #34d399; }
     .degraded .status-dot { background: #fbbf24; }
     .outage .status-dot { background: #fb7185; }
-    .overall h2 { margin: 0; font-size: clamp(19px, 3vw, 23px); font-weight: 600; line-height: 1.3; letter-spacing: -.03em; }
+    .overall h2 { margin: 0; font-size: clamp(19px, 3vw, 23px); font-weight: 500; line-height: 1.3; letter-spacing: -.03em; }
     .overall .overall-description { margin: 0; padding: 20px 24px; color: #a1a1aa; font-size: 13px; line-height: 1.6; }
     .affected-components { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 17px 24px; border-top: 1px solid #3d3527; list-style: none; }
     .affected-components li { padding: 5px 9px; border: 1px solid #6d5222; border-radius: 7px; background: #302510; color: #fcd984; font-size: 12px; font-weight: 600; }
@@ -189,6 +189,7 @@ const ongoingFor = (startedAt: Date) => `Ongoing for ${formatDuration(Math.max(1
     .section { margin-top: 68px; }
     .section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 16px; }
     .section-heading h2 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.03em; }
+    #components-heading { font-weight: 500; }
     .section-heading > span { color: #85858f; font-size: 12px; white-space: nowrap; }
     .groups, .incidents, .empty { border: 1px solid #303036; border-radius: 13px; background: #101012; overflow: hidden; }
     .group + .group { border-top: 1px solid #303036; }
