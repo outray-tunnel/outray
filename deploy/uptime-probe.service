@@ -1,0 +1,36 @@
+[Unit]
+Description=OutRay Uptime probe and notification worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=outray-uptime
+Group=outray-uptime
+WorkingDirectory=/opt/outray/uptime-probe
+EnvironmentFile=/etc/outray/uptime-probe.env
+ExecStart=/usr/bin/env node dist/index.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictSUIDSGID=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Kernel eBPF egress boundary in addition to URL/DNS validation and pinned
+# connections in the worker. Only public addresses are generally reachable.
+# The one loopback exception is the local systemd-resolved DNS stub; if the
+# host uses a different resolver, configure an explicit, reviewed allowlist.
+IPAddressDeny=0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8 169.254.0.0/16 172.16.0.0/12 192.0.0.0/24 192.0.2.0/24 192.168.0.0/16 198.18.0.0/15 198.51.100.0/24 203.0.113.0/24 224.0.0.0/4 240.0.0.0/4
+IPAddressDeny=::/128 ::1/128 fc00::/7 fe80::/10 ff00::/8 2001:db8::/32 2001::/23 2002::/16 3fff::/20
+IPAddressAllow=127.0.0.53/32
+
+[Install]
+WantedBy=multi-user.target
