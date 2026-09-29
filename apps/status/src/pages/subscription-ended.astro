@@ -1,0 +1,5 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+Astro.response.headers.set("Cache-Control", "no-store");
+---
+<BaseLayout title="Unsubscribed" noindex><main class="shell card"><p class="eyebrow">UNSUBSCRIBED</p><h1>You're unsubscribed.</h1><p>You won't receive further status email for this page.</p></main><style>.card{min-height:70vh;padding-top:clamp(70px,12vw,140px)}.eyebrow{font-size:11px;letter-spacing:.15em;color:#6ee7b7;font-weight:700}h1{font-size:clamp(34px,6vw,50px);letter-spacing:-.05em;margin:10px 0 18px}p{color:#a1a1aa}</style></BaseLayout>
