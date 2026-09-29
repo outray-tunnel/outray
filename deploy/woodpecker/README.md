@@ -11,12 +11,15 @@ compose ps` to inspect services, and `docker compose logs --tail=100 server agen
 for diagnostics. The health endpoint is `https://ci.outray.dev/healthz` (HTTP 204).
 
 The repository workflow is `.woodpecker/ci.yaml`. Pushes to either `main` or
-`next` run build and tests, deploy Tinybird endpoints, apply production
-PostgreSQL migrations, then copy built edge artifacts and run `deploy.sh`.
+`next` build the edge, status renderer, and uptime probe, run tests, deploy
+Tinybird endpoints, apply production PostgreSQL migrations, then copy built
+artifacts and run `deploy.sh`.
 Woodpecker serializes these workflows across both branches. Both branches use
 the **same production database and edge VPS**, so the latest successful deploy
 from either branch becomes live. The GitHub Actions deploy is a manual fallback,
 not a second automatic deploy path.
+The Vercel-hosted web app is not built or deployed by this workflow; its
+database integration tests still run before migrations.
 
 Required repository secrets, with pull-request exposure disabled:
 
