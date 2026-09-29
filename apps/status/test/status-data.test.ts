@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { test } from "node:test";
 import { statusPageUrl } from "../src/lib/config";
-import { aggregateMonitorEvidence, aggregateStates, normalizeRequestHost, safeLogoUrl, slugFromStatusHost } from "../src/lib/status-data";
+import { addIncidentsToHistory, aggregateMonitorEvidence, aggregateStates, buildDailyHistory, normalizeRequestHost, safeLogoUrl, slugFromStatusHost } from "../src/lib/status-data";
 import { isSameOrigin, makeUnsubscribeToken, safeClientIp, verifyUnsubscribeToken } from "../src/lib/security";
 
 const now = Date.parse("2026-09-29T10:00:00.000Z");
@@ -30,6 +30,51 @@ test("group and page rollups preserve unknown", () => {
   assert.equal(aggregateStates(["operational", "unknown"]), "unknown");
   assert.equal(aggregateStates(["outage", "outage"]), "outage");
   assert.equal(aggregateStates(["operational", "outage"]), "degraded");
+});
+
+test("90-day check history keeps missing days unknown and classifies observed days", () => {
+  const rows = new Map([
+    ["2026-07-02", { checks: 10, successes: 10, reported_monitors: 1 }],
+    ["2026-09-28", { checks: 10, successes: 8, reported_monitors: 1 }],
+    ["2026-09-29", { checks: 10, successes: 0, reported_monitors: 1 }],
+  ]);
+  const history = buildDailyHistory(rows, Date.parse("2026-09-29T00:00:00Z"), 1);
+  assert.equal(history.length, 90);
+  assert.deepEqual(history[0], { date: "2026-07-02", state: "operational", checks: 10, successes: 10, detectedFailureMinutes: 0, reportedMonitors: 1, expectedMonitors: 1 });
+  assert.deepEqual(history[1], { date: "2026-07-03", state: "unknown", checks: 0, successes: 0, detectedFailureMinutes: 0, reportedMonitors: 0, expectedMonitors: 1 });
+  assert.deepEqual(history[88], { date: "2026-09-28", state: "degraded", checks: 10, successes: 8, detectedFailureMinutes: 2, reportedMonitors: 1, expectedMonitors: 1 });
+  assert.deepEqual(history[89], { date: "2026-09-29", state: "outage", checks: 10, successes: 0, detectedFailureMinutes: 10, reportedMonitors: 1, expectedMonitors: 1 });
+});
+
+test("component downtime estimate uses the most affected monitor, not summed failures", () => {
+  const rows = new Map([["2026-09-29", {
+    checks: 20, successes: 15, reported_monitors: 2, max_failed_checks: 3,
+  }]]);
+  const day = buildDailyHistory(rows, Date.parse("2026-09-29T00:00:00Z"), 2)[89];
+  assert.equal(day?.state, "degraded");
+  assert.equal(day?.detectedFailureMinutes, 3);
+});
+
+test("a day with missing monitor coverage stays unknown", () => {
+  const rows = new Map([["2026-09-29", { checks: 10, successes: 10, reported_monitors: 1 }]]);
+  const history = buildDailyHistory(rows, Date.parse("2026-09-29T00:00:00Z"), 2);
+  assert.equal(history[89]?.state, "unknown");
+});
+
+test("component history includes public monitor and published manual incident durations", () => {
+  const history = buildDailyHistory(new Map(), Date.parse("2026-09-29T00:00:00Z"), 0);
+  const decorated = addIncidentsToHistory(history, [
+    { id: "monitor-1", title: "API down", source_type: "uptime_monitor",
+      started_at: new Date("2026-09-28T23:52:00Z"), resolved_at: new Date("2026-09-29T00:10:00Z") },
+    { id: "manual-1", title: "Degraded performance", source_type: "uptime_manual",
+      started_at: new Date("2026-09-29T00:05:00Z"), resolved_at: new Date("2026-09-29T00:15:00Z") },
+  ], Date.parse("2026-09-29T10:00:00Z"));
+  assert.equal(decorated[87]?.incidents.length, 0);
+  assert.equal(decorated[88]?.incidentMinutes, 8);
+  assert.equal(decorated[89]?.incidentMinutes, 15); // Overlap is counted only once.
+  assert.equal(decorated[89]?.incidentKind, "downtime");
+  assert.deepEqual(decorated[89]?.incidents.map((item) => item.id), ["monitor-1", "manual-1"]);
+  assert.equal(decorated[89]?.state, "degraded");
 });
 
 test("unsubscribe token is signed and expires", () => {
