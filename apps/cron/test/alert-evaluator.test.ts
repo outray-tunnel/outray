@@ -31,6 +31,7 @@ const rule: AlertRule = {
   failureStreak: 0,
   recoveryStreak: 0,
   notificationEmail: null,
+  notificationEmails: [],
   notificationSlackWebhook: null,
   notificationDiscordWebhook: null,
   mutedUntil: null,
