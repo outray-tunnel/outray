@@ -193,6 +193,15 @@ async function persistCheck(claimed: MonitorRow, result: ProbeResult) {
         result.statusCode, result.latencyMs, result.errorKind],
     );
     await client.query(
+      `INSERT INTO uptime_daily_checks
+         (organization_id, monitor_id, day, checks, successes)
+       VALUES ($1, $2, ($3::timestamptz AT TIME ZONE 'UTC')::date, 1, $4)
+       ON CONFLICT (monitor_id, day) DO UPDATE SET
+         checks = uptime_daily_checks.checks + 1,
+         successes = uptime_daily_checks.successes + EXCLUDED.successes`,
+      [current.organization_id, current.id, checkedAt, result.success ? 1 : 0],
+    );
+    await client.query(
       `UPDATE uptime_monitors SET
          state = $3, failure_streak = $4, success_streak = $5,
          last_checked_at = $6,
@@ -355,6 +364,15 @@ async function cleanupHistory() {
          ORDER BY checked_at ASC LIMIT 10000
        ) DELETE FROM uptime_checks AS checks USING expired
          WHERE checks.id = expired.id`,
+      100,
+    );
+    await deleteExpiredInBatches(
+      `WITH expired AS (
+         SELECT monitor_id, day FROM uptime_daily_checks
+         WHERE day < (NOW() AT TIME ZONE 'UTC')::date - 89
+         ORDER BY day ASC LIMIT 10000
+       ) DELETE FROM uptime_daily_checks AS checks USING expired
+         WHERE checks.monitor_id = expired.monitor_id AND checks.day = expired.day`,
       100,
     );
     await deleteExpiredInBatches(
