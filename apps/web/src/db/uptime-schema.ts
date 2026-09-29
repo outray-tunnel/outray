@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -72,6 +73,24 @@ export const uptimeChecks = pgTable(
     index("uptime_checks_org_time_idx").on(table.organizationId, table.checkedAt),
     index("uptime_checks_checked_at_idx").on(table.checkedAt),
     check("uptime_checks_latency_check", sql`${table.latencyMs} IS NULL OR ${table.latencyMs} >= 0`),
+  ],
+);
+
+// Compact daily evidence outlives the 30-day raw-check window so public pages
+// can show a truthful 90-day history without scanning individual probes.
+export const uptimeDailyChecks = pgTable(
+  "uptime_daily_checks",
+  {
+    organizationId: text("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    monitorId: text("monitor_id").notNull().references(() => uptimeMonitors.id, { onDelete: "cascade" }),
+    day: date("day").notNull(),
+    checks: integer("checks").notNull().default(0),
+    successes: integer("successes").notNull().default(0),
+  },
+  (table) => [
+    primaryKey({ columns: [table.monitorId, table.day] }),
+    index("uptime_daily_checks_org_day_idx").on(table.organizationId, table.day),
+    check("uptime_daily_checks_counts_check", sql`${table.checks} >= 0 AND ${table.successes} >= 0 AND ${table.successes} <= ${table.checks}`),
   ],
 );
 
