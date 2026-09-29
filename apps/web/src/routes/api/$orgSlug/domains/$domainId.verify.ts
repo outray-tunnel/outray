@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { resolveCname, resolveTxt } from "dns/promises";
 import { db } from "../../../../db";
 import { domains } from "../../../../db/app-schema";
 import { requireOrgFromSlug } from "../../../../lib/org";
+import { isReservedStatusDomain } from "../../../../lib/reserved-status-domain";
 
 export const Route = createFileRoute("/api/$orgSlug/domains/$domainId/verify")({
   server: {
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/api/$orgSlug/domains/$domainId/verify")({
         }
 
         const domain = await db.query.domains.findFirst({
-          where: eq(domains.id, domainId),
+          where: and(eq(domains.id, domainId), eq(domains.purpose, "tunnel")),
         });
 
         if (!domain) {
@@ -26,6 +27,13 @@ export const Route = createFileRoute("/api/$orgSlug/domains/$domainId/verify")({
 
         if (domain.organizationId !== orgContext.organization.id) {
           return Response.json({ error: "Unauthorized" }, { status: 403 });
+        }
+
+        if (isReservedStatusDomain(domain.domain)) {
+          return Response.json(
+            { error: "This hostname is reserved for Uptime status pages" },
+            { status: 400 },
+          );
         }
 
         try {
