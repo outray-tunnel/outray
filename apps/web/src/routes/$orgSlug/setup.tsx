@@ -9,6 +9,7 @@ import Key01Icon from "@hugeicons-pro/core-stroke-rounded/Key01Icon";
 import Loading03Icon from "@hugeicons-pro/core-stroke-rounded/Loading03Icon";
 import LockPasswordIcon from "@hugeicons-pro/core-stroke-rounded/LockPasswordIcon";
 import Pulse02Icon from "@hugeicons-pro/core-stroke-rounded/Pulse02Icon";
+import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
 import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -26,7 +27,7 @@ import {
   type SecretProject,
 } from "@/lib/secrets-client";
 
-type SetupProduct = "tunnels" | "observability" | "secrets";
+type SetupProduct = "tunnels" | "observability" | "secrets" | "uptime";
 
 interface SetupSearch {
   product: SetupProduct;
@@ -44,7 +45,8 @@ const productConfig: Record<
     consoleTo:
       | "/$orgSlug"
       | "/$orgSlug/observability"
-      | "/$orgSlug/secrets";
+      | "/$orgSlug/secrets"
+      | "/$orgSlug/uptime";
   }
 > = {
   tunnels: {
@@ -77,10 +79,19 @@ const productConfig: Record<
     icon: LockPasswordIcon,
     consoleTo: "/$orgSlug/secrets",
   },
+  uptime: {
+    name: "Uptime",
+    title: "Watch your first endpoint",
+    description: "Create an HTTP monitor for a public endpoint. Checks run every minute and confirm failures before alerting your team.",
+    waitingLabel: "Waiting for your first check",
+    completeLabel: "First check received",
+    icon: HeartPulseIcon,
+    consoleTo: "/$orgSlug/uptime",
+  },
 };
 
 function parseProduct(value: unknown): SetupProduct {
-  return value === "observability" || value === "secrets"
+  return value === "observability" || value === "secrets" || value === "uptime"
     ? value
     : "tunnels";
 }
@@ -141,13 +152,15 @@ function ProductSetup() {
               <TunnelSetup orgSlug={orgSlug} />
             ) : product === "observability" ? (
               <ObservabilitySetup orgSlug={orgSlug} />
-            ) : (
+            ) : product === "secrets" ? (
               <SecretsSetup
                 orgSlug={orgSlug}
                 onSecretCreated={() =>
                   setVerificationRefresh((value) => value + 1)
                 }
               />
+            ) : (
+              <UptimeSetup orgSlug={orgSlug} />
             )}
           </section>
 
@@ -204,6 +217,28 @@ function TunnelSetup({ orgSlug }: { orgSlug: string }) {
           detect the connection automatically.
         </p>
         <CodeBlock>{`outray 3000 --org ${orgSlug}`}</CodeBlock>
+      </SetupStep>
+    </div>
+  );
+}
+
+function UptimeSetup({ orgSlug }: { orgSlug: string }) {
+  return (
+    <div className="divide-y divide-white/[0.075]">
+      <SetupStep number="01" title="Add a public endpoint">
+        <p className="text-[13px] leading-6 text-zinc-500">
+          Give the monitor a name and an HTTPS URL. Choose GET or HEAD and, if needed, an exact response code or text to match. Private addresses are not supported.
+        </p>
+        <Link to="/$orgSlug/uptime/monitors" params={{ orgSlug }} className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/[0.12] px-4 py-2.5 text-[12px] font-medium text-zinc-200 hover:bg-white/[0.06]">
+          Create a monitor <HugeiconsIcon icon={ArrowRight01Icon} size={14} strokeWidth={1.8} />
+        </Link>
+      </SetupStep>
+      <SetupStep number="02" title="Wait for the first check">
+        <p className="text-[13px] leading-6 text-zinc-500">OutRay checks the endpoint from one region every minute. Its state remains Unknown until a check completes.</p>
+      </SetupStep>
+      <SetupStep number="03" title="Share a status page">
+        <p className="text-[13px] leading-6 text-zinc-500">Organize visible services into groups, associate monitors, and publish a page for your customers.</p>
+        <Link to="/$orgSlug/uptime/status-page" params={{ orgSlug }} className="mt-5 inline-flex items-center gap-2 text-[12px] font-medium text-zinc-300 hover:text-white">Open status-page builder <HugeiconsIcon icon={ArrowRight01Icon} size={14} strokeWidth={1.8} /></Link>
       </SetupStep>
     </div>
   );
@@ -866,12 +901,19 @@ function useProductVerification(
           const service = payload.services?.[0];
           complete = !!service;
           nextDetail = service || null;
-        } else {
+        } else if (product === "secrets") {
           const overview = await secretsClient.overview(orgSlug);
           complete = overview.secretCount > 0;
           nextDetail = complete
             ? `${overview.secretCount} ${overview.secretCount === 1 ? "secret" : "secrets"}`
             : null;
+        } else {
+          const response = await fetch(`/api/${encodeURIComponent(orgSlug)}/uptime/monitors`, { credentials: "same-origin", cache: "no-store" });
+          if (!response.ok) throw new Error("Could not check Uptime monitors");
+          const payload = (await response.json()) as { monitors?: Array<{ name: string; lastCheckedAt?: string | null }> };
+          const firstChecked = payload.monitors?.find((monitor) => monitor.lastCheckedAt);
+          complete = !!firstChecked;
+          nextDetail = firstChecked?.name || null;
         }
 
         if (cancelled) return;
