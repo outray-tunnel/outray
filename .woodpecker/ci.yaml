@@ -33,6 +33,18 @@ steps:
       - tb --cloud --host "$TINYBIRD_HOST" --token "$TINYBIRD_TOKEN" deploy --check
       - tb --cloud --host "$TINYBIRD_HOST" --token "$TINYBIRD_TOKEN" deploy
 
+  # The status renderer must be healthy before the edge route is switched.
+  - name: deploy-status
+    image: node:20-bookworm
+    environment:
+      EDGE_SSH_KEY:
+        from_secret: edge_ssh_key
+      UNBE_TOKEN:
+        from_secret: unbe_token
+    commands:
+      - apt-get update -qq && apt-get install -y -qq openssh-client
+      - bash deploy/woodpecker/deploy-service.sh status
+
   - name: deploy-edge
     image: node:20-bookworm
     environment:
@@ -42,4 +54,16 @@ steps:
         from_secret: unbe_token
     commands:
       - apt-get update -qq && apt-get install -y -qq openssh-client
-      - bash deploy/woodpecker/deploy-edge.sh
+      - bash deploy/woodpecker/deploy-service.sh edge
+
+  # Start probes only after both the renderer and edge are healthy.
+  - name: deploy-uptime-probe
+    image: node:20-bookworm
+    environment:
+      EDGE_SSH_KEY:
+        from_secret: edge_ssh_key
+      UNBE_TOKEN:
+        from_secret: unbe_token
+    commands:
+      - apt-get update -qq && apt-get install -y -qq openssh-client
+      - bash deploy/woodpecker/deploy-service.sh uptime-probe
