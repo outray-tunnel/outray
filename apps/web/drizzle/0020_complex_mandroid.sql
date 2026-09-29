@@ -1,0 +1,1 @@
+CREATE INDEX "uptime_checks_checked_at_idx" ON "uptime_checks" USING btree ("checked_at");
