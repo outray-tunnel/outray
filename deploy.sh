@@ -24,12 +24,9 @@ ALERT_LATE_DATA_SECONDS="${ALERT_LATE_DATA_SECONDS:-60}"
 ALERT_EVALUATION_RETENTION_DAYS="${ALERT_EVALUATION_RETENTION_DAYS:-30}"
 DATABASE_SSL_REJECT_UNAUTHORIZED="${DATABASE_SSL_REJECT_UNAUTHORIZED:-true}"
 
-# Uptime is rolled out in stages. Deploying the binaries does not start probes,
-# expose a page, or send notifications until the corresponding flags are set.
+# Uptime is rolled out in stages. The renderer and probe have separate deploys;
+# this script owns only the tunnel edge, internal check, and Caddy route.
 UPTIME_ENABLED="${UPTIME_ENABLED:-false}"
-UPTIME_PROBES_ENABLED="${UPTIME_PROBES_ENABLED:-false}"
-UPTIME_NOTIFICATIONS_ENABLED="${UPTIME_NOTIFICATIONS_ENABLED:-false}"
-UPTIME_EGRESS_POLICY_READY="${UPTIME_EGRESS_POLICY_READY:-false}"
 DEPLOY_CRON="${DEPLOY_CRON:-true}"
 DEPLOY_TIMESCALE_MIGRATIONS="${DEPLOY_TIMESCALE_MIGRATIONS:-true}"
 OUTRAY_DASHBOARD_URL="${OUTRAY_DASHBOARD_URL:-}"
@@ -50,11 +47,6 @@ if [ "$UPTIME_ENABLED" = "true" ]; then
     *) echo "❌ OUTRAY_STATUS_URL must be https://status.outray.app for this edge route." >&2; exit 1 ;;
   esac
 fi
-if [ "$UPTIME_PROBES_ENABLED" = "true" ] && [ "$UPTIME_EGRESS_POLICY_READY" != "true" ]; then
-  echo "❌ Probes cannot start until the dedicated worker egress policy is verified and UPTIME_EGRESS_POLICY_READY=true." >&2
-  exit 1
-fi
-
 # Tunnel Server Config
 BASE_DOMAIN="${BASE_DOMAIN:-outray.app}"
 BLUE_PORT=3547
@@ -152,24 +144,6 @@ else
 fi
 cd $APP_DIR
 
-# 1.6 Start the separate Astro status renderer (private loopback only).
-if [ -n "$OUTRAY_STATUS_URL" ]; then
-  echo "📟 Starting public status renderer..."
-  cd ../status
-  npm install --production
-  (
-    export STATUS_BIND_HOST="127.0.0.1" HOST="127.0.0.1" PORT="$STATUS_PORT" NODE_ENV="production"
-    export DATABASE_URL DATABASE_SSL_REJECT_UNAUTHORIZED OUTRAY_STATUS_URL UPTIME_ENABLED
-    export UPTIME_RATE_LIMIT_SECRET UPTIME_UNSUBSCRIBE_SECRET STATUS_EDGE_SECRET ZEPTO_API_KEY
-    if pm2 describe outray-status >/dev/null 2>&1; then
-      pm2 restart outray-status --update-env
-    else
-      pm2 start dist/server/entry.mjs --name outray-status
-    fi
-  )
-  cd "$APP_DIR"
-fi
-
 # 1.7 Start Cron Service
 if [ "$DEPLOY_CRON" = "true" ]; then
 echo "⏰ Starting Cron Service..."
@@ -240,59 +214,6 @@ if [ "$UPTIME_ENABLED" = "true" ]; then
   if ! curl --fail --silent --max-time 5 -H 'Host: status.outray.app' "http://127.0.0.1:$STATUS_PORT/health" >/dev/null; then
     echo "❌ Status renderer is not healthy; keeping the previous edge route." >&2
     exit 1
-  fi
-fi
-
-# Uptime checks run outside PM2 as an unprivileged systemd service, where
-# IPAddressDeny is enforced by the kernel. Do not run this worker as root.
-if [ "$UPTIME_ENABLED" = "true" ] && {
-  [ "$UPTIME_PROBES_ENABLED" = "true" ] || [ "$UPTIME_NOTIFICATIONS_ENABLED" = "true" ];
-}; then
-  if [ "$UPTIME_EGRESS_POLICY_READY" != "true" ]; then
-    echo "❌ Refusing to start Uptime worker without acknowledged egress policy." >&2
-    exit 1
-  fi
-  if ! command -v systemctl >/dev/null 2>&1 || ! command -v systemd-analyze >/dev/null 2>&1; then
-    echo "❌ Uptime worker requires systemd IPAddressDeny support." >&2
-    exit 1
-  fi
-  if ! id outray-uptime >/dev/null 2>&1; then
-    useradd --system --no-create-home --shell /usr/sbin/nologin outray-uptime
-  fi
-  install -d -m 0755 /opt/outray/uptime-probe
-  install -d -m 0700 /etc/outray
-  cp -a /root/outray/uptime-probe/. /opt/outray/uptime-probe/
-  cd /opt/outray/uptime-probe
-  npm install --production
-  cd "$APP_DIR"
-  install -m 0644 /root/outray/deploy/uptime-probe.service /etc/systemd/system/outray-uptime-probe.service
-  systemd-analyze verify /etc/systemd/system/outray-uptime-probe.service
-  export NODE_ENV=production DATABASE_URL DATABASE_SSL_REJECT_UNAUTHORIZED
-  export UPTIME_ENABLED UPTIME_PROBES_ENABLED UPTIME_NOTIFICATIONS_ENABLED UPTIME_EGRESS_POLICY_READY
-  export OUTRAY_DASHBOARD_URL OUTRAY_STATUS_URL UPTIME_UNSUBSCRIBE_SECRET ZEPTO_API_KEY
-  export OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID OUTRAY_SECRETS_ACTIVE_MASTER_KEY OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS
-  node -e '
-    const fs = require("node:fs");
-    const names = ["NODE_ENV", "DATABASE_URL", "DATABASE_SSL_REJECT_UNAUTHORIZED", "UPTIME_ENABLED", "UPTIME_PROBES_ENABLED", "UPTIME_NOTIFICATIONS_ENABLED", "UPTIME_EGRESS_POLICY_READY", "OUTRAY_DASHBOARD_URL", "OUTRAY_STATUS_URL", "UPTIME_UNSUBSCRIBE_SECRET", "ZEPTO_API_KEY", "OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID", "OUTRAY_SECRETS_ACTIVE_MASTER_KEY", "OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS"];
-    const lines = names.filter((name) => process.env[name] !== undefined).map((name) => {
-      const value = process.env[name];
-      if (/[\r\n]/.test(value)) throw new Error(`${name} contains a newline`);
-      return `${name}="${value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"`;
-    });
-    fs.writeFileSync("/etc/outray/uptime-probe.env", `${lines.join("\n")}\n`, { mode: 0o600 });
-    fs.chmodSync("/etc/outray/uptime-probe.env", 0o600);
-  '
-  systemctl daemon-reload
-  systemctl enable outray-uptime-probe
-  systemctl restart outray-uptime-probe
-  sleep 3
-  if ! systemctl is-active --quiet outray-uptime-probe; then
-    echo "❌ Uptime worker did not start under its egress policy." >&2
-    exit 1
-  fi
-else
-  if command -v systemctl >/dev/null 2>&1; then
-    systemctl stop outray-uptime-probe >/dev/null 2>&1 || true
   fi
 fi
 
