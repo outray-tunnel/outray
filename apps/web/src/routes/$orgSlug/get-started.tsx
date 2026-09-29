@@ -3,6 +3,7 @@ import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Ico
 import Cone01Icon from "@hugeicons-pro/core-stroke-rounded/Cone01Icon";
 import LockPasswordIcon from "@hugeicons-pro/core-stroke-rounded/LockPasswordIcon";
 import Pulse02Icon from "@hugeicons-pro/core-stroke-rounded/Pulse02Icon";
+import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
 import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/$orgSlug/get-started")({
 });
 
 interface ProductChoice {
-  id: "tunnels" | "observability" | "secrets";
+  id: "tunnels" | "observability" | "secrets" | "uptime";
   name: string;
   description: string;
   detail: string;
@@ -46,6 +47,14 @@ const products: ProductChoice[] = [
     detail: "Create a vault, add environments, and inject secrets with the CLI.",
     action: "Set up Secrets",
     icon: LockPasswordIcon,
+  },
+  {
+    id: "uptime",
+    name: "Uptime",
+    description: "Check public endpoints and keep your team informed when they go down.",
+    detail: "Create a monitor, then build a public status page from its checks.",
+    action: "Set up Uptime",
+    icon: HeartPulseIcon,
   },
 ];
 
@@ -86,7 +95,7 @@ function GetStarted() {
         </div>
 
         <section
-          className="mt-10 grid gap-4 lg:grid-cols-3"
+          className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4"
           aria-label="Choose an OutRay product"
         >
           {products.map((product) => (
