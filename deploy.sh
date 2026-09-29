@@ -30,6 +30,8 @@ UPTIME_ENABLED="${UPTIME_ENABLED:-false}"
 UPTIME_PROBES_ENABLED="${UPTIME_PROBES_ENABLED:-false}"
 UPTIME_NOTIFICATIONS_ENABLED="${UPTIME_NOTIFICATIONS_ENABLED:-false}"
 UPTIME_EGRESS_POLICY_READY="${UPTIME_EGRESS_POLICY_READY:-false}"
+DEPLOY_CRON="${DEPLOY_CRON:-true}"
+DEPLOY_TIMESCALE_MIGRATIONS="${DEPLOY_TIMESCALE_MIGRATIONS:-true}"
 OUTRAY_DASHBOARD_URL="${OUTRAY_DASHBOARD_URL:-}"
 OUTRAY_STATUS_URL="${OUTRAY_STATUS_URL:-}"
 STATUS_EDGE_SECRET="${STATUS_EDGE_SECRET:-}"
@@ -63,7 +65,7 @@ GREEN_NAME="outray-green"
 # Run Tiger Data (TimescaleDB) migrations
 echo "🐯 Running Tiger Data migrations..."
 cd /root/outray
-if [ -n "$TIMESCALE_URL" ]; then
+if [ -n "$TIMESCALE_URL" ] && [ "$DEPLOY_TIMESCALE_MIGRATIONS" = "true" ]; then
   # Run migration files (not the full setup script which drops tables)
   for migration in deploy/migrations/*.sql; do
     if [ -f "$migration" ]; then
@@ -169,6 +171,7 @@ if [ -n "$OUTRAY_STATUS_URL" ]; then
 fi
 
 # 1.7 Start Cron Service
+if [ "$DEPLOY_CRON" = "true" ]; then
 echo "⏰ Starting Cron Service..."
 cd ../cron
 npm install --production
@@ -215,6 +218,7 @@ else
   pm2 start dist/index.js --name "outray-cron"
 fi
 cd $APP_DIR
+fi
 
 echo "⏳ Waiting for tunnel server to be ready..."
 sleep 5
@@ -222,6 +226,11 @@ sleep 5
 # Verify Tunnel Server
 if ! pm2 list | grep -q "$TARGET_NAME.*online"; then
   echo "❌ Deployment failed: $TARGET_NAME is not online."
+  exit 1
+fi
+
+if ! curl --fail --silent --max-time 5 -H "Host: ${BASE_DOMAIN}" "http://127.0.0.1:$TARGET_PORT/health" >/dev/null; then
+  echo "❌ New tunnel edge failed its health check; keeping the previous edge route." >&2
   exit 1
 fi
 
