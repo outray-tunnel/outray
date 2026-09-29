@@ -27,12 +27,19 @@ const secretFeatures = [
   "Audit records for sensitive actions",
   "Runtime injection through the OutRay CLI",
 ];
+
+const uptimeFeatures = [
+  "One-minute HTTP(S) checks",
+  "Observed uptime, latency, and incident history",
+  "Public status pages with grouped components",
+  "Team alerts and team-published subscriber updates",
+];
 ---
 
 <section class="products product-showcase" aria-label="Explore OutRay products">
   <div class="page-shell product-switcher" data-product-tabs data-default-tab="tunnels" data-tab-group="showcase">
     <div class="product-switcher__frame" data-product-outline>
-      <div class="product-switcher__pills" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="product-switcher__pills" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
       <div class="product-switcher__tabs" role="tablist" aria-label="OutRay products">
       <button
         class="product-switcher__tab"
@@ -72,6 +79,19 @@ const secretFeatures = [
       >
         <ProductIcon product="secrets" class="product-switcher__icon" />
         <span>Secrets</span>
+      </button>
+      <button
+        class="product-switcher__tab"
+        type="button"
+        id="showcase-tab-uptime"
+        role="tab"
+        aria-selected="false"
+        aria-controls="uptime"
+        tabindex="-1"
+        data-product-tab="uptime"
+      >
+        <ProductIcon product="uptime" class="product-switcher__icon" />
+        <span>Uptime</span>
       </button>
       </div>
 
@@ -215,6 +235,56 @@ const secretFeatures = [
       </div>
       <ul class="feature-list product-features" aria-label="Secrets capabilities">
         {secretFeatures.map((feature) => (
+          <li><span aria-hidden="true"></span>{feature}</li>
+        ))}
+      </ul>
+    </article>
+
+    <article
+      class="product-section product-switcher__panel"
+      id="uptime"
+      role="tabpanel"
+      aria-labelledby="showcase-tab-uptime"
+      data-product-panel="uptime"
+      data-product-section="uptime"
+      data-active="false"
+    >
+      <div class="product-copy">
+        <p class="product-index">04 / Uptime</p>
+        <h2 class="product-title">Know when a service goes down.</h2>
+        <p class="product-description">Check your public endpoints, alert your team when they fail, and keep everyone informed on a status page you control.</p>
+        <a class="inline-link product-link" href={docsUrl} data-track="cta" data-track-label="uptime-read-docs">
+          Read the docs
+          <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+        </a>
+      </div>
+
+      <div class="product-panel uptime-panel" role="group" aria-label="Uptime status page interface">
+        <div class="panel-toolbar">
+          <div class="panel-title">
+            <span class="product-glyph"><ProductIcon product="uptime" /></span>
+            <span><small>Status page</small><strong>Acme services</strong></span>
+          </div>
+          <span class="uptime-page-label">Public</span>
+        </div>
+        <div class="uptime-panel__body">
+          <div class="uptime-panel__summary">
+            <span class="uptime-panel__summary-icon" aria-hidden="true"><ProductIcon product="uptime" /></span>
+            <span><strong>All systems operational</strong><small>Current status across visible services</small></span>
+          </div>
+          <div class="uptime-panel__group">
+            <div class="uptime-panel__group-heading"><strong>Services</strong><span>2 components</span></div>
+            <div class="uptime-panel__component"><span>API</span><span><i></i>Operational</span></div>
+            <div class="uptime-panel__component"><span>Dashboard</span><span><i></i>Operational</span></div>
+          </div>
+          <div class="uptime-panel__history">
+            <span>Incident history</span>
+            <strong>No recent incidents</strong>
+          </div>
+        </div>
+      </div>
+      <ul class="feature-list product-features" aria-label="Uptime capabilities">
+        {uptimeFeatures.map((feature) => (
           <li><span aria-hidden="true"></span>{feature}</li>
         ))}
       </ul>
