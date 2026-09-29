@@ -14,8 +14,12 @@
   },
   "dependencies": {
     "@astrojs/node": "9.5.5",
+    "@astrojs/react": "4.3.0",
     "astro": "5.18.2",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "recharts": "3.6.0"
   },
   "overrides": {
     "unifont": "0.7.4"
@@ -24,6 +28,8 @@
     "@astrojs/check": "^0.9.10",
     "@types/node": "^22.15.30",
     "@types/pg": "^8.15.4",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
     "tsx": "^4.20.3",
     "typescript": "~5.9.3"
   }
