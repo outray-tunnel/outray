@@ -1,0 +1,18 @@
+---
+import StatusPage from "../components/StatusPage.astro";
+import { statusPageUrl } from "../lib/config";
+import { findPageForRequest, loadPublicPage } from "../lib/status-data";
+
+Astro.response.headers.set("Cache-Control", "public, max-age=15, s-maxage=15");
+const row = await findPageForRequest(Astro.request, Astro.params.slug || null);
+if (!row) return Astro.redirect("/not-found", 302);
+if (import.meta.env.PROD) {
+  // Existing path links remain usable, but new pages are served on their own hosts.
+  const target = statusPageUrl(row.slug);
+  if (Astro.url.searchParams.get("subscribed") === "1") target.searchParams.set("subscribed", "1");
+  return Astro.redirect(target.toString(), 308);
+}
+const page = await loadPublicPage(row);
+const subscribed = Astro.url.searchParams.get("subscribed") === "1";
+---
+<StatusPage page={page} subscribed={subscribed} />
