@@ -1,7 +1,8 @@
 import { execFileSync, spawnSync } from "node:child_process";
+import { readFileSync, statSync } from "node:fs";
 
-// The edge already has its production runtime values in the active PM2 process.
-// Read only the values deploy.sh needs; never print or send them to CI.
+// Preserve the active process settings, then override the edge/status/probe
+// credentials from Unbe. None of these values are sent to Woodpecker or printed.
 const names = [
   "REDIS_URL",
   "REDIS_TUNNEL_TTL_SECONDS",
@@ -35,6 +36,73 @@ const names = [
   "OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS",
 ];
 
+const managedSecrets = [
+  "REDIS_URL",
+  "TIMESCALE_URL",
+  "DATABASE_URL",
+  "INTERNAL_API_SECRET",
+  "STATUS_EDGE_SECRET",
+  "UPTIME_RATE_LIMIT_SECRET",
+  "UPTIME_UNSUBSCRIBE_SECRET",
+  "ZEPTO_API_KEY",
+  "OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID",
+  "OUTRAY_SECRETS_ACTIVE_MASTER_KEY",
+  "OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS",
+];
+
+async function readUnbeToken() {
+  if (process.argv.includes("--token-stdin")) {
+    let token = "";
+    for await (const chunk of process.stdin) {
+      token += chunk;
+      if (token.length > 256) throw new Error("Unbe token input is too large.");
+    }
+    if (!token.trim()) throw new Error("Unbe token input is empty.");
+    return token.trim();
+  }
+
+  // Root-only fallback for manual edge deployments outside Woodpecker.
+  const tokenPath = "/etc/outray/unbe-token";
+  const tokenFile = statSync(tokenPath);
+  if (tokenFile.uid !== 0 || (tokenFile.mode & 0o077) !== 0) {
+    throw new Error("Unbe token must be root-owned and readable only by root.");
+  }
+
+  const token = readFileSync(tokenPath, "utf8").trim();
+  if (!token) throw new Error("Unbe token is empty.");
+  return token;
+}
+
+async function readUnbeSecrets() {
+  const token = await readUnbeToken();
+
+  const target = new URLSearchParams({
+    workspace: "outray",
+    project: "outray",
+    environment: "production",
+  });
+  const response = await fetch(`https://unbe.dev/api/cli/secrets?${target}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) {
+    throw new Error(`Unbe returned HTTP ${response.status}.`);
+  }
+
+  const result = await response.json();
+  const secrets = Object.fromEntries(
+    result.secrets.map(({ key, value }) => [key, value]),
+  );
+  const missing = managedSecrets.filter(
+    (name) => typeof secrets[name] !== "string" || !secrets[name],
+  );
+  if (missing.length > 0) {
+    throw new Error(`Unbe is missing required secrets: ${missing.join(", ")}`);
+  }
+
+  return Object.fromEntries(managedSecrets.map((name) => [name, secrets[name]]));
+}
+
 let processes;
 try {
   processes = JSON.parse(execFileSync("pm2", ["jlist"], { encoding: "utf8" }));
@@ -60,6 +128,13 @@ const runtime = Object.fromEntries(
     .map((name) => [name, current[name]]),
 );
 
+try {
+  Object.assign(runtime, await readUnbeSecrets());
+} catch (error) {
+  console.error(`Cannot load production secrets from Unbe: ${error.message}`);
+  process.exit(1);
+}
+
 // Cron runs separately on Aeroplane. Do not start a second evaluator here.
 runtime.DEPLOY_CRON = "false";
 // Brimble owns database migrations; deploying edge artifacts must not run them.
@@ -84,7 +159,7 @@ if (missing.length > 0) {
 }
 
 if (process.argv.includes("--check")) {
-  console.log(`Edge runtime verified from ${tunnel.name}; cron deployment disabled.`);
+  console.log(`Edge runtime verified from ${tunnel.name} and Unbe; cron deployment disabled.`);
   process.exit(0);
 }
 
