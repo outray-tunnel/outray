@@ -39,6 +39,6 @@ for service in tunnel internal-check status uptime-probe; do
   scp "${scp_options[@]}" -r "apps/$service/dist" "apps/$service/package.json" "$edge:/root/outray/$service/"
 done
 scp "${scp_options[@]}" deploy.sh "$edge:/root/outray/"
-scp "${scp_options[@]}" -r deploy/migrations deploy/uptime-probe.service "$edge:/root/outray/deploy/"
+scp "${scp_options[@]}" deploy/uptime-probe.service "$edge:/root/outray/deploy/"
 
 ssh "${ssh_options[@]}" "$edge" 'node /root/outray/deploy/woodpecker/run-edge-deploy.mjs'
