@@ -1,5 +1,5 @@
-import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, index, integer, boolean } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import { pgTable, text, timestamp, index, integer, boolean, check } from "drizzle-orm/pg-core";
 import { users, organizations } from "./auth-schema";
 
 export const tunnels = pgTable(
@@ -82,6 +82,7 @@ export const domains = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     status: text("status").notNull().default("pending"), // pending, active, failed
+    purpose: text("purpose").notNull().default("tunnel"), // tunnel or status
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .$onUpdate(() => new Date())
@@ -91,6 +92,7 @@ export const domains = pgTable(
     index("domains_domain_idx").on(table.domain),
     index("domains_organizationId_idx").on(table.organizationId),
     index("domains_userId_idx").on(table.userId),
+    check("domains_purpose_check", sql`${table.purpose} IN ('tunnel', 'status')`),
   ],
 );
 
