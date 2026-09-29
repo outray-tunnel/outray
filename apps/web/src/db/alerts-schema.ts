@@ -302,9 +302,12 @@ export const notifications = pgTable(
     ),
     index("notifications_source_idx").on(table.sourceType, table.sourceId),
     index("notifications_incident_idx").on(table.incidentId),
+    index("notifications_uptime_subscriber_sent_idx")
+      .on(table.organizationId, sql`(${table.payload}->>'subscriberId')`, table.sentAt)
+      .where(sql`${table.sourceType} = 'uptime_incident_update' AND ${table.status} = 'sent'`),
     check(
       "notifications_event_check",
-      sql`${table.event} IN ('firing', 'resolved', 'test')`,
+      sql`${table.event} IN ('firing', 'resolved', 'test', 'published')`,
     ),
     check(
       "notifications_channel_check",
