@@ -530,7 +530,8 @@ async function claimNotifications(): Promise<NotificationRow[]> {
     `WITH due AS (
        SELECT id
        FROM notifications
-       WHERE channel = ANY($4::text[])
+       WHERE source_type = 'observability_alert'
+         AND channel = ANY($4::text[])
          AND attempts < max_attempts
          AND next_attempt_at <= NOW()
          AND (
