@@ -1,0 +1,7 @@
+[Unit]
+Description=Back up Woodpecker SQLite database
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/woodpecker-backup
