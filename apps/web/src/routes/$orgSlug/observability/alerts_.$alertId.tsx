@@ -26,6 +26,7 @@ import {
   Panel,
 } from "@/components/observability/observability-ui";
 import { Modal } from "@/components/ui/modal";
+import { AlertEmailRecipients } from "@/components/observability/alert-email-recipients";
 import {
   AlertDetailContext,
   useAlertDetail,
@@ -729,8 +730,9 @@ export function AlertNotificationsTab() {
   const { data, orgSlug, onReload } = useAlertDetail();
   const { alert, notifications } = data;
   const [editingEmail, setEditingEmail] = useState(false);
-  const [email, setEmail] = useState(alert.notificationEmail || "");
+  const [emails, setEmails] = useState<string[]>(alert.notificationEmails?.length ? alert.notificationEmails : alert.notificationEmail ? [alert.notificationEmail] : []);
   const [settingsProvider, setSettingsProvider] = useState<"slack" | "discord" | null>(null);
+  const [setupProviders, setSetupProviders] = useState<Array<"slack" | "discord">>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -739,8 +741,27 @@ export function AlertNotificationsTab() {
     : new URLSearchParams(window.location.search).get("integration");
 
   useEffect(() => {
-    if (!editingEmail) setEmail(alert.notificationEmail || "");
-  }, [alert.notificationEmail, editingEmail]);
+    const key = `outray-alert-setup:${alert.id}`;
+    const fromUrl = new URLSearchParams(window.location.search).get("setup")?.split(",") ?? [];
+    let stored: unknown = [];
+    try { stored = JSON.parse(window.sessionStorage.getItem(key) ?? "[]"); } catch { /* Ignore stale setup state. */ }
+    const requested = [...fromUrl, ...(Array.isArray(stored) ? stored : [])].filter((provider): provider is "slack" | "discord" => provider === "slack" || provider === "discord");
+    const pending = [...new Set(requested)];
+    if (pending.length) window.sessionStorage.setItem(key, JSON.stringify(pending));
+    setSetupProviders(pending);
+  }, [alert.id]);
+
+  useEffect(() => {
+    if (!setupProviders.length) return;
+    if (setupProviders.every((provider) => provider === "slack" ? alert.notificationSlackConfigured : alert.notificationDiscordConfigured)) {
+      window.sessionStorage.removeItem(`outray-alert-setup:${alert.id}`);
+      setSetupProviders([]);
+    }
+  }, [alert.id, alert.notificationDiscordConfigured, alert.notificationSlackConfigured, setupProviders]);
+
+  useEffect(() => {
+    if (!editingEmail) setEmails(alert.notificationEmails?.length ? alert.notificationEmails : alert.notificationEmail ? [alert.notificationEmail] : []);
+  }, [alert.notificationEmail, alert.notificationEmails, editingEmail]);
 
   const base = `/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alert.id)}/integrations`;
   const saveEmail = async () => {
@@ -750,7 +771,7 @@ export function AlertNotificationsTab() {
       const response = await fetch(`/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alert.id)}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ notificationEmail: email.trim() || null }),
+        body: JSON.stringify({ notificationEmails: emails }),
       });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "Could not save email notifications");
@@ -794,6 +815,16 @@ export function AlertNotificationsTab() {
           {error || notice || (integrationResult === "connected" ? "Destination connected. Alerts will be delivered to the selected channel." : integrationResult === "cancelled" ? "Connection cancelled." : "Could not connect the destination. Please try again.")}
         </p>
       )}
+      {setupProviders.length > 0 && <div className="rounded-xl border border-violet-400/20 bg-violet-400/[0.06] px-5 py-4">
+        <p className="text-sm font-medium text-zinc-100">Finish connecting your notification methods</p>
+        <p className="mt-1 text-xs leading-5 text-zinc-400">Authorize each provider and choose the channel that should receive this alert.</p>
+        <div className="mt-3 flex flex-wrap gap-2">{setupProviders.map((provider) => {
+          const connected = provider === "slack" ? alert.notificationSlackConfigured : alert.notificationDiscordConfigured;
+          return connected
+            ? <span key={provider} className="rounded-lg border border-emerald-400/20 px-3 py-2 text-xs text-emerald-300">{provider === "slack" ? "Slack" : "Discord"} connected</span>
+            : <a key={provider} href={`/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alert.id)}/integrations/${provider}/start`} className="inline-flex h-9 items-center rounded-lg bg-white px-3 text-xs font-medium text-black hover:bg-zinc-200">Connect {provider === "slack" ? "Slack" : "Discord"}</a>;
+        })}</div>
+      </div>}
       <Panel title="Notification methods" description="Choose where firing and recovery updates should go.">
         <div className="divide-y divide-white/[0.07]">
           <div className="flex flex-wrap items-center gap-4 px-5 py-5 sm:px-6">
@@ -802,14 +833,14 @@ export function AlertNotificationsTab() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-zinc-100">Email</p>
-              <p className="mt-1 text-xs text-zinc-500">{alert.notificationEmail || "No recipient configured"}</p>
+              <p className="mt-1 text-xs text-zinc-500">{alert.notificationEmails?.length ? alert.notificationEmails.join(", ") : alert.notificationEmail || "No recipients configured"}</p>
             </div>
             <button type="button" onClick={() => { setEditingEmail((value) => !value); setError(null); }} className="h-9 rounded-lg border border-white/[0.1] px-3 text-xs font-medium text-zinc-200 hover:bg-white/[0.06]">
-              {editingEmail ? "Cancel" : alert.notificationEmail ? "Edit" : "Add email"}
+              {editingEmail ? "Cancel" : alert.notificationEmails?.length || alert.notificationEmail ? "Edit" : "Add email"}
             </button>
-            {editingEmail && <div className="flex w-full flex-wrap items-center gap-2 pl-0 sm:pl-[60px]">
-              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Member email address" aria-label="Notification email" className="h-10 min-w-52 flex-1 rounded-lg border border-white/[0.1] bg-white/[0.025] px-3 text-sm text-zinc-200 outline-none focus:border-violet-400/50" />
-              <button type="button" disabled={saving} onClick={() => void saveEmail()} className="h-10 rounded-lg bg-white px-4 text-xs font-medium text-black hover:bg-zinc-200 disabled:opacity-50">Save</button>
+            {editingEmail && <div className="w-full space-y-3 pl-0 sm:pl-[60px]">
+              <AlertEmailRecipients orgSlug={orgSlug} value={emails} onChange={setEmails} />
+              <button type="button" disabled={saving} onClick={() => void saveEmail()} className="h-10 rounded-lg bg-white px-4 text-xs font-medium text-black hover:bg-zinc-200 disabled:opacity-50">Save recipients</button>
             </div>}
           </div>
           {(["slack", "discord"] as const).map((provider) => {
