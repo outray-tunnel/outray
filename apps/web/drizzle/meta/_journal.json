@@ -113,6 +113,41 @@
       "when": 1790640053924,
       "tag": "0015_common_sleepwalker",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790651413200,
+      "tag": "0016_uptime_v1",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790651624559,
+      "tag": "0017_uptime_subscriber_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790651829850,
+      "tag": "0018_uptime_subscriber_rate_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790652157002,
+      "tag": "0019_uptime_domain_purpose_constraint",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1790652405392,
+      "tag": "0020_complex_mandroid",
+      "breakpoints": true
     }
   ]
 }
