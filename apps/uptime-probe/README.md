@@ -29,7 +29,8 @@ in the deployed execution context.
 The worker accepts only public HTTP port 80 or HTTPS port 443 targets. The
 worker never logs monitor URLs, request headers, or response bodies. It
 stores only check outcomes, status codes, bounded latency, and a fixed error
-classification. It trims check history to 30 days and cleans stale signup
+classification. It trims raw check history to 30 days and compact daily check
+summaries to 90 days, and cleans stale signup
 rate-limit attempts after two days. Automatic monitor incidents enqueue team
 alerts only. Subscriber email is claimed only for a team-published incident
 update, and each recipient is rechecked as confirmed before sending.
