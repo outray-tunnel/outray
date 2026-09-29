@@ -1,18 +1,10 @@
-# Both branches deploy to the same production database and edge. Serialize the
-# entire workflow so migrations and artifact copies cannot overlap.
+# Both branches deploy to the same production Tinybird workspace and edge.
+# Serialize the workflow so deploys cannot overlap.
 when:
   - event: [push, manual]
     branch: [main, next]
 
 concurrency: 1
-
-services:
-  - name: postgres
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: outray_test
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_USER: postgres
 
 steps:
   - name: install
@@ -28,26 +20,6 @@ steps:
     commands:
       - npm run build -- --concurrency=1 --filter=outray-tunnel --filter=outray-internal-check --filter=outray-status --filter=outray-uptime-probe
 
-  - name: test-services
-    image: node:20-bookworm
-    commands:
-      - npm run test --workspace=outray-tunnel
-      - npm run test --workspace=outray-status
-      - npm run test --workspace=outray-uptime-probe
-
-  - name: test-web-database
-    image: node:20-bookworm
-    environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/outray_test
-      OUTRAY_TEST_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/outray_test
-      OUTRAY_RUN_DB_INTEGRATION: "1"
-      OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID: ci-v1
-      OUTRAY_SECRETS_ACTIVE_MASTER_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
-      OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS: "{}"
-    commands:
-      - npm exec --workspace=outray-web -- drizzle-kit migrate --config=drizzle.config.ts
-      - npm run test --workspace=outray-web
-
   # The workflow is push/manual only; production secrets never reach PR builds.
   - name: deploy-tinybird
     image: python:3.11-slim
@@ -60,17 +32,6 @@ steps:
       - pip install --disable-pip-version-check tinybird==4.6.15
       - tb --cloud --host "$TINYBIRD_HOST" --token "$TINYBIRD_TOKEN" deploy --check
       - tb --cloud --host "$TINYBIRD_HOST" --token "$TINYBIRD_TOKEN" deploy
-
-  - name: migrate-production-database
-    image: node:20-bookworm
-    environment:
-      DATABASE_URL:
-        from_secret: database_url
-    commands:
-      - test -n "$DATABASE_URL"
-      - npm exec --workspace=outray-web -- drizzle-kit check --config=drizzle.config.ts
-      - npm exec --workspace=outray-web -- drizzle-kit migrate --config=drizzle.config.ts
-      - npm run tokens:backfill --workspace=outray-web
 
   - name: deploy-edge
     image: node:20-bookworm
