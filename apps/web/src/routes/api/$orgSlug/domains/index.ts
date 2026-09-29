@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 import { db } from "../../../../db";
 import { domains } from "../../../../db/app-schema";
 import { subscriptions } from "../../../../db/subscription-schema";
 import { requireOrgFromSlug } from "../../../../lib/org";
+import { isReservedStatusDomain } from "../../../../lib/reserved-status-domain";
 import { getPlanLimits } from "../../../../lib/subscription-plans";
 
 export const Route = createFileRoute("/api/$orgSlug/domains/")({
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
         const result = await db
           .select()
           .from(domains)
-          .where(eq(domains.organizationId, organization.id))
+          .where(and(eq(domains.organizationId, organization.id), eq(domains.purpose, "tunnel")))
           .orderBy(desc(domains.createdAt));
 
         return Response.json({ domains: result });
@@ -41,6 +42,13 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
         }
 
         const normalizedDomain = domain.trim().toLowerCase();
+
+        if (isReservedStatusDomain(normalizedDomain)) {
+          return Response.json(
+            { error: "status.outray.app and its subdomains are reserved for Uptime status pages" },
+            { status: 400 },
+          );
+        }
 
         const domainParts = normalizedDomain.split(".");
         if (domainParts.length < 3) {
@@ -80,7 +88,7 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
             const existingDomains = await tx
               .select({ id: domains.id })
               .from(domains)
-              .where(eq(domains.organizationId, organization.id))
+              .where(and(eq(domains.organizationId, organization.id), eq(domains.purpose, "tunnel")))
               .for("update");
 
             const existingCount = existingDomains.length;
@@ -112,6 +120,7 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
                 organizationId: organization.id,
                 userId: session.user.id,
                 status: "pending",
+                purpose: "tunnel",
               })
               .returning();
 
