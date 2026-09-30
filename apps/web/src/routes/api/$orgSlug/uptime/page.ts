@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
         const access = await requireUptimeRead(request, params.orgSlug);
         if ("error" in access) return access.error;
         const data = await loadPage(access.organization.id);
-        return Response.json(data ?? { page: null, groups: [] });
+        return Response.json(data ?? { page: null, groups: [], standaloneComponents: [] });
       },
       POST: async ({ request, params }) => {
         const access = await requireUptimeManager(request, params.orgSlug);
@@ -45,7 +45,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
             return { page, group };
           });
           if (!result) return Response.json({ error: "This organization already has its beta status page" }, { status: 409 });
-          return Response.json({ page: result.page, groups: [{ ...result.group, components: [] }] }, { status: 201 });
+          return Response.json({ page: result.page, groups: [{ ...result.group, components: [] }], standaloneComponents: [] }, { status: 201 });
         } catch (error) {
           if ((error as { code?: string })?.code === "23505") return Response.json({ error: "Status-page slug is already in use" }, { status: 409 });
           throw error;
