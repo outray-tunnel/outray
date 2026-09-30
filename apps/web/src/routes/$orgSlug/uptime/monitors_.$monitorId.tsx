@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useState } from "react";
 import { UptimeEmailRecipients } from "@/components/uptime/email-recipients";
 import { formatTime, type UptimeCheck, type UptimeIncident, type UptimeMonitor, useUptimeResource, uptimeRequest } from "@/components/uptime/uptime-client";
+import { UptimeHeaderSkeleton, UptimeRowsSkeleton, UptimeSkeleton, UptimeSummarySkeleton } from "@/components/uptime/uptime-skeleton";
 import { fieldClass, labelClass, primaryButton, secondaryButton, StateBadge, UptimeError, UptimePageHeading, UptimePanel } from "@/components/uptime/uptime-ui";
 
 interface MonitorDetails {
@@ -68,12 +69,24 @@ function MonitorDetail() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not update monitor."); }
   };
 
+  if (resource.loading && !resource.data) return <div className="mx-auto max-w-[1180px]">
+    <Link to="/$orgSlug/uptime/monitors" params={{ orgSlug }} className="mb-5 inline-block text-xs text-zinc-500 hover:text-white">← All monitors</Link>
+    <UptimeSkeleton label="Loading monitor details" className="space-y-5">
+      <UptimeHeaderSkeleton action />
+      <UptimeSummarySkeleton />
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(300px,1fr)]">
+        <UptimePanel className="overflow-hidden"><div className="h-14 border-b border-white/[0.07] px-5 py-5"><div className="h-3 w-28 rounded bg-white/[0.06]" /></div><UptimeRowsSkeleton rows={3} /></UptimePanel>
+        <UptimePanel className="h-52 bg-white/[0.015]" />
+      </div>
+    </UptimeSkeleton>
+  </div>;
+  if (resource.error && !resource.data) return <div className="mx-auto max-w-[1180px]"><Link to="/$orgSlug/uptime/monitors" params={{ orgSlug }} className="mb-5 inline-block text-xs text-zinc-500 hover:text-white">← All monitors</Link><UptimeError message={resource.error} /></div>;
+
   return <div className="mx-auto max-w-[1180px]">
     <Link to="/$orgSlug/uptime/monitors" params={{ orgSlug }} className="mb-5 inline-block text-xs text-zinc-500 hover:text-white">← All monitors</Link>
-    <UptimePageHeading eyebrow="Uptime / Monitor" title={monitor?.name || "Monitor"} description={monitor ? `${monitor.method} ${monitor.url}` : "Check history and incidents for this endpoint."} action={monitor && <div className="flex flex-wrap gap-2"><button type="button" className={secondaryButton} onClick={() => setEditing((value) => !value)}>{editing ? "Close editor" : "Edit"}</button><button type="button" className={secondaryButton} onClick={() => void toggle()}>{monitor.enabled ? "Pause" : "Resume"}</button></div>} />
+    <UptimePageHeading title={monitor?.name || "Monitor"} description={monitor ? `${monitor.method} ${monitor.url}` : "Check history and incidents for this endpoint."} action={monitor && <div className="flex flex-wrap gap-2"><button type="button" className={secondaryButton} onClick={() => setEditing((value) => !value)}>{editing ? "Close editor" : "Edit"}</button><button type="button" className={secondaryButton} onClick={() => void toggle()}>{monitor.enabled ? "Pause" : "Resume"}</button></div>} />
     {resource.error && <UptimeError message={resource.error} />}
     {error && <div className="mb-5"><UptimeError message={error} /></div>}
-    {resource.loading && <p className="text-sm text-zinc-500">Loading monitor…</p>}
     {monitor && <>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <UptimePanel className="p-5"><p className="text-xs text-zinc-500">Current state</p><div className="mt-4"><StateBadge state={monitor.state} /></div><p className="mt-3 text-xs text-zinc-600">{monitor.enabled ? "Checking every minute" : "Paused"}</p></UptimePanel>
