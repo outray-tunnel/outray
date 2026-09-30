@@ -1,4 +1,5 @@
 import { and, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
+import { parseIncidentDocument, type IncidentDocument } from "@outray/incident-content";
 import { incidents, notifications } from "@/db/alerts-schema";
 import { organizations } from "@/db/auth-schema";
 import {
@@ -13,6 +14,7 @@ import type { SecretsTransaction } from "@/lib/secrets/database";
 
 export type UpdateInput = {
   note: string;
+  bodyJson: IncidentDocument | null;
   status: "investigating" | "identified" | "monitoring" | "resolved";
   componentStates: Record<string, "unknown" | "operational" | "degraded" | "outage">;
   publish: boolean;
@@ -63,7 +65,7 @@ export async function createManualIncidentUpdate(tx: SecretsTransaction, input: 
   const now = new Date();
   const [update] = await tx.insert(uptimeIncidentUpdates).values({
     id: crypto.randomUUID(), organizationId: input.organizationId, incidentId: incident.id,
-    createdBy: input.userId, note: input.data.note, status: input.data.status,
+    createdBy: input.userId, note: input.data.note, bodyJson: input.data.bodyJson, status: input.data.status,
     componentStates: input.data.componentStates, publishedAt: input.data.publish ? now : null,
   }).returning();
   if (input.data.publish) {
@@ -90,7 +92,7 @@ export async function editManualIncidentDraft(tx: SecretsTransaction, input: {
   if (draft.publishedAt) throw new PublishError("Published updates are immutable", 409);
   assertIncidentOpen(incident);
   const parsed = parseIncidentUpdate({
-    note: input.body.note ?? draft.note, status: input.body.status ?? draft.status,
+    ...(input.body.body !== undefined ? { body: input.body.body } : { note: input.body.note ?? draft.note }), status: input.body.status ?? draft.status,
     componentStates: input.body.componentStates ?? draft.componentStates, publish: input.body.publish ?? false,
   });
   if (!parsed.success) throw new PublishError(parsed.error, 400, parsed.field);
@@ -101,7 +103,7 @@ export async function editManualIncidentDraft(tx: SecretsTransaction, input: {
     ));
   const now = new Date();
   const [updated] = await tx.update(uptimeIncidentUpdates).set({
-    note: parsed.data.note, status: parsed.data.status, componentStates: parsed.data.componentStates,
+    note: parsed.data.note, bodyJson: input.body.body === undefined && input.body.note === undefined ? draft.bodyJson : parsed.data.bodyJson, status: parsed.data.status, componentStates: parsed.data.componentStates,
     publishedAt: parsed.data.publish ? now : null,
   }).where(and(eq(uptimeIncidentUpdates.id, draft.id), eq(uptimeIncidentUpdates.organizationId, input.organizationId))).returning();
   if (parsed.data.publish) {
@@ -117,7 +119,9 @@ export async function editManualIncidentDraft(tx: SecretsTransaction, input: {
 
 export function parseIncidentUpdate(body: Record<string, unknown>):
   { success: true; data: UpdateInput } | { success: false; error: string; field?: string } {
-  const note = body.note;
+  const parsedBody = body.body === undefined ? null : parseIncidentDocument(body.body);
+  if (body.body !== undefined && !parsedBody) return { success: false, field: "body", error: "The update contains unsupported formatting or needs text" };
+  const note = parsedBody?.note ?? body.note;
   if (typeof note !== "string" || !note.trim() || note.trim().length > 4_000) {
     return { success: false, field: "note", error: "An update note of 1–4,000 characters is required" };
   }
@@ -134,7 +138,7 @@ export function parseIncidentUpdate(body: Record<string, unknown>):
     return { success: false, field: "componentStates", error: "Invalid component states" };
   }
   return { success: true, data: {
-    note: note.trim(), status, publish,
+    note: note.trim(), bodyJson: parsedBody?.body ?? null, status, publish,
     componentStates: raw as UpdateInput["componentStates"],
   } };
 }
