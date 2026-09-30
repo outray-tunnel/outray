@@ -1,7 +1,9 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
+import { members } from "@/db/auth-schema";
 import { uptimeComponentMonitors, uptimeMonitors, uptimeStatusComponents, uptimeStatusGroups, uptimeStatusPages } from "@/db/uptime-schema";
 import { requireAlertManager } from "@/lib/observability/alert-access";
+import { isAlertManagerRole } from "@/lib/observability/alert-validation";
 import { requireOrgFromSlug } from "@/lib/org";
 import { deriveComponentState, rollupStatus } from "./state";
 
@@ -21,6 +23,15 @@ export async function requireUptimeRead(request: Request, orgSlug: string) {
 export async function requireUptimeManager(request: Request, orgSlug: string) {
   if (uptimeDisabled()) return { error: uptimeUnavailable() } as const;
   return requireAlertManager(request, orgSlug);
+}
+
+export async function canManageUptime(organizationId: string, userId: string | undefined) {
+  if (!userId) return false;
+  const membership = await db.query.members.findFirst({
+    columns: { role: true },
+    where: and(eq(members.organizationId, organizationId), eq(members.userId, userId)),
+  });
+  return isAlertManagerRole(membership?.role);
 }
 
 export async function jsonBody(request: Request): Promise<Record<string, unknown> | Response> {
