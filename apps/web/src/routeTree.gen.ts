@@ -136,6 +136,7 @@ import { Route as ApiOrgSlugRequestsCaptureRouteImport } from './routes/api/$org
 import { Route as ApiOrgSlugPortalPolarRouteImport } from './routes/api/$orgSlug/portal/polar'
 import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$orgSlug/domains/$domainId'
 import { Route as OrgSlugUptimeStatusPagePublishingRouteImport } from './routes/$orgSlug/uptime/status-page/publishing'
+import { Route as OrgSlugUptimeStatusPageDomainsRouteImport } from './routes/$orgSlug/uptime/status-page/domains'
 import { Route as OrgSlugUptimeStatusPageComponentsRouteImport } from './routes/$orgSlug/uptime/status-page/components'
 import { Route as OrgSlugUptimeStatusPageAppearanceRouteImport } from './routes/$orgSlug/uptime/status-page/appearance'
 import { Route as OrgSlugUptimeMonitorsMonitorIdRouteImport } from './routes/$orgSlug/uptime/monitors_.$monitorId'
@@ -864,6 +865,12 @@ const OrgSlugUptimeStatusPagePublishingRoute =
     path: '/publishing',
     getParentRoute: () => OrgSlugUptimeStatusPageRoute,
   } as any)
+const OrgSlugUptimeStatusPageDomainsRoute =
+  OrgSlugUptimeStatusPageDomainsRouteImport.update({
+    id: '/domains',
+    path: '/domains',
+    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
+  } as any)
 const OrgSlugUptimeStatusPageComponentsRoute =
   OrgSlugUptimeStatusPageComponentsRouteImport.update({
     id: '/components',
@@ -1400,6 +1407,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/uptime/monitors/$monitorId': typeof OrgSlugUptimeMonitorsMonitorIdRoute
   '/$orgSlug/uptime/status-page/appearance': typeof OrgSlugUptimeStatusPageAppearanceRoute
   '/$orgSlug/uptime/status-page/components': typeof OrgSlugUptimeStatusPageComponentsRoute
+  '/$orgSlug/uptime/status-page/domains': typeof OrgSlugUptimeStatusPageDomainsRoute
   '/$orgSlug/uptime/status-page/publishing': typeof OrgSlugUptimeStatusPagePublishingRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
@@ -1588,6 +1596,7 @@ export interface FileRoutesByTo {
   '/$orgSlug/uptime/monitors/$monitorId': typeof OrgSlugUptimeMonitorsMonitorIdRoute
   '/$orgSlug/uptime/status-page/appearance': typeof OrgSlugUptimeStatusPageAppearanceRoute
   '/$orgSlug/uptime/status-page/components': typeof OrgSlugUptimeStatusPageComponentsRoute
+  '/$orgSlug/uptime/status-page/domains': typeof OrgSlugUptimeStatusPageDomainsRoute
   '/$orgSlug/uptime/status-page/publishing': typeof OrgSlugUptimeStatusPagePublishingRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
@@ -1784,6 +1793,7 @@ export interface FileRoutesById {
   '/$orgSlug/uptime/monitors_/$monitorId': typeof OrgSlugUptimeMonitorsMonitorIdRoute
   '/$orgSlug/uptime/status-page/appearance': typeof OrgSlugUptimeStatusPageAppearanceRoute
   '/$orgSlug/uptime/status-page/components': typeof OrgSlugUptimeStatusPageComponentsRoute
+  '/$orgSlug/uptime/status-page/domains': typeof OrgSlugUptimeStatusPageDomainsRoute
   '/$orgSlug/uptime/status-page/publishing': typeof OrgSlugUptimeStatusPagePublishingRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
@@ -1981,6 +1991,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/uptime/monitors/$monitorId'
     | '/$orgSlug/uptime/status-page/appearance'
     | '/$orgSlug/uptime/status-page/components'
+    | '/$orgSlug/uptime/status-page/domains'
     | '/$orgSlug/uptime/status-page/publishing'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
@@ -2169,6 +2180,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/uptime/monitors/$monitorId'
     | '/$orgSlug/uptime/status-page/appearance'
     | '/$orgSlug/uptime/status-page/components'
+    | '/$orgSlug/uptime/status-page/domains'
     | '/$orgSlug/uptime/status-page/publishing'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
@@ -2364,6 +2376,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/uptime/monitors_/$monitorId'
     | '/$orgSlug/uptime/status-page/appearance'
     | '/$orgSlug/uptime/status-page/components'
+    | '/$orgSlug/uptime/status-page/domains'
     | '/$orgSlug/uptime/status-page/publishing'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
@@ -3450,6 +3463,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugUptimeStatusPagePublishingRouteImport
       parentRoute: typeof OrgSlugUptimeStatusPageRoute
     }
+    '/$orgSlug/uptime/status-page/domains': {
+      id: '/$orgSlug/uptime/status-page/domains'
+      path: '/domains'
+      fullPath: '/$orgSlug/uptime/status-page/domains'
+      preLoaderRoute: typeof OrgSlugUptimeStatusPageDomainsRouteImport
+      parentRoute: typeof OrgSlugUptimeStatusPageRoute
+    }
     '/$orgSlug/uptime/status-page/components': {
       id: '/$orgSlug/uptime/status-page/components'
       path: '/components'
@@ -4021,6 +4041,7 @@ const OrgSlugSettingsRouteWithChildren = OrgSlugSettingsRoute._addFileChildren(
 interface OrgSlugUptimeStatusPageRouteChildren {
   OrgSlugUptimeStatusPageAppearanceRoute: typeof OrgSlugUptimeStatusPageAppearanceRoute
   OrgSlugUptimeStatusPageComponentsRoute: typeof OrgSlugUptimeStatusPageComponentsRoute
+  OrgSlugUptimeStatusPageDomainsRoute: typeof OrgSlugUptimeStatusPageDomainsRoute
   OrgSlugUptimeStatusPagePublishingRoute: typeof OrgSlugUptimeStatusPagePublishingRoute
   OrgSlugUptimeStatusPageIndexRoute: typeof OrgSlugUptimeStatusPageIndexRoute
 }
@@ -4031,6 +4052,7 @@ const OrgSlugUptimeStatusPageRouteChildren: OrgSlugUptimeStatusPageRouteChildren
       OrgSlugUptimeStatusPageAppearanceRoute,
     OrgSlugUptimeStatusPageComponentsRoute:
       OrgSlugUptimeStatusPageComponentsRoute,
+    OrgSlugUptimeStatusPageDomainsRoute: OrgSlugUptimeStatusPageDomainsRoute,
     OrgSlugUptimeStatusPagePublishingRoute:
       OrgSlugUptimeStatusPagePublishingRoute,
     OrgSlugUptimeStatusPageIndexRoute: OrgSlugUptimeStatusPageIndexRoute,
