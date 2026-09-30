@@ -183,6 +183,7 @@ export const uptimeIncidentUpdates = pgTable(
     incidentId: text("incident_id").notNull().references(() => incidents.id, { onDelete: "cascade" }),
     createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
     note: text("note").notNull(),
+    bodyJson: jsonb("body_json").$type<import("@outray/incident-content").IncidentDocument>(),
     status: text("status").notNull(),
     componentStates: jsonb("component_states").$type<Record<string, "unknown" | "operational" | "degraded" | "outage">>().notNull().default({}),
     publishedAt: timestamptz("published_at"),
