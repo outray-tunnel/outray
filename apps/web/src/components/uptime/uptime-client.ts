@@ -62,13 +62,62 @@ export interface UptimePage {
 export interface UptimeIncident {
   id: string;
   title: string;
-  status: string;
-  sourceType?: string;
+  status: "open" | "resolved";
+  sourceType?: "uptime_manual" | "uptime_monitor";
+  sourceId?: string;
+  sourceSnapshot?: { affectedComponents?: Array<{ id: string; name: string }>; monitorName?: string };
   startedAt?: string;
   resolvedAt?: string | null;
   createdAt?: string;
   componentIds?: string[];
-  updates?: Array<{ id: string; note: string; status: string; publishedAt: string | null; componentStates?: Record<string, UptimeState>; createdAt: string }>;
+  updates?: UptimeIncidentUpdate[];
+}
+
+export type UptimeIncidentStatus = "investigating" | "identified" | "monitoring" | "resolved";
+
+export interface UptimeIncidentUpdate {
+  id: string;
+  note: string;
+  status: UptimeIncidentStatus;
+  publishedAt: string | null;
+  componentStates?: Record<string, UptimeState>;
+  createdAt: string;
+}
+
+export interface UptimePageResponse {
+  page: UptimePage | null;
+  groups: UptimeGroup[];
+  standaloneComponents: UptimeComponent[];
+}
+
+export interface UptimeIncidentListResponse {
+  incidents: UptimeIncident[];
+  nextCursor: string | null;
+  canManage: boolean;
+}
+
+export interface UptimeIncidentDetailResponse {
+  incident: UptimeIncident;
+  updates: UptimeIncidentUpdate[];
+  componentIds: string[];
+  canManage: boolean;
+  monitorAvailable: boolean;
+  notifications: Array<{
+    id: string; event: string; channel: string; status: string; attempts: number;
+    lastError: string | null; sentAt: string | null; createdAt: string;
+  }>;
+}
+
+export class UptimeRequestError extends Error {
+  field?: string;
+  status: number;
+
+  constructor(message: string, status: number, field?: string) {
+    super(message);
+    this.name = "UptimeRequestError";
+    this.status = status;
+    this.field = field;
+  }
 }
 
 export function uptimeApiPath(orgSlug: string, path = "") {
@@ -85,8 +134,8 @@ export async function uptimeRequest<T>(orgSlug: string, path: string, init?: Req
       ...init?.headers,
     },
   });
-  const payload = await response.json().catch(() => null) as (T & { error?: string }) | null;
-  if (!response.ok) throw new Error(payload?.error || `Request failed (${response.status})`);
+  const payload = await response.json().catch(() => null) as (T & { error?: string; field?: string }) | null;
+  if (!response.ok) throw new UptimeRequestError(payload?.error || `Request failed (${response.status})`, response.status, payload?.field);
   if (!payload) throw new Error("The server returned an empty response.");
   return payload;
 }
