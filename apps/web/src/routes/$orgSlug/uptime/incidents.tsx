@@ -4,6 +4,8 @@ import { ArrowUpRight, ChevronRight, CircleCheck, Plus, Search, X } from "lucide
 import { useEffect, useRef, useState } from "react";
 import { CreateIncidentDialog } from "@/components/uptime/create-incident-dialog";
 import { IncidentBadge } from "@/components/uptime/incident-ui";
+import { Select } from "@/components/ui/select";
+import { CircleDot, FilePenLine, Radio } from "lucide-react";
 import { formatTime, type UptimeIncidentListResponse, type UptimePageResponse, uptimeRequest } from "@/components/uptime/uptime-client";
 import { UptimeRowsSkeleton, UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
 import { primaryButton, secondaryButton, UptimeError, UptimePageHeading } from "@/components/uptime/uptime-ui";
@@ -87,7 +89,7 @@ function UptimeIncidents() {
       </nav>
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="flex h-10 items-center gap-2 rounded-xl border border-white/[0.09] bg-[#0d0d0f] px-3 focus-within:border-violet-400/40 sm:w-64"><Search size={15} className="shrink-0 text-zinc-600" aria-hidden="true" /><input type="search" value={searchText} onChange={(event) => changeSearch(event.target.value)} aria-label="Search incidents by title" placeholder="Search incidents" className="min-w-0 flex-1 bg-transparent text-[13px] text-zinc-200 outline-none placeholder:text-zinc-600" /></div>
-        <select aria-label="Incident source" className="min-h-10 rounded-xl border border-white/[0.09] bg-[#0d0d0f] px-3 text-[13px] text-zinc-400 outline-none focus:border-violet-400/40" value={search.source ?? "all"} onChange={(event) => changeFilter({ source: event.target.value as IncidentSearch["source"] })}><option value="all">All sources</option><option value="automatic">Automatic</option><option value="manual">Manual</option></select>
+        <Select ariaLabel="Incident source" className="sm:w-40" value={search.source ?? "all"} onChange={(value) => changeFilter({ source: value as IncidentSearch["source"] })} options={[{ value: "all", label: "All sources", icon: <CircleDot size={14} /> }, { value: "automatic", label: "Automatic", icon: <Radio size={14} /> }, { value: "manual", label: "Manual", icon: <FilePenLine size={14} /> }]} />
       </div>
     </div>
     {incidents.error && <div className="mb-4 space-y-2"><UptimeError message={incidents.error instanceof Error ? incidents.error.message : "Could not load incidents."} /><button type="button" className={secondaryButton} onClick={() => void incidents.refetch()}>Try again</button></div>}
@@ -99,8 +101,8 @@ function UptimeIncidents() {
       {rows.map((incident) => {
         const names = affectedComponentNames(incident, components);
         const label = incidentLabel(incident);
-        return <Link key={incident.id} to="/$orgSlug/uptime/incidents/$incidentId" params={{ orgSlug, incidentId: incident.id }} search={search} className="group grid gap-3 border-b border-white/[0.06] px-5 py-5 transition-colors last:border-b-0 hover:bg-white/[0.025] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-violet-400 motion-reduce:transition-none lg:grid-cols-[minmax(0,1fr)_100px_130px_110px_20px] lg:items-center lg:gap-5">
-          <div className="min-w-0"><div className="flex flex-wrap items-center gap-x-3 gap-y-2"><span className="min-w-0 break-words text-sm font-medium text-zinc-200 group-hover:text-white">{incident.title}</span><IncidentBadge incident={incident} /></div><p className="mt-2 truncate text-xs text-zinc-500" title={names.join(", ")}>{names.length ? names.join(", ") : "No status-page components linked"}</p></div>
+        return <Link key={incident.id} to="/$orgSlug/uptime/incidents/$incidentId" params={{ orgSlug, incidentId: incident.id }} search={search} className="group grid gap-3 border-b border-white/[0.06] px-5 py-4 transition-colors last:border-b-0 hover:bg-white/[0.025] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-violet-400 motion-reduce:transition-none lg:grid-cols-[minmax(0,1fr)_100px_130px_110px_20px] lg:items-center lg:gap-5">
+          <div className="min-w-0"><div className="flex flex-wrap items-center gap-x-3 gap-y-2"><IncidentBadge incident={incident} /><span className="min-w-0 break-words text-[13px] font-medium text-zinc-200 group-hover:text-white">{incident.title}</span></div><p className="mt-1.5 truncate pl-1 text-xs text-zinc-500" title={names.join(", ")}>{names.length ? names.join(", ") : "No status-page components linked"}</p></div>
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-zinc-500 lg:contents">
           <span>{incident.sourceType === "uptime_manual" ? "Manual" : "Automatic"}</span>
           <time className="text-xs text-zinc-500" dateTime={incident.startedAt || incident.createdAt} title={formatTime(incident.startedAt || incident.createdAt)}>{new Date(incident.startedAt || incident.createdAt || "").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</time>
