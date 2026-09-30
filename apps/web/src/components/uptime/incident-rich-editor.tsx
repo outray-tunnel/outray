@@ -1,7 +1,7 @@
 import { legacyIncidentDocument, renderIncidentHtml, type IncidentDocument } from "@outray/incident-content";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Bold, Heading2, Italic, Link2, List, ListOrdered, Quote, RemoveFormatting } from "lucide-react";
+import { Bold, Heading2, Heading3, Italic, Link2, List, ListOrdered, Quote, RemoveFormatting } from "lucide-react";
 import { useEffect, useState } from "react";
 import { UptimeDialog } from "./uptime-dialog";
 import { primaryButton, secondaryButton } from "./uptime-ui";
@@ -19,7 +19,7 @@ export function IncidentRichEditor({ initialBody, initialNote = "", onChange, di
   const [link, setLink] = useState("");
   const [linkError, setLinkError] = useState("");
   const editor = useEditor({
-    extensions: [StarterKit.configure({ heading: { levels: [2, 3] }, codeBlock: false, horizontalRule: false, strike: false, underline: false })],
+    extensions: [StarterKit.configure({ heading: { levels: [2, 3] }, link: { openOnClick: false, autolink: false, linkOnPaste: false }, codeBlock: false, horizontalRule: false, strike: false, underline: false })],
     content: initialBody ?? legacyIncidentDocument(initialNote),
     immediatelyRender: false,
     editable: !disabled,
@@ -29,6 +29,12 @@ export function IncidentRichEditor({ initialBody, initialNote = "", onChange, di
   });
 
   useEffect(() => { editor?.setEditable(!disabled); }, [editor, disabled]);
+  useEffect(() => {
+    if (!editor) return;
+    editor.view.dom.setAttribute("aria-invalid", String(invalid));
+    if (invalid) editor.view.dom.setAttribute("aria-describedby", `${id}-error`);
+    else editor.view.dom.removeAttribute("aria-describedby");
+  }, [editor, id, invalid]);
   void revision;
 
   const openLink = () => {
@@ -50,6 +56,7 @@ export function IncidentRichEditor({ initialBody, initialNote = "", onChange, di
     { label: "Bold", icon: Bold, active: editor?.isActive("bold"), run: () => editor?.chain().focus().toggleBold().run() },
     { label: "Italic", icon: Italic, active: editor?.isActive("italic"), run: () => editor?.chain().focus().toggleItalic().run() },
     { label: "Heading", icon: Heading2, active: editor?.isActive("heading", { level: 2 }), run: () => editor?.chain().focus().toggleHeading({ level: 2 }).run() },
+    { label: "Small heading", icon: Heading3, active: editor?.isActive("heading", { level: 3 }), run: () => editor?.chain().focus().toggleHeading({ level: 3 }).run() },
     { label: "Bulleted list", icon: List, active: editor?.isActive("bulletList"), run: () => editor?.chain().focus().toggleBulletList().run() },
     { label: "Numbered list", icon: ListOrdered, active: editor?.isActive("orderedList"), run: () => editor?.chain().focus().toggleOrderedList().run() },
     { label: "Quote", icon: Quote, active: editor?.isActive("blockquote"), run: () => editor?.chain().focus().toggleBlockquote().run() },
