@@ -60,7 +60,7 @@ export function TunnelHeader({
             Tunnel detail
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="truncate text-2xl font-semibold tracking-[-0.035em] text-white">
+            <h1 className="truncate text-xl font-normal tracking-[-0.02em] text-white">
               {tunnel.name || tunnel.id}
             </h1>
             <span
