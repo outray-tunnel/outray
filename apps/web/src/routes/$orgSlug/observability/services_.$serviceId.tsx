@@ -180,7 +180,7 @@ function ServiceView() {
               </span>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="truncate text-2xl font-semibold tracking-[-0.035em] text-white">
+                  <h1 className="truncate text-xl font-normal tracking-[-0.02em] text-white">
                     {service.name}
                   </h1>
                   <HealthPill health={service.health} />
