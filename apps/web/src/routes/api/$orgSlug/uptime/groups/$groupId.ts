@@ -41,12 +41,9 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/groups/$groupId")({
         .from(uptimeStatusGroups).where(and(eq(uptimeStatusGroups.id, params.groupId),
           eq(uptimeStatusGroups.organizationId, access.organization.id))).limit(1);
       if (!group) return notFound("Group");
-      const [totals] = await db.select({ count: sql<number>`count(*)::int` }).from(uptimeStatusGroups)
-        .where(and(eq(uptimeStatusGroups.pageId, group.pageId), eq(uptimeStatusGroups.organizationId, access.organization.id)));
-      if (totals.count <= 1) return badInput("A status page must retain one group");
       const [components] = await db.select({ count: sql<number>`count(*)::int` }).from(uptimeStatusComponents)
         .where(and(eq(uptimeStatusComponents.groupId, group.id), eq(uptimeStatusComponents.organizationId, access.organization.id)));
-      if (components.count) return badInput("Move or hide this group's components before deleting it");
+      if (components.count) return badInput("Move this group's components before deleting it");
       await db.delete(uptimeStatusGroups).where(eq(uptimeStatusGroups.id, group.id));
       return Response.json({ success: true });
     },
