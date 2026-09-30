@@ -3,7 +3,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import ComponentHistoryChart from "./ComponentHistoryChart";
 import { getStatusConfig } from "../lib/config";
 import { formatDuration } from "../lib/format-duration";
-import type { PublicIncident, PublicState, PublicStatusPage } from "../lib/status-data";
+import { publishedIncidentStage, type PublicIncident, type PublicState, type PublicStatusPage } from "../lib/status-data";
 import { renderIncidentHtml } from "@outray/incident-content";
 
 interface Props { page: PublicStatusPage; subscribed?: boolean; }
@@ -37,7 +37,7 @@ const affectedComponents = [...new Set(activeIncidents.length > 0
     .filter((component) => component.state === "degraded" || component.state === "outage")
     .map((component) => component.name))];
 const incidentStage = (incident: PublicIncident) => {
-  const status = [...incident.updates].sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())[0]?.status ?? (incident.status === "resolved" ? "recovered" : "down");
+  const status = publishedIncidentStage(incident);
   return status.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
 };
 const ongoingFor = (startedAt: Date) => `Ongoing for ${formatDuration(Math.max(1, Math.floor((Date.now() - startedAt.getTime()) / 60_000)))}`;
