@@ -4,6 +4,7 @@ import {
   createUptimeOAuthState,
   dashboardBaseUrl,
   uptimeOAuthCallbackUrl,
+  uptimeIntegrationReturnUrl,
   verifyUptimeOAuthState,
 } from "../src/lib/uptime/oauth";
 
@@ -25,6 +26,23 @@ test("Uptime OAuth cookie is signed and organization-scoped", () => {
   } finally {
     if (previous === undefined) delete process.env.BETTER_AUTH_SECRET;
     else process.env.BETTER_AUTH_SECRET = previous;
+  }
+});
+
+test("Uptime OAuth returns every outcome to Notifications without leaking callback state", () => {
+  const previous = process.env.OUTRAY_DASHBOARD_URL;
+  process.env.OUTRAY_DASHBOARD_URL = "https://dash.outray.dev/old?state=secret#fragment";
+  try {
+    for (const result of ["connected", "cancelled", "failed"]) {
+      const destination = uptimeIntegrationReturnUrl("acme team", result);
+      assert.equal(destination.origin, "https://dash.outray.dev");
+      assert.equal(destination.pathname, "/acme%20team/uptime/notifications");
+      assert.equal(destination.search, `?integration=${result}`);
+      assert.equal(destination.hash, "");
+    }
+  } finally {
+    if (previous === undefined) delete process.env.OUTRAY_DASHBOARD_URL;
+    else process.env.OUTRAY_DASHBOARD_URL = previous;
   }
 });
 
