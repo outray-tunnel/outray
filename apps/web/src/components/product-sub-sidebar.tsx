@@ -10,6 +10,7 @@ import Home01Icon from "@hugeicons-pro/core-stroke-rounded/Home01Icon";
 import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
 import LinkSquare01Icon from "@hugeicons-pro/core-stroke-rounded/LinkSquare01Icon";
 import LogsIcon from "@hugeicons-pro/core-stroke-rounded/LogsIcon";
+import Notification02Icon from "@hugeicons-pro/core-stroke-rounded/Notification02Icon";
 import Route03Icon from "@hugeicons-pro/core-stroke-rounded/Route03Icon";
 import ServerStack01Icon from "@hugeicons-pro/core-stroke-rounded/ServerStack01Icon";
 import WorkflowSquare06Icon from "@hugeicons-pro/core-stroke-rounded/WorkflowSquare06Icon";
@@ -145,6 +146,7 @@ export function ProductSubSidebar() {
         { label: "Overview", to: "/$orgSlug/uptime", icon: Home01Icon, exact: true },
         { label: "Monitors", to: "/$orgSlug/uptime/monitors", icon: HeartPulseIcon },
         { label: "Incidents", to: "/$orgSlug/uptime/incidents", icon: Alert02Icon },
+        { label: "Notifications", to: "/$orgSlug/uptime/notifications", icon: Notification02Icon },
         { label: "Status page", to: "/$orgSlug/uptime/status-page", icon: Globe02Icon },
       ],
     };
