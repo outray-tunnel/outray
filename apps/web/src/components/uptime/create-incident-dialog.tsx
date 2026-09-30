@@ -1,8 +1,11 @@
 import { Link } from "@tanstack/react-router";
+import { legacyIncidentDocument, parseIncidentDocument, type IncidentDocument } from "@outray/incident-content";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { pageComponents } from "@/lib/uptime/incident-display";
+import { IncidentStatusSelect } from "./incident-ui";
+import { IncidentRichEditor } from "./incident-rich-editor";
 import { UptimeDialog } from "./uptime-dialog";
 import { useUptimeUnsavedChanges } from "./use-uptime-unsaved-changes";
 import { uptimeRequest, UptimeRequestError, type UptimeIncidentStatus, type UptimePageResponse } from "./uptime-client";
@@ -16,7 +19,7 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
 }) {
   const page = useQuery({ queryKey: ["uptime", orgSlug, "page"], queryFn: ({ signal }) => uptimeRequest<UptimePageResponse>(orgSlug, "/page", { signal }) });
   const [title, setTitle] = useState("");
-  const [note, setNote] = useState("");
+  const [body, setBody] = useState<IncidentDocument>(() => legacyIncidentDocument(""));
   const [status, setStatus] = useState<UptimeIncidentStatus>("investigating");
   const [selected, setSelected] = useState<string[]>([]);
   const [componentSearch, setComponentSearch] = useState("");
@@ -26,7 +29,7 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
   const formId = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const submitting = useRef(false);
-  const dirty = Boolean(title || note || selected.length || status !== "investigating");
+  const dirty = Boolean(title || JSON.stringify(body) !== JSON.stringify(legacyIncidentDocument("")) || selected.length || status !== "investigating");
   const blocker = useUptimeUnsavedChanges(dirty);
   const components = pageComponents(page.data);
   const groups = [
@@ -37,7 +40,7 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
   const requestClose = () => { if (!saving) { if (dirty) setDiscard(true); else onClose(); } };
   const showErrors = (nextErrors: Record<string, string>) => {
     setErrors(nextErrors);
-    const firstField = ["title", "componentIds", "status", "note"].find((field) => nextErrors[field]);
+    const firstField = ["title", "componentIds", "status", "body"].find((field) => nextErrors[field]);
     if (firstField) requestAnimationFrame(() => {
       document.getElementById(`${formId}-${firstField}`)?.focus();
     });
@@ -47,20 +50,20 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
     const nextErrors: Record<string, string> = {};
     if (!title.trim()) nextErrors.title = "Give this incident a title.";
     if (!selected.length) nextErrors.componentIds = "Choose at least one affected component.";
-    if (!note.trim()) nextErrors.note = "Describe what happened and what your team is doing.";
+    if (!parseIncidentDocument(body)) nextErrors.body = "Describe what happened and what your team is doing.";
     if (Object.keys(nextErrors).length) { showErrors(nextErrors); return; }
     if (!formRef.current?.reportValidity()) return;
     submitting.current = true;
     setSaving(publish ? "publish" : "draft"); setErrors({});
     try {
       const result = await uptimeRequest<{ incident: { id: string } }>(orgSlug, "/incidents", {
-        method: "POST", body: JSON.stringify({ title: title.trim(), note: note.trim(), status, componentIds: selected, publish }),
+        method: "POST", body: JSON.stringify({ title: title.trim(), body, status, componentIds: selected, publish }),
       });
-      setTitle(""); setNote(""); setStatus("investigating"); setSelected([]);
+      setTitle(""); setBody(legacyIncidentDocument("")); setStatus("investigating"); setSelected([]);
       onCreated(result.incident.id);
     } catch (cause) {
       const field = cause instanceof UptimeRequestError ? cause.field : undefined;
-      showErrors({ [field && ["title", "note", "componentIds", "status"].includes(field) ? field : "form"]: cause instanceof Error ? cause.message : "Could not create incident. Your draft is still here." });
+      showErrors({ [field && ["title", "body", "note", "componentIds", "status"].includes(field) ? field === "note" ? "body" : field : "form"]: cause instanceof Error ? cause.message : "Could not create incident. Your draft is still here." });
     } finally { submitting.current = false; setSaving(null); }
   };
 
@@ -81,20 +84,19 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
           <div className="overflow-hidden rounded-xl border border-white/[0.1]">
             <div className="flex items-center gap-2 border-b border-white/[0.07] px-3 focus-within:bg-white/[0.03]"><Search size={14} className="text-zinc-600" aria-hidden="true" /><input id={`${formId}-componentIds`} className="h-10 min-w-0 flex-1 bg-transparent text-[13px] text-zinc-200 outline-none placeholder:text-zinc-600" value={componentSearch} onChange={(event) => setComponentSearch(event.target.value)} aria-label="Find a component" aria-invalid={!!errors.componentIds} aria-describedby={errors.componentIds ? `${formId}-components-error` : undefined} placeholder="Find a component" /></div>
             <div className="max-h-44 overflow-y-auto p-2">
-              {groups.map((group) => <div key={group.id} className="mb-2 last:mb-0"><p className="px-2 pb-1 pt-1.5 text-[11px] text-zinc-500">{group.name}</p>{group.components.map((component) => <label key={component.id} className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2 text-[13px] text-zinc-300 transition-colors hover:bg-white/[0.04]"><input type="checkbox" className="size-3.5 accent-violet-400" checked={selected.includes(component.id)} onChange={(event) => setSelected((ids) => event.target.checked ? [...ids, component.id] : ids.filter((id) => id !== component.id))} /><span className="min-w-0 flex-1 truncate">{component.name}</span>{!component.visible && <span className="text-[11px] text-zinc-600">Hidden</span>}</label>)}</div>)}
+              {groups.map((group) => <div key={group.id} className="mb-2 last:mb-0"><p className="px-2 pb-1 pt-1.5 text-[11px] text-zinc-500">{group.name}</p>{group.components.map((component) => <label key={component.id} className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2 text-[13px] text-zinc-300 transition-colors hover:bg-white/[0.04]"><input type="checkbox" className="peer sr-only" checked={selected.includes(component.id)} onChange={(event) => setSelected((ids) => event.target.checked ? [...ids, component.id] : ids.filter((id) => id !== component.id))} /><span aria-hidden="true" className="flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border border-white/20 text-transparent transition-colors peer-checked:border-violet-400 peer-checked:bg-violet-400 peer-checked:text-black peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-violet-400">✓</span><span className="min-w-0 flex-1 truncate">{component.name}</span>{!component.visible && <span className="text-[11px] text-zinc-600">Hidden</span>}</label>)}</div>)}
               {!groups.length && <p className="px-2 py-4 text-xs text-zinc-500">No components match your search.</p>}
             </div>
           </div>
           {errors.componentIds && <p id={`${formId}-components-error`} role="alert" className="mt-1.5 text-xs text-rose-300">{errors.componentIds}</p>}
         </fieldset>
-        <label className={labelClass} htmlFor={`${formId}-status`}>Status
-          <select id={`${formId}-status`} className={`${fieldClass} mt-2`} value={status} onChange={(event) => setStatus(event.target.value as UptimeIncidentStatus)}>{["investigating", "identified", "monitoring", "resolved"].map((item) => <option key={item} value={item}>{item[0].toUpperCase() + item.slice(1)}</option>)}</select>
+        <div className={labelClass} id={`${formId}-status`}>Status
+          <div className="mt-2"><IncidentStatusSelect value={status} onChange={setStatus} disabled={saving !== null} /></div>
           {errors.status && <span role="alert" className="mt-1.5 block text-xs text-rose-300">{errors.status}</span>}
-        </label>
-        <label className={labelClass} htmlFor={`${formId}-note`}>First update
-          <textarea id={`${formId}-note`} className={`${fieldClass} mt-2 min-h-28 resize-y py-3 leading-6`} value={note} onChange={(event) => setNote(event.target.value)} required maxLength={4000} placeholder="What happened, and what is your team doing?" aria-invalid={!!errors.note} aria-describedby={errors.note ? `${formId}-note-error` : undefined} />
-          {errors.note && <span role="alert" id={`${formId}-note-error`} className="mt-1.5 block text-xs font-normal text-rose-300">{errors.note}</span>}
-        </label>
+        </div>
+        <div><p className={labelClass}>First update</p><IncidentRichEditor id={`${formId}-body`} onChange={setBody} disabled={saving !== null} invalid={!!errors.body} />
+          {errors.body && <span role="alert" id={`${formId}-body-error`} className="mt-1.5 block text-xs font-normal text-rose-300">{errors.body}</span>}
+        </div>
         <p className="text-xs leading-5 text-zinc-500">{page.data.page.published ? "Publishing adds this update to your public status page and queues email for confirmed subscribers. Drafts stay private." : "Your status page is unpublished. Save a draft now, then publish the page before publishing this incident."}</p>
         {errors.form && <UptimeError message={errors.form} />}
         </fieldset>
