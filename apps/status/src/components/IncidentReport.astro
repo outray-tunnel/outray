@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import type { PublicIncident } from "../lib/status-data";
+import { renderIncidentHtml } from "@outray/incident-content";
 
 interface Props {
   pageName: string;
@@ -17,16 +18,19 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat("en", {
 const duration = incident.resolvedAt
   ? Math.max(1, Math.ceil((incident.resolvedAt.getTime() - incident.startedAt.getTime()) / 60_000))
   : null;
+const publishedStage = incident.updates.length
+  ? [...incident.updates].sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())[0].status
+  : incident.status === "resolved" ? "recovered" : "down";
 ---
 <BaseLayout title={`${incident.title} · ${pageName}`} description={`Incident report for ${incident.title} on ${pageName}.`} accent={accent} canonical={canonical}>
   <main class="shell report">
     <a class="back" href={pageHref}><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m12.5 4.5-5.5 5.5 5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>{backLabel}</a>
     <div class="report-card">
       <div class="eyebrow">Incident report</div>
-      <div class="title-row"><h1>{incident.title}</h1><span class:list={["badge", incident.status]}>{incident.status === "resolved" ? "Resolved" : "Investigating"}</span></div>
+      <div class="title-row"><h1>{incident.title}</h1><span class:list={["badge", publishedStage]}>{publishedStage[0].toUpperCase() + publishedStage.slice(1)}</span></div>
       <p class="meta">Started <time datetime={incident.startedAt.toISOString()}>{formatDate(incident.startedAt)}</time>{duration && <> · Duration {duration} {duration === 1 ? "minute" : "minutes"}</>}</p>
       {incident.components.length > 0 && <p class="affected">Affected components: {incident.components.join(", ")}</p>}
-      {incident.updates.length > 0 ? <section class="updates" aria-labelledby="updates-heading"><h2 id="updates-heading">Updates</h2><ol>{incident.updates.map((update) => <li><div class="update-title"><strong>{update.status}</strong><time datetime={update.publishedAt.toISOString()}>{formatDate(update.publishedAt)}</time></div><p>{update.note}</p></li>)}</ol></section> : <section class="updates" aria-labelledby="updates-heading"><h2 id="updates-heading">Updates</h2><p class="empty">This incident was detected automatically. There are no published team updates yet.</p></section>}
+      {incident.updates.length > 0 ? <section class="updates" aria-labelledby="updates-heading"><h2 id="updates-heading">Updates</h2><ol>{incident.updates.map((update) => <li><div class="update-title"><strong>{update.status}</strong><time datetime={update.publishedAt.toISOString()}>{formatDate(update.publishedAt)}</time></div><div class="rich-update" set:html={renderIncidentHtml(update.body, update.note)} /></li>)}</ol></section> : <section class="updates" aria-labelledby="updates-heading"><h2 id="updates-heading">Updates</h2><p class="empty">This incident was detected automatically. There are no published team updates yet.</p></section>}
     </div>
   </main>
   <style>
@@ -38,7 +42,9 @@ const duration = incident.resolvedAt
     .title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-top: 14px; }
     h1 { margin: 0; font-size: clamp(27px, 4vw, 39px); font-weight: 600; line-height: 1.15; letter-spacing: -.035em; overflow-wrap: anywhere; }
     .badge { flex: none; padding: 7px 10px; border: 1px solid #7f343f; border-radius: 99px; color: #fda4af; font-size: 11px; font-weight: 700; }
-    .badge.resolved { border-color: #27664e; color: #6ee7b7; }
+    .badge.resolved, .badge.recovered { border-color: #27664e; color: #6ee7b7; }
+    .badge.identified { border-color: #896418; color: #fcd34d; }
+    .badge.monitoring { border-color: #245886; color: #93c5fd; }
     .meta, .affected { color: #a1a1aa; font-size: 13px; line-height: 1.6; }
     .meta { margin: 16px 0 0; }
     .affected { margin: 6px 0 0; }
@@ -52,6 +58,14 @@ const duration = incident.resolvedAt
     .update-title strong { text-transform: capitalize; font-size: 13px; }
     .update-title time { color: #85858f; font-size: 11px; }
     li p { margin: 10px 0 0; color: #d4d4d8; white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
+    .rich-update { color: #d4d4d8; font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+    .rich-update :global(p), .rich-update :global(h2), .rich-update :global(h3), .rich-update :global(ul), .rich-update :global(ol), .rich-update :global(blockquote) { margin: 10px 0 0; }
+    .rich-update :global(h2), .rich-update :global(h3) { color: #f4f4f5; font-size: 14px; font-weight: 600; }
+    .rich-update :global(ul), .rich-update :global(ol) { padding-left: 20px; }
+    .rich-update :global(ul) { list-style: disc; }
+    .rich-update :global(ol) { list-style: decimal; }
+    .rich-update :global(blockquote) { border-left: 2px solid #71717a; padding-left: 12px; color: #a1a1aa; }
+    .rich-update :global(a) { color: #a78bfa; text-decoration: underline; }
     .empty { color: #a1a1aa; font-size: 13px; line-height: 1.6; }
     @media (max-width: 560px) { .title-row { flex-direction: column-reverse; align-items: flex-start; } }
   </style>
