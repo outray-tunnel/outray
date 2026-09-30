@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import type { PublicIncident } from "../lib/status-data";
+import { publishedIncidentStage, type PublicIncident } from "../lib/status-data";
 import { renderIncidentHtml } from "@outray/incident-content";
 
 interface Props {
@@ -18,16 +18,14 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat("en", {
 const duration = incident.resolvedAt
   ? Math.max(1, Math.ceil((incident.resolvedAt.getTime() - incident.startedAt.getTime()) / 60_000))
   : null;
-const publishedStage = incident.updates.length
-  ? [...incident.updates].sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())[0].status
-  : incident.status === "resolved" ? "recovered" : "down";
+const stage = publishedIncidentStage(incident);
 ---
 <BaseLayout title={`${incident.title} · ${pageName}`} description={`Incident report for ${incident.title} on ${pageName}.`} accent={accent} canonical={canonical}>
   <main class="shell report">
     <a class="back" href={pageHref}><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m12.5 4.5-5.5 5.5 5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>{backLabel}</a>
     <div class="report-card">
       <div class="eyebrow">Incident report</div>
-      <div class="title-row"><h1>{incident.title}</h1><span class:list={["badge", publishedStage]}>{publishedStage[0].toUpperCase() + publishedStage.slice(1)}</span></div>
+      <div class="title-row"><h1>{incident.title}</h1><span class:list={["badge", stage]}>{stage[0].toUpperCase() + stage.slice(1)}</span></div>
       <p class="meta">Started <time datetime={incident.startedAt.toISOString()}>{formatDate(incident.startedAt)}</time>{duration && <> · Duration {duration} {duration === 1 ? "minute" : "minutes"}</>}</p>
       {incident.components.length > 0 && <p class="affected">Affected components: {incident.components.join(", ")}</p>}
       {incident.updates.length > 0 ? <section class="updates" aria-labelledby="updates-heading"><h2 id="updates-heading">Updates</h2><ol>{incident.updates.map((update) => <li><div class="update-title"><strong>{update.status}</strong><time datetime={update.publishedAt.toISOString()}>{formatDate(update.publishedAt)}</time></div><div class="rich-update" set:html={renderIncidentHtml(update.body, update.note)} /></li>)}</ol></section> : <section class="updates" aria-labelledby="updates-heading"><h2 id="updates-heading">Updates</h2><p class="empty">This incident was detected automatically. There are no published team updates yet.</p></section>}
