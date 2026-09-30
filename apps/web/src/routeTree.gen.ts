@@ -111,6 +111,7 @@ import { Route as OrgSlugObservabilityAlertsRouteImport } from './routes/$orgSlu
 import { Route as ApiOrgSlugTunnelsIndexRouteImport } from './routes/api/$orgSlug/tunnels/index'
 import { Route as ApiOrgSlugSubdomainsIndexRouteImport } from './routes/api/$orgSlug/subdomains/index'
 import { Route as ApiOrgSlugDomainsIndexRouteImport } from './routes/api/$orgSlug/domains/index'
+import { Route as OrgSlugUptimeStatusPageIndexRouteImport } from './routes/$orgSlug/uptime/status-page/index'
 import { Route as ApiSubscriptionsOrgSlugCancelRouteImport } from './routes/api/subscriptions/$orgSlug/cancel'
 import { Route as ApiCliSecretsTargetsRouteImport } from './routes/api/cli/secrets/targets'
 import { Route as ApiCliSecretsRollbackRouteImport } from './routes/api/cli/secrets/rollback'
@@ -134,6 +135,9 @@ import { Route as ApiOrgSlugRequestsReplayRouteImport } from './routes/api/$orgS
 import { Route as ApiOrgSlugRequestsCaptureRouteImport } from './routes/api/$orgSlug/requests/capture'
 import { Route as ApiOrgSlugPortalPolarRouteImport } from './routes/api/$orgSlug/portal/polar'
 import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$orgSlug/domains/$domainId'
+import { Route as OrgSlugUptimeStatusPagePublishingRouteImport } from './routes/$orgSlug/uptime/status-page/publishing'
+import { Route as OrgSlugUptimeStatusPageComponentsRouteImport } from './routes/$orgSlug/uptime/status-page/components'
+import { Route as OrgSlugUptimeStatusPageAppearanceRouteImport } from './routes/$orgSlug/uptime/status-page/appearance'
 import { Route as OrgSlugUptimeMonitorsMonitorIdRouteImport } from './routes/$orgSlug/uptime/monitors_.$monitorId'
 import { Route as OrgSlugSecretsVaultsProjectSlugRouteImport } from './routes/$orgSlug/secrets/vaults_.$projectSlug'
 import { Route as OrgSlugSecretsProjectsProjectSlugRouteImport } from './routes/$orgSlug/secrets/projects_.$projectSlug'
@@ -155,6 +159,7 @@ import { Route as ApiOrgSlugObservabilityAlertsIndexRouteImport } from './routes
 import { Route as OrgSlugObservabilityAlertsAlertIdIndexRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId/index'
 import { Route as ApiUptimeIntegrationsProviderCallbackRouteImport } from './routes/api/uptime/integrations/$provider.callback'
 import { Route as ApiOrgSlugUptimePageLogoRouteImport } from './routes/api/$orgSlug/uptime/page.logo'
+import { Route as ApiOrgSlugUptimePageLayoutRouteImport } from './routes/api/$orgSlug/uptime/page.layout'
 import { Route as ApiOrgSlugUptimeMonitorsMonitorIdRouteImport } from './routes/api/$orgSlug/uptime/monitors/$monitorId'
 import { Route as ApiOrgSlugUptimeIntegrationsProviderRouteImport } from './routes/api/$orgSlug/uptime/integrations/$provider'
 import { Route as ApiOrgSlugUptimeIncidentsIncidentIdRouteImport } from './routes/api/$orgSlug/uptime/incidents/$incidentId'
@@ -722,6 +727,12 @@ const ApiOrgSlugDomainsIndexRoute = ApiOrgSlugDomainsIndexRouteImport.update({
   path: '/api/$orgSlug/domains/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrgSlugUptimeStatusPageIndexRoute =
+  OrgSlugUptimeStatusPageIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
+  } as any)
 const ApiSubscriptionsOrgSlugCancelRoute =
   ApiSubscriptionsOrgSlugCancelRouteImport.update({
     id: '/api/subscriptions/$orgSlug/cancel',
@@ -847,6 +858,24 @@ const ApiOrgSlugDomainsDomainIdRoute =
     path: '/api/$orgSlug/domains/$domainId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OrgSlugUptimeStatusPagePublishingRoute =
+  OrgSlugUptimeStatusPagePublishingRouteImport.update({
+    id: '/publishing',
+    path: '/publishing',
+    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
+  } as any)
+const OrgSlugUptimeStatusPageComponentsRoute =
+  OrgSlugUptimeStatusPageComponentsRouteImport.update({
+    id: '/components',
+    path: '/components',
+    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
+  } as any)
+const OrgSlugUptimeStatusPageAppearanceRoute =
+  OrgSlugUptimeStatusPageAppearanceRouteImport.update({
+    id: '/appearance',
+    path: '/appearance',
+    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
+  } as any)
 const OrgSlugUptimeMonitorsMonitorIdRoute =
   OrgSlugUptimeMonitorsMonitorIdRouteImport.update({
     id: '/monitors_/$monitorId',
@@ -971,6 +1000,12 @@ const ApiOrgSlugUptimePageLogoRoute =
   ApiOrgSlugUptimePageLogoRouteImport.update({
     id: '/logo',
     path: '/logo',
+    getParentRoute: () => ApiOrgSlugUptimePageRoute,
+  } as any)
+const ApiOrgSlugUptimePageLayoutRoute =
+  ApiOrgSlugUptimePageLayoutRouteImport.update({
+    id: '/layout',
+    path: '/layout',
     getParentRoute: () => ApiOrgSlugUptimePageRoute,
   } as any)
 const ApiOrgSlugUptimeMonitorsMonitorIdRoute =
@@ -1316,7 +1351,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/tunnels/$tunnelId': typeof OrgSlugTunnelsTunnelIdRoute
   '/$orgSlug/uptime/incidents': typeof OrgSlugUptimeIncidentsRoute
   '/$orgSlug/uptime/monitors': typeof OrgSlugUptimeMonitorsRoute
-  '/$orgSlug/uptime/status-page': typeof OrgSlugUptimeStatusPageRoute
+  '/$orgSlug/uptime/status-page': typeof OrgSlugUptimeStatusPageRouteWithChildren
   '/admin/organizations/$slug': typeof AdminOrganizationsSlugRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/$orgSlug/auth-tokens': typeof ApiOrgSlugAuthTokensRoute
@@ -1363,6 +1398,9 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/secrets/projects/$projectSlug': typeof OrgSlugSecretsProjectsProjectSlugRoute
   '/$orgSlug/secrets/vaults/$projectSlug': typeof OrgSlugSecretsVaultsProjectSlugRoute
   '/$orgSlug/uptime/monitors/$monitorId': typeof OrgSlugUptimeMonitorsMonitorIdRoute
+  '/$orgSlug/uptime/status-page/appearance': typeof OrgSlugUptimeStatusPageAppearanceRoute
+  '/$orgSlug/uptime/status-page/components': typeof OrgSlugUptimeStatusPageComponentsRoute
+  '/$orgSlug/uptime/status-page/publishing': typeof OrgSlugUptimeStatusPagePublishingRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -1386,6 +1424,7 @@ export interface FileRoutesByFullPath {
   '/api/cli/secrets/rollback': typeof ApiCliSecretsRollbackRoute
   '/api/cli/secrets/targets': typeof ApiCliSecretsTargetsRoute
   '/api/subscriptions/$orgSlug/cancel': typeof ApiSubscriptionsOrgSlugCancelRoute
+  '/$orgSlug/uptime/status-page/': typeof OrgSlugUptimeStatusPageIndexRoute
   '/api/$orgSlug/domains': typeof ApiOrgSlugDomainsIndexRoute
   '/api/$orgSlug/subdomains': typeof ApiOrgSlugSubdomainsIndexRoute
   '/api/$orgSlug/tunnels': typeof ApiOrgSlugTunnelsIndexRoute
@@ -1411,6 +1450,7 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/uptime/incidents/$incidentId': typeof ApiOrgSlugUptimeIncidentsIncidentIdRouteWithChildren
   '/api/$orgSlug/uptime/integrations/$provider': typeof ApiOrgSlugUptimeIntegrationsProviderRouteWithChildren
   '/api/$orgSlug/uptime/monitors/$monitorId': typeof ApiOrgSlugUptimeMonitorsMonitorIdRoute
+  '/api/$orgSlug/uptime/page/layout': typeof ApiOrgSlugUptimePageLayoutRoute
   '/api/$orgSlug/uptime/page/logo': typeof ApiOrgSlugUptimePageLogoRoute
   '/api/uptime/integrations/$provider/callback': typeof ApiUptimeIntegrationsProviderCallbackRoute
   '/$orgSlug/observability/alerts/$alertId/': typeof OrgSlugObservabilityAlertsAlertIdIndexRoute
@@ -1501,7 +1541,6 @@ export interface FileRoutesByTo {
   '/$orgSlug/tunnels/$tunnelId': typeof OrgSlugTunnelsTunnelIdRoute
   '/$orgSlug/uptime/incidents': typeof OrgSlugUptimeIncidentsRoute
   '/$orgSlug/uptime/monitors': typeof OrgSlugUptimeMonitorsRoute
-  '/$orgSlug/uptime/status-page': typeof OrgSlugUptimeStatusPageRoute
   '/admin/organizations/$slug': typeof AdminOrganizationsSlugRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/$orgSlug/auth-tokens': typeof ApiOrgSlugAuthTokensRoute
@@ -1547,6 +1586,9 @@ export interface FileRoutesByTo {
   '/$orgSlug/secrets/projects/$projectSlug': typeof OrgSlugSecretsProjectsProjectSlugRoute
   '/$orgSlug/secrets/vaults/$projectSlug': typeof OrgSlugSecretsVaultsProjectSlugRoute
   '/$orgSlug/uptime/monitors/$monitorId': typeof OrgSlugUptimeMonitorsMonitorIdRoute
+  '/$orgSlug/uptime/status-page/appearance': typeof OrgSlugUptimeStatusPageAppearanceRoute
+  '/$orgSlug/uptime/status-page/components': typeof OrgSlugUptimeStatusPageComponentsRoute
+  '/$orgSlug/uptime/status-page/publishing': typeof OrgSlugUptimeStatusPagePublishingRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -1570,6 +1612,7 @@ export interface FileRoutesByTo {
   '/api/cli/secrets/rollback': typeof ApiCliSecretsRollbackRoute
   '/api/cli/secrets/targets': typeof ApiCliSecretsTargetsRoute
   '/api/subscriptions/$orgSlug/cancel': typeof ApiSubscriptionsOrgSlugCancelRoute
+  '/$orgSlug/uptime/status-page': typeof OrgSlugUptimeStatusPageIndexRoute
   '/api/$orgSlug/domains': typeof ApiOrgSlugDomainsIndexRoute
   '/api/$orgSlug/subdomains': typeof ApiOrgSlugSubdomainsIndexRoute
   '/api/$orgSlug/tunnels': typeof ApiOrgSlugTunnelsIndexRoute
@@ -1595,6 +1638,7 @@ export interface FileRoutesByTo {
   '/api/$orgSlug/uptime/incidents/$incidentId': typeof ApiOrgSlugUptimeIncidentsIncidentIdRouteWithChildren
   '/api/$orgSlug/uptime/integrations/$provider': typeof ApiOrgSlugUptimeIntegrationsProviderRouteWithChildren
   '/api/$orgSlug/uptime/monitors/$monitorId': typeof ApiOrgSlugUptimeMonitorsMonitorIdRoute
+  '/api/$orgSlug/uptime/page/layout': typeof ApiOrgSlugUptimePageLayoutRoute
   '/api/$orgSlug/uptime/page/logo': typeof ApiOrgSlugUptimePageLogoRoute
   '/api/uptime/integrations/$provider/callback': typeof ApiUptimeIntegrationsProviderCallbackRoute
   '/$orgSlug/observability/alerts/$alertId': typeof OrgSlugObservabilityAlertsAlertIdIndexRoute
@@ -1691,7 +1735,7 @@ export interface FileRoutesById {
   '/$orgSlug/tunnels/$tunnelId': typeof OrgSlugTunnelsTunnelIdRoute
   '/$orgSlug/uptime/incidents': typeof OrgSlugUptimeIncidentsRoute
   '/$orgSlug/uptime/monitors': typeof OrgSlugUptimeMonitorsRoute
-  '/$orgSlug/uptime/status-page': typeof OrgSlugUptimeStatusPageRoute
+  '/$orgSlug/uptime/status-page': typeof OrgSlugUptimeStatusPageRouteWithChildren
   '/admin/organizations/$slug': typeof AdminOrganizationsSlugRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/$orgSlug/auth-tokens': typeof ApiOrgSlugAuthTokensRoute
@@ -1738,6 +1782,9 @@ export interface FileRoutesById {
   '/$orgSlug/secrets/projects_/$projectSlug': typeof OrgSlugSecretsProjectsProjectSlugRoute
   '/$orgSlug/secrets/vaults_/$projectSlug': typeof OrgSlugSecretsVaultsProjectSlugRoute
   '/$orgSlug/uptime/monitors_/$monitorId': typeof OrgSlugUptimeMonitorsMonitorIdRoute
+  '/$orgSlug/uptime/status-page/appearance': typeof OrgSlugUptimeStatusPageAppearanceRoute
+  '/$orgSlug/uptime/status-page/components': typeof OrgSlugUptimeStatusPageComponentsRoute
+  '/$orgSlug/uptime/status-page/publishing': typeof OrgSlugUptimeStatusPagePublishingRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -1761,6 +1808,7 @@ export interface FileRoutesById {
   '/api/cli/secrets/rollback': typeof ApiCliSecretsRollbackRoute
   '/api/cli/secrets/targets': typeof ApiCliSecretsTargetsRoute
   '/api/subscriptions/$orgSlug/cancel': typeof ApiSubscriptionsOrgSlugCancelRoute
+  '/$orgSlug/uptime/status-page/': typeof OrgSlugUptimeStatusPageIndexRoute
   '/api/$orgSlug/domains/': typeof ApiOrgSlugDomainsIndexRoute
   '/api/$orgSlug/subdomains/': typeof ApiOrgSlugSubdomainsIndexRoute
   '/api/$orgSlug/tunnels/': typeof ApiOrgSlugTunnelsIndexRoute
@@ -1786,6 +1834,7 @@ export interface FileRoutesById {
   '/api/$orgSlug/uptime/incidents/$incidentId': typeof ApiOrgSlugUptimeIncidentsIncidentIdRouteWithChildren
   '/api/$orgSlug/uptime/integrations/$provider': typeof ApiOrgSlugUptimeIntegrationsProviderRouteWithChildren
   '/api/$orgSlug/uptime/monitors/$monitorId': typeof ApiOrgSlugUptimeMonitorsMonitorIdRoute
+  '/api/$orgSlug/uptime/page/layout': typeof ApiOrgSlugUptimePageLayoutRoute
   '/api/$orgSlug/uptime/page/logo': typeof ApiOrgSlugUptimePageLogoRoute
   '/api/uptime/integrations/$provider/callback': typeof ApiUptimeIntegrationsProviderCallbackRoute
   '/$orgSlug/observability/alerts_/$alertId/': typeof OrgSlugObservabilityAlertsAlertIdIndexRoute
@@ -1930,6 +1979,9 @@ export interface FileRouteTypes {
     | '/$orgSlug/secrets/projects/$projectSlug'
     | '/$orgSlug/secrets/vaults/$projectSlug'
     | '/$orgSlug/uptime/monitors/$monitorId'
+    | '/$orgSlug/uptime/status-page/appearance'
+    | '/$orgSlug/uptime/status-page/components'
+    | '/$orgSlug/uptime/status-page/publishing'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -1953,6 +2005,7 @@ export interface FileRouteTypes {
     | '/api/cli/secrets/rollback'
     | '/api/cli/secrets/targets'
     | '/api/subscriptions/$orgSlug/cancel'
+    | '/$orgSlug/uptime/status-page/'
     | '/api/$orgSlug/domains'
     | '/api/$orgSlug/subdomains'
     | '/api/$orgSlug/tunnels'
@@ -1978,6 +2031,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/uptime/incidents/$incidentId'
     | '/api/$orgSlug/uptime/integrations/$provider'
     | '/api/$orgSlug/uptime/monitors/$monitorId'
+    | '/api/$orgSlug/uptime/page/layout'
     | '/api/$orgSlug/uptime/page/logo'
     | '/api/uptime/integrations/$provider/callback'
     | '/$orgSlug/observability/alerts/$alertId/'
@@ -2068,7 +2122,6 @@ export interface FileRouteTypes {
     | '/$orgSlug/tunnels/$tunnelId'
     | '/$orgSlug/uptime/incidents'
     | '/$orgSlug/uptime/monitors'
-    | '/$orgSlug/uptime/status-page'
     | '/admin/organizations/$slug'
     | '/admin/users/$userId'
     | '/api/$orgSlug/auth-tokens'
@@ -2114,6 +2167,9 @@ export interface FileRouteTypes {
     | '/$orgSlug/secrets/projects/$projectSlug'
     | '/$orgSlug/secrets/vaults/$projectSlug'
     | '/$orgSlug/uptime/monitors/$monitorId'
+    | '/$orgSlug/uptime/status-page/appearance'
+    | '/$orgSlug/uptime/status-page/components'
+    | '/$orgSlug/uptime/status-page/publishing'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -2137,6 +2193,7 @@ export interface FileRouteTypes {
     | '/api/cli/secrets/rollback'
     | '/api/cli/secrets/targets'
     | '/api/subscriptions/$orgSlug/cancel'
+    | '/$orgSlug/uptime/status-page'
     | '/api/$orgSlug/domains'
     | '/api/$orgSlug/subdomains'
     | '/api/$orgSlug/tunnels'
@@ -2162,6 +2219,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/uptime/incidents/$incidentId'
     | '/api/$orgSlug/uptime/integrations/$provider'
     | '/api/$orgSlug/uptime/monitors/$monitorId'
+    | '/api/$orgSlug/uptime/page/layout'
     | '/api/$orgSlug/uptime/page/logo'
     | '/api/uptime/integrations/$provider/callback'
     | '/$orgSlug/observability/alerts/$alertId'
@@ -2304,6 +2362,9 @@ export interface FileRouteTypes {
     | '/$orgSlug/secrets/projects_/$projectSlug'
     | '/$orgSlug/secrets/vaults_/$projectSlug'
     | '/$orgSlug/uptime/monitors_/$monitorId'
+    | '/$orgSlug/uptime/status-page/appearance'
+    | '/$orgSlug/uptime/status-page/components'
+    | '/$orgSlug/uptime/status-page/publishing'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -2327,6 +2388,7 @@ export interface FileRouteTypes {
     | '/api/cli/secrets/rollback'
     | '/api/cli/secrets/targets'
     | '/api/subscriptions/$orgSlug/cancel'
+    | '/$orgSlug/uptime/status-page/'
     | '/api/$orgSlug/domains/'
     | '/api/$orgSlug/subdomains/'
     | '/api/$orgSlug/tunnels/'
@@ -2352,6 +2414,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/uptime/incidents/$incidentId'
     | '/api/$orgSlug/uptime/integrations/$provider'
     | '/api/$orgSlug/uptime/monitors/$monitorId'
+    | '/api/$orgSlug/uptime/page/layout'
     | '/api/$orgSlug/uptime/page/logo'
     | '/api/uptime/integrations/$provider/callback'
     | '/$orgSlug/observability/alerts_/$alertId/'
@@ -3212,6 +3275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugDomainsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$orgSlug/uptime/status-page/': {
+      id: '/$orgSlug/uptime/status-page/'
+      path: '/'
+      fullPath: '/$orgSlug/uptime/status-page/'
+      preLoaderRoute: typeof OrgSlugUptimeStatusPageIndexRouteImport
+      parentRoute: typeof OrgSlugUptimeStatusPageRoute
+    }
     '/api/subscriptions/$orgSlug/cancel': {
       id: '/api/subscriptions/$orgSlug/cancel'
       path: '/api/subscriptions/$orgSlug/cancel'
@@ -3373,6 +3443,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugDomainsDomainIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$orgSlug/uptime/status-page/publishing': {
+      id: '/$orgSlug/uptime/status-page/publishing'
+      path: '/publishing'
+      fullPath: '/$orgSlug/uptime/status-page/publishing'
+      preLoaderRoute: typeof OrgSlugUptimeStatusPagePublishingRouteImport
+      parentRoute: typeof OrgSlugUptimeStatusPageRoute
+    }
+    '/$orgSlug/uptime/status-page/components': {
+      id: '/$orgSlug/uptime/status-page/components'
+      path: '/components'
+      fullPath: '/$orgSlug/uptime/status-page/components'
+      preLoaderRoute: typeof OrgSlugUptimeStatusPageComponentsRouteImport
+      parentRoute: typeof OrgSlugUptimeStatusPageRoute
+    }
+    '/$orgSlug/uptime/status-page/appearance': {
+      id: '/$orgSlug/uptime/status-page/appearance'
+      path: '/appearance'
+      fullPath: '/$orgSlug/uptime/status-page/appearance'
+      preLoaderRoute: typeof OrgSlugUptimeStatusPageAppearanceRouteImport
+      parentRoute: typeof OrgSlugUptimeStatusPageRoute
+    }
     '/$orgSlug/uptime/monitors_/$monitorId': {
       id: '/$orgSlug/uptime/monitors_/$monitorId'
       path: '/monitors/$monitorId'
@@ -3518,6 +3609,13 @@ declare module '@tanstack/react-router' {
       path: '/logo'
       fullPath: '/api/$orgSlug/uptime/page/logo'
       preLoaderRoute: typeof ApiOrgSlugUptimePageLogoRouteImport
+      parentRoute: typeof ApiOrgSlugUptimePageRoute
+    }
+    '/api/$orgSlug/uptime/page/layout': {
+      id: '/api/$orgSlug/uptime/page/layout'
+      path: '/layout'
+      fullPath: '/api/$orgSlug/uptime/page/layout'
+      preLoaderRoute: typeof ApiOrgSlugUptimePageLayoutRouteImport
       parentRoute: typeof ApiOrgSlugUptimePageRoute
     }
     '/api/$orgSlug/uptime/monitors/$monitorId': {
@@ -3920,10 +4018,33 @@ const OrgSlugSettingsRouteWithChildren = OrgSlugSettingsRoute._addFileChildren(
   OrgSlugSettingsRouteChildren,
 )
 
+interface OrgSlugUptimeStatusPageRouteChildren {
+  OrgSlugUptimeStatusPageAppearanceRoute: typeof OrgSlugUptimeStatusPageAppearanceRoute
+  OrgSlugUptimeStatusPageComponentsRoute: typeof OrgSlugUptimeStatusPageComponentsRoute
+  OrgSlugUptimeStatusPagePublishingRoute: typeof OrgSlugUptimeStatusPagePublishingRoute
+  OrgSlugUptimeStatusPageIndexRoute: typeof OrgSlugUptimeStatusPageIndexRoute
+}
+
+const OrgSlugUptimeStatusPageRouteChildren: OrgSlugUptimeStatusPageRouteChildren =
+  {
+    OrgSlugUptimeStatusPageAppearanceRoute:
+      OrgSlugUptimeStatusPageAppearanceRoute,
+    OrgSlugUptimeStatusPageComponentsRoute:
+      OrgSlugUptimeStatusPageComponentsRoute,
+    OrgSlugUptimeStatusPagePublishingRoute:
+      OrgSlugUptimeStatusPagePublishingRoute,
+    OrgSlugUptimeStatusPageIndexRoute: OrgSlugUptimeStatusPageIndexRoute,
+  }
+
+const OrgSlugUptimeStatusPageRouteWithChildren =
+  OrgSlugUptimeStatusPageRoute._addFileChildren(
+    OrgSlugUptimeStatusPageRouteChildren,
+  )
+
 interface OrgSlugUptimeRouteChildren {
   OrgSlugUptimeIncidentsRoute: typeof OrgSlugUptimeIncidentsRoute
   OrgSlugUptimeMonitorsRoute: typeof OrgSlugUptimeMonitorsRoute
-  OrgSlugUptimeStatusPageRoute: typeof OrgSlugUptimeStatusPageRoute
+  OrgSlugUptimeStatusPageRoute: typeof OrgSlugUptimeStatusPageRouteWithChildren
   OrgSlugUptimeIndexRoute: typeof OrgSlugUptimeIndexRoute
   OrgSlugUptimeMonitorsMonitorIdRoute: typeof OrgSlugUptimeMonitorsMonitorIdRoute
 }
@@ -3931,7 +4052,7 @@ interface OrgSlugUptimeRouteChildren {
 const OrgSlugUptimeRouteChildren: OrgSlugUptimeRouteChildren = {
   OrgSlugUptimeIncidentsRoute: OrgSlugUptimeIncidentsRoute,
   OrgSlugUptimeMonitorsRoute: OrgSlugUptimeMonitorsRoute,
-  OrgSlugUptimeStatusPageRoute: OrgSlugUptimeStatusPageRoute,
+  OrgSlugUptimeStatusPageRoute: OrgSlugUptimeStatusPageRouteWithChildren,
   OrgSlugUptimeIndexRoute: OrgSlugUptimeIndexRoute,
   OrgSlugUptimeMonitorsMonitorIdRoute: OrgSlugUptimeMonitorsMonitorIdRoute,
 }
@@ -4129,10 +4250,12 @@ const ApiOrgSlugTunnelsTunnelIdRouteWithChildren =
   )
 
 interface ApiOrgSlugUptimePageRouteChildren {
+  ApiOrgSlugUptimePageLayoutRoute: typeof ApiOrgSlugUptimePageLayoutRoute
   ApiOrgSlugUptimePageLogoRoute: typeof ApiOrgSlugUptimePageLogoRoute
 }
 
 const ApiOrgSlugUptimePageRouteChildren: ApiOrgSlugUptimePageRouteChildren = {
+  ApiOrgSlugUptimePageLayoutRoute: ApiOrgSlugUptimePageLayoutRoute,
   ApiOrgSlugUptimePageLogoRoute: ApiOrgSlugUptimePageLogoRoute,
 }
 
