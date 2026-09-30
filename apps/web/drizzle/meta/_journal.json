@@ -162,6 +162,13 @@
       "when": 1790729157953,
       "tag": "0022_uptime_standalone_components",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790759449572,
+      "tag": "0023_uptime_incident_rich_content",
+      "breakpoints": true
     }
   ]
 }
