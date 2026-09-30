@@ -10,7 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
 import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 
@@ -51,6 +51,8 @@ export function Select({
   ariaLabel,
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  const reducedMotion = useReducedMotion();
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
   const rootRef = useRef<HTMLDivElement>(null);
@@ -101,6 +103,7 @@ export function Select({
   }, [isOpen, updateMenuPosition]);
 
   const openMenu = () => {
+    setPortalTarget(triggerRef.current?.closest("dialog") ?? document.body);
     const selectedIndex = options.findIndex((option) => option.value === value);
     setHighlightedIndex(Math.max(0, selectedIndex));
     updateMenuPosition();
@@ -137,7 +140,11 @@ export function Select({
       const option = options[highlightedIndex];
       if (option) chooseOption(option);
     } else if (event.key === "Escape") {
-      setIsOpen(false);
+      if (isOpen) {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsOpen(false);
+      }
     } else if (event.key === "Tab") {
       setIsOpen(false);
     }
@@ -174,7 +181,7 @@ export function Select({
                 layoutId={`${listboxId}-hover-indicator`}
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 rounded-lg bg-white/[0.06]"
-                transition={{ type: "spring", stiffness: 520, damping: 38 }}
+                transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 520, damping: 38 }}
               />
             )}
             {option.icon && <span className="relative z-10 shrink-0 text-zinc-600">{option.icon}</span>}
@@ -200,7 +207,7 @@ export function Select({
         );
       })}
     </div>,
-    triggerRef.current?.closest("dialog") ?? document.body,
+    portalTarget ?? document.body,
   ) : null;
 
   return (
