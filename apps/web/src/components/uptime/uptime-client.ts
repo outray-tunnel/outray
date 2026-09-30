@@ -78,6 +78,7 @@ export type UptimeIncidentStatus = "investigating" | "identified" | "monitoring"
 export interface UptimeIncidentUpdate {
   id: string;
   note: string;
+  bodyJson?: import("@outray/incident-content").IncidentDocument | null;
   status: UptimeIncidentStatus;
   publishedAt: string | null;
   componentStates?: Record<string, UptimeState>;
