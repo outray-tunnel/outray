@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { uptimeComponentMonitors, uptimeStatusComponents, uptimeStatusGroups } from "@/db/uptime-schema";
 import { badInput, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
@@ -31,13 +31,25 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/components/$component
         values.description = value;
       }
       if (Object.hasOwn(body, "groupId")) {
-        if (typeof body.groupId !== "string") return badInput("Invalid group", "groupId");
-        const [group] = await db.select({ id: uptimeStatusGroups.id }).from(uptimeStatusGroups).where(and(
-          eq(uptimeStatusGroups.id, body.groupId), eq(uptimeStatusGroups.pageId, current.pageId),
-          eq(uptimeStatusGroups.organizationId, access.organization.id),
-        )).limit(1);
-        if (!group) return notFound("Group");
-        values.groupId = group.id;
+        if (body.groupId === null) values.groupId = null;
+        else {
+          if (typeof body.groupId !== "string") return badInput("Invalid group", "groupId");
+          const [group] = await db.select({ id: uptimeStatusGroups.id }).from(uptimeStatusGroups).where(and(
+            eq(uptimeStatusGroups.id, body.groupId), eq(uptimeStatusGroups.pageId, current.pageId),
+            eq(uptimeStatusGroups.organizationId, access.organization.id),
+          )).limit(1);
+          if (!group) return notFound("Group");
+          values.groupId = group.id;
+        }
+        if (values.groupId !== current.groupId) {
+          const [last] = await db.select({ sortOrder: sql<number>`coalesce(max(${uptimeStatusComponents.sortOrder}), -1)::int` })
+            .from(uptimeStatusComponents).where(and(
+              eq(uptimeStatusComponents.organizationId, access.organization.id),
+              eq(uptimeStatusComponents.pageId, current.pageId),
+              values.groupId === null ? isNull(uptimeStatusComponents.groupId) : eq(uptimeStatusComponents.groupId, values.groupId),
+            ));
+          values.sortOrder = last.sortOrder + 1;
+        }
       }
       if (Object.hasOwn(body, "sortOrder")) {
         if (!Number.isInteger(body.sortOrder) || (body.sortOrder as number) < 0 || (body.sortOrder as number) > 1_000) return badInput("Invalid order", "sortOrder");
