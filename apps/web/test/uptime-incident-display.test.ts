@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { UptimeComponent, UptimeIncident, UptimeIncidentUpdate, UptimePageResponse } from "../src/components/uptime/uptime-client";
-import { affectedComponentNames, incidentDuration, incidentLabel, incidentSearch, pageComponents, publishedIncidentUpdates } from "../src/lib/uptime/incident-display";
+import { affectedComponentNames, incidentDuration, incidentLabel, incidentSearch, pageComponents, publicIncidentStage, publishedIncidentUpdates } from "../src/lib/uptime/incident-display";
 
 const incident: UptimeIncident = {
   id: "incident", title: "API errors", status: "open", sourceType: "uptime_manual",
@@ -29,6 +29,10 @@ test("unpublished update status never changes incident lifecycle or draft visibi
   assert.equal(incidentLabel(incident, [resolvingDraft, update("published", "2026-09-30T10:05:00Z")]), "Active");
   assert.equal(incidentLabel({ ...incident, status: "resolved" }, []), "Resolved");
   assert.equal(incidentLabel({ ...incident, sourceType: "uptime_monitor" }, []), "Active");
+  assert.equal(publicIncidentStage(incident, [resolvingDraft]), "draft");
+  assert.equal(publicIncidentStage(incident, [update("published", "2026-09-30T10:05:00Z", "identified"), resolvingDraft]), "identified");
+  assert.equal(publicIncidentStage({ ...incident, sourceType: "uptime_monitor" }, []), "down");
+  assert.equal(publicIncidentStage({ ...incident, sourceType: "uptime_monitor", status: "resolved" }, []), "recovered");
 });
 
 test("published timeline uses publication time, separates drafts, and does not mutate input", () => {
