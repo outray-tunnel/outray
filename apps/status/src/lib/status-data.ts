@@ -129,6 +129,11 @@ export interface PublicIncident {
   updates: Array<{ id: string; note: string; body: IncidentDocument | null; status: string; publishedAt: Date }>;
 }
 
+export function publishedIncidentStage(incident: PublicIncident): string {
+  const latest = [...incident.updates].sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime() || b.id.localeCompare(a.id))[0];
+  return latest?.status ?? (incident.status === "resolved" ? "recovered" : "down");
+}
+
 export interface PublicStatusPage {
   id: string;
   organizationId: string;
