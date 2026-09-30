@@ -296,7 +296,14 @@ export function pinnedRequestOptions(
       // the Host header still use the original hostname.
       lookup: (_hostname, options, callback) => {
         const done = typeof options === "function" ? options : callback;
-        if (typeof done === "function") done(null, address.address, address.family);
+        if (typeof done !== "function") return;
+        // Node may request every address for auto-family selection. Its
+        // callback then expects an array, even though we pin one vetted IP.
+        if (typeof options !== "function" && options.all) {
+          done(null, [{ address: address.address, family: address.family }]);
+        } else {
+          done(null, address.address, address.family);
+        }
       },
     };
 }

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createServer, request } from "node:http";
 import test from "node:test";
 import {
   isPublicIp,
@@ -76,6 +77,45 @@ test("socket lookup uses the vetted IP while Host and TLS retain the original na
     returned = typeof address === "string" ? address : address[0]?.address;
   });
   assert.equal(returned, "8.8.8.8");
+
+  let returnedAll: unknown;
+  options.lookup?.("monitor.example.com", { all: true }, (_error, addresses) => {
+    returnedAll = addresses;
+  });
+  assert.deepEqual(returnedAll, [{ address: "8.8.8.8", family: 4 }]);
+});
+
+test("pinned lookup completes a real Node request with auto-family selection", async () => {
+  const server = createServer((_request, response) => {
+    response.writeHead(200);
+    response.end("ok");
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    const options = pinnedRequestOptions(
+      new URL(`http://monitor.example.com:${address.port}/health`),
+      "GET",
+      {},
+      { address: "127.0.0.1", family: 4 },
+      new AbortController().signal,
+    );
+    const status = await new Promise<number>((resolve, reject) => {
+      const outbound = request(options, (response) => {
+        response.resume();
+        response.once("end", () => resolve(response.statusCode ?? 0));
+      });
+      outbound.once("error", reject);
+      outbound.setTimeout(2_000, () => outbound.destroy(new Error("test request timed out")));
+      outbound.end();
+    });
+    assert.equal(status, 200);
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
 });
 
 test("monitor transitions confirm outage and recovery with two observations", () => {
