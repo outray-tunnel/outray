@@ -136,7 +136,7 @@ export const uptimeStatusComponents = pgTable(
     id: text("id").primaryKey(),
     organizationId: text("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
     pageId: text("page_id").notNull().references(() => uptimeStatusPages.id, { onDelete: "cascade" }),
-    groupId: text("group_id").notNull().references(() => uptimeStatusGroups.id, { onDelete: "cascade" }),
+    groupId: text("group_id").references(() => uptimeStatusGroups.id, { onDelete: "set null" }),
     name: text("name").notNull(),
     description: text("description"),
     sortOrder: integer("sort_order").notNull().default(0),
