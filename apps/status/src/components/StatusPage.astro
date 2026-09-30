@@ -4,6 +4,7 @@ import ComponentHistoryChart from "./ComponentHistoryChart";
 import { getStatusConfig } from "../lib/config";
 import { formatDuration } from "../lib/format-duration";
 import type { PublicIncident, PublicState, PublicStatusPage } from "../lib/status-data";
+import { renderIncidentHtml } from "@outray/incident-content";
 
 interface Props { page: PublicStatusPage; subscribed?: boolean; }
 const { page, subscribed = false } = Astro.props;
@@ -36,7 +37,7 @@ const affectedComponents = [...new Set(activeIncidents.length > 0
     .filter((component) => component.state === "degraded" || component.state === "outage")
     .map((component) => component.name))];
 const incidentStage = (incident: PublicIncident) => {
-  const status = incident.updates.at(-1)?.status ?? "investigating";
+  const status = [...incident.updates].sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())[0]?.status ?? (incident.status === "resolved" ? "recovered" : "down");
   return status.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
 };
 const ongoingFor = (startedAt: Date) => `Ongoing for ${formatDuration(Math.max(1, Math.floor((Date.now() - startedAt.getTime()) / 60_000)))}`;
@@ -73,7 +74,7 @@ const rootItems = [
               <span class="active-marker" aria-hidden="true"></span>
               <div class="active-copy">
                 <h3><a href={`${incidentBasePath}/${encodeURIComponent(incident.id)}`}>{incident.title}</a></h3>
-                {incident.latestNote && <p>{incident.latestNote}</p>}
+                {incident.updates.length > 0 ? <div class="incident-rich" set:html={renderIncidentHtml(incident.updates.at(-1)?.body, incident.latestNote ?? "")} /> : incident.latestNote && <p>{incident.latestNote}</p>}
                 <div class="active-meta"><span>{incidentStage(incident)}</span><span aria-hidden="true">·</span><span>{ongoingFor(incident.startedAt)}</span>{incident.components.length > 0 && <><span aria-hidden="true">·</span><span>Affects {incident.components.join(", ")}</span></>}</div>
               </div>
             </li>)}</ol>
@@ -123,7 +124,7 @@ const rootItems = [
             {incident.components.length > 0 && <p class="incident-components">Affects {incident.components.join(", ")}</p>}
             {incident.latestNote && <p class="incident-note">{incident.latestNote}</p>}
             <time datetime={incident.startedAt.toISOString()}>{formatDate(incident.startedAt)}</time>
-            {incident.updates.length > 0 && <details class="updates"><summary>View {incident.updates.length} published {incident.updates.length === 1 ? "update" : "updates"}</summary><ol>{incident.updates.map((update) => <li><div><strong>{update.status}</strong><time datetime={update.publishedAt.toISOString()}>{formatDate(update.publishedAt)}</time></div><p>{update.note}</p></li>)}</ol></details>}
+            {incident.updates.length > 0 && <details class="updates"><summary>View {incident.updates.length} published {incident.updates.length === 1 ? "update" : "updates"}</summary><ol>{incident.updates.map((update) => <li><div><strong>{update.status}</strong><time datetime={update.publishedAt.toISOString()}>{formatDate(update.publishedAt)}</time></div><div class="incident-rich" set:html={renderIncidentHtml(update.body, update.note)} /></li>)}</ol></details>}
           </div>
         </li>
       ))}</ol>}
@@ -197,6 +198,14 @@ const rootItems = [
     .active-copy h3 a { color: #f4f4f5; text-decoration: none; }
     .active-copy h3 a:hover { text-decoration: underline; text-underline-offset: 3px; }
     .active-copy p { margin: 8px 0 0; color: #d4d4d8; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
+    .incident-rich { color: #d4d4d8; font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+    .incident-rich :global(p), .incident-rich :global(h2), .incident-rich :global(h3), .incident-rich :global(ul), .incident-rich :global(ol), .incident-rich :global(blockquote) { margin: 8px 0 0; }
+    .incident-rich :global(h2), .incident-rich :global(h3) { color: #f4f4f5; font-size: 13px; font-weight: 600; }
+    .incident-rich :global(ul), .incident-rich :global(ol) { padding-left: 20px; }
+    .incident-rich :global(ul) { list-style: disc; }
+    .incident-rich :global(ol) { list-style: decimal; }
+    .incident-rich :global(blockquote) { border-left: 2px solid #71717a; padding-left: 12px; color: #a1a1aa; }
+    .incident-rich :global(a) { color: #a78bfa; text-decoration: underline; }
     .active-meta { display: flex; flex-wrap: wrap; gap: 5px 8px; margin-top: 10px; color: #a1a1aa; font-size: 11px; line-height: 1.5; }
     .unreported-issue { margin: 0; padding: 18px 24px; border-top: 1px solid #3d3527; color: #a1a1aa; font-size: 13px; line-height: 1.55; }
     .section { margin-top: 68px; }
