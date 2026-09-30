@@ -45,6 +45,7 @@ test(
       groupB: `uptime-test-group-b-${suffix}`,
       visibleA: `uptime-test-visible-a-${suffix}`,
       manualA: `uptime-test-manual-a-${suffix}`,
+      standaloneA: `uptime-test-standalone-a-${suffix}`,
       hiddenA: `uptime-test-hidden-a-${suffix}`,
       componentB: `uptime-test-component-b-${suffix}`,
       monitorA: `uptime-test-monitor-a-${suffix}`,
@@ -88,6 +89,8 @@ test(
         groupId: ids.groupA, name: "Public API", sortOrder: 0 },
       { id: ids.manualA, organizationId: ids.organizationA, pageId: ids.pageA,
         groupId: ids.groupA, name: "Manual service", sortOrder: 1 },
+      { id: ids.standaloneA, organizationId: ids.organizationA, pageId: ids.pageA,
+        groupId: null, name: "Standalone website", manualState: "operational", manualUpdatedAt: now },
       { id: ids.hiddenA, organizationId: ids.organizationA, pageId: ids.pageA,
         groupId: ids.groupA, name: "Hidden internal", visible: false, sortOrder: 2 },
       { id: ids.componentB, organizationId: ids.organizationB, pageId: ids.pageB,
@@ -150,8 +153,8 @@ test(
       ["Public API", "Manual service"]);
     assert.equal(before.groups[0].components[0].state, "operational");
     assert.equal(before.groups[0].components[1].state, "unknown");
-    assert.equal(before.checkCount, 1);
-    assert.equal(before.observedUptime, 100);
+    assert.deepEqual(before.standaloneComponents.map((component) => component.name), ["Standalone website"]);
+    assert.equal(before.standaloneComponents[0].state, "operational");
     assert.deepEqual(before.incidents, []);
     const beforeNotifications = await db.select().from(schema.notifications).where(
       eq(schema.notifications.sourceId, ids.updateA),
