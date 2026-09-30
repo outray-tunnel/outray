@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { uptimeIntegrations } from "@/db/uptime-schema";
 import { alertOAuthCredentials } from "@/lib/observability/alert-oauth";
-import { requireUptimeRead } from "@/lib/uptime/api";
+import { canManageUptime, requireUptimeRead } from "@/lib/uptime/api";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/integrations/")({
   server: { handlers: {
@@ -13,6 +13,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/integrations/")({
       const rows = await db.select().from(uptimeIntegrations)
         .where(eq(uptimeIntegrations.organizationId, access.organization.id));
       return Response.json({
+        canManage: await canManageUptime(access.organization.id, access.session!.user.id),
         integrations: rows.map((row) => ({ provider: row.provider, connectedAt: row.createdAt,
           target: row.webhookCiphertext.target ?? null })),
         availability: {
