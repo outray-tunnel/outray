@@ -22,7 +22,7 @@ interface GroupRow {
 
 interface ComponentRow {
   id: string;
-  group_id: string;
+  group_id: string | null;
   name: string;
   description: string | null;
   sort_order: number;
@@ -81,6 +81,7 @@ interface IncidentUpdateRow {
 
 export interface PublicComponent {
   id: string;
+  sortOrder: number;
   name: string;
   description: string | null;
   state: PublicState;
@@ -92,6 +93,7 @@ export interface PublicComponent {
 
 export interface PublicGroup {
   id: string;
+  sortOrder: number;
   name: string;
   state: PublicState;
   components: PublicComponent[];
@@ -135,6 +137,7 @@ export interface PublicStatusPage {
   accentColor: string;
   state: PublicState;
   groups: PublicGroup[];
+  standaloneComponents: PublicComponent[];
   incidents: PublicIncident[];
   canonicalUrl: string;
 }
@@ -226,10 +229,11 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
       `SELECT c.id, c.group_id, c.name, c.description, c.sort_order,
               c.manual_state, c.manual_updated_at
        FROM uptime_status_components c
-       JOIN uptime_status_groups g ON g.id = c.group_id
+       LEFT JOIN uptime_status_groups g ON g.id = c.group_id
+         AND g.page_id = c.page_id AND g.organization_id = c.organization_id
        WHERE c.page_id = $1 AND c.organization_id = $2 AND c.visible = true
-         AND g.visible = true AND g.page_id = $1 AND g.organization_id = $2
-       ORDER BY g.sort_order, c.sort_order, c.id`,
+         AND (c.group_id IS NULL OR g.visible = true)
+       ORDER BY c.sort_order, c.id`,
       [page.id, page.organization_id],
     ),
     query<MonitorEvidenceRow>(
@@ -238,10 +242,10 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
        FROM uptime_component_monitors cm
        JOIN uptime_status_components c ON c.id = cm.component_id
        JOIN uptime_monitors m ON m.id = cm.monitor_id
-       JOIN uptime_status_groups g ON g.id = c.group_id
+       LEFT JOIN uptime_status_groups g ON g.id = c.group_id
+         AND g.page_id = c.page_id AND g.organization_id = c.organization_id
        WHERE c.page_id = $1 AND c.organization_id = $2
-         AND c.visible = true AND g.visible = true AND g.page_id = $1
-         AND g.organization_id = $2
+         AND c.visible = true AND (c.group_id IS NULL OR g.visible = true)
          AND cm.organization_id = $2 AND m.organization_id = $2`,
       [page.id, page.organization_id],
     ),
@@ -249,10 +253,11 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
       `WITH component_monitors AS (
          SELECT DISTINCT c.id AS component_id, cm.monitor_id
          FROM uptime_status_components c
-         JOIN uptime_status_groups g ON g.id = c.group_id
+         LEFT JOIN uptime_status_groups g ON g.id = c.group_id
+           AND g.page_id = c.page_id AND g.organization_id = c.organization_id
          JOIN uptime_component_monitors cm ON cm.component_id = c.id
          WHERE c.page_id = $1 AND c.organization_id = $2 AND c.visible = true
-           AND g.page_id = $1 AND g.organization_id = $2 AND g.visible = true
+           AND (c.group_id IS NULL OR g.visible = true)
            AND cm.organization_id = $2
        )
        SELECT cm.component_id, daily.day::text AS day,
@@ -285,9 +290,10 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
        JOIN uptime_incident_components ic ON ic.incident_id = i.id AND ic.organization_id = $2
        JOIN uptime_status_components c ON c.id = ic.component_id
          AND c.organization_id = $2 AND c.page_id = $1 AND c.visible = true
-       JOIN uptime_status_groups g ON g.id = c.group_id
-         AND g.organization_id = $2 AND g.page_id = $1 AND g.visible = true
+       LEFT JOIN uptime_status_groups g ON g.id = c.group_id
+         AND g.organization_id = $2 AND g.page_id = $1
        WHERE i.started_at IS NOT NULL AND i.started_at <= NOW()
+         AND (c.group_id IS NULL OR g.visible = true)
          AND COALESCE(i.resolved_at, NOW()) >= $3::timestamptz
        ORDER BY c.id, i.started_at DESC`,
       [page.id, page.organization_id, historyStart],
@@ -297,11 +303,11 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
               COALESCE((SELECT array_agg(DISTINCT c.name ORDER BY c.name)
                         FROM uptime_incident_components ic
                         JOIN uptime_status_components c ON c.id = ic.component_id
-                        JOIN uptime_status_groups g ON g.id = c.group_id
+                        LEFT JOIN uptime_status_groups g ON g.id = c.group_id
+                          AND g.page_id = c.page_id AND g.organization_id = c.organization_id
                         WHERE ic.incident_id = i.id AND c.page_id = $1
                           AND c.organization_id = $2 AND c.visible = true
-                          AND g.page_id = $1 AND g.organization_id = $2
-                          AND g.visible = true), ARRAY[]::text[]) AS components,
+                          AND (c.group_id IS NULL OR g.visible = true)), ARRAY[]::text[]) AS components,
               (SELECT u.note FROM uptime_incident_updates u
                WHERE u.incident_id = i.id AND u.organization_id = $2
                  AND u.published_at IS NOT NULL
@@ -315,10 +321,11 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
          AND EXISTS (
            SELECT 1 FROM uptime_incident_components ic
            JOIN uptime_status_components c ON c.id = ic.component_id
-           JOIN uptime_status_groups g ON g.id = c.group_id
+           LEFT JOIN uptime_status_groups g ON g.id = c.group_id
+             AND g.page_id = c.page_id AND g.organization_id = c.organization_id
            WHERE ic.incident_id = i.id AND ic.organization_id = $2
              AND c.page_id = $1 AND c.organization_id = $2 AND c.visible = true
-             AND g.page_id = $1 AND g.organization_id = $2 AND g.visible = true
+             AND (c.group_id IS NULL OR g.visible = true)
          )
          AND (i.source_type = 'uptime_monitor' OR
            (i.source_type = 'uptime_manual' AND EXISTS (
@@ -365,7 +372,7 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
     bucket.push(incident);
     incidentsByComponent.set(incident.component_id, bucket);
   }
-  const componentsByGroup = new Map<string, PublicComponent[]>();
+  const componentsByGroup = new Map<string | null, PublicComponent[]>();
   for (const component of components) {
     const monitors = evidenceByComponent.get(component.id) || [];
     const expectedMonitors = new Set(monitors.map((monitor) => monitor.monitor_id)).size;
@@ -384,6 +391,7 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
     const bucket = componentsByGroup.get(component.group_id) || [];
     bucket.push({
       id: component.id,
+      sortOrder: component.sort_order,
       name: component.name,
       description: component.description,
       state,
@@ -398,12 +406,14 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
     const items = componentsByGroup.get(group.id) || [];
     return {
       id: group.id,
+      sortOrder: group.sort_order,
       name: group.name,
       state: aggregateStates(items.map((item) => item.state)),
       components: items,
     };
   });
-  const allComponents = publicGroups.flatMap((group) => group.components);
+  const standaloneComponents = componentsByGroup.get(null) || [];
+  const allComponents = [...standaloneComponents, ...publicGroups.flatMap((group) => group.components)];
   const logoUrl = safeLogoUrl(page.logo_url);
   const accentColor = /^#[0-9a-fA-F]{6}$/.test(page.accent_color)
     ? page.accent_color
@@ -418,6 +428,7 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
     accentColor,
     state: aggregateStates(allComponents.map((item) => item.state)),
     groups: publicGroups,
+    standaloneComponents,
     incidents: incidentRows.map((incident) => ({
       id: incident.id,
       title: incident.title,
@@ -445,10 +456,11 @@ export async function loadPublicIncident(page: PageRow, incidentId: string): Pro
             COALESCE((SELECT array_agg(DISTINCT c.name ORDER BY c.name)
                       FROM uptime_incident_components ic
                       JOIN uptime_status_components c ON c.id = ic.component_id
-                      JOIN uptime_status_groups g ON g.id = c.group_id
+                      LEFT JOIN uptime_status_groups g ON g.id = c.group_id
+                        AND g.page_id = c.page_id AND g.organization_id = c.organization_id
                       WHERE ic.incident_id = i.id AND ic.organization_id = $2
                         AND c.page_id = $1 AND c.organization_id = $2 AND c.visible = true
-                        AND g.page_id = $1 AND g.organization_id = $2 AND g.visible = true), ARRAY[]::text[]) AS components,
+                        AND (c.group_id IS NULL OR g.visible = true)), ARRAY[]::text[]) AS components,
             (SELECT u.note FROM uptime_incident_updates u
              WHERE u.incident_id = i.id AND u.organization_id = $2 AND u.published_at IS NOT NULL
              ORDER BY u.published_at DESC LIMIT 1) AS latest_note,
@@ -461,10 +473,11 @@ export async function loadPublicIncident(page: PageRow, incidentId: string): Pro
        AND EXISTS (
          SELECT 1 FROM uptime_incident_components ic
          JOIN uptime_status_components c ON c.id = ic.component_id
-         JOIN uptime_status_groups g ON g.id = c.group_id
+         LEFT JOIN uptime_status_groups g ON g.id = c.group_id
+           AND g.page_id = c.page_id AND g.organization_id = c.organization_id
          WHERE ic.incident_id = i.id AND ic.organization_id = $2
            AND c.page_id = $1 AND c.organization_id = $2 AND c.visible = true
-           AND g.page_id = $1 AND g.organization_id = $2 AND g.visible = true
+           AND (c.group_id IS NULL OR g.visible = true)
        )
        AND (i.source_type = 'uptime_monitor' OR EXISTS (
          SELECT 1 FROM uptime_incident_updates u
