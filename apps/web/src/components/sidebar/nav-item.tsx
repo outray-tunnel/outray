@@ -44,7 +44,6 @@ export function NavItem({
       <HugeiconsIcon
         icon={isActive && activeIcon ? activeIcon : icon}
         size={18}
-        strokeWidth={1.7}
         className="shrink-0"
         aria-hidden="true"
       />
