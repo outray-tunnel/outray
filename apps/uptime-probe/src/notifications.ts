@@ -1,5 +1,6 @@
 import { createHmac, randomUUID } from "node:crypto";
 import pg from "pg";
+import { renderIncidentHtml } from "@outray/incident-content";
 import { config } from "./config";
 import { decryptIntegrationWebhook, type EncryptedPayload } from "./crypto";
 
@@ -161,9 +162,12 @@ async function deliverSubscriberNotification(pool: pg.Pool, notification: Notifi
     page_slug: string;
     published: boolean;
     published_at: Date | null;
+    note: string;
+    body_json: unknown;
   }>(
     `SELECT subscriber.email, subscriber.status, subscriber.last_sent_at,
-       page.slug AS page_slug, page.published, update.published_at
+       page.slug AS page_slug, page.published, update.published_at,
+       update.note, update.body_json
      FROM uptime_subscribers AS subscriber
      JOIN uptime_status_pages AS page ON page.id = subscriber.page_id
      JOIN uptime_incident_updates AS update ON update.id = $4
@@ -204,7 +208,7 @@ async function deliverSubscriberNotification(pool: pg.Pool, notification: Notifi
     );
     return;
   }
-  await sendSubscriberEmail(notification.recipient, payload);
+  await sendSubscriberEmail(notification.recipient, payload, detail.body_json, detail.note);
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -244,7 +248,7 @@ export function makeUnsubscribeToken(subscriberId: string, pageId: string, expir
   return `${Buffer.from(payload).toString("base64url")}.${signature}`;
 }
 
-async function sendSubscriberEmail(recipient: string, payload: SubscriberPayload) {
+async function sendSubscriberEmail(recipient: string, payload: SubscriberPayload, body: unknown, storedNote: string) {
   const pageUrl = publicStatusPageUrl(payload.pageSlug, config.statusPublicUrl);
   const unsubscribe = new URL("/unsubscribe", config.statusPublicUrl);
   unsubscribe.searchParams.set("token", makeUnsubscribeToken(
@@ -260,7 +264,7 @@ async function sendSubscriberEmail(recipient: string, payload: SubscriberPayload
       from: { address: "no-reply@outray.dev", name: "OutRay Status" },
       to: [{ email_address: { address: recipient, name: recipient.split("@")[0] } }],
       subject,
-      htmlbody: `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#090909;color:#fff;padding:32px"><h1>${escapeHtml(payload.title)}</h1><p>Status: ${escapeHtml(payload.status)}</p><p style="white-space:pre-wrap">${escapeHtml(payload.note)}</p><p><a href="${escapeHtml(pageUrl)}" style="color:#a78bfa">View status page</a></p><p style="font-size:12px"><a href="${escapeHtml(unsubscribe.toString())}" style="color:#a1a1aa">Unsubscribe</a></p></body></html>`,
+      htmlbody: `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#090909;color:#fff;padding:32px"><h1>${escapeHtml(payload.title)}</h1><p>Status: ${escapeHtml(payload.status)}</p><div style="line-height:1.6">${renderIncidentHtml(body, storedNote || payload.note)}</div><p><a href="${escapeHtml(pageUrl)}" style="color:#a78bfa">View status page</a></p><p style="font-size:12px"><a href="${escapeHtml(unsubscribe.toString())}" style="color:#a1a1aa">Unsubscribe</a></p></body></html>`,
     }),
     redirect: "manual",
     signal: AbortSignal.timeout(10_000),
