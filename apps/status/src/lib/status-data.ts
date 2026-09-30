@@ -1,4 +1,5 @@
 import { query } from "./db";
+import type { IncidentDocument } from "@outray/incident-content";
 import { getStatusConfig, STATUS_PAGE_SLUG, statusPageUrl } from "./config";
 
 export type PublicState = "operational" | "degraded" | "outage" | "unknown";
@@ -75,6 +76,7 @@ interface IncidentUpdateRow {
   id: string;
   incident_id: string;
   note: string;
+  body_json: IncidentDocument | null;
   status: string;
   published_at: Date;
 }
@@ -124,7 +126,7 @@ export interface PublicIncident {
   components: string[];
   latestNote: string | null;
   latestNoteAt: Date | null;
-  updates: Array<{ id: string; note: string; status: string; publishedAt: Date }>;
+  updates: Array<{ id: string; note: string; body: IncidentDocument | null; status: string; publishedAt: Date }>;
 }
 
 export interface PublicStatusPage {
@@ -339,7 +341,7 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
 
   const publishedUpdates = incidentRows.length > 0
     ? await query<IncidentUpdateRow>(
-      `SELECT id, incident_id, note, status, published_at
+      `SELECT id, incident_id, note, body_json, status, published_at
        FROM uptime_incident_updates
        WHERE organization_id = $1 AND incident_id = ANY($2::text[])
          AND published_at IS NOT NULL
@@ -350,7 +352,7 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
   const updatesByIncident = new Map<string, PublicIncident["updates"]>();
   for (const update of publishedUpdates) {
     const bucket = updatesByIncident.get(update.incident_id) || [];
-    bucket.push({ id: update.id, note: update.note, status: update.status, publishedAt: update.published_at });
+    bucket.push({ id: update.id, note: update.note, body: update.body_json, status: update.status, publishedAt: update.published_at });
     updatesByIncident.set(update.incident_id, bucket);
   }
 
@@ -489,7 +491,7 @@ export async function loadPublicIncident(page: PageRow, incidentId: string): Pro
   const incident = rows[0];
   if (!incident || !incident.started_at) return null;
   const updates = await query<IncidentUpdateRow>(
-    `SELECT id, incident_id, note, status, published_at
+    `SELECT id, incident_id, note, body_json, status, published_at
      FROM uptime_incident_updates
      WHERE incident_id = $1 AND organization_id = $2 AND published_at IS NOT NULL
      ORDER BY published_at DESC`,
@@ -505,7 +507,7 @@ export async function loadPublicIncident(page: PageRow, incidentId: string): Pro
     latestNote: incident.latest_note,
     latestNoteAt: incident.latest_note_at,
     updates: updates.map((update) => ({
-      id: update.id, note: update.note, status: update.status, publishedAt: update.published_at,
+      id: update.id, note: update.note, body: update.body_json, status: update.status, publishedAt: update.published_at,
     })),
   };
 }
