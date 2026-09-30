@@ -61,6 +61,13 @@ const managedSecrets = [
   "OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS",
 ];
 
+const uptimeFlags = [
+  "UPTIME_ENABLED",
+  "UPTIME_PROBES_ENABLED",
+  "UPTIME_NOTIFICATIONS_ENABLED",
+  "UPTIME_EGRESS_POLICY_READY",
+];
+
 async function readUnbeToken() {
   if (process.argv.includes("--token-stdin")) {
     let token = "";
@@ -111,7 +118,23 @@ async function readUnbeSecrets() {
     throw new Error(`Unbe is missing required secrets: ${missing.join(", ")}`);
   }
 
-  return Object.fromEntries(managedSecrets.map((name) => [name, secrets[name]]));
+  const configuredFlags = uptimeFlags.filter((name) => Object.hasOwn(secrets, name));
+  if (configuredFlags.length > 0 && configuredFlags.length !== uptimeFlags.length) {
+    const missingFlags = uptimeFlags.filter((name) => !Object.hasOwn(secrets, name));
+    throw new Error(`Unbe Uptime flags must be configured together; missing: ${missingFlags.join(", ")}`);
+  }
+  for (const name of configuredFlags) {
+    if (secrets[name] !== "true" && secrets[name] !== "false") {
+      throw new Error(`Unbe ${name} must be exactly true or false.`);
+    }
+  }
+
+  console.log(configuredFlags.length > 0
+    ? "Uptime feature flags loaded from Unbe."
+    : "Uptime feature flags not in Unbe; retaining active tunnel settings.");
+  return Object.fromEntries(
+    [...managedSecrets, ...configuredFlags].map((name) => [name, secrets[name]]),
+  );
 }
 
 let processes;
