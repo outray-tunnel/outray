@@ -1,0 +1,1 @@
+ALTER TABLE "uptime_incident_updates" ADD COLUMN "body_json" jsonb;
