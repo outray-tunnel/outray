@@ -11,6 +11,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@outray/incident-content": "file:../../packages/incident-content",
     "dotenv": "^17.2.3",
     "ipaddr.js": "^1.9.1",
     "pg": "^8.13.1"
