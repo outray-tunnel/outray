@@ -15,6 +15,7 @@
   "dependencies": {
     "@astrojs/node": "9.5.5",
     "@astrojs/react": "4.3.0",
+    "@outray/incident-content": "file:../../packages/incident-content",
     "astro": "5.18.2",
     "pg": "^8.16.3",
     "react": "19.2.0",
