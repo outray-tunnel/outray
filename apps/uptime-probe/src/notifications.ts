@@ -264,13 +264,17 @@ async function sendSubscriberEmail(recipient: string, payload: SubscriberPayload
       from: { address: "no-reply@outray.dev", name: "OutRay Status" },
       to: [{ email_address: { address: recipient, name: recipient.split("@")[0] } }],
       subject,
-      htmlbody: `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#090909;color:#fff;padding:32px"><h1>${escapeHtml(payload.title)}</h1><p>Status: ${escapeHtml(payload.status)}</p><div style="line-height:1.6">${renderIncidentHtml(body, storedNote || payload.note)}</div><p><a href="${escapeHtml(pageUrl)}" style="color:#a78bfa">View status page</a></p><p style="font-size:12px"><a href="${escapeHtml(unsubscribe.toString())}" style="color:#a1a1aa">Unsubscribe</a></p></body></html>`,
+      htmlbody: subscriberEmailHtml(payload, body, storedNote, pageUrl, unsubscribe.toString()),
     }),
     redirect: "manual",
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new DeliveryError(`subscriber_email_http_${response.status}`,
     response.status < 500 && response.status !== 429);
+}
+
+export function subscriberEmailHtml(payload: Pick<SubscriberPayload, "title" | "status" | "note">, body: unknown, storedNote: string, pageUrl: string, unsubscribeUrl: string) {
+  return `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#090909;color:#fff;padding:32px"><h1>${escapeHtml(payload.title)}</h1><p>Status: ${escapeHtml(payload.status)}</p><div style="line-height:1.6">${renderIncidentHtml(body, storedNote || payload.note)}</div><p><a href="${escapeHtml(pageUrl)}" style="color:#a78bfa">View status page</a></p><p style="font-size:12px"><a href="${escapeHtml(unsubscribeUrl)}" style="color:#a1a1aa">Unsubscribe</a></p></body></html>`;
 }
 
 export function publicStatusPageUrl(slug: string, baseUrl: string): string {
