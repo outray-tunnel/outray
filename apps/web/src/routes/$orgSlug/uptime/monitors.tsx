@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { UptimeEmailRecipients } from "@/components/uptime/email-recipients";
 import { type UptimeMonitor, useUptimeResource, uptimeRequest, formatTime } from "@/components/uptime/uptime-client";
+import { UptimeRowsSkeleton, UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
 import { fieldClass, labelClass, primaryButton, secondaryButton, StateBadge, UptimeError, UptimePageHeading, UptimePanel } from "@/components/uptime/uptime-ui";
 
 export const Route = createFileRoute("/$orgSlug/uptime/monitors")({
@@ -61,8 +62,8 @@ function UptimeMonitors() {
   };
 
   return <div className="mx-auto max-w-[1320px]">
-    <UptimePageHeading eyebrow="Uptime / Monitors" title="Endpoint monitors" description="Probe public HTTP(S) endpoints once per minute from one region. Down and Recovery are confirmed after two consecutive results." action={<button type="button" className={primaryButton} disabled={atLimit} onClick={() => setCreating((value) => !value)}>{creating ? "Close form" : "Add monitor"}</button>} />
-    {atLimit && <p className="mb-5 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3 text-xs text-amber-200">This workspace has reached the beta limit of {resource.data?.limit ?? 10} monitors.</p>}
+    <UptimePageHeading title="Endpoint monitors" description="Probe public HTTP(S) endpoints once per minute from one region. Down and Recovery are confirmed after two consecutive results." action={<button type="button" className={primaryButton} disabled={atLimit || (resource.loading && !resource.data)} onClick={() => setCreating((value) => !value)}>{creating ? "Close form" : "Add monitor"}</button>} />
+    {resource.data && atLimit && <p className="mb-5 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3 text-xs text-amber-200">This workspace has reached the beta limit of {resource.data.limit} monitors.</p>}
     {creating && <UptimePanel className="mb-6 p-5 md:p-7"><h2 className="text-lg font-semibold text-zinc-100">New monitor</h2><p className="mt-2 text-xs text-zinc-500">Header values are encrypted at rest and never shown again after saving.</p>
       <form onSubmit={(event) => void submit(event)} className="mt-6 grid gap-5 md:grid-cols-2">
         <label className={labelClass}>Name<input className={`${fieldClass} mt-2`} value={name} onChange={(event) => setName(event.target.value)} required maxLength={120} placeholder="API" /></label>
@@ -76,9 +77,9 @@ function UptimeMonitors() {
       </form>
     </UptimePanel>}
     <UptimePanel className="overflow-hidden">
-      <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4"><h2 className="text-sm font-semibold text-zinc-200">All monitors</h2><span className="text-xs text-zinc-600">{rows.length} / {resource.data?.limit ?? 10}</span></div>
+      <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4"><h2 className="text-sm font-semibold text-zinc-200">All monitors</h2>{resource.data ? <span className="text-xs text-zinc-600">{rows.length} / {resource.data.limit}</span> : <span className="h-3 w-10 rounded bg-white/[0.04]" aria-hidden="true" />}</div>
       {resource.error && <div className="p-5"><UptimeError message={resource.error} /></div>}
-      {resource.loading && <p className="p-5 text-sm text-zinc-500">Loading monitors…</p>}
+      {resource.loading && !resource.data && <UptimeSkeleton label="Loading monitors"><UptimeRowsSkeleton rows={5} /></UptimeSkeleton>}
       {!resource.loading && !resource.error && rows.length === 0 && <div className="p-8 text-center"><p className="text-sm text-zinc-400">No monitors yet.</p><p className="mt-2 text-xs text-zinc-600">A new monitor stays Unknown until a check runs.</p></div>}
       {rows.map((monitor) => <Link key={monitor.id} to="/$orgSlug/uptime/monitors/$monitorId" params={{ orgSlug, monitorId: monitor.id }} className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.06] px-5 py-4 last:border-0 hover:bg-white/[0.025]"><span className="min-w-0"><span className="block text-sm font-medium text-zinc-100">{monitor.name}</span><span className="mt-1 block max-w-[520px] truncate font-mono text-xs text-zinc-600">{monitor.method} {monitor.url}</span><span className="mt-2 block text-[11px] text-zinc-600">Last checked {formatTime(monitor.lastCheckedAt)}</span></span><StateBadge state={monitor.state} /></Link>)}
     </UptimePanel>
