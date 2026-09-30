@@ -46,7 +46,7 @@ export function uptimeOAuthCallbackUrl(provider: AlertWebhookChannel) {
 
 export function uptimeIntegrationReturnUrl(orgSlug: string, result: string) {
   const url = dashboardBaseUrl();
-  url.pathname = `/${encodeURIComponent(orgSlug)}/uptime/monitors`;
+  url.pathname = `/${encodeURIComponent(orgSlug)}/uptime/notifications`;
   url.search = new URLSearchParams({ integration: result }).toString();
   url.hash = "";
   return url;
