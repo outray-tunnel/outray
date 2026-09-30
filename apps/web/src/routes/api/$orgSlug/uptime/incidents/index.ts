@@ -58,7 +58,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/")({
           })));
           const [update] = await tx.insert(uptimeIncidentUpdates).values({
             id: updateId, organizationId: access.organization.id, incidentId,
-            createdBy: access.session!.user.id, note: parsed.data.note,
+            createdBy: access.session!.user.id, note: parsed.data.note, bodyJson: parsed.data.bodyJson,
             status: parsed.data.status, componentStates: parsed.data.componentStates,
             publishedAt: parsed.data.publish ? now : null,
           }).returning();
