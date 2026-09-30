@@ -3,6 +3,7 @@ import { incidents, notifications } from "@/db/alerts-schema";
 import { organizations } from "@/db/auth-schema";
 import {
   uptimeComponentMonitors,
+  uptimeIncidentComponents,
   uptimeIncidentUpdates,
   uptimeStatusComponents,
   uptimeStatusPages,
@@ -16,6 +17,103 @@ export type UpdateInput = {
   componentStates: Record<string, "unknown" | "operational" | "degraded" | "outage">;
   publish: boolean;
 };
+
+export class PublishError extends Error {
+  status: number;
+  field?: string;
+  constructor(message: string, status: number, field?: string) {
+    super(message);
+    this.status = status;
+    this.field = field;
+  }
+}
+
+// Every manual-incident mutation locks in this order: organization, incident, update.
+// Publication also serializes the organization quota, so locking an incident or
+// draft first would allow concurrent publication requests to deadlock.
+export async function lockUptimeOrganization(tx: SecretsTransaction, organizationId: string) {
+  await tx.select({ id: organizations.id }).from(organizations)
+    .where(eq(organizations.id, organizationId)).for("update");
+}
+
+async function lockManualIncident(tx: SecretsTransaction, organizationId: string, incidentId: string) {
+  await lockUptimeOrganization(tx, organizationId);
+  const [incident] = await tx.select().from(incidents).where(and(
+    eq(incidents.id, incidentId), eq(incidents.organizationId, organizationId),
+    eq(incidents.sourceType, "uptime_manual"),
+  )).for("update").limit(1);
+  return incident;
+}
+
+function assertIncidentOpen(incident: typeof incidents.$inferSelect) {
+  if (incident.status === "resolved") throw new PublishError("Resolved incidents are read-only", 409);
+}
+
+export async function createManualIncidentUpdate(tx: SecretsTransaction, input: {
+  organizationId: string; incidentId: string; userId: string; data: UpdateInput;
+}) {
+  const incident = await lockManualIncident(tx, input.organizationId, input.incidentId);
+  if (!incident) return null;
+  assertIncidentOpen(incident);
+  const associations = await tx.select({ componentId: uptimeIncidentComponents.componentId })
+    .from(uptimeIncidentComponents).where(and(
+      eq(uptimeIncidentComponents.incidentId, incident.id),
+      eq(uptimeIncidentComponents.organizationId, input.organizationId),
+    ));
+  const now = new Date();
+  const [update] = await tx.insert(uptimeIncidentUpdates).values({
+    id: crypto.randomUUID(), organizationId: input.organizationId, incidentId: incident.id,
+    createdBy: input.userId, note: input.data.note, status: input.data.status,
+    componentStates: input.data.componentStates, publishedAt: input.data.publish ? now : null,
+  }).returning();
+  if (input.data.publish) {
+    const result = await publishUptimeUpdate(tx, {
+      organizationId: input.organizationId, incidentId: incident.id, updateId: update.id,
+      title: incident.title, affectedComponentIds: associations.map((link) => link.componentId),
+      ...input.data, now,
+    });
+    if (!result.success) throw new PublishError(result.error, result.status);
+  }
+  return update;
+}
+
+export async function editManualIncidentDraft(tx: SecretsTransaction, input: {
+  organizationId: string; incidentId: string; updateId: string; body: Record<string, unknown>;
+}) {
+  const incident = await lockManualIncident(tx, input.organizationId, input.incidentId);
+  if (!incident) return null;
+  const [draft] = await tx.select().from(uptimeIncidentUpdates).where(and(
+    eq(uptimeIncidentUpdates.id, input.updateId), eq(uptimeIncidentUpdates.incidentId, incident.id),
+    eq(uptimeIncidentUpdates.organizationId, input.organizationId),
+  )).for("update").limit(1);
+  if (!draft) return null;
+  if (draft.publishedAt) throw new PublishError("Published updates are immutable", 409);
+  assertIncidentOpen(incident);
+  const parsed = parseIncidentUpdate({
+    note: input.body.note ?? draft.note, status: input.body.status ?? draft.status,
+    componentStates: input.body.componentStates ?? draft.componentStates, publish: input.body.publish ?? false,
+  });
+  if (!parsed.success) throw new PublishError(parsed.error, 400, parsed.field);
+  const associations = await tx.select({ componentId: uptimeIncidentComponents.componentId })
+    .from(uptimeIncidentComponents).where(and(
+      eq(uptimeIncidentComponents.incidentId, incident.id),
+      eq(uptimeIncidentComponents.organizationId, input.organizationId),
+    ));
+  const now = new Date();
+  const [updated] = await tx.update(uptimeIncidentUpdates).set({
+    note: parsed.data.note, status: parsed.data.status, componentStates: parsed.data.componentStates,
+    publishedAt: parsed.data.publish ? now : null,
+  }).where(and(eq(uptimeIncidentUpdates.id, draft.id), eq(uptimeIncidentUpdates.organizationId, input.organizationId))).returning();
+  if (parsed.data.publish) {
+    const result = await publishUptimeUpdate(tx, {
+      organizationId: input.organizationId, incidentId: incident.id, updateId: draft.id,
+      title: incident.title, affectedComponentIds: associations.map((link) => link.componentId),
+      ...parsed.data, now,
+    });
+    if (!result.success) throw new PublishError(result.error, result.status);
+  }
+  return updated;
+}
 
 export function parseIncidentUpdate(body: Record<string, unknown>):
   { success: true; data: UpdateInput } | { success: false; error: string; field?: string } {
@@ -78,8 +176,7 @@ export async function publishUptimeUpdate(
   },
 ): Promise<{ success: true; recipients: number } | { success: false; error: string; status: number }> {
   // Serialize the daily publish quota and state application within this organization.
-  await tx.select({ id: organizations.id }).from(organizations)
-    .where(eq(organizations.id, input.organizationId)).for("update");
+  await lockUptimeOrganization(tx, input.organizationId);
   const [page] = await tx.select().from(uptimeStatusPages)
     .where(eq(uptimeStatusPages.organizationId, input.organizationId)).limit(1);
   if (!page?.published) return { success: false, error: "Publish the status page before sending an incident update", status: 409 };
