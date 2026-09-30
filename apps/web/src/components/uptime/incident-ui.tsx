@@ -1,9 +1,9 @@
 import { Activity, CircleAlert, CircleCheck, FilePenLine, SearchCheck } from "lucide-react";
 import type { UptimeIncident, UptimeIncidentStatus, UptimeIncidentUpdate } from "./uptime-client";
-import { incidentLabel } from "@/lib/uptime/incident-display";
+import { incidentLabel, publicIncidentStage } from "@/lib/uptime/incident-display";
 import { Select } from "@/components/ui/select";
 
-export const incidentStages = ["investigating", "identified", "monitoring", "resolved"] as const;
+const incidentStages = ["investigating", "identified", "monitoring", "resolved"] as const;
 const presentation = {
   investigating: { label: "Investigating", icon: CircleAlert, className: "text-rose-300 bg-rose-400/[0.09]" },
   identified: { label: "Identified", icon: SearchCheck, className: "text-amber-300 bg-amber-400/[0.09]" },
@@ -14,13 +14,6 @@ const presentation = {
   recovered: { label: "Recovered", icon: CircleCheck, className: "text-emerald-300 bg-emerald-400/[0.09]" },
 } as const;
 export type IncidentStage = keyof typeof presentation;
-
-export function publicIncidentStage(incident: UptimeIncident, updates = incident.updates ?? []): IncidentStage {
-  if (incident.sourceType !== "uptime_manual") return incident.status === "resolved" ? "recovered" : "down";
-  const published = updates.filter((update) => update.publishedAt).sort((a, b) =>
-    Date.parse(b.publishedAt!) - Date.parse(a.publishedAt!) || b.id.localeCompare(a.id));
-  return published[0]?.status ?? "draft";
-}
 
 export function StagePill({ stage, compact = false }: { stage: IncidentStage; compact?: boolean }) {
   const item = presentation[stage];
