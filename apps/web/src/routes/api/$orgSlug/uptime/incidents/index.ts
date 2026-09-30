@@ -1,36 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { incidents } from "@/db/alerts-schema";
 import { uptimeIncidentComponents, uptimeIncidentUpdates, uptimeStatusComponents, uptimeStatusPages } from "@/db/uptime-schema";
-import { badInput, jsonBody, notFound, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
-import { parseComponentIds, parseIncidentUpdate, publishUptimeUpdate } from "@/lib/uptime/incident-api";
+import { badInput, canManageUptime, jsonBody, notFound, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
+import { lockUptimeOrganization, parseComponentIds, parseIncidentUpdate, PublishError, publishUptimeUpdate } from "@/lib/uptime/incident-api";
+import { loadIncidentList, parseIncidentListQuery } from "@/lib/uptime/incident-query";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/")({
   server: { handlers: {
     GET: async ({ request, params }) => {
       const access = await requireUptimeRead(request, params.orgSlug);
       if ("error" in access) return access.error;
-      const rows = await db.select().from(incidents).where(and(
-        eq(incidents.organizationId, access.organization.id),
-        inArray(incidents.sourceType, ["uptime_monitor", "uptime_manual"]),
-      )).orderBy(desc(incidents.startedAt)).limit(100);
-      const ids = rows.map((row) => row.id);
-      const [updates, associations] = ids.length ? await Promise.all([
-        db.select().from(uptimeIncidentUpdates).where(and(
-          eq(uptimeIncidentUpdates.organizationId, access.organization.id),
-          inArray(uptimeIncidentUpdates.incidentId, ids),
-        )).orderBy(desc(uptimeIncidentUpdates.createdAt)),
-        db.select().from(uptimeIncidentComponents).where(and(
-          eq(uptimeIncidentComponents.organizationId, access.organization.id),
-          inArray(uptimeIncidentComponents.incidentId, ids),
-        )),
-      ]) : [[], []];
-      return Response.json({ incidents: rows.map((row) => ({
-        ...row,
-        componentIds: associations.filter((link) => link.incidentId === row.id).map((link) => link.componentId),
-        updates: updates.filter((update) => update.incidentId === row.id),
-      })) });
+      const query = parseIncidentListQuery(new URL(request.url).searchParams);
+      if (!query.success) return badInput(query.error, query.field);
+      const [result, canManage] = await Promise.all([
+        loadIncidentList(db, access.organization.id, query.data),
+        canManageUptime(access.organization.id, access.session?.user.id),
+      ]);
+      return Response.json({ ...result, canManage });
     },
     POST: async ({ request, params }) => {
       const access = await requireUptimeManager(request, params.orgSlug);
@@ -55,6 +43,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/")({
       const now = new Date();
       try {
         const created = await db.transaction(async (tx) => {
+          await lockUptimeOrganization(tx, access.organization.id);
           const incidentId = crypto.randomUUID();
           const updateId = crypto.randomUUID();
           const [incident] = await tx.insert(incidents).values({
@@ -92,8 +81,3 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/")({
     },
   } },
 });
-
-export class PublishError extends Error {
-  status: number;
-  constructor(message: string, status: number) { super(message); this.status = status; }
-}
