@@ -71,19 +71,20 @@ export async function loadPage(organizationId: string) {
     ids.push(link.monitorId);
     linksByComponent.set(link.componentId, ids);
   }
+  const assembleComponent = (component: typeof uptimeStatusComponents.$inferSelect) => {
+    const componentMonitorIds = linksByComponent.get(component.id) ?? [];
+    return {
+      ...component,
+      monitorIds: componentMonitorIds,
+      state: deriveComponentState(component.manualState as "unknown" | "operational" | "degraded" | "outage",
+        componentMonitorIds.map((id) => monitorById.get(id) ?? {
+          state: "unknown", lastCheckedAt: null, enabled: false, deletedAt: new Date(),
+        })),
+    };
+  };
   const assembledGroups = groups.sort((a, b) => a.sortOrder - b.sortOrder).map((group) => {
     const assembledComponents = components.filter((component) => component.groupId === group.id)
-        .sort((a, b) => a.sortOrder - b.sortOrder).map((component) => {
-          const monitorIds = linksByComponent.get(component.id) ?? [];
-          return {
-            ...component,
-            monitorIds,
-            state: deriveComponentState(component.manualState as "unknown" | "operational" | "degraded" | "outage",
-              monitorIds.map((id) => monitorById.get(id) ?? {
-                state: "unknown", lastCheckedAt: null, enabled: false, deletedAt: new Date(),
-              })),
-          };
-        });
+      .sort((a, b) => a.sortOrder - b.sortOrder).map(assembleComponent);
     return {
       ...group,
       components: assembledComponents,
@@ -91,13 +92,19 @@ export async function loadPage(organizationId: string) {
         .map((component) => component.state)),
     };
   });
+  const standaloneComponents = components.filter((component) => component.groupId === null)
+    .sort((a, b) => a.sortOrder - b.sortOrder).map(assembleComponent);
   return {
     page: {
       ...page,
-      state: rollupStatus(assembledGroups.filter((group) => group.visible)
-        .flatMap((group) => group.components.filter((component) => component.visible)
-          .map((component) => component.state))),
+      state: rollupStatus([
+        ...standaloneComponents.filter((component) => component.visible).map((component) => component.state),
+        ...assembledGroups.filter((group) => group.visible)
+          .flatMap((group) => group.components.filter((component) => component.visible)
+            .map((component) => component.state)),
+      ]),
     },
     groups: assembledGroups,
+    standaloneComponents,
   };
 }
