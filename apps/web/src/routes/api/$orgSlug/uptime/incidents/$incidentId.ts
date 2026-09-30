@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { incidents, notifications } from "@/db/alerts-schema";
-import { uptimeIncidentComponents, uptimeIncidentUpdates } from "@/db/uptime-schema";
-import { notFound, requireUptimeRead } from "@/lib/uptime/api";
+import { uptimeIncidentComponents, uptimeIncidentUpdates, uptimeMonitors } from "@/db/uptime-schema";
+import { canManageUptime, notFound, requireUptimeRead } from "@/lib/uptime/api";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/$incidentId")({
   server: { handlers: {
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/$incidentId
         eq(incidents.id, params.incidentId), eq(incidents.organizationId, access.organization.id),
       )).limit(1);
       if (!incident || !["uptime_monitor", "uptime_manual"].includes(incident.sourceType)) return notFound("Incident");
-      const [updates, links, notificationRows] = await Promise.all([
+      const [updates, links, notificationRows, canManage, monitors] = await Promise.all([
         db.select().from(uptimeIncidentUpdates).where(and(
           eq(uptimeIncidentUpdates.incidentId, incident.id),
           eq(uptimeIncidentUpdates.organizationId, access.organization.id),
@@ -28,8 +28,14 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/$incidentId
           sentAt: notifications.sentAt, createdAt: notifications.createdAt,
         }).from(notifications).where(and(eq(notifications.incidentId, incident.id),
           eq(notifications.organizationId, access.organization.id))).orderBy(desc(notifications.createdAt)).limit(100),
+        canManageUptime(access.organization.id, access.session?.user.id),
+        incident.sourceType === "uptime_monitor" ? db.select({ id: uptimeMonitors.id }).from(uptimeMonitors).where(and(
+          eq(uptimeMonitors.id, incident.sourceId), eq(uptimeMonitors.organizationId, access.organization.id),
+          isNull(uptimeMonitors.deletedAt),
+        )).limit(1) : [],
       ]);
-      return Response.json({ incident, updates, componentIds: links.map((link) => link.componentId), notifications: notificationRows });
+      return Response.json({ incident, updates, componentIds: links.map((link) => link.componentId),
+        notifications: notificationRows, canManage, monitorAvailable: monitors.length > 0 });
     },
   } },
 });
