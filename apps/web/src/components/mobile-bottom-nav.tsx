@@ -7,6 +7,7 @@ import Folder01Icon from "@hugeicons-pro/core-stroke-rounded/Folder01Icon";
 import Home01Icon from "@hugeicons-pro/core-stroke-rounded/Home01Icon";
 import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
 import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
+import Notification02Icon from "@hugeicons-pro/core-stroke-rounded/Notification02Icon";
 import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
 import { MobileNavSheet } from "./mobile-nav-sheet";
 
@@ -82,6 +83,7 @@ export function MobileBottomNav() {
     { to: "/$orgSlug/uptime", icon: <HugeiconsIcon icon={Home01Icon} size={NAV_ICON_SIZE} strokeWidth={1.7} />, label: "Overview", activeOptions: { exact: true } },
     { to: "/$orgSlug/uptime/monitors", icon: <HugeiconsIcon icon={HeartPulseIcon} size={NAV_ICON_SIZE} strokeWidth={1.7} />, label: "Monitors" },
     { to: "/$orgSlug/uptime/incidents", icon: <HugeiconsIcon icon={Alert02Icon} size={NAV_ICON_SIZE} strokeWidth={1.7} />, label: "Incidents" },
+    { to: "/$orgSlug/uptime/notifications", icon: <HugeiconsIcon icon={Notification02Icon} size={NAV_ICON_SIZE} strokeWidth={1.7} />, label: "Notifications" },
     { to: "/$orgSlug/uptime/status-page", icon: <HugeiconsIcon icon={Globe02Icon} size={NAV_ICON_SIZE} strokeWidth={1.7} />, label: "Status page" },
   ];
 
@@ -99,6 +101,7 @@ export function MobileBottomNav() {
             <Link
               key={item.to}
               to={item.to}
+              aria-label={item.label}
               params={{ orgSlug }}
               activeOptions={item.activeOptions}
               activeProps={{
@@ -113,6 +116,7 @@ export function MobileBottomNav() {
             </Link>
           ))}
           <button
+            aria-label="More navigation"
             onClick={() => setIsSheetOpen(true)}
             className="flex flex-col items-center justify-center w-full h-full text-gray-500 hover:text-white transition-colors"
           >
