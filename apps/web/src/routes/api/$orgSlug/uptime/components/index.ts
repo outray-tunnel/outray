@@ -16,26 +16,37 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/components/")({
       const description = textField(body.description ?? null, 500);
       if (name === undefined) return badInput("Component name must be 1–120 characters", "name");
       if (description === undefined) return badInput("Description is too long", "description");
-      if (typeof body.groupId !== "string") return badInput("Choose a group", "groupId");
+      if (body.groupId !== undefined && body.groupId !== null && typeof body.groupId !== "string") return badInput("Invalid group", "groupId");
       const monitorIds = parseMonitorIds(body.monitorIds ?? []);
       if (!monitorIds) return badInput("Choose valid monitor IDs", "monitorIds");
       const [page] = await db.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
         .where(eq(uptimeStatusPages.organizationId, access.organization.id)).limit(1);
       if (!page) return notFound("Status page");
-      const [group] = await db.select({ id: uptimeStatusGroups.id }).from(uptimeStatusGroups).where(and(
-        eq(uptimeStatusGroups.id, body.groupId), eq(uptimeStatusGroups.pageId, page.id),
-        eq(uptimeStatusGroups.organizationId, access.organization.id),
-      )).limit(1);
-      if (!group) return notFound("Group");
+      let groupId: string | null = null;
+      if (typeof body.groupId === "string") {
+        const [group] = await db.select({ id: uptimeStatusGroups.id }).from(uptimeStatusGroups).where(and(
+          eq(uptimeStatusGroups.id, body.groupId), eq(uptimeStatusGroups.pageId, page.id),
+          eq(uptimeStatusGroups.organizationId, access.organization.id),
+        )).limit(1);
+        if (!group) return notFound("Group");
+        groupId = group.id;
+      }
       if (!await monitorsBelongToOrg(access.organization.id, monitorIds)) return badInput("A monitor is unavailable", "monitorIds");
       const [totals] = await db.select({ count: sql<number>`count(*)::int` }).from(uptimeStatusComponents)
         .where(eq(uptimeStatusComponents.pageId, page.id));
       if (totals.count >= 100) return Response.json({ error: "Component limit reached (100)" }, { status: 403 });
+      const [lastComponent] = await db.select({ order: sql<number>`coalesce(max(${uptimeStatusComponents.sortOrder}), -1)::int` })
+        .from(uptimeStatusComponents).where(and(eq(uptimeStatusComponents.pageId, page.id),
+          groupId === null ? isNull(uptimeStatusComponents.groupId) : eq(uptimeStatusComponents.groupId, groupId)));
+      const [lastGroup] = groupId === null
+        ? await db.select({ order: sql<number>`coalesce(max(${uptimeStatusGroups.sortOrder}), -1)::int` })
+          .from(uptimeStatusGroups).where(eq(uptimeStatusGroups.pageId, page.id))
+        : [{ order: -1 }];
       const result = await db.transaction(async (tx) => {
         const [component] = await tx.insert(uptimeStatusComponents).values({
           id: crypto.randomUUID(), organizationId: access.organization.id,
-          pageId: page.id, groupId: group.id, name: name!, description,
-          sortOrder: totals.count,
+          pageId: page.id, groupId, name: name!, description,
+          sortOrder: Math.max(lastComponent.order, lastGroup.order) + 1,
         }).returning();
         if (monitorIds.length) await tx.insert(uptimeComponentMonitors).values(monitorIds.map((monitorId) => ({
           organizationId: access.organization.id, componentId: component.id, monitorId,
