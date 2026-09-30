@@ -17,7 +17,7 @@ export function WorkspacePageHeader({
         <p className="mb-3.5 text-xs font-medium uppercase tracking-[0.12em] text-zinc-600">
           {eyebrow}
         </p>
-        <h1 className="text-3xl font-semibold tracking-[-0.035em] text-white">
+        <h1 className="text-xl font-normal tracking-[-0.02em] text-white">
           {title}
         </h1>
         <p className="mt-2.5 text-[15px] leading-6 text-zinc-400">
