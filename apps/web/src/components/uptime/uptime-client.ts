@@ -29,7 +29,7 @@ export interface UptimeCheck {
 
 export interface UptimeComponent {
   id: string;
-  groupId: string;
+  groupId: string | null;
   name: string;
   description: string | null;
   visible: boolean;
