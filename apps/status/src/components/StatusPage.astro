@@ -32,12 +32,18 @@ const currentState: PublicState = activeIncidents.length > 0 && (page.state === 
 const hasIssues = activeIncidents.length > 0 || currentState === "degraded" || currentState === "outage";
 const affectedComponents = [...new Set(activeIncidents.length > 0
   ? activeIncidents.flatMap((incident) => incident.components)
-  : page.groups.flatMap((group) => group.components.filter((component) => component.state === "degraded" || component.state === "outage").map((component) => component.name)))];
+  : [...page.standaloneComponents, ...page.groups.flatMap((group) => group.components)]
+    .filter((component) => component.state === "degraded" || component.state === "outage")
+    .map((component) => component.name))];
 const incidentStage = (incident: PublicIncident) => {
   const status = incident.updates.at(-1)?.status ?? "investigating";
   return status.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
 };
 const ongoingFor = (startedAt: Date) => `Ongoing for ${formatDuration(Math.max(1, Math.floor((Date.now() - startedAt.getTime()) / 60_000)))}`;
+const rootItems = [
+  ...page.standaloneComponents.map((component) => ({ kind: "component" as const, component, sortOrder: component.sortOrder })),
+  ...page.groups.map((group) => ({ kind: "group" as const, group, sortOrder: group.sortOrder })),
+].sort((a, b) => a.sortOrder - b.sortOrder || a.kind.localeCompare(b.kind));
 ---
 <BaseLayout title={showStatusSuffix ? `${page.name} status` : page.name} description={page.description || `Current status and incident history for ${page.name}.`} accent={page.accentColor} canonical={page.canonicalUrl}>
   <main class="shell main">
@@ -76,17 +82,24 @@ const ongoingFor = (startedAt: Date) => `Ongoing for ${formatDuration(Math.max(1
     </section>
 
     <section class="section" aria-labelledby="components-heading">
-      <div class="section-heading"><h2 id="components-heading">System status</h2><span>{page.groups.reduce((count, group) => count + group.components.length, 0)} components</span></div>
-      {page.groups.length === 0 ? <div class="empty">No components have been published yet.</div> : <div class="groups">{page.groups.map((group) => (
+      <div class="section-heading"><h2 id="components-heading">System status</h2><span>{page.standaloneComponents.length + page.groups.reduce((count, group) => count + group.components.length, 0)} components</span></div>
+      {page.groups.length === 0 && page.standaloneComponents.length === 0 ? <div class="empty">No components have been published yet.</div> : <div class="groups">
+        {rootItems.map((item) => item.kind === "component" ? <div class="component standalone-component">
+          <div class="component-heading">
+            <div class="component-copy"><span class="component-title"><span class:list={["component-indicator", item.component.state]} aria-label={stateLabel[item.component.state]}><span class="status-dot" aria-hidden="true"></span></span><strong>{item.component.name}</strong></span>{item.component.description && <p>{item.component.description}</p>}{item.component.manual && <small>{formatDate(item.component.updatedAt)}</small>}</div>
+            <span class:list={["component-uptime", { unavailable: item.component.observedUptime90d === null }]}>{item.component.observedUptime90d === null ? "No uptime data" : `${item.component.observedUptime90d.toFixed(3)}% uptime`}</span>
+          </div>
+          <ComponentHistoryChart name={item.component.name} history={item.component.history} incidentBasePath={incidentBasePath} client:visible />
+        </div> : (
         <details class="group">
           <summary class="group-summary">
             <span class="group-heading">
-              <span class="group-title"><strong>{group.name}</strong><span class:list={["state", group.state]}><span class="status-dot" aria-hidden="true"></span>{stateLabel[group.state]}</span></span>
-              <span class="group-meta"><span class="group-count">{group.components.length} {group.components.length === 1 ? "component" : "components"}</span><svg class="group-chevron" aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="m6 8 4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+              <span class="group-title"><strong>{item.group.name}</strong><span class:list={["state", item.group.state]}><span class="status-dot" aria-hidden="true"></span>{stateLabel[item.group.state]}</span></span>
+              <span class="group-meta"><span class="group-count">{item.group.components.length} {item.group.components.length === 1 ? "component" : "components"}</span><svg class="group-chevron" aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="m6 8 4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
             </span>
           </summary>
           <div class="group-components">
-            {group.components.length === 0 ? <p class="empty group-empty">No visible components in this group.</p> : group.components.map((component) => (
+            {item.group.components.length === 0 ? <p class="empty group-empty">No visible components in this group.</p> : item.group.components.map((component) => (
               <div class="component">
                 <div class="component-heading">
                   <div class="component-copy"><span class="component-title"><span class:list={["component-indicator", component.state]} aria-label={stateLabel[component.state]}><span class="status-dot" aria-hidden="true"></span></span><strong>{component.name}</strong></span>{component.description && <p>{component.description}</p>}{component.manual && <small>{formatDate(component.updatedAt)}</small>}</div>
@@ -98,7 +111,7 @@ const ongoingFor = (startedAt: Date) => `Ongoing for ${formatDuration(Math.max(1
           </div>
         </details>
       ))}</div>}
-      {page.groups.length > 0 && <p class="history-note">Component history covers the last 90 days. Gray days have no complete monitoring evidence; published manual incidents appear on affected components.</p>}
+      {(page.groups.length > 0 || page.standaloneComponents.length > 0) && <p class="history-note">Component history covers the last 90 days. Gray days have no complete monitoring evidence; published manual incidents appear on affected components.</p>}
     </section>
 
     <section class="section" aria-labelledby="incidents-heading">
@@ -192,7 +205,7 @@ const ongoingFor = (startedAt: Date) => `Ongoing for ${formatDuration(Math.max(1
     #components-heading { font-weight: 500; }
     .section-heading > span { color: #85858f; font-size: 12px; white-space: nowrap; }
     .groups, .incidents, .empty { border: 1px solid #303036; border-radius: 13px; background: #101012; overflow: hidden; }
-    .group + .group { border-top: 1px solid #303036; }
+    .group + .group, .standalone-component + .group, .standalone-component + .standalone-component { border-top: 1px solid #303036; }
     .group-summary { display: block; background: #18181b; cursor: pointer; list-style: none; }
     .group-summary::-webkit-details-marker { display: none; }
     .group-summary:hover { background: #1d1d21; }
