@@ -10,13 +10,24 @@ import {
 } from "../src/probe";
 import { effectiveMonitorState, transitionMonitor } from "../src/state";
 import { assertWorkerStartupPolicy, validDashboardUrl } from "../src/worker";
-import { makeUnsubscribeToken, publicStatusPageUrl, validWebhookUrl } from "../src/notifications";
+import { makeUnsubscribeToken, publicStatusPageUrl, subscriberEmailHtml, validWebhookUrl } from "../src/notifications";
 import { verifyUnsubscribeToken } from "../../status/src/lib/security";
 import { decryptIntegrationWebhook, decryptMonitorHeaders } from "../src/crypto";
 import {
   createOrganizationKey, encryptUptimeHeaders, encryptUptimeWebhook,
   wrapOrganizationKey,
 } from "../../web/src/lib/secrets/crypto";
+
+test("subscriber email renders the stored published body with safe links", () => {
+  const html = subscriberEmailHtml({ title: "API <issue>", status: "monitoring", note: "payload fallback" },
+    { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Read more", marks: [{ type: "link", attrs: { href: "https://outray.dev/help" } }] }] }] },
+    "stored text", "https://status.outray.app", "https://status.outray.app/unsubscribe?token=test");
+  assert.match(html, /API &lt;issue&gt;/);
+  assert.match(html, /href="https:\/\/outray.dev\/help"/);
+  assert.doesNotMatch(html, /payload fallback/);
+  const legacy = subscriberEmailHtml({ title: "Legacy", status: "investigating", note: "payload" }, null, "Stored <text>", "https://status.outray.app", "https://status.outray.app/unsubscribe");
+  assert.match(legacy, /Stored &lt;text&gt;/);
+});
 import type pg from "pg";
 
 test("rejects private, special-use and mapped IP addresses", () => {
