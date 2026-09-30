@@ -85,7 +85,7 @@ function TunnelsView() {
     <div className="mx-auto max-w-6xl space-y-7">
       <header className="flex items-end justify-between gap-6 border-b border-white/[0.07] pb-7">
         <div>
-          <h1 className="text-2xl font-semibold tracking-[-0.035em] text-white">
+          <h1 className="text-xl font-normal tracking-[-0.02em] text-white">
             Active tunnels
           </h1>
           <p className="mt-2 text-sm text-zinc-500">
