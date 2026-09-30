@@ -3,7 +3,7 @@ import test from "node:test";
 import { getTableName, type SQL } from "drizzle-orm";
 import { PgDialect, type PgTable } from "drizzle-orm/pg-core";
 import type { SecretsTransaction } from "../src/lib/secrets/database";
-import { createManualIncidentUpdate, editManualIncidentDraft, PublishError } from "../src/lib/uptime/incident-api";
+import { createManualIncidentUpdate, editManualIncidentDraft, parseIncidentUpdate, PublishError } from "../src/lib/uptime/incident-api";
 
 const incident = { id: "incident-a", organizationId: "tenant-a", title: "API incident", status: "open", sourceType: "uptime_manual" };
 const draft = { id: "update-a", incidentId: incident.id, organizationId: incident.organizationId,
@@ -54,12 +54,23 @@ function transaction(selectRows: unknown[][]) {
 
 const create = (tx: SecretsTransaction, publish = false) => createManualIncidentUpdate(tx, {
   organizationId: "tenant-a", incidentId: incident.id, userId: "user-a",
-  data: { note: "New update", status: "investigating", componentStates: {}, publish },
+  data: { note: "New update", bodyJson: null, status: "investigating", componentStates: {}, publish },
 });
 const edit = (tx: SecretsTransaction, body: Record<string, unknown>) => editManualIncidentDraft(tx, {
   organizationId: "tenant-a", incidentId: incident.id, updateId: draft.id, body,
 });
 const lockOrder = ["select:organizations", "lock:organizations:update", "select:incidents", "lock:incidents:update"];
+
+test("rich update requests derive legacy note and reject unsafe formatting", () => {
+  const good = parseIncidentUpdate({ body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Investigating ", marks: [{ type: "bold" }] }, { type: "text", text: "API" }] }] }, status: "investigating" });
+  assert.equal(good.success, true);
+  if (good.success) { assert.equal(good.data.note, "Investigating API"); assert.ok(good.data.bodyJson); }
+  const legacy = parseIncidentUpdate({ note: "Old text update" });
+  assert.equal(legacy.success, true);
+  if (legacy.success) assert.equal(legacy.data.bodyJson, null);
+  const unsafe = parseIncidentUpdate({ body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "click", marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] }] }] } });
+  assert.deepEqual(unsafe, { success: false, field: "body", error: "The update contains unsupported formatting or needs text" });
+});
 
 test("POST update checks resolved lifecycle after organization and incident row locks", async () => {
   for (const publish of [false, true]) {
