@@ -176,7 +176,7 @@ function DashboardLayout() {
            
           </header> */}
 
-          <div className="flex-1 overflow-y-auto p-5 pb-20 md:p-8 md:pb-8">
+          <div data-scroll-restoration-id={`workspace-content-${orgSlug}`} className="flex-1 overflow-y-auto p-5 pb-20 md:p-8 md:pb-8">
             <Outlet />
           </div>
         </main>
