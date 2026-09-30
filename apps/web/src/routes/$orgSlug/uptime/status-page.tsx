@@ -5,6 +5,7 @@ import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable";
 import { Activity, ArrowUpRight, Check, ChevronDown, ExternalLink, Folder, Globe2, GripVertical, Layers3, MoreHorizontal, Palette, Plus, Radio } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { type UptimeComponent, type UptimeGroup, type UptimeMonitor, type UptimePage, uptimeApiPath, uptimeRequest, useUptimeResource } from "@/components/uptime/uptime-client";
+import { UptimeHeaderSkeleton, UptimeSkeleton, UptimeSummarySkeleton } from "@/components/uptime/uptime-skeleton";
 import { StatusPageEditorContext, useStatusPageEditor } from "@/components/uptime/status-page-editor-context";
 import { fieldClass, labelClass, primaryButton, secondaryButton, StateBadge, UptimeError, UptimePageHeading, UptimePanel } from "@/components/uptime/uptime-ui";
 import { statusPageUrl } from "@/lib/uptime/status-url";
@@ -22,6 +23,7 @@ const editorTabs = [
   { label: "Components", to: "/$orgSlug/uptime/status-page/components", icon: Radio },
   { label: "Appearance", to: "/$orgSlug/uptime/status-page/appearance", icon: Palette },
   { label: "Publishing", to: "/$orgSlug/uptime/status-page/publishing", icon: Globe2 },
+  { label: "Custom domains", to: "/$orgSlug/uptime/status-page/domains", icon: ExternalLink },
 ] as const;
 
 function StatusPageLayout() {
@@ -35,13 +37,17 @@ function StatusPageLayout() {
 
   return <div className="mx-auto max-w-[1280px] pb-12">
     {pageData.error && <UptimeError message={pageData.error} />}
-    {pageData.loading && !page && <p className="text-sm text-zinc-500">Loading status page…</p>}
-    {!pageData.loading && !pageData.error && !page && <><UptimePageHeading eyebrow="Uptime / Status page" title="Create a status page" description="Give customers a clear view of your service health." /><CreatePage orgSlug={orgSlug} onCreated={pageData.reload} /></>}
+    {pageData.loading && !page && <UptimeSkeleton label="Loading status page" className="space-y-7">
+      <UptimeHeaderSkeleton action />
+      <div className="flex gap-6 border-b border-white/[0.08] pb-4">{[0, 1, 2, 3].map((item) => <div key={item} className="h-3 w-20 rounded bg-white/[0.04]" />)}</div>
+      <UptimeSummarySkeleton cards={3} />
+      <UptimePanel className="h-44 bg-white/[0.015]" />
+    </UptimeSkeleton>}
+    {!pageData.loading && !pageData.error && !page && <><UptimePageHeading title="Create a status page" description="Give customers a clear view of your service health." /><CreatePage orgSlug={orgSlug} onCreated={pageData.reload} /></>}
     {page && <StatusPageEditorContext.Provider value={{ orgSlug, page, groups, standaloneComponents, monitors, reload: pageData.reload }}>
       <header className="mb-7 flex flex-wrap items-start justify-between gap-5">
         <div className="min-w-0">
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">Uptime / Status page</p>
-          <div className="flex flex-wrap items-center gap-3"><h1 className="text-[28px] font-medium tracking-[-0.035em] text-zinc-100 md:text-[32px]">{page.name}</h1><span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${page.published ? "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-300" : "border-white/[0.1] bg-white/[0.04] text-zinc-400"}`}>{page.published ? "Published" : "Draft"}</span></div>
+          <div className="flex flex-wrap items-center gap-3"><h1 className="text-xl font-normal tracking-[-0.02em] text-zinc-100">{page.name}</h1><span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${page.published ? "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-300" : "border-white/[0.1] bg-white/[0.04] text-zinc-400"}`}>{page.published ? "Published" : "Draft"}</span></div>
           <p className="mt-2 max-w-2xl text-sm text-zinc-500">Manage the components, appearance, and public access for this page.</p>
         </div>
         {page.published && <a className={`${secondaryButton} gap-2`} href={statusPageUrl(statusBase, page.slug)} target="_blank" rel="noopener noreferrer">View page <ExternalLink size={14} aria-hidden="true" /></a>}
@@ -49,7 +55,7 @@ function StatusPageLayout() {
       <nav aria-label="Status page sections" className="mb-8 flex gap-1 overflow-x-auto border-b border-white/[0.08]">
         {editorTabs.map(({ label, to, icon: Icon }) => <Link key={label} to={to} params={{ orgSlug }} activeOptions={{ exact: true }} className="inline-flex min-h-11 shrink-0 items-center gap-2 border-b-2 border-transparent px-4 text-[13px] text-zinc-500 transition-colors hover:text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-violet-400" activeProps={{ className: "!border-violet-400 !text-white" }}><Icon size={15} strokeWidth={1.8} aria-hidden="true" />{label}</Link>)}
       </nav>
-      <Outlet />
+      {monitorData.loading && !monitorData.data ? <UptimeSkeleton label="Loading status page details" className="space-y-5"><UptimeSummarySkeleton cards={3} /><UptimePanel className="h-44 bg-white/[0.015]" /></UptimeSkeleton> : monitorData.error && !monitorData.data ? <UptimeError message={monitorData.error} /> : <Outlet />}
     </StatusPageEditorContext.Provider>}
   </div>;
 }
@@ -199,6 +205,7 @@ function PageSettings({ page, orgSlug, onSaved }: { page: UptimePage; orgSlug: s
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const previewColor = /^#[0-9a-fA-F]{6}$/.test(accentColor) ? accentColor : page.accentColor;
   useEffect(() => { setName(page.name); setDescription(page.description || ""); setAccentColor(page.accentColor); }, [page]);
   const save = async (event: FormEvent) => { event.preventDefault(); setSaving(true); setError(null); setSaved(false); try { await uptimeRequest(orgSlug, "/page", { method: "PATCH", body: JSON.stringify({ name, description: description || null, accentColor }) }); setSaved(true); onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save page."); } finally { setSaving(false); } };
   const uploadLogo = async () => { if (!logoFile) return; setSaving(true); setError(null); try { const body = new FormData(); body.set("logo", logoFile); const response = await fetch(uptimeApiPath(orgSlug, "/page/logo"), { method: "POST", credentials: "same-origin", body }); const payload = await response.json() as { error?: string }; if (!response.ok) throw new Error(payload.error || "Logo upload failed."); setLogoFile(null); onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not upload logo."); } finally { setSaving(false); } };
@@ -209,7 +216,16 @@ function PageSettings({ page, orgSlug, onSaved }: { page: UptimePage; orgSlug: s
       <form onSubmit={(event) => void save(event)} className="mt-7 space-y-5">
         <label className={labelClass}>Page name<input className={`${fieldClass} mt-2`} value={name} onChange={(event) => { setName(event.target.value); setSaved(false); }} required maxLength={120} /></label>
         <label className={labelClass}>Description<textarea className={`${fieldClass} mt-2 min-h-28 py-3`} value={description} onChange={(event) => { setDescription(event.target.value); setSaved(false); }} maxLength={1000} placeholder="Tell visitors what this page covers" /></label>
-        <div><p className={labelClass}>Accent color</p><p className="mt-1 text-xs text-zinc-500">Used for highlights on your public page.</p><div className="mt-3 flex max-w-xs items-center gap-3"><input className="h-11 w-14 shrink-0 cursor-pointer rounded-xl border border-white/[0.12] bg-transparent p-1" type="color" value={/^#[0-9a-fA-F]{6}$/.test(accentColor) ? accentColor : page.accentColor} onChange={(event) => { setAccentColor(event.target.value); setSaved(false); }} aria-label="Choose accent color" /><input className={fieldClass} value={accentColor} onChange={(event) => { setAccentColor(event.target.value); setSaved(false); }} pattern="#[0-9a-fA-F]{6}" aria-label="Accent color hex value" /></div></div>
+        <div>
+          <p className={labelClass}>Accent color</p>
+          <p className="mt-1 text-xs text-zinc-500">Used for highlights on your public page.</p>
+          <div className="mt-3 flex max-w-xs items-center gap-3">
+            <div className="relative size-11 shrink-0 rounded-full focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-white" style={{ backgroundColor: previewColor }}>
+              <input className="absolute inset-0 size-full cursor-pointer rounded-full opacity-0" type="color" value={previewColor} onChange={(event) => { setAccentColor(event.target.value); setSaved(false); }} aria-label="Choose accent color" />
+            </div>
+            <input className={fieldClass} value={accentColor} onChange={(event) => { setAccentColor(event.target.value); setSaved(false); }} pattern="#[0-9a-fA-F]{6}" aria-label="Accent color hex value" />
+          </div>
+        </div>
         {error && <UptimeError message={error} />}
         <div className="flex flex-wrap items-center gap-3 border-t border-white/[0.07] pt-5"><button type="submit" className={primaryButton} disabled={saving}>{saving ? "Saving…" : "Save changes"}</button>{saved && <span role="status" className="inline-flex items-center gap-1.5 text-xs text-emerald-300"><Check size={14} aria-hidden="true" />Saved</span>}</div>
       </form>
