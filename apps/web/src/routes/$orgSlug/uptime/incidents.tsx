@@ -1,70 +1,120 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { formatTime, type UptimeComponent, type UptimeIncident, type UptimePage, type UptimeGroup, useUptimeResource, uptimeApiPath, uptimeRequest } from "@/components/uptime/uptime-client";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowUpRight, ChevronRight, CircleCheck, Plus, Search, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CreateIncidentDialog } from "@/components/uptime/create-incident-dialog";
+import { IncidentBadge } from "@/components/uptime/incident-ui";
+import { formatTime, type UptimeIncidentListResponse, type UptimePageResponse, uptimeRequest } from "@/components/uptime/uptime-client";
 import { UptimeRowsSkeleton, UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
-import { fieldClass, labelClass, primaryButton, secondaryButton, UptimeError, UptimePageHeading, UptimePanel } from "@/components/uptime/uptime-ui";
+import { primaryButton, secondaryButton, UptimeError, UptimePageHeading } from "@/components/uptime/uptime-ui";
+import { affectedComponentNames, incidentDuration, incidentLabel, incidentSearch, pageComponents, type IncidentSearch } from "@/lib/uptime/incident-display";
 
 export const Route = createFileRoute("/$orgSlug/uptime/incidents")({
   head: () => ({ meta: [{ title: "Incidents - OutRay Uptime" }] }),
-  component: UptimeIncidents,
+  validateSearch: incidentSearch,
+  component: UptimeIncidentsRoute,
 });
 
-const incidentStatuses = ["investigating", "identified", "monitoring", "resolved"] as const;
-type IncidentStatus = typeof incidentStatuses[number];
+const views = [{ value: "all", label: "All" }, { value: "active", label: "Active" }, { value: "resolved", label: "Resolved" }, { value: "drafts", label: "Drafts" }] as const;
+
+function UptimeIncidentsRoute() {
+  const { orgSlug } = Route.useParams();
+  return <UptimeIncidents key={orgSlug} />;
+}
 
 function UptimeIncidents() {
   const { orgSlug } = Route.useParams();
-  const resource = useUptimeResource<{ incidents: UptimeIncident[] }>(orgSlug, "/incidents");
-  const page = useUptimeResource<{ page: UptimePage | null; groups: UptimeGroup[] }>(orgSlug, "/page");
-  const integrations = useUptimeResource<{ integrations: Array<{ provider: string; connectedAt: string; target?: { workspaceName?: string; channelName?: string } }>; availability: { slack: boolean; discord: boolean } }>(orgSlug, "/integrations");
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
-  const [title, setTitle] = useState("");
-  const [note, setNote] = useState("");
-  const [status, setStatus] = useState<IncidentStatus>("investigating");
-  const [componentIds, setComponentIds] = useState<string[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const components = page.data?.groups.flatMap((group) => group.components) || [];
+  const [searchText, setSearchText] = useState(search.q ?? "");
+  const [previousQuery, setPreviousQuery] = useState(search.q);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Restore external URL changes without resetting the input on background refreshes.
+  if (previousQuery !== search.q) {
+    setPreviousQuery(search.q);
+    setSearchText(search.q ?? "");
+  }
+  const incidents = useInfiniteQuery({
+    queryKey: ["uptime", orgSlug, "incidents", search],
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam, signal }) => {
+      const params = new URLSearchParams({ limit: "25", view: search.view ?? "all", source: search.source ?? "all" });
+      if (search.q) params.set("q", search.q);
+      if (pageParam) params.set("cursor", pageParam);
+      return uptimeRequest<UptimeIncidentListResponse>(orgSlug, `/incidents?${params}`, { signal });
+    },
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    staleTime: 15_000,
+    gcTime: 30 * 60_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: "always",
+  });
+  const page = useQuery({ queryKey: ["uptime", orgSlug, "page"], queryFn: ({ signal }) => uptimeRequest<UptimePageResponse>(orgSlug, "/page", { signal }) });
+  const rows = Array.from(new Map((incidents.data?.pages.flatMap((part) => part.incidents) ?? []).map((incident) => [incident.id, incident])).values());
+  const components = pageComponents(page.data);
+  const canManage = incidents.data?.pages[0].canManage ?? false;
+  const filtered = Boolean(search.q || search.view && search.view !== "all" || search.source && search.source !== "all");
 
-  const create = async (publish: boolean) => {
-    setSaving(true); setError(null);
-    try { await uptimeRequest(orgSlug, "/incidents", { method: "POST", body: JSON.stringify({ title, note, status, componentIds, publish }) }); setCreating(false); setTitle(""); setNote(""); setComponentIds([]); resource.reload(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Could not create incident."); }
-    finally { setSaving(false); }
+  useEffect(() => {
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [search.q]);
+
+  const changeSearch = (value: string) => {
+    setSearchText(value);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      void navigate({ search: (previous) => incidentSearch({ ...previous, q: value }), replace: true, resetScroll: false });
+    }, 250);
   };
-
-  const disconnect = async (provider: string) => {
-    if (!window.confirm(`Remove the ${provider} destination from Uptime?`)) return;
-    try { await uptimeRequest(orgSlug, `/integrations/${provider}`, { method: "DELETE" }); integrations.reload(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Could not disconnect integration."); }
+  const changeFilter = (next: Partial<IncidentSearch>) => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    void navigate({ search: incidentSearch({ ...search, q: searchText, ...next }), replace: true, resetScroll: false });
+  };
+  const clearFilters = () => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    setSearchText("");
+    void navigate({ search: {}, replace: true, resetScroll: false });
   };
 
   return <div className="mx-auto max-w-[1320px]">
-    <UptimePageHeading title="Incident history" description="Automatic Down and Recovery events appear on the status page. Subscriber email is reserved for a team-published update." action={<button type="button" className={primaryButton} onClick={() => setCreating((value) => !value)}>{creating ? "Close form" : "Create manual incident"}</button>} />
-    {error && <div className="mb-5"><UptimeError message={error} /></div>}
-    {creating && <UptimePanel className="mb-6 p-5 md:p-7"><h2 className="text-lg font-semibold text-zinc-100">New manual incident</h2><p className="mt-1 text-xs text-zinc-500">Save a draft without public changes, or publish it to the status page and confirmed subscribers.</p><form onSubmit={(event) => { event.preventDefault(); void create(false); }} className="mt-5 space-y-5"><label className={labelClass}>Title<input className={`${fieldClass} mt-2`} value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={160} placeholder="Checkout is experiencing errors" /></label><fieldset><legend className={labelClass}>Affected components</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{components.map((component) => <label key={component.id} className="flex min-h-11 items-center gap-2 rounded-xl border border-white/[0.09] px-3 text-xs text-zinc-300"><input className="size-4 accent-violet-400" type="checkbox" checked={componentIds.includes(component.id)} onChange={(event) => setComponentIds(event.target.checked ? [...componentIds, component.id] : componentIds.filter((id) => id !== component.id))} />{component.name}</label>)}</div>{!components.length && <p className="mt-2 text-xs text-amber-200">Create a status-page component first.</p>}</fieldset><div className="grid gap-4 md:grid-cols-[180px_1fr]"><label className={labelClass}>State<select className={`${fieldClass} mt-2`} value={status} onChange={(event) => setStatus(event.target.value as IncidentStatus)}>{incidentStatuses.map((value) => <option key={value} value={value}>{value[0].toUpperCase() + value.slice(1)}</option>)}</select></label><label className={labelClass}>Update note<textarea className={`${fieldClass} mt-2 min-h-24 py-3`} value={note} onChange={(event) => setNote(event.target.value)} required maxLength={4000} placeholder="What happened and what are you doing?" /></label></div><div className="flex flex-wrap gap-2"><button className={secondaryButton} type="submit" disabled={saving || !componentIds.length}>Save draft</button><button className={primaryButton} type="button" disabled={saving || !componentIds.length || !page.data?.page?.published || !title.trim() || !note.trim()} onClick={() => void create(true)}>Publish incident</button></div>{!page.data?.page?.published && <p className="text-xs text-zinc-600">Publish your status page before publishing an incident update.</p>}</form></UptimePanel>}
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
-      <UptimePanel className="overflow-hidden"><div className="border-b border-white/[0.07] px-5 py-4"><h2 className="text-sm font-semibold text-zinc-200">All incidents</h2></div>{resource.loading && !resource.data && <UptimeSkeleton label="Loading incidents"><UptimeRowsSkeleton rows={4} /></UptimeSkeleton>}{resource.error && <div className="p-5"><UptimeError message={resource.error} /></div>}{!resource.loading && !resource.error && !resource.data?.incidents.length && <p className="p-5 text-sm text-zinc-500">No incidents recorded.</p>}{resource.data?.incidents.map((incident) => <IncidentCard key={incident.id} incident={incident} components={components} orgSlug={orgSlug} onSaved={resource.reload} pagePublished={!!page.data?.page?.published} />)}</UptimePanel>
-      <UptimePanel className="p-5">
-        <h2 className="text-sm font-semibold text-zinc-200">Team notification channels</h2>
-        <p className="mt-2 text-xs leading-5 text-zinc-500">Email recipients are selected per monitor. Slack and Discord are connected once for this Uptime workspace, separate from Observability.</p>
-        {integrations.loading && !integrations.data ? <UptimeSkeleton label="Loading notification channels" className="mt-5"><UptimeRowsSkeleton rows={2} /></UptimeSkeleton> : integrations.error && !integrations.data ? <div className="mt-5"><UptimeError message={integrations.error} /></div> : <div className="mt-5 space-y-3">{(["slack", "discord"] as const).map((provider) => { const connection = integrations.data?.integrations.find((item) => item.provider === provider); const available = integrations.data?.availability[provider]; return <div key={provider} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.09] p-3"><div className="flex items-center gap-3"><img src={`/logos/${provider}.svg`} alt="" className="size-6 object-contain" /><div><p className="text-sm font-medium capitalize text-zinc-200">{provider}</p><p className="text-[11px] text-zinc-600">{connection ? `${connection.target?.workspaceName || "Connected"}${connection.target?.channelName ? ` · #${connection.target.channelName}` : ""}` : available ? "Not connected" : "Not configured"}</p></div></div>{connection ? <div className="flex gap-2"><a className={secondaryButton} href={uptimeApiPath(orgSlug, `/integrations/${provider}/start`)}>Change channel</a><button type="button" className={secondaryButton} onClick={() => void disconnect(provider)}>Remove</button></div> : <a className={secondaryButton} href={available ? uptimeApiPath(orgSlug, `/integrations/${provider}/start`) : undefined} aria-disabled={!available} onClick={(event) => { if (!available) event.preventDefault(); }}>Connect</a>}</div>; })}</div>}
-      </UptimePanel>
+    <UptimePageHeading title="Incidents" description="Track issues, share updates, and follow recovery." action={canManage ? <button type="button" className={`${primaryButton} gap-2`} onClick={() => setCreating(true)}><Plus size={15} aria-hidden="true" />Create incident</button> : undefined} />
+    <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <nav aria-label="Filter incidents by status" className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-xl border border-white/[0.07] bg-white/[0.015] p-1">
+        {views.map((view) => <button type="button" key={view.value} aria-pressed={(search.view ?? "all") === view.value} onClick={() => changeFilter({ view: view.value })} className={`min-h-9 shrink-0 rounded-lg px-4 text-[13px] transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-violet-400 ${(search.view ?? "all") === view.value ? "bg-white/[0.07] text-zinc-100" : "text-zinc-500 hover:bg-white/[0.03] hover:text-zinc-300"}`}>{view.label}</button>)}
+      </nav>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex h-10 items-center gap-2 rounded-xl border border-white/[0.09] bg-[#0d0d0f] px-3 focus-within:border-violet-400/40 sm:w-64"><Search size={15} className="shrink-0 text-zinc-600" aria-hidden="true" /><input type="search" value={searchText} onChange={(event) => changeSearch(event.target.value)} aria-label="Search incidents by title" placeholder="Search incidents" className="min-w-0 flex-1 bg-transparent text-[13px] text-zinc-200 outline-none placeholder:text-zinc-600" /></div>
+        <select aria-label="Incident source" className="min-h-10 rounded-xl border border-white/[0.09] bg-[#0d0d0f] px-3 text-[13px] text-zinc-400 outline-none focus:border-violet-400/40" value={search.source ?? "all"} onChange={(event) => changeFilter({ source: event.target.value as IncidentSearch["source"] })}><option value="all">All sources</option><option value="automatic">Automatic</option><option value="manual">Manual</option></select>
+      </div>
     </div>
+    {incidents.error && <div className="mb-4 space-y-2"><UptimeError message={incidents.error instanceof Error ? incidents.error.message : "Could not load incidents."} /><button type="button" className={secondaryButton} onClick={() => void incidents.refetch()}>Try again</button></div>}
+    {page.isError && <p className="mb-4 text-xs text-zinc-500">Component details are temporarily unavailable. <button type="button" onClick={() => void page.refetch()} className="text-zinc-300 underline underline-offset-4">Retry</button></p>}
+    <section aria-label="Incident history" className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d0d0f]">
+      <div className="hidden grid-cols-[minmax(0,1fr)_100px_130px_110px_20px] gap-5 border-b border-white/[0.07] px-5 py-3 text-xs text-zinc-600 lg:grid"><span>Incident</span><span>Source</span><span>Started</span><span>Duration</span><span /></div>
+      {incidents.isPending && <UptimeSkeleton label="Loading incidents"><UptimeRowsSkeleton rows={5} /></UptimeSkeleton>}
+      {!incidents.isPending && !incidents.isError && !rows.length && <div className="flex flex-col items-center px-6 py-14 text-center"><CircleCheck size={26} strokeWidth={1.4} className="mb-4 text-zinc-600" aria-hidden="true" /><h2 className="text-sm font-medium text-zinc-200">{filtered ? "No matching incidents" : "No incidents yet"}</h2><p className="mt-2 max-w-sm text-[13px] leading-6 text-zinc-500">{filtered ? "Try a different search or filter to find what you need." : "Monitor-detected issues and updates from your team will appear here."}</p>{filtered ? <button type="button" className={`${secondaryButton} mt-5 gap-2`} onClick={clearFilters}><X size={13} aria-hidden="true" />Clear filters</button> : !page.isPending && !page.isError && !page.data?.page && canManage ? <Link to="/$orgSlug/uptime/status-page" params={{ orgSlug }} className={`${secondaryButton} mt-5 gap-2`}>Set up your status page<ArrowUpRight size={14} aria-hidden="true" /></Link> : canManage && <button type="button" className={`${secondaryButton} mt-5`} onClick={() => setCreating(true)}>Create incident</button>}</div>}
+      {rows.map((incident) => {
+        const names = affectedComponentNames(incident, components);
+        const label = incidentLabel(incident);
+        return <Link key={incident.id} to="/$orgSlug/uptime/incidents/$incidentId" params={{ orgSlug, incidentId: incident.id }} search={search} className="group grid gap-3 border-b border-white/[0.06] px-5 py-5 transition-colors last:border-b-0 hover:bg-white/[0.025] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-violet-400 motion-reduce:transition-none lg:grid-cols-[minmax(0,1fr)_100px_130px_110px_20px] lg:items-center lg:gap-5">
+          <div className="min-w-0"><div className="flex flex-wrap items-center gap-x-3 gap-y-2"><span className="min-w-0 break-words text-sm font-medium text-zinc-200 group-hover:text-white">{incident.title}</span><IncidentBadge incident={incident} /></div><p className="mt-2 truncate text-xs text-zinc-500" title={names.join(", ")}>{names.length ? names.join(", ") : "No status-page components linked"}</p></div>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-zinc-500 lg:contents">
+          <span>{incident.sourceType === "uptime_manual" ? "Manual" : "Automatic"}</span>
+          <time className="text-xs text-zinc-500" dateTime={incident.startedAt || incident.createdAt} title={formatTime(incident.startedAt || incident.createdAt)}>{new Date(incident.startedAt || incident.createdAt || "").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</time>
+          <span className="text-xs text-zinc-500">{label === "Draft" ? "Unpublished" : `${incidentDuration(incident)}${incident.status === "open" ? " · ongoing" : ""}`}</span>
+          </div>
+          <ChevronRight size={15} className="hidden text-zinc-600 transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none lg:block" aria-hidden="true" />
+        </Link>;
+      })}
+    </section>
+    {rows.length > 0 && <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-zinc-600">{rows.length} {rows.length === 1 ? "incident" : "incidents"} shown{incidents.isFetching && !incidents.isFetchingNextPage ? " · refreshing" : ""}</p>{incidents.hasNextPage && <button type="button" className={secondaryButton} disabled={incidents.isFetching} onClick={() => void incidents.fetchNextPage()}>{incidents.isFetchingNextPage ? "Loading more…" : "Load more"}</button>}</div>}
+    {creating && canManage && <CreateIncidentDialog orgSlug={orgSlug} onClose={() => setCreating(false)} onCreated={(incidentId) => {
+      void queryClient.invalidateQueries({ queryKey: ["uptime", orgSlug, "incidents"] });
+      setCreating(false);
+      void navigate({ to: "/$orgSlug/uptime/incidents/$incidentId", params: { orgSlug, incidentId }, search, ignoreBlocker: true });
+    }} />}
   </div>;
-}
-
-function IncidentCard({ incident, components, orgSlug, onSaved, pagePublished }: { incident: UptimeIncident; components: UptimeComponent[]; orgSlug: string; onSaved: () => void; pagePublished: boolean }) {
-  const [note, setNote] = useState("");
-  const [status, setStatus] = useState<IncidentStatus>("monitoring");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const manual = incident.sourceType === "uptime_manual";
-  const affected = components.filter((component) => incident.componentIds?.includes(component.id));
-  const addUpdate = async (publish: boolean) => { setSaving(true); setError(null); try { await uptimeRequest(orgSlug, `/incidents/${encodeURIComponent(incident.id)}/updates`, { method: "POST", body: JSON.stringify({ note, status, publish }) }); setNote(""); onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save update."); } finally { setSaving(false); } };
-  const publishDraft = async (updateId: string) => { setSaving(true); setError(null); try { await uptimeRequest(orgSlug, `/incidents/${encodeURIComponent(incident.id)}/updates/${encodeURIComponent(updateId)}`, { method: "PATCH", body: JSON.stringify({ publish: true }) }); onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not publish update."); } finally { setSaving(false); } };
-  return <article className="border-b border-white/[0.07] p-5 last:border-0"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-sm font-medium text-zinc-200">{incident.title}</h3><p className="mt-1 text-xs text-zinc-600">{formatTime(incident.startedAt || incident.createdAt)} · {manual ? "Manual" : "Automatic"}</p>{affected.length > 0 && <p className="mt-2 text-xs text-zinc-500">Affects {affected.map((component) => component.name).join(", ")}</p>}</div><span className={`rounded-full border px-2.5 py-1 text-[11px] ${incident.status === "resolved" ? "border-emerald-400/20 text-emerald-300" : "border-amber-400/20 text-amber-300"}`}>{incident.status === "resolved" ? "Resolved" : "Open"}</span></div>
-    {incident.updates?.length ? <div className="mt-4 space-y-2">{incident.updates.map((update) => <div key={update.id} className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-medium capitalize text-zinc-300">{update.status} · {update.publishedAt ? "Published" : "Draft"}</p><span className="text-[11px] text-zinc-600">{formatTime(update.createdAt)}</span></div><p className="mt-2 text-xs leading-5 text-zinc-500">{update.note}</p>{manual && !update.publishedAt && <button type="button" className={`${secondaryButton} mt-3`} disabled={saving || !pagePublished} onClick={() => void publishDraft(update.id)}>Publish draft</button>}</div>)}</div> : null}
-    {manual && incident.status !== "resolved" && <details className="mt-4"><summary className="cursor-pointer text-xs text-zinc-300 hover:text-white">Add update</summary><div className="mt-4 grid gap-3"><select className={fieldClass} aria-label="Incident update state" value={status} onChange={(event) => setStatus(event.target.value as IncidentStatus)}>{incidentStatuses.map((value) => <option key={value} value={value}>{value}</option>)}</select><textarea className={`${fieldClass} min-h-20 py-3`} aria-label="Incident update note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="What changed?" maxLength={4000} /><div className="flex gap-2"><button type="button" className={secondaryButton} disabled={saving || !note.trim()} onClick={() => void addUpdate(false)}>Save draft</button><button type="button" className={primaryButton} disabled={saving || !note.trim() || !pagePublished} onClick={() => void addUpdate(true)}>Publish update</button></div>{error && <UptimeError message={error} />}</div></details>}
-  </article>;
 }
