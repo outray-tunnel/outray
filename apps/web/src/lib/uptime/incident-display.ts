@@ -15,6 +15,11 @@ export function incidentLabel(incident: UptimeIncident, updates = incident.updat
   return "Active";
 }
 
+export function publicIncidentStage(incident: UptimeIncident, updates = incident.updates ?? []): "investigating" | "identified" | "monitoring" | "resolved" | "draft" | "down" | "recovered" {
+  if (incident.sourceType !== "uptime_manual") return incident.status === "resolved" ? "recovered" : "down";
+  return publishedIncidentUpdates(updates)[0]?.status ?? "draft";
+}
+
 export function incidentDuration(incident: UptimeIncident, now = Date.now()): string {
   const start = Date.parse(incident.startedAt || incident.createdAt || "");
   const end = incident.resolvedAt ? Date.parse(incident.resolvedAt) : now;
