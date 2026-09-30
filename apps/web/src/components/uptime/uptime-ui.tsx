@@ -26,11 +26,10 @@ export function StateBadge({ state }: { state: UptimeState | string | null | und
   </span>;
 }
 
-export function UptimePageHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: ReactNode }) {
+export function UptimePageHeading({ title, description, action }: { title: string; description: string; action?: ReactNode }) {
   return <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
     <div>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-600">{eyebrow}</p>
-      <h1 className="text-[28px] font-semibold tracking-[-0.035em] text-zinc-100 md:text-[32px]">{title}</h1>
+      <h1 className="text-xl font-normal tracking-[-0.02em] text-zinc-100">{title}</h1>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">{description}</p>
     </div>
     {action}
