@@ -208,7 +208,7 @@ function SecretsAuditPage() {
             <div className="flex justify-center pt-1">
               <SecretsButton
                 type="button"
-                variant="secondary"
+                tone="secondary"
                 disabled={loadingMore}
                 onClick={() => void loadMore()}
               >
