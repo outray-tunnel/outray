@@ -153,10 +153,10 @@ test("missing and stale evidence is Unknown", () => {
 });
 
 test("outbound links and webhook destinations remain explicit and provider-scoped", () => {
-  assert.equal(validDashboardUrl("https://dash.outray.dev"), true);
+  assert.equal(validDashboardUrl("https://outray.co"), true);
   assert.equal(validDashboardUrl("http://localhost:6767"), false);
   assert.equal(validDashboardUrl("https://localhost:6767"), false);
-  assert.equal(validDashboardUrl("https://dash.outray.dev/extra"), false);
+  assert.equal(validDashboardUrl("https://outray.co/extra"), false);
   assert.ok(validWebhookUrl("https://hooks.slack.com/services/T/B/token", "slack"));
   assert.throws(() => validWebhookUrl("https://example.com/services/T/B/token", "slack"));
   assert.throws(() => validWebhookUrl("https://discord.com.evil.test/api/webhooks/1/x", "discord"));
