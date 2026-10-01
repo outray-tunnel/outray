@@ -73,6 +73,30 @@ export interface SecretAuditPage {
   nextCursor: string | null;
 }
 
+export interface SecretShareRecord {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  maxViews: number;
+  views: number;
+  revokedAt: string | null;
+  keyNames: string[];
+  projectId: string;
+  environmentId: string;
+}
+
+export interface SecretTrashItem {
+  id: string;
+  batchId: string;
+  type: "project" | "environment" | "secret" | "bulk";
+  name: string;
+  itemCount: number;
+  isProduction: boolean;
+  deletedAt: string;
+  expiresAt: string;
+  metadata?: Record<string, unknown> | null;
+}
+
 export interface SecretsOverview {
   projectCount: number;
   environmentCount: number;
@@ -386,6 +410,47 @@ function secretPath(
 }
 
 export const secretsClient = {
+  async trash(orgSlug: string): Promise<SecretTrashItem[]> {
+    const result = await jsonRequest(orgSlug, "/trash") as { items: SecretTrashItem[] };
+    return result.items;
+  },
+
+  async restoreTrash(orgSlug: string, item: SecretTrashItem, confirmProduction: boolean): Promise<void> {
+    await jsonRequest(orgSlug, "/trash/restore", {
+      method: "POST", body: body({ type: item.type, id: item.id, confirmation: item.name, confirmProduction }),
+    });
+  },
+
+  async snapshotForShare(
+    orgSlug: string, projectSlug: string, environmentSlug: string,
+    secretIds: string[], confirmProduction: boolean,
+  ): Promise<{ secrets: Array<{ id: string; key: string; value: string; version: number }> }> {
+    return await jsonRequest(orgSlug, "/shares/snapshot", {
+      method: "POST", body: body({ projectSlug, environmentSlug, secretIds, confirmProduction }),
+    }) as { secrets: Array<{ id: string; key: string; value: string; version: number }> };
+  },
+
+  async createShare(orgSlug: string, input: Record<string, unknown>): Promise<{ id: string }> {
+    return await jsonRequest(orgSlug, "/shares", { method: "POST", body: body(input) }) as { id: string };
+  },
+
+  async shares(orgSlug: string): Promise<SecretShareRecord[]> {
+    const result = await jsonRequest(orgSlug, "/shares") as { shares: SecretShareRecord[] };
+    return result.shares;
+  },
+
+  async revokeShare(orgSlug: string, id: string): Promise<void> {
+    await jsonRequest(orgSlug, `/shares/${encodePath(id)}`, { method: "DELETE" });
+  },
+
+  async bulkAction(
+    orgSlug: string, projectSlug: string, environmentSlug: string,
+    input: Record<string, unknown>,
+  ): Promise<{ moved?: number; deleted?: number; skipped?: string[] }> {
+    return await jsonRequest(orgSlug, `${environmentPath(projectSlug, environmentSlug)}/bulk`, {
+      method: "POST", body: body(input),
+    }) as { moved?: number; deleted?: number; skipped?: string[] };
+  },
   async overview(orgSlug: string): Promise<SecretsOverview> {
     const payload = await jsonRequest(orgSlug, "/overview");
     const record = unwrapRecord(payload, ["overview", "data"]);
