@@ -28,7 +28,7 @@ export default function ShareComposer() {
         ? { type: "text", text: plainText }
         : { type: "bundle", entries: entries.map(({ key, value }) => ({ key: key.trim(), value })) };
       const encrypted = await encryptShare(content);
-      const response = await fetch("/api/shares", {
+      const response = await fetch("/v1/shares", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -41,6 +41,9 @@ export default function ShareComposer() {
           maxViews,
         }),
       });
+      if (!response.headers.get("content-type")?.includes("application/json")) {
+        throw new Error("The share service is unavailable. Please try again later.");
+      }
       const result = await response.json();
       if (!response.ok || typeof result.id !== "string") throw new Error(result.error || "Could not create share");
       setLink(completeShareUrl(window.location.origin, result.id, encrypted.key));
