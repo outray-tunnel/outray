@@ -3,8 +3,79 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { and, eq, inArray } from "drizzle-orm";
 import type { SecretsAccess } from "../src/lib/secrets/types";
+import { decryptShare, encryptShare } from "@outray/share-crypto";
 
 const enabled = process.env.OUTRAY_RUN_DB_INTEGRATION === "1";
+
+test("organization shares are frozen and bulk move/delete are recoverable", { skip: !enabled }, async (t) => {
+  const [{ db }, authSchema, secretsSchema, projects, entries, shares, bulk, governance] = await Promise.all([
+    import("../src/db"), import("../src/db/auth-schema"), import("../src/db/secrets-schema"),
+    import("../src/lib/secrets/projects"), import("../src/lib/secrets/entries"),
+    import("../src/lib/secrets/shares"), import("../src/lib/secrets/bulk"),
+    import("../src/lib/secrets/governance"),
+  ]);
+  const suffix = crypto.randomUUID();
+  const userId = `share-test-user-${suffix}`;
+  const organizationId = `share-test-org-${suffix}`;
+  const organizationSlug = `share-test-${suffix}`;
+  const owner = accessFor({ organizationId, organizationSlug, organizationName: "Share test", userId, role: "owner" });
+  const now = new Date();
+  let createdShareId: string | null = null;
+  t.after(async () => {
+    if (createdShareId) await db.delete(secretsSchema.secretShareLinks).where(eq(secretsSchema.secretShareLinks.id, createdShareId));
+    await db.delete(authSchema.organizations).where(eq(authSchema.organizations.id, organizationId));
+    await db.delete(authSchema.users).where(eq(authSchema.users.id, userId));
+  });
+  await db.insert(authSchema.users).values({ id: userId, name: "Share test", email: `${suffix}@secrets.integration.invalid`, emailVerified: true, createdAt: now, updatedAt: now });
+  await db.insert(authSchema.organizations).values({ id: organizationId, name: "Share test", slug: organizationSlug, createdAt: now });
+  await db.insert(authSchema.members).values({ id: `share-test-member-${suffix}`, organizationId, userId, role: "owner", createdAt: now });
+  await projects.createProject(owner, { name: "Share vault", slug: "share-vault" });
+
+  const first = await entries.createSecret(owner, "share-vault", "development", { key: "FIRST", value: "original", expectedRevision: 0 });
+  const second = await entries.createSecret(owner, "share-vault", "development", { key: "SECOND", value: "second", expectedRevision: 1 });
+  const ids = [first.secrets[0].id, second.secrets[0].id];
+  const snapshot = await shares.snapshotSecrets(owner, "share-vault", "development", { secretIds: ids });
+  const encrypted = await encryptShare({ type: "bundle", entries: snapshot.secrets.map(({ key, value }) => ({ key, value })) });
+  const share = await shares.createOrganizationShare(owner, "share-vault", "development", {
+    secretIds: snapshot.secrets.map(({ id }) => id), versions: snapshot.secrets.map(({ version }) => version),
+    ciphertext: encrypted.ciphertext, iv: encrypted.iv, verifier: encrypted.verifier,
+    durationValue: 7, durationUnit: "days", maxViews: 10,
+  });
+  createdShareId = share.id;
+  const [stored] = await db.select().from(secretsSchema.secretShareLinks).where(eq(secretsSchema.secretShareLinks.id, share.id));
+  assert.ok(stored && !stored.ciphertext.includes("original"));
+  await entries.updateSecret(owner, "share-vault", "development", first.secrets[0].id, { value: "changed", expectedVersion: 1, expectedRevision: 2 });
+  assert.deepEqual(await decryptShare(encrypted, encrypted.key), { type: "bundle", entries: [{ key: "FIRST", value: "original" }, { key: "SECOND", value: "second" }] });
+  assert.equal((await shares.listOrganizationShares(accessFor({ organizationId: "other", organizationSlug: "other", organizationName: "Other", userId, role: "owner" }))).shares.length, 0);
+
+  await entries.createSecret(owner, "share-vault", "staging", { key: "FIRST", value: "destination", expectedRevision: 0 });
+  const skipped = await bulk.moveSecretsBulk(owner, "share-vault", "development", {
+    secretIds: ids, expectedSourceRevision: 3, expectedTargetRevision: 1,
+    targetEnvironmentSlug: "staging", conflictMode: "skip",
+  });
+  assert.equal(skipped.moved, 1);
+  assert.deepEqual(skipped.skipped, ["FIRST"]);
+  const overwritten = await bulk.moveSecretsBulk(owner, "share-vault", "development", {
+    secretIds: [first.secrets[0].id], expectedSourceRevision: skipped.sourceRevision,
+    expectedTargetRevision: skipped.targetRevision, targetEnvironmentSlug: "staging", conflictMode: "overwrite",
+  });
+  assert.equal(overwritten.moved, 1);
+  const target = await entries.listSecrets(owner, "share-vault", "staging");
+  const targetFirst = target.secrets.find((item) => item.key === "FIRST");
+  assert.ok(targetFirst);
+  assert.equal((await entries.revealSecret(owner, "share-vault", "staging", targetFirst.id, { intent: "reveal" })).secret.value, "changed");
+  const deleted = await bulk.deleteSecretsBulk(owner, "share-vault", "staging", {
+    secretIds: target.secrets.map((item) => item.id), expectedRevision: target.environment.revision,
+    confirmation: "DELETE 2",
+  });
+  assert.equal(deleted.deleted, 2);
+  const trash = (await governance.listTrash(owner)).find((item) => item.batchId === deleted.batchId);
+  assert.ok(trash);
+  await governance.restoreTrash(owner, { type: "bulk", id: deleted.batchId, confirmation: trash.name });
+  assert.equal((await entries.listSecrets(owner, "share-vault", "staging")).secrets.length, 2);
+  await shares.revokeOrganizationShare(owner, share.id);
+  assert.ok((await shares.listOrganizationShares(owner)).shares.find((item) => item.id === share.id)?.revokedAt);
+});
 
 function accessFor(input: {
   organizationId: string;
