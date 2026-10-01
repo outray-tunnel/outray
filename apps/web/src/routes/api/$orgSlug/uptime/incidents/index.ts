@@ -67,7 +67,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/")({
               organizationId: access.organization.id, incidentId, updateId,
               title: title.trim(), affectedComponentIds: componentIds,
               note: parsed.data.note, status: parsed.data.status,
-              componentStates: parsed.data.componentStates, now,
+              componentStates: parsed.data.componentStates, applyManualLifecycle: true, now,
             });
             if (!result.success) throw new PublishError(result.error, result.status);
           }
