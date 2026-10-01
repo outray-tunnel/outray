@@ -11,6 +11,8 @@
         "PUBLIC_SITE_URL",
         "PUBLIC_POSTHOG_HOST",
         "PUBLIC_POSTHOG_KEY",
+        "SHARE_PUBLIC_ORIGIN",
+        "VITE_SHARE_PUBLIC_ORIGIN",
         "VITE_OUTRAY_STATUS_URL",
         "TUNNEL_DOMAIN",
         "VITE_POLAR_PRODUCT_BEAM",
@@ -34,6 +36,8 @@
         "PUBLIC_SITE_URL",
         "PUBLIC_POSTHOG_HOST",
         "PUBLIC_POSTHOG_KEY",
+        "SHARE_PUBLIC_ORIGIN",
+        "VITE_SHARE_PUBLIC_ORIGIN",
         "VITE_OUTRAY_STATUS_URL"
       ]
     },
