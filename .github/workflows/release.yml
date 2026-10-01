@@ -19,12 +19,12 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        env:
-          HUGEICONS_LICENSE_KEY: ${{ secrets.HUGEICONS_LICENSE_KEY }}
-        run: npm ci
+        run: npm ci --workspace=outray --workspace=@outray/core --include-workspace-root=false
 
       - name: Build CLI and workspace dependencies
-        run: npm run build -- --filter=outray
+        run: |
+          npm run build --workspace=@outray/core
+          npm run build --workspace=outray
 
       - name: Test CLI Secrets and tunnel compatibility
         run: npm test --workspace=outray
@@ -65,12 +65,12 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
-        env:
-          HUGEICONS_LICENSE_KEY: ${{ secrets.HUGEICONS_LICENSE_KEY }}
-        run: npm ci
+        run: npm ci --workspace=outray --workspace=@outray/core --include-workspace-root=false
 
       - name: Build
-        run: npm run build -- --filter=outray
+        run: |
+          npm run build --workspace=@outray/core
+          npm run build --workspace=outray
 
       - name: Publish to npm
         working-directory: apps/cli
