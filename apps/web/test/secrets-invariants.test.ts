@@ -153,7 +153,7 @@ test("Secrets headers, primary actions, and environment cards follow the platfor
   );
 });
 
-test("Trash is not exposed on the Secrets product surface", async () => {
+test("Bulk deletion exposes recoverable Trash batches", async () => {
   const [
     productSubSidebar,
     mobileBottomNav,
@@ -180,8 +180,8 @@ test("Trash is not exposed on the Secrets product surface", async () => {
     secretsClient,
   ].join("\n");
 
-  assert.doesNotMatch(productSurface, /\bTrash\b|move(?:d)? to trash/i);
-  assert.doesNotMatch(
+  assert.match(productSurface, /\bTrash\b|move(?:d)? to trash/i);
+  assert.match(
     routeTree,
     /^import \{ Route as OrgSlugSecretsTrashRouteImport \}/m,
   );
