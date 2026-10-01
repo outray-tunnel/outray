@@ -170,7 +170,7 @@ test(
         updateId: ids.updateA, title: "Draft incident A",
         affectedComponentIds: [ids.manualA],
         note: "Investigating the manual service", status: "investigating",
-        componentStates: { [ids.manualA]: "outage" }, now,
+        componentStates: { [ids.manualA]: "outage" }, applyManualLifecycle: true, now,
       });
     });
     assert.deepEqual(result, { success: true, recipients: 1 });
