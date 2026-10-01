@@ -29,6 +29,8 @@ import {
   fieldClassName,
 } from "./secrets-ui";
 import { formatRelativeDate } from "./utils";
+import { usePermission } from "@/lib/auth-client";
+import { BulkActionsDialog, type BulkAction } from "./bulk-actions-dialog";
 
 interface RevealedSecret {
   value: string;
@@ -63,6 +65,10 @@ export function SecretsTable({
   const [history, setHistory] = useState<SecretMetadata | null>(null);
   const [deleting, setDeleting] = useState<SecretMetadata | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState<BulkAction | null>(null);
+  const { data: canShare } = usePermission({ secretShare: ["create"] });
   const revealTimers = useRef(new Map<string, number>());
   const copyTimer = useRef<number | undefined>(undefined);
 
@@ -73,6 +79,12 @@ export function SecretsTable({
       secret.key.toLowerCase().includes(normalized),
     );
   }, [query, secrets]);
+  const selected = secrets.filter((secret) => selectedIds.includes(secret.id));
+  const allVisibleSelected = visibleSecrets.length > 0 && visibleSecrets.every((secret) => selectedIds.includes(secret.id));
+  const toggleSelected = (id: string) => setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const toggleVisible = () => setSelectedIds((current) => allVisibleSelected
+    ? current.filter((id) => !visibleSecrets.some((secret) => secret.id === id))
+    : [...new Set([...current, ...visibleSecrets.map((secret) => secret.id)])]);
 
   useEffect(() => {
     if (Object.keys(revealed).length === 0) return;
@@ -244,6 +256,7 @@ export function SecretsTable({
       {error && (
         <SecretsNotice message={error} onDismiss={() => setError(null)} />
       )}
+      {notice && <SecretsNotice message={notice} onDismiss={() => setNotice(null)} />}
       <div className="relative max-w-sm">
         <HugeiconsIcon
           icon={Search01Icon}
@@ -260,6 +273,14 @@ export function SecretsTable({
         />
       </div>
 
+      {selected.length > 0 && <div className="flex flex-wrap items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-400/[0.045] p-2.5 pl-4" role="toolbar" aria-label="Selected secrets actions">
+        <span className="mr-auto text-[13px] text-zinc-300">{selected.length} selected</span>
+        <SecretsButton className="h-9 px-3" onClick={() => setBulkAction("move")}>Move to</SecretsButton>
+        {canShare && selected.length <= 50 && <SecretsButton className="h-9 px-3" onClick={() => setBulkAction("share")}>Share</SecretsButton>}
+        <SecretsButton tone="danger" className="h-9 px-3" onClick={() => setBulkAction("delete")}>Delete</SecretsButton>
+        <SecretsButton tone="quiet" className="h-9 px-3" onClick={() => setSelectedIds([])}>Clear</SecretsButton>
+      </div>}
+
       {visibleSecrets.length === 0 ? (
         <div className="rounded-2xl border border-white/[0.08] px-6 py-12 text-center text-[13px] text-zinc-600">
           No secret keys match “{query}”.
@@ -270,8 +291,9 @@ export function SecretsTable({
             <table className="w-full table-fixed border-collapse text-left">
               <thead>
                 <tr className="border-b border-white/[0.08] bg-white/[0.018] text-[13px] font-medium uppercase tracking-[0.09em] text-zinc-500">
-                  <th className="w-[30%] px-5 py-3.5">Key</th>
-                  <th className="w-[31%] px-5 py-3.5">Value</th>
+                  <th className="w-12 px-4 py-3.5"><input type="checkbox" aria-label="Select all visible secrets" checked={allVisibleSelected} onChange={toggleVisible} className="size-4 cursor-pointer rounded accent-[#8367c7]" /></th>
+                  <th className="w-[27%] px-5 py-3.5">Key</th>
+                  <th className="w-[28%] px-5 py-3.5">Value</th>
                   <th className="w-[12%] px-5 py-3.5">Version</th>
                   <th className="w-[17%] px-5 py-3.5">Updated</th>
                   <th className="w-[10%] px-5 py-3.5 text-right">Actions</th>
@@ -288,6 +310,7 @@ export function SecretsTable({
                       key={secret.id}
                       className="border-b border-white/[0.065] last:border-b-0 hover:bg-white/[0.015]"
                     >
+                      <td className="px-4 py-4"><input type="checkbox" aria-label={`Select ${secret.key}`} checked={selectedIds.includes(secret.id)} onChange={() => toggleSelected(secret.id)} className="size-4 cursor-pointer rounded accent-[#8367c7]" /></td>
                       <td className="px-5 py-4">
                         <div className="flex min-w-0 items-center gap-3">
                           <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-zinc-600">
@@ -373,6 +396,7 @@ export function SecretsTable({
                   className="rounded-2xl border border-white/[0.08] bg-white/[0.012] p-4"
                 >
                   <div className="flex items-start gap-3">
+                    <input type="checkbox" aria-label={`Select ${secret.key}`} checked={selectedIds.includes(secret.id)} onChange={() => toggleSelected(secret.id)} className="mt-2 size-4 shrink-0 cursor-pointer rounded accent-[#8367c7]" />
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-zinc-600">
                       <HugeiconsIcon
                         icon={Key01Icon}
@@ -471,6 +495,10 @@ export function SecretsTable({
           void remove(confirmed, confirmation)
         }
       />
+      <BulkActionsDialog action={bulkAction} onClose={() => setBulkAction(null)}
+        onDone={(message) => { setBulkAction(null); setSelectedIds([]); setNotice(message || null); onMutated(); }}
+        orgSlug={orgSlug} projectSlug={projectSlug} environment={environment}
+        environments={environments} secrets={selected} revision={revision} />
     </div>
   );
 }
