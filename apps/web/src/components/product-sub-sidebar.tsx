@@ -9,12 +9,14 @@ import HistoryIcon from "@hugeicons-pro/core-stroke-rounded/HistoryIcon";
 import Home01Icon from "@hugeicons-pro/core-stroke-rounded/Home01Icon";
 import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
 import LinkSquare01Icon from "@hugeicons-pro/core-stroke-rounded/LinkSquare01Icon";
+import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
 import LogsIcon from "@hugeicons-pro/core-stroke-rounded/LogsIcon";
 import Notification02Icon from "@hugeicons-pro/core-stroke-rounded/Notification02Icon";
 import Route03Icon from "@hugeicons-pro/core-stroke-rounded/Route03Icon";
 import ServerStack01Icon from "@hugeicons-pro/core-stroke-rounded/ServerStack01Icon";
 import WorkflowSquare06Icon from "@hugeicons-pro/core-stroke-rounded/WorkflowSquare06Icon";
 import { NavItem } from "./sidebar/nav-item";
+import { usePermission } from "@/lib/auth-client";
 
 interface SubNavItem {
   label: string;
@@ -30,6 +32,7 @@ interface ProductNavigation {
 
 export function ProductSubSidebar() {
   const { orgSlug } = useParams({ from: "/$orgSlug" });
+  const { data: canManageShares } = usePermission({ secretShare: ["create"] });
   const location = useLocation();
   const basePath = `/${orgSlug}`;
 
@@ -132,6 +135,8 @@ export function ProductSubSidebar() {
           to: "/$orgSlug/secrets/vaults",
           icon: Folder01Icon,
         },
+        ...(canManageShares ? [{ label: "Shares", to: "/$orgSlug/secrets/shares", icon: LinkSquare01Icon }] : []),
+        { label: "Trash", to: "/$orgSlug/secrets/trash", icon: Delete02Icon },
         {
           label: "Audit log",
           to: "/$orgSlug/secrets/audit",
