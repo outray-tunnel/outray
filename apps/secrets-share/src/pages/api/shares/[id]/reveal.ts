@@ -10,8 +10,9 @@ export const POST: APIRoute = async ({ request, params, clientAddress }) => {
   try {
     const ip = requestClientIp(request, clientAddress);
     if (!(await enforceRateLimit(ip, "reveal"))) return Response.json({ error: "Please try later" }, { status: 429 });
-    const body = await readJsonLimited(request, 2_048) as { verifier?: unknown };
-    const result = await revealShare(params.id || "", typeof body?.verifier === "string" ? body.verifier : "");
+    const body = await readJsonLimited(request, 2_048) as { verifier?: unknown; passwordVerifier?: unknown };
+    const result = await revealShare(params.id || "", typeof body?.verifier === "string" ? body.verifier : "",
+      typeof body?.passwordVerifier === "string" ? body.passwordVerifier : undefined);
     if (!result) return Response.json({ error: "This link is unavailable" }, { status: 404 });
     return Response.json(result);
   } catch (error) {
