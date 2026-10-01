@@ -4,6 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight, ChevronDown, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { IncidentBadge, IncidentStatusSelect, StagePill } from "@/components/uptime/incident-ui";
+import { incidentStageDescriptions } from "@/components/uptime/incident-stages";
 import { IncidentRichContent, IncidentRichEditor } from "@/components/uptime/incident-rich-editor";
 import {
   formatTime,
@@ -16,6 +17,7 @@ import {
 import { UptimeHeaderSkeleton, UptimeRowsSkeleton, UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
 import { labelClass, primaryButton, secondaryButton, UptimeError } from "@/components/uptime/uptime-ui";
 import { UptimeDialog } from "@/components/uptime/uptime-dialog";
+import { UptimeSideSheet } from "@/components/uptime/uptime-side-sheet";
 import { useUptimeUnsavedChanges } from "@/components/uptime/use-uptime-unsaved-changes";
 import { affectedComponentNames, incidentDuration, incidentSearch, publishedIncidentUpdates } from "@/lib/uptime/incident-display";
 import { statusPageUrl } from "@/lib/uptime/status-url";
@@ -93,10 +95,15 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
 
   const { incident, updates, notifications, canManage, monitorAvailable, componentIds } = resource.data;
   const manual = incident.sourceType === "uptime_manual";
-  const editable = manual && incident.status !== "resolved" && canManage;
+  const editable = canManage && (!manual || incident.status !== "resolved");
   const components = [...(pageResource.data?.standaloneComponents || []), ...(pageResource.data?.groups.flatMap((group) => group.components) || [])];
   const affected = affectedComponentNames({ ...incident, componentIds }, components);
   const published = publishedIncidentUpdates(updates);
+  const automaticEvents = manual ? [] : [
+    ...published.map((update) => ({ kind: "update" as const, at: update.publishedAt!, id: update.id, update })),
+    { kind: "detected" as const, at: incident.startedAt || incident.createdAt || "", id: "detected" },
+    ...(incident.resolvedAt ? [{ kind: "recovered" as const, at: incident.resolvedAt, id: "recovered" }] : []),
+  ].sort((left, right) => Date.parse(right.at) - Date.parse(left.at) || right.id.localeCompare(left.id));
   const draftOnly = manual && published.length === 0;
   const drafts = updates.filter((update) => !update.publishedAt).sort((left, right) =>
     Date.parse(right.createdAt) - Date.parse(left.createdAt) || right.id.localeCompare(left.id));
@@ -114,7 +121,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-3"><h1 className="break-words text-xl font-normal tracking-[-0.02em] text-zinc-100">{incident.title}</h1><IncidentBadge incident={incident} updates={updates} /></div>
-        <p className="mt-2 text-[13px] leading-6 text-zinc-500">{manual ? "Team updates and publication history." : "Detection and recovery recorded by your monitor."}</p>
+        <p className="mt-2 text-[13px] leading-6 text-zinc-500">{manual ? "Team updates and publication history." : "Monitor detection and recovery, with team-published updates."}</p>
       </div>
       {publicReportAvailable && page && <a className={`${secondaryButton} gap-2`} href={new URL(`incidents/${encodeURIComponent(incident.id)}`, statusPageUrl(statusBase, page.slug)).href} target="_blank" rel="noopener noreferrer">Public report<ArrowUpRight size={14} aria-hidden="true" /></a>}
     </header>
@@ -140,8 +147,11 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
         key={editor.draft?.id || "new"}
         orgSlug={orgSlug}
         incidentId={incidentId}
+        incidentTitle={incident.title}
         draft={editor.draft}
-        defaultStatus={published[0]?.status ?? "investigating"}
+        defaultStatus={!manual && incident.status === "resolved" ? "resolved" : published[0]?.status ?? "investigating"}
+        automatic={!manual}
+        monitorRecovered={incident.status === "resolved"}
         pagePublished={!!page?.published}
         editable={editable && (!editor.draft || updates.some((update) => update.id === editor.draft?.id && !update.publishedAt))}
         onSaved={saved}
@@ -152,10 +162,11 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
       {manual && incident.status !== "resolved" && !canManage && <p className="mb-6 text-xs text-zinc-500">Only organization owners and admins can manage updates.</p>}
       {manual && !published.length && <div className="border-l border-white/[0.1] py-2 pl-5"><p className="text-[13px] text-zinc-300">No published updates yet</p><p className="mt-2 text-xs leading-5 text-zinc-500">Drafts are private to your team. Publishing an update makes it public and queues email to confirmed subscribers.</p></div>}
       {manual && published.length > 0 && <ol className="ml-1 border-l border-white/[0.1]">{published.map((update) => <li key={update.id} className="relative pb-8 pl-6 last:pb-0"><span aria-hidden="true" className="absolute -left-[4px] top-1.5 size-[7px] rounded-full bg-zinc-500" /><div className="flex flex-wrap items-center justify-between gap-2"><h3><StagePill stage={update.status} /></h3><time dateTime={update.publishedAt!} className="text-xs text-zinc-500">{formatTime(update.publishedAt)}</time></div><IncidentRichContent body={update.bodyJson} note={update.note} /></li>)}</ol>}
-      {!manual && <ol className="ml-1 border-l border-white/[0.1]">
-        {incident.resolvedAt && <li className="relative pb-8 pl-6"><span aria-hidden="true" className="absolute -left-[4px] top-1.5 size-[7px] rounded-full bg-emerald-400/70" /><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-[13px] font-medium text-zinc-200">Recovery detected</h3><time dateTime={incident.resolvedAt} className="text-xs text-zinc-500">{formatTime(incident.resolvedAt)}</time></div><p className="mt-3 text-[13px] leading-6 text-zinc-400">The monitor confirmed recovery and resolved this incident automatically.</p></li>}
-        <li className="relative pl-6"><span aria-hidden="true" className="absolute -left-[4px] top-1.5 size-[7px] rounded-full bg-rose-400/70" /><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-[13px] font-medium text-zinc-200">Downtime detected</h3><time dateTime={incident.startedAt || incident.createdAt} className="text-xs text-zinc-500">{formatTime(incident.startedAt || incident.createdAt)}</time></div><p className="mt-3 text-[13px] leading-6 text-zinc-400">The monitor confirmed downtime and opened this incident automatically.</p></li>
-      </ol>}
+      {!manual && <ol className="ml-1 border-l border-white/[0.1]">{automaticEvents.map((event) => <li key={event.id} className="relative pb-8 pl-6 last:pb-0">
+        <span aria-hidden="true" className={`absolute -left-[4px] top-1.5 size-[7px] rounded-full ${event.kind === "recovered" ? "bg-emerald-400/70" : event.kind === "detected" ? "bg-rose-400/70" : "bg-zinc-500"}`} />
+        <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><h3 className="text-[13px] font-medium text-zinc-200">{event.kind === "recovered" ? "Recovery detected" : event.kind === "detected" ? "Downtime detected" : "Team update"}</h3>{event.kind === "update" && <StagePill stage={event.update.status} compact />}</div><time dateTime={event.at} className="text-xs text-zinc-500">{formatTime(event.at)}</time></div>
+        {event.kind === "update" ? <IncidentRichContent body={event.update.bodyJson} note={event.update.note} /> : <p className="mt-3 text-[13px] leading-6 text-zinc-400">{event.kind === "recovered" ? "The monitor confirmed recovery and resolved this incident automatically." : "The monitor confirmed downtime and opened this incident automatically."}</p>}
+      </li>)}</ol>}
     </section>
 
     {drafts.length > 0 && <section aria-labelledby="incident-drafts-title" className="mt-9 border-t border-white/[0.08] pt-6">
@@ -173,11 +184,14 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
   </div>;
 }
 
-function IncidentUpdateEditor({ orgSlug, incidentId, draft, defaultStatus, pagePublished, editable, onSaved, onCancel }: {
+function IncidentUpdateEditor({ orgSlug, incidentId, incidentTitle, draft, defaultStatus, automatic, monitorRecovered, pagePublished, editable, onSaved, onCancel }: {
   orgSlug: string;
   incidentId: string;
+  incidentTitle: string;
   draft?: UptimeIncidentUpdate;
   defaultStatus: UpdateStatus;
+  automatic: boolean;
+  monitorRecovered: boolean;
   pagePublished: boolean;
   editable: boolean;
   onSaved: (published: boolean) => Promise<void>;
@@ -195,7 +209,6 @@ function IncidentUpdateEditor({ orgSlug, incidentId, draft, defaultStatus, pageP
   const blocker = useUptimeUnsavedChanges(dirty || !!saving);
   const currentBlocker = useRef(blocker);
 
-  useEffect(() => { document.getElementById("incident-update-body")?.focus(); }, []);
   useEffect(() => { currentBlocker.current = blocker; }, [blocker]);
   useEffect(() => {
     if (saving) return;
@@ -246,16 +259,35 @@ function IncidentUpdateEditor({ orgSlug, incidentId, draft, defaultStatus, pageP
     proceed?.();
   };
 
-  return <><form aria-busy={!!saving} className="mb-7 border-y border-white/[0.08] bg-white/[0.015] px-4 py-5 sm:px-5" onSubmit={(event) => { event.preventDefault(); void save(false); }}>
-    <h3 className="text-sm font-medium text-zinc-200">{draft ? "Edit draft" : "New update"}</h3>
-    <div className="mt-5 grid gap-4 sm:grid-cols-[170px_minmax(0,1fr)]">
-      <div className={labelClass}>Update status<div className="mt-2"><IncidentStatusSelect value={status} onChange={setStatus} disabled={!editable || !!saving} ariaLabel="Update status" /></div>{fieldError?.field === "status" && <span id="incident-status-error" role="alert" className="mt-2 block font-normal text-rose-300">{fieldError.message}</span>}</div>
-      <div><p className={labelClass}>Update</p><IncidentRichEditor id="incident-update-body" initialBody={draft?.bodyJson} initialNote={draft?.note} onChange={setBody} disabled={!editable || !!saving} invalid={fieldError?.field === "body" || fieldError?.field === "note"} />{(fieldError?.field === "body" || fieldError?.field === "note") && <span id="incident-update-body-error" role="alert" className="mt-2 block text-xs text-rose-300">{fieldError.message}</span>}</div>
-    </div>
-    <p className="mt-4 text-xs leading-5 text-zinc-500">Saving a draft keeps it private. Publishing updates the public incident and queues email to confirmed subscribers.{status === "resolved" && " Publishing this update also resolves the incident and makes it read-only."}</p>
-    {!pagePublished && <p className="mt-2 text-xs leading-5 text-amber-200/80">Publish the status page before publishing this update. You can still save a draft.</p>}
-    {!editable && <p role="status" className="mt-3 text-xs leading-5 text-amber-200/80">This update is no longer editable. The incident may have resolved, the draft may have been published, or your role may have changed. Your text is preserved here so you can copy it.</p>}
-    <div className="mt-5 flex flex-wrap gap-2"><button type="submit" className={secondaryButton} disabled={!!saving || !editable}>{saving === "draft" ? "Saving…" : "Save draft"}</button><button type="button" className={primaryButton} disabled={!!saving || !editable || !pagePublished} onClick={() => void save(true)}>{saving === "publish" ? "Publishing…" : "Publish update"}</button><button type="button" className={secondaryButton} disabled={!!saving} onClick={() => { if (dirty) setDiscardOpen(true); else onCancel(); }}>Cancel</button></div>
-    {error && <div ref={errorRef} tabIndex={-1} className="mt-4 outline-none"><UptimeError message={error} /></div>}
-  </form><UptimeDialog open={discardOpen || blocker.status === "blocked"} onClose={keepEditing} title="Discard unsaved changes?" busy={!!saving} footer={<><button type="button" data-autofocus className={secondaryButton} onClick={keepEditing} disabled={!!saving}>Keep editing</button><button type="button" className={primaryButton} onClick={discard} disabled={!!saving}>Discard changes</button></>}><p className="text-[13px] leading-6 text-zinc-400">{saving ? "Wait for this update to finish saving before leaving." : "Your unsaved update text and status changes will be lost."}</p></UptimeDialog></>;
+  const requestClose = () => {
+    if (saving) return;
+    if (dirty) setDiscardOpen(true);
+    else onCancel();
+  };
+
+  return <><UptimeSideSheet open onClose={requestClose} title={draft ? "Edit update draft" : "Share update"} description={incidentTitle} busy={!!saving} footer={<>
+    <button type="button" className={`${secondaryButton} mr-auto`} disabled={!!saving} onClick={requestClose}>Cancel</button>
+    <button type="submit" form="incident-update-form" className={secondaryButton} disabled={!!saving || !editable}>{saving === "draft" ? "Saving…" : "Save draft"}</button>
+    <button type="button" className={primaryButton} disabled={!!saving || !editable || !pagePublished} onClick={() => void save(true)}>{saving === "publish" ? "Publishing…" : "Publish update"}</button>
+  </>}>
+    <form id="incident-update-form" aria-busy={!!saving} className="space-y-7" onSubmit={(event) => { event.preventDefault(); void save(false); }}>
+      {automatic && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 py-3"><span className="text-xs text-zinc-500">Monitor state</span><StagePill stage={monitorRecovered ? "recovered" : "down"} compact /><span className="text-xs leading-5 text-zinc-500">Checks control recovery; your update status describes the team’s progress.</span></div>}
+      <section aria-labelledby="update-status-heading">
+        <h3 id="update-status-heading" className={labelClass}>Status for this update</h3>
+        <div className="mt-2"><IncidentStatusSelect value={status} onChange={setStatus} disabled={!editable || !!saving} allowResolved={!automatic || monitorRecovered} ariaLabel="Update status" /></div>
+        <p className="mt-2 text-xs leading-5 text-zinc-500">{incidentStageDescriptions[status]}</p>
+        {fieldError?.field === "status" && <p id="incident-status-error" role="alert" className="mt-2 text-xs text-rose-300">{fieldError.message}</p>}
+      </section>
+      <section aria-labelledby="update-message-heading">
+        <h3 id="update-message-heading" className={labelClass}>Message</h3>
+        <p className="mt-1 text-xs leading-5 text-zinc-500">What happened, what the team is doing, and what people should expect next.</p>
+        <IncidentRichEditor id="incident-update-body" initialBody={draft?.bodyJson} initialNote={draft?.note} onChange={setBody} disabled={!editable || !!saving} invalid={fieldError?.field === "body" || fieldError?.field === "note"} />
+        {(fieldError?.field === "body" || fieldError?.field === "note") && <p id="incident-update-body-error" role="alert" className="mt-2 text-xs text-rose-300">{fieldError.message}</p>}
+      </section>
+      <div className="border-t border-white/[0.08] pt-5 text-xs leading-5 text-zinc-500"><p><span className="text-zinc-300">Save draft</span> keeps this private. <span className="text-zinc-300">Publish update</span> adds it to the public report and queues email to confirmed subscribers.</p>{!automatic && status === "resolved" && <p className="mt-2">Publishing this status also closes the incident.</p>}</div>
+      {!pagePublished && <p className="text-xs leading-5 text-amber-200/80">Publish the status page before publishing an update. You can still save a draft.</p>}
+      {!editable && <p role="status" className="text-xs leading-5 text-amber-200/80">This update is no longer editable. Your text remains here so you can copy it.</p>}
+      {error && <div ref={errorRef} tabIndex={-1} className="outline-none"><UptimeError message={error} /></div>}
+    </form>
+  </UptimeSideSheet><UptimeDialog open={discardOpen || blocker.status === "blocked"} onClose={keepEditing} title="Discard unsaved changes?" busy={!!saving} footer={<><button type="button" data-autofocus className={secondaryButton} onClick={keepEditing} disabled={!!saving}>Keep editing</button><button type="button" className={primaryButton} onClick={discard} disabled={!!saving}>Discard changes</button></>}><p className="text-[13px] leading-6 text-zinc-400">{saving ? "Wait for this update to finish saving before leaving." : "Your unsaved update text and status changes will be lost."}</p></UptimeDialog></>;
 }
