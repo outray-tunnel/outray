@@ -2,6 +2,7 @@ import { Activity, CircleAlert, CircleCheck, FilePenLine, SearchCheck } from "lu
 import type { UptimeIncident, UptimeIncidentStatus, UptimeIncidentUpdate } from "./uptime-client";
 import { incidentLabel, publicIncidentStage } from "@/lib/uptime/incident-display";
 import { Select } from "@/components/ui/select";
+import { incidentStageDescriptions } from "./incident-stages";
 
 const incidentStages = ["investigating", "identified", "monitoring", "resolved"] as const;
 const presentation = {
@@ -27,15 +28,16 @@ export function IncidentBadge({ incident, updates }: { incident: UptimeIncident;
   return <span className="inline-flex flex-wrap items-center gap-1.5"><StagePill stage={stage} compact />{stage !== "draft" && <span className="rounded-full border border-white/[0.08] px-2 py-0.5 text-[11px] text-zinc-500">{lifecycle}</span>}</span>;
 }
 
-export function IncidentStatusSelect({ value, onChange, disabled, ariaLabel = "Incident status" }: {
+export function IncidentStatusSelect({ value, onChange, disabled, allowResolved = true, ariaLabel = "Incident status" }: {
   value: UptimeIncidentStatus;
   onChange: (value: UptimeIncidentStatus) => void;
   disabled?: boolean;
+  allowResolved?: boolean;
   ariaLabel?: string;
 }) {
   return <Select ariaLabel={ariaLabel} value={value} onChange={(next) => onChange(next as UptimeIncidentStatus)} disabled={disabled}
-    options={incidentStages.map((stage) => {
+    options={incidentStages.filter((stage) => allowResolved || stage !== "resolved").map((stage) => {
       const item = presentation[stage]; const Icon = item.icon;
-      return { value: stage, label: item.label, icon: <Icon size={14} className={item.className.split(" ")[0]} aria-hidden="true" />, className: item.className.split(" ")[0] };
+      return { value: stage, label: item.label, description: incidentStageDescriptions[stage], icon: <Icon size={14} className={item.className.split(" ")[0]} aria-hidden="true" />, className: item.className.split(" ")[0] };
     })} />;
 }
