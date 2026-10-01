@@ -30,7 +30,7 @@ export class PublishError extends Error {
   }
 }
 
-// Every manual-incident mutation locks in this order: organization, incident, update.
+// Every incident mutation locks in this order: organization, incident, update.
 // Publication also serializes the organization quota, so locking an incident or
 // draft first would allow concurrent publication requests to deadlock.
 export async function lockUptimeOrganization(tx: SecretsTransaction, organizationId: string) {
@@ -38,25 +38,38 @@ export async function lockUptimeOrganization(tx: SecretsTransaction, organizatio
     .where(eq(organizations.id, organizationId)).for("update");
 }
 
-async function lockManualIncident(tx: SecretsTransaction, organizationId: string, incidentId: string) {
+async function lockUptimeIncident(tx: SecretsTransaction, organizationId: string, incidentId: string) {
   await lockUptimeOrganization(tx, organizationId);
   const [incident] = await tx.select().from(incidents).where(and(
     eq(incidents.id, incidentId), eq(incidents.organizationId, organizationId),
-    eq(incidents.sourceType, "uptime_manual"),
+    inArray(incidents.sourceType, ["uptime_manual", "uptime_monitor"]),
   )).for("update").limit(1);
   return incident;
 }
 
-function assertIncidentOpen(incident: typeof incidents.$inferSelect) {
-  if (incident.status === "resolved") throw new PublishError("Resolved incidents are read-only", 409);
+function assertIncidentEditable(incident: typeof incidents.$inferSelect, componentStates: UpdateInput["componentStates"]) {
+  if (incident.sourceType === "uptime_manual" && incident.status === "resolved") {
+    throw new PublishError("Resolved incidents are read-only", 409);
+  }
+  if (incident.sourceType === "uptime_monitor" && Object.keys(componentStates).length) {
+    throw new PublishError("Monitor incidents cannot change component states", 400, "componentStates");
+  }
 }
 
-export async function createManualIncidentUpdate(tx: SecretsTransaction, input: {
+function assertMonitorUpdateStatus(incident: typeof incidents.$inferSelect, status: UpdateInput["status"]) {
+  if (incident.sourceType === "uptime_monitor" && incident.status !== "resolved" && status === "resolved") {
+    throw new PublishError("The monitor has not confirmed recovery", 409, "status");
+  }
+}
+
+export async function createUptimeIncidentUpdate(tx: SecretsTransaction, input: {
   organizationId: string; incidentId: string; userId: string; data: UpdateInput;
 }) {
-  const incident = await lockManualIncident(tx, input.organizationId, input.incidentId);
+  const incident = await lockUptimeIncident(tx, input.organizationId, input.incidentId);
   if (!incident) return null;
-  assertIncidentOpen(incident);
+  assertIncidentEditable(incident, input.data.componentStates);
+  assertMonitorUpdateStatus(incident, input.data.status);
+  const data = input.data;
   const associations = await tx.select({ componentId: uptimeIncidentComponents.componentId })
     .from(uptimeIncidentComponents).where(and(
       eq(uptimeIncidentComponents.incidentId, incident.id),
@@ -65,24 +78,24 @@ export async function createManualIncidentUpdate(tx: SecretsTransaction, input: 
   const now = new Date();
   const [update] = await tx.insert(uptimeIncidentUpdates).values({
     id: crypto.randomUUID(), organizationId: input.organizationId, incidentId: incident.id,
-    createdBy: input.userId, note: input.data.note, bodyJson: input.data.bodyJson, status: input.data.status,
-    componentStates: input.data.componentStates, publishedAt: input.data.publish ? now : null,
+    createdBy: input.userId, note: data.note, bodyJson: data.bodyJson, status: data.status,
+    componentStates: data.componentStates, publishedAt: data.publish ? now : null,
   }).returning();
-  if (input.data.publish) {
+  if (data.publish) {
     const result = await publishUptimeUpdate(tx, {
       organizationId: input.organizationId, incidentId: incident.id, updateId: update.id,
       title: incident.title, affectedComponentIds: associations.map((link) => link.componentId),
-      ...input.data, now,
+      ...data, applyManualLifecycle: incident.sourceType === "uptime_manual", now,
     });
     if (!result.success) throw new PublishError(result.error, result.status);
   }
   return update;
 }
 
-export async function editManualIncidentDraft(tx: SecretsTransaction, input: {
+export async function editUptimeIncidentDraft(tx: SecretsTransaction, input: {
   organizationId: string; incidentId: string; updateId: string; body: Record<string, unknown>;
 }) {
-  const incident = await lockManualIncident(tx, input.organizationId, input.incidentId);
+  const incident = await lockUptimeIncident(tx, input.organizationId, input.incidentId);
   if (!incident) return null;
   const [draft] = await tx.select().from(uptimeIncidentUpdates).where(and(
     eq(uptimeIncidentUpdates.id, input.updateId), eq(uptimeIncidentUpdates.incidentId, incident.id),
@@ -90,12 +103,15 @@ export async function editManualIncidentDraft(tx: SecretsTransaction, input: {
   )).for("update").limit(1);
   if (!draft) return null;
   if (draft.publishedAt) throw new PublishError("Published updates are immutable", 409);
-  assertIncidentOpen(incident);
+  assertIncidentEditable(incident, draft.componentStates);
   const parsed = parseIncidentUpdate({
     ...(input.body.body !== undefined ? { body: input.body.body } : { note: input.body.note ?? draft.note }), status: input.body.status ?? draft.status,
     componentStates: input.body.componentStates ?? draft.componentStates, publish: input.body.publish ?? false,
   });
   if (!parsed.success) throw new PublishError(parsed.error, 400, parsed.field);
+  assertIncidentEditable(incident, parsed.data.componentStates);
+  assertMonitorUpdateStatus(incident, parsed.data.status);
+  const data = parsed.data;
   const associations = await tx.select({ componentId: uptimeIncidentComponents.componentId })
     .from(uptimeIncidentComponents).where(and(
       eq(uptimeIncidentComponents.incidentId, incident.id),
@@ -103,14 +119,14 @@ export async function editManualIncidentDraft(tx: SecretsTransaction, input: {
     ));
   const now = new Date();
   const [updated] = await tx.update(uptimeIncidentUpdates).set({
-    note: parsed.data.note, bodyJson: input.body.body === undefined && input.body.note === undefined ? draft.bodyJson : parsed.data.bodyJson, status: parsed.data.status, componentStates: parsed.data.componentStates,
-    publishedAt: parsed.data.publish ? now : null,
+    note: data.note, bodyJson: input.body.body === undefined && input.body.note === undefined ? draft.bodyJson : data.bodyJson, status: data.status, componentStates: data.componentStates,
+    publishedAt: data.publish ? now : null,
   }).where(and(eq(uptimeIncidentUpdates.id, draft.id), eq(uptimeIncidentUpdates.organizationId, input.organizationId))).returning();
-  if (parsed.data.publish) {
+  if (data.publish) {
     const result = await publishUptimeUpdate(tx, {
       organizationId: input.organizationId, incidentId: incident.id, updateId: draft.id,
       title: incident.title, affectedComponentIds: associations.map((link) => link.componentId),
-      ...parsed.data, now,
+      ...data, applyManualLifecycle: incident.sourceType === "uptime_manual", now,
     });
     if (!result.success) throw new PublishError(result.error, result.status);
   }
@@ -176,6 +192,7 @@ export async function publishUptimeUpdate(
     note: string;
     status: UpdateInput["status"];
     componentStates: UpdateInput["componentStates"];
+    applyManualLifecycle: boolean;
     now: Date;
   },
 ): Promise<{ success: true; recipients: number } | { success: false; error: string; status: number }> {
@@ -200,7 +217,7 @@ export async function publishUptimeUpdate(
       .where(and(eq(uptimeStatusComponents.id, componentId),
         eq(uptimeStatusComponents.organizationId, input.organizationId)));
   }
-  if (input.status === "resolved") {
+  if (input.applyManualLifecycle && input.status === "resolved") {
     await tx.update(incidents).set({ status: "resolved", resolvedAt: input.now, updatedAt: input.now })
       .where(and(eq(incidents.id, input.incidentId), eq(incidents.organizationId, input.organizationId)));
   }
