@@ -19,6 +19,7 @@
     "dev": "dotenv -e .env -- node scripts/with-tinybird.mjs turbo run dev --env-mode=loose --filter=outray-web --filter=outray-tunnel --filter=outray-cron --filter=outray-internal-check --filter=outray-ingest",
     "dev:website": "dotenv -e .env -- turbo run dev --env-mode=loose --filter=outray-website",
     "dev:status": "dotenv -e .env -- turbo run dev --env-mode=loose --filter=outray-status",
+    "dev:secrets-share": "dotenv -e .env -- turbo run dev --env-mode=loose --filter=outray-secrets-share",
     "dev:uptime-probe": "dotenv -e .env -- turbo run dev --env-mode=loose --filter=outray-uptime-probe",
     "dev:web": "dotenv -e .env -- node scripts/with-tinybird.mjs turbo run dev --env-mode=loose --filter=outray-web",
     "dev:tunnel": "dotenv -e .env -- turbo run dev --env-mode=loose --filter=outray-tunnel",
