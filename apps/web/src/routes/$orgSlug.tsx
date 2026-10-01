@@ -11,6 +11,7 @@ import { Sidebar } from "@/components/app-sidebar";
 import { ProductSubSidebar } from "@/components/product-sub-sidebar";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { MobileHeader } from "@/components/mobile-header";
+import { MobileNavSheet } from "@/components/mobile-nav-sheet";
 import { useAppStore } from "@/lib/store";
 import { ArrowRight } from "lucide-react";
 
@@ -25,6 +26,7 @@ function DashboardLayout() {
   const { orgSlug } = Route.useParams();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { data: organizations, isPending } = authClient.useListOrganizations();
   const { data: activeOrg } = authClient.useActiveOrganization();
   const setSelectedOrganization = useAppStore(
@@ -162,9 +164,9 @@ function DashboardLayout() {
   return (
     <div className="workspace-ui min-h-screen bg-[#070707] text-gray-300 font-sans selection:bg-accent/30">
       {/* Mobile header */}
-      <MobileHeader />
+      <MobileHeader onOpenNavigation={() => setMobileNavOpen(true)} isNavigationOpen={mobileNavOpen} />
 
-      <div className="flex h-[calc(100vh-52px)] md:h-screen overflow-hidden">
+      <div className="flex h-[calc(100dvh-56px)] overflow-hidden md:h-screen">
         {/* Desktop sidebar - hidden on mobile */}
         <div className="hidden md:flex h-full">
           <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
@@ -176,14 +178,15 @@ function DashboardLayout() {
            
           </header> */}
 
-          <div data-scroll-restoration-id={`workspace-content-${orgSlug}`} className="flex-1 overflow-y-auto p-5 pb-20 md:p-8 md:pb-8">
+          <div data-scroll-restoration-id={`workspace-content-${orgSlug}`} className="flex-1 overflow-y-auto p-5 pb-[calc(80px+env(safe-area-inset-bottom))] md:p-8 md:pb-8">
             <Outlet />
           </div>
         </main>
       </div>
 
       {/* Mobile bottom navigation */}
-      <MobileBottomNav />
+      <MobileBottomNav onOpenNavigation={() => setMobileNavOpen(true)} isNavigationOpen={mobileNavOpen} />
+      <MobileNavSheet isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} orgSlug={orgSlug} />
     </div>
   );
 }
