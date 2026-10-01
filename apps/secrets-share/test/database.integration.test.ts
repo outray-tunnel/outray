@@ -23,6 +23,26 @@ test("a path ID alone cannot consume a view, and simultaneous reveals honor the 
     const results = await Promise.all(Array.from({ length: 20 }, () => revealShare(id, verifier)));
     assert.equal(results.filter(Boolean).length, 1);
     assert.equal(await revealShare(id, verifier), null);
+    const passwordVerifier = randomBytes(32).toString("base64url");
+    const protectedId = await createShare({
+      ciphertext: randomBytes(40).toString("base64url"),
+      iv: randomBytes(12).toString("base64url"),
+      verifier,
+      passwordSalt: randomBytes(16).toString("base64url"),
+      passwordVerifier,
+      contentFormat: "text",
+      durationValue: 5,
+      durationUnit: "minutes",
+      maxViews: 1,
+    });
+    try {
+      assert.equal(await revealShare(protectedId, verifier), null);
+      assert.equal(await revealShare(protectedId, verifier, randomBytes(32).toString("base64url")), null);
+      assert.ok(await revealShare(protectedId, verifier, passwordVerifier));
+      assert.equal(await revealShare(protectedId, verifier, passwordVerifier), null);
+    } finally {
+      await shareDb().query("DELETE FROM secret_share_links WHERE id = $1", [protectedId]);
+    }
   } finally {
     await shareDb().query("DELETE FROM secret_share_links WHERE id = $1", [id]);
     await shareDb().end();
