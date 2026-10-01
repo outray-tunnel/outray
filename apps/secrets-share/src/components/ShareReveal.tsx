@@ -14,9 +14,12 @@ export default function ShareReveal({ id }: { id: string }) {
       const key = window.location.hash.slice(1);
       if (!key) throw new Error("This link is missing its decryption key.");
       const verifier = await shareVerifier(key);
-      const response = await fetch(`/api/shares/${encodeURIComponent(id)}/reveal`, {
+      const response = await fetch(`/v1/shares/${encodeURIComponent(id)}/reveal`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ verifier }),
       });
+      if (!response.headers.get("content-type")?.includes("application/json")) {
+        throw new Error("The share service is unavailable. Please try again later.");
+      }
       const encrypted = await response.json();
       if (!response.ok) throw new Error(encrypted.error || "This link is unavailable.");
       setContent(await decryptShare(encrypted, key));
