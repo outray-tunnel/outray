@@ -1,0 +1,15 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ShareReveal from "../components/ShareReveal";
+import { isShareId } from "../lib/shares";
+const id = Astro.params.id || "";
+if (!isShareId(id)) Astro.response.status = 404;
+---
+<BaseLayout title="Open a secret — OutRay">
+  <section class="reveal-wrap">
+    <span class="eyebrow">A private link for you</span>
+    <h1>Someone shared a secret.</h1>
+    <p class="hero-copy">The content is encrypted. Revealing it uses one view, and the link may stop working after its time or view limit.</p>
+    {isShareId(id) ? <ShareReveal client:load id={id} /> : <p class="alert">This link is unavailable.</p>}
+  </section>
+</BaseLayout>
