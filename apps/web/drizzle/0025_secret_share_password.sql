@@ -1,0 +1,3 @@
+ALTER TABLE "secret_share_links" ADD COLUMN "password_salt" text;--> statement-breakpoint
+ALTER TABLE "secret_share_links" ADD COLUMN "password_verifier" text;--> statement-breakpoint
+ALTER TABLE "secret_share_links" ADD CONSTRAINT "secret_share_links_password_pair_check" CHECK (("secret_share_links"."password_salt" IS NULL AND "secret_share_links"."password_verifier" IS NULL) OR ("secret_share_links"."password_salt" IS NOT NULL AND "secret_share_links"."password_verifier" IS NOT NULL));
