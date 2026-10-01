@@ -169,6 +169,13 @@
       "when": 1790759449572,
       "tag": "0023_uptime_incident_rich_content",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790800000000,
+      "tag": "0024_secrets_share",
+      "breakpoints": true
     }
   ]
 }
