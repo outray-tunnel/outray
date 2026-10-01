@@ -26,12 +26,28 @@ test("accepts default limits and generates an expiry", () => {
   assert.ok(result.expiresAt.getTime() <= before + 7 * 86_400_000 + 1_000);
 });
 
+test("supports expiry presets from five minutes to three months", () => {
+  const now = Date.now();
+  const soon = validateShareInput(payload({ durationValue: 5, durationUnit: "minutes" })).expiresAt.getTime();
+  assert.ok(soon >= now + 5 * 60_000 - 1_000 && soon <= now + 5 * 60_000 + 1_000);
+  const later = validateShareInput(payload({ durationValue: 3, durationUnit: "months" })).expiresAt.getTime();
+  assert.ok(later > now + 89 * 86_400_000);
+});
+
 test("rejects invalid limits, format and oversized ciphertext", () => {
   for (const invalid of [
     { maxViews: 0 }, { maxViews: 101 }, { durationValue: 0 }, { durationValue: 91 },
+    { durationUnit: "minutes", durationValue: 4 },
     { durationUnit: "months", durationValue: 4 }, { contentFormat: "html" },
     { ciphertext: "a".repeat(355_000) }, { iv: "short" },
+    { passwordSalt: randomBytes(16).toString("base64url") },
+    { passwordVerifier: randomBytes(32).toString("base64url") },
+    { passwordSalt: "bad", passwordVerifier: randomBytes(32).toString("base64url") },
   ]) assert.throws(() => validateShareInput(payload(invalid)));
+  assert.doesNotThrow(() => validateShareInput(payload({
+    passwordSalt: randomBytes(16).toString("base64url"),
+    passwordVerifier: randomBytes(32).toString("base64url"),
+  })));
 });
 
 test("IDs and rate-limit keys do not disclose client IPs", () => {
