@@ -2,11 +2,17 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import ShareComposer from "../components/ShareComposer";
 ---
-<BaseLayout title="Share a secret — OutRay">
-  <section class="hero">
-    <span class="eyebrow">OutRay Share</span>
-    <h1>Share a secret.<br />Let it expire.</h1>
-    <p class="hero-copy">Send sensitive text or a set of keys through a temporary link. Your browser encrypts it before it is stored, and only someone with the complete link can reveal it.</p>
+<BaseLayout title="Share a secret — OutRay" showHeader={false}>
+  <section class="share-layout">
+    <div class="hero">
+      <a class="brand hero-brand" href="/" aria-label="OutRay Share home">
+        <img src="/outray-mark.svg" width="27" height="27" alt="" />
+        <span>OutRay<span class="brand-muted"> / Share</span></span>
+      </a>
+      <h1>Secret sharing.<br />100% free.</h1>
+      <p class="hero-copy">Create a temporary link for something sensitive. Only someone with the complete link can open what you share.</p>
+      <p class="hero-footnote"><span aria-hidden="true"></span> Encrypted in your browser. No account needed.</p>
+    </div>
+    <ShareComposer client:load />
   </section>
-  <ShareComposer client:load />
 </BaseLayout>
