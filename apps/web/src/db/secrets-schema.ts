@@ -105,7 +105,7 @@ export const secretDeletionBatches = pgTable(
     ),
     check(
       "secret_deletion_batches_root_type_check",
-      sql`${table.rootType} IN ('project', 'environment', 'secret')`,
+      sql`${table.rootType} IN ('project', 'environment', 'secret', 'bulk')`,
     ),
     check(
       "secret_deletion_batches_status_check",
@@ -356,6 +356,54 @@ export const secretAuditEvents = pgTable(
       sql`${table.result} IN ('success', 'failure', 'denied')`,
     ),
   ],
+);
+
+export const secretShareLinks = pgTable(
+  "secret_share_links",
+  {
+    id: text("id").primaryKey(),
+    ciphertext: text("ciphertext").notNull(),
+    iv: text("iv").notNull(),
+    keyVerifier: text("key_verifier").notNull(),
+    contentFormat: text("content_format").notNull(),
+    expiresAt: timestampWithTimezone("expires_at").notNull(),
+    maxViews: integer("max_views").notNull(),
+    views: integer("views").notNull().default(0),
+    revokedAt: timestampWithTimezone("revoked_at"),
+    lastRevealedAt: timestampWithTimezone("last_revealed_at"),
+    createdAt: timestampWithTimezone("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("secret_share_links_expiry_idx").on(table.expiresAt),
+    check("secret_share_links_max_views_check", sql`${table.maxViews} BETWEEN 1 AND 100`),
+    check("secret_share_links_views_check", sql`${table.views} >= 0 AND ${table.views} <= ${table.maxViews}`),
+    check("secret_share_links_format_check", sql`${table.contentFormat} IN ('text', 'bundle')`),
+  ],
+);
+
+export const secretShareOwnership = pgTable(
+  "secret_share_ownership",
+  {
+    shareId: text("share_id").primaryKey().references(() => secretShareLinks.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    projectId: text("project_id").notNull(),
+    environmentId: text("environment_id").notNull(),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    keyNames: jsonb("key_names").$type<string[]>().notNull(),
+    sourceSecretIds: jsonb("source_secret_ids").$type<string[]>().notNull(),
+    createdAt: timestampWithTimezone("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("secret_share_ownership_organization_idx").on(table.organizationId, table.createdAt)],
+);
+
+export const secretShareRateLimits = pgTable(
+  "secret_share_rate_limits",
+  {
+    key: text("key").primaryKey(),
+    count: integer("count").notNull().default(0),
+    windowEndsAt: timestampWithTimezone("window_ends_at").notNull(),
+  },
+  (table) => [index("secret_share_rate_limits_expiry_idx").on(table.windowEndsAt)],
 );
 
 export const machineTokens = pgTable(
