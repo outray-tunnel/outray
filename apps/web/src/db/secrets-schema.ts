@@ -365,6 +365,8 @@ export const secretShareLinks = pgTable(
     ciphertext: text("ciphertext").notNull(),
     iv: text("iv").notNull(),
     keyVerifier: text("key_verifier").notNull(),
+    passwordSalt: text("password_salt"),
+    passwordVerifier: text("password_verifier"),
     contentFormat: text("content_format").notNull(),
     expiresAt: timestampWithTimezone("expires_at").notNull(),
     maxViews: integer("max_views").notNull(),
@@ -378,6 +380,7 @@ export const secretShareLinks = pgTable(
     check("secret_share_links_max_views_check", sql`${table.maxViews} BETWEEN 1 AND 100`),
     check("secret_share_links_views_check", sql`${table.views} >= 0 AND ${table.views} <= ${table.maxViews}`),
     check("secret_share_links_format_check", sql`${table.contentFormat} IN ('text', 'bundle')`),
+    check("secret_share_links_password_pair_check", sql`(${table.passwordSalt} IS NULL AND ${table.passwordVerifier} IS NULL) OR (${table.passwordSalt} IS NOT NULL AND ${table.passwordVerifier} IS NOT NULL)`),
   ],
 );
 
