@@ -14,11 +14,11 @@ emergency with `OUTRAY_UPTIME_DISABLED=true`.
    `/etc/caddy/cloudflare.env` has a token permitted to edit this zone. A
    certificate for `*.outray.app` does **not** cover `slug.status.outray.app`.
    Keep OutRay's own `status.outray.dev` on its current, separate service. Set the production
-   dashboard's `OUTRAY_DASHBOARD_URL=https://dash.outray.dev` and
+   dashboard's `OUTRAY_DASHBOARD_URL=https://outray.co` and
    `VITE_OUTRAY_STATUS_URL=https://status.outray.app`. Configure the Slack and
    Discord OAuth apps with the additional callbacks
-   `https://dash.outray.dev/api/uptime/integrations/{slack,discord}/callback`.
-3. Set `OUTRAY_DASHBOARD_URL=https://dash.outray.dev` and
+   `https://outray.co/api/uptime/integrations/{slack,discord}/callback`.
+3. Set `OUTRAY_DASHBOARD_URL=https://outray.co` and
    `OUTRAY_STATUS_URL=https://status.outray.app` in GitHub Actions variables.
    The latter is the canonical **base origin** used to construct
    `https://<page-slug>.status.outray.app`; it is not a page URL. Provide `STATUS_EDGE_SECRET`,
