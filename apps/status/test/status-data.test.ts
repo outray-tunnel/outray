@@ -6,13 +6,15 @@ import { addIncidentsToHistory, aggregateMonitorEvidence, aggregateStates, build
 import { isSameOrigin, makeUnsubscribeToken, safeClientIp, verifyUnsubscribeToken } from "../src/lib/security";
 
 test("public incident stage uses only the latest published update", () => {
-  const incident: PublicIncident = { id: "one", title: "Issue", status: "open", startedAt: new Date("2026-09-30T10:00:00Z"), resolvedAt: null, components: [], latestNote: null, latestNoteAt: null, updates: [
+  const incident: PublicIncident = { id: "one", title: "Issue", sourceType: "uptime_manual", status: "open", startedAt: new Date("2026-09-30T10:00:00Z"), resolvedAt: null, components: [], latestNote: null, latestNoteAt: null, updates: [
     { id: "older", note: "Investigating", body: null, status: "investigating", publishedAt: new Date("2026-09-30T10:01:00Z") },
     { id: "later", note: "Monitoring", body: null, status: "monitoring", publishedAt: new Date("2026-09-30T10:05:00Z") },
   ] };
   assert.equal(publishedIncidentStage(incident), "monitoring");
   assert.equal(publishedIncidentStage({ ...incident, updates: [] }), "down");
   assert.equal(publishedIncidentStage({ ...incident, updates: [], status: "resolved" }), "recovered");
+  assert.equal(publishedIncidentStage({ ...incident, sourceType: "uptime_monitor" }), "down");
+  assert.equal(publishedIncidentStage({ ...incident, sourceType: "uptime_monitor", status: "resolved" }), "recovered");
 });
 
 const now = Date.parse("2026-09-29T10:00:00.000Z");
