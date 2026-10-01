@@ -4,7 +4,7 @@
 
 ## Database preparation
 
-Apply `apps/web/drizzle/0024_secrets_share.sql` through the existing Brimble migration flow **before** starting this service or deploying the dashboard changes. The migration is additive apart from extending the existing Trash batch root-type check. Do not run the migration with the share service's restricted user.
+Apply `apps/web/drizzle/0024_secrets_share.sql` and `apps/web/drizzle/0025_secret_share_password.sql` through the existing Brimble migration flow **before** starting this service or deploying the dashboard changes. These migrations are additive apart from extending the existing Trash batch root-type check. Do not run migrations with the share service's restricted user.
 
 Create a separate PostgreSQL role for this service. Replace the sample password and `outray` database name with your actual generated credentials and database name, and use your database's existing TLS settings:
 
@@ -52,7 +52,7 @@ The health check is `GET /health` (204 when the restricted database connection w
 
 Create a service from this repository. Keep the full repository available to the build (the share app has a local dependency in `packages/share-crypto`), but use `cd apps/secrets-share && npm ci --workspaces=false` as install, `cd apps/secrets-share && npm run build --workspaces=false` as build, and `cd apps/secrets-share && npm run start --workspaces=false` as start. Set the runtime variables above in Brimble's private environment settings, configure `/health` as its health check, then attach `secrets.outray.dev` as a custom domain in Brimble. Follow Brimble's DNS and certificate instructions for that domain. Do not copy an unrestricted production `DATABASE_URL` or Hugeicons license into this service.
 
-The service serves no analytics or third-party assets. The 32-byte browser encryption key stays in the URL fragment; the server stores only ciphertext, IV, a SHA-256 proof verifier, expiry, and view count. The complete link appears only once. A reveal atomically consumes one view, while merely opening the landing page does not.
+The service serves no analytics or third-party assets. The 32-byte browser encryption key stays in the URL fragment; the server stores ciphertext, IV, a SHA-256 link verifier, expiry, and view count. Optional password protection derives a second client-side key with PBKDF2 and stores only a salted, key-bound password proof. A wrong password does not consume a view. The complete link appears only once; merely opening the landing page does not consume a view.
 
 This app does not use Astro's server-island or image-optimization endpoints; its middleware returns 404 for `/_server-islands/*` and `/_image`. The API also caps request bodies while streaming. Keep an upstream request-body limit in the hosting platform as defense in depth. Astro 5 currently has upstream dependency advisories, so review `npm audit --workspaces=false` before a public release and upgrade the framework when the repository's Node baseline permits it.
 
@@ -60,4 +60,4 @@ This app does not use Astro's server-island or image-optimization endpoints; its
 
 Rate limits are 10 anonymous creates and 60 reveal attempts per hour per pseudonymous IP. Expiry and view-count limits are enforced on each reveal. An hourly cleanup removes expired/revoked ciphertext and expired rate-limit rows while retaining organization share metadata for audit. Anonymous expired rows are removed after 30 days. To ensure cleanup even on a completely idle instance, arrange an external health request or scheduler; no additional secret is needed.
 
-Run unit tests with `npm run test --workspaces=false`. The concurrent-reveal PostgreSQL test is opt-in: set `TEST_SHARE_DATABASE_URL` to a disposable database with migration `0024_secrets_share` applied, then run the same command. Never point this test at production; it creates and deletes a share row.
+Run unit tests with `npm run test --workspaces=false`. The concurrent-reveal PostgreSQL test is opt-in: set `TEST_SHARE_DATABASE_URL` to a disposable database with migrations `0024_secrets_share` and `0025_secret_share_password` applied, then run the same command. Never point this test at production; it creates and deletes share rows.
