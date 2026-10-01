@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { completeShareUrl, decryptShare, encryptShare, shareVerifier } from "../src/index";
+import { completeShareUrl, decryptShare, encryptShare, shareNeedsPassword, sharePasswordVerifier, shareVerifier } from "../src/index";
 
 test("encrypts a bundle without exposing its values in stored fields", async () => {
   const content = { type: "bundle" as const, entries: [{ key: "API_KEY", value: "super-secret" }] };
@@ -20,6 +20,21 @@ test("encrypted shares are snapshots, not references to later source edits", asy
   assert.deepEqual(await decryptShare(encrypted, encrypted.key), {
     type: "bundle", entries: [{ key: "TOKEN", value: "first" }],
   });
+});
+
+test("a password-protected share requires the fragment and password", async () => {
+  const content = { type: "text" as const, text: "private note" };
+  const encrypted = await encryptShare(content, "a separate password");
+  assert.equal(shareNeedsPassword(encrypted.key), true);
+  assert.equal(await shareVerifier(encrypted.key), encrypted.verifier);
+  assert.equal(await sharePasswordVerifier(encrypted.key, "a separate password"), encrypted.passwordVerifier);
+  assert.notEqual(await sharePasswordVerifier(encrypted.key, "wrong password"), encrypted.passwordVerifier);
+  assert.deepEqual(await decryptShare(encrypted, encrypted.key, "a separate password"), content);
+  await assert.rejects(decryptShare(encrypted, encrypted.key), /password/i);
+  await assert.rejects(decryptShare(encrypted, encrypted.key, "wrong password"));
+  assert.ok(!JSON.stringify({ ciphertext: encrypted.ciphertext, salt: encrypted.passwordSalt, proof: encrypted.passwordVerifier }).includes("private note"));
+  assert.ok(!JSON.stringify(encrypted).includes("a separate password"));
+  await assert.rejects(encryptShare(content, "short"), /password/i);
 });
 
 test("rejects too many named entries and oversized plaintext before encryption", async () => {
