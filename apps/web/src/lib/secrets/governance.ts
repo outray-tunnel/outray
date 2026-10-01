@@ -288,9 +288,9 @@ export async function listTrash(access: SecretsAccess) {
   }));
 }
 
-function trashType(value: unknown): "project" | "environment" | "secret" {
-  if (value !== "project" && value !== "environment" && value !== "secret") {
-    throw new SecretsError("type must be project, environment, or secret", {
+function trashType(value: unknown): "project" | "environment" | "secret" | "bulk" {
+  if (value !== "project" && value !== "environment" && value !== "secret" && value !== "bulk") {
+    throw new SecretsError("type must be project, environment, secret, or bulk", {
       code: "VALIDATION_ERROR",
       status: 400,
       field: "type",
@@ -301,7 +301,7 @@ function trashType(value: unknown): "project" | "environment" | "secret" {
 
 async function deletionBatch(
   organizationId: string,
-  type: "project" | "environment" | "secret",
+  type: "project" | "environment" | "secret" | "bulk",
   id: string,
 ) {
   const [batch] = await db
@@ -494,6 +494,37 @@ export async function restoreTrash(
         .update(secretEntries)
         .set({ deletedAt: null, deletionBatchId: null, updatedAt: new Date() })
         .where(eq(secretEntries.deletionBatchId, lockedBatch.id));
+    } else if (type === "bulk") {
+      const entries = await tx.select().from(secretEntries)
+        .where(eq(secretEntries.deletionBatchId, lockedBatch.id)).for("update");
+      if (entries.length !== lockedBatch.itemCount) {
+        throw new SecretsError("Some secrets in this batch are unavailable", { code: "CONFLICT", status: 409 });
+      }
+      const [parentEnvironment] = await tx.select().from(secretEnvironments)
+        .where(and(eq(secretEnvironments.id, lockedBatch.environmentId!), isNull(secretEnvironments.deletedAt))).for("update");
+      const [parentProject] = parentEnvironment
+        ? await tx.select({ id: secretProjects.id }).from(secretProjects)
+            .where(and(eq(secretProjects.id, parentEnvironment.projectId), isNull(secretProjects.deletedAt))).for("update")
+        : [];
+      if (!parentEnvironment || !parentProject) {
+        throw new SecretsError("Restore the parent vault and environment first", { code: "PARENT_DELETED", status: 409 });
+      }
+      requireProductionConfirmation(parentEnvironment, input.confirmProduction);
+      const duplicates = await tx.select({ key: secretEntries.key }).from(secretEntries).where(and(
+        eq(secretEntries.environmentId, parentEnvironment.id),
+        inArray(secretEntries.key, entries.map((entry) => entry.key)),
+        isNull(secretEntries.deletedAt),
+      ));
+      if (duplicates.length) {
+        throw new SecretsError("A destination secret now uses one of these keys", {
+          code: "RESTORE_CONFLICT", status: 409, details: { keys: duplicates.map((row) => row.key) },
+        });
+      }
+      await tx.update(secretEntries).set({ deletedAt: null, deletionBatchId: null, updatedAt: new Date() })
+        .where(eq(secretEntries.deletionBatchId, lockedBatch.id));
+      await tx.update(secretEnvironments).set({
+        revision: sql`${secretEnvironments.revision} + 1`, updatedAt: new Date(),
+      }).where(eq(secretEnvironments.id, parentEnvironment.id));
     } else {
       const [entry] = await tx
         .select()
@@ -768,6 +799,12 @@ export async function purgeTrash(
       await tx
         .delete(secretEnvironments)
         .where(eq(secretEnvironments.id, batch.rootId));
+    } else if (type === "bulk") {
+      const [parentEnvironment] = await tx.select({ isProduction: secretEnvironments.isProduction })
+        .from(secretEnvironments).where(eq(secretEnvironments.id, batch.environmentId!)).for("update");
+      if (!parentEnvironment) throw new SecretsError("Secret environment was already purged", { code: "CONFLICT", status: 409 });
+      requireProductionConfirmation(parentEnvironment, input.confirmProduction);
+      await tx.delete(secretEntries).where(eq(secretEntries.deletionBatchId, batch.id));
     } else {
       const [entry] = await tx
         .select({
