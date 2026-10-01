@@ -169,6 +169,12 @@ try {
   process.exit(1);
 }
 
+// Uptime notification links must use the production dashboard origin, not an
+// older value inherited from the edge process during deployment.
+if (service === "uptime-probe") {
+  runtime.OUTRAY_DASHBOARD_URL = "https://outray.co";
+}
+
 // Cron runs separately on Aeroplane. Do not start a second evaluator here.
 runtime.DEPLOY_CRON = "false";
 // Brimble owns database migrations; service deploys must not run them.
