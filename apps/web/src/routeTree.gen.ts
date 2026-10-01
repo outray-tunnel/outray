@@ -100,6 +100,8 @@ import { Route as OrgSlugTunnelsTunnelIdRouteImport } from './routes/$orgSlug/tu
 import { Route as OrgSlugSettingsProfileRouteImport } from './routes/$orgSlug/settings/profile'
 import { Route as OrgSlugSettingsOrganizationRouteImport } from './routes/$orgSlug/settings/organization'
 import { Route as OrgSlugSecretsVaultsRouteImport } from './routes/$orgSlug/secrets/vaults'
+import { Route as OrgSlugSecretsTrashRouteImport } from './routes/$orgSlug/secrets/trash'
+import { Route as OrgSlugSecretsSharesRouteImport } from './routes/$orgSlug/secrets/shares'
 import { Route as OrgSlugSecretsProjectsRouteImport } from './routes/$orgSlug/secrets/projects'
 import { Route as OrgSlugSecretsAuditRouteImport } from './routes/$orgSlug/secrets/audit'
 import { Route as OrgSlugObservabilityTracesRouteImport } from './routes/$orgSlug/observability/traces'
@@ -152,6 +154,7 @@ import { Route as ApiOrgSlugUptimeIncidentsIndexRouteImport } from './routes/api
 import { Route as ApiOrgSlugUptimeGroupsIndexRouteImport } from './routes/api/$orgSlug/uptime/groups/index'
 import { Route as ApiOrgSlugUptimeDomainsIndexRouteImport } from './routes/api/$orgSlug/uptime/domains/index'
 import { Route as ApiOrgSlugUptimeComponentsIndexRouteImport } from './routes/api/$orgSlug/uptime/components/index'
+import { Route as ApiOrgSlugSecretsSharesIndexRouteImport } from './routes/api/$orgSlug/secrets/shares/index'
 import { Route as ApiOrgSlugSecretsProjectsIndexRouteImport } from './routes/api/$orgSlug/secrets/projects/index'
 import { Route as ApiOrgSlugObservabilityTracesIndexRouteImport } from './routes/api/$orgSlug/observability/traces/index'
 import { Route as ApiOrgSlugObservabilityServicesIndexRouteImport } from './routes/api/$orgSlug/observability/services/index'
@@ -172,6 +175,8 @@ import { Route as ApiOrgSlugUptimeComponentsComponentIdRouteImport } from './rou
 import { Route as ApiOrgSlugTunnelsTunnelIdStopRouteImport } from './routes/api/$orgSlug/tunnels/$tunnelId.stop'
 import { Route as ApiOrgSlugSecretsTrashRestoreRouteImport } from './routes/api/$orgSlug/secrets/trash/restore'
 import { Route as ApiOrgSlugSecretsTrashPurgeRouteImport } from './routes/api/$orgSlug/secrets/trash/purge'
+import { Route as ApiOrgSlugSecretsSharesSnapshotRouteImport } from './routes/api/$orgSlug/secrets/shares/snapshot'
+import { Route as ApiOrgSlugSecretsSharesShareIdRouteImport } from './routes/api/$orgSlug/secrets/shares/$shareId'
 import { Route as ApiOrgSlugSecretsProjectsProjectSlugRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug'
 import { Route as ApiOrgSlugSecretsMachineTokensTokenIdRouteImport } from './routes/api/$orgSlug/secrets/machine-tokens/$tokenId'
 import { Route as ApiOrgSlugSecretsKeysRotateRouteImport } from './routes/api/$orgSlug/secrets/keys/rotate'
@@ -200,6 +205,7 @@ import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlu
 import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision'
 import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import'
 import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/export'
+import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
 import { Route as ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId.integrations.$provider.start'
 import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId'
 import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdVersionsRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId.versions'
@@ -668,6 +674,16 @@ const OrgSlugSecretsVaultsRoute = OrgSlugSecretsVaultsRouteImport.update({
   path: '/vaults',
   getParentRoute: () => OrgSlugSecretsRoute,
 } as any)
+const OrgSlugSecretsTrashRoute = OrgSlugSecretsTrashRouteImport.update({
+  id: '/trash',
+  path: '/trash',
+  getParentRoute: () => OrgSlugSecretsRoute,
+} as any)
+const OrgSlugSecretsSharesRoute = OrgSlugSecretsSharesRouteImport.update({
+  id: '/shares',
+  path: '/shares',
+  getParentRoute: () => OrgSlugSecretsRoute,
+} as any)
 const OrgSlugSecretsProjectsRoute = OrgSlugSecretsProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
@@ -963,6 +979,12 @@ const ApiOrgSlugUptimeComponentsIndexRoute =
     path: '/api/$orgSlug/uptime/components/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiOrgSlugSecretsSharesIndexRoute =
+  ApiOrgSlugSecretsSharesIndexRouteImport.update({
+    id: '/api/$orgSlug/secrets/shares/',
+    path: '/api/$orgSlug/secrets/shares/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiOrgSlugSecretsProjectsIndexRoute =
   ApiOrgSlugSecretsProjectsIndexRouteImport.update({
     id: '/api/$orgSlug/secrets/projects/',
@@ -1082,6 +1104,18 @@ const ApiOrgSlugSecretsTrashPurgeRoute =
     id: '/purge',
     path: '/purge',
     getParentRoute: () => ApiOrgSlugSecretsTrashRoute,
+  } as any)
+const ApiOrgSlugSecretsSharesSnapshotRoute =
+  ApiOrgSlugSecretsSharesSnapshotRouteImport.update({
+    id: '/api/$orgSlug/secrets/shares/snapshot',
+    path: '/api/$orgSlug/secrets/shares/snapshot',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugSecretsSharesShareIdRoute =
+  ApiOrgSlugSecretsSharesShareIdRouteImport.update({
+    id: '/api/$orgSlug/secrets/shares/$shareId',
+    path: '/api/$orgSlug/secrets/shares/$shareId',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiOrgSlugSecretsProjectsProjectSlugRoute =
   ApiOrgSlugSecretsProjectsProjectSlugRouteImport.update({
@@ -1268,6 +1302,15 @@ const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRoute
         ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute,
     } as any,
   )
+const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRoute =
+  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRouteImport.update(
+    {
+      id: '/bulk',
+      path: '/bulk',
+      getParentRoute: () =>
+        ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute,
+    } as any,
+  )
 const ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRoute =
   ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRouteImport.update(
     {
@@ -1366,6 +1409,8 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/observability/traces': typeof OrgSlugObservabilityTracesRoute
   '/$orgSlug/secrets/audit': typeof OrgSlugSecretsAuditRoute
   '/$orgSlug/secrets/projects': typeof OrgSlugSecretsProjectsRoute
+  '/$orgSlug/secrets/shares': typeof OrgSlugSecretsSharesRoute
+  '/$orgSlug/secrets/trash': typeof OrgSlugSecretsTrashRoute
   '/$orgSlug/secrets/vaults': typeof OrgSlugSecretsVaultsRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
@@ -1465,6 +1510,8 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/secrets/keys/rotate': typeof ApiOrgSlugSecretsKeysRotateRoute
   '/api/$orgSlug/secrets/machine-tokens/$tokenId': typeof ApiOrgSlugSecretsMachineTokensTokenIdRoute
   '/api/$orgSlug/secrets/projects/$projectSlug': typeof ApiOrgSlugSecretsProjectsProjectSlugRouteWithChildren
+  '/api/$orgSlug/secrets/shares/$shareId': typeof ApiOrgSlugSecretsSharesShareIdRoute
+  '/api/$orgSlug/secrets/shares/snapshot': typeof ApiOrgSlugSecretsSharesSnapshotRoute
   '/api/$orgSlug/secrets/trash/purge': typeof ApiOrgSlugSecretsTrashPurgeRoute
   '/api/$orgSlug/secrets/trash/restore': typeof ApiOrgSlugSecretsTrashRestoreRoute
   '/api/$orgSlug/tunnels/$tunnelId/stop': typeof ApiOrgSlugTunnelsTunnelIdStopRoute
@@ -1485,6 +1532,7 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/observability/services': typeof ApiOrgSlugObservabilityServicesIndexRoute
   '/api/$orgSlug/observability/traces': typeof ApiOrgSlugObservabilityTracesIndexRoute
   '/api/$orgSlug/secrets/projects': typeof ApiOrgSlugSecretsProjectsIndexRoute
+  '/api/$orgSlug/secrets/shares': typeof ApiOrgSlugSecretsSharesIndexRoute
   '/api/$orgSlug/uptime/components': typeof ApiOrgSlugUptimeComponentsIndexRoute
   '/api/$orgSlug/uptime/domains': typeof ApiOrgSlugUptimeDomainsIndexRoute
   '/api/$orgSlug/uptime/groups': typeof ApiOrgSlugUptimeGroupsIndexRoute
@@ -1503,6 +1551,7 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/uptime/incidents/$incidentId/updates/$updateId': typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesUpdateIdRoute
   '/api/$orgSlug/uptime/incidents/$incidentId/updates': typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesIndexRoute
   '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start': typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRoute
+  '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/export': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRoute
@@ -1559,6 +1608,8 @@ export interface FileRoutesByTo {
   '/$orgSlug/observability/traces': typeof OrgSlugObservabilityTracesRoute
   '/$orgSlug/secrets/audit': typeof OrgSlugSecretsAuditRoute
   '/$orgSlug/secrets/projects': typeof OrgSlugSecretsProjectsRoute
+  '/$orgSlug/secrets/shares': typeof OrgSlugSecretsSharesRoute
+  '/$orgSlug/secrets/trash': typeof OrgSlugSecretsTrashRoute
   '/$orgSlug/secrets/vaults': typeof OrgSlugSecretsVaultsRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
@@ -1656,6 +1707,8 @@ export interface FileRoutesByTo {
   '/api/$orgSlug/secrets/keys/rotate': typeof ApiOrgSlugSecretsKeysRotateRoute
   '/api/$orgSlug/secrets/machine-tokens/$tokenId': typeof ApiOrgSlugSecretsMachineTokensTokenIdRoute
   '/api/$orgSlug/secrets/projects/$projectSlug': typeof ApiOrgSlugSecretsProjectsProjectSlugRouteWithChildren
+  '/api/$orgSlug/secrets/shares/$shareId': typeof ApiOrgSlugSecretsSharesShareIdRoute
+  '/api/$orgSlug/secrets/shares/snapshot': typeof ApiOrgSlugSecretsSharesSnapshotRoute
   '/api/$orgSlug/secrets/trash/purge': typeof ApiOrgSlugSecretsTrashPurgeRoute
   '/api/$orgSlug/secrets/trash/restore': typeof ApiOrgSlugSecretsTrashRestoreRoute
   '/api/$orgSlug/tunnels/$tunnelId/stop': typeof ApiOrgSlugTunnelsTunnelIdStopRoute
@@ -1676,6 +1729,7 @@ export interface FileRoutesByTo {
   '/api/$orgSlug/observability/services': typeof ApiOrgSlugObservabilityServicesIndexRoute
   '/api/$orgSlug/observability/traces': typeof ApiOrgSlugObservabilityTracesIndexRoute
   '/api/$orgSlug/secrets/projects': typeof ApiOrgSlugSecretsProjectsIndexRoute
+  '/api/$orgSlug/secrets/shares': typeof ApiOrgSlugSecretsSharesIndexRoute
   '/api/$orgSlug/uptime/components': typeof ApiOrgSlugUptimeComponentsIndexRoute
   '/api/$orgSlug/uptime/domains': typeof ApiOrgSlugUptimeDomainsIndexRoute
   '/api/$orgSlug/uptime/groups': typeof ApiOrgSlugUptimeGroupsIndexRoute
@@ -1694,6 +1748,7 @@ export interface FileRoutesByTo {
   '/api/$orgSlug/uptime/incidents/$incidentId/updates/$updateId': typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesUpdateIdRoute
   '/api/$orgSlug/uptime/incidents/$incidentId/updates': typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesIndexRoute
   '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start': typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRoute
+  '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/export': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRoute
@@ -1756,6 +1811,8 @@ export interface FileRoutesById {
   '/$orgSlug/observability/traces': typeof OrgSlugObservabilityTracesRoute
   '/$orgSlug/secrets/audit': typeof OrgSlugSecretsAuditRoute
   '/$orgSlug/secrets/projects': typeof OrgSlugSecretsProjectsRoute
+  '/$orgSlug/secrets/shares': typeof OrgSlugSecretsSharesRoute
+  '/$orgSlug/secrets/trash': typeof OrgSlugSecretsTrashRoute
   '/$orgSlug/secrets/vaults': typeof OrgSlugSecretsVaultsRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
@@ -1855,6 +1912,8 @@ export interface FileRoutesById {
   '/api/$orgSlug/secrets/keys/rotate': typeof ApiOrgSlugSecretsKeysRotateRoute
   '/api/$orgSlug/secrets/machine-tokens/$tokenId': typeof ApiOrgSlugSecretsMachineTokensTokenIdRoute
   '/api/$orgSlug/secrets/projects/$projectSlug': typeof ApiOrgSlugSecretsProjectsProjectSlugRouteWithChildren
+  '/api/$orgSlug/secrets/shares/$shareId': typeof ApiOrgSlugSecretsSharesShareIdRoute
+  '/api/$orgSlug/secrets/shares/snapshot': typeof ApiOrgSlugSecretsSharesSnapshotRoute
   '/api/$orgSlug/secrets/trash/purge': typeof ApiOrgSlugSecretsTrashPurgeRoute
   '/api/$orgSlug/secrets/trash/restore': typeof ApiOrgSlugSecretsTrashRestoreRoute
   '/api/$orgSlug/tunnels/$tunnelId/stop': typeof ApiOrgSlugTunnelsTunnelIdStopRoute
@@ -1875,6 +1934,7 @@ export interface FileRoutesById {
   '/api/$orgSlug/observability/services/': typeof ApiOrgSlugObservabilityServicesIndexRoute
   '/api/$orgSlug/observability/traces/': typeof ApiOrgSlugObservabilityTracesIndexRoute
   '/api/$orgSlug/secrets/projects/': typeof ApiOrgSlugSecretsProjectsIndexRoute
+  '/api/$orgSlug/secrets/shares/': typeof ApiOrgSlugSecretsSharesIndexRoute
   '/api/$orgSlug/uptime/components/': typeof ApiOrgSlugUptimeComponentsIndexRoute
   '/api/$orgSlug/uptime/domains/': typeof ApiOrgSlugUptimeDomainsIndexRoute
   '/api/$orgSlug/uptime/groups/': typeof ApiOrgSlugUptimeGroupsIndexRoute
@@ -1893,6 +1953,7 @@ export interface FileRoutesById {
   '/api/$orgSlug/uptime/incidents/$incidentId/updates/$updateId': typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesUpdateIdRoute
   '/api/$orgSlug/uptime/incidents/$incidentId/updates/': typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesIndexRoute
   '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start': typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRoute
+  '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/export': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRoute
@@ -1956,6 +2017,8 @@ export interface FileRouteTypes {
     | '/$orgSlug/observability/traces'
     | '/$orgSlug/secrets/audit'
     | '/$orgSlug/secrets/projects'
+    | '/$orgSlug/secrets/shares'
+    | '/$orgSlug/secrets/trash'
     | '/$orgSlug/secrets/vaults'
     | '/$orgSlug/settings/organization'
     | '/$orgSlug/settings/profile'
@@ -2055,6 +2118,8 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/secrets/keys/rotate'
     | '/api/$orgSlug/secrets/machine-tokens/$tokenId'
     | '/api/$orgSlug/secrets/projects/$projectSlug'
+    | '/api/$orgSlug/secrets/shares/$shareId'
+    | '/api/$orgSlug/secrets/shares/snapshot'
     | '/api/$orgSlug/secrets/trash/purge'
     | '/api/$orgSlug/secrets/trash/restore'
     | '/api/$orgSlug/tunnels/$tunnelId/stop'
@@ -2075,6 +2140,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/observability/services'
     | '/api/$orgSlug/observability/traces'
     | '/api/$orgSlug/secrets/projects'
+    | '/api/$orgSlug/secrets/shares'
     | '/api/$orgSlug/uptime/components'
     | '/api/$orgSlug/uptime/domains'
     | '/api/$orgSlug/uptime/groups'
@@ -2093,6 +2159,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/uptime/incidents/$incidentId/updates/$updateId'
     | '/api/$orgSlug/uptime/incidents/$incidentId/updates'
     | '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start'
+    | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/export'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision'
@@ -2149,6 +2216,8 @@ export interface FileRouteTypes {
     | '/$orgSlug/observability/traces'
     | '/$orgSlug/secrets/audit'
     | '/$orgSlug/secrets/projects'
+    | '/$orgSlug/secrets/shares'
+    | '/$orgSlug/secrets/trash'
     | '/$orgSlug/secrets/vaults'
     | '/$orgSlug/settings/organization'
     | '/$orgSlug/settings/profile'
@@ -2246,6 +2315,8 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/secrets/keys/rotate'
     | '/api/$orgSlug/secrets/machine-tokens/$tokenId'
     | '/api/$orgSlug/secrets/projects/$projectSlug'
+    | '/api/$orgSlug/secrets/shares/$shareId'
+    | '/api/$orgSlug/secrets/shares/snapshot'
     | '/api/$orgSlug/secrets/trash/purge'
     | '/api/$orgSlug/secrets/trash/restore'
     | '/api/$orgSlug/tunnels/$tunnelId/stop'
@@ -2266,6 +2337,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/observability/services'
     | '/api/$orgSlug/observability/traces'
     | '/api/$orgSlug/secrets/projects'
+    | '/api/$orgSlug/secrets/shares'
     | '/api/$orgSlug/uptime/components'
     | '/api/$orgSlug/uptime/domains'
     | '/api/$orgSlug/uptime/groups'
@@ -2284,6 +2356,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/uptime/incidents/$incidentId/updates/$updateId'
     | '/api/$orgSlug/uptime/incidents/$incidentId/updates'
     | '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start'
+    | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/export'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision'
@@ -2345,6 +2418,8 @@ export interface FileRouteTypes {
     | '/$orgSlug/observability/traces'
     | '/$orgSlug/secrets/audit'
     | '/$orgSlug/secrets/projects'
+    | '/$orgSlug/secrets/shares'
+    | '/$orgSlug/secrets/trash'
     | '/$orgSlug/secrets/vaults'
     | '/$orgSlug/settings/organization'
     | '/$orgSlug/settings/profile'
@@ -2444,6 +2519,8 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/secrets/keys/rotate'
     | '/api/$orgSlug/secrets/machine-tokens/$tokenId'
     | '/api/$orgSlug/secrets/projects/$projectSlug'
+    | '/api/$orgSlug/secrets/shares/$shareId'
+    | '/api/$orgSlug/secrets/shares/snapshot'
     | '/api/$orgSlug/secrets/trash/purge'
     | '/api/$orgSlug/secrets/trash/restore'
     | '/api/$orgSlug/tunnels/$tunnelId/stop'
@@ -2464,6 +2541,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/observability/services/'
     | '/api/$orgSlug/observability/traces/'
     | '/api/$orgSlug/secrets/projects/'
+    | '/api/$orgSlug/secrets/shares/'
     | '/api/$orgSlug/uptime/components/'
     | '/api/$orgSlug/uptime/domains/'
     | '/api/$orgSlug/uptime/groups/'
@@ -2482,6 +2560,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/uptime/incidents/$incidentId/updates/$updateId'
     | '/api/$orgSlug/uptime/incidents/$incidentId/updates/'
     | '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start'
+    | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/export'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision'
@@ -2575,6 +2654,8 @@ export interface RootRouteChildren {
   ApiOrgSlugSecretsKeysRewrapRoute: typeof ApiOrgSlugSecretsKeysRewrapRoute
   ApiOrgSlugSecretsKeysRotateRoute: typeof ApiOrgSlugSecretsKeysRotateRoute
   ApiOrgSlugSecretsProjectsProjectSlugRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugRouteWithChildren
+  ApiOrgSlugSecretsSharesShareIdRoute: typeof ApiOrgSlugSecretsSharesShareIdRoute
+  ApiOrgSlugSecretsSharesSnapshotRoute: typeof ApiOrgSlugSecretsSharesSnapshotRoute
   ApiOrgSlugUptimeComponentsComponentIdRoute: typeof ApiOrgSlugUptimeComponentsComponentIdRoute
   ApiOrgSlugUptimeDomainsDomainIdRoute: typeof ApiOrgSlugUptimeDomainsDomainIdRouteWithChildren
   ApiOrgSlugUptimeGroupsGroupIdRoute: typeof ApiOrgSlugUptimeGroupsGroupIdRoute
@@ -2589,6 +2670,7 @@ export interface RootRouteChildren {
   ApiOrgSlugObservabilityServicesIndexRoute: typeof ApiOrgSlugObservabilityServicesIndexRoute
   ApiOrgSlugObservabilityTracesIndexRoute: typeof ApiOrgSlugObservabilityTracesIndexRoute
   ApiOrgSlugSecretsProjectsIndexRoute: typeof ApiOrgSlugSecretsProjectsIndexRoute
+  ApiOrgSlugSecretsSharesIndexRoute: typeof ApiOrgSlugSecretsSharesIndexRoute
   ApiOrgSlugUptimeComponentsIndexRoute: typeof ApiOrgSlugUptimeComponentsIndexRoute
   ApiOrgSlugUptimeDomainsIndexRoute: typeof ApiOrgSlugUptimeDomainsIndexRoute
   ApiOrgSlugUptimeGroupsIndexRoute: typeof ApiOrgSlugUptimeGroupsIndexRoute
@@ -3237,6 +3319,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugSecretsVaultsRouteImport
       parentRoute: typeof OrgSlugSecretsRoute
     }
+    '/$orgSlug/secrets/trash': {
+      id: '/$orgSlug/secrets/trash'
+      path: '/trash'
+      fullPath: '/$orgSlug/secrets/trash'
+      preLoaderRoute: typeof OrgSlugSecretsTrashRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
+    '/$orgSlug/secrets/shares': {
+      id: '/$orgSlug/secrets/shares'
+      path: '/shares'
+      fullPath: '/$orgSlug/secrets/shares'
+      preLoaderRoute: typeof OrgSlugSecretsSharesRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
     '/$orgSlug/secrets/projects': {
       id: '/$orgSlug/secrets/projects'
       path: '/projects'
@@ -3601,6 +3697,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugUptimeComponentsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/$orgSlug/secrets/shares/': {
+      id: '/api/$orgSlug/secrets/shares/'
+      path: '/api/$orgSlug/secrets/shares'
+      fullPath: '/api/$orgSlug/secrets/shares'
+      preLoaderRoute: typeof ApiOrgSlugSecretsSharesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/$orgSlug/secrets/projects/': {
       id: '/api/$orgSlug/secrets/projects/'
       path: '/api/$orgSlug/secrets/projects'
@@ -3740,6 +3843,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/$orgSlug/secrets/trash/purge'
       preLoaderRoute: typeof ApiOrgSlugSecretsTrashPurgeRouteImport
       parentRoute: typeof ApiOrgSlugSecretsTrashRoute
+    }
+    '/api/$orgSlug/secrets/shares/snapshot': {
+      id: '/api/$orgSlug/secrets/shares/snapshot'
+      path: '/api/$orgSlug/secrets/shares/snapshot'
+      fullPath: '/api/$orgSlug/secrets/shares/snapshot'
+      preLoaderRoute: typeof ApiOrgSlugSecretsSharesSnapshotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/secrets/shares/$shareId': {
+      id: '/api/$orgSlug/secrets/shares/$shareId'
+      path: '/api/$orgSlug/secrets/shares/$shareId'
+      fullPath: '/api/$orgSlug/secrets/shares/$shareId'
+      preLoaderRoute: typeof ApiOrgSlugSecretsSharesShareIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/$orgSlug/secrets/projects/$projectSlug': {
       id: '/api/$orgSlug/secrets/projects/$projectSlug'
@@ -3937,6 +4054,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRouteImport
       parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
     }
+    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk': {
+      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
+      path: '/bulk'
+      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
+      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRouteImport
+      parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
+    }
     '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start': {
       id: '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start'
       path: '/start'
@@ -4036,6 +4160,8 @@ const OrgSlugObservabilityRouteWithChildren =
 interface OrgSlugSecretsRouteChildren {
   OrgSlugSecretsAuditRoute: typeof OrgSlugSecretsAuditRoute
   OrgSlugSecretsProjectsRoute: typeof OrgSlugSecretsProjectsRoute
+  OrgSlugSecretsSharesRoute: typeof OrgSlugSecretsSharesRoute
+  OrgSlugSecretsTrashRoute: typeof OrgSlugSecretsTrashRoute
   OrgSlugSecretsVaultsRoute: typeof OrgSlugSecretsVaultsRoute
   OrgSlugSecretsIndexRoute: typeof OrgSlugSecretsIndexRoute
   OrgSlugSecretsProjectsProjectSlugRoute: typeof OrgSlugSecretsProjectsProjectSlugRoute
@@ -4047,6 +4173,8 @@ interface OrgSlugSecretsRouteChildren {
 const OrgSlugSecretsRouteChildren: OrgSlugSecretsRouteChildren = {
   OrgSlugSecretsAuditRoute: OrgSlugSecretsAuditRoute,
   OrgSlugSecretsProjectsRoute: OrgSlugSecretsProjectsRoute,
+  OrgSlugSecretsSharesRoute: OrgSlugSecretsSharesRoute,
+  OrgSlugSecretsTrashRoute: OrgSlugSecretsTrashRoute,
   OrgSlugSecretsVaultsRoute: OrgSlugSecretsVaultsRoute,
   OrgSlugSecretsIndexRoute: OrgSlugSecretsIndexRoute,
   OrgSlugSecretsProjectsProjectSlugRoute:
@@ -4398,6 +4526,7 @@ const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsRout
   )
 
 interface ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteChildren {
+  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRoute
   ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRoute
   ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRoute
   ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRoute
@@ -4406,6 +4535,8 @@ interface ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteCh
 
 const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteChildren: ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteChildren =
   {
+    ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRoute:
+      ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRoute,
     ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRoute:
       ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRoute,
     ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRoute:
@@ -4588,6 +4719,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOrgSlugSecretsKeysRotateRoute: ApiOrgSlugSecretsKeysRotateRoute,
   ApiOrgSlugSecretsProjectsProjectSlugRoute:
     ApiOrgSlugSecretsProjectsProjectSlugRouteWithChildren,
+  ApiOrgSlugSecretsSharesShareIdRoute: ApiOrgSlugSecretsSharesShareIdRoute,
+  ApiOrgSlugSecretsSharesSnapshotRoute: ApiOrgSlugSecretsSharesSnapshotRoute,
   ApiOrgSlugUptimeComponentsComponentIdRoute:
     ApiOrgSlugUptimeComponentsComponentIdRoute,
   ApiOrgSlugUptimeDomainsDomainIdRoute:
@@ -4613,6 +4746,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOrgSlugObservabilityTracesIndexRoute:
     ApiOrgSlugObservabilityTracesIndexRoute,
   ApiOrgSlugSecretsProjectsIndexRoute: ApiOrgSlugSecretsProjectsIndexRoute,
+  ApiOrgSlugSecretsSharesIndexRoute: ApiOrgSlugSecretsSharesIndexRoute,
   ApiOrgSlugUptimeComponentsIndexRoute: ApiOrgSlugUptimeComponentsIndexRoute,
   ApiOrgSlugUptimeDomainsIndexRoute: ApiOrgSlugUptimeDomainsIndexRoute,
   ApiOrgSlugUptimeGroupsIndexRoute: ApiOrgSlugUptimeGroupsIndexRoute,
