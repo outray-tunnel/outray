@@ -3,7 +3,7 @@ import test from "node:test";
 import { getTableName, type SQL } from "drizzle-orm";
 import { PgDialect, type PgTable } from "drizzle-orm/pg-core";
 import type { SecretsTransaction } from "../src/lib/secrets/database";
-import { createManualIncidentUpdate, editManualIncidentDraft, parseIncidentUpdate, PublishError } from "../src/lib/uptime/incident-api";
+import { createUptimeIncidentUpdate, editUptimeIncidentDraft, parseIncidentUpdate, PublishError } from "../src/lib/uptime/incident-api";
 
 const incident = { id: "incident-a", organizationId: "tenant-a", title: "API incident", status: "open", sourceType: "uptime_manual" };
 const draft = { id: "update-a", incidentId: incident.id, organizationId: incident.organizationId,
@@ -52,11 +52,11 @@ function transaction(selectRows: unknown[][]) {
   return { tx, calls, writes, predicates, unused: () => rows.length };
 }
 
-const create = (tx: SecretsTransaction, publish = false) => createManualIncidentUpdate(tx, {
+const create = (tx: SecretsTransaction, publish = false) => createUptimeIncidentUpdate(tx, {
   organizationId: "tenant-a", incidentId: incident.id, userId: "user-a",
   data: { note: "New update", bodyJson: null, status: "investigating", componentStates: {}, publish },
 });
-const edit = (tx: SecretsTransaction, body: Record<string, unknown>) => editManualIncidentDraft(tx, {
+const edit = (tx: SecretsTransaction, body: Record<string, unknown>) => editUptimeIncidentDraft(tx, {
   organizationId: "tenant-a", incidentId: incident.id, updateId: draft.id, body,
 });
 const lockOrder = ["select:organizations", "lock:organizations:update", "select:incidents", "lock:incidents:update"];
@@ -107,7 +107,56 @@ test("draft creation only inserts a private update and scopes every lookup to it
   assert.equal(mock.writes[0].organizationId, "tenant-a");
   assert.ok(mock.predicates.every((predicate) => predicate.params.includes("tenant-a")));
   assert.ok(mock.predicates[1].params.includes("uptime_manual"));
+  assert.ok(mock.predicates[1].params.includes("uptime_monitor"));
   assert.equal(mock.unused(), 0);
+});
+
+test("monitor incidents accept team updates without changing monitor-owned lifecycle", async () => {
+  for (const lifecycle of ["open", "resolved"] as const) {
+    const automatic = { ...incident, sourceType: "uptime_monitor", status: lifecycle };
+    const mock = transaction([
+      [{ id: "tenant-a" }], [automatic], [{ componentId: "component-a" }],
+      [{ id: "tenant-a" }], [{ id: "page-a", published: true }], [{ count: 0 }], [],
+    ]);
+    const update = await createUptimeIncidentUpdate(mock.tx, {
+      organizationId: "tenant-a", incidentId: incident.id, userId: "user-a",
+      data: { note: "Team context", bodyJson: null, status: "monitoring", componentStates: {}, publish: true },
+    });
+    assert.ok(update?.publishedAt);
+    assert.equal(update.status, "monitoring");
+    assert.ok(!mock.calls.includes("update:incidents"));
+    assert.equal(mock.unused(), 0);
+  }
+});
+
+test("monitor updates cannot override component state", async () => {
+  const mock = transaction([[{ id: "tenant-a" }], [{ ...incident, sourceType: "uptime_monitor" }]]);
+  await assert.rejects(createUptimeIncidentUpdate(mock.tx, {
+    organizationId: "tenant-a", incidentId: incident.id, userId: "user-a",
+    data: { note: "Override", bodyJson: null, status: "resolved", componentStates: { "component-a": "operational" }, publish: false },
+  }), (error: unknown) => error instanceof PublishError && error.field === "componentStates" && error.status === 400);
+  assert.deepEqual(mock.writes, []);
+});
+
+test("a team update cannot mark an ongoing monitor incident resolved", async () => {
+  const mock = transaction([[{ id: "tenant-a" }], [{ ...incident, sourceType: "uptime_monitor" }]]);
+  await assert.rejects(createUptimeIncidentUpdate(mock.tx, {
+    organizationId: "tenant-a", incidentId: incident.id, userId: "user-a",
+    data: { note: "Recovered?", bodyJson: null, status: "resolved", componentStates: {}, publish: true },
+  }), (error: unknown) => error instanceof PublishError && error.field === "status" && error.status === 409);
+  assert.deepEqual(mock.writes, []);
+});
+
+test("a monitor incident draft retains the team's selected update status", async () => {
+  const mock = transaction([[{ id: "tenant-a" }], [{ ...incident, sourceType: "uptime_monitor", status: "resolved" }],
+    [{ ...draft, componentStates: {} }], [{ componentId: "component-a" }]]);
+  const updated = await editUptimeIncidentDraft(mock.tx, {
+    organizationId: "tenant-a", incidentId: incident.id, updateId: draft.id,
+    body: { note: "Mitigation complete", status: "identified" },
+  });
+  assert.equal(updated?.status, "identified");
+  assert.equal(updated?.publishedAt, null);
+  assert.ok(!mock.calls.includes("update:incidents"));
 });
 
 test("editing a draft preserves omitted fields and never applies public state or queues delivery", async () => {
