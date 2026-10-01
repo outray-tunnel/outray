@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { eq, inArray } from "drizzle-orm";
 import { loadIncidentList, parseIncidentListQuery } from "../src/lib/uptime/incident-query";
-import { createManualIncidentUpdate, editManualIncidentDraft } from "../src/lib/uptime/incident-api";
+import { createUptimeIncidentUpdate, editUptimeIncidentDraft } from "../src/lib/uptime/incident-api";
 
 const enabled = process.env.OUTRAY_RUN_DB_INTEGRATION === "1";
 
@@ -105,7 +105,7 @@ test("incident history queries and concurrent manual mutations preserve tenant a
     const incidentId = id("race");
     await db.insert(schema.incidents).values({ id: incidentId, organizationId, sourceType: "uptime_manual", sourceId: incidentId, title: "Concurrent resolution" });
     await db.insert(schema.uptimeIncidentComponents).values({ organizationId, incidentId, componentId: id("component") });
-    const draft = await db.transaction((tx) => createManualIncidentUpdate(tx, {
+    const draft = await db.transaction((tx) => createUptimeIncidentUpdate(tx, {
       organizationId, incidentId, userId, data: { note: "Private draft", status: "investigating", componentStates: { [id("component")]: "outage" }, publish: false },
     }));
     assert.ok(draft);
@@ -119,7 +119,7 @@ test("incident history queries and concurrent manual mutations preserve tenant a
     const commitAllowed = new Promise<void>((resolve) => { releaseCommit = resolve; });
     const resolutionLocked = new Promise<void>((resolve) => { reportLocked = resolve; });
     const resolving = db.transaction(async (tx) => {
-      const update = await createManualIncidentUpdate(tx, { organizationId, incidentId, userId,
+      const update = await createUptimeIncidentUpdate(tx, { organizationId, incidentId, userId,
         data: { note: "Recovered", status: "resolved", componentStates: { [id("component")]: "operational" }, publish: true },
       });
       reportLocked();
@@ -128,10 +128,10 @@ test("incident history queries and concurrent manual mutations preserve tenant a
     });
     await Promise.race([resolutionLocked, resolving]);
     const concurrent = [
-      db.transaction((tx) => createManualIncidentUpdate(tx, { organizationId, incidentId, userId,
+      db.transaction((tx) => createUptimeIncidentUpdate(tx, { organizationId, incidentId, userId,
         data: { note: "Too late", status: "investigating", componentStates: {}, publish: false },
       })),
-      db.transaction((tx) => editManualIncidentDraft(tx, { organizationId, incidentId, updateId: draft.id, body: { note: "Too late", publish: true } })),
+      db.transaction((tx) => editUptimeIncidentDraft(tx, { organizationId, incidentId, updateId: draft.id, body: { note: "Too late", publish: true } })),
     ];
     const rejected = Promise.all(concurrent.map((operation) => assert.rejects(operation, /Resolved incidents are read-only/)));
     releaseCommit();
@@ -144,18 +144,18 @@ test("incident history queries and concurrent manual mutations preserve tenant a
     const notifications = await db.select().from(schema.notifications).where(eq(schema.notifications.incidentId, incidentId));
     assert.equal(notifications.length, 1);
     assert.equal(notifications[0].status, "pending");
-    assert.equal(await db.transaction((tx) => editManualIncidentDraft(tx, {
+    assert.equal(await db.transaction((tx) => editUptimeIncidentDraft(tx, {
       organizationId: otherOrganizationId, incidentId, updateId: draft.id, body: { note: "Wrong tenant" },
     })), null);
   });
 
   await t.test("concurrent publication of one draft sends only one queued update", async () => {
     const incidentId = id("manual");
-    const draft = await db.transaction((tx) => createManualIncidentUpdate(tx, { organizationId, incidentId, userId,
+    const draft = await db.transaction((tx) => createUptimeIncidentUpdate(tx, { organizationId, incidentId, userId,
       data: { note: "Publish once", status: "monitoring", componentStates: {}, publish: false },
     }));
     assert.ok(draft);
-    const results = await Promise.allSettled([1, 2].map(() => db.transaction((tx) => editManualIncidentDraft(tx, {
+    const results = await Promise.allSettled([1, 2].map(() => db.transaction((tx) => editUptimeIncidentDraft(tx, {
       organizationId, incidentId, updateId: draft.id, body: { publish: true },
     }))));
     assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
