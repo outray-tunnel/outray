@@ -14,6 +14,7 @@ const statement = {
   secretProject: ["create", "update", "delete"],
   secretToken: ["create", "delete"],
   secretTrash: ["read", "restore", "purge"],
+  secretShare: ["create", "revoke"],
   domain: ["create", "delete", "verify"],
   billing: ["manage"],
 } as const;
@@ -37,6 +38,7 @@ export const admin = ac.newRole({
   secretProject: ["create", "update", "delete"],
   secretToken: ["create", "delete"],
   secretTrash: ["read", "restore", "purge"],
+  secretShare: ["create", "revoke"],
   domain: ["create", "delete", "verify"],
   billing: ["manage"],
 });
@@ -50,6 +52,7 @@ export const owner = ac.newRole({
   secretProject: ["create", "update", "delete"],
   secretToken: ["create", "delete"],
   secretTrash: ["read", "restore", "purge"],
+  secretShare: ["create", "revoke"],
   domain: ["create", "delete", "verify"],
   billing: ["manage"],
 });
