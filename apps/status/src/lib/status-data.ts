@@ -64,6 +64,7 @@ interface ComponentIncidentRow {
 interface IncidentRow {
   id: string;
   title: string;
+  source_type: "uptime_monitor" | "uptime_manual";
   status: string;
   started_at: Date;
   resolved_at: Date | null;
@@ -120,6 +121,7 @@ export interface PublicComponentHistoryDay extends PublicHistoryDay {
 export interface PublicIncident {
   id: string;
   title: string;
+  sourceType: "uptime_monitor" | "uptime_manual";
   status: "open" | "resolved";
   startedAt: Date;
   resolvedAt: Date | null;
@@ -130,6 +132,7 @@ export interface PublicIncident {
 }
 
 export function publishedIncidentStage(incident: PublicIncident): string {
+  if (incident.sourceType === "uptime_monitor") return incident.status === "resolved" ? "recovered" : "down";
   const latest = [...incident.updates].sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime() || b.id.localeCompare(a.id))[0];
   return latest?.status ?? (incident.status === "resolved" ? "recovered" : "down");
 }
@@ -306,7 +309,7 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
       [page.id, page.organization_id, historyStart],
     ),
     query<IncidentRow>(
-      `SELECT i.id, i.title, i.status, i.started_at, i.resolved_at,
+      `SELECT i.id, i.title, i.source_type, i.status, i.started_at, i.resolved_at,
               COALESCE((SELECT array_agg(DISTINCT c.name ORDER BY c.name)
                         FROM uptime_incident_components ic
                         JOIN uptime_status_components c ON c.id = ic.component_id
@@ -439,6 +442,7 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
     incidents: incidentRows.map((incident) => ({
       id: incident.id,
       title: incident.title,
+      sourceType: incident.source_type,
       status: incident.status === "resolved" ? "resolved" : "open",
       startedAt: incident.started_at,
       resolvedAt: incident.resolved_at,
@@ -454,7 +458,7 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
 export async function loadPublicIncident(page: PageRow, incidentId: string): Promise<PublicIncident | null> {
   if (!/^[0-9a-f-]{36}$/i.test(incidentId)) return null;
   const rows = await query<IncidentRow>(
-    `SELECT i.id, i.title, i.status,
+    `SELECT i.id, i.title, i.source_type, i.status,
             CASE WHEN i.source_type = 'uptime_manual' THEN
               (SELECT MIN(u.published_at) FROM uptime_incident_updates u
                WHERE u.incident_id = i.id AND u.organization_id = $2 AND u.published_at IS NOT NULL)
@@ -505,6 +509,7 @@ export async function loadPublicIncident(page: PageRow, incidentId: string): Pro
   return {
     id: incident.id,
     title: incident.title,
+    sourceType: incident.source_type,
     status: incident.status === "resolved" ? "resolved" : "open",
     startedAt: incident.started_at,
     resolvedAt: incident.resolved_at,
