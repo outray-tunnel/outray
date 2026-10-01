@@ -1,0 +1,32 @@
+{
+  "name": "outray-secrets-share",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --host 0.0.0.0",
+    "build": "astro build",
+    "check": "astro check",
+    "lint": "astro check",
+    "test": "tsx --test test/*.test.ts",
+    "start": "node dist/server/entry.mjs"
+  },
+  "dependencies": {
+    "@astrojs/node": "9.5.5",
+    "@astrojs/react": "4.3.0",
+    "@outray/share-crypto": "file:../../packages/share-crypto",
+    "astro": "5.18.2",
+    "pg": "^8.16.3",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^22.15.30",
+    "@types/pg": "^8.15.4",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "tsx": "^4.20.3",
+    "typescript": "~5.9.3"
+  }
+}
