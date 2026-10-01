@@ -1,0 +1,17 @@
+{
+  "name": "OutRay",
+  "short_name": "OutRay",
+  "description": "Expose, observe, and secure the services you build.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
