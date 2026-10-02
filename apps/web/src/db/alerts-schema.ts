@@ -226,6 +226,8 @@ export const incidents = pgTable(
     sourceType: text("source_type").notNull(),
     sourceId: text("source_id").notNull(),
     status: text("status").notNull().default("open"),
+    uptimePublicationState: text("uptime_publication_state"),
+    uptimePublishedAt: timestampWithTimezone("uptime_published_at"),
     title: text("title").notNull(),
     sourceSnapshot: jsonb("source_snapshot")
       .$type<Record<string, unknown>>()
@@ -248,6 +250,9 @@ export const incidents = pgTable(
       table.startedAt,
     ),
     index("incidents_source_idx").on(table.sourceType, table.sourceId),
+    index("incidents_uptime_publication_idx")
+      .on(table.organizationId, table.uptimePublicationState, table.startedAt)
+      .where(sql`${table.sourceType} = 'uptime_monitor'`),
     uniqueIndex("incidents_one_open_source_idx")
       .on(table.organizationId, table.sourceType, table.sourceId)
       .where(sql`${table.status} = 'open'`),
@@ -255,6 +260,7 @@ export const incidents = pgTable(
       "incidents_status_check",
       sql`${table.status} IN ('open', 'resolved')`,
     ),
+    check("incidents_uptime_publication_state_check", sql`(${table.sourceType} = 'uptime_monitor' AND ${table.uptimePublicationState} IN ('detected', 'published', 'ignored')) OR (${table.sourceType} <> 'uptime_monitor' AND ${table.uptimePublicationState} IS NULL)`),
   ],
 );
 
