@@ -51,7 +51,8 @@ test("incident history queries and concurrent manual mutations preserve tenant a
       title: index === 102 ? "Historical needle" : `Old incident ${index}`, status: "resolved",
       startedAt: new Date(startedAt.getTime() - 86_400_000 - index * 1_000),
     })),
-  ].map((row) => ({ organizationId, startedAt, ...row, sourceId: row.id }));
+  ].map((row) => ({ organizationId, startedAt, ...row, sourceId: row.id,
+    uptimePublicationState: row.sourceType === "uptime_monitor" ? "published" : null }));
   await db.insert(schema.incidents).values([...fixture, {
     id: id("other"), organizationId: otherOrganizationId, sourceType: "uptime_manual",
     sourceId: id("other"), title: "Other tenant secret", status: "open", startedAt,
