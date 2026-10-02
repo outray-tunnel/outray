@@ -6,6 +6,20 @@ export default defineConfig({
   output: "server",
   adapter: node({ mode: "standalone" }),
   integrations: [react()],
+  experimental: {
+    csp: {
+      directives: [
+        "default-src 'none'",
+        "base-uri 'none'",
+        "form-action 'self'",
+        "object-src 'none'",
+        "img-src 'self' https: data:",
+        "font-src 'self'",
+        "connect-src 'self'",
+      ],
+      styleDirective: { resources: ["'self'", "'unsafe-inline'"] },
+    },
+  },
   site: process.env.OUTRAY_STATUS_URL || process.env.STATUS_PUBLIC_URL || "https://status.outray.app",
   server: {
     port: 4323,
