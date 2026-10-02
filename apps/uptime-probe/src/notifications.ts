@@ -6,12 +6,14 @@ import { decryptIntegrationWebhook, type EncryptedPayload } from "./crypto";
 
 type Channel = "email" | "slack" | "discord";
 type TeamPayload = {
+  incidentId?: string;
   monitorId: string;
   monitorName: string;
   organizationSlug: string;
   state: "firing" | "resolved";
   statusCode: number | null;
   incidentStartedAt: string;
+  failureThreshold?: number;
   webhookFingerprint?: string;
 };
 type SubscriberPayload = {
@@ -309,7 +311,9 @@ async function sendEmail(recipient: string, payload: TeamPayload) {
   const url = dashboardLink(payload);
   const firing = payload.state === "firing";
   const subject = `${firing ? "[Down]" : "[Recovered]"} ${payload.monitorName}`;
-  const text = `${payload.monitorName} is ${firing ? "down" : "back up"}.\n\nView monitor: ${url}`;
+  const text = firing
+    ? `${payload.monitorName} is down after ${payload.failureThreshold ?? 2} failed checks. Review the detected issue and decide whether to publish a public incident.\n\nReview issue: ${url}`
+    : `${payload.monitorName} is back up.\n\nReview issue: ${url}`;
   const response = await fetch("https://api.zeptomail.com/v1.1/email", {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json",
@@ -318,7 +322,7 @@ async function sendEmail(recipient: string, payload: TeamPayload) {
       from: { address: "no-reply@outray.dev", name: "OutRay Uptime" },
       to: [{ email_address: { address: recipient, name: recipient.split("@")[0] } }],
       subject,
-      htmlbody: `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#090909;color:#fff;padding:32px"><h1>${escapeHtml(subject)}</h1><p>${escapeHtml(text).replace(/\n/g, "<br>")}</p><a href="${escapeHtml(url)}" style="color:#a78bfa">View monitor</a></body></html>`,
+      htmlbody: `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#090909;color:#fff;padding:32px"><h1>${escapeHtml(subject)}</h1><p>${escapeHtml(text).replace(/\n/g, "<br>")}</p><a href="${escapeHtml(url)}" style="color:#a78bfa">Review issue</a></body></html>`,
     }),
     redirect: "manual",
     signal: AbortSignal.timeout(10_000),
@@ -345,7 +349,9 @@ async function sendWebhook(channel: "slack" | "discord", value: string, payload:
 
 function dashboardLink(payload: TeamPayload) {
   const base = config.dashboardUrl.replace(/\/$/, "");
-  return `${base}/${encodeURIComponent(payload.organizationSlug)}/uptime/monitors/${encodeURIComponent(payload.monitorId)}`;
+  return payload.incidentId
+    ? `${base}/${encodeURIComponent(payload.organizationSlug)}/uptime/incidents/${encodeURIComponent(payload.incidentId)}`
+    : `${base}/${encodeURIComponent(payload.organizationSlug)}/uptime/monitors/${encodeURIComponent(payload.monitorId)}`;
 }
 
 export function validWebhookUrl(value: string, channel: "slack" | "discord"): string {
