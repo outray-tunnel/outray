@@ -35,33 +35,35 @@ function StatusIcon({ state }: { state: PublicState }) {
   return <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.3 2.8a2 2 0 0 1 3.4 0l7.6 13.1a2 2 0 0 1-1.7 3H2.4a2 2 0 0 1-1.7-3Z" fill="currentColor" /><path d="M10 7v5m0 3v.3" fill="none" stroke="#101514" strokeWidth="2" strokeLinecap="round" /></svg>;
 }
 
-function HistoryTooltip({ day, incidentBasePath, position, tooltipRef, onEnter, onLeave }: {
+function HistoryTooltip({ day, incidentBasePath, position, tooltipRef }: {
   day: PublicComponentHistoryDay;
   incidentBasePath: string;
   position: FloatingTooltip;
   tooltipRef: RefObject<HTMLDivElement | null>;
-  onEnter: () => void;
-  onLeave: () => void;
 }) {
   const hasReport = day.incidents.length > 0;
   const detectedDowntime = day.detectedFailureMinutes > 0;
-  return <div className="component-chart-tooltip" role="tooltip" ref={tooltipRef}
-    style={{ left: position.left, top: position.top, bottom: position.bottom, maxHeight: position.maxHeight }} onMouseEnter={onEnter} onMouseLeave={onLeave}>
-    <div className="component-chart-tooltip-date">{dateLabel(day.date)}</div>
-    <div className={`component-chart-tooltip-body component-chart-tooltip-body--${day.state}`}>
-      <StatusIcon state={day.state} />
-      <div className="component-chart-tooltip-detail">
-        {hasReport ? <>
-          <span className="incident-duration">
-            {day.incidentKind === "downtime" ? "Downtime" : "Incident"} {formatDuration(day.incidentMinutes)}
-          </span>
-          {day.incidents.map((incident) => <a key={incident.id} href={`${incidentBasePath}/${encodeURIComponent(incident.id)}`}>
-            {incident.title} <span aria-hidden="true">↗</span>
-          </a>)}
-        </> : detectedDowntime ? <>
-          <span className="incident-duration">Downtime detected · about {formatDuration(day.detectedFailureMinutes)}</span>
-          <small>No incident report</small>
-        </> : <span>{day.state === "unknown" ? "No monitoring data" : "No incidents"}</span>}
+  const below = position.top !== undefined;
+  return <div className={`component-chart-tooltip-hit-area component-chart-tooltip-hit-area--${below ? "below" : "above"}`} ref={tooltipRef}
+    style={{ left: position.left, top: below ? position.top! - 12 : undefined,
+      bottom: below ? undefined : position.bottom! - 12, maxHeight: position.maxHeight + 12 }}>
+    <div className="component-chart-tooltip" role="tooltip">
+      <div className="component-chart-tooltip-date">{dateLabel(day.date)}</div>
+      <div className={`component-chart-tooltip-body component-chart-tooltip-body--${day.state}`}>
+        <StatusIcon state={day.state} />
+        <div className="component-chart-tooltip-detail">
+          {hasReport ? <>
+            <span className="incident-duration">
+              {day.incidentKind === "downtime" ? "Downtime" : "Incident"} {formatDuration(day.incidentMinutes)}
+            </span>
+            {day.incidents.map((incident) => <a key={incident.id} href={`${incidentBasePath}/${encodeURIComponent(incident.id)}`}>
+              {incident.title} <span aria-hidden="true">↗</span>
+            </a>)}
+          </> : detectedDowntime ? <>
+            <span className="incident-duration">Downtime detected · about {formatDuration(day.detectedFailureMinutes)}</span>
+            <small>No incident report</small>
+          </> : <span>{day.state === "unknown" ? "No monitoring data" : "No incidents"}</span>}
+        </div>
       </div>
     </div>
   </div>;
@@ -73,33 +75,22 @@ export default function ComponentHistoryChart({ name, history, incidentBasePath 
   const owner = useId();
   const plotRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
-    const clearHideTimer = () => {
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-      hideTimer.current = null;
-    };
     const dismiss = () => {
-      clearHideTimer();
       setTooltip(null);
       if (activeTooltipOwner === owner) activeTooltipOwner = null;
     };
     const closeOtherTooltip = (event: Event) => {
       if ((event as CustomEvent<string>).detail === owner) return;
-      clearHideTimer();
       setTooltip(null);
     };
     const onPointerMove = (event: PointerEvent) => {
       if (activeTooltipOwner !== owner) return;
       const target = event.target;
-      if (target instanceof Node && (plotRef.current?.contains(target) || tooltipRef.current?.contains(target))) {
-        clearHideTimer();
-        return;
-      }
-      clearHideTimer();
-      hideTimer.current = setTimeout(dismiss, 300);
+      if (target instanceof Node && (plotRef.current?.contains(target) || tooltipRef.current?.contains(target))) return;
+      dismiss();
     };
     const onPointerDown = (event: PointerEvent) => {
       if (activeTooltipOwner !== owner) return;
@@ -124,24 +115,10 @@ export default function ComponentHistoryChart({ name, history, incidentBasePath 
       document.removeEventListener("pointerleave", dismiss);
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("visibilitychange", dismiss);
-      clearHideTimer();
       if (activeTooltipOwner === owner) activeTooltipOwner = null;
     };
   }, [owner]);
 
-  const keepTooltip = () => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    hideTimer.current = null;
-  };
-  const hideTooltip = () => {
-    keepTooltip();
-    setTooltip(null);
-    if (activeTooltipOwner === owner) activeTooltipOwner = null;
-  };
-  const hideTooltipSoon = () => {
-    keepTooltip();
-    hideTimer.current = setTimeout(hideTooltip, 300);
-  };
   const showTooltip = (event: ReactMouseEvent) => {
     const rect = plotRef.current?.getBoundingClientRect();
     if (!rect || rect.width <= 0 || history.length === 0) return;
@@ -149,7 +126,6 @@ export default function ComponentHistoryChart({ name, history, incidentBasePath 
       Math.floor((event.clientX - rect.left) / rect.width * history.length)));
     const day = history[index];
     if (!day) return;
-    keepTooltip();
     if (activeTooltipOwner !== owner) {
       activeTooltipOwner = owner;
       window.dispatchEvent(new CustomEvent(TOOLTIP_EVENT, { detail: owner }));
@@ -171,7 +147,7 @@ export default function ComponentHistoryChart({ name, history, incidentBasePath 
   const data: ChartDay[] = history.map((day) => ({ ...day, height: 1 }));
 
   return <div className="component-chart" aria-label={`${name}: 90-day component status history`}>
-    <div className="component-chart-plot" ref={plotRef} onMouseMove={showTooltip} onMouseLeave={hideTooltipSoon}>
+    <div className="component-chart-plot" ref={plotRef} onMouseMove={showTooltip}>
       {mounted ? <ResponsiveContainer width="100%" height={32}>
         <BarChart data={data} barCategoryGap={0.5} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
           <XAxis dataKey="date" hide />
@@ -179,11 +155,13 @@ export default function ComponentHistoryChart({ name, history, incidentBasePath 
             {data.map((day, index) => <Cell key={day.date} fill={colors[day.state]} opacity={tooltip?.index === index ? 0.62 : 1} />)}
           </Bar>
         </BarChart>
-      </ResponsiveContainer> : <div className="component-chart-placeholder" aria-hidden="true" />}
+      </ResponsiveContainer> : <div className="component-chart-placeholder" aria-hidden="true">
+        {data.map((day) => <span key={day.date} className={`component-chart-placeholder-day component-chart-placeholder-day--${day.state}`} />)}
+      </div>}
     </div>
     {mounted && tooltip && data[tooltip.index] && createPortal(
       <HistoryTooltip day={data[tooltip.index]} incidentBasePath={incidentBasePath}
-        position={tooltip} tooltipRef={tooltipRef} onEnter={keepTooltip} onLeave={hideTooltipSoon} />,
+        position={tooltip} tooltipRef={tooltipRef} />,
       document.body,
     )}
   </div>;
