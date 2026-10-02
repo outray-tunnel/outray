@@ -57,6 +57,9 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/")({
               headersCiphertext, expectedStatus: input.data.expectedStatus,
               responseText: input.data.responseText,
               notificationEmails: input.data.notificationEmails,
+              failureThreshold: input.data.failureThreshold,
+              incidentPublishing: input.data.incidentPublishing,
+              publishAfterMinutes: input.data.publishAfterMinutes,
               enabled: input.data.enabled,
             }).returning();
             return monitor;
