@@ -90,7 +90,7 @@ const rootItems = [
             <div class="component-copy"><span class="component-title"><span class:list={["component-indicator", item.component.state]} aria-label={stateLabel[item.component.state]}><span class="status-dot" aria-hidden="true"></span></span><strong>{item.component.name}</strong></span>{item.component.description && <p>{item.component.description}</p>}{item.component.manual && <small>{formatDate(item.component.updatedAt)}</small>}</div>
             <span class:list={["component-uptime", { unavailable: item.component.observedUptime90d === null }]}>{item.component.observedUptime90d === null ? "No uptime data" : `${item.component.observedUptime90d.toFixed(3)}% uptime`}</span>
           </div>
-          <ComponentHistoryChart name={item.component.name} history={item.component.history} incidentBasePath={incidentBasePath} client:visible />
+          <ComponentHistoryChart name={item.component.name} history={item.component.history} incidentBasePath={incidentBasePath} client:load />
         </div> : (
         <details class="group">
           <summary class="group-summary">
@@ -106,7 +106,7 @@ const rootItems = [
                   <div class="component-copy"><span class="component-title"><span class:list={["component-indicator", component.state]} aria-label={stateLabel[component.state]}><span class="status-dot" aria-hidden="true"></span></span><strong>{component.name}</strong></span>{component.description && <p>{component.description}</p>}{component.manual && <small>{formatDate(component.updatedAt)}</small>}</div>
                   <span class:list={["component-uptime", { unavailable: component.observedUptime90d === null }]}>{component.observedUptime90d === null ? "No uptime data" : `${component.observedUptime90d.toFixed(3)}% uptime`}</span>
                 </div>
-                <ComponentHistoryChart name={component.name} history={component.history} incidentBasePath={incidentBasePath} client:visible />
+                <ComponentHistoryChart name={component.name} history={component.history} incidentBasePath={incidentBasePath} client:load />
               </div>
             ))}
           </div>
