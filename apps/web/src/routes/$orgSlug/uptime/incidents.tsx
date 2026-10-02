@@ -17,7 +17,7 @@ export const Route = createFileRoute("/$orgSlug/uptime/incidents")({
   component: UptimeIncidentsRoute,
 });
 
-const views = [{ value: "all", label: "All" }, { value: "active", label: "Active" }, { value: "resolved", label: "Resolved" }, { value: "drafts", label: "Drafts" }] as const;
+const views = [{ value: "all", label: "All" }, { value: "detected", label: "Detected" }, { value: "active", label: "Active" }, { value: "resolved", label: "Resolved" }, { value: "drafts", label: "Drafts" }] as const;
 
 function UptimeIncidentsRoute() {
   const { orgSlug } = Route.useParams();
