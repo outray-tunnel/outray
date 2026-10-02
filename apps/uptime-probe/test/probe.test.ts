@@ -145,6 +145,17 @@ test("monitor transitions confirm outage and recovery with two observations", ()
   assert.equal(successTwo.incidentAction, "resolve");
 });
 
+test("a configurable failure threshold delays Down without changing recovery", () => {
+  const first = transitionMonitor("up", 0, 0, false, 3);
+  const second = transitionMonitor(first.state, first.failureStreak, first.successStreak, false, 3);
+  assert.equal(second.state, "up");
+  assert.equal(second.incidentAction, null);
+  const third = transitionMonitor(second.state, second.failureStreak, second.successStreak, false, 3);
+  assert.equal(third.state, "down");
+  assert.equal(third.incidentAction, "open");
+  assert.equal(transitionMonitor("down", third.failureStreak, 0, true, 3).state, "down");
+});
+
 test("missing and stale evidence is Unknown", () => {
   const now = new Date("2026-09-29T12:00:00.000Z");
   assert.equal(effectiveMonitorState("up", null, now), "unknown");
