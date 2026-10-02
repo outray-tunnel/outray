@@ -59,6 +59,9 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/$monitorId")
           name: monitor.name, url: monitor.url, method: monitor.method as "GET" | "HEAD",
           headers: {}, expectedStatus: monitor.expectedStatus, responseText: monitor.responseText,
           notificationEmails: monitor.notificationEmails, enabled: monitor.enabled,
+          failureThreshold: monitor.failureThreshold,
+          incidentPublishing: monitor.incidentPublishing as "manual" | "after_confirmation" | "automatic",
+          publishAfterMinutes: monitor.publishAfterMinutes,
         });
         if (!input.success) return badInput(input.error, input.field);
         if (!await notificationEmailsBelongToOrganization(access.organization.id, input.data.notificationEmails)) {
@@ -97,6 +100,9 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/$monitorId")
               name: input.data.name, url: input.data.url, method: input.data.method,
               headersCiphertext, expectedStatus: input.data.expectedStatus, responseText: input.data.responseText,
               notificationEmails: input.data.notificationEmails, enabled: input.data.enabled,
+              failureThreshold: input.data.failureThreshold,
+              incidentPublishing: input.data.incidentPublishing,
+              publishAfterMinutes: input.data.publishAfterMinutes,
               ...(targetChanged ? {
                 state: "unknown", failureStreak: 0, successStreak: 0,
                 lastCheckedAt: null, lastStateChangedAt: new Date(), nextCheckAt: new Date(),
