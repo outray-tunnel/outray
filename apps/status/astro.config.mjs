@@ -7,7 +7,8 @@ export default defineConfig({
   adapter: node({ mode: "standalone" }),
   integrations: [react()],
   experimental: {
-    csp: {
+    // Astro's CSP hash generation runs during builds, not the Vite dev server.
+    csp: process.env.NODE_ENV === "production" ? {
       directives: [
         "default-src 'none'",
         "base-uri 'none'",
@@ -18,7 +19,7 @@ export default defineConfig({
         "connect-src 'self'",
       ],
       styleDirective: { resources: ["'self'", "'unsafe-inline'"] },
-    },
+    } : false,
   },
   site: process.env.OUTRAY_STATUS_URL || process.env.STATUS_PUBLIC_URL || "https://status.outray.app",
   server: {
