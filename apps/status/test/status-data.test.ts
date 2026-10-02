@@ -13,7 +13,8 @@ test("public incident stage uses only the latest published update", () => {
   assert.equal(publishedIncidentStage(incident), "monitoring");
   assert.equal(publishedIncidentStage({ ...incident, updates: [] }), "down");
   assert.equal(publishedIncidentStage({ ...incident, updates: [], status: "resolved" }), "recovered");
-  assert.equal(publishedIncidentStage({ ...incident, sourceType: "uptime_monitor" }), "down");
+  assert.equal(publishedIncidentStage({ ...incident, sourceType: "uptime_monitor" }), "monitoring");
+  assert.equal(publishedIncidentStage({ ...incident, sourceType: "uptime_monitor", updates: [] }), "down");
   assert.equal(publishedIncidentStage({ ...incident, sourceType: "uptime_monitor", status: "resolved" }), "recovered");
 });
 
