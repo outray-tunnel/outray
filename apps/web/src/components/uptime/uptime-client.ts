@@ -11,6 +11,9 @@ export interface UptimeMonitor {
   expectedStatus: number | null;
   responseText: string | null;
   notificationEmails?: string[];
+  failureThreshold: number;
+  incidentPublishing: "manual" | "after_confirmation" | "automatic";
+  publishAfterMinutes: number;
   enabled: boolean;
   state: UptimeState;
   lastCheckedAt: string | null;
@@ -64,6 +67,8 @@ export interface UptimeIncident {
   title: string;
   status: "open" | "resolved";
   sourceType?: "uptime_manual" | "uptime_monitor";
+  uptimePublicationState?: "detected" | "published" | "ignored" | null;
+  uptimePublishedAt?: string | null;
   sourceId?: string;
   sourceSnapshot?: { affectedComponents?: Array<{ id: string; name: string }>; monitorName?: string };
   startedAt?: string;
