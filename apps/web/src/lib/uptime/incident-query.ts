@@ -6,7 +6,7 @@ import type { SecretsTransaction } from "@/lib/secrets/database";
 export type IncidentCursor = { startedAt: Date; id: string };
 export type IncidentListQuery = {
   q: string;
-  view: "all" | "active" | "resolved" | "drafts";
+  view: "all" | "detected" | "active" | "resolved" | "drafts";
   source: "all" | "manual" | "automatic";
   cursor: IncidentCursor | null;
   limit: number;
@@ -38,7 +38,7 @@ export function parseIncidentListQuery(params: URLSearchParams):
   const q = (params.get("q") ?? "").trim();
   if (q.length > 160) return { success: false, error: "Search must be 160 characters or fewer", field: "q" };
   const view = params.get("view") ?? "all";
-  if (view !== "all" && view !== "active" && view !== "resolved" && view !== "drafts") {
+  if (view !== "all" && view !== "detected" && view !== "active" && view !== "resolved" && view !== "drafts") {
     return { success: false, error: "Invalid incident view", field: "view" };
   }
   const source = params.get("source") ?? "all";
@@ -69,7 +69,8 @@ export function incidentListWhere(organizationId: string, query: IncidentListQue
     // strpos treats %, _ and backslashes as literal characters, unlike LIKE.
     query.q ? sql`strpos(lower(${incidents.title}), lower(${query.q})) > 0` : undefined,
     query.source !== "all" ? eq(incidents.sourceType, query.source === "manual" ? "uptime_manual" : "uptime_monitor") : undefined,
-    query.view === "active" ? and(eq(incidents.status, "open"), or(eq(incidents.sourceType, "uptime_monitor"), published)) : undefined,
+    query.view === "detected" ? and(eq(incidents.sourceType, "uptime_monitor"), eq(incidents.status, "open"), eq(incidents.uptimePublicationState, "detected")) : undefined,
+    query.view === "active" ? and(eq(incidents.status, "open"), or(and(eq(incidents.sourceType, "uptime_monitor"), sql`${incidents.uptimePublicationState} <> 'ignored'`), published)) : undefined,
     query.view === "resolved" ? eq(incidents.status, "resolved") : undefined,
     query.view === "drafts" ? and(eq(incidents.sourceType, "uptime_manual"), sql`not ${published}`) : undefined,
     query.cursor ? or(
