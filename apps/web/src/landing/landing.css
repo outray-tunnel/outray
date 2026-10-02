@@ -2719,6 +2719,11 @@ html:not(.js) [data-reveal],
   gap: 5px;
 }
 
+.nav-auth-placeholder {
+  width: 210px;
+  height: 42px;
+}
+
 .mobile-nav {
   position: relative;
   display: none;
@@ -4537,6 +4542,10 @@ html:not(.js) [data-reveal],
   .nav-actions .button-compact {
     min-height: 42px;
     padding-inline: 14px;
+  }
+
+  .nav-auth-placeholder {
+    width: 118px;
   }
 
   .mobile-nav {
