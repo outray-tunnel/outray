@@ -29,6 +29,9 @@ type MonitorRow = {
   expected_status: number | null;
   response_text: string | null;
   notification_emails: string[];
+  failure_threshold: number;
+  incident_publishing: "manual" | "after_confirmation" | "automatic";
+  publish_after_minutes: number;
   state: MonitorState;
   failure_streak: number;
   success_streak: number;
@@ -184,6 +187,7 @@ async function persistCheck(claimed: MonitorRow, result: ProbeResult) {
     const checkedAt = new Date();
     const transition = transitionMonitor(
       current.state, current.failure_streak, current.success_streak, result.success,
+      current.failure_threshold,
     );
     await client.query(
       `INSERT INTO uptime_checks
@@ -213,7 +217,13 @@ async function persistCheck(claimed: MonitorRow, result: ProbeResult) {
     );
 
     if (transition.incidentAction === "open") {
-      const incident = await openIncident(client, current, checkedAt);
+      const firstFailure = await client.query<{ checked_at: Date }>(
+        `SELECT checked_at FROM uptime_checks WHERE organization_id = $1 AND monitor_id = $2
+         ORDER BY checked_at DESC LIMIT $3`,
+        [current.organization_id, current.id, current.failure_threshold],
+      );
+      const startedAt = firstFailure.rows.at(-1)?.checked_at ?? checkedAt;
+      const incident = await openIncident(client, current, startedAt);
       if (incident) await enqueueTeamNotifications(client, current, incident,
         "firing", result.statusCode);
     } else if (transition.incidentAction === "resolve") {
@@ -224,6 +234,7 @@ async function persistCheck(claimed: MonitorRow, result: ProbeResult) {
       // Components added while an outage is open should be reflected as affected.
       await attachCurrentComponentsToOpenIncident(client, current);
     }
+    if (transition.state === "down") await publishConfirmedIncident(client, current, checkedAt);
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
@@ -259,17 +270,18 @@ async function attachComponents(client: PoolClient, monitor: MonitorRow, inciden
   return components;
 }
 
-async function openIncident(client: PoolClient, monitor: MonitorRow, checkedAt: Date): Promise<Incident | null> {
+async function openIncident(client: PoolClient, monitor: MonitorRow, startedAt: Date): Promise<Incident | null> {
   const components = await affectedComponents(client, monitor);
   const insert = await client.query<Incident>(
     `INSERT INTO incidents (id, organization_id, source_type, source_id, status,
+       uptime_publication_state, uptime_published_at,
        title, source_snapshot, started_at, created_at, updated_at)
-     VALUES ($1,$2,'uptime_monitor',$3,'open',$4,$5,$6,NOW(),NOW())
+     VALUES ($1,$2,'uptime_monitor',$3,'open','detected',NULL,$4,$5,$6,NOW(),NOW())
      ON CONFLICT DO NOTHING RETURNING id, started_at`,
     [randomUUID(), monitor.organization_id, monitor.id,
       `${monitor.name} is down`,
       JSON.stringify({ monitorName: monitor.name, affectedComponents: components }),
-      checkedAt],
+      startedAt],
   );
   let incident = insert.rows[0];
   if (!incident) {
@@ -283,6 +295,33 @@ async function openIncident(client: PoolClient, monitor: MonitorRow, checkedAt: 
   }
   if (incident) await attachComponents(client, monitor, incident.id);
   return insert.rows[0] ?? null; // Only the transition's successful insert notifies.
+}
+
+async function publishConfirmedIncident(client: PoolClient, monitor: MonitorRow, checkedAt: Date) {
+  if (monitor.incident_publishing === "manual") return;
+  await client.query(
+    `UPDATE incidents SET uptime_publication_state = 'published', uptime_published_at = $3,
+       updated_at = $3
+     WHERE organization_id = $1 AND source_type = 'uptime_monitor'
+       AND source_id = $2 AND status = 'open' AND uptime_publication_state = 'detected'
+       AND ($4 = 'automatic' OR
+         ($4 = 'after_confirmation' AND created_at <= $3::timestamptz - ($5 * INTERVAL '1 minute')))
+       AND EXISTS (SELECT 1 FROM uptime_monitors
+         WHERE id = $2 AND organization_id = $1 AND state = 'down' AND enabled = true AND deleted_at IS NULL)
+       AND EXISTS (
+         SELECT 1 FROM uptime_incident_components ic
+         JOIN uptime_status_components component ON component.id = ic.component_id
+           AND component.organization_id = $1 AND component.visible = true
+         JOIN uptime_status_pages page ON page.id = component.page_id
+           AND page.organization_id = $1 AND page.published = true
+         LEFT JOIN uptime_status_groups grp ON grp.id = component.group_id
+           AND grp.organization_id = $1 AND grp.page_id = page.id
+         WHERE ic.incident_id = incidents.id AND ic.organization_id = $1
+           AND (component.group_id IS NULL OR grp.visible = true)
+       )`,
+    [monitor.organization_id, monitor.id, checkedAt,
+      monitor.incident_publishing, monitor.publish_after_minutes],
+  );
 }
 
 async function attachCurrentComponentsToOpenIncident(client: PoolClient, monitor: MonitorRow) {
@@ -312,12 +351,14 @@ async function enqueueTeamNotifications(
   statusCode: number | null,
 ) {
   const payload = {
+    incidentId: incident.id,
     monitorId: monitor.id,
     monitorName: monitor.name,
     organizationSlug: monitor.organization_slug,
     state: event,
     statusCode,
     incidentStartedAt: incident.started_at.toISOString(),
+    failureThreshold: monitor.failure_threshold,
   };
   const destinations: Array<{ channel: "email" | "slack" | "discord"; recipient: string; fingerprint?: string }> = [];
   const validRecipients = await client.query<{ email: string }>(
