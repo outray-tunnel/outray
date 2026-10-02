@@ -52,6 +52,7 @@ test(
       hiddenMonitorA: `uptime-test-hidden-monitor-a-${suffix}`,
       monitorB: `uptime-test-monitor-b-${suffix}`,
       incidentA: `uptime-test-incident-a-${suffix}`,
+      privateDetectionA: `uptime-test-private-detection-a-${suffix}`,
       incidentB: `uptime-test-incident-b-${suffix}`,
       updateA: `uptime-test-update-a-${suffix}`,
       subscriberA: `uptime-test-subscriber-a-${suffix}`,
@@ -122,11 +123,14 @@ test(
     await db.insert(schema.incidents).values([
       { id: ids.incidentA, organizationId: ids.organizationA, sourceType: "uptime_manual",
         sourceId: ids.incidentA, title: "Draft incident A" },
+      { id: ids.privateDetectionA, organizationId: ids.organizationA, sourceType: "uptime_monitor",
+        sourceId: ids.monitorA, title: "Private monitor detection", uptimePublicationState: "detected" },
       { id: ids.incidentB, organizationId: ids.organizationB, sourceType: "uptime_monitor",
-        sourceId: ids.monitorB, title: "Other tenant incident" },
+        sourceId: ids.monitorB, title: "Other tenant incident", uptimePublicationState: "published" },
     ]);
     await db.insert(schema.uptimeIncidentComponents).values([
       { organizationId: ids.organizationA, incidentId: ids.incidentA, componentId: ids.manualA },
+      { organizationId: ids.organizationA, incidentId: ids.privateDetectionA, componentId: ids.visibleA },
       { organizationId: ids.organizationB, incidentId: ids.incidentB, componentId: ids.componentB },
     ]);
     await db.insert(schema.uptimeIncidentUpdates).values({
@@ -156,6 +160,7 @@ test(
     assert.deepEqual(before.standaloneComponents.map((component) => component.name), ["Standalone website"]);
     assert.equal(before.standaloneComponents[0].state, "operational");
     assert.deepEqual(before.incidents, []);
+    assert.equal(await statusData.loadPublicIncident(pageA, ids.privateDetectionA), null);
     const beforeNotifications = await db.select().from(schema.notifications).where(
       eq(schema.notifications.sourceId, ids.updateA),
     );
