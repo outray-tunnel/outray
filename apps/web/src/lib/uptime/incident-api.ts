@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { parseIncidentDocument, type IncidentDocument } from "@outray/incident-content";
 import { incidents, notifications } from "@/db/alerts-schema";
 import { organizations } from "@/db/auth-schema";
@@ -7,6 +7,7 @@ import {
   uptimeIncidentComponents,
   uptimeIncidentUpdates,
   uptimeStatusComponents,
+  uptimeStatusGroups,
   uptimeStatusPages,
   uptimeSubscribers,
 } from "@/db/uptime-schema";
@@ -70,6 +71,12 @@ export async function createUptimeIncidentUpdate(tx: SecretsTransaction, input: 
   assertIncidentEditable(incident, input.data.componentStates);
   assertMonitorUpdateStatus(incident, input.data.status);
   const data = input.data;
+  if (data.publish && incident.uptimePublicationState === "ignored") {
+    throw new PublishError("Ignored detections cannot be published", 409);
+  }
+  if (data.publish && incident.uptimePublicationState === "detected" && incident.status !== "open") {
+    throw new PublishError("Recovered detections cannot be published as active incidents", 409);
+  }
   const associations = await tx.select({ componentId: uptimeIncidentComponents.componentId })
     .from(uptimeIncidentComponents).where(and(
       eq(uptimeIncidentComponents.incidentId, incident.id),
@@ -85,7 +92,8 @@ export async function createUptimeIncidentUpdate(tx: SecretsTransaction, input: 
     const result = await publishUptimeUpdate(tx, {
       organizationId: input.organizationId, incidentId: incident.id, updateId: update.id,
       title: incident.title, affectedComponentIds: associations.map((link) => link.componentId),
-      ...data, applyManualLifecycle: incident.sourceType === "uptime_manual", now,
+      ...data, applyManualLifecycle: incident.sourceType === "uptime_manual",
+      publishMonitorIncident: incident.uptimePublicationState === "detected", now,
     });
     if (!result.success) throw new PublishError(result.error, result.status);
   }
@@ -112,6 +120,12 @@ export async function editUptimeIncidentDraft(tx: SecretsTransaction, input: {
   assertIncidentEditable(incident, parsed.data.componentStates);
   assertMonitorUpdateStatus(incident, parsed.data.status);
   const data = parsed.data;
+  if (data.publish && incident.uptimePublicationState === "ignored") {
+    throw new PublishError("Ignored detections cannot be published", 409);
+  }
+  if (data.publish && incident.uptimePublicationState === "detected" && incident.status !== "open") {
+    throw new PublishError("Recovered detections cannot be published as active incidents", 409);
+  }
   const associations = await tx.select({ componentId: uptimeIncidentComponents.componentId })
     .from(uptimeIncidentComponents).where(and(
       eq(uptimeIncidentComponents.incidentId, incident.id),
@@ -126,7 +140,8 @@ export async function editUptimeIncidentDraft(tx: SecretsTransaction, input: {
     const result = await publishUptimeUpdate(tx, {
       organizationId: input.organizationId, incidentId: incident.id, updateId: draft.id,
       title: incident.title, affectedComponentIds: associations.map((link) => link.componentId),
-      ...data, applyManualLifecycle: incident.sourceType === "uptime_manual", now,
+      ...data, applyManualLifecycle: incident.sourceType === "uptime_manual",
+      publishMonitorIncident: incident.uptimePublicationState === "detected", now,
     });
     if (!result.success) throw new PublishError(result.error, result.status);
   }
@@ -193,6 +208,7 @@ export async function publishUptimeUpdate(
     status: UpdateInput["status"];
     componentStates: UpdateInput["componentStates"];
     applyManualLifecycle: boolean;
+    publishMonitorIncident?: boolean;
     now: Date;
   },
 ): Promise<{ success: true; recipients: number } | { success: false; error: string; status: number }> {
@@ -201,6 +217,26 @@ export async function publishUptimeUpdate(
   const [page] = await tx.select().from(uptimeStatusPages)
     .where(eq(uptimeStatusPages.organizationId, input.organizationId)).limit(1);
   if (!page?.published) return { success: false, error: "Publish the status page before sending an incident update", status: 409 };
+  if (input.publishMonitorIncident) {
+    if (!input.affectedComponentIds.length) {
+      return { success: false, error: "Link this monitor to a visible status-page component before publishing", status: 409 };
+    }
+    const [visibleComponent] = await tx.select({ id: uptimeStatusComponents.id })
+      .from(uptimeStatusComponents)
+      .leftJoin(uptimeStatusGroups, and(
+        eq(uptimeStatusGroups.id, uptimeStatusComponents.groupId),
+        eq(uptimeStatusGroups.organizationId, input.organizationId),
+        eq(uptimeStatusGroups.pageId, page.id),
+      ))
+      .where(and(
+        eq(uptimeStatusComponents.organizationId, input.organizationId),
+        eq(uptimeStatusComponents.pageId, page.id),
+        eq(uptimeStatusComponents.visible, true),
+        inArray(uptimeStatusComponents.id, input.affectedComponentIds),
+        or(isNull(uptimeStatusComponents.groupId), eq(uptimeStatusGroups.visible, true)),
+      )).limit(1);
+    if (!visibleComponent) return { success: false, error: "A visible affected component is required to publish this incident", status: 409 };
+  }
   const [daily] = await tx.select({ count: sql<number>`count(*)::int` })
     .from(uptimeIncidentUpdates).where(and(
       eq(uptimeIncidentUpdates.organizationId, input.organizationId),
@@ -220,6 +256,12 @@ export async function publishUptimeUpdate(
   if (input.applyManualLifecycle && input.status === "resolved") {
     await tx.update(incidents).set({ status: "resolved", resolvedAt: input.now, updatedAt: input.now })
       .where(and(eq(incidents.id, input.incidentId), eq(incidents.organizationId, input.organizationId)));
+  }
+  if (input.publishMonitorIncident) {
+    await tx.update(incidents).set({ uptimePublicationState: "published", uptimePublishedAt: input.now,
+      updatedAt: input.now }).where(and(eq(incidents.id, input.incidentId),
+      eq(incidents.organizationId, input.organizationId), eq(incidents.sourceType, "uptime_monitor"),
+      eq(incidents.uptimePublicationState, "detected")));
   }
   const recipients = await tx.select({ id: uptimeSubscribers.id, email: uptimeSubscribers.email })
     .from(uptimeSubscribers).where(and(eq(uptimeSubscribers.pageId, page.id),
