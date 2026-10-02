@@ -2,8 +2,16 @@
 .component-chart-plot { width: 100%; height: 32px; }
 .component-chart-plot .recharts-surface:focus:not(:focus-visible) { outline: none; }
 .component-chart-plot .recharts-rectangle { transition: opacity 120ms ease; }
-.component-chart-placeholder { height: 32px; background: repeating-linear-gradient(90deg, #3f3f46 0 7px, transparent 7px 8px); border-radius: 2px; }
-.component-chart-tooltip { position: fixed; z-index: 1000; box-sizing: border-box; width: min(400px, calc(100vw - 32px)); max-height: calc(100vh - 24px); overflow-y: auto; border: 1px solid #343741; border-radius: 12px; background: #22252d; color: #f4f4f5; box-shadow: 0 16px 40px #000a; font-size: 16px; }
+.component-chart-placeholder { display: flex; width: 100%; height: 32px; gap: 1px; }
+.component-chart-placeholder-day { flex: 1 1 0; min-width: 0; height: 32px; border-radius: 1px; }
+.component-chart-placeholder-day--operational { background: #10b981; }
+.component-chart-placeholder-day--degraded { background: #fbbf24; }
+.component-chart-placeholder-day--outage { background: #fb7185; }
+.component-chart-placeholder-day--unknown { background: #3f3f46; }
+.component-chart-tooltip-hit-area { position: fixed; z-index: 1000; box-sizing: border-box; display: flex; width: min(400px, calc(100vw - 32px)); flex-direction: column; }
+.component-chart-tooltip-hit-area--below { padding-top: 12px; }
+.component-chart-tooltip-hit-area--above { padding-bottom: 12px; }
+.component-chart-tooltip { box-sizing: border-box; min-height: 0; overflow-y: auto; border: 1px solid #343741; border-radius: 12px; background: #22252d; color: #f4f4f5; box-shadow: 0 16px 40px #000a; font-size: 16px; }
 .component-chart-tooltip-date { padding: 10px 14px; border-bottom: 1px solid #343741; color: #a1a5b3; font-size: 14px; }
 .component-chart-tooltip-body { display: flex; align-items: flex-start; gap: 12px; min-height: 52px; padding: 16px 18px; }
 .component-chart-tooltip-body > svg { width: 18px; height: 18px; margin-top: 1px; flex: none; }
