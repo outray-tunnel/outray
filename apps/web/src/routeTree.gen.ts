@@ -192,6 +192,7 @@ import { Route as OrgSlugObservabilityAlertsAlertIdEvaluationsRouteImport } from
 import { Route as OrgSlugObservabilityAlertsAlertIdConditionRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId/condition'
 import { Route as ApiObservabilityAlertsIntegrationsProviderCallbackRouteImport } from './routes/api/observability/alerts/integrations/$provider.callback'
 import { Route as ApiOrgSlugUptimeIntegrationsProviderStartRouteImport } from './routes/api/$orgSlug/uptime/integrations/$provider.start'
+import { Route as ApiOrgSlugUptimeIncidentsIncidentIdDecisionRouteImport } from './routes/api/$orgSlug/uptime/incidents/$incidentId/decision'
 import { Route as ApiOrgSlugUptimeDomainsDomainIdVerifyRouteImport } from './routes/api/$orgSlug/uptime/domains/$domainId.verify'
 import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments'
 import { Route as ApiOrgSlugObservabilityAlertsAlertIdEvaluateRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId.evaluate'
@@ -1207,6 +1208,12 @@ const ApiOrgSlugUptimeIntegrationsProviderStartRoute =
     path: '/start',
     getParentRoute: () => ApiOrgSlugUptimeIntegrationsProviderRoute,
   } as any)
+const ApiOrgSlugUptimeIncidentsIncidentIdDecisionRoute =
+  ApiOrgSlugUptimeIncidentsIncidentIdDecisionRouteImport.update({
+    id: '/decision',
+    path: '/decision',
+    getParentRoute: () => ApiOrgSlugUptimeIncidentsIncidentIdRoute,
+  } as any)
 const ApiOrgSlugUptimeDomainsDomainIdVerifyRoute =
   ApiOrgSlugUptimeDomainsDomainIdVerifyRouteImport.update({
     id: '/verify',
@@ -1544,6 +1551,7 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/observability/alerts/$alertId/evaluate': typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteWithChildren
   '/api/$orgSlug/uptime/domains/$domainId/verify': typeof ApiOrgSlugUptimeDomainsDomainIdVerifyRoute
+  '/api/$orgSlug/uptime/incidents/$incidentId/decision': typeof ApiOrgSlugUptimeIncidentsIncidentIdDecisionRoute
   '/api/$orgSlug/uptime/integrations/$provider/start': typeof ApiOrgSlugUptimeIntegrationsProviderStartRoute
   '/api/observability/alerts/integrations/$provider/callback': typeof ApiObservabilityAlertsIntegrationsProviderCallbackRoute
   '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider': typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRouteWithChildren
@@ -1741,6 +1749,7 @@ export interface FileRoutesByTo {
   '/api/$orgSlug/observability/alerts/$alertId/evaluate': typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteWithChildren
   '/api/$orgSlug/uptime/domains/$domainId/verify': typeof ApiOrgSlugUptimeDomainsDomainIdVerifyRoute
+  '/api/$orgSlug/uptime/incidents/$incidentId/decision': typeof ApiOrgSlugUptimeIncidentsIncidentIdDecisionRoute
   '/api/$orgSlug/uptime/integrations/$provider/start': typeof ApiOrgSlugUptimeIntegrationsProviderStartRoute
   '/api/observability/alerts/integrations/$provider/callback': typeof ApiObservabilityAlertsIntegrationsProviderCallbackRoute
   '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider': typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRouteWithChildren
@@ -1946,6 +1955,7 @@ export interface FileRoutesById {
   '/api/$orgSlug/observability/alerts/$alertId/evaluate': typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteWithChildren
   '/api/$orgSlug/uptime/domains/$domainId/verify': typeof ApiOrgSlugUptimeDomainsDomainIdVerifyRoute
+  '/api/$orgSlug/uptime/incidents/$incidentId/decision': typeof ApiOrgSlugUptimeIncidentsIncidentIdDecisionRoute
   '/api/$orgSlug/uptime/integrations/$provider/start': typeof ApiOrgSlugUptimeIntegrationsProviderStartRoute
   '/api/observability/alerts/integrations/$provider/callback': typeof ApiObservabilityAlertsIntegrationsProviderCallbackRoute
   '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider': typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRouteWithChildren
@@ -2152,6 +2162,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/observability/alerts/$alertId/evaluate'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments'
     | '/api/$orgSlug/uptime/domains/$domainId/verify'
+    | '/api/$orgSlug/uptime/incidents/$incidentId/decision'
     | '/api/$orgSlug/uptime/integrations/$provider/start'
     | '/api/observability/alerts/integrations/$provider/callback'
     | '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider'
@@ -2349,6 +2360,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/observability/alerts/$alertId/evaluate'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments'
     | '/api/$orgSlug/uptime/domains/$domainId/verify'
+    | '/api/$orgSlug/uptime/incidents/$incidentId/decision'
     | '/api/$orgSlug/uptime/integrations/$provider/start'
     | '/api/observability/alerts/integrations/$provider/callback'
     | '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider'
@@ -2553,6 +2565,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/observability/alerts/$alertId/evaluate'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments'
     | '/api/$orgSlug/uptime/domains/$domainId/verify'
+    | '/api/$orgSlug/uptime/incidents/$incidentId/decision'
     | '/api/$orgSlug/uptime/integrations/$provider/start'
     | '/api/observability/alerts/integrations/$provider/callback'
     | '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider'
@@ -3963,6 +3976,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugUptimeIntegrationsProviderStartRouteImport
       parentRoute: typeof ApiOrgSlugUptimeIntegrationsProviderRoute
     }
+    '/api/$orgSlug/uptime/incidents/$incidentId/decision': {
+      id: '/api/$orgSlug/uptime/incidents/$incidentId/decision'
+      path: '/decision'
+      fullPath: '/api/$orgSlug/uptime/incidents/$incidentId/decision'
+      preLoaderRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdDecisionRouteImport
+      parentRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdRoute
+    }
     '/api/$orgSlug/uptime/domains/$domainId/verify': {
       id: '/api/$orgSlug/uptime/domains/$domainId/verify'
       path: '/verify'
@@ -4598,12 +4618,15 @@ const ApiOrgSlugUptimeDomainsDomainIdRouteWithChildren =
   )
 
 interface ApiOrgSlugUptimeIncidentsIncidentIdRouteChildren {
+  ApiOrgSlugUptimeIncidentsIncidentIdDecisionRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdDecisionRoute
   ApiOrgSlugUptimeIncidentsIncidentIdUpdatesUpdateIdRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesUpdateIdRoute
   ApiOrgSlugUptimeIncidentsIncidentIdUpdatesIndexRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesIndexRoute
 }
 
 const ApiOrgSlugUptimeIncidentsIncidentIdRouteChildren: ApiOrgSlugUptimeIncidentsIncidentIdRouteChildren =
   {
+    ApiOrgSlugUptimeIncidentsIncidentIdDecisionRoute:
+      ApiOrgSlugUptimeIncidentsIncidentIdDecisionRoute,
     ApiOrgSlugUptimeIncidentsIncidentIdUpdatesUpdateIdRoute:
       ApiOrgSlugUptimeIncidentsIncidentIdUpdatesUpdateIdRoute,
     ApiOrgSlugUptimeIncidentsIncidentIdUpdatesIndexRoute:
