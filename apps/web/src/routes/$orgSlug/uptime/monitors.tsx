@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { UptimeEmailRecipients } from "@/components/uptime/email-recipients";
+import { IncidentPublishingFields, type IncidentPublishingMode } from "@/components/uptime/incident-publishing-fields";
 import { type UptimeMonitor, useUptimeResource, uptimeRequest, formatTime } from "@/components/uptime/uptime-client";
 import { UptimeRowsSkeleton, UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
 import { fieldClass, labelClass, primaryButton, secondaryButton, StateBadge, UptimeError, UptimePageHeading, UptimePanel } from "@/components/uptime/uptime-ui";
@@ -38,6 +39,9 @@ function UptimeMonitors() {
   const [responseText, setResponseText] = useState("");
   const [headers, setHeaders] = useState("");
   const [notificationEmails, setNotificationEmails] = useState<string[]>([]);
+  const [failureThreshold, setFailureThreshold] = useState(3);
+  const [incidentPublishing, setIncidentPublishing] = useState<IncidentPublishingMode>("manual");
+  const [publishAfterMinutes, setPublishAfterMinutes] = useState(5);
   const rows = resource.data?.monitors ?? [];
   const atLimit = rows.length >= (resource.data?.limit ?? 10);
 
@@ -53,16 +57,18 @@ function UptimeMonitors() {
         expectedStatus: statusMode === "exact" ? Number(expectedStatus) : null,
         responseText: method === "GET" && responseText.trim() ? responseText : null,
         notificationEmails,
+        failureThreshold, incidentPublishing, publishAfterMinutes,
       }) });
       setCreating(false);
       setName(""); setUrl(""); setHeaders(""); setResponseText(""); setNotificationEmails([]);
+      setFailureThreshold(3); setIncidentPublishing("manual"); setPublishAfterMinutes(5);
       resource.reload();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not create monitor."); }
     finally { setSaving(false); }
   };
 
   return <div className="mx-auto max-w-[1320px]">
-    <UptimePageHeading title="Endpoint monitors" description="Probe public HTTP(S) endpoints once per minute from one region. Down and Recovery are confirmed after two consecutive results." action={<button type="button" className={primaryButton} disabled={atLimit || (resource.loading && !resource.data)} onClick={() => setCreating((value) => !value)}>{creating ? "Close form" : "Add monitor"}</button>} />
+    <UptimePageHeading title="Endpoint monitors" description="Probe public HTTP(S) endpoints once per minute from one region. Choose how many failures confirm Down and when to publish an incident." action={<button type="button" className={primaryButton} disabled={atLimit || (resource.loading && !resource.data)} onClick={() => setCreating((value) => !value)}>{creating ? "Close form" : "Add monitor"}</button>} />
     {resource.data && atLimit && <p className="mb-5 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3 text-xs text-amber-200">This workspace has reached the beta limit of {resource.data.limit} monitors.</p>}
     {creating && <UptimePanel className="mb-6 p-5 md:p-7"><h2 className="text-lg font-semibold text-zinc-100">New monitor</h2><p className="mt-2 text-xs text-zinc-500">Header values are encrypted at rest and never shown again after saving.</p>
       <form onSubmit={(event) => void submit(event)} className="mt-6 grid gap-5 md:grid-cols-2">
@@ -73,6 +79,7 @@ function UptimeMonitors() {
         {method === "GET" && <label className={`${labelClass} md:col-span-2`}>Response text (optional)<input className={`${fieldClass} mt-2`} value={responseText} onChange={(event) => setResponseText(event.target.value)} maxLength={500} placeholder="healthy" /><span className="mt-1 block text-[11px] font-normal text-zinc-600">Literal, case-sensitive match. Response content is never stored.</span></label>}
         <label className={`${labelClass} md:col-span-2`}>Headers (optional)<textarea className={`${fieldClass} mt-2 min-h-24 resize-y py-3 font-mono text-xs`} value={headers} onChange={(event) => setHeaders(event.target.value)} placeholder="Authorization: Bearer …" /><span className="mt-1 block text-[11px] font-normal text-zinc-600">One Name: Value per line. Proxy, Host, and connection-control headers are rejected.</span></label>
         <div className="md:col-span-2"><UptimeEmailRecipients orgSlug={orgSlug} value={notificationEmails} onChange={setNotificationEmails} /></div>
+        <IncidentPublishingFields failureThreshold={failureThreshold} onFailureThresholdChange={setFailureThreshold} mode={incidentPublishing} onModeChange={setIncidentPublishing} publishAfterMinutes={publishAfterMinutes} onPublishAfterMinutesChange={setPublishAfterMinutes} />
         <div className="md:col-span-2">{error && <UptimeError message={error} />}<div className="mt-5 flex flex-wrap gap-3"><button type="submit" className={primaryButton} disabled={saving || atLimit}>{saving ? "Creating…" : "Create monitor"}</button><button type="button" className={secondaryButton} onClick={() => setCreating(false)}>Cancel</button></div></div>
       </form>
     </UptimePanel>}
