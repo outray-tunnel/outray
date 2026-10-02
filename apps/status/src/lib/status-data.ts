@@ -132,8 +132,8 @@ export interface PublicIncident {
 }
 
 export function publishedIncidentStage(incident: PublicIncident): string {
-  if (incident.sourceType === "uptime_monitor") return incident.status === "resolved" ? "recovered" : "down";
   const latest = [...incident.updates].sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime() || b.id.localeCompare(a.id))[0];
+  if (incident.sourceType === "uptime_monitor") return incident.status === "resolved" ? "recovered" : latest?.status ?? "down";
   return latest?.status ?? (incident.status === "resolved" ? "recovered" : "down");
 }
 
@@ -293,6 +293,7 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
                 i.resolved_at
          FROM incidents i
          WHERE i.organization_id = $2 AND i.source_type IN ('uptime_monitor', 'uptime_manual')
+           AND (i.source_type <> 'uptime_monitor' OR i.uptime_publication_state = 'published')
        )
        SELECT DISTINCT c.id AS component_id, i.id, i.title, i.source_type,
               i.started_at, i.resolved_at
@@ -337,7 +338,7 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
              AND c.page_id = $1 AND c.organization_id = $2 AND c.visible = true
              AND (c.group_id IS NULL OR g.visible = true)
          )
-         AND (i.source_type = 'uptime_monitor' OR
+         AND ((i.source_type = 'uptime_monitor' AND i.uptime_publication_state = 'published') OR
            (i.source_type = 'uptime_manual' AND EXISTS (
              SELECT 1 FROM uptime_incident_updates u
              WHERE u.incident_id = i.id AND u.organization_id = $2
@@ -490,7 +491,7 @@ export async function loadPublicIncident(page: PageRow, incidentId: string): Pro
            AND c.page_id = $1 AND c.organization_id = $2 AND c.visible = true
            AND (c.group_id IS NULL OR g.visible = true)
        )
-       AND (i.source_type = 'uptime_monitor' OR EXISTS (
+       AND ((i.source_type = 'uptime_monitor' AND i.uptime_publication_state = 'published') OR EXISTS (
          SELECT 1 FROM uptime_incident_updates u
          WHERE u.incident_id = i.id AND u.organization_id = $2 AND u.published_at IS NOT NULL
        ))
