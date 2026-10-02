@@ -1,22 +1,28 @@
 import type { UptimeComponent, UptimeIncident, UptimeIncidentUpdate, UptimePageResponse } from "@/components/uptime/uptime-client";
 
-export type IncidentSearch = { q?: string; view?: "all" | "active" | "resolved" | "drafts"; source?: "all" | "manual" | "automatic" };
+export type IncidentSearch = { q?: string; view?: "all" | "detected" | "active" | "resolved" | "drafts"; source?: "all" | "manual" | "automatic" };
 
 export function incidentSearch(value: Record<string, unknown>): IncidentSearch {
   const q = typeof value.q === "string" ? value.q.trim().slice(0, 160) : "";
-  const view = value.view === "active" || value.view === "resolved" || value.view === "drafts" ? value.view : undefined;
+  const view = value.view === "detected" || value.view === "active" || value.view === "resolved" || value.view === "drafts" ? value.view : undefined;
   const source = value.source === "manual" || value.source === "automatic" ? value.source : undefined;
   return { ...(q ? { q } : {}), ...(view ? { view } : {}), ...(source ? { source } : {}) };
 }
 
-export function incidentLabel(incident: UptimeIncident, updates = incident.updates ?? []): "Active" | "Resolved" | "Draft" {
+export function incidentLabel(incident: UptimeIncident, updates = incident.updates ?? []): "Active" | "Resolved" | "Draft" | "Detected" | "Ignored" {
+  if (incident.uptimePublicationState === "ignored") return "Ignored";
+  if (incident.uptimePublicationState === "detected") return incident.status === "resolved" ? "Resolved" : "Detected";
   if (incident.status === "resolved") return "Resolved";
   if (incident.sourceType === "uptime_manual" && !updates.some((update) => update.publishedAt)) return "Draft";
   return "Active";
 }
 
-export function publicIncidentStage(incident: UptimeIncident, updates = incident.updates ?? []): "investigating" | "identified" | "monitoring" | "resolved" | "draft" | "down" | "recovered" {
-  if (incident.sourceType !== "uptime_manual") return incident.status === "resolved" ? "recovered" : "down";
+export function publicIncidentStage(incident: UptimeIncident, updates = incident.updates ?? []): "investigating" | "identified" | "monitoring" | "resolved" | "draft" | "down" | "recovered" | "detected" | "ignored" {
+  if (incident.sourceType !== "uptime_manual") {
+    if (incident.uptimePublicationState === "ignored") return "ignored";
+    if (incident.uptimePublicationState === "detected") return "detected";
+    return incident.status === "resolved" ? "recovered" : publishedIncidentUpdates(updates)[0]?.status ?? "down";
+  }
   return publishedIncidentUpdates(updates)[0]?.status ?? "draft";
 }
 
