@@ -33,6 +33,9 @@ export const uptimeMonitors = pgTable(
     expectedStatus: integer("expected_status"),
     responseText: text("response_text"),
     notificationEmails: text("notification_emails").array().notNull().default(sql`ARRAY[]::text[]`),
+    failureThreshold: integer("failure_threshold").notNull().default(3),
+    incidentPublishing: text("incident_publishing").notNull().default("manual"),
+    publishAfterMinutes: integer("publish_after_minutes").notNull().default(5),
     enabled: boolean("enabled").notNull().default(true),
     state: text("state").notNull().default("unknown"),
     failureStreak: integer("failure_streak").notNull().default(0),
@@ -53,6 +56,9 @@ export const uptimeMonitors = pgTable(
     check("uptime_monitors_state_check", sql`${table.state} IN ('unknown', 'up', 'down')`),
     check("uptime_monitors_expected_status_check", sql`${table.expectedStatus} IS NULL OR ${table.expectedStatus} BETWEEN 100 AND 599`),
     check("uptime_monitors_streaks_check", sql`${table.failureStreak} >= 0 AND ${table.successStreak} >= 0`),
+    check("uptime_monitors_failure_threshold_check", sql`${table.failureThreshold} BETWEEN 2 AND 5`),
+    check("uptime_monitors_incident_publishing_check", sql`${table.incidentPublishing} IN ('manual', 'after_confirmation', 'automatic')`),
+    check("uptime_monitors_publish_after_minutes_check", sql`${table.publishAfterMinutes} BETWEEN 1 AND 60`),
   ],
 );
 
