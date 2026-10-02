@@ -58,6 +58,9 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
   });
   const [editor, setEditor] = useState<{ draft?: UptimeIncidentUpdate } | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [ignoreOpen, setIgnoreOpen] = useState(false);
+  const [ignoring, setIgnoring] = useState(false);
+  const [ignoreError, setIgnoreError] = useState<string | null>(null);
   const composerTrigger = useRef<HTMLButtonElement | null>(null);
   const draftTrigger = useRef<HTMLButtonElement | null>(null);
   const back = <Link to="/$orgSlug/uptime/incidents" params={{ orgSlug }} search={search} className={`mb-6 inline-flex min-h-10 items-center gap-2 text-xs text-zinc-500 hover:text-zinc-200 ${focusClass}`}><ArrowLeft size={14} aria-hidden="true" />All incidents</Link>;
@@ -95,7 +98,10 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
 
   const { incident, updates, notifications, canManage, monitorAvailable, componentIds } = resource.data;
   const manual = incident.sourceType === "uptime_manual";
-  const editable = canManage && (!manual || incident.status !== "resolved");
+  const privateDetection = !manual && (incident.uptimePublicationState === "detected" || incident.uptimePublicationState === "ignored");
+  const detected = privateDetection && incident.uptimePublicationState === "detected" && incident.status === "open";
+  const editable = canManage && (manual ? incident.status !== "resolved" :
+    incident.uptimePublicationState !== "ignored" && (incident.uptimePublicationState === "published" || incident.status === "open"));
   const components = [...(pageResource.data?.standaloneComponents || []), ...(pageResource.data?.groups.flatMap((group) => group.components) || [])];
   const affected = affectedComponentNames({ ...incident, componentIds }, components);
   const published = publishedIncidentUpdates(updates);
@@ -112,9 +118,21 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     ...(pageResource.data?.standaloneComponents.filter((component) => component.visible) || []),
     ...(pageResource.data?.groups.filter((group) => group.visible).flatMap((group) => group.components.filter((component) => component.visible)) || []),
   ];
-  const publicReportAvailable = page?.published && (!manual || published.length > 0) && publicComponents.some((component) => componentIds.includes(component.id));
+  const publicReportAvailable = page?.published && (manual ? published.length > 0 : incident.uptimePublicationState === "published") && publicComponents.some((component) => componentIds.includes(component.id));
   const monitorName = typeof incident.sourceSnapshot?.monitorName === "string" ? incident.sourceSnapshot.monitorName : "Originating monitor";
   const monitorLink = monitorAvailable && incident.sourceId ? <Link to="/$orgSlug/uptime/monitors/$monitorId" params={{ orgSlug, monitorId: incident.sourceId }} className={`inline-flex items-center gap-1 text-zinc-300 hover:text-white ${focusClass}`}>{monitorName}<ArrowUpRight size={13} aria-hidden="true" /></Link> : <span>{monitorName}{!monitorAvailable && " (unavailable)"}</span>;
+
+  const ignoreDetection = async () => {
+    if (!detected || !canManage || ignoring) return;
+    setIgnoring(true); setIgnoreError(null);
+    try {
+      await uptimeRequest(orgSlug, `/incidents/${encodeURIComponent(incidentId)}/decision`, { method: "POST", body: JSON.stringify({ action: "ignore" }) });
+      setIgnoreOpen(false);
+      setFeedback("Detection ignored. Monitor checks and component health are unchanged; no public incident was created.");
+      await queryClient.invalidateQueries({ queryKey: ["uptime", orgSlug] });
+    } catch (cause) { setIgnoreError(cause instanceof Error ? cause.message : "Could not ignore this detection."); }
+    finally { setIgnoring(false); }
+  };
 
   return <div className="mx-auto max-w-[1120px] pb-12">
     {back}
@@ -129,6 +147,11 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     {resource.isError && <div className="mb-5"><UptimeError message={`The latest refresh failed. Showing the last loaded incident. ${resource.error.message}`} /></div>}
     {pageResource.isError && <div className="mb-5"><UptimeError message={`Could not refresh status-page settings. ${pageResource.error.message}`} /><button type="button" className={`${secondaryButton} mt-2`} onClick={() => void pageResource.refetch()}>Retry settings</button></div>}
     {feedback && <p role="status" className="mb-5 text-[13px] leading-6 text-zinc-300">{feedback}</p>}
+    {privateDetection && <section aria-label="Private detected issue" className="mb-6 rounded-xl border border-amber-400/20 bg-amber-400/[0.035] p-4 sm:p-5">
+      <p className="text-[13px] font-medium text-amber-200">{incident.uptimePublicationState === "ignored" ? "Detection ignored" : incident.status === "resolved" ? "Recovered without a public incident" : "Downtime detected · not published"}</p>
+      <p className="mt-2 text-xs leading-5 text-zinc-400">The monitor and linked components reflect their checks. No public incident report or subscriber email was created for this detection. Team alert delivery is tracked below.</p>
+      {canManage && !editor && <div className="mt-4 flex flex-wrap gap-2"><button ref={composerTrigger} type="button" className={primaryButton} onClick={() => { setFeedback(null); setEditor({}); }}>Acknowledge &amp; publish</button><button type="button" className={secondaryButton} onClick={() => { setIgnoreError(null); setIgnoreOpen(true); }}>Ignore detection</button></div>}
+    </section>}
 
     <dl className="grid gap-x-8 gap-y-5 border-y border-white/[0.08] py-5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto]">
       <div className="min-w-0"><dt className="text-xs text-zinc-500">Affected components</dt><dd className="mt-2 break-words text-[13px] text-zinc-300">{affected.join(", ") || "No components currently linked"}</dd></div>
@@ -140,7 +163,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     <section className="mt-7" aria-labelledby="incident-timeline-title">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 id="incident-timeline-title" className="text-sm font-medium text-zinc-200">Timeline</h2>
-        {editable && !editor && <button ref={composerTrigger} type="button" className={`${primaryButton} gap-2`} onClick={() => { draftTrigger.current = null; setFeedback(null); setEditor({}); }}><Plus size={14} aria-hidden="true" />Add update</button>}
+        {editable && !editor && !detected && <button ref={composerTrigger} type="button" className={`${primaryButton} gap-2`} onClick={() => { draftTrigger.current = null; setFeedback(null); setEditor({}); }}><Plus size={14} aria-hidden="true" />Add update</button>}
       </div>
 
       {editor && <IncidentUpdateEditor
@@ -151,6 +174,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
         draft={editor.draft}
         defaultStatus={!manual && incident.status === "resolved" ? "resolved" : published[0]?.status ?? "investigating"}
         automatic={!manual}
+        firstPublication={detected}
         monitorRecovered={incident.status === "resolved"}
         pagePublished={!!page?.published}
         editable={editable && (!editor.draft || updates.some((update) => update.id === editor.draft?.id && !update.publishedAt))}
@@ -165,7 +189,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
       {!manual && <ol className="ml-1 border-l border-white/[0.1]">{automaticEvents.map((event) => <li key={event.id} className="relative pb-8 pl-6 last:pb-0">
         <span aria-hidden="true" className={`absolute -left-[4px] top-1.5 size-[7px] rounded-full ${event.kind === "recovered" ? "bg-emerald-400/70" : event.kind === "detected" ? "bg-rose-400/70" : "bg-zinc-500"}`} />
         <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><h3 className="text-[13px] font-medium text-zinc-200">{event.kind === "recovered" ? "Recovery detected" : event.kind === "detected" ? "Downtime detected" : "Team update"}</h3>{event.kind === "update" && <StagePill stage={event.update.status} compact />}</div><time dateTime={event.at} className="text-xs text-zinc-500">{formatTime(event.at)}</time></div>
-        {event.kind === "update" ? <IncidentRichContent body={event.update.bodyJson} note={event.update.note} /> : <p className="mt-3 text-[13px] leading-6 text-zinc-400">{event.kind === "recovered" ? "The monitor confirmed recovery and resolved this incident automatically." : "The monitor confirmed downtime and opened this incident automatically."}</p>}
+        {event.kind === "update" ? <IncidentRichContent body={event.update.bodyJson} note={event.update.note} /> : <p className="mt-3 text-[13px] leading-6 text-zinc-400">{event.kind === "recovered" ? "The monitor confirmed recovery and resolved this issue automatically." : incident.uptimePublicationState === "detected" || incident.uptimePublicationState === "ignored" ? "The monitor confirmed downtime and created a private detected issue." : "The monitor confirmed downtime."}</p>}
       </li>)}</ol>}
     </section>
 
@@ -181,16 +205,18 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
       {!notifications.length && <p className="py-3 text-[13px] text-zinc-500">No delivery attempts recorded.</p>}
       <ul className="divide-y divide-white/[0.06]">{notifications.map((notification) => <li key={notification.id} className="py-3"><div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 text-xs"><span className="text-zinc-300"><span className="capitalize">{notification.channel}</span><span className="mx-2 text-zinc-600">·</span><span className="capitalize">{notification.event.replaceAll("_", " ")}</span></span><span className={notification.status === "failed" ? "text-rose-300" : "text-zinc-500"}><span className="capitalize">{notification.status}</span> · {notification.attempts} {notification.attempts === 1 ? "attempt" : "attempts"} · {formatTime(notification.sentAt || notification.createdAt)}</span></div>{notification.lastError && <p className="mt-2 break-words text-xs text-rose-300/80">{notification.lastError}</p>}</li>)}</ul>
     </details>
+    <UptimeDialog open={ignoreOpen} onClose={() => setIgnoreOpen(false)} title="Ignore this detection?" description="No public incident will be created for this occurrence." busy={ignoring} footer={<><button type="button" className={secondaryButton} onClick={() => setIgnoreOpen(false)} disabled={ignoring}>Keep issue</button><button type="button" className={primaryButton} disabled={ignoring} onClick={() => void ignoreDetection()}>{ignoring ? "Ignoring…" : "Ignore detection"}</button></>}><p className="text-[13px] leading-6 text-zinc-400">Ignoring only dismisses this private issue. Checks continue, and a linked component may still show downtime. A new detection can be created after recovery and another confirmed outage.</p>{ignoreError && <div className="mt-4"><UptimeError message={ignoreError} /></div>}</UptimeDialog>
   </div>;
 }
 
-function IncidentUpdateEditor({ orgSlug, incidentId, incidentTitle, draft, defaultStatus, automatic, monitorRecovered, pagePublished, editable, onSaved, onCancel }: {
+function IncidentUpdateEditor({ orgSlug, incidentId, incidentTitle, draft, defaultStatus, automatic, firstPublication, monitorRecovered, pagePublished, editable, onSaved, onCancel }: {
   orgSlug: string;
   incidentId: string;
   incidentTitle: string;
   draft?: UptimeIncidentUpdate;
   defaultStatus: UpdateStatus;
   automatic: boolean;
+  firstPublication: boolean;
   monitorRecovered: boolean;
   pagePublished: boolean;
   editable: boolean;
@@ -268,7 +294,7 @@ function IncidentUpdateEditor({ orgSlug, incidentId, incidentTitle, draft, defau
   return <><UptimeSideSheet open onClose={requestClose} title={draft ? "Edit update draft" : "Share update"} description={incidentTitle} busy={!!saving} footer={<>
     <button type="button" className={`${secondaryButton} mr-auto`} disabled={!!saving} onClick={requestClose}>Cancel</button>
     <button type="submit" form="incident-update-form" className={secondaryButton} disabled={!!saving || !editable}>{saving === "draft" ? "Saving…" : "Save draft"}</button>
-    <button type="button" className={primaryButton} disabled={!!saving || !editable || !pagePublished} onClick={() => void save(true)}>{saving === "publish" ? "Publishing…" : "Publish update"}</button>
+    <button type="button" className={primaryButton} disabled={!!saving || !editable || !pagePublished} onClick={() => void save(true)}>{saving === "publish" ? "Publishing…" : firstPublication ? "Acknowledge & publish" : "Publish update"}</button>
   </>}>
     <form id="incident-update-form" aria-busy={!!saving} className="space-y-7" onSubmit={(event) => { event.preventDefault(); void save(false); }}>
       {automatic && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 py-3"><span className="text-xs text-zinc-500">Monitor state</span><StagePill stage={monitorRecovered ? "recovered" : "down"} compact /><span className="text-xs leading-5 text-zinc-500">Checks control recovery; your update status describes the team’s progress.</span></div>}
