@@ -3,7 +3,7 @@ import test from "node:test";
 import { getTableName, type SQL } from "drizzle-orm";
 import { PgDialect, type PgTable } from "drizzle-orm/pg-core";
 import type { SecretsTransaction } from "../src/lib/secrets/database";
-import { createUptimeIncidentUpdate, editUptimeIncidentDraft, parseIncidentUpdate, PublishError } from "../src/lib/uptime/incident-api";
+import { createUptimeIncidentUpdate, editUptimeIncidentDraft, parseIncidentUpdate, publishUptimeUpdate, PublishError } from "../src/lib/uptime/incident-api";
 
 const incident = { id: "incident-a", organizationId: "tenant-a", title: "API incident", status: "open", sourceType: "uptime_manual" };
 const draft = { id: "update-a", incidentId: incident.id, organizationId: incident.organizationId,
@@ -21,6 +21,7 @@ function transaction(selectRows: unknown[][]) {
       let table = "";
       const selection = {
         from(value: PgTable) { table = getTableName(value); calls.push(`select:${table}`); return selection; },
+        leftJoin() { return selection; },
         where(value: SQL) { predicates.push(new PgDialect().sqlToQuery(value)); return selection; },
         for(value: string) { calls.push(`lock:${table}:${value}`); return selection; },
         limit() { return selection; },
@@ -127,6 +128,44 @@ test("monitor incidents accept team updates without changing monitor-owned lifec
     assert.ok(!mock.calls.includes("update:incidents"));
     assert.equal(mock.unused(), 0);
   }
+});
+
+test("ignored and recovered private detections cannot be published", async () => {
+  for (const [publicationState, lifecycle] of [["ignored", "open"], ["detected", "resolved"]] as const) {
+    const privateIncident = { ...incident, sourceType: "uptime_monitor", status: lifecycle,
+      uptimePublicationState: publicationState };
+    const createMock = transaction([[{ id: "tenant-a" }], [privateIncident]]);
+    await assert.rejects(create(createMock.tx, true), (error: unknown) =>
+      error instanceof PublishError && error.status === 409);
+    assert.deepEqual(createMock.writes, []);
+
+    const editMock = transaction([[{ id: "tenant-a" }], [privateIncident], [{ ...draft, componentStates: {} }]]);
+    await assert.rejects(edit(editMock.tx, { publish: true }), (error: unknown) =>
+      error instanceof PublishError && error.status === 409);
+    assert.deepEqual(editMock.writes, []);
+  }
+});
+
+test("first publication needs a visible component and atomically marks a detection public", async () => {
+  const input = {
+    organizationId: "tenant-a", incidentId: incident.id, updateId: "update-a", title: incident.title,
+    affectedComponentIds: ["component-a"], note: "Investigating the outage", status: "investigating" as const,
+    componentStates: {}, applyManualLifecycle: false, publishMonitorIncident: true, now: new Date(),
+  };
+  const hidden = transaction([[{ id: "tenant-a" }], [{ id: "page-a", published: true }], []]);
+  assert.deepEqual(await publishUptimeUpdate(hidden.tx, input), {
+    success: false, status: 409, error: "A visible affected component is required to publish this incident",
+  });
+  assert.deepEqual(hidden.writes, []);
+
+  const visible = transaction([
+    [{ id: "tenant-a" }], [{ id: "page-a", published: true }], [{ id: "component-a" }],
+    [{ count: 0 }], [],
+  ]);
+  assert.deepEqual(await publishUptimeUpdate(visible.tx, input), { success: true, recipients: 0 });
+  assert.ok(visible.calls.includes("update:incidents"));
+  assert.ok(visible.writes.some((row) => row.uptimePublicationState === "published"));
+  assert.equal(visible.unused(), 0);
 });
 
 test("monitor updates cannot override component state", async () => {
