@@ -15,7 +15,19 @@ test("Uptime beta allowance and safe defaults", () => {
     assert.equal(result.data.method, "GET");
     assert.equal(result.data.expectedStatus, null);
     assert.equal(result.data.responseText, null);
+    assert.equal(result.data.failureThreshold, 3);
+    assert.equal(result.data.incidentPublishing, "manual");
+    assert.equal(result.data.publishAfterMinutes, 5);
   }
+});
+
+test("incident publishing accepts only bounded confirmation settings", () => {
+  assert.equal(validateMonitorInput({ ...monitor, incidentPublishing: "after_confirmation", publishAfterMinutes: 5 }).success, true);
+  assert.equal(validateMonitorInput({ ...monitor, incidentPublishing: "instant" }).success, false);
+  assert.equal(validateMonitorInput({ ...monitor, failureThreshold: 1 }).success, false);
+  assert.equal(validateMonitorInput({ ...monitor, failureThreshold: 6 }).success, false);
+  assert.equal(validateMonitorInput({ ...monitor, publishAfterMinutes: 0 }).success, false);
+  assert.equal(validateMonitorInput({ ...monitor, publishAfterMinutes: 61 }).success, false);
 });
 
 test("monitor validation refuses local targets and unsafe headers", () => {
