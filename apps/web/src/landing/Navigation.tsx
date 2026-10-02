@@ -1,4 +1,5 @@
 import { ProductIcon } from "./ProductIcon";
+import { authClient } from "@/lib/auth-client";
 
 const productLinks = [
   { id: "tunnels", label: "Tunnels", href: "#tunnels", description: "Put a local service on a public URL." },
@@ -8,6 +9,12 @@ const productLinks = [
 ] as const;
 
 export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginUrl: string; signupUrl: string; docsUrl: string; githubUrl: string }) {
+  const { data: session, isPending: isSessionPending } = authClient.useSession();
+  const { data: activeOrganization } = authClient.useActiveOrganization();
+  const { data: organizations } = authClient.useListOrganizations();
+  const dashboardOrganization = organizations?.find((organization) => organization.id === activeOrganization?.id) ?? organizations?.[0];
+  const dashboardUrl = dashboardOrganization ? `/${encodeURIComponent(dashboardOrganization.slug)}` : "/select";
+
   return (
 <header className="site-header" data-site-header>
   <div className="nav-shell page-shell">
@@ -99,10 +106,20 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
     </nav>
 
     <div className="nav-actions">
-      <a className="text-link" href={loginUrl} data-track="cta" data-track-label="nav-login">Log in</a>
-      <a className="button button-primary button-compact" href={signupUrl} data-track="cta" data-track-label="nav-start-free">
-        Start free
-      </a>
+      {isSessionPending ? (
+        <span className="nav-auth-placeholder" aria-hidden="true" />
+      ) : session?.user ? (
+        <a className="button button-primary button-compact" href={dashboardUrl} data-track="cta" data-track-label="nav-dashboard">
+          Dashboard
+        </a>
+      ) : (
+        <>
+          <a className="text-link" href={loginUrl} data-track="cta" data-track-label="nav-login">Log in</a>
+          <a className="button button-primary button-compact" href={signupUrl} data-track="cta" data-track-label="nav-start-free">
+            Start free
+          </a>
+        </>
+      )}
     </div>
 
     <details className="mobile-nav">
@@ -130,7 +147,11 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
           </ul>
         </nav>
         <div className="mobile-menu-actions">
-          <a href={loginUrl} data-track="cta" data-track-label="mobile-login">Log in to console <span aria-hidden="true">↗</span></a>
+          {!isSessionPending && (session?.user ? (
+            <a href={dashboardUrl} data-track="cta" data-track-label="mobile-dashboard">Dashboard <span aria-hidden="true">↗</span></a>
+          ) : (
+            <a href={loginUrl} data-track="cta" data-track-label="mobile-login">Log in to console <span aria-hidden="true">↗</span></a>
+          ))}
         </div>
       </div>
     </details>
