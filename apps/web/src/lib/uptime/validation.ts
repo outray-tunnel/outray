@@ -17,6 +17,9 @@ export type MonitorInput = {
   expectedStatus: number | null;
   responseText: string | null;
   notificationEmails: string[];
+  failureThreshold: number;
+  incidentPublishing: "manual" | "after_confirmation" | "automatic";
+  publishAfterMinutes: number;
   enabled: boolean;
 };
 
@@ -39,7 +42,7 @@ export function validateMonitorInput(value: unknown, current?: MonitorInput): Va
     return { success: false, error: "Expected a monitor object" };
   }
   const input = value as Record<string, unknown>;
-  const allowed = new Set(["name", "url", "method", "headers", "expectedStatus", "responseText", "notificationEmails", "enabled"]);
+  const allowed = new Set(["name", "url", "method", "headers", "expectedStatus", "responseText", "notificationEmails", "failureThreshold", "incidentPublishing", "publishAfterMinutes", "enabled"]);
   const unexpected = Object.keys(input).find((key) => !allowed.has(key));
   if (unexpected) return { success: false, field: unexpected, error: "Unknown monitor field" };
 
@@ -109,6 +112,18 @@ export function validateMonitorInput(value: unknown, current?: MonitorInput): Va
     return { success: false, field: "notificationEmails", error: "Select valid team email recipients" };
   }
   const notificationEmails = Array.from(new Set(emailsValue.map((email: string) => email.trim().toLowerCase())));
+  const failureThreshold = input.failureThreshold ?? current?.failureThreshold ?? 3;
+  if (!Number.isInteger(failureThreshold) || (failureThreshold as number) < 2 || (failureThreshold as number) > 5) {
+    return { success: false, field: "failureThreshold", error: "Confirm Down after 2–5 failed checks" };
+  }
+  const incidentPublishing = input.incidentPublishing ?? current?.incidentPublishing ?? "manual";
+  if (incidentPublishing !== "manual" && incidentPublishing !== "after_confirmation" && incidentPublishing !== "automatic") {
+    return { success: false, field: "incidentPublishing", error: "Choose a valid incident publishing mode" };
+  }
+  const publishAfterMinutes = input.publishAfterMinutes ?? current?.publishAfterMinutes ?? 5;
+  if (!Number.isInteger(publishAfterMinutes) || (publishAfterMinutes as number) < 1 || (publishAfterMinutes as number) > 60) {
+    return { success: false, field: "publishAfterMinutes", error: "Confirmation delay must be 1–60 minutes" };
+  }
   const enabled = input.enabled ?? current?.enabled ?? true;
   if (typeof enabled !== "boolean") return { success: false, field: "enabled", error: "Enabled must be true or false" };
 
@@ -120,6 +135,9 @@ export function validateMonitorInput(value: unknown, current?: MonitorInput): Va
       expectedStatus: expectedStatus as number | null,
       responseText: responseText as string | null,
       notificationEmails,
+      failureThreshold: failureThreshold as number,
+      incidentPublishing,
+      publishAfterMinutes: publishAfterMinutes as number,
       enabled,
     },
   };
