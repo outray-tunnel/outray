@@ -1,227 +1,423 @@
-import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import CommandLineIcon from "@hugeicons-pro/core-stroke-rounded/CommandLineIcon";
 import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
 import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
-import { Modal } from "@/components/ui";
+import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
+import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import {
+  buildNewTunnelCommand,
+  isValidLocalPort,
+  isValidTunnelAddress,
+  type TunnelAddressMode,
+} from "./new-tunnel-commands";
 
-type Command = {
-  id: string;
+const addressOptions = [
+  { value: "random", label: "Automatic" },
+  { value: "subdomain", label: "Subdomain" },
+  { value: "domain", label: "Custom domain" },
+] as const;
+
+function SetupCommand({
+  title,
+  description,
+  command,
+  copied,
+  copyError,
+  onCopy,
+}: {
   title: string;
-  command: string;
   description: string;
-};
-
-const quickStartCommands: Command[] = [
-  {
-    id: "install",
-    title: "Install the CLI",
-    command: "npm install -g outray",
-    description: "Install OutRay globally on your machine.",
-  },
-  {
-    id: "login",
-    title: "Authenticate",
-    command: "outray login",
-    description: "Sign in and connect the CLI to your account.",
-  },
-  {
-    id: "start",
-    title: "Open the tunnel",
-    command: "outray 8000",
-    description: "Expose the service running locally on port 8000.",
-  },
-];
-
-const configurationCommands: Command[] = [
-  {
-    id: "subdomain",
-    title: "Reserved subdomain",
-    command: "outray 8000 --subdomain my-app",
-    description: "Use a stable address such as my-app.outray.app.",
-  },
-  {
-    id: "domain",
-    title: "Custom domain",
-    command: "outray 8000 --domain app.example.com",
-    description: "Route traffic through a configured custom domain.",
-  },
-  {
-    id: "org",
-    title: "Specific organization",
-    command: "outray 8000 --org my-team",
-    description: "Create the tunnel inside a specific organization.",
-  },
-];
+  command: string;
+  copied: boolean;
+  copyError?: string;
+  onCopy: () => void;
+}) {
+  return (
+    <li className="py-3.5 first:pt-2 last:pb-1">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-[13px] font-medium text-zinc-200">{title}</p>
+        <p className="text-[11px] text-zinc-500">{description}</p>
+      </div>
+      <div className="mt-2 flex min-w-0 items-center gap-2 rounded-lg border border-white/[0.08] bg-black/25 py-1.5 pl-3 pr-1.5">
+        <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-[12px] text-zinc-300">
+          {command}
+        </code>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onCopy}
+          aria-label={
+            copied
+              ? `${title} command copied`
+              : `Copy ${title.toLowerCase()} command`
+          }
+          leftIcon={
+            <HugeiconsIcon
+              icon={copied ? Tick02Icon : Copy01Icon}
+              size={14}
+              strokeWidth={1.8}
+              aria-hidden="true"
+            />
+          }
+          className={`shrink-0 ${copied ? "text-emerald-400" : ""}`}
+        >
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
+      {copyError && <p role="alert" className="mt-2 text-[12px] text-rose-300">{copyError}</p>}
+    </li>
+  );
+}
 
 export function NewTunnelModal({
   isOpen,
   onClose,
+  orgSlug,
+  triggerRef,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  orgSlug: string;
+  triggerRef: RefObject<HTMLButtonElement | null>;
 }) {
+  const [port, setPort] = useState("8000");
+  const [addressMode, setAddressMode] = useState<TunnelAddressMode>("random");
+  const [subdomain, setSubdomain] = useState("");
+  const [domain, setDomain] = useState("");
   const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"quick-start" | "configuration">(
-    "quick-start",
+  const [copyError, setCopyError] = useState<{ id: string; message: string } | null>(null);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const portInput = useRef<HTMLInputElement | null>(null);
+  const reducedMotion = useReducedMotion();
+
+  useEffect(
+    () => () => {
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+    },
+    [],
   );
 
-  const copyToClipboard = async (command: string, id: string) => {
-    await navigator.clipboard.writeText(command);
-    setCopiedCommand(id);
-    window.setTimeout(() => setCopiedCommand(null), 2000);
-  };
+  const address = addressMode === "subdomain" ? subdomain : domain;
+  const command = buildNewTunnelCommand({
+    orgSlug,
+    port,
+    addressMode,
+    address,
+  });
+  const portMissing = port.length === 0;
+  const portError = !portMissing && !isValidLocalPort(port);
+  const addressMissing = addressMode !== "random" && !address.trim();
+  const addressError =
+    addressMode !== "random" &&
+    !addressMissing &&
+    !isValidTunnelAddress(addressMode, address);
 
-  const commands =
-    activeTab === "quick-start" ? quickStartCommands : configurationCommands;
+  async function copyToClipboard(value: string, id: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyError(null);
+      setCopiedCommand(id);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+      copyTimer.current = setTimeout(() => setCopiedCommand(null), 2200);
+    } catch {
+      setCopiedCommand(null);
+      setCopyError({ id, message: "Couldn't copy automatically. Select the command and copy it manually." });
+    }
+  }
+
+  function handleClose() {
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+    setCopiedCommand(null);
+    setCopyError(null);
+    onClose();
+  }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl" appearance="flat">
-      <header className="flex shrink-0 items-start justify-between gap-6 border-b border-white/[0.07] px-5 py-5 sm:px-6">
-        <div className="min-w-0">
-          <div className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-700">
-            <HugeiconsIcon
-              icon={CommandLineIcon}
-              size={13}
-              strokeWidth={1.8}
-              aria-hidden="true"
-            />
-            Tunnels / CLI
-          </div>
-          <h2 className="text-lg font-semibold tracking-[-0.025em] text-white">
-            Open a new tunnel
-          </h2>
-          <p className="mt-1.5 text-xs leading-5 text-zinc-600">
-            Run these commands from the machine hosting your local service.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex size-8 shrink-0 items-center justify-center rounded-md text-zinc-600 transition-colors hover:bg-white/[0.05] hover:text-zinc-300"
-          aria-label="Close"
-        >
-          <HugeiconsIcon
-            icon={Cancel01Icon}
-            size={16}
-            strokeWidth={1.8}
-            aria-hidden="true"
-          />
-        </button>
-      </header>
-
-      <nav
-        className="flex shrink-0 gap-6 border-b border-white/[0.07] px-5 sm:px-6"
-        aria-label="Tunnel setup"
-        role="tablist"
-      >
-        {[
-          { id: "quick-start", label: "Quick start" },
-          { id: "configuration", label: "Configuration" },
-        ].map((tab) => {
-          const isActive = activeTab === tab.id;
-
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() =>
-                setActiveTab(tab.id as "quick-start" | "configuration")
-              }
-              className={`relative py-3 text-[11px] font-medium transition-colors ${
-                isActive
-                  ? "text-zinc-200"
-                  : "text-zinc-700 hover:text-zinc-400"
-              }`}
-              role="tab"
-              aria-selected={isActive}
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <Dialog.Portal forceMount>
+            <Dialog.Overlay asChild forceMount>
+              <motion.div
+                className="fixed inset-0 z-50 bg-black/75 backdrop-blur-[4px]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reducedMotion ? 0 : 0.18 }}
+              />
+            </Dialog.Overlay>
+            <Dialog.Content
+              asChild
+              forceMount
+              onOpenAutoFocus={(event) => {
+                event.preventDefault();
+                portInput.current?.focus();
+              }}
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                triggerRef.current?.focus();
+              }}
             >
-              {tab.label}
-              {isActive && (
-                <motion.span
-                  layoutId="new-tunnel-active-tab"
-                  className="absolute inset-x-0 -bottom-px h-px bg-white"
-                />
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="overflow-y-auto px-5 py-2 sm:px-6">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.ol
-            key={activeTab}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.14 }}
-            className="divide-y divide-white/[0.07]"
-          >
-            {commands.map((item, index) => {
-              const isCopied = copiedCommand === item.id;
-
-              return (
-                <li
-                  key={item.id}
-                  className="grid gap-3 py-5 sm:grid-cols-[24px_minmax(0,1fr)] sm:gap-4"
-                >
-                  <span className="font-mono text-[10px] leading-5 text-zinc-700">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
+              <motion.div
+                style={{ translate: "-50% -50%" }}
+                className="fixed left-1/2 top-1/2 z-[51] flex max-h-[calc(100dvh-2rem)] w-[min(600px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[22px] border border-white/[0.12] bg-[#111112] shadow-[0_28px_90px_rgba(0,0,0,0.7)] outline-none"
+                initial={
+                  reducedMotion
+                    ? { opacity: 0 }
+                    : { opacity: 0, y: 8, scale: 0.96 }
+                }
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={
+                  reducedMotion
+                    ? { opacity: 0 }
+                    : { opacity: 0, y: 4, scale: 0.98 }
+                }
+                transition={
+                  reducedMotion
+                    ? { duration: 0 }
+                    : { type: "spring", visualDuration: 0.4, bounce: 0 }
+                }
+              >
+                <header className="flex shrink-0 items-start justify-between gap-4 border-b border-white/[0.07] px-5 pb-5 pt-6 sm:px-6">
                   <div className="min-w-0">
-                    <h3 className="text-xs font-medium text-zinc-300">
-                      {item.title}
-                    </h3>
-                    <p className="mt-1 text-[11px] leading-5 text-zinc-600">
-                      {item.description}
-                    </p>
-
-                    <div className="mt-3 flex min-w-0 items-center gap-3 rounded-md border border-white/[0.07] bg-white/[0.02] py-2 pl-3 pr-1.5 transition-colors hover:border-white/[0.12]">
-                      <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-[11px] text-zinc-300 [scrollbar-width:none]">
-                        {item.command}
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(item.command, item.id)}
-                        className={`flex h-7 shrink-0 items-center gap-1.5 rounded px-2 text-[10px] font-medium transition-colors ${
-                          isCopied
-                            ? "text-emerald-400"
-                            : "text-zinc-600 hover:bg-white/[0.05] hover:text-zinc-300"
-                        }`}
-                        aria-label={`Copy ${item.title} command`}
-                      >
-                        <HugeiconsIcon
-                          icon={isCopied ? Tick02Icon : Copy01Icon}
-                          size={13}
-                          strokeWidth={1.8}
-                          aria-hidden="true"
-                        />
-                        <span className="hidden sm:inline">
-                          {isCopied ? "Copied" : "Copy"}
-                        </span>
-                      </button>
-                    </div>
+                    <Dialog.Title className="text-[20px] font-normal tracking-[-0.03em] text-zinc-100">
+                      New tunnel
+                    </Dialog.Title>
+                    <Dialog.Description className="mt-1 text-[13px] leading-5 text-zinc-400">
+                      Configure your local service, then run the command in your terminal.
+                    </Dialog.Description>
                   </div>
-                </li>
-              );
-            })}
-          </motion.ol>
-        </AnimatePresence>
-      </div>
+                  <Dialog.Close asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Close new tunnel dialog"
+                      className="-mr-1 h-8 w-8 shrink-0 !px-0"
+                    >
+                      <HugeiconsIcon
+                        icon={Cancel01Icon}
+                        size={16}
+                        strokeWidth={1.8}
+                        aria-hidden="true"
+                      />
+                    </Button>
+                  </Dialog.Close>
+                </header>
 
-      <footer className="flex shrink-0 items-start gap-3 border-t border-white/[0.07] px-5 py-4 sm:px-6">
-        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-emerald-500" />
-        <p className="text-[11px] leading-5 text-zinc-600">
-          Connected tunnels appear here automatically. Press{" "}
-          <kbd className="rounded border border-white/[0.08] px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
-            Ctrl+C
-          </kbd>{" "}
-          in the terminal to close one.
-        </p>
-      </footer>
-    </Modal>
+                <div className="min-h-0 overflow-y-auto px-5 sm:px-6">
+                  <section className="py-5 sm:py-6" aria-label="Configure tunnel command">
+                    <div>
+                      <label
+                        htmlFor="new-tunnel-local-port"
+                        className="mb-2 block text-[13px] font-medium text-zinc-200"
+                      >
+                        Local service port
+                      </label>
+                      <div className="flex h-11 items-center overflow-hidden rounded-lg border border-white/[0.12] bg-[#0a0a0b] transition-colors focus-within:border-white/[0.35] focus-within:ring-1 focus-within:ring-white/[0.12]">
+                        <span aria-hidden="true" className="shrink-0 border-r border-white/[0.08] px-3.5 font-mono text-[13px] text-zinc-500">
+                          localhost:
+                        </span>
+                        <input
+                          ref={portInput}
+                          id="new-tunnel-local-port"
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          value={port}
+                          onChange={(event) => {
+                            setPort(event.target.value.slice(0, 5));
+                            setCopiedCommand(null);
+                            setCopyError(null);
+                          }}
+                          aria-invalid={!!portError}
+                          aria-describedby={portError || portMissing ? "new-tunnel-port-error" : undefined}
+                          className="h-full min-w-0 flex-1 bg-transparent px-3.5 font-mono text-[13px] text-zinc-100 outline-none placeholder:text-zinc-500"
+                        />
+                      </div>
+                      {(portError || portMissing) && (
+                        <p id="new-tunnel-port-error" className={`mt-1.5 text-[12px] ${portError ? "text-rose-300" : "text-zinc-400"}`}>
+                          {portError ? "Use a port from 1 to 65535." : "Enter the port your app listens on."}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mt-5">
+                      <span className="mb-2 block text-[13px] font-medium text-zinc-200">
+                        Public address
+                      </span>
+                      <SegmentedControl
+                        label="Public address type"
+                        options={addressOptions}
+                        value={addressMode}
+                        fullWidth
+                        onValueChange={(value) => {
+                          setAddressMode(value);
+                          setCopiedCommand(null);
+                          setCopyError(null);
+                        }}
+                        className="[&_button]:h-9 [&_button]:px-1.5 [&_button]:text-[11px] sm:[&_button]:px-3 sm:[&_button]:text-[12px]"
+                      />
+                      {addressMode === "random" && (
+                        <p className="mt-2 text-[12px] text-zinc-400">
+                          OutRay assigns an address when your tunnel connects.
+                        </p>
+                      )}
+                    </div>
+
+                    <AnimatePresence mode="wait" initial={false}>
+                      {addressMode !== "random" && (
+                        <motion.div
+                          key={addressMode}
+                          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+                          transition={{ duration: reducedMotion ? 0 : 0.16 }}
+                          className="mt-4"
+                        >
+                          <label
+                            htmlFor="new-tunnel-address"
+                            className="mb-2 block text-[12px] font-medium text-zinc-400"
+                          >
+                            {addressMode === "subdomain" ? "Subdomain" : "Custom domain"}
+                          </label>
+                          <div className="flex h-11 items-center overflow-hidden rounded-lg border border-white/[0.12] bg-[#0a0a0b] focus-within:border-white/[0.35] focus-within:ring-1 focus-within:ring-white/[0.12]">
+                            <input
+                              id="new-tunnel-address"
+                              type="text"
+                              autoComplete="off"
+                              spellCheck={false}
+                              value={address}
+                              onChange={(event) => {
+                                if (addressMode === "subdomain") {
+                                  setSubdomain(event.target.value);
+                                } else {
+                                  setDomain(event.target.value);
+                                }
+                                setCopiedCommand(null);
+                                setCopyError(null);
+                              }}
+                              placeholder={addressMode === "subdomain" ? "my-app" : "app.example.com"}
+                              aria-invalid={!!addressError}
+                              aria-describedby={addressError || addressMissing ? "new-tunnel-address-error" : undefined}
+                              className="h-full min-w-0 flex-1 bg-transparent px-3.5 font-mono text-[13px] text-zinc-100 outline-none placeholder:text-zinc-500"
+                            />
+                            {addressMode === "subdomain" && (
+                              <span className="shrink-0 pr-3.5 font-mono text-[12px] text-zinc-400">
+                                .outray.app
+                              </span>
+                            )}
+                          </div>
+                          {addressError || addressMissing ? (
+                            <p id="new-tunnel-address-error" className={`mt-1.5 text-[12px] ${addressError ? "text-rose-300" : "text-zinc-400"}`}>
+                              {addressError
+                                ? `Enter a valid ${addressMode === "subdomain" ? "subdomain" : "domain"}.`
+                                : `Enter a ${addressMode === "subdomain" ? "subdomain" : "domain"} to generate the command.`}
+                            </p>
+                          ) : (
+                            <p className="mt-1.5 text-[12px] text-zinc-400">
+                              {addressMode === "domain"
+                                ? "The domain must already be configured in this workspace."
+                                : "Choose a name for your OutRay address."}
+                            </p>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div className="mt-6 rounded-xl border border-white/[0.11] bg-[#09090a] p-3.5 sm:p-4">
+                      <div className="mb-3 flex items-center gap-2 text-[12px] font-medium text-zinc-300">
+                        <HugeiconsIcon icon={CommandLineIcon} size={15} strokeWidth={1.8} aria-hidden="true" />
+                        Run in your terminal
+                      </div>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <code
+                          aria-label="Tunnel start command"
+                          className="block min-w-0 flex-1 overflow-x-auto whitespace-nowrap py-1 font-mono text-[12px] text-zinc-100"
+                        >
+                          {command ?? "Complete the fields above to see your command"}
+                        </code>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          shape="pill"
+                          size="lg"
+                          disabled={!command}
+                          onClick={() => {
+                            if (command) void copyToClipboard(command, "start");
+                          }}
+                          leftIcon={
+                            <HugeiconsIcon
+                              icon={copiedCommand === "start" ? Tick02Icon : Copy01Icon}
+                              size={15}
+                              strokeWidth={1.8}
+                              aria-hidden="true"
+                            />
+                          }
+                          className="shrink-0"
+                        >
+                          {copiedCommand === "start" ? "Copied" : "Copy command"}
+                        </Button>
+                      </div>
+                      <p className="mt-3 text-[12px] leading-5 text-zinc-500">
+                        Your tunnel will appear here as soon as the CLI connects.
+                      </p>
+                      {copyError?.id === "start" && (
+                        <p role="alert" className="mt-2 text-[12px] text-rose-300">
+                          {copyError.message}
+                        </p>
+                      )}
+                    </div>
+                  </section>
+
+                  <details className="group border-t border-white/[0.07] pb-3 pt-3">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md py-2 text-[13px] text-zinc-400 transition-colors hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
+                      <span className="flex items-center gap-2.5">
+                        <HugeiconsIcon icon={CommandLineIcon} size={16} strokeWidth={1.8} aria-hidden="true" />
+                        First time using the CLI?
+                      </span>
+                      <HugeiconsIcon icon={ArrowDown01Icon} size={16} strokeWidth={1.8} aria-hidden="true" className="shrink-0 transition-transform duration-150 group-open:rotate-180 motion-reduce:transition-none" />
+                    </summary>
+                    <ol className="divide-y divide-white/[0.07]">
+                      <SetupCommand
+                        title="Install the CLI"
+                        description="Once per machine"
+                        command="npm install -g outray"
+                        copied={copiedCommand === "install"}
+                        copyError={copyError?.id === "install" ? copyError.message : undefined}
+                        onCopy={() => void copyToClipboard("npm install -g outray", "install")}
+                      />
+                      <SetupCommand
+                        title="Sign in"
+                        description="Connect your account"
+                        command="outray login"
+                        copied={copiedCommand === "login"}
+                        copyError={copyError?.id === "login" ? copyError.message : undefined}
+                        onCopy={() => void copyToClipboard("outray login", "login")}
+                      />
+                    </ol>
+                  </details>
+                  <p role="status" className="sr-only">
+                    {copiedCommand === "install"
+                      ? "Install command copied."
+                      : copiedCommand === "login"
+                        ? "Sign-in command copied."
+                        : copiedCommand === "start"
+                          ? "Tunnel command copied."
+                          : ""}
+                  </p>
+                </div>
+              </motion.div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        )}
+      </AnimatePresence>
+    </Dialog.Root>
   );
 }
