@@ -1,14 +1,13 @@
-import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import CommandLineIcon from "@hugeicons-pro/core-stroke-rounded/CommandLineIcon";
 import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
 import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
-import { Button } from "@/components/ui/button";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Button } from "@/components/arc/button/button";
+import { Dialog, DialogContent } from "@/components/arc/dialog/dialog";
+import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
+import "./outray-arc-theme.css";
 import {
   buildNewTunnelCommand,
   isValidLocalPort,
@@ -20,7 +19,7 @@ const addressOptions = [
   { value: "random", label: "Automatic" },
   { value: "subdomain", label: "Subdomain" },
   { value: "domain", label: "Custom domain" },
-] as const;
+];
 
 function SetupCommand({
   title,
@@ -57,17 +56,15 @@ function SetupCommand({
               ? `${title} command copied`
               : `Copy ${title.toLowerCase()} command`
           }
-          leftIcon={
-            <HugeiconsIcon
-              icon={copied ? Tick02Icon : Copy01Icon}
-              size={14}
-              strokeWidth={1.8}
-              aria-hidden="true"
-            />
-          }
           className={`shrink-0 ${copied ? "text-emerald-400" : ""}`}
         >
-          {copied ? "Copied" : "Copy"}
+          <HugeiconsIcon
+            icon={copied ? Tick02Icon : Copy01Icon}
+            size={14}
+            strokeWidth={1.8}
+            aria-hidden="true"
+          />
+          Copy
         </Button>
       </div>
       {copyError && <p role="alert" className="mt-2 text-[12px] text-rose-300">{copyError}</p>}
@@ -94,7 +91,6 @@ export function NewTunnelModal({
   const [copyError, setCopyError] = useState<{ id: string; message: string } | null>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const portInput = useRef<HTMLInputElement | null>(null);
-  const reducedMotion = useReducedMotion();
 
   useEffect(
     () => () => {
@@ -139,80 +135,22 @@ export function NewTunnelModal({
   }
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <Dialog.Portal forceMount>
-            <Dialog.Overlay asChild forceMount>
-              <motion.div
-                className="fixed inset-0 z-50 bg-black/75 backdrop-blur-[4px]"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: reducedMotion ? 0 : 0.18 }}
-              />
-            </Dialog.Overlay>
-            <Dialog.Content
-              asChild
-              forceMount
-              onOpenAutoFocus={(event) => {
-                event.preventDefault();
-                portInput.current?.focus();
-              }}
-              onCloseAutoFocus={(event) => {
-                event.preventDefault();
-                triggerRef.current?.focus();
-              }}
-            >
-              <motion.div
-                style={{ translate: "-50% -50%" }}
-                className="fixed left-1/2 top-1/2 z-[51] flex max-h-[calc(100dvh-2rem)] w-[min(600px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[22px] border border-white/[0.12] bg-[#111112] shadow-[0_28px_90px_rgba(0,0,0,0.7)] outline-none"
-                initial={
-                  reducedMotion
-                    ? { opacity: 0 }
-                    : { opacity: 0, y: 8, scale: 0.96 }
-                }
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={
-                  reducedMotion
-                    ? { opacity: 0 }
-                    : { opacity: 0, y: 4, scale: 0.98 }
-                }
-                transition={
-                  reducedMotion
-                    ? { duration: 0 }
-                    : { type: "spring", visualDuration: 0.4, bounce: 0 }
-                }
-              >
-                <header className="flex shrink-0 items-start justify-between gap-4 border-b border-white/[0.07] px-5 pb-5 pt-6 sm:px-6">
-                  <div className="min-w-0">
-                    <Dialog.Title className="text-[20px] font-normal tracking-[-0.03em] text-zinc-100">
-                      New tunnel
-                    </Dialog.Title>
-                    <Dialog.Description className="mt-1 text-[13px] leading-5 text-zinc-400">
-                      Configure your local service, then run the command in your terminal.
-                    </Dialog.Description>
-                  </div>
-                  <Dialog.Close asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      aria-label="Close new tunnel dialog"
-                      className="-mr-1 h-8 w-8 shrink-0 !px-0"
-                    >
-                      <HugeiconsIcon
-                        icon={Cancel01Icon}
-                        size={16}
-                        strokeWidth={1.8}
-                        aria-hidden="true"
-                      />
-                    </Button>
-                  </Dialog.Close>
-                </header>
-
-                <div className="min-h-0 overflow-y-auto px-5 sm:px-6">
-                  <section className="py-5 sm:py-6" aria-label="Configure tunnel command">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent
+        title="New tunnel"
+        description="Configure your local service, then run the command in your terminal."
+        className="outray-arc outray-arc-dialog"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          portInput.current?.focus();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          triggerRef.current?.focus();
+        }}
+      >
+        <div className="min-w-0">
+                  <section className="pb-5" aria-label="Configure tunnel command">
                     <div>
                       <label
                         htmlFor="new-tunnel-local-port"
@@ -237,15 +175,17 @@ export function NewTunnelModal({
                             setCopyError(null);
                           }}
                           aria-invalid={!!portError}
-                          aria-describedby={portError || portMissing ? "new-tunnel-port-error" : undefined}
+                          aria-describedby="new-tunnel-port-hint"
                           className="h-full min-w-0 flex-1 bg-transparent px-3.5 font-mono text-[13px] text-zinc-100 outline-none placeholder:text-zinc-500"
                         />
                       </div>
-                      {(portError || portMissing) && (
-                        <p id="new-tunnel-port-error" className={`mt-1.5 text-[12px] ${portError ? "text-rose-300" : "text-zinc-400"}`}>
-                          {portError ? "Use a port from 1 to 65535." : "Enter the port your app listens on."}
-                        </p>
-                      )}
+                      <p id="new-tunnel-port-hint" className={`mt-1.5 min-h-5 text-[12px] ${portError ? "text-rose-300" : "text-zinc-400"}`}>
+                        {portError
+                          ? "Use a port from 1 to 65535."
+                          : portMissing
+                            ? "Enter the port your app listens on."
+                            : "The port your app listens on, such as 3000."}
+                      </p>
                     </div>
 
                     <div className="mt-5">
@@ -256,118 +196,108 @@ export function NewTunnelModal({
                         label="Public address type"
                         options={addressOptions}
                         value={addressMode}
-                        fullWidth
                         onValueChange={(value) => {
+                          if (value !== "random" && value !== "subdomain" && value !== "domain") return;
                           setAddressMode(value);
                           setCopiedCommand(null);
                           setCopyError(null);
                         }}
-                        className="[&_button]:h-9 [&_button]:px-1.5 [&_button]:text-[11px] sm:[&_button]:px-3 sm:[&_button]:text-[12px]"
+                        className="w-full"
                       />
-                      {addressMode === "random" && (
-                        <p className="mt-2 text-[12px] text-zinc-400">
-                          OutRay assigns an address when your tunnel connects.
-                        </p>
-                      )}
                     </div>
 
-                    <AnimatePresence mode="wait" initial={false}>
-                      {addressMode !== "random" && (
-                        <motion.div
-                          key={addressMode}
-                          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-                          transition={{ duration: reducedMotion ? 0 : 0.16 }}
-                          className="mt-4"
-                        >
-                          <label
-                            htmlFor="new-tunnel-address"
-                            className="mb-2 block text-[12px] font-medium text-zinc-400"
-                          >
-                            {addressMode === "subdomain" ? "Subdomain" : "Custom domain"}
-                          </label>
-                          <div className="flex h-11 items-center overflow-hidden rounded-lg border border-white/[0.12] bg-[#0a0a0b] focus-within:border-white/[0.35] focus-within:ring-1 focus-within:ring-white/[0.12]">
-                            <input
-                              id="new-tunnel-address"
-                              type="text"
-                              autoComplete="off"
-                              spellCheck={false}
-                              value={address}
-                              onChange={(event) => {
-                                if (addressMode === "subdomain") {
-                                  setSubdomain(event.target.value);
-                                } else {
-                                  setDomain(event.target.value);
-                                }
-                                setCopiedCommand(null);
-                                setCopyError(null);
-                              }}
-                              placeholder={addressMode === "subdomain" ? "my-app" : "app.example.com"}
-                              aria-invalid={!!addressError}
-                              aria-describedby={addressError || addressMissing ? "new-tunnel-address-error" : undefined}
-                              className="h-full min-w-0 flex-1 bg-transparent px-3.5 font-mono text-[13px] text-zinc-100 outline-none placeholder:text-zinc-500"
-                            />
-                            {addressMode === "subdomain" && (
-                              <span className="shrink-0 pr-3.5 font-mono text-[12px] text-zinc-400">
-                                .outray.app
-                              </span>
-                            )}
-                          </div>
-                          {addressError || addressMissing ? (
-                            <p id="new-tunnel-address-error" className={`mt-1.5 text-[12px] ${addressError ? "text-rose-300" : "text-zinc-400"}`}>
-                              {addressError
-                                ? `Enter a valid ${addressMode === "subdomain" ? "subdomain" : "domain"}.`
-                                : `Enter a ${addressMode === "subdomain" ? "subdomain" : "domain"} to generate the command.`}
-                            </p>
-                          ) : (
-                            <p className="mt-1.5 text-[12px] text-zinc-400">
-                              {addressMode === "domain"
-                                ? "The domain must already be configured in this workspace."
+                    <div className="mt-4 min-h-[118px]">
+                      <label
+                        htmlFor="new-tunnel-address"
+                        className="mb-2 block text-[12px] font-medium text-zinc-400"
+                      >
+                        {addressMode === "random"
+                          ? "Address"
+                          : addressMode === "subdomain"
+                            ? "Subdomain"
+                            : "Custom domain"}
+                      </label>
+                      <div className="flex h-11 items-center overflow-hidden rounded-lg border border-white/[0.12] bg-[#0a0a0b] focus-within:border-white/[0.35] focus-within:ring-1 focus-within:ring-white/[0.12]">
+                        <input
+                          id="new-tunnel-address"
+                          type="text"
+                          autoComplete="off"
+                          spellCheck={false}
+                          disabled={addressMode === "random"}
+                          value={addressMode === "random" ? "Assigned when connected" : address}
+                          onChange={(event) => {
+                            if (addressMode === "subdomain") {
+                              setSubdomain(event.target.value);
+                            } else if (addressMode === "domain") {
+                              setDomain(event.target.value);
+                            }
+                            setCopiedCommand(null);
+                            setCopyError(null);
+                          }}
+                          placeholder={addressMode === "subdomain" ? "my-app" : "app.example.com"}
+                          aria-invalid={!!addressError}
+                          aria-describedby="new-tunnel-address-hint"
+                          className="h-full min-w-0 flex-1 bg-transparent px-3.5 font-mono text-[13px] text-zinc-100 outline-none placeholder:text-zinc-500 disabled:text-zinc-500"
+                        />
+                        {addressMode === "subdomain" && (
+                          <span className="shrink-0 pr-3.5 font-mono text-[12px] text-zinc-400">
+                            .outray.app
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        id="new-tunnel-address-hint"
+                        className={`mt-1.5 min-h-9 text-[12px] ${addressError ? "text-rose-300" : "text-zinc-400"}`}
+                      >
+                        {addressError
+                          ? `Enter a valid ${addressMode === "subdomain" ? "subdomain" : "domain"}.`
+                          : addressMissing
+                            ? `Enter a ${addressMode === "subdomain" ? "subdomain" : "domain"} to generate the command.`
+                            : addressMode === "random"
+                              ? "OutRay assigns a URL when your tunnel connects."
+                              : addressMode === "domain"
+                                ? "Set up this domain in your workspace first."
                                 : "Choose a name for your OutRay address."}
-                            </p>
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                      </p>
+                    </div>
 
                     <div className="mt-6 rounded-xl border border-white/[0.11] bg-[#09090a] p-3.5 sm:p-4">
                       <div className="mb-3 flex items-center gap-2 text-[12px] font-medium text-zinc-300">
                         <HugeiconsIcon icon={CommandLineIcon} size={15} strokeWidth={1.8} aria-hidden="true" />
                         Run in your terminal
                       </div>
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <div className="rounded-lg border border-white/[0.08] bg-black/30 px-3.5 py-3">
                         <code
                           aria-label="Tunnel start command"
-                          className="block min-w-0 flex-1 overflow-x-auto whitespace-nowrap py-1 font-mono text-[12px] text-zinc-100"
+                          className="block whitespace-pre-wrap break-words font-mono text-[12px] leading-5 text-zinc-100 select-text"
                         >
                           {command ?? "Complete the fields above to see your command"}
                         </code>
+                      </div>
+                      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-[12px] leading-5 text-zinc-500">
+                          Your tunnel will appear here as soon as the CLI connects.
+                        </p>
                         <Button
                           type="button"
                           variant="primary"
-                          shape="pill"
-                          size="lg"
+                          size="md"
                           disabled={!command}
                           onClick={() => {
                             if (command) void copyToClipboard(command, "start");
                           }}
-                          leftIcon={
-                            <HugeiconsIcon
-                              icon={copiedCommand === "start" ? Tick02Icon : Copy01Icon}
-                              size={15}
-                              strokeWidth={1.8}
-                              aria-hidden="true"
-                            />
-                          }
-                          className="shrink-0"
+                          aria-label={copiedCommand === "start" ? "Tunnel command copied" : "Copy tunnel command"}
+                          className="shrink-0 self-start sm:self-auto"
                         >
-                          {copiedCommand === "start" ? "Copied" : "Copy command"}
+                          <HugeiconsIcon
+                            icon={copiedCommand === "start" ? Tick02Icon : Copy01Icon}
+                            size={15}
+                            strokeWidth={1.8}
+                            aria-hidden="true"
+                          />
+                          Copy command
                         </Button>
                       </div>
-                      <p className="mt-3 text-[12px] leading-5 text-zinc-500">
-                        Your tunnel will appear here as soon as the CLI connects.
-                      </p>
                       {copyError?.id === "start" && (
                         <p role="alert" className="mt-2 text-[12px] text-rose-300">
                           {copyError.message}
@@ -412,12 +342,8 @@ export function NewTunnelModal({
                           ? "Tunnel command copied."
                           : ""}
                   </p>
-                </div>
-              </motion.div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        )}
-      </AnimatePresence>
-    </Dialog.Root>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
