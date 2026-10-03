@@ -1,0 +1,17 @@
+.field { display: grid; gap: var(--space-2); min-width: 0; }
+.field label { font-size: var(--text-sm); font-weight: 500; line-height: var(--leading-body); letter-spacing: var(--tracking-body); }
+/* Focus darkens the border; the shell never changes size. */
+.shell { display: flex; min-height: var(--control-height-md); align-items: center; gap: var(--space-2); border: 1px solid var(--border-strong); border-radius: var(--radius-control); padding: 0 var(--space-3); background: var(--surface); transition: border-color var(--duration-fast) var(--ease-standard); }
+@media (hover: hover) and (pointer: fine) { .shell:hover:not(:focus-within) { border-color: var(--foreground); } }
+.shell:focus-within { border-color: var(--foreground); }
+/* The glass wakes up with the field: muted at rest, full contrast while searching. */
+.shell > svg { flex: 0 0 auto; color: var(--text-muted); transition: color var(--duration-fast) var(--ease-standard); }
+.shell:focus-within > svg, .shell[data-filled="true"] > svg { color: var(--foreground); }
+.input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: var(--text-sm); letter-spacing: var(--tracking-body); outline: 0; }
+.input:focus-visible { outline: 0; }
+.input::placeholder { color: var(--text-muted); }
+.input::-webkit-search-cancel-button { display: none; }
+.clearSlot { display: grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; }
+.shell button { display: grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--text-muted); transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard); }
+@media (hover: hover) and (pointer: fine) { .shell button:hover { background: var(--surface-muted); color: var(--foreground); } }
+@media (prefers-reduced-motion: reduce) { .shell, .shell > svg, .shell button { transition: none; } }
