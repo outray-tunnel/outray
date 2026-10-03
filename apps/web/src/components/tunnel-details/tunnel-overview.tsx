@@ -1,221 +1,174 @@
-import { HugeiconsIcon } from "@hugeicons/react";
-import Activity03Icon from "@hugeicons-pro/core-stroke-rounded/Activity03Icon";
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+  TunnelOverviewShell,
+  type OverviewChartPoint,
+  type OverviewMetric,
+} from "./tunnel-overview-ui";
+import {
+  formatBytes,
+  formatDuration,
+  formatPercent,
+} from "./tunnel-overview-format";
 
-function formatBytes(bytes: number): string {
-  if (bytes >= 1_073_741_824) {
-    return `${(bytes / 1_073_741_824).toFixed(1)} GB`;
-  } else if (bytes >= 1_048_576) {
-    return `${(bytes / 1_048_576).toFixed(1)} MB`;
-  } else if (bytes >= 1_024) {
-    return `${(bytes / 1_024).toFixed(1)} KB`;
-  }
-  return `${bytes} B`;
+interface HttpStats {
+  totalRequests: number;
+  avgDuration: number;
+  totalBandwidth: number;
+  errorRate: number;
+}
+
+interface RecentRequest {
+  id?: string;
+  method?: string | null;
+  path?: string | null;
+  status?: number | null;
+  duration?: number | null;
+  size?: number | null;
+  time: string;
 }
 
 interface TunnelOverviewProps {
-  stats: any;
-  chartData: any[];
+  stats: HttpStats | null;
+  chartData: OverviewChartPoint[];
+  recentRequests?: RecentRequest[];
   timeRange: string;
+  dataRange?: string;
   setTimeRange: (range: string) => void;
-  isPlaceholderData: boolean;
+  isLoading: boolean;
+  isPlaceholderData?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+  onViewActivity?: () => void;
+}
+
+function requestStatusTone(status: number | null | undefined): string {
+  if (!status) return "text-zinc-500 bg-white/[0.04]";
+  if (status >= 500) return "text-rose-300 bg-rose-400/[0.08]";
+  if (status >= 400) return "text-amber-300 bg-amber-400/[0.08]";
+  if (status >= 200 && status < 400)
+    return "text-emerald-300 bg-emerald-400/[0.08]";
+  return "text-zinc-400 bg-white/[0.04]";
+}
+
+function requestTime(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleTimeString(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+      });
 }
 
 export function TunnelOverview({
   stats,
   chartData,
+  recentRequests = [],
   timeRange,
+  dataRange,
   setTimeRange,
+  isLoading,
   isPlaceholderData,
+  error,
+  onRetry,
+  onViewActivity,
 }: TunnelOverviewProps) {
+  const metrics: OverviewMetric[] = [
+    {
+      id: "requests",
+      label: "Requests",
+      description: "Completed requests over time",
+      value: stats ? stats.totalRequests.toLocaleString() : "—",
+      chartKey: "requests",
+      format: (value) => Math.round(value).toLocaleString(),
+    },
+    {
+      id: "duration",
+      label: "Avg. duration",
+      description: "Average request time per interval",
+      value: stats ? formatDuration(stats.avgDuration) : "—",
+      chartKey: "duration",
+      format: formatDuration,
+    },
+    {
+      id: "bandwidth",
+      label: "Bandwidth",
+      description: "Data transferred per interval",
+      value: stats ? formatBytes(stats.totalBandwidth) : "—",
+      chartKey: "bandwidth",
+      format: formatBytes,
+    },
+    {
+      id: "errors",
+      label: "Error rate",
+      description: "Share of requests with 4xx or 5xx responses",
+      value: stats ? formatPercent(stats.errorRate) : "—",
+      chartKey: "errorRate",
+      format: formatPercent,
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="grid overflow-hidden rounded-xl border border-white/[0.07] md:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.07]">
-        {[
-          {
-            label: "Total Requests",
-            value: stats?.totalRequests.toLocaleString() || "0",
-            change: null,
-            trend: "neutral",
-          },
-          {
-            label: "Avg. Duration",
-            value: `${Math.round(stats?.avgDuration || 0)}ms`,
-            change: null,
-            trend: "neutral",
-          },
-          {
-            label: "Bandwidth",
-            value: formatBytes(stats?.totalBandwidth || 0),
-            change: null,
-            trend: "neutral",
-          },
-          {
-            label: "Error Rate",
-            value: `${(stats?.errorRate || 0).toFixed(2)}%`,
-            change: null,
-            trend: stats?.errorRate && stats.errorRate > 0 ? "down" : "neutral",
-          },
-        ].map((stat, i) => (
-          <div key={i} className="px-6 py-6">
-            <div className="mb-2 text-[11px] text-zinc-600">{stat.label}</div>
-            <div className="flex items-end justify-between">
-              <div className="text-2xl font-medium tracking-[-0.04em] text-zinc-200">
-                {stat.value}
-              </div>
-              {stat.change && (
-                <div
-                  className={`text-xs font-medium px-2 py-1 rounded-lg ${
-                    stat.trend === "up"
-                      ? "bg-green-500/10 text-green-500"
-                      : stat.trend === "down"
-                        ? "bg-red-500/10 text-red-500"
-                        : "bg-gray-500/10 text-gray-400"
-                  }`}
-                >
-                  {stat.change}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-      <section className="relative overflow-hidden rounded-xl border border-white/[0.07] p-6">
-        {isPlaceholderData && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-sm transition-all duration-200">
-            <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-          </div>
-        )}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-sm font-medium text-zinc-300">
-              Traffic overview
-            </h3>
-            <p className="mt-1 text-[11px] text-zinc-600">Requests over time</p>
-          </div>
-          <div className="flex border-b border-white/[0.07]">
-            {["1h", "24h", "7d", "30d"].map((range) => (
-              <button
-                key={range}
-                onClick={() => setTimeRange(range)}
-                className={`border-b px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
-                  timeRange === range
-                    ? "border-accent text-zinc-200"
-                    : "border-transparent text-zinc-700 hover:text-zinc-400"
-                }`}
+    <TunnelOverviewShell
+      metrics={metrics}
+      chartData={chartData}
+      hasActivity={Boolean(stats && stats.totalRequests > 0)}
+      timeRange={timeRange}
+      dataRange={dataRange}
+      setTimeRange={setTimeRange}
+      isLoading={isLoading}
+      isPlaceholderData={isPlaceholderData}
+      error={error}
+      onRetry={onRetry}
+      onViewActivity={onViewActivity}
+      activityTitle="Recent requests"
+      activityDescription="Latest traffic in this period"
+      activity={
+        recentRequests.length ? (
+          <ul className="divide-y divide-white/[0.055]">
+            {recentRequests.slice(0, 5).map((request, index) => (
+              <li
+                key={`${request.id ?? request.time}-${index}`}
+                className="px-4 py-3 transition-colors hover:bg-white/[0.025] sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-5 sm:px-5"
               >
-                {range}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="h-75 w-full">
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient
-                    id="colorRequests"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
+                <div className="grid min-w-0 grid-cols-[2.5rem_3rem_minmax(0,1fr)] items-center gap-3">
+                  <span
+                    className={`rounded px-1.5 py-1 text-center text-[10px] font-medium tabular-nums ${requestStatusTone(request.status)}`}
                   >
-                    <stop offset="5%" stopColor="#8367c7" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#8367c7" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.05)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="time"
-                  stroke="#666"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  interval="preserveStartEnd"
-                  minTickGap={30}
-                  tickFormatter={(value) => {
-                    const date = new Date(value);
-                    if (timeRange === "1h") {
-                      return date.toLocaleTimeString("en-US", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      });
-                    } else if (timeRange === "24h") {
-                      return date.toLocaleTimeString("en-US", {
-                        hour: "numeric",
-                        hour12: true,
-                      });
-                    } else {
-                      return date.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      });
-                    }
-                  }}
-                />
-                <YAxis
-                  stroke="#666"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `${value}`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0A0A0A",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "6px",
-                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                  }}
-                  itemStyle={{ color: "#fff" }}
-                  labelStyle={{ color: "#9ca3af", marginBottom: "0.25rem" }}
-                  labelFormatter={(value) => {
-                    return new Date(value).toLocaleString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    });
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="requests"
-                  stroke="#8367c7"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorRequests)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center text-zinc-700">
-              <HugeiconsIcon
-                icon={Activity03Icon}
-                size={25}
-                strokeWidth={1.5}
-                className="mb-3"
-              />
-              <p className="text-xs">No traffic data available yet</p>
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
+                    {request.status ?? "—"}
+                  </span>
+                  <span className="text-[11px] font-medium text-zinc-500">
+                    {request.method ?? "—"}
+                  </span>
+                  <span
+                    className="min-w-0 truncate font-mono text-[12px] text-zinc-300"
+                    title={request.path ?? undefined}
+                  >
+                    {request.path || "/"}
+                  </span>
+                </div>
+                <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pl-[5.5rem] text-[11px] tabular-nums text-zinc-500 sm:mt-0 sm:grid-cols-[6rem_5rem] sm:pl-0">
+                  <span className="sm:text-right">
+                    {request.duration != null
+                      ? formatDuration(request.duration)
+                      : "—"}
+                  </span>
+                  <time
+                    className="text-right"
+                    dateTime={request.time}
+                    title={request.time}
+                  >
+                    {requestTime(request.time)}
+                  </time>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="px-5 py-9 text-center text-[12px] text-zinc-600">
+            No requests in this period.
+          </p>
+        )
+      }
+    />
   );
 }
