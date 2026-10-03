@@ -1,0 +1,14 @@
+.root { display: inline-flex; min-width: 0; max-width: 100%; flex-shrink: 1; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface-muted); }
+/* The track owns the stacking context so the gliding highlight passes under every label, not over earlier ones. */
+.track { --fade-start: 0px; --fade-end: 0px; isolation: isolate; display: flex; min-width: 0; gap: 2px; overflow-x: auto; overscroll-behavior-x: contain; padding: 3px; border-radius: inherit; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent); mask-image: linear-gradient(to right, transparent, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent); }
+.track::-webkit-scrollbar { display: none; }
+.track[data-fade-start] { --fade-start: 20px; }
+.track[data-fade-end] { --fade-end: 20px; }
+/* Items never scale or change weight; only the highlight travels and the label color follows it. */
+.button { position: relative; flex: 0 0 auto; min-height: var(--control-height-sm); border: 0; border-radius: calc(var(--radius-control) - 4px); padding: 0 12px; background: transparent; color: var(--text-muted); font: inherit; font-size: var(--text-sm); font-weight: 500; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color var(--duration-fast) var(--ease-standard); }
+@media (hover: hover) and (pointer: fine) { .button:hover { color: var(--foreground); } }
+.button:active, .button[aria-pressed="true"] { color: var(--foreground); }
+.selection { position: absolute; z-index: -1; inset: 0; border: 1px solid var(--border); border-radius: inherit; background: var(--surface); box-shadow: var(--shadow-resting); }
+.label { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 380px) { .button { padding: 0 10px; } }
+@media (prefers-reduced-motion: reduce) { .button { transition: none; } }
