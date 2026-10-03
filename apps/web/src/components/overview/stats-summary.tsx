@@ -8,7 +8,7 @@ export type OverviewStats = {
   totalRequests: number;
   requestsChange?: number;
   activeTunnels?: number | null;
-  activeTunnelsChange?: number;
+  activeTunnelsChange?: number | null;
   totalDataTransfer: number;
   dataTransferChange?: number;
 };
