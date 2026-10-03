@@ -3,6 +3,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { redis } from "../../../../lib/redis";
 import { requireOrgFromSlug } from "../../../../lib/org";
 import { tigerData } from "../../../../lib/timescale";
+import {
+  mapOrgOverviewStats,
+  type OrgOverviewAggregateRow,
+  type OrgOverviewChartRow,
+} from "../../../../lib/org-overview-stats";
+import {
+  parseTunnelStatsRange,
+  tunnelStatsWindow,
+} from "../../../../lib/tunnel-stats-range";
 
 export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
   server: {
@@ -10,210 +19,105 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
       GET: async ({ request, params }) => {
         const orgResult = await requireOrgFromSlug(request, params.orgSlug);
         if ("error" in orgResult) return orgResult.error;
-        const { organization } = orgResult;
 
         const url = new URL(request.url);
-        const timeRange = url.searchParams.get("range") || "24h";
-        const organizationId = organization.id;
+        const timeRange = parseTunnelStatsRange(url.searchParams.get("range"));
+        if (!timeRange) {
+          return Response.json({ error: "Invalid time range" }, { status: 400 });
+        }
+
+        const organizationId = orgResult.organization.id;
+        const { start, end, bucket } = tunnelStatsWindow(timeRange);
+        const previousStart = new Date(start.getTime() - (end.getTime() - start.getTime()));
 
         try {
-          let intervalValue = "24 hours";
-          let prevIntervalStart = "48 hours";
-          let prevIntervalEnd = "24 hours";
-
-          switch (timeRange) {
-            case "1h":
-              intervalValue = "1 hour";
-              prevIntervalStart = "2 hours";
-              prevIntervalEnd = "1 hour";
-              break;
-            case "7d":
-              intervalValue = "7 days";
-              prevIntervalStart = "14 days";
-              prevIntervalEnd = "7 days";
-              break;
-            case "30d":
-              intervalValue = "30 days";
-              prevIntervalStart = "60 days";
-              prevIntervalEnd = "30 days";
-              break;
-          }
-
-          // Total requests (current period)
-          const totalRequestsResult = await tigerData.query(
-            `SELECT 
-              (SELECT COUNT(*) FROM tunnel_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval) +
-              (SELECT COUNT(*) FROM protocol_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval) as total`,
-            [organizationId, intervalValue],
-          );
-          const totalRequests = parseInt(
-            totalRequestsResult.rows[0]?.total || "0",
+          // A single captured boundary is shared by headlines, comparisons and
+          // chart buckets. HTTP errors/rates use HTTP traffic only; protocol
+          // events do not have an HTTP status code.
+          const aggregateResult = await tigerData.query<OrgOverviewAggregateRow>(
+            `WITH http AS (
+               SELECT
+                 COUNT(*) FILTER (WHERE timestamp >= $3::timestamptz) AS http_requests,
+                 COUNT(*) FILTER (WHERE timestamp < $3::timestamptz) AS previous_http_requests,
+                 COUNT(*) FILTER (WHERE timestamp >= $3::timestamptz AND status_code >= 400) AS http_errors,
+                 COUNT(*) FILTER (WHERE timestamp < $3::timestamptz AND status_code >= 400) AS previous_http_errors,
+                 COALESCE(SUM(COALESCE(bytes_in, 0) + COALESCE(bytes_out, 0)) FILTER (WHERE timestamp >= $3::timestamptz), 0) AS http_bytes,
+                 COALESCE(SUM(COALESCE(bytes_in, 0) + COALESCE(bytes_out, 0)) FILTER (WHERE timestamp < $3::timestamptz), 0) AS previous_http_bytes
+               FROM tunnel_events
+               WHERE organization_id = $1
+                 AND timestamp >= $2::timestamptz
+                 AND timestamp < $4::timestamptz
+             ), protocol AS (
+               SELECT
+                 COUNT(*) FILTER (WHERE timestamp >= $3::timestamptz) AS protocol_events,
+                 COUNT(*) FILTER (WHERE timestamp < $3::timestamptz) AS previous_protocol_events,
+                 COALESCE(SUM(COALESCE(bytes_in, 0) + COALESCE(bytes_out, 0)) FILTER (WHERE timestamp >= $3::timestamptz), 0) AS protocol_bytes,
+                 COALESCE(SUM(COALESCE(bytes_in, 0) + COALESCE(bytes_out, 0)) FILTER (WHERE timestamp < $3::timestamptz), 0) AS previous_protocol_bytes
+               FROM protocol_events
+               WHERE organization_id = $1
+                 AND timestamp >= $2::timestamptz
+                 AND timestamp < $4::timestamptz
+             )
+             SELECT * FROM http CROSS JOIN protocol`,
+            [organizationId, previousStart, start, end],
           );
 
-          // Requests from previous period
-          const requestsYesterdayResult = await tigerData.query(
-            `SELECT 
-              (SELECT COUNT(*) FROM tunnel_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval AND timestamp < NOW() - $3::interval) +
-              (SELECT COUNT(*) FROM protocol_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval AND timestamp < NOW() - $3::interval) as total`,
-            [organizationId, prevIntervalStart, prevIntervalEnd],
-          );
-          const requestsYesterday = parseInt(
-            requestsYesterdayResult.rows[0]?.total || "0",
+          const chartResult = await tigerData.query<OrgOverviewChartRow>(
+            `WITH times AS (
+               SELECT generate_series(
+                 time_bucket($4::interval, $2::timestamptz),
+                 time_bucket($4::interval, $3::timestamptz - INTERVAL '1 microsecond'),
+                 $4::interval
+               ) AS time
+             ), http AS (
+               SELECT
+                 time_bucket($4::interval, timestamp) AS time,
+                 COUNT(*) AS http_requests,
+                 COUNT(*) FILTER (WHERE status_code >= 400) AS errors,
+                 COALESCE(SUM(COALESCE(bytes_in, 0) + COALESCE(bytes_out, 0)), 0) AS http_bytes
+               FROM tunnel_events
+               WHERE organization_id = $1
+                 AND timestamp >= $2::timestamptz
+                 AND timestamp < $3::timestamptz
+               GROUP BY 1
+             ), protocol AS (
+               SELECT
+                 time_bucket($4::interval, timestamp) AS time,
+                 COUNT(*) AS protocol_events,
+                 COALESCE(SUM(COALESCE(bytes_in, 0) + COALESCE(bytes_out, 0)), 0) AS protocol_bytes
+               FROM protocol_events
+               WHERE organization_id = $1
+                 AND timestamp >= $2::timestamptz
+                 AND timestamp < $3::timestamptz
+               GROUP BY 1
+             )
+             SELECT
+               times.time,
+               COALESCE(http.http_requests, 0) AS http_requests,
+               COALESCE(protocol.protocol_events, 0) AS protocol_events,
+               COALESCE(http.errors, 0) AS errors,
+               COALESCE(http.http_bytes, 0) AS http_bytes,
+               COALESCE(protocol.protocol_bytes, 0) AS protocol_bytes
+             FROM times
+             LEFT JOIN http ON http.time = times.time
+             LEFT JOIN protocol ON protocol.time = times.time
+             ORDER BY times.time ASC`,
+            [organizationId, start, end, bucket],
           );
 
-          const requestsChangeRaw =
-            requestsYesterday > 0
-              ? ((totalRequests - requestsYesterday) / requestsYesterday) * 100
-              : totalRequests > 0
-                ? 100
-                : 0;
-          const requestsChange = Number.isFinite(requestsChangeRaw)
-            ? Math.round(requestsChangeRaw * 100) / 100
-            : 0;
-
-          // Data transfer (current period)
-          const dataTransferResult = await tigerData.query(
-            `SELECT 
-              COALESCE((SELECT SUM(bytes_in) + SUM(bytes_out) FROM tunnel_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval), 0) +
-              COALESCE((SELECT SUM(bytes_in) + SUM(bytes_out) FROM protocol_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval), 0) as total`,
-            [organizationId, intervalValue],
-          );
-          const totalBytes = Number(dataTransferResult.rows[0]?.total || 0);
-
-          // Data transfer (previous period)
-          const dataYesterdayResult = await tigerData.query(
-            `SELECT 
-              COALESCE((SELECT SUM(bytes_in) + SUM(bytes_out) FROM tunnel_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval AND timestamp < NOW() - $3::interval), 0) +
-              COALESCE((SELECT SUM(bytes_in) + SUM(bytes_out) FROM protocol_events WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval AND timestamp < NOW() - $3::interval), 0) as total`,
-            [organizationId, prevIntervalStart, prevIntervalEnd],
-          );
-          const bytesYesterday = Number(
-            dataYesterdayResult.rows[0]?.total || 0,
-          );
-
-          const dataTransferChangeRaw =
-            bytesYesterday > 0
-              ? ((totalBytes - bytesYesterday) / bytesYesterday) * 100
-              : totalBytes > 0
-                ? 100
-                : 0;
-          const dataTransferChange = Number.isFinite(dataTransferChangeRaw)
-            ? Math.round(dataTransferChangeRaw * 100) / 100
-            : 0;
-
-          const activeTunnelsCount = await redis.scard(
+          const activeTunnels = await redis.scard(
             `org:${organizationId}:online_tunnels`,
           );
 
-          // Chart data
-          let chartQuery = "";
-          let chartParams: (string | number)[] = [organizationId];
-
-          if (timeRange === "1h") {
-            chartQuery = `
-              WITH times AS (
-                SELECT generate_series(
-                  time_bucket('1 minute', NOW()) - INTERVAL '60 minutes',
-                  time_bucket('1 minute', NOW()),
-                  '1 minute'::interval
-                ) AS time
-              ),
-              http_counts AS (
-                SELECT time_bucket('1 minute', timestamp) as time, COUNT(*) as cnt
-                FROM tunnel_events
-                WHERE organization_id = $1 AND timestamp >= NOW() - INTERVAL '1 hour'
-                GROUP BY 1
-              ),
-              protocol_counts AS (
-                SELECT time_bucket('1 minute', timestamp) as time, COUNT(*) as cnt
-                FROM protocol_events
-                WHERE organization_id = $1 AND timestamp >= NOW() - INTERVAL '1 hour'
-                GROUP BY 1
-              )
-              SELECT 
-                t.time as time,
-                COALESCE(h.cnt, 0) + COALESCE(p.cnt, 0) as requests
-              FROM times t
-              LEFT JOIN http_counts h ON t.time = h.time
-              LEFT JOIN protocol_counts p ON t.time = p.time
-              ORDER BY t.time ASC
-            `;
-          } else if (timeRange === "24h") {
-            chartQuery = `
-              WITH times AS (
-                SELECT generate_series(
-                  time_bucket('1 hour', NOW()) - INTERVAL '24 hours',
-                  time_bucket('1 hour', NOW()),
-                  '1 hour'::interval
-                ) AS time
-              ),
-              http_counts AS (
-                SELECT time_bucket('1 hour', timestamp) as time, COUNT(*) as cnt
-                FROM tunnel_events
-                WHERE organization_id = $1 AND timestamp >= NOW() - INTERVAL '24 hours'
-                GROUP BY 1
-              ),
-              protocol_counts AS (
-                SELECT time_bucket('1 hour', timestamp) as time, COUNT(*) as cnt
-                FROM protocol_events
-                WHERE organization_id = $1 AND timestamp >= NOW() - INTERVAL '24 hours'
-                GROUP BY 1
-              )
-              SELECT 
-                t.time as time,
-                COALESCE(h.cnt, 0) + COALESCE(p.cnt, 0) as requests
-              FROM times t
-              LEFT JOIN http_counts h ON t.time = h.time
-              LEFT JOIN protocol_counts p ON t.time = p.time
-              ORDER BY t.time ASC
-            `;
-          } else {
-            const days = timeRange === "7d" ? 7 : 30;
-            chartQuery = `
-              WITH times AS (
-                SELECT generate_series(
-                  time_bucket('1 day', NOW()) - $2::interval,
-                  time_bucket('1 day', NOW()),
-                  '1 day'::interval
-                ) AS time
-              ),
-              http_counts AS (
-                SELECT time_bucket('1 day', timestamp) as time, COUNT(*) as cnt
-                FROM tunnel_events
-                WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval
-                GROUP BY 1
-              ),
-              protocol_counts AS (
-                SELECT time_bucket('1 day', timestamp) as time, COUNT(*) as cnt
-                FROM protocol_events
-                WHERE organization_id = $1 AND timestamp >= NOW() - $2::interval
-                GROUP BY 1
-              )
-              SELECT 
-                t.time as time,
-                COALESCE(h.cnt, 0) + COALESCE(p.cnt, 0) as requests
-              FROM times t
-              LEFT JOIN http_counts h ON t.time = h.time
-              LEFT JOIN protocol_counts p ON t.time = p.time
-              ORDER BY t.time ASC
-            `;
-            chartParams = [organizationId, `${days} days`];
-          }
-
-          const chartDataResult = await tigerData.query(chartQuery, chartParams);
-          const chartData = chartDataResult.rows;
-
           return Response.json({
-            totalRequests,
-            requestsChange,
-            activeTunnels: activeTunnelsCount,
-            activeTunnelsChange: 0,
-            totalDataTransfer: totalBytes,
-            dataTransferChange,
-            chartData: chartData.map((d) => ({
-              time: d.time,
-              requests: parseInt(d.requests || "0"),
-            })),
+            ...mapOrgOverviewStats(
+              aggregateResult.rows[0],
+              chartResult.rows,
+              activeTunnels,
+            ),
+            timeRange,
+            windowStart: start,
+            windowEnd: end,
           });
         } catch (error) {
           console.error("Failed to fetch stats overview:", error);
