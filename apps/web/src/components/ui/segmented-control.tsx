@@ -87,7 +87,7 @@ export function SegmentedControl<T extends string>({
                     transition={
                       reducedMotion
                         ? { duration: 0 }
-                        : { type: "spring", visualDuration: 0.42, bounce: 0.16 }
+                        : { duration: 0.2, ease: "easeOut" }
                     }
                     className="absolute inset-0 -z-10 rounded-md bg-white/[0.12] shadow-sm"
                     aria-hidden="true"
