@@ -17,7 +17,7 @@ export type ButtonVariant =
   | "outline"
   | "accent";
 export type ButtonSize = "sm" | "md" | "lg";
-export type ButtonShape = "rounded" | "pill";
+export type ButtonShape = "rounded" | "soft" | "pill";
 
 export interface ButtonProps
   extends Omit<
@@ -113,7 +113,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
           ? { duration: 0 }
           : { type: "spring", visualDuration: 0.3, bounce: 0.12 }
       }
-      className={`relative inline-flex items-center justify-center whitespace-nowrap border font-medium transition-[color,background-color,border-color,opacity] duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50 aria-[disabled=true]:cursor-not-allowed aria-[busy=true]:cursor-progress ${shape === "pill" ? "rounded-full" : "rounded-md"} ${variantStyles[variant]} ${sizeStyles[size]} ${fullWidth ? "w-full" : ""} ${className}`}
+      className={`relative inline-flex items-center justify-center whitespace-nowrap border font-medium transition-[color,background-color,border-color,opacity] duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50 aria-[disabled=true]:cursor-not-allowed aria-[busy=true]:cursor-progress ${shape === "pill" ? "rounded-full" : shape === "soft" ? "rounded-xl" : "rounded-md"} ${variantStyles[variant]} ${sizeStyles[size]} ${fullWidth ? "w-full" : ""} ${className}`}
     >
       {busy && (
         <span
