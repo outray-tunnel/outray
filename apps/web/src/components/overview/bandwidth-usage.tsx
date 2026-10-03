@@ -12,7 +12,7 @@ function formatBytes(bytes: number): string {
 
 export function BandwidthUsage() {
   const { orgSlug } = useParams({ from: "/$orgSlug" });
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["bandwidth", orgSlug],
     queryFn: async () => {
       if (!orgSlug) return null;
@@ -21,43 +21,70 @@ export function BandwidthUsage() {
     enabled: !!orgSlug,
   });
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
-      <div className="h-28 animate-pulse rounded-xl border border-white/[0.06] bg-white/[0.015]" />
+      <div
+        className="h-44 animate-pulse rounded-xl border border-white/[0.08] bg-white/[0.02] motion-reduce:animate-none"
+        aria-label="Loading billing usage"
+        aria-busy="true"
+      />
     );
   }
-  if ("error" in data) return null;
+  if (error || !data || "error" in data) {
+    return (
+      <section className="rounded-xl border border-white/[0.08] bg-[#111112] px-5 py-4">
+        <h3 className="text-[13px] font-medium text-zinc-200">Plan usage</h3>
+        <p className="mt-2 text-[11px] text-zinc-500">
+          Could not load billing-period transfer.
+        </p>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className="mt-3 text-[11px] text-zinc-300 underline underline-offset-4 hover:text-white"
+        >
+          Retry
+        </button>
+      </section>
+    );
+  }
 
   const { usage, limit, percentage } = data;
 
   return (
-    <section className="rounded-xl border border-white/[0.07] p-6">
-      <div className="mb-5 flex items-start justify-between gap-4">
+    <section className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
+      <div className="border-b border-white/[0.07] px-5 py-4">
         <div>
-          <h3 className="text-sm font-medium text-zinc-300">Bandwidth</h3>
-          <p className="mt-1 text-[11px] text-zinc-600">
+          <h3 className="text-[13px] font-medium text-zinc-200">Plan usage</h3>
+          <p className="mt-0.5 text-[11px] text-zinc-500">
             Current billing period
           </p>
         </div>
-        <span className="font-mono text-[11px] text-zinc-500">
-          {formatBytes(usage)} / {formatBytes(limit)}
-        </span>
       </div>
-      <div className="h-px bg-white/[0.08]">
+      <div className="px-5 py-5">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-[18px] font-normal tabular-nums text-zinc-100">
+            {formatBytes(usage)}
+          </span>
+          <span className="text-[11px] tabular-nums text-zinc-500">
+            of {formatBytes(limit)}
+          </span>
+        </div>
         <div
-          className={`h-full transition-[width] duration-500 ${
-            percentage > 90
-              ? "bg-red-500"
-              : percentage > 75
-                ? "bg-amber-500"
-                : "bg-accent"
-          }`}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-      <div className="mt-2 flex justify-between text-[10px] text-zinc-700">
-        <span>{percentage.toFixed(1)}% used</span>
-        <span>Resets next month</span>
+          className="mt-4 h-1 overflow-hidden rounded-full bg-white/[0.08]"
+          role="progressbar"
+          aria-label="Bandwidth used this billing period"
+          aria-valuenow={percentage}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            className={`h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none ${percentage > 90 ? "bg-rose-400" : percentage > 75 ? "bg-amber-400" : "bg-zinc-200"}`}
+            style={{ width: `${Math.max(0, Math.min(100, percentage))}%` }}
+          />
+        </div>
+        <p className="mt-2 text-[11px] tabular-nums text-zinc-500">
+          {percentage.toFixed(1)}% of your monthly allowance
+        </p>
       </div>
     </section>
   );
