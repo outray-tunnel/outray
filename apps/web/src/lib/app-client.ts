@@ -562,11 +562,27 @@ export const appClient = {
       apiCall<{
         totalRequests: number;
         requestsChange: number;
-        activeTunnels: number | null;
-        activeTunnelsChange: number;
+        httpRequests: number;
+        protocolEvents: number;
+        errors: number;
+        errorRate: number;
+        errorRateChange: number;
+        activeTunnels: number;
+        activeTunnelsChange: null;
         totalDataTransfer: number;
         dataTransferChange: number;
-        chartData: Array<{ hour: string; requests: number }>;
+        chartData: Array<{
+          time: string;
+          requests: number;
+          httpRequests: number;
+          protocolEvents: number;
+          errors: number;
+          errorRate: number;
+          bandwidth: number;
+        }>;
+        timeRange: string;
+        windowStart: string;
+        windowEnd: string;
       }>("get", `/api/${orgSlug}/stats/overview`, {
         params: { range },
       }),
