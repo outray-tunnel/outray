@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
 import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
 import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
 import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
@@ -11,6 +10,7 @@ import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
 import { appClient } from "@/lib/app-client";
 import { getPlanLimits } from "@/lib/subscription-plans";
 import { NewTunnelModal } from "@/components/new-tunnel-modal";
+import { NewTunnelButton } from "@/components/new-tunnel-button";
 import { LimitModal } from "@/components/limit-modal";
 import { Select } from "@/components/ui/select";
 
@@ -25,6 +25,7 @@ function TunnelsView() {
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name">("newest");
   const [isNewTunnelModalOpen, setIsNewTunnelModalOpen] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
+  const newTunnelTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const { data: subscriptionData } = useQuery({
     queryKey: ["subscription", orgSlug],
@@ -43,7 +44,7 @@ function TunnelsView() {
   const tunnels = data && "tunnels" in data ? data.tunnels : [];
   const currentPlan = subscriptionData?.subscription?.plan || "free";
   const tunnelLimit = getPlanLimits(currentPlan as any).maxTunnels;
-  const isAtLimit = tunnelLimit !== -1 && tunnels.length >= tunnelLimit;
+  const isAtLimit = tunnels.length >= tunnelLimit;
 
   const filteredTunnels = tunnels
     .filter(
@@ -83,7 +84,7 @@ function TunnelsView() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-7">
-      <header className="flex items-end justify-between gap-6 border-b border-white/[0.07] pb-7">
+      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-white/[0.07] pb-7">
         <div>
           <h1 className="text-xl font-normal tracking-[-0.02em] text-white">
             Active tunnels
@@ -92,15 +93,11 @@ function TunnelsView() {
             Manage public endpoints connected to your local services.
           </p>
         </div>
-        <button
-          type="button"
+        <NewTunnelButton
+          isAtLimit={isAtLimit}
           onClick={handleNewTunnelClick}
-          disabled={isAtLimit}
-          className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-white px-3.5 text-[12px] font-medium text-black transition-colors hover:bg-zinc-200 disabled:opacity-40"
-        >
-          <HugeiconsIcon icon={Add01Icon} size={15} strokeWidth={1.9} />
-          <span className="hidden sm:inline">New tunnel</span>
-        </button>
+          buttonRef={newTunnelTriggerRef}
+        />
       </header>
 
       {isAtLimit && (
@@ -276,6 +273,8 @@ function TunnelsView() {
       <NewTunnelModal
         isOpen={isNewTunnelModalOpen}
         onClose={() => setIsNewTunnelModalOpen(false)}
+        orgSlug={orgSlug}
+        triggerRef={newTunnelTriggerRef}
       />
       <LimitModal
         isOpen={isLimitModalOpen}
