@@ -30,6 +30,7 @@
     "@paystack/inline-js": "^2.22.7",
     "@polar-sh/sdk": "^0.42.1",
     "@polar-sh/tanstack-start": "^0.4.3",
+    "@radix-ui/react-dialog": "1.1.23",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.2",
     "@tailwindcss/vite": "^4.1.18",
