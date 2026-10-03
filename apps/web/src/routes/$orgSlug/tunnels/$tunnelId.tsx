@@ -1,30 +1,27 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  keepPreviousData,
-} from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { appClient } from "@/lib/app-client";
 import { AlertTriangle } from "lucide-react";
 import { TunnelHeader } from "@/components/tunnel-details/tunnel-header";
 import { TunnelTabs } from "@/components/tunnel-details/tunnel-tabs";
 import { TunnelOverview } from "@/components/tunnel-details/tunnel-overview";
+import { TunnelOverviewSkeleton } from "@/components/tunnel-details/tunnel-overview-ui";
 import { ProtocolOverview } from "@/components/tunnel-details/protocol-overview";
 import { ProtocolEvents } from "@/components/tunnel-details/protocol-events";
 import { TunnelRequests } from "@/components/tunnel-details/tunnel-requests";
+import {
+  parseTunnelDetailSearch,
+  retainSameTunnelData,
+  TUNNEL_RANGES,
+  type TunnelRange,
+} from "@/lib/tunnel-detail-search";
 
 export const Route = createFileRoute("/$orgSlug/tunnels/$tunnelId")({
   head: () => ({
     meta: [{ title: "Tunnel Details - OutRay" }],
   }),
   component: TunnelDetailView,
-  validateSearch: (search: Record<string, unknown>) => {
-    return {
-      tab: (search.tab as string) || "overview",
-    };
-  },
+  validateSearch: parseTunnelDetailSearch,
 });
 
 function TunnelDetailView() {
@@ -32,17 +29,30 @@ function TunnelDetailView() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const activeTab = search.tab;
+  const timeRange = search.range ?? "24h";
 
   const queryClient = useQueryClient();
-  const [timeRange, setTimeRange] = useState("24h");
 
-  const { data: tunnelData, isLoading: tunnelLoading } = useQuery({
+  const {
+    data: tunnelData,
+    isLoading: tunnelLoading,
+    error: tunnelError,
+    refetch: refetchTunnel,
+  } = useQuery({
     queryKey: ["tunnel", orgSlug, tunnelId],
-    queryFn: () => appClient.tunnels.get(orgSlug, tunnelId),
+    queryFn: async () => {
+      const result = await appClient.tunnels.get(orgSlug, tunnelId);
+      if ("error" in result) throw new Error(result.error);
+      return result;
+    },
   });
 
   const stopMutation = useMutation({
-    mutationFn: () => appClient.tunnels.stop(orgSlug, tunnelId),
+    mutationFn: async () => {
+      const result = await appClient.tunnels.stop(orgSlug, tunnelId);
+      if ("error" in result) throw new Error(result.error);
+      return result;
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["tunnels"] });
       void queryClient.invalidateQueries({
@@ -61,6 +71,9 @@ function TunnelDetailView() {
     data: statsData,
     isLoading: statsLoading,
     isPlaceholderData,
+    isFetching: statsFetching,
+    error: statsError,
+    refetch: refetchStats,
   } = useQuery({
     queryKey: ["tunnelStats", orgSlug, tunnelId, timeRange],
     queryFn: async () => {
@@ -69,41 +82,98 @@ function TunnelDetailView() {
       return result;
     },
     refetchInterval: 5000,
-    placeholderData: keepPreviousData,
-    enabled: !isProtocolTunnel,
+    // Preserve prior range data, but never show another tunnel's data as a placeholder.
+    placeholderData: (previousData, previousQuery) =>
+      retainSameTunnelData(
+        previousData,
+        previousQuery?.queryKey,
+        orgSlug,
+        tunnelId,
+      ),
+    enabled: !!tunnel && !isProtocolTunnel && activeTab === "overview",
   });
 
   // Protocol stats query (TCP/UDP)
-  const { data: protocolStatsData, isLoading: protocolStatsLoading } = useQuery(
-    {
-      queryKey: ["protocolStats", orgSlug, tunnelId, timeRange],
-      queryFn: async () => {
-        const response = await appClient.stats.protocol(orgSlug!, {
-          tunnelId,
-          range: timeRange,
-        });
-        if ("error" in response) throw new Error(response.error);
-        return response;
-      },
-      refetchInterval: 5000,
-      enabled: isProtocolTunnel,
+  const {
+    data: protocolStatsData,
+    isLoading: protocolStatsLoading,
+    isPlaceholderData: isProtocolPlaceholderData,
+    isFetching: protocolStatsFetching,
+    error: protocolStatsError,
+    refetch: refetchProtocolStats,
+  } = useQuery({
+    queryKey: ["protocolStats", orgSlug, tunnelId, timeRange],
+    queryFn: async () => {
+      const response = await appClient.stats.protocol(orgSlug, {
+        tunnelId,
+        range: timeRange,
+      });
+      if ("error" in response) throw new Error(response.error);
+      return response;
     },
-  );
+    refetchInterval: 5000,
+    placeholderData: (previousData, previousQuery) =>
+      retainSameTunnelData(
+        previousData,
+        previousQuery?.queryKey,
+        orgSlug,
+        tunnelId,
+      ),
+    enabled: !!tunnel && isProtocolTunnel && activeTab === "overview",
+  });
 
   const stats = statsData && "stats" in statsData ? statsData.stats : null;
   const chartData =
     statsData && "chartData" in statsData ? statsData.chartData : [];
 
   const setActiveTab = (tab: string) => {
+    if (tab !== "overview" && tab !== "requests") return;
     navigate({
       search: (prev) => ({ ...prev, tab }),
     });
   };
 
-  const isLoadingStats = isProtocolTunnel ? protocolStatsLoading : statsLoading;
+  const setTimeRange = (range: string) => {
+    if (!TUNNEL_RANGES.includes(range as TunnelRange) || range === timeRange) {
+      return;
+    }
+    navigate({
+      search: (prev) => ({ ...prev, range: range as TunnelRange }),
+    });
+  };
 
-  if (tunnelLoading || (isLoadingStats && !tunnel)) {
+  if (tunnelLoading) {
     return <TunnelDetailSkeleton activeTab={activeTab} />;
+  }
+
+  if (tunnelError && !tunnel) {
+    const isMissing =
+      tunnelError.message === "Tunnel not found" ||
+      tunnelError.message === "Unauthorized";
+    if (!isMissing) {
+      return (
+        <div className="mx-auto flex min-h-72 max-w-6xl flex-col items-center justify-center rounded-xl border border-white/[0.07] px-6 text-center">
+          <AlertTriangle
+            size={24}
+            className="mb-3 text-amber-400"
+            aria-hidden="true"
+          />
+          <h2 className="text-sm font-medium text-zinc-200">
+            Could not load this tunnel
+          </h2>
+          <p className="mt-1 max-w-md text-xs text-zinc-500">
+            {tunnelError.message}
+          </p>
+          <button
+            type="button"
+            onClick={() => void refetchTunnel()}
+            className="mt-4 rounded-md border border-white/[0.12] px-3 py-2 text-xs text-zinc-200 transition-colors hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            Try again
+          </button>
+        </div>
+      );
+    }
   }
 
   if (!tunnel) {
@@ -131,11 +201,11 @@ function TunnelDetailView() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-7">
+    <div className="mx-auto max-w-[1440px] space-y-7">
       <div className="flex flex-col gap-6">
         <TunnelHeader
           tunnel={tunnel}
-          onStop={() => stopMutation.mutate()}
+          onStop={() => stopMutation.mutateAsync().then(() => undefined)}
           isStopping={stopMutation.isPending}
         />
 
@@ -154,7 +224,21 @@ function TunnelDetailView() {
           recentEvents={protocolStatsData?.recentEvents || []}
           timeRange={timeRange}
           setTimeRange={setTimeRange}
-          isLoading={protocolStatsLoading}
+          dataRange={
+            protocolStatsData &&
+            "timeRange" in protocolStatsData &&
+            typeof protocolStatsData.timeRange === "string"
+              ? protocolStatsData.timeRange
+              : timeRange
+          }
+          isLoading={protocolStatsLoading && !protocolStatsData}
+          isPlaceholderData={
+            isProtocolPlaceholderData ||
+            (protocolStatsFetching && !!protocolStatsData)
+          }
+          error={protocolStatsError?.message ?? null}
+          onRetry={() => void refetchProtocolStats()}
+          onViewActivity={() => setActiveTab("requests")}
         />
       )}
 
@@ -162,9 +246,25 @@ function TunnelDetailView() {
         <TunnelOverview
           stats={stats}
           chartData={chartData}
+          recentRequests={
+            statsData && "requests" in statsData ? statsData.requests : []
+          }
           timeRange={timeRange}
           setTimeRange={setTimeRange}
-          isPlaceholderData={isPlaceholderData}
+          dataRange={
+            statsData &&
+            "timeRange" in statsData &&
+            typeof statsData.timeRange === "string"
+              ? statsData.timeRange
+              : timeRange
+          }
+          isLoading={statsLoading && !statsData}
+          isPlaceholderData={
+            isPlaceholderData || (statsFetching && !!statsData)
+          }
+          error={statsError?.message ?? null}
+          onRetry={() => void refetchStats()}
+          onViewActivity={() => setActiveTab("requests")}
         />
       )}
 
@@ -185,21 +285,33 @@ function TunnelDetailView() {
 
 function TunnelDetailSkeleton({ activeTab }: { activeTab: string }) {
   return (
-    <div className="mx-auto max-w-6xl space-y-7 animate-pulse">
+    <div
+      className="mx-auto max-w-[1440px] space-y-7 animate-pulse motion-reduce:animate-none"
+      aria-label="Loading tunnel details"
+      aria-busy="true"
+    >
       <div className="flex flex-col gap-6">
-        <header className="flex items-start gap-4 border-b border-white/[0.07] pb-7">
-          <div className="mt-1 size-7 shrink-0 bg-white/[0.04]" />
-          <div className="min-w-0 flex-1">
-            <div className="h-2 w-20 bg-white/[0.05]" />
-            <div className="mt-5 h-7 w-52 bg-white/[0.06]" />
-            <div className="mt-3 h-2.5 w-64 max-w-full bg-white/[0.04]" />
+        <header className="min-w-0">
+          <div className="mb-3 h-3 w-20 rounded bg-white/[0.05]" />
+          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="h-5 w-44 max-w-[45vw] rounded bg-white/[0.07]" />
+              <div className="h-6 w-16 rounded-full bg-white/[0.05]" />
+            </div>
+            <div className="h-8 w-24 rounded-md bg-white/[0.05]" />
           </div>
-          <div className="h-9 w-20 shrink-0 rounded-md border border-white/[0.06] bg-white/[0.025]" />
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <div className="h-3 w-10 rounded bg-white/[0.04]" />
+            <div className="h-3 w-1 rounded bg-white/[0.03]" />
+            <div className="h-3 w-64 max-w-[55vw] rounded bg-white/[0.05]" />
+            <div className="h-7 w-12 rounded bg-white/[0.04]" />
+            <div className="h-7 w-12 rounded bg-white/[0.04]" />
+          </div>
         </header>
 
-        <div className="flex gap-6 border-b border-white/[0.07]">
-          <div className="h-10 w-16 border-b border-white/[0.08]" />
-          <div className="h-10 w-16 border-b border-white/[0.04]" />
+        <div className="flex border-b border-white/[0.07]">
+          <div className="h-10 w-18 border-b border-white/[0.08]" />
+          <div className="h-10 w-18 border-b border-white/[0.04]" />
         </div>
       </div>
 
@@ -275,20 +387,7 @@ function TunnelDetailSkeleton({ activeTab }: { activeTab: string }) {
           </div>
         </div>
       ) : (
-        <div className="space-y-7">
-          <div className="grid rounded-xl border border-white/[0.07] md:grid-cols-4 md:divide-x md:divide-white/[0.07]">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="px-5 py-6 sm:px-6">
-                <div className="h-2 w-16 bg-white/[0.04]" />
-                <div className="mt-4 h-6 w-20 bg-white/[0.06]" />
-              </div>
-            ))}
-          </div>
-          <div className="rounded-xl border border-white/[0.07] px-5 py-6 sm:px-6">
-            <div className="h-2.5 w-28 bg-white/[0.04]" />
-            <div className="mt-8 h-64 bg-white/[0.025]" />
-          </div>
-        </div>
+        <TunnelOverviewSkeleton />
       )}
     </div>
   );
