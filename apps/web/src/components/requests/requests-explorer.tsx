@@ -203,7 +203,8 @@ export function RequestsResults({
               feed.requests.map((request) => (
                 <tr
                   key={requestKey(request)}
-                  className="group transition-colors hover:bg-white/[0.025] motion-reduce:transition-none"
+                  onClick={inspectorEnabled ? () => onInspect(request) : undefined}
+                  className={`group transition-colors motion-reduce:transition-none ${inspectorEnabled ? "cursor-pointer hover:bg-white/[0.025] focus-within:bg-white/[0.025]" : ""}`}
                 >
                   <td className="px-4 py-3.5">
                     <StatusChip status={request.status_code} />
@@ -219,7 +220,10 @@ export function RequestsResults({
                     {inspectorEnabled ? (
                       <button
                         type="button"
-                        onClick={() => onInspect(request)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onInspect(request);
+                        }}
                         aria-label={`Inspect ${request.method} ${request.path}, status ${request.status_code}`}
                         className="flex w-full min-w-0 items-center gap-2 rounded-sm text-left text-zinc-200 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
                       >
