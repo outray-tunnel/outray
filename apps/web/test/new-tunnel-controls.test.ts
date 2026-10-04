@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -77,4 +78,43 @@ test("the new tunnel button still opens plan-limit guidance", () => {
   assert.match(html, /New tunnel \(plan limit reached\)/);
   assert.match(html, /<button/);
   assert.doesNotMatch(html, /disabled=""/);
+});
+
+test("composite tunnel inputs retain their neutral shell focus and accessible labels", async () => {
+  const source = await readFile(new URL("../src/components/new-tunnel-modal.tsx", import.meta.url), "utf8");
+  const inputs = [...source.matchAll(/<input\b[\s\S]*?\/>/g)];
+  assert.equal(inputs.length, 2);
+
+  for (const [id, hint] of [
+    ["new-tunnel-local-port", "new-tunnel-port-hint"],
+    ["new-tunnel-address", "new-tunnel-address-hint"],
+  ]) {
+    const input = inputs.find(([markup]) => markup.includes(`id="${id}"`));
+    assert.ok(input, `${id} remains a native input`);
+    assert.match(input[0], /data-outray-composite-input=""/);
+    assert.ok(input[0].includes(`aria-describedby="${hint}"`));
+    assert.ok(source.includes(`htmlFor="${id}"`));
+    assert.ok(source.includes(`id="${hint}"`));
+
+    const beforeInput = source.slice(0, input.index);
+    const shell = beforeInput.slice(beforeInput.lastIndexOf('<div className="'));
+    assert.ok(shell.includes("focus-within:border-white/[0.35]"));
+    assert.ok(shell.includes("focus-within:ring-1"));
+    assert.ok(shell.includes("focus-within:ring-white/[0.12]"));
+  }
+  assert.match(source, /aria-hidden="true" className="[^"]*border-r border-white\/\[0\.08\]/);
+});
+
+test("only marked composite inputs suppress their inner outline while other controls keep visible focus", async () => {
+  const theme = await readFile(new URL("../src/components/outray-arc-theme.css", import.meta.url), "utf8");
+  const compositeRule = theme.match(/\.outray-arc input\[data-outray-composite-input\]:focus-visible\s*\{([^}]+)\}/);
+  assert.ok(compositeRule);
+  assert.match(compositeRule[1], /outline:\s*0\s*;/);
+  assert.match(compositeRule[1], /outline-offset:\s*0\s*;/);
+
+  const otherControls = theme.match(/\.outray-arc:focus-visible,\s*\.outray-arc :is\(button, input, summary\):focus-visible\s*\{([^}]+)\}/);
+  assert.ok(otherControls);
+  assert.match(otherControls[1], /outline:\s*2px solid /);
+  assert.match(otherControls[1], /outline-offset:\s*2px\s*;/);
+  assert.doesNotMatch(theme, /(?:^|\n)\s*(?:input|\.outray-arc input):focus-visible\s*\{[^}]*outline:\s*(?:0|none)\s*;/);
 });
