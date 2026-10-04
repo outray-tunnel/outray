@@ -1,0 +1,20 @@
+.button { display: inline-flex; width: max-content; max-width: 100%; min-height: var(--control-height-sm); align-items: center; justify-content: center; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-control); padding: 0 var(--space-3); background: var(--surface); color: var(--foreground); font: inherit; font-size: var(--text-sm); font-weight: 500; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard), transform var(--duration-spring) var(--ease-spring); }
+.button:active:not(:disabled) { transform: scale(.97); transition-duration: var(--duration-fast), var(--duration-fast), var(--duration-fast), var(--duration-instant); transition-timing-function: var(--ease-standard); }
+.iconOnly:active:not(:disabled) { transform: scale(.96); }
+@media (hover: hover) and (pointer: fine) { .button:hover:not(:disabled) { background: var(--surface-muted); border-color: var(--border-strong); } .plain:hover:not(:disabled) { border-color: transparent; background: var(--surface-muted); color: var(--foreground); } }
+.button:disabled { cursor: not-allowed; opacity: .5; }
+/* Each icon carries its own color, so the outgoing glyph never tints on its way out. */
+.icon { position: relative; display: grid; width: 16px; height: 16px; flex: none; }
+.iconInner { position: absolute; inset: 0; display: grid; place-items: center; }
+.iconInner[data-state="copied"] { color: var(--success); }
+.iconInner[data-state="error"] { color: var(--danger); }
+/* The inline padding gives blurred edge letters room before the horizontal clip; the negative margin keeps the box the same size. */
+.label { display: grid; min-width: 0; margin-inline: calc(var(--space-1) * -1); padding-inline: var(--space-1); overflow-x: clip; text-align: left; white-space: nowrap; }
+.measure, .glyphs { grid-area: 1 / 1; }
+.measure { visibility: hidden; }
+.glyphs { position: relative; display: inline-flex; justify-self: start; white-space: pre; }
+.glyph { display: inline-block; }
+.iconOnly { width: var(--control-height-sm); padding: 0; }
+.plain { border-color: transparent; background: transparent; color: var(--text-secondary); }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .button { transition: none; } .button:active:not(:disabled) { transform: none; } }
