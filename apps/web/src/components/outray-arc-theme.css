@@ -106,13 +106,17 @@ body:has(.outray-arc-list) [data-radix-popper-content-wrapper] {
   box-shadow: none;
 }
 
-/* The request toolbar retains SearchField's real label without an extra row. */
-.outray-arc-requests-search > div {
+/* Compact toolbars retain real control labels without adding an extra row. */
+.outray-arc-requests-search > div,
+.outray-arc-address-search > div,
+.outray-arc-address-filter > div {
   position: relative;
   gap: 0;
 }
 
-.outray-arc-requests-search label {
+.outray-arc-requests-search label,
+.outray-arc-address-search label,
+.outray-arc-address-filter label {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -124,8 +128,15 @@ body:has(.outray-arc-list) [data-radix-popper-content-wrapper] {
   border: 0;
 }
 
-.outray-arc .outray-arc-requests-search input:focus-visible {
+.outray-arc .outray-arc-requests-search input:focus-visible,
+.outray-arc .outray-arc-address-search input:focus-visible {
   outline: 0; /* UIArc's enclosing search shell supplies the focus treatment. */
+}
+
+/* Composite fields use their enclosing shell's neutral focus treatment. */
+.outray-arc input[data-outray-composite-input]:focus-visible {
+  outline: 0;
+  outline-offset: 0;
 }
 
 /* Keep destructive tunnel actions faithful to UIArc's dark button tokens. */
