@@ -165,6 +165,7 @@ export function NewTunnelModal({
                         <input
                           ref={portInput}
                           id="new-tunnel-local-port"
+                          data-outray-composite-input=""
                           type="text"
                           inputMode="numeric"
                           autoComplete="off"
@@ -220,6 +221,7 @@ export function NewTunnelModal({
                       <div className="flex h-11 items-center overflow-hidden rounded-lg border border-white/[0.12] bg-[#0a0a0b] focus-within:border-white/[0.35] focus-within:ring-1 focus-within:ring-white/[0.12]">
                         <input
                           id="new-tunnel-address"
+                          data-outray-composite-input=""
                           type="text"
                           autoComplete="off"
                           spellCheck={false}
