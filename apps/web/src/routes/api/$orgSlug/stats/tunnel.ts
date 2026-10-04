@@ -49,8 +49,9 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
 
         try {
           // One captured window is shared by the headline, chart and activity preview.
-          const statsResult = await tigerData.query(
-            `SELECT
+          const [statsResult, chartResult, requestsResult] = await Promise.all([
+            tigerData.query(
+              `SELECT
                COUNT(*) AS total_requests,
                AVG(request_duration_ms) AS avg_duration,
                COALESCE(SUM(COALESCE(bytes_in, 0) + COALESCE(bytes_out, 0)), 0) AS total_bytes,
@@ -60,16 +61,12 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
                AND organization_id = $2
                AND timestamp >= $3::timestamptz
                AND timestamp < $4::timestamptz`,
-            [tunnelIdentifiers, organizationId, start, end],
-          );
-          const aggregate = statsResult.rows[0];
-          const totalRequests = number(aggregate?.total_requests);
-          const errors = number(aggregate?.errors);
-
-          // Bucket boundaries cover the rolling window; the join excludes the
-          // portions of the first and last buckets outside that exact window.
-          const chartResult = await tigerData.query(
-            `WITH times AS (
+              [tunnelIdentifiers, organizationId, start, end],
+            ),
+            // Bucket boundaries cover the rolling window; the join excludes the
+            // portions of the first and last buckets outside that exact window.
+            tigerData.query(
+              `WITH times AS (
                SELECT generate_series(
                  time_bucket($5::interval, $3::timestamptz),
                  time_bucket($5::interval, $4::timestamptz - INTERVAL '1 microsecond'),
@@ -90,11 +87,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
                AND e.timestamp < $4::timestamptz
              GROUP BY t.time
              ORDER BY t.time ASC`,
-            [tunnelIdentifiers, organizationId, start, end, bucket],
-          );
-
-          const requestsResult = await tigerData.query(
-            `SELECT
+              [tunnelIdentifiers, organizationId, start, end, bucket],
+            ),
+            tigerData.query(
+              `SELECT
                timestamp,
                method,
                path,
@@ -108,8 +104,12 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
                AND timestamp < $4::timestamptz
              ORDER BY timestamp DESC
              LIMIT 50`,
-            [tunnelIdentifiers, organizationId, start, end],
-          );
+              [tunnelIdentifiers, organizationId, start, end],
+            ),
+          ]);
+          const aggregate = statsResult.rows[0];
+          const totalRequests = number(aggregate?.total_requests);
+          const errors = number(aggregate?.errors);
 
           return Response.json({
             stats: {
