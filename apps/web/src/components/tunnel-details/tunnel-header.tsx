@@ -3,11 +3,16 @@ import { useEffect, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
 import ArrowUpRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowUpRight01Icon";
-import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
-import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import StopIcon from "@hugeicons-pro/core-solid-rounded/StopIcon";
-import { ConfirmModal } from "../confirm-modal";
+import { Button } from "@/components/arc/button/button";
+import { CopyButton } from "@/components/arc/copy-button/copy-button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/arc/dialog/dialog";
 import { useAppStore } from "@/lib/store";
+import "../outray-arc-theme.css";
 
 type HeaderFeedback = { kind: "success" | "error"; message: string };
 
@@ -29,13 +34,19 @@ export function TunnelHeader({
   isStopping,
 }: TunnelHeaderProps) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
   const [feedback, setFeedback] = useState<HeaderFeedback | null>(null);
+  const [stopError, setStopError] = useState<string | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const stopInFlight = useRef(false);
+  const stopTriggerRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const feedbackResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { selectedOrganization } = useAppStore();
   const canOpenInBrowser =
     tunnel.protocol !== "tcp" && tunnel.protocol !== "udp";
   const protocolLabel = (tunnel.protocol || "http").toUpperCase();
+  const stopPending = isConfirming || isStopping;
 
   useEffect(() => {
     return () => {
@@ -49,24 +60,9 @@ export function TunnelHeader({
     feedbackResetTimer.current = setTimeout(
       () => {
         setFeedback(null);
-        setIsCopied(false);
       },
       next.kind === "error" ? 4000 : 2200,
     );
-  };
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(tunnel.url);
-      setIsCopied(true);
-      showFeedback({ kind: "success", message: "Tunnel URL copied." });
-    } catch {
-      setIsCopied(false);
-      showFeedback({
-        kind: "error",
-        message: "Could not copy the URL. Select it and copy manually.",
-      });
-    }
   };
 
   const handleOpen = () => {
@@ -106,13 +102,34 @@ export function TunnelHeader({
   };
 
   const handleStop = async () => {
-    await onStop();
-    showFeedback({ kind: "success", message: "Stop request sent." });
+    if (stopInFlight.current || isStopping) return;
+    stopInFlight.current = true;
+    setIsConfirming(true);
+    setStopError(null);
+    try {
+      await onStop();
+      setIsConfirmOpen(false);
+      showFeedback({ kind: "success", message: "Stop request sent." });
+    } catch (reason) {
+      setStopError(
+        reason instanceof Error ? reason.message : "Could not stop this tunnel. Try again.",
+      );
+    } finally {
+      stopInFlight.current = false;
+      setIsConfirming(false);
+    }
   };
 
   return (
-    <>
-      <header className="min-w-0">
+    <Dialog
+      open={isConfirmOpen}
+      onOpenChange={(open) => {
+        if (stopInFlight.current || isStopping) return;
+        setStopError(null);
+        setIsConfirmOpen(open);
+      }}
+    >
+      <header className="outray-arc min-w-0">
         <Link
           to="/$orgSlug/tunnels"
           params={{ orgSlug: selectedOrganization?.slug || "" }}
@@ -124,7 +141,11 @@ export function TunnelHeader({
 
         <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
           <div className="flex min-w-0 items-center gap-3">
-            <h1 className="min-w-0 truncate text-[20px] font-normal tracking-[-0.025em] text-zinc-50">
+            <h1
+              ref={titleRef}
+              tabIndex={-1}
+              className="min-w-0 truncate text-[20px] font-normal tracking-[-0.025em] text-zinc-50"
+            >
               {tunnel.name || tunnel.id}
             </h1>
             <span
@@ -144,15 +165,19 @@ export function TunnelHeader({
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsConfirmOpen(true)}
-            disabled={isStopping || !tunnel.isOnline}
-            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-white/[0.10] px-2.5 text-[11px] font-medium text-zinc-400 transition-colors hover:border-rose-400/25 hover:bg-rose-400/[0.05] hover:text-rose-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400 disabled:opacity-35 motion-reduce:transition-none"
-          >
-            <HugeiconsIcon icon={StopIcon} size={12} />
-            {isStopping ? "Stopping" : "Stop tunnel"}
-          </button>
+          <DialogTrigger asChild>
+            <Button
+              ref={stopTriggerRef}
+              type="button"
+              variant="danger"
+              size="md"
+              disabled={stopPending || !tunnel.isOnline}
+              className="outray-arc-stock-buttons shrink-0"
+            >
+              <HugeiconsIcon icon={StopIcon} size={12} />
+              Stop tunnel
+            </Button>
+          </DialogTrigger>
         </div>
 
         <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
@@ -168,28 +193,25 @@ export function TunnelHeader({
           >
             {tunnel.url}
           </span>
-          <button
-            type="button"
-            className={`inline-flex h-7 items-center gap-1 rounded px-1.5 font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none ${
-              isCopied
-                ? "text-emerald-300"
-                : "text-zinc-500 hover:bg-white/[0.05] hover:text-zinc-200"
-            }`}
-            onClick={() => void handleCopy()}
-            aria-label="Copy tunnel URL"
-          >
-            <HugeiconsIcon
-              icon={isCopied ? Tick02Icon : Copy01Icon}
-              size={13}
-              strokeWidth={1.8}
-            />
-            {isCopied ? "Copied" : "Copy"}
-          </button>
+          <CopyButton
+            value={tunnel.url}
+            label="Copy tunnel URL"
+            iconOnly
+            variant="plain"
+            onCopied={() => setFeedback(null)}
+            onCopyError={() =>
+              showFeedback({
+                kind: "error",
+                message: "Could not copy the URL. Select it and copy manually.",
+              })
+            }
+          />
           {canOpenInBrowser && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={handleOpen}
-              className="inline-flex h-7 items-center gap-1 rounded px-1.5 font-medium text-zinc-500 transition-colors hover:bg-white/[0.05] hover:text-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none"
               aria-label="Open tunnel in a new tab"
             >
               <HugeiconsIcon
@@ -198,7 +220,7 @@ export function TunnelHeader({
                 strokeWidth={1.7}
               />
               Open
-            </button>
+            </Button>
           )}
           <span
             className={`font-medium ${
@@ -213,15 +235,58 @@ export function TunnelHeader({
         </div>
       </header>
 
-      <ConfirmModal
-        isOpen={isConfirmOpen}
-        onClose={() => setIsConfirmOpen(false)}
-        onConfirm={handleStop}
-        title="Stop Tunnel"
-        message="Are you sure you want to stop this tunnel?"
-        isDestructive
-        confirmText="Stop"
-      />
-    </>
+      <DialogContent
+        className="outray-arc outray-arc-stop-dialog"
+        title="Stop tunnel"
+        description="Active connections will close and this address will go offline. You can reconnect using the CLI."
+        aria-busy={stopPending}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          cancelRef.current?.focus();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          if (stopTriggerRef.current && !stopTriggerRef.current.disabled) {
+            stopTriggerRef.current.focus();
+          } else {
+            titleRef.current?.focus();
+          }
+        }}
+        onEscapeKeyDown={(event) => {
+          if (stopPending) event.preventDefault();
+        }}
+        onPointerDownOutside={(event) => {
+          if (stopPending) event.preventDefault();
+        }}
+      >
+        {stopError && (
+          <p role="alert" className="mb-4 text-[13px] text-rose-300">
+            {stopError}
+          </p>
+        )}
+        <div className="outray-arc-stock-buttons flex justify-end gap-2">
+          <Button
+            ref={cancelRef}
+            type="button"
+            variant="secondary"
+            size="md"
+            disabled={stopPending}
+            onClick={() => setIsConfirmOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            size="md"
+            loading={stopPending}
+            onClick={() => void handleStop()}
+          >
+            <HugeiconsIcon icon={StopIcon} size={12} />
+            Stop tunnel
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
