@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { appClient } from "@/lib/app-client";
 import type { TimeRange } from "./types";
 import {
@@ -16,6 +16,23 @@ interface RequestsFeedOptions {
   tunnelId?: string;
 }
 
+interface HistoryRequestScope {
+  scopeKey: string;
+  search: string;
+  retryVersion: number;
+}
+
+export function historyRequestDelay(
+  previous: HistoryRequestScope | null,
+  next: HistoryRequestScope,
+) {
+  return previous?.scopeKey === next.scopeKey &&
+    previous.retryVersion === next.retryVersion &&
+    previous.search !== next.search
+    ? 300
+    : 0;
+}
+
 const MAX_RECONNECT_ATTEMPTS = 5;
 const CONNECTION_TIMEOUT_MS = 12_000;
 
@@ -30,6 +47,7 @@ export function useRequestsFeed({
   const scopeKey = JSON.stringify([orgSlug, orgId, tunnelId]);
   const historyScopeKey = JSON.stringify([scopeKey, range]);
   const historyKey = JSON.stringify([scopeKey, range, search, retryVersion]);
+  const previousHistoryRequest = useRef<HistoryRequestScope | null>(null);
   const [live, dispatchLive] = useReducer(
     liveRequestsReducer,
     scopeKey,
@@ -44,17 +62,31 @@ export function useRequestsFeed({
   });
 
   useEffect(() => {
+    const previous = previousHistoryRequest.current;
+    previousHistoryRequest.current = null;
     if (range === "live" || !orgSlug) return;
+    const next = {
+      scopeKey: historyScopeKey,
+      search,
+      retryVersion,
+    };
+    const delay = historyRequestDelay(previous, next);
+    previousHistoryRequest.current = next;
     let cancelled = false;
+    const controller = new AbortController();
     dispatchHistory({ type: "start", key: historyKey, scopeKey: historyScopeKey });
-    const timer = setTimeout(async () => {
+    const load = async () => {
       try {
-        const response = await appClient.requests.list(orgSlug, {
-          range,
-          limit: REQUESTS_LIMIT,
-          search,
-          ...(tunnelId ? { tunnelId } : {}),
-        });
+        const response = await appClient.requests.list(
+          orgSlug,
+          {
+            range,
+            limit: REQUESTS_LIMIT,
+            search,
+            ...(tunnelId ? { tunnelId } : {}),
+          },
+          { signal: controller.signal },
+        );
         if (cancelled) return;
         if ("error" in response) {
           throw new Error("Requests could not be loaded. Please try again.");
@@ -66,7 +98,7 @@ export function useRequestsFeed({
           requests: normalizeRequests(response.requests, { orgId }),
         });
       } catch {
-        if (!cancelled) {
+        if (!cancelled && !controller.signal.aborted) {
           dispatchHistory({
             type: "error",
             key: historyKey,
@@ -74,12 +106,18 @@ export function useRequestsFeed({
           });
         }
       }
-    }, 300);
+    };
+    // Initial loads, range/tenant changes and explicit retries start immediately.
+    const timer = delay
+      ? setTimeout(() => void load(), delay)
+      : undefined;
+    if (!delay) void load();
     return () => {
       cancelled = true;
+      controller.abort();
       clearTimeout(timer);
     };
-  }, [orgSlug, orgId, tunnelId, range, search, historyKey, historyScopeKey]);
+  }, [orgSlug, orgId, tunnelId, range, search, retryVersion, historyKey, historyScopeKey]);
 
   useEffect(() => {
     if (range !== "live" || !orgId) return;
