@@ -16,14 +16,15 @@ export const Route = createFileRoute("/api/$orgSlug/stats/bandwidth")({
         const { organization } = orgResult;
 
         const key = getBandwidthKey(organization.id);
-        const usageStr = await redis.get(key);
+        const [usageStr, subscription] = await Promise.all([
+          redis.get(key),
+          db
+            .select()
+            .from(subscriptions)
+            .where(eq(subscriptions.organizationId, organization.id))
+            .limit(1),
+        ]);
         const usage = parseInt(usageStr || "0", 10);
-
-        const subscription = await db
-          .select()
-          .from(subscriptions)
-          .where(eq(subscriptions.organizationId, organization.id))
-          .limit(1);
 
         const planId = subscription[0]?.plan || "free";
         const plan =
