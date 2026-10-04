@@ -4,6 +4,7 @@ import { appClient } from "@/lib/app-client";
 import { AlertTriangle } from "lucide-react";
 import { TunnelHeader } from "@/components/tunnel-details/tunnel-header";
 import { TunnelTabs } from "@/components/tunnel-details/tunnel-tabs";
+import { TabsContent } from "@/components/arc/tabs/tabs";
 import { TunnelOverview } from "@/components/tunnel-details/tunnel-overview";
 import { TunnelOverviewSkeleton } from "@/components/tunnel-details/tunnel-overview-ui";
 import { ProtocolOverview } from "@/components/tunnel-details/protocol-overview";
@@ -202,83 +203,81 @@ function TunnelDetailView() {
 
   return (
     <div className="mx-auto max-w-[1440px] space-y-7">
-      <div className="flex flex-col gap-6">
-        <TunnelHeader
-          tunnel={tunnel}
-          onStop={() => stopMutation.mutateAsync().then(() => undefined)}
-          isStopping={stopMutation.isPending}
-        />
+      <TunnelHeader
+        tunnel={tunnel}
+        onStop={() => stopMutation.mutateAsync().then(() => undefined)}
+        isStopping={stopMutation.isPending}
+      />
 
-        <TunnelTabs
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          protocol={tunnel.protocol}
-        />
-      </div>
+      <TunnelTabs
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        protocol={tunnel.protocol}
+      >
+        <TabsContent value="overview" className="mt-7">
+          {isProtocolTunnel ? (
+            <ProtocolOverview
+              protocol={tunnel.protocol as "tcp" | "udp"}
+              stats={protocolStatsData?.stats || null}
+              chartData={protocolStatsData?.chartData || []}
+              recentEvents={protocolStatsData?.recentEvents || []}
+              timeRange={timeRange}
+              setTimeRange={setTimeRange}
+              dataRange={
+                protocolStatsData &&
+                "timeRange" in protocolStatsData &&
+                typeof protocolStatsData.timeRange === "string"
+                  ? protocolStatsData.timeRange
+                  : timeRange
+              }
+              isLoading={protocolStatsLoading && !protocolStatsData}
+              isPlaceholderData={
+                isProtocolPlaceholderData ||
+                (protocolStatsFetching && !!protocolStatsData)
+              }
+              error={protocolStatsError?.message ?? null}
+              onRetry={() => void refetchProtocolStats()}
+              onViewActivity={() => setActiveTab("requests")}
+            />
+          ) : (
+            <TunnelOverview
+              stats={stats}
+              chartData={chartData}
+              recentRequests={
+                statsData && "requests" in statsData ? statsData.requests : []
+              }
+              timeRange={timeRange}
+              setTimeRange={setTimeRange}
+              dataRange={
+                statsData &&
+                "timeRange" in statsData &&
+                typeof statsData.timeRange === "string"
+                  ? statsData.timeRange
+                  : timeRange
+              }
+              isLoading={statsLoading && !statsData}
+              isPlaceholderData={
+                isPlaceholderData || (statsFetching && !!statsData)
+              }
+              error={statsError?.message ?? null}
+              onRetry={() => void refetchStats()}
+              onViewActivity={() => setActiveTab("requests")}
+            />
+          )}
+        </TabsContent>
 
-      {activeTab === "overview" && isProtocolTunnel && (
-        <ProtocolOverview
-          protocol={tunnel.protocol as "tcp" | "udp"}
-          stats={protocolStatsData?.stats || null}
-          chartData={protocolStatsData?.chartData || []}
-          recentEvents={protocolStatsData?.recentEvents || []}
-          timeRange={timeRange}
-          setTimeRange={setTimeRange}
-          dataRange={
-            protocolStatsData &&
-            "timeRange" in protocolStatsData &&
-            typeof protocolStatsData.timeRange === "string"
-              ? protocolStatsData.timeRange
-              : timeRange
-          }
-          isLoading={protocolStatsLoading && !protocolStatsData}
-          isPlaceholderData={
-            isProtocolPlaceholderData ||
-            (protocolStatsFetching && !!protocolStatsData)
-          }
-          error={protocolStatsError?.message ?? null}
-          onRetry={() => void refetchProtocolStats()}
-          onViewActivity={() => setActiveTab("requests")}
-        />
-      )}
-
-      {activeTab === "overview" && !isProtocolTunnel && (
-        <TunnelOverview
-          stats={stats}
-          chartData={chartData}
-          recentRequests={
-            statsData && "requests" in statsData ? statsData.requests : []
-          }
-          timeRange={timeRange}
-          setTimeRange={setTimeRange}
-          dataRange={
-            statsData &&
-            "timeRange" in statsData &&
-            typeof statsData.timeRange === "string"
-              ? statsData.timeRange
-              : timeRange
-          }
-          isLoading={statsLoading && !statsData}
-          isPlaceholderData={
-            isPlaceholderData || (statsFetching && !!statsData)
-          }
-          error={statsError?.message ?? null}
-          onRetry={() => void refetchStats()}
-          onViewActivity={() => setActiveTab("requests")}
-        />
-      )}
-
-      {activeTab === "requests" && isProtocolTunnel && (
-        <ProtocolEvents
-          tunnelId={tunnelId}
-          protocol={tunnel.protocol as "tcp" | "udp"}
-          orgSlug={orgSlug}
-        />
-      )}
-
-      {activeTab === "requests" && !isProtocolTunnel && (
-        <TunnelRequests tunnelId={tunnelId} />
-      )}
+        <TabsContent value="requests" className="mt-7">
+          {isProtocolTunnel ? (
+            <ProtocolEvents
+              tunnelId={tunnelId}
+              protocol={tunnel.protocol as "tcp" | "udp"}
+              orgSlug={orgSlug}
+            />
+          ) : (
+            <TunnelRequests tunnelId={tunnelId} />
+          )}
+        </TabsContent>
+      </TunnelTabs>
     </div>
   );
 }
@@ -298,7 +297,7 @@ function TunnelDetailSkeleton({ activeTab }: { activeTab: string }) {
               <div className="h-5 w-44 max-w-[45vw] rounded bg-white/[0.07]" />
               <div className="h-6 w-16 rounded-full bg-white/[0.05]" />
             </div>
-            <div className="h-8 w-24 rounded-md bg-white/[0.05]" />
+            <div className="h-11 w-28 rounded-xl bg-white/[0.05]" />
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
             <div className="h-3 w-10 rounded bg-white/[0.04]" />
@@ -309,32 +308,35 @@ function TunnelDetailSkeleton({ activeTab }: { activeTab: string }) {
           </div>
         </header>
 
-        <div className="flex border-b border-white/[0.07]">
-          <div className="h-10 w-18 border-b border-white/[0.08]" />
-          <div className="h-10 w-18 border-b border-white/[0.04]" />
+        <div className="flex h-10 items-center gap-6 border-b border-white/[0.08]">
+          <div className="h-2.5 w-14 rounded-sm bg-white/[0.06]" />
+          <div className="h-2.5 w-14 rounded-sm bg-white/[0.04]" />
         </div>
       </div>
 
       {activeTab === "requests" ? (
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="h-9 w-full max-w-sm border-b border-white/[0.08]">
-              <div className="mt-3 h-2.5 w-36 bg-white/[0.04]" />
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex h-9 w-full min-w-0 items-center rounded-xl border border-white/[0.08] px-3 sm:w-72">
+              <div className="h-2.5 w-36 bg-white/[0.04]" />
             </div>
-            <div className="flex h-9 w-56 items-end gap-5 border-b border-white/[0.07] px-2 pb-3">
-              {[24, 14, 20, 14, 20].map((width, index) => (
-                <div
-                  key={index}
-                  className="h-2 bg-white/[0.04]"
-                  style={{ width }}
-                />
-              ))}
+            <div className="ml-auto flex max-w-full flex-wrap items-center gap-2">
+              <div className="h-8 w-20 shrink-0 rounded-xl bg-white/[0.03]" />
+              <div className="flex h-9 w-72 items-center gap-5 rounded-lg border border-white/[0.07] px-2">
+                {[24, 14, 20, 14, 20].map((width, index) => (
+                  <div
+                    key={index}
+                    className="h-2 bg-white/[0.04]"
+                    style={{ width }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
           <div className="overflow-hidden rounded-xl border border-white/[0.07]">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-185 text-left">
+              <table className="w-full min-w-[760px] text-left">
                 <thead className="border-b border-white/[0.07] text-[9px] uppercase tracking-[0.1em] text-zinc-800">
                   <tr>
                     <th className="w-20 px-4 py-3 font-medium">Status</th>
@@ -354,7 +356,7 @@ function TunnelDetailSkeleton({ activeTab }: { activeTab: string }) {
                 </thead>
                 <tbody className="divide-y divide-white/[0.05]">
                   {Array.from({ length: 6 }).map((_, index) => (
-                    <tr key={index} className="h-11">
+                    <tr key={index} className="h-12">
                       <td className="px-4 py-3">
                         <div className="h-2.5 w-7 bg-white/[0.05]" />
                       </td>
@@ -383,6 +385,10 @@ function TunnelDetailSkeleton({ activeTab }: { activeTab: string }) {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="flex h-11 items-center justify-between border-t border-white/[0.07] px-4">
+              <div className="h-2.5 w-20 rounded bg-white/[0.04]" />
+              <div className="h-2.5 w-16 rounded bg-white/[0.04]" />
             </div>
           </div>
         </div>
