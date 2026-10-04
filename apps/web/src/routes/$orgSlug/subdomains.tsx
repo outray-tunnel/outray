@@ -1,194 +1,236 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
-import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
-import { appClient } from "@/lib/app-client";
+import { useRef, useState } from "react";
+import { appClient, type Subdomain } from "@/lib/app-client";
 import {
   getPlanLimits,
   isUnlimitedPlanLimit,
+  type SubscriptionPlan,
 } from "@/lib/subscription-plans";
+import { SearchField } from "@/components/arc/search-field/search-field";
 import { SubdomainHeader } from "@/components/subdomains/subdomain-header";
 import { SubdomainLimitWarning } from "@/components/subdomains/subdomain-limit-warning";
 import { CreateSubdomainModal } from "@/components/subdomains/create-subdomain-modal";
 import { SubdomainCard } from "@/components/subdomains/subdomain-card";
 import { LimitModal } from "@/components/limit-modal";
-import { ResourceListSkeleton } from "@/components/resource-list-skeleton";
+import {
+  AddressEmptyState,
+  AddressListPanel,
+  AddressListSkeleton,
+  AddressNotice,
+} from "@/components/tunnel-addresses/address-page";
+import {
+  filterSubdomains,
+  requireAddressResult,
+} from "@/components/tunnel-addresses/address-list-state";
 
 export const Route = createFileRoute("/$orgSlug/subdomains")({
-  head: () => ({
-    meta: [{ title: "Subdomains - OutRay" }],
-  }),
+  head: () => ({ meta: [{ title: "Subdomains - OutRay" }] }),
   component: SubdomainsView,
 });
 
 function SubdomainsView() {
   const { orgSlug } = Route.useParams();
+  return <SubdomainsPage key={orgSlug} orgSlug={orgSlug} />;
+}
+
+function SubdomainsPage({ orgSlug }: { orgSlug: string }) {
   const queryClient = useQueryClient();
+  const createTrigger = useRef<HTMLButtonElement>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
-  const { data: subscriptionData, isLoading: isLoadingSubscription } = useQuery(
-    {
-      queryKey: ["subscription", orgSlug],
-      queryFn: async () => {
-        if (!orgSlug) return null;
-        const response = await appClient.subscriptions.get(orgSlug);
-        if ("error" in response) throw new Error(response.error);
-        return response;
-      },
-      enabled: !!orgSlug,
-    },
-  );
-
-  const { data, isLoading: isLoadingSubdomains } = useQuery({
-    queryKey: ["subdomains", orgSlug],
-    queryFn: () => {
-      if (!orgSlug) throw new Error("No active organization");
-      return appClient.subdomains.list(orgSlug);
-    },
-    enabled: !!orgSlug,
+  const subscriptionQuery = useQuery({
+    queryKey: ["subscription", orgSlug],
+    queryFn: async () =>
+      requireAddressResult(await appClient.subscriptions.get(orgSlug)),
   });
-
-  const isLoading = isLoadingSubdomains || isLoadingSubscription;
+  const listQuery = useQuery({
+    queryKey: ["subdomains", orgSlug],
+    queryFn: async () =>
+      requireAddressResult(await appClient.subdomains.list(orgSlug)),
+  });
 
   const createMutation = useMutation({
-    mutationFn: async (subdomain: string) => {
-      if (!orgSlug) throw new Error("No active organization");
-      const response = await appClient.subdomains.create({
-        subdomain,
-        orgSlug,
-      });
-      if ("error" in response || "message" in response) {
-        const errorMsg =
-          (response as any).error ||
-          (response as any).message ||
-          "Failed to create subdomain";
-        throw new Error(errorMsg);
-      }
-      return response;
-    },
-    onSuccess: () => {
+    mutationFn: async (subdomain: string) =>
+      requireAddressResult(
+        await appClient.subdomains.create({ subdomain, orgSlug }),
+      ),
+    onSuccess: (result) => {
+      queryClient.setQueryData<{ subdomains: Subdomain[] }>(
+        ["subdomains", orgSlug],
+        (current) => ({
+          subdomains: [
+            result.subdomain,
+            ...(current?.subdomains ?? []).filter(
+              (item) => item.id !== result.subdomain.id,
+            ),
+          ],
+        }),
+      );
       setIsCreating(false);
-      setError(null);
-      queryClient.invalidateQueries({ queryKey: ["subdomains", orgSlug] });
+      setFormError(null);
+      setSearch("");
+      void queryClient.invalidateQueries({ queryKey: ["subdomains", orgSlug] });
     },
-    onError: (err: Error) => {
-      setError(err.message || "Failed to create subdomain");
-    },
+    onError: (error: Error) => setFormError(error.message),
   });
-
-  // Keep modal open when there's an error
-  const modalError = createMutation.isError
-    ? createMutation.error?.message || "Failed to create subdomain"
-    : error;
-
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      if (!orgSlug) throw new Error("No active organization");
-      return appClient.subdomains.delete(orgSlug, id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["subdomains", orgSlug] });
+    mutationFn: async (id: string) =>
+      requireAddressResult(await appClient.subdomains.delete(orgSlug, id)),
+    onSuccess: (_result, id) => {
+      queryClient.setQueryData<{ subdomains: Subdomain[] }>(
+        ["subdomains", orgSlug],
+        (current) =>
+          current && {
+            subdomains: current.subdomains.filter((item) => item.id !== id),
+          },
+      );
+      void queryClient.invalidateQueries({ queryKey: ["subdomains", orgSlug] });
     },
   });
 
-  const subdomains = data && "subdomains" in data ? data.subdomains : [];
-  const subscription = subscriptionData?.subscription;
-  const currentPlan = subscription?.plan || "free";
-  const planLimits = getPlanLimits(currentPlan as any);
+  const subdomains = listQuery.data?.subdomains ?? [];
+  const filtered = filterSubdomains(subdomains, search);
+  const currentPlan = subscriptionQuery.data?.subscription?.plan || "free";
+  const limit = getPlanLimits(currentPlan as SubscriptionPlan).maxSubdomains;
+  const isUnlimited = isUnlimitedPlanLimit(currentPlan, limit);
+  const isAtLimit = !isUnlimited && subdomains.length >= limit;
+  const isReady = Boolean(listQuery.data && subscriptionQuery.data);
 
-  const currentSubdomainCount = subdomains.length;
-  const subdomainLimit = planLimits.maxSubdomains;
-  const isUnlimited = isUnlimitedPlanLimit(currentPlan, subdomainLimit);
-  const isAtLimit = !isUnlimited && currentSubdomainCount >= subdomainLimit;
-
-  const handleAddSubdomainClick = () => {
+  function openCreate() {
+    if (!isReady) return;
     if (isAtLimit) {
       setIsLimitModalOpen(true);
       return;
     }
+    createMutation.reset();
+    setFormError(null);
     setIsCreating(true);
-  };
-
-  if (isLoading) {
-    return <ResourceListSkeleton actionClassName="w-9 sm:w-40" />;
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-7">
+    <div className="outray-arc outray-arc-list mx-auto max-w-6xl space-y-6">
       <SubdomainHeader
-        currentSubdomainCount={currentSubdomainCount}
-        subdomainLimit={subdomainLimit}
+        currentSubdomainCount={subdomains.length}
+        subdomainLimit={limit}
         isUnlimited={isUnlimited}
         isAtLimit={isAtLimit}
-        onAddClick={handleAddSubdomainClick}
+        isReady={isReady}
+        onAddClick={openCreate}
+        buttonRef={createTrigger}
       />
 
-      <SubdomainLimitWarning
-        isAtLimit={isAtLimit}
-        subdomainLimit={subdomainLimit}
-        currentPlan={currentPlan}
-      />
+      {subscriptionQuery.isError && (
+        <AddressNotice
+          message="Could not load your plan limits. Retry to add or reserve addresses."
+          onRetry={() => void subscriptionQuery.refetch()}
+        />
+      )}
+      {listQuery.isError && listQuery.data && (
+        <AddressNotice
+          message="Could not refresh subdomains. Showing your last loaded addresses."
+          onRetry={() => void listQuery.refetch()}
+        />
+      )}
+      {isReady && (
+        <SubdomainLimitWarning
+          isAtLimit={isAtLimit}
+          subdomainLimit={limit}
+          currentPlan={currentPlan}
+        />
+      )}
+
+      <AddressListPanel
+        label="Reserved subdomains"
+        toolbar={
+          <>
+            <div className="outray-arc-address-search w-full sm:max-w-[360px]">
+              <SearchField
+                label="Search subdomains"
+                placeholder="Search addresses…"
+                value={search}
+                onValueChange={setSearch}
+                disabled={!listQuery.data}
+              />
+            </div>
+            <span
+              className="text-[12px] tabular-nums text-zinc-500"
+              role="status"
+            >
+              {listQuery.data
+                ? `${filtered.length} ${filtered.length === 1 ? "address" : "addresses"}`
+                : ""}
+            </span>
+          </>
+        }
+      >
+        {listQuery.isPending ? (
+          <AddressListSkeleton label="Loading subdomains" />
+        ) : listQuery.isError && !listQuery.data ? (
+          <AddressEmptyState
+            isError
+            title="Could not load subdomains"
+            description="Your addresses could not be loaded. Check your connection and try again."
+            action="Try again"
+            onAction={() => void listQuery.refetch()}
+          />
+        ) : subdomains.length === 0 ? (
+          <AddressEmptyState
+            title="Your address, every time"
+            description="Reserve a name so your tunnel keeps the same OutRay address whenever it connects."
+            action="Reserve subdomain"
+            onAction={openCreate}
+            disabled={!isReady}
+          />
+        ) : filtered.length === 0 ? (
+          <AddressEmptyState
+            title="No matching addresses"
+            description="Try a different name or clear your search to see all reserved subdomains."
+            action="Clear search"
+            onAction={() => setSearch("")}
+          />
+        ) : (
+          filtered.map((subdomain) => (
+            <SubdomainCard
+              key={subdomain.id}
+              subdomain={subdomain}
+              onDelete={(id) => deleteMutation.mutateAsync(id)}
+            />
+          ))
+        )}
+      </AddressListPanel>
+
+      <p className="text-[12px] leading-5 text-zinc-500">
+        Reserved addresses belong to this workspace. Use{" "}
+        <code className="font-mono text-zinc-400">--subdomain</code> when
+        connecting a tunnel.
+      </p>
 
       <CreateSubdomainModal
         isOpen={isCreating}
         onClose={() => {
           setIsCreating(false);
-          setError(null);
+          setFormError(null);
           createMutation.reset();
         }}
-        onCreate={(subdomain) => createMutation.mutate(subdomain)}
+        onCreate={(subdomain) => createMutation.mutateAsync(subdomain)}
         isPending={createMutation.isPending}
-        error={modalError}
-        setError={setError}
+        error={formError}
+        setError={setFormError}
+        triggerRef={createTrigger}
       />
-
       <LimitModal
         isOpen={isLimitModalOpen}
         onClose={() => setIsLimitModalOpen(false)}
-        title="Subdomain Limit Reached"
-        description={`You've reached your plan's limit of ${subdomainLimit} reserved subdomains. Upgrade your plan to reserve more subdomains.`}
-        limit={subdomainLimit}
+        title="Subdomain limit reached"
+        description={`Your plan includes ${limit} reserved subdomains. Upgrade to reserve another address.`}
+        limit={limit}
         currentPlan={currentPlan}
-        resourceName="Reserved Subdomains"
+        resourceName="Reserved subdomains"
       />
-
-      {subdomains.length === 0 ? (
-        <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-white/[0.07] py-12 text-center">
-          <HugeiconsIcon
-            icon={Globe02Icon}
-            size={27}
-            strokeWidth={1.5}
-            className="mb-4 text-zinc-700"
-          />
-          <h3 className="text-sm font-medium text-zinc-300">
-            No subdomains reserved
-          </h3>
-          <p className="mx-auto mb-6 mt-2 max-w-sm text-xs text-zinc-700">
-            Reserve a subdomain to secure your preferred tunnel address.
-          </p>
-          <button
-            onClick={handleAddSubdomainClick}
-            className="mx-auto flex h-9 items-center gap-2 rounded-md bg-white px-3.5 text-[12px] font-medium text-black hover:bg-zinc-200"
-          >
-            <HugeiconsIcon icon={Add01Icon} size={15} strokeWidth={1.9} />
-            Reserve your first subdomain
-          </button>
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-white/[0.07]">
-          {subdomains.map((sub: any) => (
-            <SubdomainCard
-              key={sub.id}
-              subdomain={sub}
-              onDelete={(id) => deleteMutation.mutate(id)}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
