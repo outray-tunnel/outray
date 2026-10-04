@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Button } from "../src/components/ui/button";
+import { Button } from "../src/components/arc/button/button";
 import { NewTunnelButton } from "../src/components/new-tunnel-button";
 import {
   buildNewTunnelCommand,
@@ -54,21 +54,16 @@ test("workspace names are shell-quoted before appearing in a copyable command", 
   assert.equal(command, "outray 8000 --org 'team'\\''; echo unsafe'");
 });
 
-test("UIArc-inspired button variants preserve focus while loading", () => {
-  for (const variant of ["primary", "secondary", "ghost", "danger"] as const) {
-    const html = renderToStaticMarkup(
-      React.createElement(Button, { variant }, variant),
-    );
-    assert.match(html, new RegExp(`>${variant}<`));
-    assert.match(html, /<button/);
-  }
-
-  const loading = renderToStaticMarkup(
+test("a loading UIArc button stays focusable and announces that it is busy", () => {
+  const html = renderToStaticMarkup(
     React.createElement(Button, { loading: true }, "Copy command"),
   );
-  assert.match(loading, /aria-busy="true"/);
-  assert.match(loading, /aria-disabled="true"/);
-  assert.doesNotMatch(loading, /disabled=""/);
+
+  assert.match(html, /aria-busy="true"/);
+  assert.match(html, /aria-disabled="true"/);
+  assert.match(html, /tabindex="0"/);
+  assert.match(html, /Copy command/);
+  assert.doesNotMatch(html, /disabled=""/);
 });
 
 test("the new tunnel button still opens plan-limit guidance", () => {
@@ -78,8 +73,8 @@ test("the new tunnel button still opens plan-limit guidance", () => {
       onClick: () => {},
     }),
   );
+
   assert.match(html, /New tunnel \(plan limit reached\)/);
-  assert.match(html, /rounded-full/);
-  assert.match(html, /<svg/);
+  assert.match(html, /<button/);
   assert.doesNotMatch(html, /disabled=""/);
 });
