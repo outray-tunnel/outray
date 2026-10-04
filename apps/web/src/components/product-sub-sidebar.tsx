@@ -1,4 +1,5 @@
 import { useLocation, useParams } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import type { IconSvgElement } from "@hugeicons/react";
 import Activity03Icon from "@hugeicons-pro/core-stroke-rounded/Activity03Icon";
 import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
@@ -17,6 +18,8 @@ import ServerStack01Icon from "@hugeicons-pro/core-stroke-rounded/ServerStack01I
 import WorkflowSquare06Icon from "@hugeicons-pro/core-stroke-rounded/WorkflowSquare06Icon";
 import { NavItem } from "./sidebar/nav-item";
 import { usePermission } from "@/lib/auth-client";
+import { appClient } from "@/lib/app-client";
+import { ActiveTunnelBadge } from "./sidebar/active-tunnel-badge";
 
 interface SubNavItem {
   label: string;
@@ -48,6 +51,21 @@ export function ProductSubSidebar() {
       ? location.pathname === path
       : location.pathname === path || location.pathname.startsWith(`${path}/`),
   );
+
+  const { data: tunnelsData, isError: tunnelsError } = useQuery({
+    queryKey: ["tunnels", orgSlug],
+    queryFn: async () => {
+      const response = await appClient.tunnels.list(orgSlug);
+      if ("error" in response) throw new Error(response.error);
+      return response;
+    },
+    enabled: !!orgSlug && isTunnelRoute,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+  });
+  const activeTunnelsCount = tunnelsError
+    ? undefined
+    : tunnelsData?.tunnels.length;
 
   let product: ProductNavigation | null = null;
 
@@ -190,6 +208,11 @@ export function ProductSubSidebar() {
               isCollapsed={false}
               params={{ orgSlug }}
               isActive={isItemActive(item)}
+              badge={
+                item.to === "/$orgSlug/tunnels" ? (
+                  <ActiveTunnelBadge count={activeTunnelsCount} />
+                ) : undefined
+              }
             />
           ))}
         </div>
