@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { pathToFileURL } from "node:url";
 
 import Redis from "ioredis";
 import pg from "pg";
@@ -7,7 +8,7 @@ const TARGET_ORG_SLUG = process.env.OUTRAY_SEED_ORG?.trim() || "outray-tunnel";
 const EXPECTED_TINYBIRD_BRANCH = "development";
 const DAY_MS = 86_400_000;
 
-const TUNNELS = [
+export const TUNNELS = [
   {
     id: "10000000-0000-4000-8000-000000000001",
     name: "Public API",
@@ -42,6 +43,46 @@ const TUNNELS = [
   },
 ];
 
+const additionalTunnels = [
+  ["Storefront", "storefront", "http", null, true],
+  ["Admin Dashboard", "admin", "http", null, true],
+  ["Media API", "media", "http", null, true],
+  ["Authentication", "auth", "http", null, true],
+  ["Payment Gateway", "payments", "http", null, true],
+  ["Documentation", "docs", "http", null, true],
+  ["Notification Webhooks", "notifications", "http", null, true],
+  ["Search API", "search", "http", null, true],
+  ["Preview: feature / checkout redesign", "checkout-preview", "http", null, false],
+  ["Internal Tools", "tools", "http", null, false],
+  ["Redis Development", "redis", "tcp", 16379, true],
+  ["SSH Workspace", "ssh", "tcp", 12222, true],
+  ["Analytics Database", "analytics-db", "tcp", 15433, false],
+  ["Telemetry Collector", "telemetry", "udp", 14317, false],
+];
+for (const [index, [name, slug, protocol, remotePort, online]] of additionalTunnels.entries()) {
+  TUNNELS.push({
+    id: `10000000-0000-4000-8000-${String(index + 5).padStart(12, "0")}`,
+    name,
+    url: `${protocol === "http" ? "https" : protocol}://outray-dev-${slug}.outray.app${remotePort ? `:${remotePort}` : ""}`,
+    protocol,
+    remotePort,
+    online,
+  });
+}
+
+export const SUBDOMAINS = [
+  "outray-dev-api", "outray-dev-webhooks",
+  ...additionalTunnels.filter((entry) => entry[2] === "http").map((entry) => `outray-dev-${entry[1]}`),
+  ...Array.from({ length: 36 }, (_, index) => `outray-dev-preview-${String(index + 1).padStart(2, "0")}`),
+];
+export const DOMAINS = [
+  ["api.dev.outray.test", "active"],
+  ["hooks.dev.outray.test", "pending"],
+  ["old.dev.outray.test", "failed"],
+  ...["storefront", "admin", "media", "auth", "payments", "docs", "notifications", "search", "preview", "tools", "analytics", "assets", "mobile", "sandbox", "customer-portal"]
+    .map((name, index) => [`${name}.dev.outray.test`, ["active", "active", "pending", "failed"][index % 4]]),
+];
+
 function required(name) {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`${name} is required`);
@@ -57,13 +98,49 @@ function parsedUrl(name) {
   }
 }
 
-function assertDevelopmentTarget(name, url) {
+export function assertDevelopmentTarget(name, url) {
   const host = url.hostname.toLowerCase();
-  if (!/(^localhost$|^127\.0\.0\.1$|dev|development)/.test(host)) {
+  if (!/(^localhost$|^127\.0\.0\.1$|^\[::1\]$|(^|[.-])(dev|development)([.-]|$))/.test(host)) {
     throw new Error(
       `${name} points at ${host}, which does not look like a development service. Refusing to seed.`,
     );
   }
+}
+
+export function assertDevelopmentConfiguration(env = process.env) {
+  if (env.NODE_ENV === "production") throw new Error("Refusing to seed with NODE_ENV=production");
+  if (env.TINYBIRD_BRANCH !== EXPECTED_TINYBIRD_BRANCH) {
+    throw new Error(`TINYBIRD_BRANCH must be ${EXPECTED_TINYBIRD_BRANCH} before any seed writes`);
+  }
+  for (const key of ["TINYBIRD_API_HOST", "TINYBIRD_INGEST_TOKEN", "TINYBIRD_QUERY_TOKEN"]) {
+    if (!env[key]?.trim()) throw new Error(`${key} is required before any seed writes`);
+  }
+}
+
+async function assertFixtureOwnership(client, organizationId) {
+  const checks = [
+    ["tunnels", "id", TUNNELS.map((entry) => entry.id)],
+    ["tunnels", "url", TUNNELS.map((entry) => entry.url)],
+    ["subdomains", "id", SUBDOMAINS.map((_, index) => `seed-dev-subdomain-${index + 1}`)],
+    ["subdomains", "subdomain", SUBDOMAINS],
+    ["domains", "id", DOMAINS.map((_, index) => `seed-dev-domain-${index + 1}`)],
+    ["domains", "domain", DOMAINS.map(([domain]) => domain)],
+    ["observability_alerts", "id", ["seed-dev-alert-latency", "seed-dev-alert-errors", "seed-dev-alert-worker"]],
+    ["incidents", "id", ["seed-dev-incident-1", "seed-dev-incident-2"]],
+    ["notifications", "id", ["seed-dev-notification-1", "seed-dev-notification-2"]],
+  ];
+  for (const [table, field, values] of checks) {
+    const result = await client.query(
+      `SELECT 1 FROM ${table} WHERE ${field} = ANY($1::text[]) AND organization_id IS DISTINCT FROM $2 LIMIT 1`,
+      [values, organizationId],
+    );
+    if (result.rowCount) throw new Error(`Development fixtures in ${table} belong to another organization; refusing to overwrite`);
+  }
+  const statusBinding = await client.query(
+    "SELECT 1 FROM domains WHERE domain = ANY($1::text[]) AND purpose <> 'tunnel' LIMIT 1",
+    [DOMAINS.map(([domain]) => domain)],
+  );
+  if (statusBinding.rowCount) throw new Error("A fixture domain is bound to a status page; refusing to overwrite");
 }
 
 function pgOptions(name) {
@@ -138,6 +215,7 @@ async function insertJson(client, table, columns, records) {
 async function seedPrimaryDatabase(client, organization, user) {
   await client.query("BEGIN");
   try {
+    await assertFixtureOwnership(client, organization.id);
     for (const tunnel of TUNNELS) {
       await client.query(
         `INSERT INTO tunnels
@@ -151,7 +229,8 @@ async function seedPrimaryDatabase(client, organization, user) {
           user_id = EXCLUDED.user_id,
           organization_id = EXCLUDED.organization_id,
           last_seen_at = EXCLUDED.last_seen_at,
-          updated_at = NOW()`,
+          updated_at = NOW()
+         WHERE tunnels.organization_id = EXCLUDED.organization_id`,
         [
           tunnel.id,
           tunnel.url,
@@ -168,44 +247,32 @@ async function seedPrimaryDatabase(client, organization, user) {
     await client.query(
       `INSERT INTO organization_settings
         (id, organization_id, full_capture_enabled, created_at, updated_at)
-       VALUES ('seed-dev-org-settings', $1, true, NOW(), NOW())
-       ON CONFLICT (organization_id) DO UPDATE SET
-        full_capture_enabled = true,
-        updated_at = NOW()`,
+       VALUES ('seed-dev-org-settings-' || $1, $1, true, NOW(), NOW())
+       ON CONFLICT (organization_id) DO NOTHING`,
       [organization.id],
     );
 
     await client.query(
       `INSERT INTO subscriptions
         (id, organization_id, plan, status, billing_interval, current_period_end, cancel_at_period_end, created_at, updated_at)
-       VALUES ('seed-dev-subscription', $1, 'pulse', 'active', 'month', NOW() + INTERVAL '30 days', false, NOW(), NOW())
-       ON CONFLICT (organization_id) DO UPDATE SET
-        plan = 'pulse',
-        status = 'active',
-        current_period_end = NOW() + INTERVAL '30 days',
-        cancel_at_period_end = false,
-        updated_at = NOW()`,
+       VALUES ('seed-dev-subscription-' || $1, $1, 'pulse', 'active', 'month', NOW() + INTERVAL '30 days', false, NOW(), NOW())
+       ON CONFLICT (organization_id) DO NOTHING`,
       [organization.id],
     );
 
-    const subdomains = ["outray-dev-api", "outray-dev-webhooks"];
-    for (const [index, subdomain] of subdomains.entries()) {
+    for (const [index, subdomain] of SUBDOMAINS.entries()) {
       await client.query(
         `INSERT INTO subdomains (id, subdomain, organization_id, user_id, created_at)
          VALUES ($1, $2, $3, $4, NOW() - INTERVAL '30 days')
          ON CONFLICT (subdomain) DO UPDATE SET
           organization_id = EXCLUDED.organization_id,
-          user_id = EXCLUDED.user_id`,
+          user_id = EXCLUDED.user_id
+         WHERE subdomains.organization_id = EXCLUDED.organization_id`,
         [`seed-dev-subdomain-${index + 1}`, subdomain, organization.id, user.id],
       );
     }
 
-    const domains = [
-      ["api.dev.outray.test", "active"],
-      ["hooks.dev.outray.test", "pending"],
-      ["old.dev.outray.test", "failed"],
-    ];
-    for (const [index, [domain, status]] of domains.entries()) {
+    for (const [index, [domain, status]] of DOMAINS.entries()) {
       await client.query(
         `INSERT INTO domains
           (id, domain, organization_id, user_id, status, created_at, updated_at)
@@ -214,7 +281,8 @@ async function seedPrimaryDatabase(client, organization, user) {
           organization_id = EXCLUDED.organization_id,
           user_id = EXCLUDED.user_id,
           status = EXCLUDED.status,
-          updated_at = NOW()`,
+          updated_at = NOW()
+         WHERE domains.organization_id = EXCLUDED.organization_id AND domains.purpose = 'tunnel'`,
         [`seed-dev-domain-${index + 1}`, domain, organization.id, user.id, status],
       );
     }
@@ -269,7 +337,7 @@ async function seedPrimaryDatabase(client, organization, user) {
            next_evaluation_at, created_at, updated_at)
          VALUES
           ($1, $2, $3, $4, $5, $6, $7, 'development', $8, $9, 5, 60,
-           2, 2, 5, 'no_data', $10, true, $11, $12, $13,
+           2, 2, 5, 'no_data', $10, false, $11, $12, $13,
            $14, $15, NOW() - INTERVAL '1 minute', NOW() - INTERVAL '25 minutes',
            NOW() + INTERVAL '1 hour', NOW() - INTERVAL '14 days', NOW())
          ON CONFLICT (id) DO UPDATE SET
@@ -279,9 +347,13 @@ async function seedPrimaryDatabase(client, organization, user) {
           underlying_state = EXCLUDED.underlying_state,
           current_value = EXCLUDED.current_value,
           sample_count = EXCLUDED.sample_count,
+          enabled = false,
+          notification_email = NULL,
+          notification_emails = ARRAY[]::text[],
           last_evaluated_at = EXCLUDED.last_evaluated_at,
           next_evaluation_at = EXCLUDED.next_evaluation_at,
-          updated_at = NOW()`,
+          updated_at = NOW()
+         WHERE observability_alerts.organization_id = EXCLUDED.organization_id`,
         [
           alert.id,
           organization.id,
@@ -292,7 +364,7 @@ async function seedPrimaryDatabase(client, organization, user) {
           alert.service,
           alert.operator,
           alert.threshold,
-          user.email,
+          null,
           alert.state,
           alert.value,
           alert.samples,
@@ -302,8 +374,8 @@ async function seedPrimaryDatabase(client, organization, user) {
       );
 
       await client.query(
-        `DELETE FROM observability_alert_evaluations WHERE id LIKE $1`,
-        [`${alert.id}:%`],
+        `DELETE FROM observability_alert_evaluations WHERE id LIKE $1 AND organization_id = $2`,
+        [`${alert.id}:%`, organization.id],
       );
       for (let point = 0; point < 36; point += 1) {
         const evaluatedAt = new Date(Date.now() - (35 - point) * 5 * 60_000);
@@ -337,8 +409,8 @@ async function seedPrimaryDatabase(client, organization, user) {
       }
     }
 
-    await client.query(`DELETE FROM notifications WHERE id LIKE 'seed-dev-notification-%'`);
-    await client.query(`DELETE FROM incidents WHERE id LIKE 'seed-dev-incident-%'`);
+    await client.query(`DELETE FROM notifications WHERE id LIKE 'seed-dev-notification-%' AND organization_id = $1`, [organization.id]);
+    await client.query(`DELETE FROM incidents WHERE id LIKE 'seed-dev-incident-%' AND organization_id = $1`, [organization.id]);
 
     const incidents = [
       {
@@ -395,7 +467,7 @@ async function seedPrimaryDatabase(client, organization, user) {
           incident.id,
           incident.alert.id,
           incident.status === "open" ? "firing" : "resolved",
-          user.email,
+          "demo@example.invalid",
           JSON.stringify({ alertName: incident.alert.name, service: incident.alert.service }),
           `seed-dev:${incident.id}:${incident.status}`,
         ],
@@ -409,10 +481,11 @@ async function seedPrimaryDatabase(client, organization, user) {
   }
 }
 
-function buildTunnelEvents(organizationId) {
+export function buildTunnelEvents(organizationId) {
   const events = [];
   const captures = [];
   const now = Date.now();
+  const httpTunnels = TUNNELS.filter((tunnel) => tunnel.protocol === "http");
   const methods = ["GET", "GET", "GET", "POST", "POST", "PATCH", "DELETE"];
   const routes = [
     "/api/orders",
@@ -424,9 +497,9 @@ function buildTunnelEvents(organizationId) {
     "/api/customers/cus_17",
   ];
 
-  for (let index = 0; index < 1_440; index += 1) {
-    const tunnel = TUNNELS[index % 2];
-    const ageRatio = index / 1_439;
+  for (let index = 0; index < 14_400; index += 1) {
+    const tunnel = httpTunnels[index % httpTunnels.length];
+    const ageRatio = index / 14_399;
     const age = Math.pow(ageRatio, 2.4) * 29.5 * DAY_MS;
     const timestamp = new Date(now - age);
     const requestId = `20000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
@@ -440,7 +513,8 @@ function buildTunnelEvents(organizationId) {
     );
     const bytesIn = Math.round(seededNumber(`bytes-in:${index}`, 80, 8_000));
     const bytesOut = Math.round(seededNumber(`bytes-out:${index}`, 240, 64_000));
-    const captured = index % 6 === 0;
+    // Offset each rotation so captures cover every HTTP tunnel, not just one.
+    const captured = (index + Math.floor(index / httpTunnels.length)) % 4 === 0;
 
     events.push({
       timestamp,
@@ -464,6 +538,17 @@ function buildTunnelEvents(organizationId) {
         statusCode >= 500
           ? { error: "upstream_timeout", requestId }
           : { ok: true, id: `resource_${String(index).padStart(4, "0")}` };
+      const format = Math.floor(index / (httpTunnels.length * 4)) % 4;
+      const contentType = ["application/json", "text/plain", "text/html", "application/x-www-form-urlencoded"][format];
+      const requestBody = format === 0
+        ? JSON.stringify({ quantity: (index % 5) + 1, source: "development-seed" }, null, 2)
+        : format === 1 ? "Synthetic development payload\nNo real credentials or customer data."
+        : format === 2 ? "<!doctype html><html><body><p>Development preview</p></body></html>"
+        : "quantity=2&source=development-seed";
+      const formattedResponse = format === 0 ? JSON.stringify(responseBody, null, 2)
+        : format === 1 ? (statusCode >= 500 ? "Upstream timed out" : "OK: development fixture")
+        : format === 2 ? "<!doctype html><html><body><h1>Preview ready</h1></body></html>"
+        : "ok=true&source=development-seed";
       captures.push({
         id: requestId,
         timestamp,
@@ -471,15 +556,15 @@ function buildTunnelEvents(organizationId) {
         organization_id: organizationId,
         retention_days: 90,
         request_headers: {
-          "content-type": "application/json",
+          "content-type": contentType,
           "x-request-id": requestId,
           authorization: "[REDACTED]",
         },
-        request_body: JSON.stringify({ quantity: (index % 5) + 1, source: "development-seed" }, null, 2),
-        request_body_size: bytesIn,
-        response_headers: { "content-type": "application/json", "x-powered-by": "OutRay" },
-        response_body: JSON.stringify(responseBody, null, 2),
-        response_body_size: bytesOut,
+        request_body: requestBody,
+        request_body_size: Buffer.byteLength(requestBody),
+        response_headers: { "content-type": contentType, "x-powered-by": "OutRay" },
+        response_body: formattedResponse,
+        response_body_size: Buffer.byteLength(formattedResponse),
       });
     }
   }
@@ -487,13 +572,15 @@ function buildTunnelEvents(organizationId) {
   return { events, captures };
 }
 
-function buildProtocolEvents(organizationId) {
+export function buildProtocolEvents(organizationId) {
   const records = [];
   const now = Date.now();
-  for (let index = 0; index < 320; index += 1) {
-    const tunnel = TUNNELS[index % 2 === 0 ? 2 : 3];
+  const protocolTunnels = TUNNELS.filter((tunnel) => tunnel.protocol !== "http");
+  for (let index = 0; index < 3_200; index += 1) {
+    const tunnel = protocolTunnels[Math.floor(index / 4) % protocolTunnels.length];
     const protocol = tunnel.protocol;
-    const timestamp = new Date(now - Math.pow(index / 319, 2) * 14 * DAY_MS);
+    const connectionIndex = Math.floor(index / 4);
+    const timestamp = new Date(now - 1_000 - Math.pow(connectionIndex / 799, 2.4) * 29.5 * DAY_MS + (index % 4) * 100);
     records.push({
       timestamp,
       tunnel_id: tunnel.id,
@@ -501,9 +588,9 @@ function buildProtocolEvents(organizationId) {
       retention_days: 90,
       protocol,
       event_type: protocol === "tcp" ? ["connection", "data", "data", "close"][index % 4] : "packet",
-      connection_id: protocol === "tcp" ? `conn-${Math.floor(index / 4)}` : "",
-      client_ip: `198.51.100.${(index % 220) + 1}`,
-      client_port: 20_000 + (index % 20_000),
+      connection_id: protocol === "tcp" ? `seed-conn-${tunnel.id}-${Math.floor(index / 4)}` : "",
+      client_ip: `198.51.100.${(connectionIndex % 220) + 1}`,
+      client_port: 20_000 + (connectionIndex % 20_000),
       bytes_in: Math.round(seededNumber(`protocol-in:${index}`, 40, 32_000)),
       bytes_out: Math.round(seededNumber(`protocol-out:${index}`, 40, 48_000)),
       duration_ms: protocol === "tcp" ? Math.round(seededNumber(`protocol-duration:${index}`, 20, 18_000)) : 0,
@@ -516,9 +603,9 @@ async function seedTimescale(client, organizationId) {
   const tunnelIds = TUNNELS.map((tunnel) => tunnel.id);
   await client.query("BEGIN");
   try {
-    await client.query("DELETE FROM request_captures WHERE tunnel_id = ANY($1::text[])", [tunnelIds]);
-    await client.query("DELETE FROM tunnel_events WHERE tunnel_id = ANY($1::text[])", [tunnelIds]);
-    await client.query("DELETE FROM protocol_events WHERE tunnel_id = ANY($1::text[])", [tunnelIds]);
+    for (const table of ["request_captures", "tunnel_events", "protocol_events"]) {
+      await client.query(`DELETE FROM ${table} WHERE tunnel_id = ANY($1::text[]) AND organization_id = $2`, [tunnelIds, organizationId]);
+    }
 
     const { events, captures } = buildTunnelEvents(organizationId);
     const protocolEvents = buildProtocolEvents(organizationId);
@@ -610,13 +697,16 @@ function baseResource(service, version) {
   };
 }
 
-function buildTinybirdRecords(organizationId) {
+export function buildTinybirdRecords(organizationId) {
   const anchor = Math.floor(Date.now() / 3_600_000) * 3_600_000;
   const ingestedAt = iso(Date.now());
   const services = [
     { name: "storefront-web", version: "1.8.0", baseMs: 180, errorEvery: 200 },
     { name: "checkout-api", version: "2.4.1", baseMs: 680, errorEvery: 29 },
     { name: "payments-worker", version: "1.3.2", baseMs: 1_350, errorEvery: 13 },
+    { name: "inventory-api", version: "3.2.0", baseMs: 240, errorEvery: 43 },
+    { name: "notification-worker", version: "1.6.4", baseMs: 430, errorEvery: 37 },
+    { name: "edge-gateway", version: "2.1.0", baseMs: 72, errorEvery: 101 },
   ];
   const routes = ["/", "/products", "/api/orders", "/api/checkout", "/api/customers/:customerId", "/health"];
   const methods = ["GET", "GET", "GET", "POST", "PATCH", "GET"];
@@ -624,14 +714,15 @@ function buildTinybirdRecords(organizationId) {
   const logs = [];
   const metrics = [];
 
-  for (let index = 0; index < 216; index += 1) {
+  for (let index = 0; index < 1_440; index += 1) {
     const service = services[index % services.length];
-    const startMs = anchor - (215 - index) * 6.5 * 60_000;
-    const traceId = hex(`dev-trace:${anchor}:${index}`, 32);
-    const rootSpanId = hex(`dev-root:${anchor}:${index}`, 16);
+    const startMs = anchor - Math.pow((1_439 - index) / 1_439, 2.4) * 29.5 * DAY_MS;
+    const traceId = hex(`dev-trace:${organizationId}:${anchor}:${index}`, 32);
+    const rootSpanId = hex(`dev-root:${organizationId}:${anchor}:${index}`, 16);
     const isError = index % service.errorEvery === 0;
-    const route = routes[index % routes.length];
-    const method = methods[index % methods.length];
+    const routeIndex = (Math.floor(index / services.length) + index) % routes.length;
+    const route = routes[routeIndex];
+    const method = methods[routeIndex];
     const durationMs = Math.round(service.baseMs + seededNumber(`trace-duration:${anchor}:${index}`, 20, service.baseMs * 0.75));
     const status = isError ? 503 : index % 17 === 0 ? 201 : 200;
     const requestId = `req_${hex(`${anchor}:${index}`, 18)}`;
@@ -710,7 +801,7 @@ function buildTinybirdRecords(organizationId) {
         ...common,
         start_time: iso(childStart),
         end_time: iso(Math.min(startMs + durationMs, childStart + childDuration)),
-        span_id: hex(`dev-child:${anchor}:${index}:${childIndex}`, 16),
+        span_id: hex(`dev-child:${organizationId}:${anchor}:${index}:${childIndex}`, 16),
         parent_span_id: rootSpanId,
         span_name: name,
         span_kind: name.startsWith("db") ? 3 : 1,
@@ -731,7 +822,7 @@ function buildTinybirdRecords(organizationId) {
       organization_id: organizationId,
       retention_days: 90,
       ingested_at: ingestedAt,
-      event_id: hex(`dev-log:${anchor}:${index}`, 64),
+      event_id: hex(`dev-log:${organizationId}:${anchor}:${index}`, 64),
       timestamp: iso(startMs + Math.min(durationMs, 25)),
       observed_timestamp: iso(startMs + Math.min(durationMs, 30)),
       severity_number: severity[0],
@@ -765,10 +856,10 @@ function buildTinybirdRecords(organizationId) {
     ["queue.depth", "Pending background jobs", "{job}", "gauge"],
     ["orders.processed", "Processed orders", "{order}", "sum"],
   ];
-  for (let point = 0; point < 96; point += 1) {
-    const timestamp = anchor - (95 - point) * 15 * 60_000;
+  for (let point = 0; point < 192; point += 1) {
+    const timestamp = anchor - Math.pow((191 - point) / 191, 2.4) * 29.5 * DAY_MS;
     for (const service of services) {
-      for (const [metricIndex, [name, description, unit, type]] of metricDefinitions.entries()) {
+      for (const [name, description, unit, type] of metricDefinitions) {
         const identity = `${anchor}:${point}:${service.name}:${name}`;
         const base =
           name.includes("duration") ? service.baseMs :
@@ -782,9 +873,9 @@ function buildTinybirdRecords(organizationId) {
           organization_id: organizationId,
           retention_days: 90,
           ingested_at: ingestedAt,
-          event_id: hex(`dev-metric:${identity}`, 64),
+          event_id: hex(`dev-metric:${organizationId}:${identity}`, 64),
           timestamp: iso(timestamp),
-          start_timestamp: type === "gauge" ? null : iso(anchor - 24 * 60 * 60_000),
+          start_timestamp: type === "gauge" ? null : iso(anchor - 30 * DAY_MS),
           metric_name: name,
           metric_description: description,
           metric_unit: unit,
@@ -793,8 +884,8 @@ function buildTinybirdRecords(organizationId) {
           is_monotonic: type === "sum" ? 1 : 0,
           value: histogram ? null : value,
           value_int: null,
-          count: histogram ? String(20 + (point % 12)) : "0",
-          sum: histogram ? value * (20 + (point % 12)) : null,
+          count: histogram ? "24" : "0",
+          sum: histogram ? value * 24 : null,
           min: histogram ? value * 0.2 : null,
           max: histogram ? value * 2.4 : null,
           bucket_counts: histogram ? ["2", "8", "10", "4"] : [],
@@ -873,6 +964,7 @@ async function verifyTinybird(organizationId) {
 }
 
 async function main() {
+  assertDevelopmentConfiguration();
   const database = new pg.Client(pgOptions("DATABASE_URL"));
   const timescale = new pg.Client(pgOptions("TIMESCALE_URL"));
   const redisUrl = parsedUrl("REDIS_URL");
@@ -898,6 +990,8 @@ async function main() {
     const user = userResult.rows[0];
     if (!user) throw new Error(`Organization ${TARGET_ORG_SLUG} has no member to own seeded resources`);
 
+    await assertFixtureOwnership(database, organization.id);
+    await verifyTinybird(organization.id);
     console.log(`Seeding development data for ${organization.name} (${organization.slug})...`);
     await retryDeadlocks(() => seedPrimaryDatabase(database, organization, user));
     const timescaleResult = await seedTimescale(timescale, organization.id);
@@ -906,8 +1000,8 @@ async function main() {
     const services = await verifyTinybird(organization.id);
 
     console.log("Development seed complete:");
-    console.log(`  PostgreSQL: ${TUNNELS.length} tunnels, 3 alerts, 2 incidents`);
-    console.log(`  Redis: ${onlineTunnels} tunnels marked online`);
+    console.log(`  PostgreSQL: ${TUNNELS.length} tunnels, ${SUBDOMAINS.length} subdomains, ${DOMAINS.length} domains, 3 disabled demo alerts, 2 incidents`);
+    console.log(`  Redis: ${onlineTunnels} demo tunnels marked online (not real connections)`);
     console.log(`  Timescale: ${timescaleResult.requests} requests, ${timescaleResult.captures} captures, ${timescaleResult.protocolEvents} protocol events`);
     console.log(`  Tinybird (${EXPECTED_TINYBIRD_BRANCH}): ${tinybirdResult.spans} spans, ${tinybirdResult.logs} logs, ${tinybirdResult.metrics} metric points`);
     console.log(`  Verified services: ${services.map((service) => service.name).join(", ")}`);
@@ -916,7 +1010,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error("Development seed failed:", error);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error("Development seed failed:", error);
+    process.exitCode = 1;
+  });
+}
