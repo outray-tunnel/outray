@@ -2,6 +2,7 @@ import "dotenv/config";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
+import { dashboardPoolOptions } from "../lib/dashboard-pool-options";
 
 const { Pool } = pg;
 
@@ -11,6 +12,7 @@ if (!process.env.DATABASE_URL) {
 
 const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({
+  ...dashboardPoolOptions,
   connectionString,
   ssl: databaseSsl(connectionString),
 });
