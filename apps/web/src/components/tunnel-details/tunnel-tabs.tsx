@@ -1,13 +1,19 @@
+import type { ReactNode } from "react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/arc/tabs/tabs";
+import "../outray-arc-theme.css";
+
 interface TunnelTabsProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   protocol?: string;
+  children?: ReactNode;
 }
 
 export function TunnelTabs({
   activeTab,
   setActiveTab,
   protocol,
+  children,
 }: TunnelTabsProps) {
   const isProtocolTunnel = protocol === "tcp" || protocol === "udp";
   const tabs = [
@@ -16,21 +22,20 @@ export function TunnelTabs({
   ];
 
   return (
-    <div className="flex items-center border-b border-white/[0.07]">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          onClick={() => setActiveTab(tab.id)}
-          className={`border-b px-3 py-3 text-[11px] font-medium transition-colors ${
-            activeTab === tab.id
-              ? "border-accent text-zinc-200"
-              : "border-transparent text-zinc-700 hover:text-zinc-400"
-          }`}
-        >
-          {tab.label}
-        </button>
-      ))}
-    </div>
+    <Tabs
+      value={activeTab}
+      onValueChange={setActiveTab}
+      activationMode="automatic"
+      className="outray-arc outray-arc-tunnel-tabs"
+    >
+      <TabsList aria-label="Tunnel views" data-outray-tabs-list>
+        {tabs.map((tab) => (
+          <TabsTrigger key={tab.id} value={tab.id} data-outray-tabs-trigger>
+            {tab.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      {children}
+    </Tabs>
   );
 }
