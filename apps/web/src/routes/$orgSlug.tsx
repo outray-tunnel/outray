@@ -10,9 +10,10 @@ import { authClient } from "@/lib/auth-client";
 import { Sidebar } from "@/components/app-sidebar";
 import { ProductSubSidebar } from "@/components/product-sub-sidebar";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
-import { MobileHeader } from "@/components/mobile-header";
+import { WorkspaceTopbar } from "@/components/workspace-topbar";
 import { MobileNavSheet } from "@/components/mobile-nav-sheet";
 import { useAppStore } from "@/lib/store";
+import { useFeatureFlag } from "@/lib/feature-flags";
 import { ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/$orgSlug")({
@@ -26,6 +27,7 @@ function DashboardLayout() {
   const { orgSlug } = Route.useParams();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const unifiedSidebar = useFeatureFlag("unified_sidebar");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { data: organizations, isPending } = authClient.useListOrganizations();
   const { data: activeOrg } = authClient.useActiveOrganization();
@@ -56,12 +58,7 @@ function DashboardLayout() {
       name: matchedOrgName,
       slug: matchedOrgSlug,
     });
-  }, [
-    matchedOrgId,
-    matchedOrgName,
-    matchedOrgSlug,
-    setSelectedOrganization,
-  ]);
+  }, [matchedOrgId, matchedOrgName, matchedOrgSlug, setSelectedOrganization]);
 
   if (isPending) {
     return null;
@@ -163,30 +160,43 @@ function DashboardLayout() {
 
   return (
     <div className="workspace-ui min-h-screen bg-[#070707] text-gray-300 font-sans selection:bg-accent/30">
-      {/* Mobile header */}
-      <MobileHeader onOpenNavigation={() => setMobileNavOpen(true)} isNavigationOpen={mobileNavOpen} />
-
-      <div className="flex h-[calc(100dvh-56px)] overflow-hidden md:h-screen">
+      <div className="flex h-dvh overflow-hidden">
         {/* Desktop sidebar - hidden on mobile */}
         <div className="hidden md:flex h-full">
-          <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-          <ProductSubSidebar />
+          <Sidebar
+            isCollapsed={isCollapsed}
+            setIsCollapsed={setIsCollapsed}
+            unified={unifiedSidebar}
+          />
+          {!unifiedSidebar && <ProductSubSidebar />}
         </div>
 
-        <main className="flex min-w-0 flex-1 flex-col bg-[#090909]">
-          {/* <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-black">
-           
-          </header> */}
-
-          <div data-scroll-restoration-id={`workspace-content-${orgSlug}`} className="flex-1 overflow-y-auto p-5 pb-[calc(80px+env(safe-area-inset-bottom))] md:p-8 md:pb-8">
-            <Outlet />
-          </div>
-        </main>
+        <div className="flex min-w-0 flex-1 flex-col bg-[#090909]">
+          <WorkspaceTopbar
+            onOpenNavigation={() => setMobileNavOpen(true)}
+            isNavigationOpen={mobileNavOpen}
+          />
+          <main className="flex min-h-0 flex-1 flex-col">
+            <div
+              data-scroll-restoration-id={`workspace-content-${orgSlug}`}
+              className="min-h-0 flex-1 overflow-y-auto px-6 py-5 pb-[calc(80px+env(safe-area-inset-bottom))] md:px-12 md:py-8 md:pb-8"
+            >
+              <Outlet />
+            </div>
+          </main>
+        </div>
       </div>
 
       {/* Mobile bottom navigation */}
-      <MobileBottomNav onOpenNavigation={() => setMobileNavOpen(true)} isNavigationOpen={mobileNavOpen} />
-      <MobileNavSheet isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} orgSlug={orgSlug} />
+      <MobileBottomNav
+        onOpenNavigation={() => setMobileNavOpen(true)}
+        isNavigationOpen={mobileNavOpen}
+      />
+      <MobileNavSheet
+        isOpen={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        orgSlug={orgSlug}
+      />
     </div>
   );
 }
