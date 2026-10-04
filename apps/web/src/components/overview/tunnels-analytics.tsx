@@ -1,32 +1,35 @@
-import { useId, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ReferenceDot,
-  ReferenceLine,
+  Bar,
+  BarChart,
+  Cell,
   ResponsiveContainer,
   Tooltip,
-  XAxis,
   YAxis,
 } from "recharts";
-import { formatBytes, formatNumber } from "./format";
+import { formatBytes } from "./format";
 import { SegmentedControl } from "../ui/segmented-control";
+import { UsageNumber } from "./usage-number";
+import {
+  createUsageBars,
+  formatUsageInterval,
+  hoverUsageBarIndex,
+  inspectedUsageBar,
+  nextUsageBarIndex,
+  type UsageBar,
+  type UsageMetricKey,
+  type UsagePoint,
+} from "./usage-bars";
 
 const RANGES = ["1h", "24h", "7d", "30d"] as const;
+const EMPTY_POINTS: UsagePoint[] = [];
+const countFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+});
 export type OverviewRange = (typeof RANGES)[number];
-type Range = OverviewRange;
-type MetricKey = "httpRequests" | "protocolEvents" | "bandwidth" | "errors";
-
-export interface TunnelsOverviewPoint {
-  time: string;
-  httpRequests: number;
-  protocolEvents: number;
-  bandwidth: number;
-  errors: number;
-}
+export type TunnelsOverviewPoint = UsagePoint;
 
 export interface TunnelsOverviewStats {
   httpRequests: number;
@@ -36,45 +39,24 @@ export interface TunnelsOverviewStats {
   activeTunnels: number | null;
   chartData: TunnelsOverviewPoint[];
   timeRange?: string;
+  windowStart?: string;
+  windowEnd?: string;
 }
 
-interface Metric {
-  key: MetricKey;
+export interface Metric {
+  key: Exclude<UsageMetricKey, "errors">;
   label: string;
   description: string;
-  value: string;
+  value: number;
   format: (value: number) => string;
 }
 
-const rangeLabels: Record<Range, string> = {
+const rangeLabels: Record<OverviewRange, string> = {
   "1h": "Last hour",
   "24h": "Last 24 hours",
   "7d": "Last 7 days",
   "30d": "Last 30 days",
 };
-
-function formatTime(value: string, range: Range): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return range === "1h" || range === "24h"
-    ? date.toLocaleTimeString(undefined, {
-        hour: "numeric",
-        minute: range === "1h" ? "2-digit" : undefined,
-      })
-    : date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
-function formatFullTime(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      });
-}
 
 export function TunnelsAnalytics({
   stats,
@@ -85,61 +67,55 @@ export function TunnelsAnalytics({
   onRetry,
 }: {
   stats?: TunnelsOverviewStats | null;
-  range: Range;
-  onRangeChange: (range: Range) => void;
+  range: OverviewRange;
+  onRangeChange: (range: OverviewRange) => void;
   isFetching?: boolean;
   error?: string | null;
   onRetry?: () => void;
 }) {
-  const [selectedKey, setSelectedKey] = useState<MetricKey>("httpRequests");
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const [keyboardIndex, setKeyboardIndex] = useState<number | null>(null);
-  const reducedMotion = useReducedMotion();
-  const chartId = useId();
-  const fillId = `${chartId.replace(/[^a-zA-Z0-9_-]/g, "")}-fill`;
-  const points = stats?.chartData ?? [];
   const displayedRange =
     RANGES.find((option) => option === stats?.timeRange) ?? range;
   const switchingRange = isFetching && displayedRange !== range;
+  const count = (value: number) => countFormatter.format(value);
   const metrics: Metric[] = [
     {
       key: "httpRequests",
       label: "HTTP requests",
       description: "Completed web requests",
-      value: formatNumber(stats?.httpRequests ?? 0),
-      format: (value) => formatNumber(Math.round(value)),
+      value: stats?.httpRequests ?? 0,
+      format: count,
     },
     {
       key: "protocolEvents",
       label: "Protocol events",
       description: "TCP and UDP activity",
-      value: formatNumber(stats?.protocolEvents ?? 0),
-      format: (value) => formatNumber(Math.round(value)),
+      value: stats?.protocolEvents ?? 0,
+      format: count,
     },
     {
       key: "bandwidth",
       label: "Data transfer",
       description: "Across all tunnels",
-      value: formatBytes(stats?.totalDataTransfer ?? 0),
+      value: stats?.totalDataTransfer ?? 0,
       format: formatBytes,
     },
-    {
-      key: "errors",
-      label: "HTTP errors",
-      description: "4xx and 5xx responses",
-      value: formatNumber(stats?.errors ?? 0),
-      format: (value) => formatNumber(Math.round(value)),
-    },
   ];
-  const selectedMetric =
-    metrics.find((metric) => metric.key === selectedKey) ?? metrics[0];
-  const inspectedIndex = hoverIndex ?? keyboardIndex;
-  const inspectedPoint =
-    inspectedIndex === null ? null : points[inspectedIndex];
+  const points = stats?.chartData ?? EMPTY_POINTS;
+  const windowStart = stats?.windowStart;
+  const windowEnd = stats?.windowEnd;
+  const series = useMemo(() => {
+    const bars = (metric: Metric["key"]) =>
+      createUsageBars(points, metric, displayedRange, windowStart, windowEnd);
+    return {
+      httpRequests: bars("httpRequests"),
+      protocolEvents: bars("protocolEvents"),
+      bandwidth: bars("bandwidth"),
+    };
+  }, [points, displayedRange, windowStart, windowEnd]);
 
   if (error && !stats) {
     return (
-      <section className="rounded-xl border border-rose-400/20 bg-rose-400/[0.035] px-6 py-14 text-center">
+      <section className="rounded-xl border border-rose-400/20 bg-rose-400/[0.035] px-5 py-8 text-center">
         <h2 className="text-[14px] font-medium text-zinc-200">
           Analytics unavailable
         </h2>
@@ -150,7 +126,7 @@ export function TunnelsAnalytics({
           <button
             type="button"
             onClick={onRetry}
-            className="mt-5 inline-flex min-h-9 items-center gap-2 rounded-md border border-white/[0.12] px-3 text-[12px] text-zinc-200 hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="mt-4 inline-flex min-h-9 items-center gap-2 rounded-md border border-white/[0.12] px-3 text-[12px] text-zinc-200 hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <RefreshCw size={13} aria-hidden="true" /> Try again
           </button>
@@ -160,37 +136,28 @@ export function TunnelsAnalytics({
   }
 
   return (
-    <section
-      className="min-w-0 overflow-hidden rounded-xl border border-white/[0.11] bg-[#151516]"
-      aria-label="Tunnel analytics"
-    >
-      <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <section className="min-w-0 space-y-3" aria-label="Tunnel analytics">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <h2 className="text-[20px] font-normal tracking-[-0.035em] text-zinc-100">
-              Analytics
-            </h2>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] px-2 py-0.5 text-[10px] tabular-nums text-zinc-400">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="text-[14px] font-medium text-zinc-200">Usage</h2>
+            <span className="inline-flex items-center gap-1.5 text-[11px] tabular-nums text-zinc-500">
               <span
-                className="size-1.5 rounded-full bg-emerald-400"
+                className={`size-1.5 rounded-full ${stats?.activeTunnels ? "bg-emerald-400" : "bg-zinc-600"}`}
                 aria-hidden="true"
               />
-              {stats?.activeTunnels ?? 0} online
+              {stats?.activeTunnels ?? "—"} online
             </span>
-          </div>
-          <p className="mt-1 text-[12px] text-zinc-500">
-            All tunnels <span className="px-1 text-zinc-700">·</span>{" "}
-            {rangeLabels[displayedRange]}
             {switchingRange ? (
-              <span role="status" className="ml-2 text-zinc-400">
-                · Loading {rangeLabels[range].toLowerCase()}
+              <span role="status" className="text-[11px] text-zinc-400">
+                Loading {rangeLabels[range].toLowerCase()}
               </span>
             ) : isFetching ? (
-              <span role="status" className="ml-2 text-zinc-400">
-                · Updating
+              <span role="status" className="text-[11px] text-zinc-400">
+                Updating
               </span>
             ) : null}
-          </p>
+          </div>
         </div>
         <SegmentedControl
           label="Analytics time range"
@@ -203,7 +170,7 @@ export function TunnelsAnalytics({
       {error && stats && (
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-between gap-3 border-t border-amber-400/15 bg-amber-400/[0.045] px-6 py-2.5 text-[11px] text-amber-100/75"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-400/15 bg-amber-400/[0.035] px-4 py-2.5 text-[11px] text-amber-100/75"
         >
           <span>
             Could not refresh analytics. Showing the last available data.
@@ -212,7 +179,7 @@ export function TunnelsAnalytics({
             <button
               type="button"
               onClick={onRetry}
-              className="font-medium underline underline-offset-4 hover:text-white"
+              className="min-h-7 font-medium underline underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-accent"
             >
               Retry
             </button>
@@ -220,239 +187,282 @@ export function TunnelsAnalytics({
         </div>
       )}
 
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        {metrics.map((metric) => (
+          <UsageMetricCard
+            key={metric.key}
+            metric={metric}
+            range={displayedRange}
+            bars={series[metric.key]}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function UsageMetricCard({
+  metric,
+  range,
+  bars,
+}: {
+  metric: Metric;
+  range: OverviewRange;
+  bars: UsageBar[];
+}) {
+  const [inspection, setInspection] = useState<{
+    bars: UsageBar[];
+    range: OverviewRange;
+    hoverIndex: number | null;
+    keyboardIndex: number | null;
+  }>(() => ({ bars, range, hoverIndex: null, keyboardIndex: null }));
+  const isCurrent = inspection.bars === bars && inspection.range === range;
+  const hoverIndex = isCurrent ? inspection.hoverIndex : null;
+  const keyboardIndex = isCurrent ? inspection.keyboardIndex : null;
+  const activeBar = inspectedUsageBar(
+    bars,
+    inspection.bars,
+    hoverIndex,
+    keyboardIndex,
+  );
+  const displayValue = activeBar?.value ?? metric.value;
+
+  const inspect = (
+    kind: "hoverIndex" | "keyboardIndex",
+    index: number | null,
+  ) => {
+    const nextHoverIndex = kind === "hoverIndex" ? index : null;
+    const nextKeyboardIndex = kind === "keyboardIndex" ? index : null;
+    setInspection((previous) =>
+      previous.bars === bars &&
+      previous.range === range &&
+      previous.hoverIndex === nextHoverIndex &&
+      previous.keyboardIndex === nextKeyboardIndex
+        ? previous
+        : {
+            bars,
+            range,
+            hoverIndex: nextHoverIndex,
+            keyboardIndex: nextKeyboardIndex,
+          },
+    );
+  };
+
+  return (
+    <article
+      aria-label={metric.label}
+      data-metric={metric.key}
+      className="flex h-[180px] min-w-0 flex-col rounded-xl border border-white/[0.08] bg-[#111112] p-4"
+    >
+      <h3 className="text-[12px] font-normal text-zinc-400">{metric.label}</h3>
+      <p
+        data-usage-value={metric.format(displayValue)}
+        className="mt-1.5 h-8 text-[24px] font-normal leading-8 tracking-[-0.035em] tabular-nums text-zinc-100"
+      >
+        <UsageNumber value={displayValue} metric={metric.key} />
+      </p>
+      <p className="mt-0.5 truncate text-[11px] text-zinc-500">
+        {activeBar ? formatUsageInterval(activeBar, range) : metric.description}
+      </p>
+      <UsageMiniChart
+        key={range}
+        metric={metric}
+        range={range}
+        bars={bars}
+        hoverIndex={hoverIndex}
+        keyboardIndex={keyboardIndex}
+        onHoverIndexChange={(index) => inspect("hoverIndex", index)}
+        onKeyboardIndexChange={(index) => inspect("keyboardIndex", index)}
+        onResetInspection={() => inspect("hoverIndex", null)}
+      />
+    </article>
+  );
+}
+
+function UsageMiniChart({
+  metric,
+  range,
+  bars,
+  hoverIndex,
+  keyboardIndex,
+  onHoverIndexChange,
+  onKeyboardIndexChange,
+  onResetInspection,
+}: {
+  metric: Metric;
+  range: OverviewRange;
+  bars: UsageBar[];
+  hoverIndex: number | null;
+  keyboardIndex: number | null;
+  onHoverIndexChange: (index: number | null) => void;
+  onKeyboardIndexChange: (index: number | null) => void;
+  onResetInspection: () => void;
+}) {
+  const hintId = useId();
+  const reducedMotion = useReducedMotion();
+  const pointerFocus = useRef(false);
+  const activeIndex = hoverIndex ?? keyboardIndex;
+  const keyboardBar = keyboardIndex === null ? null : bars[keyboardIndex];
+  const hasActivity = bars.some((bar) => bar.value > 0);
+
+  if (!hasActivity) {
+    return (
+      <div
+        className="relative mt-auto flex h-16 items-center justify-center"
+        aria-label={`${metric.label}: no activity in this period`}
+      >
+        <p className="text-center text-[10px] text-zinc-600">
+          No activity in this period
+        </p>
+        <div
+          className="absolute inset-x-0 bottom-0 flex gap-1"
+          aria-hidden="true"
+        >
+          {Array.from({ length: 14 }, (_, index) => (
+            <span
+              key={index}
+              className="h-0.5 flex-1 rounded-sm bg-white/[0.08]"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <p id={hintId} className="sr-only">
+        Use Left and Right arrow keys to inspect each bar. Home and End jump to
+        the first and last interval.
+      </p>
       <div
         role="group"
-        aria-label="Select a chart metric"
-        className="grid grid-cols-2 border-y border-white/[0.09] lg:grid-cols-4"
+        tabIndex={0}
+        aria-label={`${metric.label} over ${rangeLabels[range].toLowerCase()}`}
+        aria-describedby={hintId}
+        className="relative mt-auto h-16 w-full rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+        onPointerDown={() => {
+          pointerFocus.current = true;
+        }}
+        onFocus={() => {
+          if (!pointerFocus.current) onKeyboardIndexChange(bars.length - 1);
+        }}
+        onBlur={() => {
+          pointerFocus.current = false;
+          onResetInspection();
+        }}
+        onMouseLeave={onResetInspection}
+        onPointerLeave={onResetInspection}
+        onKeyDown={(event) => {
+          const next = nextUsageBarIndex(keyboardIndex, event.key, bars.length);
+          if (next === undefined) return;
+          event.preventDefault();
+          pointerFocus.current = false;
+          onKeyboardIndexChange(next);
+        }}
       >
-        {metrics.map((metric, index) => {
-          const selected = metric.key === selectedKey;
-          return (
-            <button
-              key={metric.key}
-              type="button"
-              aria-pressed={selected}
-              aria-label={`${metric.label}: ${metric.value}. Show ${metric.label} chart`}
-              onClick={() => {
-                setSelectedKey(metric.key);
-                setHoverIndex(null);
-                setKeyboardIndex(null);
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minWidth={0}
+          initialDimension={{ width: 240, height: 64 }}
+        >
+          <BarChart
+            data={bars}
+            accessibilityLayer={false}
+            margin={{ top: 2, right: 0, bottom: 0, left: 0 }}
+            barCategoryGap="12%"
+          >
+            <YAxis hide domain={[0, "dataMax"]} />
+            <Tooltip
+              shared={false}
+              cursor={{ fill: "rgba(255,255,255,0.035)" }}
+              wrapperStyle={{
+                pointerEvents: "none",
+                outline: "none",
+                zIndex: 20,
               }}
-              className={`relative min-h-32 min-w-0 px-5 py-5 text-left transition-colors motion-reduce:transition-none hover:bg-white/[0.04] focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent sm:px-6 ${index % 2 === 0 ? "border-r border-white/[0.09]" : ""} ${index < 2 ? "border-b border-white/[0.09] lg:border-b-0" : ""} ${index === 1 ? "lg:border-r lg:border-white/[0.09]" : ""} ${index === 2 ? "lg:border-r lg:border-white/[0.09]" : ""} ${selected ? "bg-white/[0.055]" : ""}`}
-            >
-              <span
-                className={`block text-[12px] ${selected ? "text-zinc-200" : "text-zinc-400"}`}
-              >
-                {metric.label}
-              </span>
-              <span className="mt-2 block text-[30px] font-normal leading-none tracking-[-0.045em] text-zinc-100 tabular-nums sm:text-[34px]">
-                {metric.value}
-              </span>
-              <span className="mt-2 block text-[11px] text-zinc-500">
-                {metric.description}
-              </span>
-              {selected && (
-                <span
-                  className="absolute inset-x-0 bottom-0 h-[2px] bg-zinc-100"
-                  aria-hidden="true"
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="px-3 pb-5 pt-5 sm:px-6 sm:pb-6">
-        <div className="flex min-h-7 flex-wrap items-center justify-between gap-2 px-1 text-[11px]">
-          <span className="inline-flex items-center gap-2 text-zinc-300">
-            <span
-              className="h-[2px] w-4 rounded-full bg-zinc-200"
-              aria-hidden="true"
+              isAnimationActive={false}
+              content={({ active, payload }) => {
+                const bar = payload?.[0]?.payload as UsageBar | undefined;
+                return active && bar ? (
+                  <UsageTooltip bar={bar} metric={metric} range={range} />
+                ) : null;
+              }}
             />
-            {selectedMetric.label}
-          </span>
-          <span className="tabular-nums text-zinc-500">
-            {inspectedPoint
-              ? `${formatFullTime(inspectedPoint.time)} · ${selectedMetric.format(inspectedPoint[selectedMetric.key])}`
-              : selectedMetric.description}
-          </span>
-        </div>
-        {points.length ? (
-          <>
-            <p id={chartId} className="sr-only">
-              Focus the chart and use the arrow keys to inspect values. Home and
-              End jump to the first and last point.
-            </p>
-            <div
-              role="group"
-              tabIndex={0}
-              aria-label={`${selectedMetric.label} over ${rangeLabels[displayedRange].toLowerCase()}`}
-              aria-describedby={chartId}
-              onFocus={() => {
-                if (keyboardIndex === null) setKeyboardIndex(points.length - 1);
+            <Bar
+              dataKey="value"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={32}
+              isAnimationActive={!reducedMotion}
+              animationDuration={180}
+              onMouseEnter={(_, index) => {
+                onHoverIndexChange(hoverUsageBarIndex(index, bars.length));
               }}
-              onBlur={() => setKeyboardIndex(null)}
-              onKeyDown={(event) => {
-                const current = keyboardIndex ?? points.length - 1;
-                const next =
-                  event.key === "ArrowRight"
-                    ? current + 1
-                    : event.key === "ArrowLeft"
-                      ? current - 1
-                      : event.key === "Home"
-                        ? 0
-                        : event.key === "End"
-                          ? points.length - 1
-                          : null;
-                if (next === null) return;
-                event.preventDefault();
-                setKeyboardIndex(
-                  Math.max(0, Math.min(points.length - 1, next)),
-                );
+              onMouseMove={(_, index) => {
+                onHoverIndexChange(hoverUsageBarIndex(index, bars.length));
               }}
-              className="mt-2 h-[300px] w-full rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:h-[390px]"
+              onMouseLeave={onResetInspection}
             >
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={points}
-                  accessibilityLayer={false}
-                  margin={{ top: 12, right: 10, bottom: 0, left: -4 }}
-                  onMouseMove={(state) => {
-                    const activeIndex = state?.activeTooltipIndex;
-                    if (activeIndex === null || activeIndex === undefined) {
-                      setHoverIndex(null);
-                      return;
-                    }
-                    const index = Number(activeIndex);
-                    setHoverIndex(
-                      Number.isInteger(index) &&
-                        index >= 0 &&
-                        index < points.length
-                        ? index
-                        : null,
-                    );
-                  }}
-                  onMouseLeave={() => setHoverIndex(null)}
-                >
-                  <defs>
-                    <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="0%"
-                        stopColor="#d4d4d8"
-                        stopOpacity={0.15}
-                      />
-                      <stop
-                        offset="100%"
-                        stopColor="#d4d4d8"
-                        stopOpacity={0.015}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    vertical={false}
-                    stroke="rgba(255,255,255,0.07)"
-                  />
-                  <XAxis
-                    dataKey="time"
-                    tickLine={false}
-                    axisLine={false}
-                    minTickGap={25}
-                    tick={{ fill: "#89898f", fontSize: 11 }}
-                    tickFormatter={(value: string) =>
-                      formatTime(value, displayedRange)
-                    }
-                  />
-                  <YAxis
-                    width={68}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: "#89898f", fontSize: 11 }}
-                    tickFormatter={(value: number) =>
-                      selectedMetric.format(value)
-                    }
-                  />
-                  <Tooltip
-                    cursor={false}
-                    wrapperStyle={{ pointerEvents: "none", outline: "none" }}
-                    content={({ active, payload }) => {
-                      const point = payload?.[0]?.payload as
-                        TunnelsOverviewPoint | undefined;
-                      if (!active || !point) return null;
-                      return (
-                        <div className="rounded-lg border border-white/[0.13] bg-[#222225] px-3 py-2 shadow-xl">
-                          <p className="text-[11px] text-zinc-400">
-                            {formatFullTime(point.time)}
-                          </p>
-                          <p className="mt-1 text-[12px] font-medium text-white">
-                            {selectedMetric.label}:{" "}
-                            {selectedMetric.format(point[selectedMetric.key])}
-                          </p>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey={selectedMetric.key}
-                    stroke="#d4d4d8"
-                    strokeWidth={2}
-                    fill={`url(#${fillId})`}
-                    fillOpacity={1}
-                    dot={false}
-                    activeDot={{ r: 3.5, strokeWidth: 0, fill: "#f4f4f5" }}
-                    isAnimationActive={!reducedMotion}
-                    animationDuration={220}
-                  />
-                  {inspectedPoint && (
-                    <ReferenceLine
-                      x={inspectedPoint.time}
-                      stroke="rgba(228,228,231,0.35)"
-                      strokeDasharray="3 3"
-                    />
-                  )}
-                  {inspectedPoint && (
-                    <ReferenceDot
-                      x={inspectedPoint.time}
-                      y={inspectedPoint[selectedMetric.key]}
-                      r={4}
-                      fill="#f4f4f5"
-                      stroke="#151516"
-                      strokeWidth={1.5}
-                      ifOverflow="visible"
-                    />
-                  )}
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            <span className="sr-only" aria-live="polite">
-              {keyboardIndex !== null && points[keyboardIndex]
-                ? `${formatFullTime(points[keyboardIndex].time)}: ${selectedMetric.format(points[keyboardIndex][selectedMetric.key])}`
-                : ""}
-            </span>
-            <table className="sr-only">
-              <caption>{selectedMetric.label} by time</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Time</th>
-                  <th scope="col">{selectedMetric.label}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {points.map((point) => (
-                  <tr key={point.time}>
-                    <td>{formatFullTime(point.time)}</td>
-                    <td>{selectedMetric.format(point[selectedMetric.key])}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
-        ) : (
-          <div className="flex h-[300px] items-center justify-center text-[12px] text-zinc-500 sm:h-[390px]">
-            No activity in this period
+              {bars.map((bar, index) => (
+                <Cell
+                  key={bar.startTime}
+                  fill={activeIndex === index ? "#a1a1aa" : "#52525b"}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        {keyboardBar && hoverIndex === null && (
+          <div className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 z-20 -translate-x-1/2">
+            <UsageTooltip bar={keyboardBar} metric={metric} range={range} />
           </div>
         )}
       </div>
-    </section>
+      <span className="sr-only" aria-live="polite">
+        {keyboardBar
+          ? `${formatUsageInterval(keyboardBar, range)}: ${metric.format(keyboardBar.value)} ${metric.label}`
+          : ""}
+      </span>
+      <table className="sr-only">
+        <caption>{metric.label} by interval</caption>
+        <thead>
+          <tr>
+            <th scope="col">Interval</th>
+            <th scope="col">{metric.label}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {bars.map((bar) => (
+            <tr key={bar.startTime}>
+              <td>{formatUsageInterval(bar, range)}</td>
+              <td>{metric.format(bar.value)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+function UsageTooltip({
+  bar,
+  metric,
+  range,
+}: {
+  bar: UsageBar;
+  metric: Metric;
+  range: OverviewRange;
+}) {
+  return (
+    <div className="whitespace-nowrap rounded-lg border border-white/[0.12] bg-[#222225] px-3 py-2 shadow-xl">
+      <p className="text-[10px] text-zinc-400">
+        {formatUsageInterval(bar, range)}
+      </p>
+      <p className="mt-1 text-[12px] tabular-nums text-zinc-100">
+        {metric.format(bar.value)}{" "}
+        <span className="text-zinc-400">{metric.label.toLowerCase()}</span>
+      </p>
+    </div>
   );
 }
