@@ -45,8 +45,9 @@ export const Route = createFileRoute("/api/$orgSlug/stats/protocol")({
         const { start, end, bucket } = tunnelStatsWindow(timeRange);
 
         try {
-          const statsResult = await tigerData.query(
-            `SELECT
+          const [statsResult, chartResult, recentResult] = await Promise.all([
+            tigerData.query(
+              `SELECT
                COUNT(*) FILTER (WHERE event_type = 'connection') AS total_connections,
                COUNT(DISTINCT connection_id) AS unique_connections,
                COUNT(DISTINCT (client_ip || ':' || client_port::text)) AS unique_clients,
@@ -59,12 +60,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/protocol")({
              WHERE tunnel_id = $1
                AND timestamp >= $2::timestamptz
                AND timestamp < $3::timestamptz`,
-            [tunnelId, start, end],
-          );
-          const aggregate = statsResult.rows[0];
-
-          const chartResult = await tigerData.query(
-            `WITH times AS (
+              [tunnelId, start, end],
+            ),
+            tigerData.query(
+              `WITH times AS (
                SELECT generate_series(
                  time_bucket($4::interval, $2::timestamptz),
                  time_bucket($4::interval, $3::timestamptz - INTERVAL '1 microsecond'),
@@ -88,11 +87,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/protocol")({
                AND e.timestamp < $3::timestamptz
              GROUP BY t.time
              ORDER BY t.time ASC`,
-            [tunnelId, start, end, bucket],
-          );
-
-          const recentResult = await tigerData.query(
-            `SELECT
+              [tunnelId, start, end, bucket],
+            ),
+            tigerData.query(
+              `SELECT
                timestamp,
                event_type,
                connection_id,
@@ -107,8 +105,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/protocol")({
                AND timestamp < $3::timestamptz
              ORDER BY timestamp DESC
              LIMIT 50`,
-            [tunnelId, start, end],
-          );
+              [tunnelId, start, end],
+            ),
+          ]);
+          const aggregate = statsResult.rows[0];
 
           return Response.json({
             protocol: tunnel.protocol,
