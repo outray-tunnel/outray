@@ -34,8 +34,9 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
           // A single captured boundary is shared by headlines, comparisons and
           // chart buckets. HTTP errors/rates use HTTP traffic only; protocol
           // events do not have an HTTP status code.
-          const aggregateResult = await tigerData.query<OrgOverviewAggregateRow>(
-            `WITH http AS (
+          const [aggregateResult, chartResult, activeTunnels] = await Promise.all([
+            tigerData.query<OrgOverviewAggregateRow>(
+              `WITH http AS (
                SELECT
                  COUNT(*) FILTER (WHERE timestamp >= $3::timestamptz) AS http_requests,
                  COUNT(*) FILTER (WHERE timestamp < $3::timestamptz) AS previous_http_requests,
@@ -59,11 +60,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
                  AND timestamp < $4::timestamptz
              )
              SELECT * FROM http CROSS JOIN protocol`,
-            [organizationId, previousStart, start, end],
-          );
-
-          const chartResult = await tigerData.query<OrgOverviewChartRow>(
-            `WITH times AS (
+              [organizationId, previousStart, start, end],
+            ),
+            tigerData.query<OrgOverviewChartRow>(
+              `WITH times AS (
                SELECT generate_series(
                  time_bucket($4::interval, $2::timestamptz),
                  time_bucket($4::interval, $3::timestamptz - INTERVAL '1 microsecond'),
@@ -102,12 +102,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
              LEFT JOIN http ON http.time = times.time
              LEFT JOIN protocol ON protocol.time = times.time
              ORDER BY times.time ASC`,
-            [organizationId, start, end, bucket],
-          );
-
-          const activeTunnels = await redis.scard(
-            `org:${organizationId}:online_tunnels`,
-          );
+              [organizationId, start, end, bucket],
+            ),
+            redis.scard(`org:${organizationId}:online_tunnels`),
+          ]);
 
           return Response.json({
             ...mapOrgOverviewStats(
