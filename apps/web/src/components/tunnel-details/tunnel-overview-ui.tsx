@@ -1,11 +1,13 @@
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import {
   ArrowRight,
   ChartNoAxesCombined,
-  Download,
   RefreshCw,
 } from "lucide-react";
 import { useReducedMotion } from "motion/react";
+import { Button } from "@/components/arc/button/button";
+import { SegmentedControl } from "../ui/segmented-control";
+import "../outray-arc-theme.css";
 import {
   Area,
   AreaChart,
@@ -21,7 +23,6 @@ import {
   OVERVIEW_RANGES,
   selectOverviewMetric,
 } from "./tunnel-overview-format";
-import { downloadTunnelOverviewCsv } from "./tunnel-overview-export";
 
 export interface OverviewChartPoint {
   time: string;
@@ -114,11 +115,9 @@ export function TunnelOverviewShell({
   const inspectedPoint = inspectIndex === null ? null : chartData[inspectIndex];
   const chartInstructionsId = useId();
   const fillId = `${chartInstructionsId.replace(/[^a-zA-Z0-9_-]/g, "")}-fill`;
-  const rangeRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const reducedMotion = useReducedMotion();
   const displayedRange = isPlaceholderData && dataRange ? dataRange : timeRange;
   const switchingRange = isPlaceholderData && displayedRange !== timeRange;
-  const exportRange = OVERVIEW_RANGES.find((range) => range === displayedRange);
 
   if (isLoading && metrics.length === 0)
     return <TunnelOverviewSkeleton metricCount={4} />;
@@ -128,7 +127,7 @@ export function TunnelOverviewShell({
 
   if (error && metrics.every((metric) => metric.value === "—")) {
     return (
-      <div className="rounded-xl border border-rose-400/15 bg-rose-400/[0.035] px-6 py-12 text-center">
+      <div className="outray-arc rounded-xl border border-rose-400/15 bg-rose-400/[0.035] px-6 py-12 text-center">
         <p className="text-[13px] text-zinc-200">
           Overview could not be loaded.
         </p>
@@ -136,13 +135,15 @@ export function TunnelOverviewShell({
           Your tunnel may still be online. Try loading its activity again.
         </p>
         {onRetry && (
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={onRetry}
-            className="mt-5 inline-flex min-h-9 items-center gap-2 rounded-md border border-white/[0.12] px-3 text-[12px] text-zinc-200 hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="mt-5"
           >
             <RefreshCw size={13} aria-hidden="true" /> Retry
-          </button>
+          </Button>
         )}
       </div>
     );
@@ -153,7 +154,7 @@ export function TunnelOverviewShell({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="outray-arc space-y-4">
       {error && (
         <div
           role="alert"
@@ -163,13 +164,14 @@ export function TunnelOverviewShell({
             Could not refresh this overview. Showing the last available data.
           </span>
           {onRetry && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={onRetry}
-              className="font-medium text-zinc-200 underline underline-offset-4 hover:text-white"
             >
               Retry
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -192,60 +194,12 @@ export function TunnelOverviewShell({
               )}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div
-              role="group"
-              aria-label="Chart time range"
-              className="inline-flex h-9 items-center rounded-lg border border-white/[0.08] bg-white/[0.025] p-0.5"
-            >
-              {OVERVIEW_RANGES.map((range, index) => (
-                <button
-                  key={range}
-                  ref={(element) => {
-                    rangeRefs.current[index] = element;
-                  }}
-                  type="button"
-                  aria-pressed={timeRange === range}
-                  onClick={() => setTimeRange(range)}
-                  onKeyDown={(event) => {
-                    const nextIndex =
-                      event.key === "ArrowRight"
-                        ? Math.min(index + 1, OVERVIEW_RANGES.length - 1)
-                        : event.key === "ArrowLeft"
-                          ? Math.max(index - 1, 0)
-                          : event.key === "Home"
-                            ? 0
-                            : event.key === "End"
-                              ? OVERVIEW_RANGES.length - 1
-                              : null;
-                    if (nextIndex === null) return;
-                    event.preventDefault();
-                    setTimeRange(OVERVIEW_RANGES[nextIndex]);
-                    rangeRefs.current[nextIndex]?.focus();
-                  }}
-                  className={`h-7 min-w-10 rounded-md px-2 text-[11px] transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${timeRange === range ? "bg-white/[0.1] text-zinc-100" : "text-zinc-500 hover:text-zinc-200"}`}
-                >
-                  {range}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              disabled={!chartData.length || !exportRange}
-              onClick={() => {
-                if (!exportRange) return;
-                downloadTunnelOverviewCsv({
-                  range: exportRange,
-                  chartData,
-                  metrics,
-                });
-              }}
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/[0.1] px-3 text-[11px] text-zinc-300 transition-colors hover:border-white/[0.2] hover:bg-white/[0.04] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
-            >
-              <Download size={14} strokeWidth={1.7} aria-hidden="true" />
-              Export
-            </button>
-          </div>
+          <SegmentedControl
+            label="Chart time range"
+            options={OVERVIEW_RANGES.map((range) => ({ value: range, label: range }))}
+            value={timeRange}
+            onValueChange={setTimeRange}
+          />
         </div>
 
         <div
@@ -490,13 +444,15 @@ export function TunnelOverviewShell({
             </p>
           </div>
           {onViewActivity && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={onViewActivity}
-              className="inline-flex min-h-8 shrink-0 items-center gap-1.5 text-[11px] text-zinc-400 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="shrink-0"
             >
               View all <ArrowRight size={13} aria-hidden="true" />
-            </button>
+            </Button>
           )}
         </div>
         {activity}
