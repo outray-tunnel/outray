@@ -1,23 +1,21 @@
 /// <reference types="vite/client" />
-import type { ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
   Outlet,
   createRootRoute,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import appCss from "../index.css?url";
 import { RootProvider } from "fumadocs-ui/provider/tanstack";
 import { PostHogProvider } from "posthog-js/react";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+import { authClient } from "@/lib/auth-client";
+import {
+  bindQueryClientToSession,
+  getQueryClientSnapshot,
+  subscribeQueryClient,
+} from "@/lib/query-client";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -87,6 +85,16 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  const [initialQueryClient] = useState(getQueryClientSnapshot);
+  const queryClient = useSyncExternalStore(
+    subscribeQueryClient,
+    getQueryClientSnapshot,
+    () => initialQueryClient,
+  );
+  useEffect(
+    () => bindQueryClientToSession(authClient.$store.atoms.session),
+    [],
+  );
   return (
     <RootDocument>
       <PostHogProvider
@@ -111,7 +119,7 @@ function RootComponent() {
           },
         }}
       >
-        <QueryClientProvider client={queryClient}>
+        <QueryClientProvider key={queryClient.generation} client={queryClient.client}>
           <Outlet />
         </QueryClientProvider>
       </PostHogProvider>
