@@ -81,6 +81,10 @@ async function handleLogin(
 
     console.log(chalk.green(`\n✔ Logged in successfully`));
     console.log(chalk.dim(`✔ Active org: ${selectedOrg.slug}`));
+    // openBrowser() keeps a child process referenced, so returning from main
+    // does not drain the event loop. Exit this command only — the login poll
+    // has already finished, and tunnels stay alive on their own handles.
+    process.exit(0);
   } catch (error) {
     console.log(
       chalk.red(
