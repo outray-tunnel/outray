@@ -2,7 +2,7 @@ import { Link, useLocation, useParams } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
-import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
+import UnfoldMoreIcon from "@hugeicons-pro/core-stroke-rounded/UnfoldMoreIcon";
 import CheckmarkCircle02Icon from "@hugeicons-pro/core-stroke-rounded/CheckmarkCircle02Icon";
 
 interface Organization {
@@ -74,12 +74,10 @@ export function OrganizationDropdown({
               {selectedOrg?.name || "Select organization"}
             </span>
             <HugeiconsIcon
-              icon={ArrowDown01Icon}
-              size={13}
+              icon={UnfoldMoreIcon}
+              size={14}
               strokeWidth={1.8}
-              className={`text-zinc-600 transition-transform duration-150 ${
-                isOrgDropdownOpen ? "rotate-180" : ""
-              }`}
+              className="shrink-0 text-zinc-500"
               aria-hidden="true"
             />
           </>
