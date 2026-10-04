@@ -25,7 +25,7 @@ export function DomainLimitWarning({
   return (
     <aside
       role="status"
-      className="flex flex-col gap-4 rounded-xl border border-white/[0.07] px-5 py-4 sm:flex-row sm:items-center"
+      className="flex flex-col gap-3 rounded-lg border border-amber-400/[0.12] bg-amber-400/[0.025] px-4 py-3 sm:flex-row sm:items-center"
     >
       <div className="flex min-w-0 flex-1 items-center gap-3.5">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-400/[0.08] text-amber-300">
@@ -34,19 +34,24 @@ export function DomainLimitWarning({
 
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="text-[12px] font-medium text-zinc-200">
-              Custom domains are full
+            <p className="text-[12px] font-normal text-zinc-200">
+              {domainLimit === 0
+                ? "Custom domains are available on a paid plan"
+                : "Custom domain limit reached"}
             </p>
             <span className="text-[10px] text-zinc-700" aria-hidden="true">
               /
             </span>
             <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-amber-300/70">
-              {domainLimit} of {domainLimit} used
+              {domainLimit === 0
+                ? "Upgrade required"
+                : `${domainLimit} of ${domainLimit} used`}
             </span>
           </div>
-          <p className="mt-1 text-[11px] leading-5 text-zinc-600">
-            Your {planName} plan includes {domainLimit} custom {domainLabel}.
-            Upgrade to connect more domains.
+          <p className="mt-1 text-[12px] leading-5 text-zinc-500">
+            {domainLimit === 0
+              ? "Upgrade to connect your own tunnel address."
+              : `Your ${planName} plan includes ${domainLimit} custom ${domainLabel}. Upgrade to connect another address.`}
           </p>
         </div>
       </div>
