@@ -1,4 +1,5 @@
 import pg from "pg";
+import { dashboardPoolOptions } from "./dashboard-pool-options";
 
 const { Pool } = pg;
 
@@ -7,6 +8,7 @@ if (!process.env.TIMESCALE_URL) {
 }
 const connectionString = process.env.TIMESCALE_URL;
 export const tigerData = new Pool({
+  ...dashboardPoolOptions,
   connectionString,
   ssl: connectionString.includes("sslmode=require")
     ? { rejectUnauthorized: false }
@@ -18,7 +20,7 @@ export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
     const result = await tigerData.query(text, params);
     return result.rows as T[];
   } catch (error) {
-    console.error('TimescaleDB query error:', error);
+    console.error("TimescaleDB query error:", error);
     throw error;
   }
 }
@@ -27,7 +29,7 @@ export async function execute(text: string, params?: unknown[]): Promise<void> {
   try {
     await tigerData.query(text, params);
   } catch (error) {
-    console.error('TimescaleDB execute error:', error);
+    console.error("TimescaleDB execute error:", error);
     throw error;
   }
 }
@@ -36,12 +38,12 @@ export async function execute(text: string, params?: unknown[]): Promise<void> {
 export async function testConnection(): Promise<boolean> {
   try {
     const client = await tigerData.connect();
-    await client.query('SELECT 1');
+    await client.query("SELECT 1");
     client.release();
-    console.log('✅ TimescaleDB connection successful');
+    console.log("✅ TimescaleDB connection successful");
     return true;
   } catch (error) {
-    console.error('❌ TimescaleDB connection failed:', error);
+    console.error("❌ TimescaleDB connection failed:", error);
     return false;
   }
 }
