@@ -1,272 +1,188 @@
-import { useState } from "react";
-import {
-  Globe,
-  Info,
-  Copy,
-  Trash2,
-  Check,
-} from "lucide-react";
-import { ConfirmModal } from "../confirm-modal";
-import { Button, Badge } from "@/components/ui";
+import { useId, useRef, useState, type CSSProperties } from "react";
+import { ChevronDown } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
+import { Button } from "@/components/arc/button/button";
+import { CopyButton } from "@/components/arc/copy-button/copy-button";
+import { ResourceDeleteDialog } from "../resource-delete-dialog";
+import "../outray-arc-theme.css";
 
 interface Domain {
   id: string;
   domain: string;
   status: "active" | "failed" | "pending";
-  createdAt: string;
+  createdAt: string | Date;
 }
 
 interface DomainCardProps {
   domain: Domain;
-  onVerify: (id: string) => void;
-  onDelete: (id: string) => void;
+  onVerify: (id: string) => Promise<unknown>;
+  onDelete: (id: string) => Promise<unknown>;
   isVerifying: boolean;
+  defaultExpanded?: boolean;
 }
+
+const statuses = {
+  active: { label: "Active", className: "bg-emerald-400/[0.07] text-emerald-300/90", dot: "bg-emerald-400" },
+  pending: { label: "Pending DNS", className: "bg-amber-400/[0.07] text-amber-300/90", dot: "bg-amber-400" },
+  failed: { label: "Needs attention", className: "bg-rose-400/[0.07] text-rose-300/90", dot: "bg-rose-400" },
+} as const;
 
 export function DomainCard({
   domain,
   onVerify,
   onDelete,
   isVerifying,
+  defaultExpanded = false,
 }: DomainCardProps) {
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [confirmState, setConfirmState] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    isDestructive: boolean;
-    confirmText: string;
-  }>({
-    isOpen: false,
-    title: "",
-    message: "",
-    onConfirm: () => {},
-    isDestructive: false,
-    confirmText: "",
-  });
+  const dnsId = useId();
+  const [isDnsOpen, setIsDnsOpen] = useState(defaultExpanded);
+  const [isChecking, setIsChecking] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const verifyInFlight = useRef(false);
+  const verificationPending = isChecking || isVerifying;
+  const status = statuses[domain.status];
+  const toggleLabel = domain.status === "active" ? "DNS records" : "Set up DNS";
+  const createdAt = domain.createdAt instanceof Date
+    ? domain.createdAt
+    : new Date(domain.createdAt);
+  const hasDate = Number.isFinite(createdAt.getTime());
+  // Full owner names match the verifier without guessing the provider's DNS zone.
+  const records = [
+    { type: "CNAME", name: domain.domain, value: "edge.outray.app" },
+    { type: "TXT", name: `_outray-challenge.${domain.domain}`, value: domain.id },
+  ];
 
-  const handleCopy = (text: string, fieldId: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(fieldId);
-    setTimeout(() => setCopiedField(null), 2000);
+  const handleVerify = async () => {
+    if (verifyInFlight.current || isVerifying) return;
+    verifyInFlight.current = true;
+    setIsChecking(true);
+    setVerifyError(null);
+    try {
+      await onVerify(domain.id);
+    } catch (reason) {
+      setVerifyError(
+        reason instanceof Error
+          ? reason.message
+          : "Could not verify this domain. Check the records and try again.",
+      );
+    } finally {
+      verifyInFlight.current = false;
+      setIsChecking(false);
+    }
   };
-
-  const getRecordName = (domainName: string) => {
-    const parts = domainName.split(".");
-    if (parts.length <= 2) return "@";
-    return parts.slice(0, parts.length - 2).join(".");
-  };
-
-  const cnameName = getRecordName(domain.domain);
-  const cnameValue = "edge.outray.app";
-
-  const txtName =
-    cnameName === "@" ? "_outray-challenge" : `_outray-challenge.${cnameName}`;
-  const txtValue = domain.id;
 
   return (
-    <div className="group border-b border-white/[0.06] px-5 py-5 last:border-b-0 sm:px-6">
-      {/* Header row with icon, domain info, and delete button */}
-      <div className="flex items-start gap-3 sm:gap-4">
-        <div className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/[0.04] ring-1 ring-white/[0.06] sm:flex">
-          <Globe className="h-4 w-4 text-zinc-600" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <h3 className="break-all text-[13px] font-medium text-zinc-300">
+    <article
+      aria-label={`Domain ${domain.domain}`}
+      className="outray-arc border-b border-white/[0.06] last:border-b-0"
+      style={{ "--control-height-sm": "36px" } as CSSProperties}
+    >
+      <div className="flex min-h-[76px] items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.025] motion-reduce:transition-none sm:px-5">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-zinc-500 ring-1 ring-white/[0.06]">
+          <HugeiconsIcon icon={Globe02Icon} size={16} strokeWidth={1.7} aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
+            <h3 className="max-w-full truncate text-[13px] font-normal text-zinc-200" title={domain.domain}>
               {domain.domain}
             </h3>
-            {domain.status === "active" ? (
-              <Badge variant="success" dot>
-                Active
-              </Badge>
-            ) : domain.status === "failed" ? (
-              <Badge variant="error" dot>
-                Failed
-              </Badge>
-            ) : (
-              <Badge variant="warning" dot>
-                Pending DNS
-              </Badge>
-            )}
+            <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] ${status.className}`}>
+              <span className={`size-1 rounded-full ${status.dot}`} aria-hidden="true" />
+              {status.label}
+            </span>
           </div>
-          <p className="mt-1 text-[10px] text-zinc-700">
-            Added on {new Date(domain.createdAt).toLocaleDateString()}
+          <p className="mt-1 text-[11px] text-zinc-600">
+            <time dateTime={hasDate ? createdAt.toISOString() : undefined}>
+              {hasDate
+                ? `Added ${createdAt.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+                : "Added date unavailable"}
+            </time>
           </p>
         </div>
-
-        {/* Delete button - always visible on mobile, hover on desktop */}
-        <button
-          onClick={() => {
-            setConfirmState({
-              isOpen: true,
-              title: "Delete Domain",
-              message: "Are you sure you want to delete this domain?",
-              onConfirm: () => onDelete(domain.id),
-              isDestructive: true,
-              confirmText: "Delete",
-            });
-          }}
-          className="shrink-0 p-2 text-zinc-800 transition-all hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"
-          title="Remove domain"
-        >
-          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-label={`${toggleLabel} for ${domain.domain}`}
+            aria-expanded={isDnsOpen}
+            aria-controls={dnsId}
+            disabled={verificationPending}
+            onClick={() => setIsDnsOpen((open) => !open)}
+          >
+            <span className="hidden sm:inline">{toggleLabel}</span>
+            <span className="sm:hidden">DNS</span>
+            <ChevronDown size={13} aria-hidden="true" className={`transition-transform motion-reduce:transition-none ${isDnsOpen ? "rotate-180" : ""}`} />
+          </Button>
+          <ResourceDeleteDialog
+            title="Remove domain"
+            description="This hostname will no longer be available for new tunnels in this workspace. Your DNS records will not be changed."
+            resourceName={domain.domain}
+            triggerLabel={`Remove domain ${domain.domain}`}
+            actionLabel="Remove domain"
+            disabled={verificationPending}
+            onConfirm={() => onDelete(domain.id)}
+          />
+        </div>
       </div>
 
-      {/* DNS Configuration section - full width below header */}
-      {domain.status !== "active" && (
-        <div className="mt-5 border-t border-white/[0.06] pt-5">
-          <div className="flex items-start gap-3 border-b border-white/[0.06] pb-4">
-            <div className="shrink-0 text-zinc-600">
-              <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
-            </div>
-            <div>
-              <h4 className="mb-1 text-xs font-medium text-zinc-300">
-                DNS Configuration
-              </h4>
-              <p className="text-[11px] leading-relaxed text-zinc-600">
-                Add these records to your domain provider to verify ownership
-                and route traffic.
+      <div id={dnsId} hidden={!isDnsOpen} className="mx-4 mb-4 overflow-hidden rounded-lg border border-white/[0.07] bg-white/[0.015] sm:mx-5">
+        {isDnsOpen && (
+          <>
+            <div className="border-b border-white/[0.06] px-3 py-3">
+              <h4 className="text-[12px] font-medium text-zinc-300">DNS records</h4>
+              <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+                Point this hostname to OutRay and add the ownership token below.
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
+                Full hostnames are shown. If your provider appends the DNS zone, enter only the relative name.
               </p>
             </div>
-          </div>
-
-          <div className="space-y-5 py-4">
-            {/* CNAME Record */}
-            <div className="border-b border-white/[0.06] pb-5">
-              <div className="p-3 space-y-3">
-                <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-blue-400">
-                  CNAME
-                </span>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.05] py-2">
-                    <div className="min-w-0">
-                      <span className="text-[10px] text-white/40 uppercase block mb-0.5">
-                        Name
-                      </span>
-                      <span className="font-mono text-white text-sm">
-                        {cnameName}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() =>
-                        handleCopy(cnameName, `cname-name-${domain.id}`)
-                      }
-                      className="p-2 hover:bg-white/10 rounded-lg text-white/40 hover:text-white transition-colors shrink-0"
-                    >
-                      {copiedField === `cname-name-${domain.id}` ? (
-                        <Check className="w-4 h-4 text-green-400" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.05] py-2">
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] text-white/40 uppercase block mb-0.5">
-                        Value
-                      </span>
-                      <span className="font-mono text-white/80 text-sm block truncate">
-                        {cnameValue}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() =>
-                        handleCopy(cnameValue, `cname-value-${domain.id}`)
-                      }
-                      className="p-2 hover:bg-white/10 rounded-lg text-white/40 hover:text-white transition-colors shrink-0"
-                    >
-                      {copiedField === `cname-value-${domain.id}` ? (
-                        <Check className="w-4 h-4 text-green-400" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-left text-[11px]">
+                <caption className="sr-only">{domain.domain} DNS records</caption>
+                <thead className="border-b border-white/[0.06] text-zinc-600">
+                  <tr>
+                    <th scope="col" className="w-[72px] px-3 py-2 font-normal">Type</th>
+                    <th scope="col" className="px-3 py-2 font-normal">Name</th>
+                    <th scope="col" className="px-3 py-2 font-normal">Value</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.06]">
+                  {records.map((record) => (
+                    <tr key={record.type}>
+                      <th scope="row" className="px-3 py-2.5 align-top text-[10px] font-medium text-zinc-400">{record.type}</th>
+                      <td className="px-3 py-2 align-top">
+                        <div className="flex items-center justify-between gap-2">
+                          <code className="break-all text-zinc-300">{record.name}</code>
+                          <CopyButton value={record.name} label={`Copy ${record.type} name for ${domain.domain}`} iconOnly variant="plain" className="shrink-0" />
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 align-top">
+                        <div className="flex items-center justify-between gap-2">
+                          <code className="break-all text-zinc-300">{record.value}</code>
+                          <CopyButton value={record.value} label={`Copy ${record.type} value for ${domain.domain}`} iconOnly variant="plain" className="shrink-0" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-
-            {/* TXT Record */}
-            <div>
-              <div className="p-3 space-y-3">
-                <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-accent">
-                  TXT
-                </span>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.05] py-2">
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] text-white/40 uppercase block mb-0.5">
-                        Name
-                      </span>
-                      <span className="font-mono text-white text-sm block truncate">
-                        {txtName}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() =>
-                        handleCopy(txtName, `txt-name-${domain.id}`)
-                      }
-                      className="p-2 hover:bg-white/10 rounded-lg text-white/40 hover:text-white transition-colors shrink-0"
-                    >
-                      {copiedField === `txt-name-${domain.id}` ? (
-                        <Check className="w-4 h-4 text-green-400" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.05] py-2">
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] text-white/40 uppercase block mb-0.5">
-                        Value
-                      </span>
-                      <span className="font-mono text-white/80 text-sm block truncate">
-                        {txtValue}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() =>
-                        handleCopy(txtValue, `txt-value-${domain.id}`)
-                      }
-                      className="p-2 hover:bg-white/10 rounded-lg text-white/40 hover:text-white transition-colors shrink-0"
-                    >
-                      {copiedField === `txt-value-${domain.id}` ? (
-                        <Check className="w-4 h-4 text-green-400" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-3 py-3" aria-busy={verificationPending}>
+              <div className="min-w-0 flex-1">
+                {verifyError
+                  ? <p role="alert" className="text-[12px] text-rose-300">{verifyError}</p>
+                  : <p className="text-[11px] text-zinc-600">DNS changes may take a few minutes to appear.</p>}
               </div>
+              <Button type="button" variant="secondary" size="sm" loading={verificationPending} onClick={() => void handleVerify()}>
+                {verificationPending ? "Checking DNS…" : "Verify DNS"}
+              </Button>
             </div>
-          </div>
-
-          <div className="pt-1">
-            <Button
-              onClick={() => onVerify(domain.id)}
-              disabled={isVerifying}
-              isLoading={isVerifying}
-              className="w-full"
-            >
-              {isVerifying ? "Verifying..." : "Verify DNS Records"}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <ConfirmModal
-        isOpen={confirmState.isOpen}
-        onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmState.onConfirm}
-        title={confirmState.title}
-        message={confirmState.message}
-        isDestructive={confirmState.isDestructive}
-        confirmText={confirmState.confirmText}
-      />
-    </div>
+          </>
+        )}
+      </div>
+    </article>
   );
 }
