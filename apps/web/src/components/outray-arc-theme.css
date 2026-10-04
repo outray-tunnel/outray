@@ -1,0 +1,155 @@
+/* UIArc components installed from its registry are themed only inside OutRay views.
+   The stock foundation contains document-wide rules that must not restyle OutRay. */
+.outray-arc,
+body:has(.outray-arc-list) [data-radix-popper-content-wrapper] {
+  color-scheme: dark;
+  --background: #09090b;
+  --surface: #18181b;
+  --surface-raised: #111113;
+  --surface-muted: #202023;
+  --foreground: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #8b8b94;
+  --border: rgb(255 255 255 / 12%);
+  --border-strong: rgb(255 255 255 / 20%);
+  --danger: #fda4af;
+  --success: #6ee7b7;
+  --accent-strong: #a78bfa;
+  --focus-ring: #8367c7;
+  --shadow-resting: 0 1px 2px rgb(0 0 0 / 25%);
+  --shadow-floating: 0 24px 70px rgb(0 0 0 / 65%);
+  --radius-control: 12px;
+  --radius-surface: 16px;
+  --control-height-sm: 32px;
+  --control-height-md: 36px;
+  --control-height-lg: 44px;
+  --font-body: "Geom", sans-serif;
+  --text-sm: 13px;
+  --text-xs: 12px;
+  --text-lg: 19px;
+  --tracking-body: -0.01em;
+  --leading-body: 1.45;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --duration-instant: 120ms;
+  --duration-fast: 160ms;
+  --duration-standard: 240ms;
+  --duration-spring: 580ms;
+  --ease-enter: cubic-bezier(.16, 1, .3, 1);
+  --ease-standard: cubic-bezier(.22, 1, .36, 1);
+  --ease-spring: cubic-bezier(.22, 1, .36, 1);
+}
+
+.outray-arc.outray-arc-dialog {
+  width: min(calc(100vw - 32px), 560px);
+}
+
+.outray-arc-capture-dialog {
+  --space-6: 20px;
+  --radius-control: 10px;
+  --text-lg: 18px;
+}
+
+.outray-arc-capture-dialog > div:first-child h2 {
+  font-weight: 400;
+  letter-spacing: -0.025em;
+}
+
+.outray-arc-tunnel-tabs > [role="tabpanel"] {
+  margin-top: 28px;
+}
+
+/* Keep UIArc's tab behavior and motion, with a quiet navigation underline. */
+.outray-arc-tunnel-tabs > :first-child {
+  display: flex;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 0;
+  background: transparent;
+}
+
+.outray-arc-tunnel-tabs [data-outray-tabs-list] {
+  gap: 24px;
+  padding: 0;
+}
+
+.outray-arc-tunnel-tabs [data-outray-tabs-trigger] {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 2px;
+  border-radius: 0;
+  color: #71717a;
+  font-size: 12px;
+}
+
+.outray-arc-tunnel-tabs [data-outray-tabs-trigger]:hover,
+.outray-arc-tunnel-tabs [data-outray-tabs-trigger][data-state="active"] {
+  color: #f4f4f5;
+}
+
+.outray-arc-tunnel-tabs [data-outray-tabs-trigger]:focus-visible {
+  outline-offset: -3px;
+}
+
+.outray-arc-tunnel-tabs [data-outray-tabs-trigger] > [aria-hidden="true"] {
+  inset: auto 0 0;
+  height: 2px;
+  border: 0;
+  border-radius: 1px;
+  background: #f4f4f5;
+  box-shadow: none;
+}
+
+/* The request toolbar retains SearchField's real label without an extra row. */
+.outray-arc-requests-search > div {
+  position: relative;
+  gap: 0;
+}
+
+.outray-arc-requests-search label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.outray-arc .outray-arc-requests-search input:focus-visible {
+  outline: 0; /* UIArc's enclosing search shell supplies the focus treatment. */
+}
+
+/* Keep destructive tunnel actions faithful to UIArc's dark button tokens. */
+.outray-arc-stock-buttons {
+  --surface: oklch(21.5% 0 0);
+  --surface-muted: oklch(26% 0 0);
+  --foreground: oklch(96% 0 0);
+  --border: oklch(29% 0 0);
+  --danger: oklch(76% .2 25);
+  --radius-control: 1.125rem;
+  --control-height-sm: 2.25rem;
+  --control-height-md: 2.75rem;
+  --control-height-lg: 3.125rem;
+  --text-sm: 0.875rem;
+  --leading-body: 1.4;
+}
+
+.outray-arc-stop-dialog[aria-busy="true"] button[aria-label="Close dialog"] {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.outray-arc:focus-visible,
+.outray-arc :is(button, input, summary):focus-visible {
+  outline: 2px solid #8367c7;
+  outline-offset: 2px;
+}
