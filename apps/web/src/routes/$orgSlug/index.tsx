@@ -3,7 +3,6 @@ import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { appClient } from "@/lib/app-client";
 import { getPlanLimits } from "@/lib/subscription-plans";
-import { BandwidthUsage } from "@/components/overview/bandwidth-usage";
 import { NewTunnelModal } from "@/components/new-tunnel-modal";
 import { LimitModal } from "@/components/limit-modal";
 import { OverviewHeader } from "@/components/overview/overview-header";
@@ -11,7 +10,6 @@ import {
   TunnelsAnalytics,
   type OverviewRange,
 } from "@/components/overview/tunnels-analytics";
-import { ActiveTunnelsPanel } from "@/components/overview/active-tunnels-panel";
 import { OverviewSkeleton } from "@/components/overview/overview-skeleton";
 
 export const Route = createFileRoute("/$orgSlug/")({
@@ -63,12 +61,7 @@ function OverviewView() {
       previousQuery?.queryKey[2] === orgSlug ? previousData : undefined,
   });
 
-  const {
-    data: tunnelsData,
-    isLoading: tunnelsLoading,
-    error: tunnelsError,
-    refetch: refetchTunnels,
-  } = useQuery({
+  const { data: tunnelsData } = useQuery({
     queryKey: ["tunnels", orgSlug],
     queryFn: async () => {
       if (!orgSlug) throw new Error("No active organization");
@@ -81,14 +74,14 @@ function OverviewView() {
     refetchIntervalInBackground: false,
   });
 
-  const activeTunnels =
-    tunnelsData && "tunnels" in tunnelsData ? tunnelsData.tunnels : [];
+  const activeTunnelCount =
+    tunnelsData && "tunnels" in tunnelsData ? tunnelsData.tunnels.length : 0;
 
   const subscription = subscriptionData?.subscription;
   const currentPlan = subscription?.plan || "free";
   const planLimits = getPlanLimits(currentPlan as any);
   const tunnelLimit = planLimits.maxTunnels as number;
-  const isAtLimit = tunnelLimit !== -1 && activeTunnels.length >= tunnelLimit;
+  const isAtLimit = tunnelLimit !== -1 && activeTunnelCount >= tunnelLimit;
 
   const handleNewTunnelClick = () => {
     if (isAtLimit) {
@@ -118,17 +111,6 @@ function OverviewView() {
         error={statsError?.message ?? null}
         onRetry={() => void refetchStats()}
       />
-
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(250px,320px)]">
-        <ActiveTunnelsPanel
-          activeTunnels={activeTunnels}
-          orgSlug={orgSlug}
-          isLoading={tunnelsLoading}
-          error={tunnelsError?.message ?? null}
-          onRetry={() => void refetchTunnels()}
-        />
-        <BandwidthUsage />
-      </div>
 
       <NewTunnelModal
         isOpen={isNewTunnelModalOpen}
