@@ -94,8 +94,63 @@ test("request rows expose a real keyboard inspection button and readable units",
 test("tunnel request rows omit host and respect the inspector feature flag", () => {
   const html = render({ requests: [request], totalCount: 1 }, false, false);
   assert.doesNotMatch(html, /preview\.example\.com|Inspect POST/);
+  assert.doesNotMatch(html, /cursor-pointer/);
   assert.match(html, /\/api\/checkout/);
   assert.match(html, /overflow-auto/);
+});
+
+type InteractiveElement = React.ReactElement<{
+  children?: React.ReactNode;
+  onClick?: (event: { stopPropagation: () => void }) => void;
+  "aria-label"?: string;
+}>;
+
+function elements(node: React.ReactNode): InteractiveElement[] {
+  if (Array.isArray(node)) return node.flatMap(elements);
+  if (!React.isValidElement(node)) return [];
+  const element = node as InteractiveElement;
+  return [element, ...elements(element.props.children)];
+}
+
+for (const showHost of [true, false]) {
+  test(`the whole ${showHost ? "workspace" : "tunnel"} request row opens its details exactly once`, () => {
+    const inspected: TunnelEvent[] = [];
+    const tree = RequestsResults({
+      feed: { ...baseFeed, requests: [request], totalCount: 1 },
+      showHost,
+      inspectorEnabled: true,
+      onInspect: (selected) => inspected.push(selected),
+    });
+    const row = elements(tree).find((element) => element.type === "tr" && element.props.onClick);
+    assert.ok(row, "inspection handler belongs to the row, not only the path");
+    const cells = elements(row).filter((element) => element.type === "td");
+    assert.equal(cells.length, 7);
+    for (const _cell of cells) {
+      row.props.onClick!({ stopPropagation: () => {} });
+    }
+    assert.equal(inspected.length, cells.length);
+    assert.ok(inspected.every((selected) => selected === request));
+
+    const button = elements(row).find((element) => element.type === "button");
+    assert.ok(button?.props.onClick);
+    let stopped = false;
+    button.props.onClick({ stopPropagation: () => { stopped = true; } });
+    if (!stopped) row.props.onClick!({ stopPropagation: () => {} });
+    assert.equal(stopped, true, "native keyboard/pointer button does not bubble to the row");
+    assert.equal(inspected.length, cells.length + 1);
+  });
+}
+
+test("rows have no inspection handler when the inspector is disabled", () => {
+  const tree = RequestsResults({
+    feed: { ...baseFeed, requests: [request], totalCount: 1 },
+    showHost: true,
+    inspectorEnabled: false,
+    onInspect: () => { throw new Error("Inspector is disabled"); },
+  });
+  const rows = elements(tree).filter((element) => element.type === "tr");
+  assert.equal(rows.length, 2);
+  assert.ok(rows.every((row) => row.props.onClick === undefined));
 });
 
 test("missing HTTP status renders a neutral chip", () => {
