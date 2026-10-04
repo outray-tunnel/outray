@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import Cone01Icon from "@hugeicons-pro/core-stroke-rounded/Cone01Icon";
 import LicenseIcon from "@hugeicons-pro/core-stroke-rounded/LicenseIcon";
 import LockPasswordIcon from "@hugeicons-pro/core-stroke-rounded/LockPasswordIcon";
-import PanelLeftCloseIcon from "@hugeicons-pro/core-stroke-rounded/PanelLeftCloseIcon";
-import PanelLeftOpenIcon from "@hugeicons-pro/core-stroke-rounded/PanelLeftOpenIcon";
 import Pulse02Icon from "@hugeicons-pro/core-stroke-rounded/Pulse02Icon";
 import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
 import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
@@ -24,15 +22,16 @@ import WalletCardsSolidIcon from "@hugeicons-pro/core-solid-rounded/WalletCardsI
 import { useAppStore } from "@/lib/store";
 import { authClient, usePermission } from "@/lib/auth-client";
 import { appClient } from "@/lib/app-client";
-import { getPlanLimits } from "@/lib/subscription-plans";
 import { NavItem } from "./sidebar/nav-item";
 import { OrganizationDropdown } from "./sidebar/organization-dropdown";
-import { PlanUsage } from "./sidebar/plan-usage";
-import { UserSection } from "./sidebar/user-section";
+import { ProductNavigation } from "./sidebar/product-navigation";
+import { filterSidebarProducts } from "./sidebar/product-navigation-state";
+import { SidebarCollapseControl } from "./sidebar/sidebar-collapse-control";
 
 interface SidebarProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
+  unified?: boolean;
 }
 
 interface SidebarNavItem {
@@ -48,50 +47,40 @@ interface SidebarNavGroup {
   items: SidebarNavItem[];
 }
 
-export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
+export function Sidebar({
+  isCollapsed,
+  setIsCollapsed,
+  unified = false,
+}: SidebarProps) {
+  const sidebarId = useId();
   const { setSelectedOrganization } = useAppStore();
   const { data: orgData } = authClient.useListOrganizations();
   const organizations = orgData ?? [];
   const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
-  const [activeTunnelsCount, setActiveTunnelsCount] = useState(0);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [navQuery, setNavQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchToggleRef = useRef<HTMLButtonElement>(null);
   const { orgSlug } = useParams({ from: "/$orgSlug" });
   const location = useLocation();
 
   const selectedOrg =
     organizations.find((org) => org.slug === orgSlug) || organizations[0];
 
-  const { data: session } = authClient.useSession();
-  const user = session?.user;
-
-  const { data: subscriptionData } = useQuery({
-    queryKey: ["subscription", orgSlug],
+  const { data: tunnelsData, isError: tunnelsError } = useQuery({
+    queryKey: ["tunnels", orgSlug],
     queryFn: async () => {
-      if (!orgSlug) return null;
-      const response = await appClient.subscriptions.get(orgSlug);
+      const response = await appClient.tunnels.list(orgSlug);
       if ("error" in response) throw new Error(response.error);
       return response;
     },
-    enabled: !!orgSlug,
+    enabled: !!orgSlug && unified,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
-
-  const subscription = subscriptionData?.subscription;
-  const currentPlan = subscription?.plan || "free";
-  const planLimits = getPlanLimits(currentPlan as any);
-  const tunnelLimit = planLimits.maxTunnels;
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (!orgSlug) return;
-      const response = await appClient.stats.overview(orgSlug);
-      if (response && "activeTunnels" in response) {
-        setActiveTunnelsCount(response.activeTunnels || 0);
-      }
-    };
-    fetchStats();
-  }, [orgSlug]);
+  const activeTunnelsCount = tunnelsError
+    ? undefined
+    : tunnelsData?.tunnels.length;
 
   useEffect(() => {
     if (isSearchOpen) searchInputRef.current?.focus();
@@ -100,6 +89,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const { data: canManageBilling } = usePermission({
     billing: ["manage"],
   });
+  const { data: canManageShares } = usePermission({ secretShare: ["create"] });
 
   const navGroups = useMemo<SidebarNavGroup[]>(
     () => [
@@ -157,17 +147,30 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                 },
               ]
             : []),
+          ...(unified
+            ? [
+                {
+                  to: "/$orgSlug/settings",
+                  label: "Settings",
+                  icon: Settings02Icon,
+                  activeIcon: Settings02SolidIcon,
+                },
+              ]
+            : []),
         ],
       },
     ],
-    [canManageBilling],
+    [canManageBilling, unified],
   );
 
   const visibleGroups = useMemo(() => {
     const query = navQuery.trim().toLowerCase();
-    if (!query) return navGroups;
+    const groups = unified
+      ? navGroups.filter((group) => group.label !== "Products")
+      : navGroups;
+    if (!query) return groups;
 
-    return navGroups
+    return groups
       .map((group) => ({
         ...group,
         items: group.items.filter((item) =>
@@ -175,7 +178,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
         ),
       }))
       .filter((group) => group.items.length > 0);
-  }, [navGroups, navQuery]);
+  }, [navGroups, navQuery, unified]);
 
   const toggleSearch = () => {
     if (isCollapsed) {
@@ -189,6 +192,8 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
 
   const params = { orgSlug: selectedOrg?.slug ?? orgSlug ?? "" };
   const basePath = `/${params.orgSlug}`;
+  const hasProductResults =
+    unified && filterSidebarProducts(navQuery, !!canManageShares).length > 0;
 
   const isNavItemActive = (item: SidebarNavItem) => {
     if (item.to === "/$orgSlug") {
@@ -217,10 +222,12 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
 
   return (
     <aside
-      className={`group relative flex h-full shrink-0 flex-col overflow-hidden border-r border-white/[0.07] bg-[#090909] text-zinc-400 transition-[width] duration-200 ease-out ${
+      className={`group relative flex h-full shrink-0 flex-col overflow-hidden border-r border-white/[0.07] bg-[#090909] text-zinc-400 transition-[width] duration-200 ease-out motion-reduce:transition-none ${
         isCollapsed ? "w-[68px]" : "w-[248px]"
       }`}
       aria-label="Main navigation"
+      id={sidebarId}
+      data-sidebar-layout={unified ? "unified" : "split"}
     >
       <div
         className={`flex h-16 shrink-0 items-center ${
@@ -243,6 +250,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
         {!isCollapsed && (
           <div className="flex items-center gap-0.5">
             <button
+              ref={searchToggleRef}
               type="button"
               onClick={toggleSearch}
               className={`rounded-lg p-2 transition-colors ${
@@ -260,38 +268,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                 aria-hidden="true"
               />
             </button>
-            <button
-              type="button"
-              onClick={() => setIsCollapsed(true)}
-              className="rounded-lg p-2 text-zinc-600 transition-colors hover:bg-white/[0.05] hover:text-zinc-300"
-              aria-label="Collapse sidebar"
-              title="Collapse sidebar"
-            >
-              <HugeiconsIcon
-                icon={PanelLeftCloseIcon}
-                size={17}
-                strokeWidth={1.7}
-                aria-hidden="true"
-              />
-            </button>
           </div>
-        )}
-
-        {isCollapsed && (
-          <button
-            type="button"
-            onClick={() => setIsCollapsed(false)}
-            className="absolute left-[43px] top-6 rounded-lg bg-[#151515] p-1.5 text-zinc-500 opacity-0 shadow-lg ring-1 ring-white/10 transition-opacity hover:text-zinc-200 group-hover:opacity-100"
-            aria-label="Expand sidebar"
-            title="Expand sidebar"
-          >
-            <HugeiconsIcon
-              icon={PanelLeftOpenIcon}
-              size={15}
-              strokeWidth={1.7}
-              aria-hidden="true"
-            />
-          </button>
         )}
       </div>
 
@@ -320,6 +297,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                 if (event.key === "Escape") {
                   setNavQuery("");
                   setIsSearchOpen(false);
+                  searchToggleRef.current?.focus();
                 }
               }}
               placeholder="Find a page"
@@ -336,6 +314,16 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
         }`}
       >
         <div className="space-y-5">
+          {unified && (
+            <ProductNavigation
+              orgSlug={params.orgSlug}
+              pathname={location.pathname}
+              isCollapsed={isCollapsed}
+              searchQuery={navQuery}
+              canManageShares={!!canManageShares}
+              activeTunnelsCount={activeTunnelsCount}
+            />
+          )}
           {visibleGroups.map((group, groupIndex) => (
             <div key={group.label || `primary-${groupIndex}`}>
               {!isCollapsed && group.label && (
@@ -353,6 +341,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
                     label={item.label}
                     activeOptions={item.activeOptions}
                     isCollapsed={isCollapsed}
+                    compact={unified}
                     params={params}
                     isActive={isNavItemActive(item)}
                   />
@@ -362,45 +351,51 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
           ))}
         </div>
 
-        {!isCollapsed && visibleGroups.length === 0 && (
+        {!isCollapsed && visibleGroups.length === 0 && !hasProductResults && (
           <p className="px-2 py-4 text-[12px] text-zinc-600">
             No pages match “{navQuery}”.
           </p>
         )}
       </nav>
 
-      <div
-        className={`shrink-0 border-t border-white/[0.06] pt-1 ${
-          isCollapsed ? "px-2" : "px-3"
-        }`}
-      >
-        <NavItem
-          to="/$orgSlug/settings"
-          icon={Settings02Icon}
-          activeIcon={Settings02SolidIcon}
-          label="Settings"
-          isCollapsed={isCollapsed}
-          params={params}
-          isActive={isNavItemActive({
-            to: "/$orgSlug/settings",
-            label: "Settings",
-            icon: Settings02Icon,
-            activeIcon: Settings02SolidIcon,
-          })}
-        />
-      </div>
-
-      {!isCollapsed && (
-        <div className="mx-3 mt-1 border-t border-white/[0.06] pt-1">
-          <PlanUsage
-            activeTunnelsCount={activeTunnelsCount}
-            limit={tunnelLimit}
-            currentPlan={currentPlan}
+      {!unified && (
+        <div
+          className={`shrink-0 border-t border-white/[0.06] pt-1 ${
+            isCollapsed ? "px-2" : "px-3"
+          }`}
+        >
+          <NavItem
+            to="/$orgSlug/settings"
+            icon={Settings02Icon}
+            activeIcon={Settings02SolidIcon}
+            label="Settings"
+            isCollapsed={isCollapsed}
+            params={params}
+            isActive={isNavItemActive({
+              to: "/$orgSlug/settings",
+              label: "Settings",
+              icon: Settings02Icon,
+              activeIcon: Settings02SolidIcon,
+            })}
           />
         </div>
       )}
 
-      <UserSection user={user} isCollapsed={isCollapsed} />
+      <footer
+        data-sidebar-collapse=""
+        className="flex shrink-0 items-center justify-start border-t border-white/[0.06] px-4 py-2"
+      >
+        <SidebarCollapseControl
+          isCollapsed={isCollapsed}
+          controls={sidebarId}
+          onToggle={() => {
+            setIsCollapsed(!isCollapsed);
+            setIsOrgDropdownOpen(false);
+            setIsSearchOpen(false);
+            setNavQuery("");
+          }}
+        />
+      </footer>
     </aside>
   );
 }
