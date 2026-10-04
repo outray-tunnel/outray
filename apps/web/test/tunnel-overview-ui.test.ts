@@ -62,7 +62,7 @@ test("an empty HTTP overview has selectable metrics and a distinct no-activity s
   assert.match(html, /Chart time range/);
   assert.match(html, /Tunnel analytics/);
   assert.match(html, /Analytics/);
-  assert.match(html, /Export/);
+  assert.doesNotMatch(html, /Export/);
   assert.ok(
     html.indexOf("Select a metric") <
       html.indexOf("No activity in this period"),
