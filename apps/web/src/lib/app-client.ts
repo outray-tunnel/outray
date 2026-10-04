@@ -97,7 +97,12 @@ type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
 async function apiCall<T = any>(
   method: "get" | "post" | "patch" | "delete",
   url: string,
-  options?: { params?: any; data?: any; headers?: Record<string, string> },
+  options?: {
+    params?: any;
+    data?: any;
+    headers?: Record<string, string>;
+    signal?: AbortSignal;
+  },
 ): Promise<ApiResponse<T>> {
   try {
     let response;
@@ -106,15 +111,19 @@ async function apiCall<T = any>(
         params: options?.params,
         data: options?.data,
         headers: options?.headers,
+        signal: options?.signal,
       });
     } else {
       response = await apiClient[method](url, options?.data, {
         params: options?.params,
         headers: options?.headers,
+        signal: options?.signal,
       });
     }
     return response.data;
   } catch (error) {
+    // Preserve cancellation so consumers can ignore superseded requests.
+    if (axios.isCancel(error)) throw error;
     if (axios.isAxiosError(error) && error.response) {
       return error.response.data;
     }
@@ -636,9 +645,11 @@ export const appClient = {
         limit?: number;
         search?: string;
       },
+      options?: { signal?: AbortSignal },
     ) =>
       apiCall<{ requests: any[] }>("get", `/api/${orgSlug}/requests`, {
         params,
+        signal: options?.signal,
       }),
   },
 
