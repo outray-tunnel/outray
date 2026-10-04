@@ -1,224 +1,288 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
-import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
-import { appClient } from "@/lib/app-client";
+import { useRef, useState } from "react";
+import { appClient, type Domain } from "@/lib/app-client";
 import {
   getPlanLimits,
   isUnlimitedPlanLimit,
+  type SubscriptionPlan,
 } from "@/lib/subscription-plans";
+import { SearchField } from "@/components/arc/search-field/search-field";
+import { Select } from "@/components/arc/select/select";
 import { DomainHeader } from "@/components/domains/domain-header";
 import { DomainLimitWarning } from "@/components/domains/domain-limit-warning";
 import { CreateDomainModal } from "@/components/domains/create-domain-modal";
 import { DomainCard } from "@/components/domains/domain-card";
 import { LimitModal } from "@/components/limit-modal";
-import { AlertModal } from "@/components/alert-modal";
-import { ResourceListSkeleton } from "@/components/resource-list-skeleton";
+import {
+  AddressEmptyState,
+  AddressListPanel,
+  AddressListSkeleton,
+  AddressNotice,
+} from "@/components/tunnel-addresses/address-page";
+import {
+  domainStatusOptions,
+  filterDomains,
+  isDomainStatusFilter,
+  requireAddressResult,
+  type DomainStatusFilter,
+} from "@/components/tunnel-addresses/address-list-state";
 
 export const Route = createFileRoute("/$orgSlug/domains")({
-  head: () => ({
-    meta: [
-      { title: "Domains - OutRay" },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "Domains - OutRay" }] }),
   component: DomainsView,
 });
 
 function DomainsView() {
   const { orgSlug } = Route.useParams();
+  return <DomainsPage key={orgSlug} orgSlug={orgSlug} />;
+}
+
+function DomainsPage({ orgSlug }: { orgSlug: string }) {
   const queryClient = useQueryClient();
+  const createTrigger = useRef<HTMLButtonElement>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [alertState, setAlertState] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    type: "error" | "info" | "success";
-  }>({
-    isOpen: false,
-    title: "",
-    message: "",
-    type: "error",
+  const [formError, setFormError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<DomainStatusFilter>("all");
+  const [createdDomainId, setCreatedDomainId] = useState<string | null>(null);
+
+  const subscriptionQuery = useQuery({
+    queryKey: ["subscription", orgSlug],
+    queryFn: async () =>
+      requireAddressResult(await appClient.subscriptions.get(orgSlug)),
   });
-
-  const { data: subscriptionData, isLoading: isLoadingSubscription } = useQuery(
-    {
-      queryKey: ["subscription", orgSlug],
-      queryFn: async () => {
-        if (!orgSlug) return null;
-        const response = await appClient.subscriptions.get(orgSlug);
-        if ("error" in response) throw new Error(response.error);
-        return response;
-      },
-      enabled: !!orgSlug,
-    },
-  );
-
-  const { data, isLoading: isLoadingDomains } = useQuery({
+  const listQuery = useQuery({
     queryKey: ["domains", orgSlug],
-    queryFn: () => {
-      if (!orgSlug) throw new Error("No active organization");
-      return appClient.domains.list(orgSlug);
-    },
-    enabled: !!orgSlug,
+    queryFn: async () =>
+      requireAddressResult(await appClient.domains.list(orgSlug)),
   });
-
-  const isLoading = isLoadingDomains || isLoadingSubscription;
 
   const createMutation = useMutation({
-    mutationFn: async (domain: string) => {
-      if (!orgSlug) throw new Error("No active organization");
-      return appClient.domains.create({
-        domain,
-        orgSlug,
-      });
+    mutationFn: async (domain: string) =>
+      requireAddressResult(await appClient.domains.create({ domain, orgSlug })),
+    onSuccess: (result) => {
+      queryClient.setQueryData<{ domains: Domain[] }>(
+        ["domains", orgSlug],
+        (current) => ({
+          domains: [
+            result.domain,
+            ...(current?.domains ?? []).filter(
+              (item) => item.id !== result.domain.id,
+            ),
+          ],
+        }),
+      );
+      setIsCreating(false);
+      setFormError(null);
+      setSearch("");
+      setStatus("all");
+      setCreatedDomainId(result.domain.id);
+      void queryClient.invalidateQueries({ queryKey: ["domains", orgSlug] });
     },
-    onSuccess: (data) => {
-      if ("error" in data) {
-        setError(data.error);
-      } else {
-        setIsCreating(false);
-        queryClient.invalidateQueries({ queryKey: ["domains"] });
-      }
-    },
-    onError: () => {
-      setError("Failed to create domain");
-    },
+    onError: (error: Error) => setFormError(error.message),
   });
-
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      if (!orgSlug) throw new Error("No active organization");
-      return appClient.domains.delete(orgSlug, id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["domains", orgSlug] });
+    mutationFn: async (id: string) =>
+      requireAddressResult(await appClient.domains.delete(orgSlug, id)),
+    onSuccess: (_result, id) => {
+      queryClient.setQueryData<{ domains: Domain[] }>(
+        ["domains", orgSlug],
+        (current) =>
+          current && {
+            domains: current.domains.filter((item) => item.id !== id),
+          },
+      );
+      void queryClient.invalidateQueries({ queryKey: ["domains", orgSlug] });
     },
   });
-
   const verifyMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (!orgSlug) throw new Error("No active organization");
-      return appClient.domains.verify(orgSlug, id);
+      const result = requireAddressResult(
+        await appClient.domains.verify(orgSlug, id),
+      );
+      if (!result.verified)
+        throw new Error(
+          result.message ||
+            "DNS records could not be verified. Check both records and try again.",
+        );
+      return result;
     },
-    onSuccess: (data) => {
-      if ("error" in data) {
-        setAlertState({
-          isOpen: true,
-          title: "Verification Failed",
-          message: data.error,
-          type: "error",
-        });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ["domains", orgSlug] });
-      }
+    onSuccess: (_result, id) => {
+      queryClient.setQueryData<{ domains: Domain[] }>(
+        ["domains", orgSlug],
+        (current) =>
+          current && {
+            domains: current.domains.map((item) =>
+              item.id === id ? { ...item, status: "active" } : item,
+            ),
+          },
+      );
+      void queryClient.invalidateQueries({ queryKey: ["domains", orgSlug] });
     },
   });
 
-  const domains = data && "domains" in data ? data.domains : [];
-  const subscription = subscriptionData?.subscription;
-  const currentPlan = subscription?.plan || "free";
-  const planLimits = getPlanLimits(currentPlan as any);
+  const domains = listQuery.data?.domains ?? [];
+  const filtered = filterDomains(domains, search, status);
+  const currentPlan = subscriptionQuery.data?.subscription?.plan || "free";
+  const limit = getPlanLimits(currentPlan as SubscriptionPlan).maxDomains;
+  const isUnlimited = isUnlimitedPlanLimit(currentPlan, limit);
+  const isAtLimit = !isUnlimited && domains.length >= limit;
+  const isReady = Boolean(listQuery.data && subscriptionQuery.data);
 
-  const currentDomainCount = domains.length;
-  const domainLimit = Number(planLimits.maxDomains);
-  const isUnlimited = isUnlimitedPlanLimit(currentPlan, domainLimit);
-  const isAtLimit = !isUnlimited && currentDomainCount >= domainLimit;
-
-  const handleAddDomainClick = () => {
+  function openCreate() {
+    if (!isReady) return;
     if (isAtLimit) {
       setIsLimitModalOpen(true);
       return;
     }
+    createMutation.reset();
+    setFormError(null);
     setIsCreating(true);
-  };
-
-  if (isLoading) {
-    return <ResourceListSkeleton />;
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-7">
+    <div className="outray-arc outray-arc-list mx-auto max-w-6xl space-y-6">
       <DomainHeader
-        currentDomainCount={currentDomainCount}
-        domainLimit={domainLimit}
+        currentDomainCount={domains.length}
+        domainLimit={limit}
         isUnlimited={isUnlimited}
         isAtLimit={isAtLimit}
-        onAddClick={handleAddDomainClick}
+        isReady={isReady}
+        onAddClick={openCreate}
+        buttonRef={createTrigger}
       />
 
-      <DomainLimitWarning
-        isAtLimit={isAtLimit}
-        domainLimit={domainLimit}
-        currentPlan={currentPlan}
-      />
+      {subscriptionQuery.isError && (
+        <AddressNotice
+          message="Could not load your plan limits. Retry to connect another domain."
+          onRetry={() => void subscriptionQuery.refetch()}
+        />
+      )}
+      {listQuery.isError && listQuery.data && (
+        <AddressNotice
+          message="Could not refresh domains. Showing your last loaded addresses."
+          onRetry={() => void listQuery.refetch()}
+        />
+      )}
+      {isReady && (
+        <DomainLimitWarning
+          isAtLimit={isAtLimit}
+          domainLimit={limit}
+          currentPlan={currentPlan}
+        />
+      )}
+
+      <AddressListPanel
+        label="Custom domains"
+        toolbar={
+          <>
+            <div className="outray-arc-address-search w-full sm:max-w-[360px]">
+              <SearchField
+                label="Search domains"
+                placeholder="Search domains…"
+                value={search}
+                onValueChange={setSearch}
+                disabled={!listQuery.data}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4 sm:justify-end">
+              <span
+                className="text-[12px] tabular-nums text-zinc-500"
+                role="status"
+              >
+                {listQuery.data
+                  ? `${filtered.length} ${filtered.length === 1 ? "domain" : "domains"}`
+                  : ""}
+              </span>
+              <div className="outray-arc-address-filter w-[164px]">
+                <Select
+                  label="Filter domain status"
+                  options={domainStatusOptions}
+                  value={status}
+                  onValueChange={(value) => {
+                    if (isDomainStatusFilter(value)) setStatus(value);
+                  }}
+                  disabled={!listQuery.data}
+                />
+              </div>
+            </div>
+          </>
+        }
+      >
+        {listQuery.isPending ? (
+          <AddressListSkeleton label="Loading domains" />
+        ) : listQuery.isError && !listQuery.data ? (
+          <AddressEmptyState
+            isError
+            title="Could not load domains"
+            description="Your domains could not be loaded. Check your connection and try again."
+            action="Try again"
+            onAction={() => void listQuery.refetch()}
+          />
+        ) : domains.length === 0 ? (
+          <AddressEmptyState
+            title="Make the address yours"
+            description="Connect a subdomain such as api.example.com, add your DNS records, and verify ownership."
+            action={isAtLimit && isReady ? "View plan limits" : "Add domain"}
+            onAction={openCreate}
+            disabled={!isReady}
+          />
+        ) : filtered.length === 0 ? (
+          <AddressEmptyState
+            title="No matching domains"
+            description="Try another address or clear your filters to see all domains in this workspace."
+            action="Clear filters"
+            onAction={() => {
+              setSearch("");
+              setStatus("all");
+            }}
+          />
+        ) : (
+          filtered.map((domain) => (
+            <DomainCard
+              key={domain.id}
+              domain={domain}
+              onDelete={(id) => deleteMutation.mutateAsync(id)}
+              onVerify={(id) => verifyMutation.mutateAsync(id)}
+              isVerifying={
+                verifyMutation.isPending &&
+                verifyMutation.variables === domain.id
+              }
+              defaultExpanded={createdDomainId === domain.id}
+            />
+          ))
+        )}
+      </AddressListPanel>
+
+      <p className="text-[12px] leading-5 text-zinc-500">
+        Connect a subdomain, not a root domain. DNS records are available for
+        each address.
+      </p>
 
       <CreateDomainModal
         isOpen={isCreating}
-        onClose={() => setIsCreating(false)}
-        onCreate={(domain) => createMutation.mutate(domain)}
+        onClose={() => {
+          setIsCreating(false);
+          setFormError(null);
+          createMutation.reset();
+        }}
+        onCreate={(domain) => createMutation.mutateAsync(domain)}
         isPending={createMutation.isPending}
-        error={error}
-        setError={setError}
+        error={formError}
+        setError={setFormError}
+        triggerRef={createTrigger}
       />
-
       <LimitModal
         isOpen={isLimitModalOpen}
         onClose={() => setIsLimitModalOpen(false)}
-        title="Domain Limit Reached"
-        description={`You've reached your plan's limit of ${domainLimit} custom domains. Upgrade your plan to add more domains.`}
-        limit={domainLimit}
+        title="Domain limit reached"
+        description={`Your plan includes ${limit} custom domains. Upgrade to connect another address.`}
+        limit={limit}
         currentPlan={currentPlan}
-        resourceName="Custom Domains"
+        resourceName="Custom domains"
       />
-
-      <AlertModal
-        isOpen={alertState.isOpen}
-        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
-        title={alertState.title}
-        message={alertState.message}
-        type={alertState.type}
-      />
-
-      <div className="overflow-hidden rounded-xl border border-white/[0.07]">
-        {domains.map((domain: any) => (
-          <DomainCard
-            key={domain.id}
-            domain={domain}
-            onVerify={(id) => verifyMutation.mutate(id)}
-            onDelete={(id) => deleteMutation.mutate(id)}
-            isVerifying={verifyMutation.isPending}
-          />
-        ))}
-
-        {domains.length === 0 && !isCreating && (
-          <div className="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
-            <HugeiconsIcon
-              icon={Globe02Icon}
-              size={27}
-              strokeWidth={1.5}
-              className="mb-4 text-zinc-700"
-            />
-            <h3 className="text-sm font-medium text-zinc-300">
-              No custom domains
-            </h3>
-            <p className="mx-auto mb-6 mt-2 max-w-sm text-xs text-zinc-700">
-              Add a custom domain to access your tunnels via your own branded
-              URLs.
-            </p>
-            <button
-              onClick={handleAddDomainClick}
-              className="mx-auto flex h-9 items-center gap-2 rounded-md bg-white px-3.5 text-[12px] font-medium text-black hover:bg-zinc-200"
-            >
-              <HugeiconsIcon icon={Add01Icon} size={15} strokeWidth={1.9} />
-              Add your first domain
-            </button>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
