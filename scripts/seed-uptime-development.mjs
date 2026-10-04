@@ -13,7 +13,7 @@ function id(organizationId, name) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
-function assertDevelopmentDatabase(databaseUrl, nodeEnv) {
+export function assertDevelopmentDatabase(databaseUrl, nodeEnv) {
   if (!databaseUrl) throw new Error("DATABASE_URL is required");
   const host = new URL(databaseUrl).hostname.toLowerCase();
   if (!/(^localhost$|^127\.0\.0\.1$|^\[::1\]$|(^|[.-])(dev|development)([.-]|$))/.test(host)) {
@@ -216,7 +216,7 @@ export function buildUptimeFixtures(organizationId, now = Date.now()) {
     const draftStart = now - (2 + index) * HOUR_MS;
     addIncident({
       key: `manual-draft:${index}`, affected: [componentKey],
-      title: `Draft: ${name} maintenance investigation`, startedAt: draftStart,
+      title: `Draft: ${name} investigation`, startedAt: draftStart,
       updates: [{ status: "investigating", draft: true, rich: index === 0, at: draftStart,
         note: `Internal draft for ${name.toLowerCase()}. This update has not been published.` }],
     });
@@ -290,6 +290,24 @@ const scopedTables = new Set([
   "uptime_checks", "incidents", "uptime_incident_updates",
 ]);
 
+const requiredPublishingColumns = [
+  "uptime_monitors.failure_threshold", "uptime_monitors.incident_publishing", "uptime_monitors.publish_after_minutes",
+  "incidents.uptime_publication_state", "incidents.uptime_published_at", "uptime_incident_updates.body_json",
+];
+
+async function assertPublishingSchema(client) {
+  const result = await client.query(
+    `SELECT table_name, column_name FROM information_schema.columns
+     WHERE table_schema = current_schema() AND table_name = ANY($1::text[])`,
+    [["uptime_monitors", "incidents", "uptime_incident_updates"]],
+  );
+  const columns = new Set(result.rows.map((row) => `${row.table_name}.${row.column_name}`));
+  const missing = requiredPublishingColumns.filter((column) => !columns.has(column));
+  if (missing.length) {
+    throw new Error(`Uptime development seed requires missing schema columns: ${missing.join(", ")}. Review the uptime incident-publishing migrations separately; this seed never applies migrations.`);
+  }
+}
+
 async function assertOwnedIds(client, table, records, organizationId, parents = []) {
   if (!scopedTables.has(table)) throw new Error("Unsupported seed table");
   if (!records.length) return;
@@ -327,6 +345,7 @@ async function upsert(client, table, columns, records, keys, updated, scopeField
 export async function seed(client, orgSlug) {
   await client.query("BEGIN");
   try {
+    await assertPublishingSchema(client);
     const orgResult = await client.query("SELECT id, slug, name FROM organizations WHERE slug = $1 FOR UPDATE", [orgSlug]);
     const org = orgResult.rows[0];
     if (!org) throw new Error(`Organization ${orgSlug} does not exist`);
