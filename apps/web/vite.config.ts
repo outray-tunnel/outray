@@ -9,16 +9,18 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import outray from "@outray/vite";
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
   return {
     envPrefix: ["VITE_", "PUBLIC_"],
     plugins: [
       tanstackStart(),
-      nitro({
-        externals: { inline: ["decimal.js-light"] },
-      }),
+      // Nitro's alpha dev proxy can leak rejected request promises during reloads.
+      // Use TanStack's native dev handler; retain Nitro for production packaging.
+      ...(command === "build"
+        ? [nitro({ externals: { inline: ["decimal.js-light"] } })]
+        : []),
       viteReact(),
       tailwindcss(),
       mdx(MdxConfig),
