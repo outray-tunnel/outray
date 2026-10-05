@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowUpRight, RefreshCw, Search, Radio } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
+import { ArrowRight, RefreshCw, Search, Radio } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import PauseIcon from "@hugeicons-pro/core-solid-rounded/PauseIcon";
 import PlayIcon from "@hugeicons-pro/core-solid-rounded/PlayIcon";
@@ -8,7 +8,7 @@ import { SearchField } from "@/components/arc/search-field/search-field";
 import { SegmentedControl } from "../ui/segmented-control";
 import "../outray-arc-theme.css";
 import type { TimeRange, TunnelEvent } from "./types";
-import { formatBytes, getHttpMethodColor } from "./utils";
+import { formatBytes } from "./utils";
 import { RequestInspectorDrawer } from "./request-inspector-drawer";
 import { REQUESTS_LIMIT, requestKey } from "./requests-feed-state";
 import { useRequestsFeed, type RequestsFeed } from "./use-requests-feed";
@@ -44,6 +44,7 @@ export function RequestsExplorer({
   fullCaptureEnabled,
 }: RequestsExplorerProps) {
   const feed = useRequestsFeed({ orgSlug, orgId, tunnelId });
+  const inspectorTrigger = useRef<HTMLElement | null>(null);
   const [selection, setSelection] = useState<{
     scopeKey: string;
     request: TunnelEvent;
@@ -57,61 +58,63 @@ export function RequestsExplorer({
   return (
     <section
       aria-label="Request activity"
-      className="outray-arc outray-arc-requests min-w-0 space-y-4"
+      className="outray-arc outray-arc-requests min-w-0"
       style={{ fontFamily: '"Geom", sans-serif' }}
     >
-      <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
-        <div className="outray-arc-requests-search min-w-0 w-full sm:w-72">
-          <SearchField
-            label="Search requests"
-            value={feed.search}
-            onValueChange={feed.setSearch}
-            placeholder={
-              tunnelId ? "Search method or path" : "Search method, path or host"
-            }
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </div>
-        <div className="ml-auto flex min-w-0 max-w-full flex-wrap items-center gap-2">
-          {feed.range === "live" && (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="shrink-0"
-              onClick={feed.togglePause}
-              aria-pressed={feed.paused}
-              disabled={feed.isLoading}
-              title={
-                feed.paused
-                  ? "Resume showing incoming requests"
-                  : "Freeze the visible rows; incoming requests stay buffered"
-              }
-            >
-              <HugeiconsIcon
-                icon={feed.paused ? PlayIcon : PauseIcon}
-                size={13}
-                aria-hidden="true"
-              />
-              {feed.paused ? "Resume" : "Pause"}
-            </Button>
-          )}
-          <SegmentedControl
-            label="Request time range"
-            options={TIME_RANGES}
-            value={feed.range}
-            onValueChange={feed.setRange}
-          />
-        </div>
-      </div>
-
       <RequestsResults
         feed={feed}
         showHost={!tunnelId}
         inspectorEnabled={inspectorEnabled}
-        onInspect={(request) =>
-          setSelection({ scopeKey: feed.scopeKey, request })
+        onInspect={(request, trigger) => {
+          inspectorTrigger.current = trigger ?? null;
+          setSelection({ scopeKey: feed.scopeKey, request });
+        }}
+        toolbar={
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] p-4">
+            <div className="outray-arc-requests-search w-full min-w-0 sm:w-[320px]">
+              <SearchField
+                label="Search requests"
+                value={feed.search}
+                onValueChange={feed.setSearch}
+                placeholder={
+                  tunnelId ? "Search method or path" : "Search method, path or host"
+                }
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+            <div className="ml-auto flex min-w-0 max-w-full flex-wrap items-center gap-2">
+              {feed.range === "live" && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="shrink-0"
+                  onClick={feed.togglePause}
+                  aria-pressed={feed.paused}
+                  disabled={feed.isLoading}
+                  title={
+                    feed.paused
+                      ? "Resume showing incoming requests"
+                      : "Freeze the visible rows; incoming requests stay buffered"
+                  }
+                >
+                  <HugeiconsIcon
+                    icon={feed.paused ? PlayIcon : PauseIcon}
+                    size={13}
+                    aria-hidden="true"
+                  />
+                  {feed.paused ? "Resume" : "Pause"}
+                </Button>
+              )}
+              <SegmentedControl
+                label="Request time range"
+                options={TIME_RANGES}
+                value={feed.range}
+                onValueChange={feed.setRange}
+              />
+            </div>
+          </div>
         }
       />
 
@@ -122,6 +125,7 @@ export function RequestsExplorer({
           onClose={() => setSelection(null)}
           fullCaptureEnabled={fullCaptureEnabled}
           orgSlug={orgSlug}
+          returnFocusRef={inspectorTrigger}
         />
       )}
     </section>
@@ -151,11 +155,13 @@ export function RequestsResults({
   showHost,
   inspectorEnabled,
   onInspect,
+  toolbar,
 }: {
   feed: RequestsResultsFeed;
   showHost: boolean;
   inspectorEnabled: boolean;
-  onInspect: (request: TunnelEvent) => void;
+  onInspect: (request: TunnelEvent, trigger?: HTMLElement | null) => void;
+  toolbar?: ReactNode;
 }) {
   const isLive = feed.range === "live";
   const hasRows = feed.requests.length > 0;
@@ -163,11 +169,12 @@ export function RequestsResults({
   const showErrorBanner = !!feed.error && hasRows;
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-950/40">
+    <div className="min-w-0 overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
+      {toolbar}
       {showErrorBanner && (
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] bg-amber-500/[0.035] px-4 py-2.5 text-[12px] text-zinc-400"
+          className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-400/[0.12] bg-amber-400/[0.035] px-4 py-2.5 text-[12px] text-amber-200"
         >
           <span>{feed.error}{!isLive && " Showing previously loaded requests."}</span>
           {(!isLive || disconnected) && (
@@ -185,74 +192,74 @@ export function RequestsResults({
           aria-label={showHost ? "Workspace requests" : "Tunnel requests"}
           aria-busy={feed.isLoading || feed.isUpdating || undefined}
         >
-          <thead className="sticky top-0 z-10 border-b border-white/[0.08] bg-zinc-950 text-[10px] uppercase tracking-[0.08em] text-zinc-500">
+          <thead className="sticky top-0 z-10 border-b border-white/[0.06] bg-[#151516] text-[11px] text-zinc-400">
             <tr>
-              <th scope="col" className="w-[76px] px-4 py-3 font-medium">Status</th>
-              <th scope="col" className="w-[82px] px-3 py-3 font-medium">Method</th>
-              <th scope="col" className="px-3 py-3 font-medium">Path</th>
-              <th scope="col" className="w-[118px] px-3 py-3 font-medium">Client</th>
-              <th scope="col" className="w-[95px] px-3 py-3 text-right font-medium">Duration</th>
-              <th scope="col" className="w-[78px] px-3 py-3 text-right font-medium">Size</th>
-              <th scope="col" className="w-[110px] px-4 py-3 text-right font-medium">Time</th>
+              <th scope="col" className="w-[92px] px-4 py-2.5 font-normal">Status</th>
+              <th scope="col" className="w-[96px] px-3 py-2.5 font-normal">Method</th>
+              <th scope="col" className="px-3 py-2.5 font-normal">Path</th>
+              <th scope="col" className="w-[120px] px-3 py-2.5 font-normal">Client</th>
+              <th scope="col" className="w-[96px] px-3 py-2.5 text-right font-normal">Duration</th>
+              <th scope="col" className="w-[82px] px-3 py-2.5 text-right font-normal">Size</th>
+              <th scope="col" className="w-[116px] px-4 py-2.5 text-right font-normal">Time</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.055] text-[12px]">
+          <tbody className="divide-y divide-white/[0.06] text-[12px]">
             {feed.isLoading ? (
               <RequestsSkeleton showHost={showHost} />
             ) : hasRows ? (
               feed.requests.map((request) => (
                 <tr
                   key={requestKey(request)}
-                  onClick={inspectorEnabled ? () => onInspect(request) : undefined}
-                  className={`group transition-colors motion-reduce:transition-none ${inspectorEnabled ? "cursor-pointer hover:bg-white/[0.025] focus-within:bg-white/[0.025]" : ""}`}
+                  onClick={inspectorEnabled ? (event) => onInspect(request, event.currentTarget.querySelector<HTMLButtonElement>("button")) : undefined}
+                  className={`group transition-colors motion-reduce:transition-none ${inspectorEnabled ? "cursor-pointer hover:bg-white/[0.035] focus-within:bg-white/[0.035]" : ""}`}
                 >
-                  <td className="px-4 py-3.5">
+                  <td className="px-4 py-3">
                     <StatusChip status={request.status_code} />
                   </td>
-                  <td className="px-3 py-3.5">
+                  <td className="px-3 py-3">
                     <span
-                      className={`font-mono text-[10px] font-medium ${getHttpMethodColor(request.method)}`}
+                      className="inline-flex items-center rounded-md border border-white/[0.06] bg-white/[0.025] px-2 py-0.5 font-mono text-[11px] text-zinc-300"
                     >
                       {request.method}
                     </span>
                   </td>
-                  <td className="min-w-0 px-3 py-3.5">
+                  <td className="min-w-0 px-3 py-3">
                     {inspectorEnabled ? (
                       <button
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          onInspect(request);
+                          onInspect(request, event.currentTarget);
                         }}
                         aria-label={`Inspect ${request.method} ${request.path}, status ${request.status_code}`}
-                        className="flex w-full min-w-0 items-center gap-2 rounded-sm text-left text-zinc-200 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                        className="flex w-full min-w-0 items-center gap-2 rounded-sm text-left text-[13px] text-zinc-200 transition-colors hover:text-white motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/60"
                       >
                         <span className="truncate" title={request.path}>{request.path}</span>
-                        <ArrowUpRight
+                        <ArrowRight
                           size={12}
                           aria-hidden="true"
-                          className="shrink-0 text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                          className="shrink-0 text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 motion-reduce:transition-none"
                         />
                       </button>
                     ) : (
-                      <span className="block truncate text-zinc-200" title={request.path}>{request.path}</span>
+                      <span className="block truncate text-[13px] text-zinc-200" title={request.path}>{request.path}</span>
                     )}
                     {showHost && (
-                      <span className="mt-1 block truncate text-[10px] text-zinc-500" title={request.host}>
+                      <span className="mt-0.5 block truncate text-[11px] text-zinc-400" title={request.host}>
                         {request.host || "—"}
                       </span>
                     )}
                   </td>
-                  <td className="truncate px-3 py-3.5 font-mono text-[10px] text-zinc-500" title={request.client_ip}>
+                  <td className="truncate px-3 py-3 font-mono text-[11px] text-zinc-400" title={request.client_ip}>
                     {request.client_ip || "—"}
                   </td>
-                  <td className="px-3 py-3.5 text-right tabular-nums text-zinc-400">
+                  <td className="px-3 py-3 text-right tabular-nums text-zinc-400">
                     {formatRequestDuration(request.request_duration_ms)}
                   </td>
-                  <td className="px-3 py-3.5 text-right tabular-nums text-zinc-500">
+                  <td className="px-3 py-3 text-right tabular-nums text-zinc-400">
                     {formatBytes(request.bytes_out, 1)}
                   </td>
-                  <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500">
+                  <td className="px-4 py-3 text-right text-[11px] tabular-nums text-zinc-400">
                     <time dateTime={new Date(request.timestamp).toISOString()} title={new Date(request.timestamp).toLocaleString()}>
                       {new Date(request.timestamp).toLocaleTimeString(undefined, {
                         hour: "2-digit",
@@ -262,7 +269,7 @@ export function RequestsResults({
                       })}
                     </time>
                     {!isLive && (
-                      <span className="mt-1 block text-[10px] text-zinc-600">
+                      <span className="mt-0.5 block text-[11px] text-zinc-400">
                         {new Date(request.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                       </span>
                     )}
@@ -280,7 +287,7 @@ export function RequestsResults({
         </div>
       )}
 
-      <footer className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-white/[0.07] px-4 py-2.5 text-[11px] text-zinc-500">
+      <footer className="flex min-h-10 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-white/[0.06] px-4 py-2.5 text-[11px] text-zinc-400">
         <span>
           {feed.isLoading
             ? "Loading requests…"
@@ -292,7 +299,7 @@ export function RequestsResults({
               ? `${feed.requests.length} matching ${feed.requests.length === 1 ? "request" : "requests"}`
               : `${feed.requests.length} ${feed.requests.length === 1 ? "request" : "requests"}`}
           {!feed.isLoading && feed.totalCount >= REQUESTS_LIMIT && (
-            <span className="text-zinc-600"> · Latest {REQUESTS_LIMIT}</span>
+            <span> · Latest {REQUESTS_LIMIT}</span>
           )}
         </span>
         {isLive ? (
@@ -301,7 +308,7 @@ export function RequestsResults({
               <button
                 type="button"
                 onClick={feed.togglePause}
-                className="text-zinc-400 transition-colors hover:text-zinc-200"
+                className="rounded-sm text-zinc-300 transition-colors hover:text-white motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/60"
               >
                 {feed.pendingCount > 0 ? `${feed.pendingCount} new · Resume` : "Display paused"}
               </button>
@@ -325,16 +332,18 @@ export function RequestsResults({
 function StatusChip({ status }: { status: number }) {
   const color =
     !status
-      ? "bg-white/[0.05] text-zinc-500"
+      ? "border-white/[0.08] bg-white/[0.025] text-zinc-400"
       : status >= 500
-      ? "bg-rose-400/[0.08] text-rose-400"
+      ? "border-rose-400/[0.12] bg-rose-400/[0.05] text-rose-300"
       : status >= 400
-        ? "bg-amber-400/[0.08] text-amber-400"
+        ? "border-amber-400/[0.12] bg-amber-400/[0.05] text-amber-300"
         : status >= 300
-          ? "bg-sky-400/[0.08] text-sky-400"
-          : "bg-emerald-400/[0.08] text-emerald-400";
+          ? "border-white/[0.08] bg-white/[0.025] text-zinc-300"
+          : status < 200
+            ? "border-sky-400/[0.12] bg-sky-400/[0.05] text-sky-300"
+            : "border-emerald-400/[0.12] bg-emerald-400/[0.05] text-emerald-300";
   return (
-    <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${color}`}>
+    <span className={`inline-flex min-h-6 min-w-[44px] items-center justify-center rounded-md border px-2 text-[11px] font-medium tabular-nums ${color}`}>
       {status || "—"}
     </span>
   );
@@ -352,16 +361,16 @@ function RequestsSkeleton({ showHost }: { showHost: boolean }) {
       <tr className="sr-only"><td colSpan={7}>Loading requests</td></tr>
       {Array.from({ length: 6 }, (_, index) => (
         <tr key={index} aria-hidden="true" className="animate-pulse motion-reduce:animate-none">
-          <td className="px-4 py-3.5"><div className="h-5 w-8 rounded bg-white/[0.055]" /></td>
-          <td className="px-3 py-3.5"><div className="h-2.5 w-8 rounded-sm bg-white/[0.055]" /></td>
-          <td className="px-3 py-3.5">
+          <td className="px-4 py-3"><div className="h-6 w-11 rounded-md bg-white/[0.055]" /></td>
+          <td className="px-3 py-3"><div className="h-5 w-12 rounded-md bg-white/[0.055]" /></td>
+          <td className="px-3 py-3">
             <div className="h-3 rounded-sm bg-white/[0.055]" style={{ width: `${48 + (index % 3) * 16}%` }} />
             {showHost && <div className="mt-2 h-2 w-24 rounded-sm bg-white/[0.035]" />}
           </td>
-          <td className="px-3 py-3.5"><div className="h-2.5 w-16 rounded-sm bg-white/[0.035]" /></td>
-          <td className="px-3 py-3.5"><div className="ml-auto h-2.5 w-11 rounded-sm bg-white/[0.035]" /></td>
-          <td className="px-3 py-3.5"><div className="ml-auto h-2.5 w-9 rounded-sm bg-white/[0.035]" /></td>
-          <td className="px-4 py-3.5"><div className="ml-auto h-2.5 w-14 rounded-sm bg-white/[0.035]" /></td>
+          <td className="px-3 py-3"><div className="h-2.5 w-16 rounded-sm bg-white/[0.035]" /></td>
+          <td className="px-3 py-3"><div className="ml-auto h-2.5 w-11 rounded-sm bg-white/[0.035]" /></td>
+          <td className="px-3 py-3"><div className="ml-auto h-2.5 w-9 rounded-sm bg-white/[0.035]" /></td>
+          <td className="px-4 py-3"><div className="ml-auto h-2.5 w-14 rounded-sm bg-white/[0.035]" /></td>
         </tr>
       ))}
     </>
@@ -406,9 +415,9 @@ function RequestsEmptyState({
 
   return (
     <div className="flex flex-col items-center text-center" role={failed ? "alert" : "status"}>
-      <Icon size={20} strokeWidth={1.5} className="mb-3 text-zinc-600" aria-hidden="true" />
-      <p className="text-[13px] font-medium text-zinc-300">{title}</p>
-      <p className="mt-1.5 max-w-sm text-[12px] leading-relaxed text-zinc-500">{description}</p>
+      <span className="mb-3 flex size-10 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025]"><Icon size={19} strokeWidth={1.5} className="text-zinc-400" aria-hidden="true" /></span>
+      <p className="text-[14px] font-medium text-zinc-200">{title}</p>
+      <p className="mt-1 max-w-sm text-[12px] leading-5 text-zinc-400">{description}</p>
       {failed ? (
         <Button type="button" size="sm" variant="secondary" onClick={feed.retry} className="mt-4">
           <RefreshCw size={13} aria-hidden="true" />Retry
