@@ -160,3 +160,40 @@ test("usage number server rendering starts at the supplied value, without a moun
     assert.doesNotMatch(html, /setTimeout|requestAnimationFrame/);
   }
 });
+
+test("custom NumberFlow formats preserve rate precision and snap between latency units", async () => {
+  const render = await numberController();
+  const rate = render({
+    value: 1.25, metric: "errorRate",
+    numberConfig: (value) => ({
+      value, suffix: "%", format: { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+    }),
+  });
+  assert.equal(rate.props.value, 1.25);
+  assert.equal(rate.props.suffix, "%");
+  assert.equal(rate.props.format.maximumFractionDigits, 2);
+  const numberConfig = (value: number) => ({
+    value: value < 1000 ? value : value / 1000,
+    suffix: value < 1000 ? " ms" : " s",
+    format: { maximumFractionDigits: value < 1000 ? 0 : 2 },
+  });
+  assert.equal(render({ value: 750, metric: "p95", numberConfig }).props.animated, false);
+  assert.equal(render({ value: 850, metric: "p95", numberConfig }).props.animated, true);
+  const seconds = render({ value: 1_250, metric: "p95", numberConfig });
+  assert.equal(seconds.props.value, 1.25);
+  assert.equal(seconds.props.suffix, " s");
+  assert.equal(seconds.props.animated, false);
+});
+
+test("unknown number evidence renders an em dash and does not animate into new evidence", async () => {
+  const render = await numberController();
+  const missing = render({ value: null, metric: "p95" });
+  assert.equal(missing.type, "span");
+  assert.equal(missing.props.children, "—");
+  assert.equal(render({ value: 42, metric: "p95" }).props.animated, false);
+  assert.equal(render({ value: 43, metric: "p95" }).props.animated, true);
+  const html = renderToStaticMarkup(React.createElement(UsageNumber, {
+    value: null, metric: "p95", missingLabel: "No samples",
+  }));
+  assert.equal(html, "<span>No samples</span>");
+});
