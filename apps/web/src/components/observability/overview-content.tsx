@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, RefreshCw, Server } from "lucide-react";
 import { HealthPill } from "./observability-ui";
+import { ConnectServiceSheet } from "./connect-service-sheet";
 import { Button } from "../ui/button";
 import { SegmentedControl } from "../ui/segmented-control";
 import { UsageMetricCard, type UsageCardMetric } from "../overview/usage-metric-card";
@@ -52,6 +53,8 @@ export function ObservabilityOverviewContent({
   referenceTime,
 }: ObservabilityOverviewContentProps) {
   const [attentionOnly, setAttentionOnly] = useState(false);
+  const [connectOpen, setConnectOpen] = useState(false);
+  const connectTrigger = useRef<HTMLButtonElement>(null);
   const displayedRange = data ? normalizeObservabilityRange(data.range) : range;
   const usage = useMemo(() => {
     if (!data) return null;
@@ -103,14 +106,16 @@ export function ObservabilityOverviewContent({
           <h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Overview</h1>
           <p className="mt-1 text-[12px] text-zinc-500">Health and activity across your services.</p>
         </div>
-        <Link
-          to="/$orgSlug/setup"
-          params={{ orgSlug }}
-          search={{ product: "observability" }}
+        <button
+          ref={connectTrigger}
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={connectOpen}
+          onClick={() => setConnectOpen(true)}
           className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.055] px-3.5 text-[12px] text-zinc-200 transition-colors hover:bg-white/[0.09] motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Connect a service <ArrowRight size={13} aria-hidden="true" />
-        </Link>
+        </button>
       </header>
 
       <section className="min-w-0 space-y-3" aria-label="Service analytics">
@@ -207,6 +212,14 @@ export function ObservabilityOverviewContent({
           )}
         </section>
       ) : null}
+      <ConnectServiceSheet
+        key={orgSlug}
+        orgSlug={orgSlug}
+        open={connectOpen}
+        onClose={() => setConnectOpen(false)}
+        onRecheck={onRetry}
+        returnFocusRef={connectTrigger}
+      />
     </div>
   );
 }
