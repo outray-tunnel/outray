@@ -103,7 +103,7 @@ export function Select({
   }, [isOpen, updateMenuPosition]);
 
   const openMenu = () => {
-    setPortalTarget(triggerRef.current?.closest("dialog") ?? document.body);
+    setPortalTarget(triggerRef.current?.closest<HTMLElement>('dialog, [role="dialog"]') ?? document.body);
     const selectedIndex = options.findIndex((option) => option.value === value);
     setHighlightedIndex(Math.max(0, selectedIndex));
     updateMenuPosition();
