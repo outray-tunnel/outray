@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { runInNewContext } from "node:vm";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
+import * as usageBars from "../src/components/overview/usage-bars";
+import { createUsageHoverScheduler } from "../src/components/overview/usage-hover";
 import { formatBytes } from "../src/components/overview/format";
 import {
   hoverUsageBarIndex,
@@ -242,7 +245,7 @@ test("measured zero-rate intervals remain inspectable and format custom units co
   assert.doesNotMatch(html, /No activity in this period/);
 });
 
-test("actual bar hover, keyboard focus, leave, blur, and Escape are connected to the controlled inspection", async () => {
+test("chart-area hover, keyboard focus, leave, blur, and Escape are connected to the controlled inspection", async () => {
   const tree = await analyticsSource();
   const elements = openingElements(functionNode(tree, "UsageMiniChart"));
   const group = elements.find((element) => {
@@ -253,14 +256,17 @@ test("actual bar hover, keyboard focus, leave, blur, and Escape are connected to
   const tooltip = elements.find((element) => element.tagName.getText(tree) === "Tooltip");
   const chart = elements.find((element) => element.tagName.getText(tree) === "BarChart");
   assert.ok(group && bar && tooltip && chart);
-  for (const event of ["onMouseEnter", "onMouseMove"]) {
-    assert.match(expression(bar, event), /hoverScheduler\.inspect\(hoverUsageBarIndex\(index, bars\.length\)\)/);
+  for (const event of ["onMouseEnter", "onMouseMove", "onMouseLeave"]) {
+    assert.equal(attribute(bar, event), undefined, "individual bar shapes do not reset chart-area inspection");
   }
-  assert.equal(expression(bar, "onMouseLeave"), "() => hoverScheduler.inspect(null)");
-  assert.equal(expression(tooltip, "shared"), "false", "blank chart space is not a shared bar hover target");
-  assert.equal(attribute(chart, "onMouseMove"), undefined, "the headline responds to actual bar shapes, not chart-wide motion");
-  assert.equal(expression(group, "onMouseLeave"), "resetInspection");
-  assert.equal(expression(group, "onPointerLeave"), "resetInspection");
+  assert.equal(expression(tooltip, "shared"), "true", "the complete interval column is a hover target, including blank space");
+  assert.equal(expression(tooltip, "filterNull"), "false", "a missing observation still has an inspectable interval");
+  assert.match(expression(chart, "onMouseMove"), /hoverScheduler\.inspect\(state\.isTooltipActive \? hoverUsageBarIndex\(state\.activeTooltipIndex, bars\.length\) : null\)/);
+  assert.match(expression(chart, "onMouseMove"), /if \(!pointerInside\.current\) return/);
+  assert.equal(attribute(chart, "onMouseLeave"), undefined, "the direct group leave resets before queued Recharts events");
+  assert.match(expression(group, "onPointerEnter"), /pointerInside\.current = true/);
+  assert.equal(expression(group, "onMouseLeave"), "leaveChart");
+  assert.equal(expression(group, "onPointerLeave"), "leaveChart");
   assert.match(expression(group, "onBlur"), /pointerFocus\.current = false; resetInspection\(\)/);
   assert.match(expression(group, "onFocus"), /if \(!pointerFocus\.current\) onKeyboardIndexChange\(bars\.length - 1\)/);
   assert.doesNotMatch(expression(group, "onPointerDown"), /onKeyboardIndexChange|onHoverIndexChange|onResetInspection/,
@@ -275,4 +281,131 @@ test("actual bar hover, keyboard focus, leave, blur, and Escape are connected to
   const source = functionNode(tree, "UsageMiniChart").getText(tree).replace(/\s+/g, " ");
   assert.match(source, /useEffect\(\(\) => \(\) => hoverScheduler\.cancel\(\), \[hoverScheduler, bars\]\)/);
   assert.match(source, /const resetInspection = \(\) => \{ hoverScheduler\.cancel\(\); onResetInspection\(\); \}/);
+  assert.match(source, /const leaveChart = \(\) => \{ pointerInside\.current = false; resetInspection\(\); \}/);
+});
+
+function reactElements(node: React.ReactNode): React.ReactElement<any>[] {
+  if (Array.isArray(node)) return node.flatMap(reactElements);
+  if (!React.isValidElement(node)) return [];
+  const element = node as React.ReactElement<any>;
+  return [element, ...reactElements(element.props.children)];
+}
+
+async function loadInspectionCard() {
+  const source = await readFile(new URL("../src/components/overview/usage-metric-card.tsx", import.meta.url), "utf8");
+  const compiled = ts.transpileModule(`${source}\nexport { UsageMiniChart };`, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true },
+  }).outputText;
+  const values: any[] = [];
+  const refs: Array<{ current: any }> = [];
+  const frames = new Map<number, () => void>();
+  let stateIndex = 0;
+  let refIndex = 0;
+  let frameId = 0;
+  const stubs = Object.fromEntries(["Bar", "BarChart", "Cell", "ResponsiveContainer", "Tooltip", "YAxis", "UsageNumber"].map((name) => [name, (props: any) => React.createElement("div", null, props.children)]));
+  const module = { exports: {} as Record<string, (props: any) => React.ReactNode> };
+  runInNewContext(compiled, {
+    React, module, exports: module.exports,
+    window: {
+      requestAnimationFrame: (callback: () => void) => { frames.set(++frameId, callback); return frameId; },
+      cancelAnimationFrame: (id: number) => { frames.delete(id); },
+    },
+    require: (specifier: string) => {
+      if (specifier === "react") return {
+        useState: (initial: any) => {
+          const slot = stateIndex++;
+          if (!(slot in values)) values[slot] = typeof initial === "function" ? initial() : initial;
+          return [values[slot], (next: any) => { values[slot] = typeof next === "function" ? next(values[slot]) : next; }];
+        },
+        useRef: (initial: any) => { const slot = refIndex++; return refs[slot] ?? (refs[slot] = { current: initial }); },
+        useMemo: (callback: () => any) => callback(),
+        useCallback: (callback: (...args: any[]) => any) => callback,
+        useEffect: () => {},
+        useId: () => "usage-inspection-hint",
+      };
+      if (specifier === "recharts" || specifier === "./usage-number") return stubs;
+      if (specifier === "./usage-bars") return usageBars;
+      if (specifier === "./usage-hover") return { createUsageHoverScheduler };
+      throw new Error(`Unexpected inspection dependency: ${specifier}`);
+    },
+  });
+  const render = (name: string, props: any) => {
+    stateIndex = 0; refIndex = 0;
+    return reactElements(module.exports[name](props));
+  };
+  return {
+    stubs, frames,
+    renderCard: (props: any) => render("UsageMetricCard", props),
+    renderChart: (props: any) => render("UsageMiniChart", props),
+    miniChart: module.exports.UsageMiniChart,
+    flush() {
+      for (const [id, callback] of [...frames]) { frames.delete(id); callback(); }
+    },
+  };
+}
+
+test("blank interval hover inspects zero and missing values, highlights the interval, and immediately resets on leave", async () => {
+  const ui = await loadInspectionCard();
+  const bars: UsageMetricBar[] = [requestBars[0], { ...requestBars[1], value: null }, { ...requestBars[1], startTime: "2026-10-04T11:00:00.000Z", value: 12 }];
+  const metric: UsageCardMetric = { ...requestMetric, format: (value) => value === null ? "—" : String(value), zeroIsActivity: true };
+  const cardProps = { metric, range: "24h", bars };
+  const chartProps = () => {
+    const chart = ui.renderCard(cardProps).find((element) => element.type === ui.miniChart);
+    assert.ok(chart);
+    return chart.props;
+  };
+  const headline = () => ui.renderCard(cardProps).find((element) => "data-usage-value" in element.props)?.props["data-usage-value"];
+  let chartTree = ui.renderChart(chartProps());
+  let chart = chartTree.find((element) => element.type === ui.stubs.BarChart);
+  assert.ok(chart);
+  const group = chartTree.find((element) => element.type === "div" && element.props.role === "group");
+  assert.ok(group);
+  group.props.onPointerEnter();
+  assert.equal(headline(), "12");
+  chart.props.onMouseMove({ isTooltipActive: true, activeTooltipIndex: "0" });
+  assert.equal(ui.frames.size, 1);
+  ui.flush();
+  assert.equal(headline(), "0", "zero is a real interval observation, not the period total");
+  chartTree = ui.renderChart(chartProps());
+  assert.deepEqual(chartTree.filter((element) => element.type === ui.stubs.Cell).map((element) => element.props.fill), ["#d4d4d8", "#52525b", "#52525b"]);
+  chart = chartTree.find((element) => element.type === ui.stubs.BarChart);
+  assert.ok(chart);
+  chart.props.onMouseMove({ isTooltipActive: true, activeTooltipIndex: 1 });
+  ui.flush();
+  assert.equal(headline(), "—", "blank chart space over a missing observation must not imply zero or reuse the total");
+  chartTree = ui.renderChart(chartProps());
+  assert.deepEqual(chartTree.filter((element) => element.type === ui.stubs.Cell).map((element) => element.props.fill), ["#52525b", "#d4d4d8", "#52525b"]);
+  const tooltip = chartTree.find((element) => element.type === ui.stubs.Tooltip);
+  assert.ok(tooltip);
+  assert.equal(tooltip.props.filterNull, false);
+  assert.equal(tooltip.props.content({ active: true, payload: [] }).props.bar, bars[1], "missing observations are read from the hovered interval, not a filtered payload");
+  assert.equal(tooltip.props.cursor.stroke, "none");
+  chart = chartTree.find((element) => element.type === ui.stubs.BarChart);
+  assert.ok(chart);
+  chartTree.find((element) => element.type === "div" && element.props.role === "group")?.props.onBlur();
+  assert.equal(headline(), "12", "blur clears inspection without claiming the mouse physically left");
+  chart.props.onMouseMove({ isTooltipActive: true, activeTooltipIndex: 0 });
+  ui.flush();
+  assert.equal(headline(), "0", "hover remains usable after Tab moves focus away while the pointer is inside");
+  chartTree = ui.renderChart(chartProps());
+  chart = chartTree.find((element) => element.type === ui.stubs.BarChart);
+  assert.ok(chart);
+  chart.props.onMouseMove({ isTooltipActive: true, activeTooltipIndex: 2 });
+  assert.equal(ui.frames.size, 1);
+  chartTree.find((element) => element.type === "div" && element.props.role === "group")?.props.onPointerLeave();
+  assert.equal(ui.frames.size, 0, "leave cancels a pending hover animation frame");
+  assert.equal(headline(), "12", "the period total restores synchronously without a delayed hover");
+  ui.flush();
+  assert.equal(headline(), "12");
+  chart.props.onMouseMove({ isTooltipActive: true, activeTooltipIndex: 0 });
+  assert.equal(ui.frames.size, 0, "a delayed Recharts move cannot revive inspection after leaving");
+  chartTree = ui.renderChart(chartProps());
+  assert.ok(chartTree.filter((element) => element.type === ui.stubs.Cell).every((element) => element.props.fill === "#52525b"));
+  const bar = chartTree.find((element) => element.type === ui.stubs.Bar);
+  assert.ok(bar);
+  assert.equal(bar.props.onMouseLeave, undefined, "crossing a bar edge does not reset a full-area inspection");
+  const resetTooltip = chartTree.find((element) => element.type === ui.stubs.Tooltip);
+  assert.ok(resetTooltip);
+  assert.equal(resetTooltip.props.cursor, false);
+  assert.equal(resetTooltip.props.content({ active: true }), null, "queued tooltip activity cannot display an old interval after leaving");
 });
