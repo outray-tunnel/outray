@@ -112,7 +112,7 @@ export function createUsageBars(
 
 export function formatUsageInterval(
   bar: Pick<UsageBar, "startTime" | "endTime">,
-  range: TunnelStatsRange,
+  range: TunnelStatsRange | "6h",
 ): string {
   const start = new Date(bar.startTime);
   // The interval's end is exclusive; a midnight edge belongs to the prior day.
