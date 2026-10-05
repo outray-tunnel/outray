@@ -1,0 +1,39 @@
+.dialog {
+  width: min(calc(100vw - 32px), 640px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dialog > div:first-child h2 {
+  font-weight: 400;
+  letter-spacing: -0.025em;
+}
+.dialog > div:nth-child(2) {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.form {
+  display: flex;
+  min-height: 0;
+  height: min(600px, calc(100dvh - 164px));
+  max-height: calc(100dvh - 164px);
+  flex-direction: column;
+}
+.content {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 639px) {
+  .dialog {
+    width: calc(100vw - 24px);
+  }
+  .form {
+    height: min(600px, calc(100dvh - 192px));
+    max-height: calc(100dvh - 192px);
+  }
+}
