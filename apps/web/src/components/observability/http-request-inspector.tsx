@@ -446,7 +446,7 @@ function RequestContext({
             <Link
               to="/$orgSlug/observability/logs"
               params={{ orgSlug }}
-              search={{ search: request.traceId }}
+              search={{ search: request.traceId, range: "1h" }}
               className="text-[11px] text-zinc-400 underline-offset-4 hover:text-zinc-200 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               {logs.length} events · Open logs
