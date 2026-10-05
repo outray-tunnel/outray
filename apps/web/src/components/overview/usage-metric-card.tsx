@@ -8,7 +8,7 @@ import {
   formatUsageInterval, hoverUsageBarIndex, inspectedUsageBar, nextUsageBarIndex,
 } from "./usage-bars";
 
-export type OverviewRange = TunnelStatsRange;
+export type OverviewRange = TunnelStatsRange | "6h";
 
 export interface UsageMetricBar {
   startTime: string;
@@ -29,7 +29,7 @@ export interface UsageCardMetric {
 }
 
 const rangeLabels: Record<OverviewRange, string> = {
-  "1h": "Last hour", "24h": "Last 24 hours",
+  "1h": "Last hour", "6h": "Last 6 hours", "24h": "Last 24 hours",
   "7d": "Last 7 days", "30d": "Last 30 days",
 };
 
@@ -88,7 +88,7 @@ export function UsageMetricCard({
     <article
       aria-label={metric.label}
       data-metric={metric.key}
-      className="flex h-[180px] min-w-0 flex-col rounded-xl border border-white/[0.08] bg-[#111112] p-4"
+      className="flex h-[180px] min-w-0 flex-col rounded-xl border border-white/[0.08] bg-[#111112] p-4 transition-colors duration-150 hover:border-white/[0.13] hover:bg-[#141415] motion-reduce:transition-none"
     >
       <h3 className="text-[12px] font-normal text-zinc-400">{metric.label}</h3>
       <p
@@ -137,6 +137,7 @@ function UsageMiniChart({
 }) {
   const hintId = useId();
   const pointerFocus = useRef(false);
+  const pointerInside = useRef(false);
   const hoverScheduler = useMemo(() => createUsageHoverScheduler({
     requestFrame: (callback) => window.requestAnimationFrame(callback),
     cancelFrame: (frame) => window.cancelAnimationFrame(frame),
@@ -146,6 +147,10 @@ function UsageMiniChart({
   const resetInspection = () => {
     hoverScheduler.cancel();
     onResetInspection();
+  };
+  const leaveChart = () => {
+    pointerInside.current = false;
+    resetInspection();
   };
   const activeIndex = hoverIndex ?? keyboardIndex;
   const keyboardBar = keyboardIndex === null ? null : bars[keyboardIndex];
@@ -189,6 +194,8 @@ function UsageMiniChart({
         aria-label={`${metric.label} over ${rangeLabels[range].toLowerCase()}`}
         aria-describedby={hintId}
         className="relative mt-auto h-16 w-full rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+        onPointerEnter={() => { pointerInside.current = true; }}
+        onMouseEnter={() => { pointerInside.current = true; }}
         onPointerDown={() => {
           pointerFocus.current = true;
         }}
@@ -199,8 +206,8 @@ function UsageMiniChart({
           pointerFocus.current = false;
           resetInspection();
         }}
-        onMouseLeave={resetInspection}
-        onPointerLeave={resetInspection}
+        onMouseLeave={leaveChart}
+        onPointerLeave={leaveChart}
         onKeyDown={(event) => {
           const next = nextUsageBarIndex(keyboardIndex, event.key, bars.length);
           if (next === undefined) return;
@@ -221,19 +228,28 @@ function UsageMiniChart({
             accessibilityLayer={false}
             margin={{ top: 2, right: 0, bottom: 0, left: 0 }}
             barCategoryGap="12%"
+            onMouseMove={(state) => {
+              // Recharts schedules chart events; a queued move cannot revive a
+              // hover after the pointer has already left the chart area.
+              if (!pointerInside.current) return;
+              hoverScheduler.inspect(state.isTooltipActive
+                ? hoverUsageBarIndex(state.activeTooltipIndex, bars.length)
+                : null);
+            }}
           >
             <YAxis hide domain={[0, "dataMax"]} />
             <Tooltip
-              shared={false}
-              cursor={{ fill: "rgba(255,255,255,0.035)" }}
+              shared={true}
+              filterNull={false}
+              cursor={hoverIndex === null ? false : { fill: "rgba(255,255,255,0.06)", stroke: "none" }}
               wrapperStyle={{
                 pointerEvents: "none",
                 outline: "none",
                 zIndex: 20,
               }}
               isAnimationActive={false}
-              content={({ active, payload }) => {
-                const bar = payload?.[0]?.payload as UsageMetricBar | undefined;
+              content={({ active }) => {
+                const bar = hoverIndex === null ? undefined : bars[hoverIndex];
                 return active && bar ? (
                   <UsageTooltip bar={bar} metric={metric} range={range} />
                 ) : null;
@@ -248,19 +264,12 @@ function UsageMiniChart({
                 : 0}
               // Stable shapes keep hover hit targets from moving during number updates.
               isAnimationActive={false}
-              onMouseEnter={(_, index) => {
-                hoverScheduler.inspect(hoverUsageBarIndex(index, bars.length));
-              }}
-              onMouseMove={(_, index) => {
-                hoverScheduler.inspect(hoverUsageBarIndex(index, bars.length));
-              }}
-              onMouseLeave={() => hoverScheduler.inspect(null)}
             >
               {bars.map((bar, index) => (
                 <Cell
                   key={bar.startTime}
                   className="transition-[fill] duration-100 motion-reduce:transition-none"
-                  fill={activeIndex === index ? "#a1a1aa" : "#52525b"}
+                  fill={activeIndex === index ? "#d4d4d8" : "#52525b"}
                 />
               ))}
             </Bar>
