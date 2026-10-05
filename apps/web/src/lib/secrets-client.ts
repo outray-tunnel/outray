@@ -451,13 +451,56 @@ export const secretsClient = {
       method: "POST", body: body(input),
     }) as { moved?: number; deleted?: number; skipped?: string[] };
   },
-  async overview(orgSlug: string): Promise<SecretsOverview> {
-    const payload = await jsonRequest(orgSlug, "/overview");
+  async overview(
+    orgSlug: string,
+    signal?: AbortSignal,
+  ): Promise<SecretsOverview> {
+    const payload = await jsonRequest(orgSlug, "/overview", { signal });
+    signal?.throwIfAborted();
     const record = unwrapRecord(payload, ["overview", "data"]);
     const summary = isRecord(record.summary) ? record.summary : record;
-    const projects = unwrapArray(record.projects, ["projects"]).map(
-      normalizeProject,
+    const collection = (value: unknown, keys: string[]): unknown[] | null => {
+      if (Array.isArray(value)) return value;
+      if (!isRecord(value)) return null;
+      for (const key of keys) {
+        if (Array.isArray(value[key])) return value[key] as unknown[];
+      }
+      return null;
+    };
+    const validCount = (value: unknown) => value === undefined || (
+      typeof value === "number" && Number.isSafeInteger(value) && value >= 0
     );
+    const namedRecord = (value: unknown): value is JsonRecord =>
+      isRecord(value) &&
+      ["id", "name", "slug"].every((key) => value[key] === undefined || (
+        typeof value[key] === "string" && value[key].trim().length > 0
+      )) &&
+      (typeof value.name === "string" || typeof value.slug === "string");
+    const projectItems = collection(record.projects, ["projects"]);
+    const activityItems = collection(record.recentActivity ?? record.audit, ["events", "items"]);
+    if (
+      !isRecord(payload) ||
+      (record.summary !== undefined && !isRecord(record.summary)) ||
+      ![summary.projectCount, summary.environmentCount, summary.secretCount,
+        summary.environments, summary.secrets,
+        ...(isRecord(record.summary) ? [summary.projects] : [])].every(validCount) ||
+      !projectItems || !activityItems ||
+      !projectItems.every((project) => namedRecord(project) &&
+        validCount(project.environmentCount) && validCount(project.secretCount) &&
+        (project.environments === undefined || (
+          Array.isArray(project.environments) && project.environments.every((environment) =>
+            namedRecord(environment) && validCount(environment.secretCount) &&
+            validCount(environment.secretsCount) && validCount(environment.revision),
+          )
+        ))) ||
+      !activityItems.every((event) => isRecord(event) &&
+        typeof event.action === "string" && event.action.trim().length > 0)
+    ) {
+      throw new SecretsClientError(
+        "The secrets overview response is invalid.", 502, "INVALID_RESPONSE",
+      );
+    }
+    const projects = projectItems.map(normalizeProject);
     return {
       projectCount: integer(
         summary.projectCount,
@@ -481,10 +524,7 @@ export const secretsClient = {
         ),
       ),
       projects,
-      recentActivity: unwrapArray(record.recentActivity ?? record.audit, [
-        "events",
-        "items",
-      ]).map(normalizeAuditEvent),
+      recentActivity: activityItems.map(normalizeAuditEvent),
     };
   },
 
