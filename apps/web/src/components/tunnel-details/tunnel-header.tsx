@@ -11,12 +11,12 @@ import {
   DialogContent,
   DialogTrigger,
 } from "@/components/arc/dialog/dialog";
-import { useAppStore } from "@/lib/store";
 import "../outray-arc-theme.css";
 
 type HeaderFeedback = { kind: "success" | "error"; message: string };
 
 interface TunnelHeaderProps {
+  orgSlug: string;
   tunnel: {
     id: string;
     name?: string | null;
@@ -29,6 +29,7 @@ interface TunnelHeaderProps {
 }
 
 export function TunnelHeader({
+  orgSlug,
   tunnel,
   onStop,
   isStopping,
@@ -42,7 +43,6 @@ export function TunnelHeader({
   const cancelRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const feedbackResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { selectedOrganization } = useAppStore();
   const canOpenInBrowser =
     tunnel.protocol !== "tcp" && tunnel.protocol !== "udp";
   const protocolLabel = (tunnel.protocol || "http").toUpperCase();
@@ -132,7 +132,7 @@ export function TunnelHeader({
       <header className="outray-arc min-w-0">
         <Link
           to="/$orgSlug/tunnels"
-          params={{ orgSlug: selectedOrganization?.slug || "" }}
+          params={{ orgSlug }}
           className="mb-3 inline-flex items-center gap-1.5 rounded text-[11px] text-zinc-500 transition-colors hover:text-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none"
         >
           <HugeiconsIcon icon={ArrowLeft01Icon} size={13} strokeWidth={1.7} />
