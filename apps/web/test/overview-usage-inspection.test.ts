@@ -15,6 +15,11 @@ import {
   UsageMetricCard,
   type Metric,
 } from "../src/components/overview/tunnels-analytics";
+import {
+  UsageMetricCard as SharedUsageMetricCard,
+  type UsageCardMetric,
+  type UsageMetricBar,
+} from "../src/components/overview/usage-metric-card";
 
 // The Node test runner uses classic JSX; Vite uses automatic JSX.
 Object.assign(globalThis, { React });
@@ -42,9 +47,9 @@ const bandwidthMetric: Metric = {
   format: formatBytes,
 };
 
-async function analyticsSource() {
-  const source = await readFile(new URL("../src/components/overview/tunnels-analytics.tsx", import.meta.url), "utf8");
-  return ts.createSourceFile("tunnels-analytics.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+async function analyticsSource(name = "usage-metric-card") {
+  const source = await readFile(new URL(`../src/components/overview/${name}.tsx`, import.meta.url), "utf8");
+  return ts.createSourceFile(`${name}.tsx`, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 }
 
 function functionNode(tree: ts.SourceFile, name: string) {
@@ -166,7 +171,7 @@ test("inspection state belongs to each card, rejects obsolete range/data, and dr
   assert.match(source, /inspection\.bars === bars && inspection\.range === range/);
   assert.match(source, /const hoverIndex = isCurrent \? inspection\.hoverIndex : null/);
   assert.match(source, /const keyboardIndex = isCurrent \? inspection\.keyboardIndex : null/);
-  assert.match(source, /const displayValue = activeBar\?\.value \?\? metric\.value/);
+  assert.match(source, /const displayValue = activeBar \? activeBar\.value : metric\.value/);
   assert.match(source, /const nextHoverIndex = kind === "hoverIndex" \? index : null/);
   assert.match(source, /const nextKeyboardIndex = kind === "keyboardIndex" \? index : null/);
   const elements = openingElements(card);
@@ -185,10 +190,56 @@ test("inspection state belongs to each card, rejects obsolete range/data, and dr
   assert.equal(expression(chart, "onResetInspection"), 'resetInspection');
   assert.match(source, /const inspectHover = useCallback\(\(index: number \| null\) => inspect\("hoverIndex", index\), \[inspect\]\)/);
   assert.match(source, /const inspectKeyboard = useCallback\(\(index: number \| null\) => inspect\("keyboardIndex", index\), \[inspect\]\)/);
-  const parent = functionNode(tree, "TunnelsAnalytics").getText(tree);
+  const parentTree = await analyticsSource("tunnels-analytics");
+  const parent = functionNode(parentTree, "TunnelsAnalytics").getText(parentTree);
   assert.match(parent, /const series = useMemo\(/);
   assert.match(parent, /\[points, displayedRange, windowStart, windowEnd\]/,
     "refresh status alone does not replace series and discard an inspection");
+});
+
+test("shared compact cards retain unknown observations rather than turning them into zero", () => {
+  const metric: UsageCardMetric = {
+    key: "p95",
+    label: "P95 latency",
+    description: "Latest measured interval",
+    value: null,
+    format: (value) => value === null ? "—" : `${value} ms`,
+    emptyLabel: "No latency samples in this period",
+  };
+  const bars: UsageMetricBar[] = requestBars.map((bar) => ({ ...bar, value: null }));
+  const html = renderToStaticMarkup(React.createElement(SharedUsageMetricCard, {
+    metric, range: "24h", bars,
+  }));
+  assert.match(html, /data-usage-value="—"/);
+  assert.match(html, /No latency samples in this period/);
+  assert.doesNotMatch(html, /<number-flow-react|data-usage-value="0|role="group"/);
+  assert.equal(inspectedUsageBar(bars, bars, null, 1)?.value, null);
+});
+
+test("measured zero-rate intervals remain inspectable and format custom units consistently", () => {
+  const metric: UsageCardMetric = {
+    key: "errorRate",
+    label: "Error rate",
+    description: "Failed operations",
+    value: 0,
+    format: (value) => value === null ? "—" : `${value.toFixed(2)}%`,
+    numberConfig: (value) => ({
+      value, suffix: "%", format: { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+    }),
+    zeroIsActivity: true,
+  };
+  const bars: UsageMetricBar[] = requestBars.map((bar, index) => ({
+    ...bar, value: index === 0 ? null : 0,
+  }));
+  const html = renderToStaticMarkup(React.createElement(SharedUsageMetricCard, {
+    metric, range: "24h", bars,
+  }));
+  assert.match(html, /data-usage-value="0\.00%"/);
+  assert.match(html, /aria-label="0\.00%"/);
+  assert.match(html, /role="group" tabindex="0"/);
+  assert.match(html, /<td>—<\/td>/);
+  assert.match(html, /<td>0\.00%<\/td>/);
+  assert.doesNotMatch(html, /No activity in this period/);
 });
 
 test("actual bar hover, keyboard focus, leave, blur, and Escape are connected to the controlled inspection", async () => {
