@@ -58,7 +58,8 @@ test("services are one compact, clickable list with attention first and mobile l
   assert.match(html, /aria-pressed="false"/);
   assert.match(html, /lg:sr-only">Operations/);
   assert.match(html, /production · eu-west/);
-  assert.match(html, /href="\/acme\/setup\?product=observability"/);
+  assert.match(html, /<button[^>]*type="button" aria-haspopup="dialog" aria-expanded="false"[^>]*>[\s\S]*?Connect a service/);
+  assert.doesNotMatch(html, /href="\/acme\/setup\?product=observability"/);
   assert.match(html, /View all/);
 });
 
