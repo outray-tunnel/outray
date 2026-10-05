@@ -21,7 +21,8 @@
 .content[data-state="closed"] { animation: select-out var(--duration-instant) var(--ease-standard) both; }
 .viewport { padding: 2px 0; }
 .item { position: relative; display: flex; align-items: center; min-height: 36px; border-radius: calc(var(--radius-control) - 4px); padding: 0 34px 0 11px; color: var(--foreground); font-size: var(--text-sm); cursor: default; outline: none; user-select: none; transition: background-color var(--duration-instant) var(--ease-standard), color var(--duration-instant) var(--ease-standard); }
-.item[data-highlighted] { background: var(--surface-muted); }
+.item[data-highlighted]:not([data-disabled]) { background: var(--surface-muted); }
+@media (hover: hover) and (pointer: fine) { .item:hover:not([data-disabled]) { background: var(--surface-muted); } }
 .item[data-disabled] { opacity: .45; }
 .indicator { position: absolute; right: 10px; display: inline-flex; align-items: center; color: var(--foreground); animation: indicator-in var(--duration-standard) var(--ease-enter) 40ms both; }
 .scrollButton { display: grid; height: 28px; place-items: center; color: var(--text-muted); }
