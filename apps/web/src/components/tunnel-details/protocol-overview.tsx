@@ -4,6 +4,11 @@ import {
   type OverviewMetric,
 } from "./tunnel-overview-ui";
 import { formatBytes, formatDuration } from "./tunnel-overview-format";
+import {
+  finiteTunnelMetricValue,
+  formatTunnelCount,
+  getTunnelMetricNumberConfig,
+} from "./tunnel-overview-data";
 
 interface ProtocolStats {
   totalConnections: number;
@@ -43,10 +48,13 @@ interface ProtocolOverviewProps {
 }
 
 function eventTone(eventType: string): string {
-  if (eventType === "close" || eventType === "error")
-    return "bg-rose-400/[0.08] text-rose-300";
-  if (eventType === "connection") return "bg-accent/[0.1] text-purple-300";
-  return "bg-emerald-400/[0.08] text-emerald-300";
+  if (eventType === "error")
+    return "border-rose-400/[0.12] bg-rose-400/[0.05] text-rose-300";
+  if (eventType === "connection")
+    return "border-sky-400/[0.12] bg-sky-400/[0.05] text-sky-300";
+  if (eventType === "packet" || eventType === "data")
+    return "border-emerald-400/[0.12] bg-emerald-400/[0.05] text-emerald-300";
+  return "border-white/[0.08] bg-white/[0.025] text-zinc-400";
 }
 
 function eventTime(value: string): string {
@@ -74,6 +82,16 @@ export function ProtocolOverview({
   onViewActivity,
 }: ProtocolOverviewProps) {
   const isTcp = protocol === "tcp";
+  const connections = finiteTunnelMetricValue(stats?.totalConnections);
+  const clients = finiteTunnelMetricValue(stats?.uniqueClients);
+  const packets = finiteTunnelMetricValue(stats?.totalPackets);
+  const bytesIn = finiteTunnelMetricValue(stats?.totalBytesIn);
+  const bytesOut = finiteTunnelMetricValue(stats?.totalBytesOut);
+  const closes = finiteTunnelMetricValue(stats?.totalCloses);
+  const averageDuration = finiteTunnelMetricValue(stats?.avgDurationMs);
+  const duration = closes !== null && closes > 0 && averageDuration !== null && averageDuration > 0
+    ? averageDuration
+    : null;
   const metrics: OverviewMetric[] = [
     ...(isTcp
       ? [
@@ -81,9 +99,11 @@ export function ProtocolOverview({
             id: "connections",
             label: "Connections",
             description: "New TCP connections over time",
-            value: stats ? stats.totalConnections.toLocaleString() : "—",
+            value: connections !== null ? formatTunnelCount(connections) : "—",
+            numericValue: connections,
             chartKey: "connections" as const,
-            format: (value: number) => Math.round(value).toLocaleString(),
+            format: formatTunnelCount,
+            numberConfig: (value: number) => getTunnelMetricNumberConfig(value, "count"),
           },
         ]
       : []),
@@ -91,9 +111,11 @@ export function ProtocolOverview({
       id: "clients",
       label: "Unique clients",
       description: "Distinct clients per interval",
-      value: stats ? stats.uniqueClients.toLocaleString() : "—",
+      value: clients !== null ? formatTunnelCount(clients) : "—",
+      numericValue: clients,
       chartKey: "uniqueClients",
-      format: (value) => Math.round(value).toLocaleString(),
+      format: formatTunnelCount,
+      numberConfig: (value) => getTunnelMetricNumberConfig(value, "count"),
     },
     ...(!isTcp
       ? [
@@ -101,9 +123,11 @@ export function ProtocolOverview({
             id: "packets",
             label: "Packets",
             description: "UDP packets over time",
-            value: stats ? stats.totalPackets.toLocaleString() : "—",
+            value: packets !== null ? formatTunnelCount(packets) : "—",
+            numericValue: packets,
             chartKey: "packets" as const,
-            format: (value: number) => Math.round(value).toLocaleString(),
+            format: formatTunnelCount,
+            numberConfig: (value: number) => getTunnelMetricNumberConfig(value, "count"),
           },
         ]
       : []),
@@ -111,17 +135,21 @@ export function ProtocolOverview({
       id: "bytes-in",
       label: "Data in",
       description: "Incoming bytes per interval",
-      value: stats ? formatBytes(stats.totalBytesIn) : "—",
+      value: bytesIn !== null ? formatBytes(bytesIn) : "—",
+      numericValue: bytesIn,
       chartKey: "bytesIn",
       format: formatBytes,
+      numberConfig: (value) => getTunnelMetricNumberConfig(value, "bytes"),
     },
     {
       id: "bytes-out",
       label: "Data out",
       description: "Outgoing bytes per interval",
-      value: stats ? formatBytes(stats.totalBytesOut) : "—",
+      value: bytesOut !== null ? formatBytes(bytesOut) : "—",
+      numericValue: bytesOut,
       chartKey: "bytesOut",
       format: formatBytes,
+      numberConfig: (value) => getTunnelMetricNumberConfig(value, "bytes"),
     },
     ...(isTcp
       ? [
@@ -129,17 +157,21 @@ export function ProtocolOverview({
             id: "duration",
             label: "Avg. duration",
             description: "Average closed-connection duration per interval",
-            value: stats ? formatDuration(stats.avgDurationMs) : "—",
+            value: duration !== null ? formatDuration(duration) : "—",
+            numericValue: duration,
             chartKey: "avgDurationMs" as const,
             format: formatDuration,
+            numberConfig: (value: number) => getTunnelMetricNumberConfig(value, "duration"),
           },
           {
             id: "packets",
             label: "Data packets",
             description: "TCP data events over time",
-            value: stats ? stats.totalPackets.toLocaleString() : "—",
+            value: packets !== null ? formatTunnelCount(packets) : "—",
+            numericValue: packets,
             chartKey: "packets" as const,
-            format: (value: number) => Math.round(value).toLocaleString(),
+            format: formatTunnelCount,
+            numberConfig: (value: number) => getTunnelMetricNumberConfig(value, "count"),
           },
         ]
       : []),
@@ -171,27 +203,29 @@ export function ProtocolOverview({
       activityDescription={`Latest ${protocol.toUpperCase()} activity in this period`}
       activity={
         recentEvents.length ? (
-          <ul className="divide-y divide-white/[0.055]">
+          <>
+          <div aria-hidden="true" className="hidden grid-cols-[90px_minmax(0,1fr)_180px_74px] items-center gap-4 border-b border-white/[0.06] bg-white/[0.015] px-5 py-2.5 text-[11px] text-zinc-400 md:grid">
+            <span>Event</span><span>Client</span><span className="text-right">Transferred</span><span className="text-right">Time</span>
+          </div>
+          <ul aria-label="Recent events" className="divide-y divide-white/[0.06]">
             {recentEvents.slice(0, 5).map((event, index) => (
               <li
                 key={`${event.connection_id}-${event.timestamp}-${index}`}
-                className="px-4 py-3 transition-colors hover:bg-white/[0.025] sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-5 sm:px-5"
+                className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2.5 px-4 py-3.5 transition-colors hover:bg-white/[0.025] motion-reduce:transition-none md:grid-cols-[90px_minmax(0,1fr)_180px_74px] md:gap-x-4 sm:px-5"
               >
-                <div className="grid min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-3">
                   <span
-                    className={`rounded px-1.5 py-1 text-center text-[10px] font-medium capitalize ${eventTone(event.event_type)}`}
+                    className={`inline-flex min-h-6 w-fit max-w-full shrink-0 items-center justify-self-start rounded-md border px-2 text-[11px] font-medium capitalize ${eventTone(event.event_type)}`}
                   >
                     {event.event_type}
                   </span>
                   <span
-                    className="min-w-0 truncate font-mono text-[12px] text-zinc-300"
+                    className="min-w-0 truncate font-mono text-[12px] text-zinc-200"
                     title={`${event.client_ip}:${event.client_port}`}
                   >
                     {event.client_ip}:{event.client_port}
                   </span>
-                </div>
-                <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pl-[6.25rem] text-[11px] tabular-nums text-zinc-500 sm:mt-0 sm:grid-cols-[11rem_5rem] sm:pl-0">
-                  <span className="sm:text-right">
+                <div className="col-span-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[11px] tabular-nums text-zinc-400 md:contents">
+                  <span className="md:text-right">
                     {formatBytes(event.bytes_in || 0)} in ·{" "}
                     {formatBytes(event.bytes_out || 0)} out
                   </span>
@@ -206,6 +240,7 @@ export function ProtocolOverview({
               </li>
             ))}
           </ul>
+          </>
         ) : (
           <p className="px-5 py-9 text-center text-[12px] text-zinc-600">
             No events in this period.
