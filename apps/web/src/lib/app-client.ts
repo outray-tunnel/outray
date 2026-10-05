@@ -1,4 +1,5 @@
 import axios from "axios";
+import type { TunnelStatsRange } from "./tunnel-stats-range";
 
 const apiClient = axios.create({
   baseURL: typeof window !== "undefined" ? window.location.origin : "",
@@ -604,7 +605,14 @@ export const appClient = {
           totalBandwidth: number;
           errorRate: number;
         };
-        chartData: Array<{ time: string; requests: number; duration: number }>;
+        chartData: Array<{
+          time: string;
+          requests: number;
+          duration: number;
+          bandwidth: number;
+          errors: number;
+          errorRate: number;
+        }>;
         requests: Array<{
           id: string;
           method: string;
@@ -614,6 +622,7 @@ export const appClient = {
           time: string;
           size: number;
         }>;
+        timeRange: TunnelStatsRange;
       }>("get", `/api/${orgSlug}/stats/tunnel`, {
         params: { tunnelId, range },
       }),
@@ -629,7 +638,41 @@ export const appClient = {
       orgSlug: string,
       params: { tunnelId: string; range: string },
     ) =>
-      apiCall<{ stats: any; chartData: any; recentEvents: any[] }>(
+      apiCall<{
+        protocol: "tcp" | "udp";
+        stats: {
+          totalConnections: number;
+          uniqueConnections: number;
+          uniqueClients: number;
+          totalBytesIn: number;
+          totalBytesOut: number;
+          totalPackets: number;
+          totalCloses: number;
+          avgDurationMs: number;
+        };
+        chartData: Array<{
+          time: string;
+          connections: number;
+          uniqueConnections: number;
+          uniqueClients: number;
+          packets: number;
+          closes: number;
+          bytesIn: number;
+          bytesOut: number;
+          avgDurationMs: number;
+        }>;
+        recentEvents: Array<{
+          timestamp: string;
+          event_type: string;
+          connection_id: string;
+          client_ip: string;
+          client_port: number;
+          bytes_in: number;
+          bytes_out: number;
+          duration_ms: number;
+        }>;
+        timeRange: TunnelStatsRange;
+      }>(
         "get",
         `/api/${orgSlug}/stats/protocol`,
         { params },
