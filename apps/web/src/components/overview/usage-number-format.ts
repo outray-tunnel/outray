@@ -1,5 +1,4 @@
 import type { Format } from "@number-flow/react";
-import type { UsageMetricKey } from "./usage-bars";
 
 export interface UsageNumberConfig {
   value: number;
@@ -25,7 +24,7 @@ const byteUnits = [
 
 export function getUsageNumberConfig(
   value: number,
-  metric: UsageMetricKey,
+  metric: string,
 ): UsageNumberConfig {
   const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0;
   if (metric !== "bandwidth") {
@@ -45,7 +44,7 @@ export function getUsageNumberConfig(
   };
 }
 
-export function formatUsageNumber(value: number, metric: UsageMetricKey): string {
+export function formatUsageNumber(value: number, metric: string): string {
   const config = getUsageNumberConfig(value, metric);
   return `${new Intl.NumberFormat("en-US", config.format).format(config.value)}${config.suffix}`;
 }
