@@ -180,9 +180,11 @@ test("inspection state belongs to each card, rejects obsolete range/data, and dr
   assert.equal(expression(chart, "key"), "range");
   assert.equal(expression(chart, "hoverIndex"), "hoverIndex");
   assert.equal(expression(chart, "keyboardIndex"), "keyboardIndex");
-  assert.equal(expression(chart, "onHoverIndexChange"), '(index) => inspect("hoverIndex", index)');
-  assert.equal(expression(chart, "onKeyboardIndexChange"), '(index) => inspect("keyboardIndex", index)');
-  assert.equal(expression(chart, "onResetInspection"), '() => inspect("hoverIndex", null)');
+  assert.equal(expression(chart, "onHoverIndexChange"), 'inspectHover');
+  assert.equal(expression(chart, "onKeyboardIndexChange"), 'inspectKeyboard');
+  assert.equal(expression(chart, "onResetInspection"), 'resetInspection');
+  assert.match(source, /const inspectHover = useCallback\(\(index: number \| null\) => inspect\("hoverIndex", index\), \[inspect\]\)/);
+  assert.match(source, /const inspectKeyboard = useCallback\(\(index: number \| null\) => inspect\("keyboardIndex", index\), \[inspect\]\)/);
   const parent = functionNode(tree, "TunnelsAnalytics").getText(tree);
   assert.match(parent, /const series = useMemo\(/);
   assert.match(parent, /\[points, displayedRange, windowStart, windowEnd\]/,
@@ -201,14 +203,14 @@ test("actual bar hover, keyboard focus, leave, blur, and Escape are connected to
   const chart = elements.find((element) => element.tagName.getText(tree) === "BarChart");
   assert.ok(group && bar && tooltip && chart);
   for (const event of ["onMouseEnter", "onMouseMove"]) {
-    assert.match(expression(bar, event), /onHoverIndexChange\(hoverUsageBarIndex\(index, bars\.length\)\)/);
+    assert.match(expression(bar, event), /hoverScheduler\.inspect\(hoverUsageBarIndex\(index, bars\.length\)\)/);
   }
-  assert.equal(expression(bar, "onMouseLeave"), "onResetInspection");
+  assert.equal(expression(bar, "onMouseLeave"), "() => hoverScheduler.inspect(null)");
   assert.equal(expression(tooltip, "shared"), "false", "blank chart space is not a shared bar hover target");
   assert.equal(attribute(chart, "onMouseMove"), undefined, "the headline responds to actual bar shapes, not chart-wide motion");
-  assert.equal(expression(group, "onMouseLeave"), "onResetInspection");
-  assert.equal(expression(group, "onPointerLeave"), "onResetInspection");
-  assert.match(expression(group, "onBlur"), /pointerFocus\.current = false; onResetInspection\(\)/);
+  assert.equal(expression(group, "onMouseLeave"), "resetInspection");
+  assert.equal(expression(group, "onPointerLeave"), "resetInspection");
+  assert.match(expression(group, "onBlur"), /pointerFocus\.current = false; resetInspection\(\)/);
   assert.match(expression(group, "onFocus"), /if \(!pointerFocus\.current\) onKeyboardIndexChange\(bars\.length - 1\)/);
   assert.doesNotMatch(expression(group, "onPointerDown"), /onKeyboardIndexChange|onHoverIndexChange|onResetInspection/,
     "clicking a hovered bar does not reset its value while the pointer remains over it");
@@ -216,6 +218,10 @@ test("actual bar hover, keyboard focus, leave, blur, and Escape are connected to
   assert.match(keyboard, /nextUsageBarIndex\(keyboardIndex, event\.key, bars\.length\)/);
   assert.match(keyboard, /if \(next === undefined\) return; event\.preventDefault\(\)/);
   assert.match(keyboard, /onKeyboardIndexChange\(next\)/);
+  assert.match(keyboard, /hoverScheduler\.cancel\(\)/);
   assert.equal(nextUsageBarIndex(1, "Escape", requestBars.length), null);
-  assert.equal(expression(bar, "isAnimationActive"), "!reducedMotion");
+  assert.equal(expression(bar, "isAnimationActive"), "false", "hover targets never animate underneath the pointer");
+  const source = functionNode(tree, "UsageMiniChart").getText(tree).replace(/\s+/g, " ");
+  assert.match(source, /useEffect\(\(\) => \(\) => hoverScheduler\.cancel\(\), \[hoverScheduler, bars\]\)/);
+  assert.match(source, /const resetInspection = \(\) => \{ hoverScheduler\.cancel\(\); onResetInspection\(\); \}/);
 });
