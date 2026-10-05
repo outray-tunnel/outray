@@ -126,13 +126,13 @@ function OrganizationRequestsView({ orgSlug }: { orgSlug: string }) {
             <h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">
               Requests
             </h1>
-            <p className="mt-1 text-[12px] text-zinc-500">
+            <p className="mt-1 text-[12px] text-zinc-400">
               Inspect live and historical traffic across your HTTP tunnels.
             </p>
           </div>
 
           <div className="flex shrink-0 items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.025] px-2 py-1 text-[11px] text-zinc-400">
               <HugeiconsIcon
                 icon={InformationCircleIcon}
                 size={14}
