@@ -7,6 +7,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { Variants } from "motion/react";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { motionTokens } from "../lib/motion-tokens";
+import "../../outray-arc-theme.css";
 import styles from "./select.module.css";
 
 export interface SelectProps extends Omit<ComponentPropsWithoutRef<typeof SelectPrimitive.Root>, "children"> {
@@ -65,7 +66,8 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
           </SelectPrimitive.Icon>
         </SelectPrimitive.Trigger>
         <SelectPrimitive.Portal>
-          <SelectPrimitive.Content className={styles.content} position="popper" sideOffset={4} collisionPadding={12}>
+          {/* Portaled menus cannot inherit theme tokens from the trigger's ancestors. */}
+          <SelectPrimitive.Content className={`outray-arc ${styles.content}`} position="popper" sideOffset={4} collisionPadding={12}>
             <SelectPrimitive.ScrollUpButton className={styles.scrollButton}>
               <ChevronUp size={16} strokeWidth={1.75} aria-hidden="true" />
             </SelectPrimitive.ScrollUpButton>
