@@ -1,24 +1,28 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { useReducedMotion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
 import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
-import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
 import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import Clock01Icon from "@hugeicons-pro/core-stroke-rounded/Clock01Icon";
 import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
 import Edit02Icon from "@hugeicons-pro/core-stroke-rounded/Edit02Icon";
-import Loading03Icon from "@hugeicons-pro/core-stroke-rounded/Loading03Icon";
 import ReplayIcon from "@hugeicons-pro/core-stroke-rounded/ReplayIcon";
 import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import type { RequestCapture, TunnelEvent } from "./types";
 import { formatBody, JsonViewer } from "./json-viewer";
 import { getHttpMethodColor } from "./utils";
+import { requestInspectorUrl } from "./request-inspector-data";
+import { Button } from "../arc/button/button";
+import { Dialog, DialogContent } from "../arc/dialog/dialog";
+import { Select } from "../ui/select";
+import "../outray-arc-theme.css";
+import styles from "./replay-modal.module.css";
 
 type RequestTab = "headers" | "body";
 
 type EditableHeader = {
+  id: number;
   key: string;
   value: string;
   enabled: boolean;
@@ -37,70 +41,26 @@ const HTTP_METHODS = [
 function MethodDropdown({
   value,
   onChange,
+  disabled,
 }: {
   value: string;
   onChange: (method: string) => void;
+  disabled: boolean;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClick = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
   return (
-    <div ref={ref} className="relative shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        className={`flex h-9 w-24 items-center justify-between border-b border-white/[0.12] px-1 font-mono text-[11px] font-semibold transition-colors hover:border-white/25 ${getHttpMethodColor(value)}`}
-      >
-        {value}
-        <HugeiconsIcon
-          icon={ArrowDown01Icon}
-          size={12}
-          strokeWidth={1.7}
-          className={`text-zinc-700 transition-transform ${open ? "rotate-180" : ""}`}
-          aria-hidden="true"
-        />
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.12 }}
-            className="absolute left-0 top-full z-50 mt-2 min-w-36 overflow-hidden rounded-md border border-white/[0.09] bg-[#0b0b0b] py-1 shadow-[0_18px_50px_rgba(0,0,0,0.6)]"
-          >
-            {HTTP_METHODS.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => {
-                  onChange(item);
-                  setOpen(false);
-                }}
-                className={`flex h-8 w-full items-center px-3 font-mono text-[10px] font-medium transition-colors hover:bg-white/[0.04] ${getHttpMethodColor(item)} ${
-                  item === value
-                    ? "bg-white/[0.035]"
-                    : "opacity-70 hover:opacity-100"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    <Select
+      ariaLabel="Request method"
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+      className="w-28 shrink-0"
+      triggerClassName="h-9 font-mono"
+      options={Array.from(new Set([...HTTP_METHODS, value])).map((method) => ({
+        value: method,
+        label: method,
+        className: getHttpMethodColor(method),
+      }))}
+    />
   );
 }
 
@@ -127,6 +87,7 @@ export function ReplayModal({
   capture,
   orgSlug,
 }: ReplayModalProps) {
+  const reducedMotion = useReducedMotion();
   const [replaying, setReplaying] = useState(false);
   const [result, setResult] = useState<ReplayResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -143,27 +104,31 @@ export function ReplayModal({
     body: string;
   } | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const sending = useRef(false);
+  const nextHeaderId = useRef(0);
   const hasBody = !["GET", "HEAD"].includes(method);
 
   useEffect(() => {
     if (!isOpen || !capture) return;
 
-    const protocol = request.host.includes("localhost") ? "http" : "https";
-    const initialUrl = `${protocol}://${request.host}${request.path}`;
+    const initialUrl = requestInspectorUrl(request);
     const excludedHeaders = [
       "host",
       "content-length",
       "transfer-encoding",
       "connection",
     ];
-    const headerList = Object.entries(capture.request.headers)
+    const headerList = Object.entries(capture.request.headers ?? {})
       .filter(([key]) => !excludedHeaders.includes(key.toLowerCase()))
-      .map(([key, value]) => ({
+      .map(([key, value], index) => ({
+        id: index,
         key,
         value: Array.isArray(value) ? value.join(", ") : value,
         enabled: true,
       }));
     const initialBody = capture.request.body || "";
+    nextHeaderId.current = headerList.length;
 
     setUrl(initialUrl);
     setMethod(request.method);
@@ -192,6 +157,8 @@ export function ReplayModal({
   };
 
   const handleReplay = async () => {
+    if (sending.current || !url) return;
+    sending.current = true;
     setReplaying(true);
     setError(null);
     setResult(null);
@@ -234,7 +201,7 @@ export function ReplayModal({
       });
       window.setTimeout(() => {
         resultRef.current?.scrollIntoView({
-          behavior: "smooth",
+          behavior: reducedMotion ? "auto" : "smooth",
           block: "start",
         });
       }, 100);
@@ -245,14 +212,16 @@ export function ReplayModal({
           : "Failed to replay request",
       );
     } finally {
+      sending.current = false;
       setReplaying(false);
     }
   };
 
   const addHeader = () => {
+    const id = nextHeaderId.current++;
     setHeaders((current) => [
       ...current,
-      { key: "", value: "", enabled: true },
+      { id, key: "", value: "", enabled: true },
     ]);
   };
 
@@ -295,49 +264,41 @@ export function ReplayModal({
     },
   ];
 
-  if (!isOpen) return null;
-
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 z-[60] bg-black/75"
-      />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.98, y: 10 }}
-        transition={{ duration: 0.16 }}
-        className="fixed inset-4 z-[60] flex flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-[#080808] shadow-[0_24px_90px_rgba(0,0,0,0.7)] md:inset-auto md:left-1/2 md:top-1/2 md:max-h-[88vh] md:w-full md:max-w-3xl md:-translate-x-1/2 md:-translate-y-1/2"
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open && !sending.current) onClose();
+    }}>
+      <DialogContent
+        title="Replay request"
+        description="Review, modify, and resend the captured request. Sending may change data in the destination service."
+        className={`workspace-ui outray-arc ${styles.content}`}
+        overlayClassName={styles.overlay}
+        aria-busy={replaying}
+        closeDisabled={replaying}
+        onEscapeKeyDown={(event) => {
+          if (sending.current || (typeof Element !== "undefined" && event.target instanceof Element &&
+            event.target.closest('[aria-haspopup="listbox"][aria-expanded="true"]'))) event.preventDefault();
+        }}
+        onPointerDownOutside={(event) => {
+          if (sending.current) event.preventDefault();
+        }}
+        onOpenAutoFocus={() => {
+          returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          if (returnFocus.current?.isConnected) returnFocus.current.focus();
+        }}
       >
-        <header className="flex shrink-0 items-start justify-between gap-6 border-b border-white/[0.07] px-5 py-5 sm:px-6">
-          <div>
-            <div className="mb-3 flex items-center gap-2 text-[9px] font-medium uppercase tracking-[0.12em] text-zinc-700">
-              <HugeiconsIcon
-                icon={ReplayIcon}
-                size={13}
-                strokeWidth={1.8}
-                aria-hidden="true"
-              />
-              Request inspector
-            </div>
-            <h2 className="text-lg font-semibold tracking-[-0.025em] text-white">
-              Replay request
-            </h2>
-            <p className="mt-1.5 text-[11px] text-zinc-600">
-              Review, modify, and resend the captured request.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.07] px-5 py-3 sm:px-6">
+          <p className="text-[12px] text-zinc-400">{isEditing ? "Editing request" : "Captured request"}</p>
+          <div className="flex items-center gap-2" aria-busy={replaying}>
             {isEditing ? (
               <>
                 <button
                   type="button"
                   onClick={cancelEdit}
+                  disabled={replaying}
                   className="h-8 rounded-md px-3 text-[10px] font-medium text-zinc-600 transition-colors hover:bg-white/[0.04] hover:text-zinc-300"
                 >
                   Cancel
@@ -345,6 +306,7 @@ export function ReplayModal({
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
+                  disabled={replaying}
                   className="h-8 rounded-md border border-white/[0.1] px-3 text-[10px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.04]"
                 >
                   Done
@@ -354,6 +316,7 @@ export function ReplayModal({
               <button
                 type="button"
                 onClick={() => setIsEditing(true)}
+                disabled={replaying}
                 className="flex h-8 items-center gap-2 rounded-md border border-white/[0.09] px-3 text-[10px] font-medium text-zinc-500 transition-colors hover:border-white/[0.16] hover:bg-white/[0.03] hover:text-zinc-300"
               >
                 <HugeiconsIcon
@@ -365,25 +328,15 @@ export function ReplayModal({
                 Edit
               </button>
             )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex size-8 items-center justify-center rounded-md text-zinc-600 transition-colors hover:bg-white/[0.05] hover:text-zinc-300"
-              aria-label="Close replay modal"
-            >
-              <HugeiconsIcon
-                icon={Cancel01Icon}
-                size={16}
-                strokeWidth={1.8}
-                aria-hidden="true"
-              />
-            </button>
           </div>
-        </header>
+        </div>
 
         <div className="flex shrink-0 gap-3 border-b border-white/[0.07] px-5 py-4 sm:px-6">
           {isEditing ? (
-            <MethodDropdown value={method} onChange={setMethod} />
+            <MethodDropdown value={method} disabled={replaying} onChange={(next) => {
+              setMethod(next);
+              if (["GET", "HEAD"].includes(next)) setActiveTab("headers");
+            }} />
           ) : (
             <div
               className={`flex h-9 w-20 shrink-0 items-center font-mono text-[11px] font-semibold ${getHttpMethodColor(method)}`}
@@ -394,6 +347,8 @@ export function ReplayModal({
           {isEditing ? (
             <input
               type="text"
+              aria-label="Request URL"
+              disabled={replaying}
               value={url}
               onChange={(event) => setUrl(event.target.value)}
               className="h-9 min-w-0 flex-1 border-b border-white/[0.12] bg-transparent px-1 font-mono text-[11px] text-zinc-300 outline-none transition-colors placeholder:text-zinc-800 focus:border-white/25"
@@ -415,6 +370,7 @@ export function ReplayModal({
                 type="button"
                 onClick={() => setActiveTab(id)}
                 disabled={disabled}
+                aria-pressed={activeTab === id}
                 className={`flex h-11 items-center gap-2 border-b text-[10px] font-medium transition-colors ${
                   activeTab === id
                     ? "border-white text-zinc-200"
@@ -437,6 +393,7 @@ export function ReplayModal({
             <button
               type="button"
               onClick={addHeader}
+              disabled={replaying}
               className="ml-auto mb-2.5 flex h-6 items-center gap-1.5 text-[9px] font-medium text-zinc-600 transition-colors hover:text-zinc-300"
             >
               <HugeiconsIcon
@@ -460,6 +417,7 @@ export function ReplayModal({
                     <button
                       type="button"
                       onClick={addHeader}
+                      disabled={replaying}
                       className="mt-2 text-[10px] text-zinc-400 hover:text-white"
                     >
                       Add a header
@@ -470,12 +428,13 @@ export function ReplayModal({
                 <div className="divide-y divide-white/[0.055]">
                   {headers.map((header, index) => (
                     <div
-                      key={`${header.key}-${index}`}
+                      key={header.id}
                       className="flex min-h-11 items-center gap-3 py-2.5"
                     >
                       {isEditing && (
                         <input
                           type="checkbox"
+                          disabled={replaying}
                           checked={header.enabled}
                           onChange={(event) =>
                             updateHeader(index, "enabled", event.target.checked)
@@ -488,6 +447,8 @@ export function ReplayModal({
                         <>
                           <input
                             type="text"
+                            aria-label={`Header ${index + 1} name`}
+                            disabled={replaying}
                             value={header.key}
                             onChange={(event) =>
                               updateHeader(index, "key", event.target.value)
@@ -497,6 +458,8 @@ export function ReplayModal({
                           />
                           <input
                             type="text"
+                            aria-label={`Header ${index + 1} value`}
+                            disabled={replaying}
                             value={header.value}
                             onChange={(event) =>
                               updateHeader(index, "value", event.target.value)
@@ -507,6 +470,7 @@ export function ReplayModal({
                           <button
                             type="button"
                             onClick={() => removeHeader(index)}
+                            disabled={replaying}
                             className="flex size-7 shrink-0 items-center justify-center rounded-md text-zinc-700 transition-colors hover:bg-red-500/[0.06] hover:text-red-400"
                             aria-label={`Remove ${header.key || "header"}`}
                           >
@@ -541,6 +505,8 @@ export function ReplayModal({
             <section className="overflow-hidden rounded-xl border border-white/[0.07] p-4">
               {isEditing ? (
                 <textarea
+                  aria-label="Request body"
+                  disabled={replaying}
                   value={body}
                   onChange={(event) => setBody(event.target.value)}
                   rows={12}
@@ -567,7 +533,7 @@ export function ReplayModal({
           )}
 
           {error && (
-            <div className="flex items-start gap-2.5 border-l border-red-400/35 py-0.5 pl-3 text-red-300/70">
+            <div id="replay-request-error" role="alert" className="flex items-start gap-2.5 border-l border-red-400/35 py-0.5 pl-3 text-red-300/70">
               <HugeiconsIcon
                 icon={Alert02Icon}
                 size={13}
@@ -585,7 +551,7 @@ export function ReplayModal({
           )}
 
           {result && (
-            <div ref={resultRef} className="space-y-7 scroll-mt-6">
+            <div ref={resultRef} aria-live="polite" className="space-y-7 scroll-mt-6">
               <section className="grid grid-cols-[1fr_auto_1fr] items-center gap-5 overflow-hidden rounded-xl border border-white/[0.07] px-6 py-5">
                 <ResultMetric
                   label="Original"
@@ -674,26 +640,27 @@ export function ReplayModal({
               strokeWidth={1.7}
               aria-hidden="true"
             />
-            Sent securely through OutRay
+            Replay sends a real request
           </div>
-          <button
+          <Button
             type="button"
             onClick={handleReplay}
-            disabled={replaying || !url}
-            className="flex h-9 items-center gap-2 rounded-md bg-white px-4 text-[10px] font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={!url}
+            loading={replaying}
+            size="sm"
+            aria-describedby={error ? "replay-request-error" : undefined}
           >
             <HugeiconsIcon
-              icon={replaying ? Loading03Icon : ReplayIcon}
+              icon={ReplayIcon}
               size={13}
               strokeWidth={1.8}
-              className={replaying ? "animate-spin" : ""}
               aria-hidden="true"
             />
             {replaying ? "Sending…" : "Send request"}
-          </button>
+          </Button>
         </footer>
-      </motion.div>
-    </AnimatePresence>
+      </DialogContent>
+    </Dialog>
   );
 }
 
