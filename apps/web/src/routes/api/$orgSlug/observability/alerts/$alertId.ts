@@ -105,7 +105,21 @@ export const Route = createFileRoute(
               .orderBy(desc(observabilityAlertEvaluations.evaluatedAt))
               .limit(evaluationLimit),
             db
-              .select()
+              // Observability history must not depend on Uptime-only publication columns.
+              .select({
+                id: incidents.id,
+                sourceType: incidents.sourceType,
+                sourceId: incidents.sourceId,
+                status: incidents.status,
+                title: incidents.title,
+                triggerValue: incidents.triggerValue,
+                lastValue: incidents.lastValue,
+                resolvedValue: incidents.resolvedValue,
+                startedAt: incidents.startedAt,
+                resolvedAt: incidents.resolvedAt,
+                createdAt: incidents.createdAt,
+                updatedAt: incidents.updatedAt,
+              })
               .from(incidents)
               .where(
                 and(
