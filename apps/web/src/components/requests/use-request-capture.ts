@@ -1,20 +1,53 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { RequestCapture, TunnelEvent } from "./types";
+
+interface CaptureState {
+  scope: string | null;
+  capture: RequestCapture | null;
+  loading: boolean;
+  error: string | null;
+  notFound: boolean;
+}
+
+const emptyState: CaptureState = {
+  scope: null,
+  capture: null,
+  loading: false,
+  error: null,
+  notFound: false,
+};
 
 export function useRequestCapture(
   orgSlug: string,
   request: TunnelEvent | null,
 ) {
-  const [capture, setCapture] = useState<RequestCapture | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const tunnelId = request?.tunnel_id;
+  const timestamp = request?.timestamp;
+  const requestId = request?.request_id;
+  const scope = request
+    ? JSON.stringify([orgSlug, tunnelId, timestamp, requestId ?? null])
+    : null;
+  const [state, setState] = useState<CaptureState>(() => ({
+    ...emptyState,
+    scope,
+    loading: scope !== null,
+  }));
+  const [retryVersion, setRetryVersion] = useState(0);
+
+  // Reset only when the selected identity changes, including closing/reopening.
+  // React rerenders before committing, so no stale payload reaches the sheet.
+  if (state.scope !== scope) {
+    setState({ ...emptyState, scope, loading: scope !== null });
+  }
+
+  const retry = useCallback(() => {
+    if (!scope) return;
+    setState({ ...emptyState, scope, loading: true });
+    setRetryVersion((version) => version + 1);
+  }, [scope]);
 
   useEffect(() => {
-    if (!request) {
-      setCapture(null);
-      setError(null);
-      return;
-    }
+    if (!scope) return;
 
     let cancelled = false;
     let retryTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -22,55 +55,62 @@ export function useRequestCapture(
     const maxRetries = 6;
     const retryDelayMs = 2_000;
 
-    setCapture(null);
-
     const fetchCapture = async (attempt = 0) => {
-      setLoading(true);
-      setError(null);
+      if (cancelled) return;
       abortController = new AbortController();
-      let retryScheduled = false;
 
       try {
-        const response = await fetch(`/api/${orgSlug}/requests/capture`, {
+        const response = await fetch(`/api/${encodeURIComponent(orgSlug)}/requests/capture`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            tunnelId: request.tunnel_id,
-            timestamp: request.timestamp,
-            requestId: request.request_id,
+            tunnelId,
+            timestamp,
+            requestId,
           }),
           signal: abortController.signal,
         });
 
+        // Aborted transports are not guaranteed to reject their pending work.
+        // Ignore every late response before it can change state or retry.
+        if (cancelled) return;
         if (!response.ok) {
           if (response.status === 404 && attempt < maxRetries) {
-            retryScheduled = true;
             retryTimeout = setTimeout(() => {
-              void fetchCapture(attempt + 1);
+              retryTimeout = null;
+              if (!cancelled) void fetchCapture(attempt + 1);
             }, retryDelayMs);
-          } else if (response.status === 404) {
-            setError("Request capture not found");
-          } else {
-            setError("Failed to fetch request capture");
+            return;
           }
+
+          setState({
+            ...emptyState,
+            scope,
+            error: response.status === 404
+              ? "Request capture not found"
+              : "Failed to fetch request capture",
+            notFound: response.status === 404,
+          });
           return;
         }
 
-        const data = await response.json();
+        const data: { capture?: RequestCapture | null } = await response.json();
         if (!cancelled) {
-          setCapture(data.capture);
+          setState({ ...emptyState, scope, capture: data.capture ?? null });
         }
-      } catch (err) {
-        if (!cancelled && !(err instanceof DOMException && err.name === "AbortError")) {
-          setError("Failed to fetch request capture");
-          console.error("Error fetching request capture:", err);
-        }
-      } finally {
-        if (!cancelled && !retryScheduled) {
-          setLoading(false);
-        }
+      } catch (error) {
+        if (
+          cancelled ||
+          (error instanceof Error && error.name === "AbortError")
+        ) return;
+
+        setState({
+          ...emptyState,
+          scope,
+          error: "Failed to fetch request capture",
+        });
       }
     };
 
@@ -78,12 +118,19 @@ export function useRequestCapture(
 
     return () => {
       cancelled = true;
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
+      if (retryTimeout !== null) clearTimeout(retryTimeout);
       abortController?.abort();
     };
-  }, [orgSlug, request]);
+  }, [orgSlug, tunnelId, timestamp, requestId, scope, retryVersion]);
 
-  return { capture, loading, error };
+  // Effects run after rendering. Do not show a prior request's payload or error
+  // for even one frame while a new request or organization is being selected.
+  const current = scope && state.scope === scope ? state : null;
+  return {
+    capture: current?.capture ?? null,
+    loading: scope !== null && (current?.loading ?? true),
+    error: current?.error ?? null,
+    notFound: current?.notFound ?? false,
+    retry,
+  };
 }
