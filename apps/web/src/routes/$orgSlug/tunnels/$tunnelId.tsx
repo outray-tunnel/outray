@@ -204,6 +204,7 @@ function TunnelDetailView() {
   return (
     <div className="mx-auto max-w-[1440px] space-y-7">
       <TunnelHeader
+        orgSlug={orgSlug}
         tunnel={tunnel}
         onStop={() => stopMutation.mutateAsync().then(() => undefined)}
         isStopping={stopMutation.isPending}
