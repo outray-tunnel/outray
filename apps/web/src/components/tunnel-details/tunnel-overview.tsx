@@ -8,6 +8,11 @@ import {
   formatDuration,
   formatPercent,
 } from "./tunnel-overview-format";
+import {
+  finiteTunnelMetricValue,
+  formatTunnelCount,
+  getTunnelMetricNumberConfig,
+} from "./tunnel-overview-data";
 
 interface HttpStats {
   totalRequests: number;
@@ -41,12 +46,17 @@ interface TunnelOverviewProps {
 }
 
 function requestStatusTone(status: number | null | undefined): string {
-  if (!status) return "text-zinc-500 bg-white/[0.04]";
-  if (status >= 500) return "text-rose-300 bg-rose-400/[0.08]";
-  if (status >= 400) return "text-amber-300 bg-amber-400/[0.08]";
-  if (status >= 200 && status < 400)
-    return "text-emerald-300 bg-emerald-400/[0.08]";
-  return "text-zinc-400 bg-white/[0.04]";
+  if (status == null || !Number.isFinite(status) || status < 100)
+    return "border-white/[0.08] bg-white/[0.025] text-zinc-400";
+  if (status >= 500)
+    return "border-rose-400/[0.12] bg-rose-400/[0.05] text-rose-300";
+  if (status >= 400)
+    return "border-amber-400/[0.12] bg-amber-400/[0.05] text-amber-300";
+  if (status >= 300)
+    return "border-white/[0.08] bg-white/[0.025] text-zinc-300";
+  if (status < 200)
+    return "border-sky-400/[0.12] bg-sky-400/[0.05] text-sky-300";
+  return "border-emerald-400/[0.12] bg-emerald-400/[0.05] text-emerald-300";
 }
 
 function requestTime(value: string): string {
@@ -72,38 +82,56 @@ export function TunnelOverview({
   onRetry,
   onViewActivity,
 }: TunnelOverviewProps) {
+  const requestCount = finiteTunnelMetricValue(stats?.totalRequests);
+  const duration = requestCount !== null && requestCount > 0
+    ? finiteTunnelMetricValue(stats?.avgDuration)
+    : null;
+  const bandwidth = finiteTunnelMetricValue(stats?.totalBandwidth);
+  const errorRate = requestCount !== null && requestCount > 0
+    ? finiteTunnelMetricValue(stats?.errorRate)
+    : null;
   const metrics: OverviewMetric[] = [
     {
       id: "requests",
       label: "Requests",
       description: "Completed requests over time",
-      value: stats ? stats.totalRequests.toLocaleString() : "—",
+      value: requestCount !== null ? formatTunnelCount(requestCount) : "—",
+      numericValue: requestCount,
       chartKey: "requests",
-      format: (value) => Math.round(value).toLocaleString(),
+      format: formatTunnelCount,
+      numberConfig: (value) => getTunnelMetricNumberConfig(value, "count"),
     },
     {
       id: "duration",
       label: "Avg. duration",
       description: "Average request time per interval",
-      value: stats ? formatDuration(stats.avgDuration) : "—",
+      value: duration !== null ? formatDuration(duration) : "—",
+      numericValue: duration,
       chartKey: "duration",
       format: formatDuration,
+      numberConfig: (value) => getTunnelMetricNumberConfig(value, "duration"),
+      zeroIsActivity: true,
     },
     {
       id: "bandwidth",
       label: "Bandwidth",
       description: "Data transferred per interval",
-      value: stats ? formatBytes(stats.totalBandwidth) : "—",
+      value: bandwidth !== null ? formatBytes(bandwidth) : "—",
+      numericValue: bandwidth,
       chartKey: "bandwidth",
       format: formatBytes,
+      numberConfig: (value) => getTunnelMetricNumberConfig(value, "bytes"),
     },
     {
       id: "errors",
       label: "Error rate",
       description: "Share of requests with 4xx or 5xx responses",
-      value: stats ? formatPercent(stats.errorRate) : "—",
+      value: errorRate !== null ? formatPercent(errorRate) : "—",
+      numericValue: errorRate,
       chartKey: "errorRate",
       format: formatPercent,
+      numberConfig: (value) => getTunnelMetricNumberConfig(value, "percent"),
+      zeroIsActivity: true,
     },
   ];
 
@@ -124,30 +152,36 @@ export function TunnelOverview({
       activityDescription="Latest traffic in this period"
       activity={
         recentRequests.length ? (
-          <ul className="divide-y divide-white/[0.055]">
+          <>
+          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_64px_78px_74px] items-center gap-4 border-b border-white/[0.06] bg-white/[0.015] px-5 py-2.5 text-[11px] text-zinc-400 md:grid">
+            <span>Request</span><span>Status</span><span className="text-right">Duration</span><span className="text-right">Time</span>
+          </div>
+          <ul aria-label="Recent requests" className="divide-y divide-white/[0.06]">
             {recentRequests.slice(0, 5).map((request, index) => (
               <li
                 key={`${request.id ?? request.time}-${index}`}
-                className="px-4 py-3 transition-colors hover:bg-white/[0.025] sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-5 sm:px-5"
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2.5 px-4 py-3.5 transition-colors hover:bg-white/[0.025] motion-reduce:transition-none md:grid-cols-[minmax(0,1fr)_64px_78px_74px] sm:px-5"
               >
-                <div className="grid min-w-0 grid-cols-[2.5rem_3rem_minmax(0,1fr)] items-center gap-3">
-                  <span
-                    className={`rounded px-1.5 py-1 text-center text-[10px] font-medium tabular-nums ${requestStatusTone(request.status)}`}
-                  >
-                    {request.status ?? "—"}
-                  </span>
-                  <span className="text-[11px] font-medium text-zinc-500">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="inline-flex min-w-[49px] shrink-0 justify-center rounded-md border border-white/[0.06] bg-white/[0.025] px-1.5 py-0.5 font-mono text-[11px] text-zinc-300">
                     {request.method ?? "—"}
                   </span>
                   <span
-                    className="min-w-0 truncate font-mono text-[12px] text-zinc-300"
-                    title={request.path ?? undefined}
+                    className="min-w-0 truncate font-mono text-[12px] text-zinc-200"
+                    title={request.path || "/"}
                   >
                     {request.path || "/"}
                   </span>
                 </div>
-                <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pl-[5.5rem] text-[11px] tabular-nums text-zinc-500 sm:mt-0 sm:grid-cols-[6rem_5rem] sm:pl-0">
-                  <span className="sm:text-right">
+                <span
+                  aria-label={`HTTP status ${request.status != null && Number.isFinite(request.status) && request.status >= 100 ? request.status : "unknown"}`}
+                  className={`inline-flex min-h-6 w-fit min-w-[44px] shrink-0 items-center justify-self-end justify-center rounded-md border px-2 text-[11px] font-medium tabular-nums md:justify-self-start ${requestStatusTone(request.status)}`}
+                >
+                  {request.status != null && Number.isFinite(request.status) && request.status >= 100 ? request.status : "—"}
+                </span>
+                <div className="col-span-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[11px] tabular-nums text-zinc-400 md:contents">
+                  <span className="md:text-right">
+                    <span className="text-zinc-500 md:sr-only">Duration </span>
                     {request.duration != null
                       ? formatDuration(request.duration)
                       : "—"}
@@ -163,6 +197,7 @@ export function TunnelOverview({
               </li>
             ))}
           </ul>
+          </>
         ) : (
           <p className="px-5 py-9 text-center text-[12px] text-zinc-600">
             No requests in this period.
