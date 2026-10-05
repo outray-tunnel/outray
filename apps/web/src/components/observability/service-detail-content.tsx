@@ -179,9 +179,9 @@ export function ServiceDetailContent({
                   <span className="min-w-0 flex-1"><span className="block text-[13px] text-zinc-200">Traces</span><span className="mt-1 block text-[12px] leading-5 text-zinc-400 [overflow-wrap:anywhere]">Search traces for {service.name}.</span></span>
                   <ArrowRight size={14} className="shrink-0 text-zinc-500 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-200 motion-reduce:transition-none" aria-hidden="true" />
                 </Link>
-                <Link to="/$orgSlug/observability/logs" params={{ orgSlug }} search={{ search: service.id }} className={explorerRowClass}>
+                <Link to="/$orgSlug/observability/logs" params={{ orgSlug }} search={{ service: service.id, range }} className={explorerRowClass}>
                   <FileText size={16} className="shrink-0 text-zinc-400" aria-hidden="true" />
-                  <span className="min-w-0 flex-1"><span className="block text-[13px] text-zinc-200">Logs</span><span className="mt-1 block text-[12px] leading-5 text-zinc-400 [overflow-wrap:anywhere]">Search log events for {service.name}.</span></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[13px] text-zinc-200">Logs</span><span className="mt-1 block text-[12px] leading-5 text-zinc-400 [overflow-wrap:anywhere]">View log events from {service.name}.</span></span>
                   <ArrowRight size={14} className="shrink-0 text-zinc-500 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-200 motion-reduce:transition-none" aria-hidden="true" />
                 </Link>
               </div>
