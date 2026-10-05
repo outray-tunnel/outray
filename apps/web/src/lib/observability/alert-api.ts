@@ -16,7 +16,21 @@ import type {
 
 type AlertRow = typeof observabilityAlerts.$inferSelect;
 type EvaluationRow = typeof observabilityAlertEvaluations.$inferSelect;
-type IncidentRow = typeof incidents.$inferSelect;
+type IncidentRow = Pick<
+  typeof incidents.$inferSelect,
+  | "id"
+  | "sourceType"
+  | "sourceId"
+  | "status"
+  | "title"
+  | "triggerValue"
+  | "lastValue"
+  | "resolvedValue"
+  | "startedAt"
+  | "resolvedAt"
+  | "createdAt"
+  | "updatedAt"
+>;
 type NotificationRow = typeof notifications.$inferSelect;
 
 export function serializeAlert(
