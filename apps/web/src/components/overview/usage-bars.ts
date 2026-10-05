@@ -28,12 +28,12 @@ export function hoverUsageBarIndex(
   return Number.isInteger(index) && index >= 0 && index < count ? index : null;
 }
 
-export function inspectedUsageBar(
-  currentBars: readonly UsageBar[],
-  storedBars: readonly UsageBar[],
+export function inspectedUsageBar<Bar extends { value: number | null }>(
+  currentBars: readonly Bar[],
+  storedBars: readonly Bar[],
   hoverIndex: number | null,
   keyboardIndex: number | null,
-): UsageBar | null {
+): Bar | null {
   if (currentBars !== storedBars) return null;
   const index =
     hoverUsageBarIndex(hoverIndex, currentBars.length) ??
@@ -111,7 +111,7 @@ export function createUsageBars(
 }
 
 export function formatUsageInterval(
-  bar: UsageBar,
+  bar: Pick<UsageBar, "startTime" | "endTime">,
   range: TunnelStatsRange,
 ): string {
   const start = new Date(bar.startTime);
