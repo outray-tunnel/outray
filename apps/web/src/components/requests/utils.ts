@@ -86,7 +86,7 @@ export function generateCurl(req: TunnelEvent, requestDetails?: RequestDetails):
   let curl = `curl -X ${req.method} '${protocol}://${req.host}${req.path}'`;
   
   // Add headers
-  Object.entries(details.headers).forEach(([key, value]) => {
+  Object.entries(details.headers ?? {}).forEach(([key, value]) => {
     // Handle both string and string[] values
     const headerValue = Array.isArray(value) ? value.join(', ') : value;
     curl += ` \\\n  -H '${key}: ${headerValue}'`;
