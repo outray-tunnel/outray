@@ -103,7 +103,7 @@ test("the service id chooses its own health, headline totals and resource metada
   assert.doesNotMatch(policy, /<details[^>]*\bopen(?:[ =>])/);
 });
 
-test("Traces and Logs are complete drilldown rows with workspace and selected-service search", () => {
+test("Traces and Logs are complete drilldown rows scoped to the workspace and selected service", () => {
   const html = render();
   const links = [...html.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)];
   for (const explorer of ["traces", "logs"]) {
@@ -111,7 +111,12 @@ test("Traces and Logs are complete drilldown rows with workspace and selected-se
     assert.ok(link, `Missing ${explorer} drilldown`);
     const target = new URL(link[1].replaceAll("&amp;", "&"), "http://localhost");
     assert.equal(target.pathname, `/acme/observability/${explorer}`);
-    assert.equal(target.searchParams.get("search"), "checkout");
+    if (explorer === "traces") assert.equal(target.searchParams.get("search"), "checkout");
+    else {
+      assert.equal(target.searchParams.get("service"), "checkout");
+      assert.equal(target.searchParams.get("range"), "24h");
+      assert.equal(target.searchParams.get("search"), null, "logs drilldown filters the exact service rather than searching message content");
+    }
     assert.match(link[2], explorer === "traces" ? /Traces/ : /Logs/);
     assert.match(link[0], /focus-visible/);
   }
@@ -132,6 +137,14 @@ test("Requests links carry the exact service filter and the selected analytics r
   assert.match(link[2], /View HTTP requests from Payments worker/);
   assert.match(link[0], /focus-visible/);
   assert.match(link[2], /overflow-wrap:anywhere/);
+  const logsLink = [...html.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].find(([, href]) => href.startsWith("/acme/observability/logs"));
+  assert.ok(logsLink);
+  const logsTarget = new URL(logsLink[1].replaceAll("&amp;", "&"), "http://localhost");
+  assert.equal(logsTarget.pathname, "/acme/observability/logs");
+  assert.equal(logsTarget.searchParams.get("service"), serviceId);
+  assert.equal(logsTarget.searchParams.get("range"), "7d");
+  assert.equal(logsTarget.searchParams.get("search"), null);
+  assert.match(logsLink[2], /View log events from Payments worker/);
 });
 
 test("shared duration controls retain one selected keyboard stop in the top-right header", async () => {
@@ -198,7 +211,7 @@ test("long unbroken service names can wrap inside both explorer descriptions", (
   const links = [...html.matchAll(/<a\b[^>]*href="\/acme\/observability\/(?:traces|logs)[^"]*"[^>]*>([\s\S]*?)<\/a>/g)];
   assert.equal(links.length, 2);
   for (const [, content] of links) {
-    const description = content.match(/<span\b[^>]*class="([^"]*)"[^>]*>Search (?:traces|log events) for ([^<]+)<\/span>/);
+    const description = content.match(/<span\b[^>]*class="([^"]*)"[^>]*>(?:Search traces for|View log events from) ([^<]+)<\/span>/);
     assert.ok(description);
     assert.ok(description[1].split(" ").includes("[overflow-wrap:anywhere]"));
     assert.equal(description[2], `${name}.`);
