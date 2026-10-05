@@ -1,6 +1,5 @@
-import { useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { useReducedMotion } from "motion/react";
 import {
   Bar,
   BarChart,
@@ -12,6 +11,7 @@ import {
 import { formatBytes } from "./format";
 import { SegmentedControl } from "../ui/segmented-control";
 import { UsageNumber } from "./usage-number";
+import { createUsageHoverScheduler } from "./usage-hover";
 import {
   createUsageBars,
   formatUsageInterval,
@@ -227,7 +227,7 @@ export function UsageMetricCard({
   );
   const displayValue = activeBar?.value ?? metric.value;
 
-  const inspect = (
+  const inspect = useCallback((
     kind: "hoverIndex" | "keyboardIndex",
     index: number | null,
   ) => {
@@ -246,7 +246,10 @@ export function UsageMetricCard({
             keyboardIndex: nextKeyboardIndex,
           },
     );
-  };
+  }, [bars, range]);
+  const inspectHover = useCallback((index: number | null) => inspect("hoverIndex", index), [inspect]);
+  const inspectKeyboard = useCallback((index: number | null) => inspect("keyboardIndex", index), [inspect]);
+  const resetInspection = useCallback(() => inspect("hoverIndex", null), [inspect]);
 
   return (
     <article
@@ -271,9 +274,9 @@ export function UsageMetricCard({
         bars={bars}
         hoverIndex={hoverIndex}
         keyboardIndex={keyboardIndex}
-        onHoverIndexChange={(index) => inspect("hoverIndex", index)}
-        onKeyboardIndexChange={(index) => inspect("keyboardIndex", index)}
-        onResetInspection={() => inspect("hoverIndex", null)}
+        onHoverIndexChange={inspectHover}
+        onKeyboardIndexChange={inspectKeyboard}
+        onResetInspection={resetInspection}
       />
     </article>
   );
@@ -299,8 +302,17 @@ function UsageMiniChart({
   onResetInspection: () => void;
 }) {
   const hintId = useId();
-  const reducedMotion = useReducedMotion();
   const pointerFocus = useRef(false);
+  const hoverScheduler = useMemo(() => createUsageHoverScheduler({
+    requestFrame: (callback) => window.requestAnimationFrame(callback),
+    cancelFrame: (frame) => window.cancelAnimationFrame(frame),
+    onInspect: onHoverIndexChange,
+  }), [onHoverIndexChange]);
+  useEffect(() => () => hoverScheduler.cancel(), [hoverScheduler, bars]);
+  const resetInspection = () => {
+    hoverScheduler.cancel();
+    onResetInspection();
+  };
   const activeIndex = hoverIndex ?? keyboardIndex;
   const keyboardBar = keyboardIndex === null ? null : bars[keyboardIndex];
   const hasActivity = bars.some((bar) => bar.value > 0);
@@ -349,14 +361,15 @@ function UsageMiniChart({
         }}
         onBlur={() => {
           pointerFocus.current = false;
-          onResetInspection();
+          resetInspection();
         }}
-        onMouseLeave={onResetInspection}
-        onPointerLeave={onResetInspection}
+        onMouseLeave={resetInspection}
+        onPointerLeave={resetInspection}
         onKeyDown={(event) => {
           const next = nextUsageBarIndex(keyboardIndex, event.key, bars.length);
           if (next === undefined) return;
           event.preventDefault();
+          hoverScheduler.cancel();
           pointerFocus.current = false;
           onKeyboardIndexChange(next);
         }}
@@ -394,19 +407,20 @@ function UsageMiniChart({
               dataKey="value"
               radius={[4, 4, 0, 0]}
               maxBarSize={32}
-              isAnimationActive={!reducedMotion}
-              animationDuration={180}
+              // Stable shapes keep hover hit targets from moving during number updates.
+              isAnimationActive={false}
               onMouseEnter={(_, index) => {
-                onHoverIndexChange(hoverUsageBarIndex(index, bars.length));
+                hoverScheduler.inspect(hoverUsageBarIndex(index, bars.length));
               }}
               onMouseMove={(_, index) => {
-                onHoverIndexChange(hoverUsageBarIndex(index, bars.length));
+                hoverScheduler.inspect(hoverUsageBarIndex(index, bars.length));
               }}
-              onMouseLeave={onResetInspection}
+              onMouseLeave={() => hoverScheduler.inspect(null)}
             >
               {bars.map((bar, index) => (
                 <Cell
                   key={bar.startTime}
+                  className="transition-[fill] duration-100 motion-reduce:transition-none"
                   fill={activeIndex === index ? "#a1a1aa" : "#52525b"}
                 />
               ))}
