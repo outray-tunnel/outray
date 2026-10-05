@@ -1,14 +1,14 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, Link, Outlet, useSearch } from "@tanstack/react-router";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
 import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
 import Notification02Icon from "@hugeicons-pro/core-stroke-rounded/Notification02Icon";
-import PauseIcon from "@hugeicons-pro/core-stroke-rounded/PauseIcon";
+import PauseIcon from "@hugeicons-pro/core-solid-rounded/PauseIcon";
 import PencilEdit02Icon from "@hugeicons-pro/core-stroke-rounded/PencilEdit02Icon";
-import PlayIcon from "@hugeicons-pro/core-stroke-rounded/PlayIcon";
+import PlayIcon from "@hugeicons-pro/core-solid-rounded/PlayIcon";
 import RefreshIcon from "@hugeicons-pro/core-stroke-rounded/RefreshIcon";
 import Settings02Icon from "@hugeicons-pro/core-stroke-rounded/Settings02Icon";
 import {
@@ -21,11 +21,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  ObservabilityPage,
-  Panel,
-} from "@/components/observability/observability-ui";
-import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/arc/button/button";
+import { Dialog, DialogContent } from "@/components/arc/dialog/dialog";
+import { startAlertDetailPolling } from "@/components/observability/alert-detail-polling";
+import { AlertStateBadge } from "@/components/observability/alert-status-badge";
+import { conditionLabel, formatAlertValue, formatClockTime, formatRelativeTime, formatWindow, getEffectiveState, normalizeAlertsSearch, signalLabel } from "@/components/observability/alerts-data";
+import "@/components/outray-arc-theme.css";
 import { AlertEmailRecipients } from "@/components/observability/alert-email-recipients";
 import {
   AlertDetailContext,
@@ -59,7 +60,15 @@ export const Route = createFileRoute(
 
 function AlertDetailView() {
   const { orgSlug, alertId } = Route.useParams();
+  return <AlertDetailWorkspace key={`${orgSlug}:${alertId}`} orgSlug={orgSlug} alertId={alertId} />;
+}
+
+function AlertDetailWorkspace({ orgSlug, alertId }: { orgSlug: string; alertId: string }) {
   const navigate = Route.useNavigate();
+  const reducedMotion = useReducedMotion();
+  const tabsId = useId();
+  const listSearch = normalizeAlertsSearch(useSearch({ strict: false }));
+  const evaluationRefresh = useRef<number | undefined>(undefined);
   const [data, setData] = useState<AlertDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -74,57 +83,22 @@ function AlertDetailView() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
-    const controller = new AbortController();
-    let disposed = false;
-    let refreshTimeout: number | undefined;
-
-    const loadAlert = async () => {
-      setRefreshing(true);
-      try {
-        const response = await fetch(
-          `/api/${orgSlug}/observability/alerts/${encodeURIComponent(alertId)}`,
-          { signal: controller.signal },
-        );
-        if (!response.ok) {
-          throw new Error(
-            response.status === 404 ? "Alert not found" : "Could not load alert",
-          );
-        }
-        const nextData = (await response.json()) as AlertDetailsResponse;
-        if (disposed) return;
+    return startAlertDetailPolling({
+      url: `/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alertId)}`,
+      onStart: () => setRefreshing(true),
+      onData: (nextData) => {
         setData(nextData);
         setLastSuccessAt(Date.now());
         setError(null);
-      } catch (requestError) {
-        if (
-          requestError instanceof DOMException &&
-          requestError.name === "AbortError"
-        ) {
-          return;
-        }
-        if (!disposed) {
-          setError(
-            requestError instanceof Error && requestError.message === "Alert not found"
-              ? "This alert does not exist or you no longer have access to it."
-              : "Alert details are temporarily unavailable.",
-          );
-        }
-      } finally {
-        if (!disposed) {
-          setLoading(false);
-          setRefreshing(false);
-          refreshTimeout = window.setTimeout(() => void loadAlert(), 10_000);
-        }
-      }
-    };
-
-    void loadAlert();
-    return () => {
-      disposed = true;
-      controller.abort();
-      if (refreshTimeout !== undefined) window.clearTimeout(refreshTimeout);
-    };
+      },
+      onError: setError,
+      onComplete: () => { setLoading(false); setRefreshing(false); },
+    });
   }, [alertId, orgSlug, reloadKey]);
+
+  useEffect(() => () => {
+    if (evaluationRefresh.current !== undefined) window.clearTimeout(evaluationRefresh.current);
+  }, []);
 
   const mutateAlert = async (
     actionName: string,
@@ -136,7 +110,7 @@ function AlertDetailView() {
     setActionNotice(null);
     try {
       const response = await fetch(
-        `/api/${orgSlug}/observability/alerts/${encodeURIComponent(alertId)}`,
+        `/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alertId)}`,
         {
           method: "PATCH",
           headers: { "content-type": "application/json" },
@@ -171,7 +145,7 @@ function AlertDetailView() {
     setActionNotice(null);
     try {
       const response = await fetch(
-        `/api/${orgSlug}/observability/alerts/${encodeURIComponent(alertId)}/evaluate`,
+        `/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alertId)}/evaluate`,
         { method: "POST" },
       );
       const result = (await response.json().catch(() => null)) as
@@ -190,7 +164,7 @@ function AlertDetailView() {
         setActionNotice("An evaluation is already in progress.");
       } else {
         setActionNotice("Evaluation queued. Results will appear shortly.");
-        window.setTimeout(() => setReloadKey((value) => value + 1), 1_200);
+        evaluationRefresh.current = window.setTimeout(() => setReloadKey((value) => value + 1), 1_200);
       }
     } catch (requestError) {
       setActionError(
@@ -203,7 +177,7 @@ function AlertDetailView() {
     }
   };
 
-  if (loading && !data) return <AlertDetailSkeleton orgSlug={orgSlug} />;
+  if (!data && (loading || refreshing)) return <AlertDetailSkeleton orgSlug={orgSlug} />;
 
   if (!data) {
     return (
@@ -211,7 +185,8 @@ function AlertDetailView() {
         <Link
           to="/$orgSlug/observability/alerts"
           params={{ orgSlug }}
-          className="inline-flex items-center gap-2 text-xs text-zinc-600 transition-colors hover:text-zinc-300"
+          search={listSearch}
+          className="inline-flex items-center gap-2 text-xs text-zinc-400 transition-colors hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
         >
           <HugeiconsIcon icon={ArrowLeft01Icon} size={14} strokeWidth={1.7} />
           All alerts
@@ -220,16 +195,16 @@ function AlertDetailView() {
           <p className="text-sm font-medium text-rose-400">
             {error || "Alert details are unavailable."}
           </p>
-          <button
+          <Button
             type="button"
             onClick={() => {
               setLoading(true);
               setReloadKey((value) => value + 1);
             }}
-            className="mt-5 h-9 rounded-lg bg-white px-4 text-xs font-medium text-black hover:bg-zinc-200"
+            size="sm" className="mt-5"
           >
             Try again
-          </button>
+          </Button>
         </div>
       </ObservabilityPage>
     );
@@ -242,30 +217,32 @@ function AlertDetailView() {
   return (
     <AlertDetailContext.Provider value={{ data, refreshing, orgSlug, onEditCondition: () => setIsEditing(true), onEditDetails: () => setIsEditingDetails(true), onReload: () => setReloadKey((value) => value + 1) }}>
     <ObservabilityPage>
-      <header className="border-b border-white/[0.07] pb-7">
+      <header className="space-y-4">
         <Link
           to="/$orgSlug/observability/alerts"
           params={{ orgSlug }}
-          className="mb-5 inline-flex items-center gap-2 text-xs text-zinc-600 transition-colors hover:text-zinc-300"
+          search={listSearch}
+          className="inline-flex items-center gap-2 text-xs text-zinc-400 transition-colors hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
         >
           <HugeiconsIcon icon={ArrowLeft01Icon} size={14} strokeWidth={1.7} />
           All alerts
         </Link>
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <div className="flex min-w-0 items-start gap-4">
-            <AlertIcon alert={alert} />
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <AlertIcon alert={alert} size={36} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="truncate text-xl font-normal tracking-[-0.02em] text-white">
+                <h1 className="truncate text-[20px] font-normal tracking-[-0.035em] text-white">
                   {alert.name}
                 </h1>
                 <AlertStatePill alert={alert} />
               </div>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+              <p className="mt-1.5 max-w-2xl text-xs leading-5 text-zinc-400">
                 {alert.description || conditionLabel(alert)}
               </p>
+              <p className="mt-1 text-[11px] text-zinc-500">{alert.service} <span aria-hidden="true">·</span> {alert.environment || "All environments"}</p>
               {effectiveState === "muted" && alert.underlyingState && (
-                <p className="mt-2 text-xs text-violet-300">
+                <p className="mt-2 text-xs text-zinc-400">
                   Evaluations continue while muted. Underlying state:{" "}
                   {alert.underlyingState.replace("_", " ")}.
                 </p>
@@ -326,21 +303,22 @@ function AlertDetailView() {
         </div>
       </header>
 
-      <nav aria-label="Alert details" className="overflow-x-auto border-b border-white/[0.07]">
-        <div className="flex min-w-max items-center gap-7">
+      <nav aria-label="Alert details" className="overflow-x-auto border-b border-white/[0.08]" data-alert-detail-tabs>
+        <LayoutGroup id={tabsId}><div className="flex min-w-max items-center gap-6">
           {detailTabs.map((tab) => (
             <Link
               key={tab.label}
               to={tab.to}
               params={{ orgSlug, alertId }}
+              search={listSearch}
               activeOptions={{ exact: true }}
-              className="border-b-2 border-transparent pb-3 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-200"
-              activeProps={{ className: "!border-violet-400 !text-white" }}
+              className="relative px-0.5 pb-3 pt-1 text-[13px] text-zinc-400 transition-colors hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white motion-reduce:transition-none"
+              activeProps={{ className: "!text-zinc-100", "aria-current": "page" }}
             >
-              {tab.label}
+              {({ isActive }) => <>{tab.label}{isActive && <motion.span layoutId="alert-detail-selection" aria-hidden="true" className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-zinc-100" transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 34 }} />}</>}
             </Link>
           ))}
-        </div>
+        </div></LayoutGroup>
       </nav>
 
       {(error || actionNotice || actionError) && (
@@ -353,7 +331,7 @@ function AlertDetailView() {
                 : "border-emerald-400/15 bg-emerald-400/[0.035] text-emerald-300"
           }`}
         >
-          <span>
+          <span role={actionError || error ? "alert" : "status"}>
             {actionError ||
               actionNotice ||
               `${error} Showing the last successful result${
@@ -361,13 +339,13 @@ function AlertDetailView() {
               }`}
           </span>
           {error && (
-            <button
+            <Button variant="ghost" size="sm"
               type="button"
               onClick={() => setReloadKey((value) => value + 1)}
-              className="shrink-0 font-medium hover:text-white"
+              className="shrink-0"
             >
               Retry
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -396,7 +374,7 @@ function AlertDetailView() {
         }}
       />
 
-      <AlertDetailsEditModal
+      {isEditingDetails && <AlertDetailsEditModal
         isOpen={isEditingDetails}
         onClose={() => setIsEditingDetails(false)}
         alert={alert}
@@ -407,9 +385,9 @@ function AlertDetailView() {
           setActionNotice("Alert details updated.");
           setReloadKey((value) => value + 1);
         }}
-      />
+      />}
 
-      <DeleteAlertModal
+      {isDeleting && <DeleteAlertModal
         isOpen={isDeleting}
         alert={alert}
         orgSlug={orgSlug}
@@ -418,9 +396,10 @@ function AlertDetailView() {
           void navigate({
             to: "/$orgSlug/observability/alerts",
             params: { orgSlug },
+            search: listSearch,
           })
         }
-      />
+      />}
     </ObservabilityPage>
     </AlertDetailContext.Provider>
   );
@@ -444,13 +423,6 @@ function AlertDetailsEditModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    setName(alert.name);
-    setDescription(alert.description || "");
-    setError(null);
-  }, [alert.name, alert.description, isOpen]);
-
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
@@ -471,40 +443,39 @@ function AlertDetailsEditModal({
     }
   };
 
-  return <Modal isOpen={isOpen} onClose={onClose} size="md" appearance="flat">
-    <form onSubmit={(event) => void save(event)} className="space-y-5 p-6">
-      <div>
-        <h2 className="text-lg font-semibold text-white">Edit alert details</h2>
-        <p className="mt-1 text-sm text-zinc-500">Update the name and description without changing its condition.</p>
-      </div>
+  return <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !saving) onClose(); }}>
+    <DialogContent title="Edit alert details" description="Update the name and description without changing the condition." className="outray-arc outray-arc-dialog" closeDisabled={saving} onEscapeKeyDown={(event) => { if (saving) event.preventDefault(); }} onInteractOutside={(event) => { if (saving) event.preventDefault(); }}>
+    <form onSubmit={(event) => void save(event)} className="space-y-4" aria-busy={saving}>
       <label className="block text-xs text-zinc-400">Name
-        <input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} required className="mt-2 h-10 w-full rounded-lg border border-white/[0.1] bg-white/[0.025] px-3 text-sm text-zinc-200 outline-none focus:border-violet-400/50" />
+        <input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} required disabled={saving} className="mt-2 h-10 w-full rounded-lg border border-white/[0.1] bg-black/20 px-3 text-[13px] text-zinc-200 outline-none focus:border-white/30 disabled:opacity-50" />
       </label>
       <label className="block text-xs text-zinc-400">Description
-        <textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} rows={3} className="mt-2 w-full rounded-lg border border-white/[0.1] bg-white/[0.025] px-3 py-2 text-sm text-zinc-200 outline-none focus:border-violet-400/50" />
+        <textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} rows={3} disabled={saving} className="mt-2 w-full rounded-lg border border-white/[0.1] bg-black/20 px-3 py-2 text-[13px] text-zinc-200 outline-none focus:border-white/30 disabled:opacity-50" />
       </label>
       {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onClose} className="h-9 rounded-lg px-3 text-xs text-zinc-400 hover:text-white">Cancel</button>
-        <button type="submit" disabled={saving || !name.trim()} className="h-9 rounded-lg bg-white px-4 text-xs font-medium text-black hover:bg-zinc-200 disabled:opacity-50">{saving ? "Saving…" : "Save details"}</button>
+        <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={onClose}>Cancel</Button>
+        <Button type="submit" size="sm" disabled={!name.trim()} loading={saving}>{saving ? "Saving…" : "Save details"}</Button>
       </div>
     </form>
-  </Modal>;
+    </DialogContent>
+  </Dialog>;
 }
 
 export function AlertOverviewTab() {
-  const { data, refreshing, onEditDetails } = useAlertDetail();
+  const { data, refreshing, orgSlug, onEditDetails } = useAlertDetail();
+  const listSearch = normalizeAlertsSearch(useSearch({ strict: false }));
   const { alert, evaluations, incidents, notifications } = data;
   const effectiveState = getEffectiveState(alert);
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold text-zinc-100">Overview</h2>
-        <button type="button" onClick={onEditDetails} className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/[0.1] px-3 text-xs font-medium text-zinc-200 hover:bg-white/[0.06]">
+        <h2 className="text-sm font-medium text-zinc-200">At a glance</h2>
+        <Button type="button" variant="secondary" size="sm" onClick={onEditDetails}>
           <HugeiconsIcon icon={PencilEdit02Icon} size={15} strokeWidth={1.7} />
           Edit details
-        </button>
+        </Button>
       </div>
       <section
         aria-label="Alert at a glance"
@@ -533,14 +504,14 @@ export function AlertOverviewTab() {
         <DetailMetric
           label="Open incident"
           value={alert.openIncidentId ? "Active" : "None"}
-          detail={alert.openIncidentId || "No unresolved incident"}
+          detail={alert.openIncidentId ? "Investigating this alert" : "No unresolved incident"}
           tone={alert.openIncidentId ? "rose" : "neutral"}
         />
       </section>
 
       <Panel
         title="Evaluation trend"
-        description="Observed values against the configured threshold"
+        description="Latest observed values against the configured threshold"
         action={
           <span className="text-xs text-zinc-500">
             {refreshing ? "Updating…" : `${evaluations.length} recent evaluations`}
@@ -550,18 +521,15 @@ export function AlertOverviewTab() {
         <EvaluationChart alert={alert} evaluations={evaluations} />
       </Panel>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Panel title="Incidents" description="Firing and recovery history">
-          <div className="px-5 py-5 sm:px-6">
-            <p className="text-2xl font-semibold text-zinc-200">{incidents.length}</p>
-            <p className="mt-1 text-sm text-zinc-500">Recent incidents for this alert</p>
-          </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Latest incident" action={<Link to="/$orgSlug/observability/alerts/$alertId/incidents" params={{ orgSlug, alertId: alert.id }} search={listSearch} className="text-xs text-zinc-400 hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-white">View history →</Link>}>
+          {incidents[0] ? <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-4">
+            <div className="space-y-2"><IncidentStatus state={incidents[0].status} /><p className="text-xs text-zinc-400">Started {formatDateTime(incidentStart(incidents[0]))}</p></div>
+            <span className="text-xs text-zinc-400">{formatIncidentDuration(incidents[0])}</span>
+          </div> : <EmptyPanel message="No incidents have been opened." compact />}
         </Panel>
-        <Panel title="Notifications" description="Delivery attempts">
-          <div className="px-5 py-5 sm:px-6">
-            <p className="text-2xl font-semibold text-zinc-200">{notifications.length}</p>
-            <p className="mt-1 text-sm text-zinc-500">Recent notification attempts</p>
-          </div>
+        <Panel title="Latest notification" action={<Link to="/$orgSlug/observability/alerts/$alertId/notifications" params={{ orgSlug, alertId: alert.id }} search={listSearch} className="text-xs text-zinc-400 hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-white">View deliveries →</Link>}>
+          {notifications[0] ? <div className="space-y-2 px-4 py-4 sm:px-4"><p className="flex items-center justify-between gap-4 text-[13px] text-zinc-200"><span className="capitalize">{notifications[0].channel || "Email"}</span><DeliveryStatus state={notifications[0].status} /></p><p className="text-xs text-zinc-400">{formatDateTime(notifications[0].sentAt || notifications[0].createdAt)}</p></div> : <EmptyPanel message="No notification attempts yet." compact />}
         </Panel>
       </div>
     </div>
@@ -573,21 +541,21 @@ export function AlertConditionTab() {
   const { alert } = data;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <TabHeading
         title="Condition"
         description="The signal, scope, and evaluation rules for this alert."
       />
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-violet-400/15 bg-violet-400/[0.035] px-5 py-4 text-sm leading-6 text-zinc-300 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/[0.08] bg-[#111112] px-4 py-4 text-[13px] leading-5 text-zinc-300 sm:px-4">
         <span>{conditionLabel(alert)}</span>
-        <button type="button" onClick={onEditCondition} className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-white/[0.1] px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/[0.06]">
+        <Button type="button" variant="secondary" size="sm" onClick={onEditCondition}>
           <HugeiconsIcon icon={PencilEdit02Icon} size={15} strokeWidth={1.7} />
           Edit condition
-        </button>
+        </Button>
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Signal and scope">
-          <div className="divide-y divide-white/[0.06] px-5 sm:px-6">
+          <div className="divide-y divide-white/[0.06] px-4 sm:px-5">
             <DetailRow label="Signal" value={signalLabel(alert.signal)} />
             <DetailRow label="Service" value={alert.service} />
             <DetailRow label="Environment" value={alert.environment || "All environments"} />
@@ -606,7 +574,7 @@ export function AlertConditionTab() {
           </div>
         </Panel>
         <Panel title="Evaluation behavior">
-          <div className="divide-y divide-white/[0.06] px-5 sm:px-6">
+          <div className="divide-y divide-white/[0.06] px-4 sm:px-5">
             {alert.signal !== "no_telemetry" && (
               <>
                 <DetailRow label="Operator" value={operatorText(alert.operator)} />
@@ -631,7 +599,7 @@ export function AlertEvaluationsTab() {
   const { alert, evaluations } = data;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <TabHeading
         title="Evaluations"
         description="Each decision made against the alert condition."
@@ -645,7 +613,7 @@ export function AlertEvaluationsTab() {
         description="Most recent decisions first"
         action={refreshing ? <span className="text-xs text-zinc-500">Updating…</span> : undefined}
       >
-        <div className="hidden grid-cols-[150px_110px_120px_100px_minmax(0,1fr)] gap-4 border-b border-white/[0.07] px-5 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-600 sm:px-6 lg:grid">
+        <div className="hidden grid-cols-[150px_110px_120px_100px_minmax(0,1fr)] gap-4 border-b border-white/[0.07] px-4 py-3 text-[11px] font-medium text-zinc-500 sm:px-5 lg:grid">
           <span>Evaluated</span>
           <span>State</span>
           <span>Value</span>
@@ -659,7 +627,7 @@ export function AlertEvaluationsTab() {
             evaluations.map((evaluation) => (
               <div
                 key={evaluation.id}
-                className="grid gap-3 px-5 py-4 sm:px-6 lg:grid-cols-[150px_110px_120px_100px_minmax(0,1fr)] lg:items-center lg:gap-4"
+                className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[150px_110px_120px_100px_minmax(0,1fr)] lg:items-center lg:gap-4"
               >
                 <span className="text-xs text-zinc-500">
                   {formatDateTime(evaluationTime(evaluation))}
@@ -690,7 +658,7 @@ export function AlertIncidentsTab() {
   const { alert, incidents } = data;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <TabHeading
         title="Incidents"
         description="When this alert fired and when it recovered."
@@ -702,20 +670,20 @@ export function AlertIncidentsTab() {
             <EmptyPanel message="No incidents have been opened." />
           ) : (
             incidents.map((incident) => (
-              <div key={incident.id} className="flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-center sm:gap-5 sm:px-6">
-                <span className={`size-2 shrink-0 rounded-full ${incident.status === "open" ? "bg-rose-400" : "bg-emerald-400"}`} />
+              <div key={incident.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:gap-5 sm:px-5">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium capitalize text-zinc-200">{incident.status} incident</p>
+                  <p className="text-[13px] text-zinc-200"><IncidentStatus state={incident.status} /></p>
                   <p className="mt-1 text-xs text-zinc-500">Started {formatDateTime(incidentStart(incident))}</p>
                   {incident.resolvedAt && (
                     <p className="mt-1 text-xs text-zinc-500">Resolved {formatDateTime(incident.resolvedAt)}</p>
                   )}
                 </div>
+                <span className="text-xs text-zinc-400">{formatIncidentDuration(incident)}</span>
                 <div className="sm:text-right">
-                  <p className="font-mono text-sm text-zinc-300">
+                  <p className="font-mono text-[13px] text-zinc-300">
                     {formatAlertValue(incident.lastValue ?? incident.triggerValue, alert)}
                   </p>
-                  <p className="mt-1 text-xs text-zinc-600">Last observed value</p>
+                  <p className="mt-1 text-xs text-zinc-400">Last observed value</p>
                 </div>
               </div>
             ))
@@ -736,6 +704,7 @@ export function AlertNotificationsTab() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const mutationLock = useRef(false);
   const integrationResult = typeof window === "undefined"
     ? null
     : new URLSearchParams(window.location.search).get("integration");
@@ -747,14 +716,14 @@ export function AlertNotificationsTab() {
     try { stored = JSON.parse(window.sessionStorage.getItem(key) ?? "[]"); } catch { /* Ignore stale setup state. */ }
     const requested = [...fromUrl, ...(Array.isArray(stored) ? stored : [])].filter((provider): provider is "slack" | "discord" => provider === "slack" || provider === "discord");
     const pending = [...new Set(requested)];
-    if (pending.length) window.sessionStorage.setItem(key, JSON.stringify(pending));
+    try { if (pending.length) window.sessionStorage.setItem(key, JSON.stringify(pending)); } catch { /* URL setup remains available when storage is restricted. */ }
     setSetupProviders(pending);
   }, [alert.id]);
 
   useEffect(() => {
     if (!setupProviders.length) return;
     if (setupProviders.every((provider) => provider === "slack" ? alert.notificationSlackConfigured : alert.notificationDiscordConfigured)) {
-      window.sessionStorage.removeItem(`outray-alert-setup:${alert.id}`);
+      try { window.sessionStorage.removeItem(`outray-alert-setup:${alert.id}`); } catch { /* Storage is optional. */ }
       setSetupProviders([]);
     }
   }, [alert.id, alert.notificationDiscordConfigured, alert.notificationSlackConfigured, setupProviders]);
@@ -765,6 +734,8 @@ export function AlertNotificationsTab() {
 
   const base = `/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alert.id)}/integrations`;
   const saveEmail = async () => {
+    if (mutationLock.current) return;
+    mutationLock.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -781,10 +752,13 @@ export function AlertNotificationsTab() {
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not save email notifications");
     } finally {
+      mutationLock.current = false;
       setSaving(false);
     }
   };
   const disconnect = async (provider: "slack" | "discord") => {
+    if (mutationLock.current) return;
+    mutationLock.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -796,6 +770,7 @@ export function AlertNotificationsTab() {
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not disconnect destination");
     } finally {
+      mutationLock.current = false;
       setSaving(false);
     }
   };
@@ -804,19 +779,19 @@ export function AlertNotificationsTab() {
     : alert.notificationDiscordTarget;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <TabHeading
         title="Notifications"
         description="Where alert updates go and the outcome of each delivery attempt."
         count={notifications.length}
       />
       {(error || notice || integrationResult) && (
-        <p role="status" className={`rounded-xl border px-4 py-3 text-sm ${error || integrationResult === "failed" || integrationResult === "invalid_state" ? "border-rose-400/20 text-rose-300" : "border-emerald-400/20 text-emerald-300"}`}>
+        <p role={error || integrationResult === "failed" || integrationResult === "invalid_state" ? "alert" : "status"} className={`rounded-xl border px-4 py-3 text-xs ${error || integrationResult === "failed" || integrationResult === "invalid_state" ? "border-rose-400/20 text-rose-300" : "border-emerald-400/20 text-emerald-300"}`}>
           {error || notice || (integrationResult === "connected" ? "Destination connected. Alerts will be delivered to the selected channel." : integrationResult === "cancelled" ? "Connection cancelled." : "Could not connect the destination. Please try again.")}
         </p>
       )}
-      {setupProviders.length > 0 && <div className="rounded-xl border border-violet-400/20 bg-violet-400/[0.06] px-5 py-4">
-        <p className="text-sm font-medium text-zinc-100">Finish connecting your notification methods</p>
+      {setupProviders.length > 0 && <div className="rounded-xl border border-white/[0.1] bg-white/[0.025] px-4 py-4">
+        <p className="text-[13px] font-medium text-zinc-100">Finish connecting your notification methods</p>
         <p className="mt-1 text-xs leading-5 text-zinc-400">Authorize each provider and choose the channel that should receive this alert.</p>
         <div className="mt-3 flex flex-wrap gap-2">{setupProviders.map((provider) => {
           const connected = provider === "slack" ? alert.notificationSlackConfigured : alert.notificationDiscordConfigured;
@@ -827,20 +802,21 @@ export function AlertNotificationsTab() {
       </div>}
       <Panel title="Notification methods" description="Choose where firing and recovery updates should go.">
         <div className="divide-y divide-white/[0.07]">
-          <div className="flex flex-wrap items-center gap-4 px-5 py-5 sm:px-6">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-zinc-300">
+          <div className="flex flex-wrap items-center gap-4 px-4 py-4 sm:px-5">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-zinc-300">
               <HugeiconsIcon icon={Notification02Icon} size={19} strokeWidth={1.7} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-zinc-100">Email</p>
-              <p className="mt-1 text-xs text-zinc-500">{alert.notificationEmails?.length ? alert.notificationEmails.join(", ") : alert.notificationEmail || "No recipients configured"}</p>
+              <p className="text-[13px] font-medium text-zinc-100">Email</p>
+              <p className="mt-1 break-all text-xs leading-5 text-zinc-400">{alert.notificationEmails?.length ? alert.notificationEmails.join(", ") : alert.notificationEmail || "No recipients configured"}</p>
             </div>
-            <button type="button" onClick={() => { setEditingEmail((value) => !value); setError(null); }} className="h-9 rounded-lg border border-white/[0.1] px-3 text-xs font-medium text-zinc-200 hover:bg-white/[0.06]">
+            <Button type="button" variant="secondary" size="sm" disabled={saving} onClick={() => { setEditingEmail((value) => !value); setError(null); }}>
               {editingEmail ? "Cancel" : alert.notificationEmails?.length || alert.notificationEmail ? "Edit" : "Add email"}
-            </button>
+            </Button>
             {editingEmail && <div className="w-full space-y-3 pl-0 sm:pl-[60px]">
-              <AlertEmailRecipients orgSlug={orgSlug} value={emails} onChange={setEmails} />
-              <button type="button" disabled={saving} onClick={() => void saveEmail()} className="h-10 rounded-lg bg-white px-4 text-xs font-medium text-black hover:bg-zinc-200 disabled:opacity-50">Save recipients</button>
+              <AlertEmailRecipients orgSlug={orgSlug} value={emails} onChange={setEmails} disabled={saving} />
+              {error && <p role="alert" className="text-xs text-rose-400">{error}</p>}
+              <Button type="button" size="sm" loading={saving} onClick={() => void saveEmail()}>Save recipients</Button>
             </div>}
           </div>
           {(["slack", "discord"] as const).map((provider) => {
@@ -848,12 +824,12 @@ export function AlertNotificationsTab() {
             const target = provider === "slack" ? alert.notificationSlackTarget : alert.notificationDiscordTarget;
             const available = data.integrationAvailability?.[provider];
             const title = provider === "slack" ? "Slack" : "Discord";
-            return <div key={provider} className="flex flex-wrap items-center gap-4 px-5 py-5 sm:px-6">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03]">
-                <img src={`/logos/${provider}.svg`} alt="" className="size-6 object-contain" />
+            return <div key={provider} className="flex flex-wrap items-center gap-4 px-4 py-4 sm:px-5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.035]">
+                <img src={`/logos/${provider}.svg`} alt="" className="size-5 object-contain" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-zinc-100">{title}</p>
+                <p className="text-[13px] font-medium text-zinc-100">{title}</p>
                 <p className="mt-1 text-xs text-zinc-500">
                   {connected
                     ? provider === "slack"
@@ -862,9 +838,10 @@ export function AlertNotificationsTab() {
                     : available ? "Connect and select a channel" : "OAuth app not configured"}
                 </p>
               </div>
-              {connected ? <button type="button" onClick={() => setSettingsProvider(provider)} aria-label={`${title} settings`} className="flex size-9 items-center justify-center rounded-lg border border-white/[0.1] text-zinc-300 hover:bg-white/[0.06]">
+              {connected ? <Button type="button" variant="secondary" size="sm" disabled={saving} onClick={() => { setSettingsProvider(provider); setError(null); }} aria-label={`${title} settings`}>
                 <HugeiconsIcon icon={Settings02Icon} size={17} strokeWidth={1.7} />
-              </button> : available ? <a href={`${base}/${provider}/start`} className="inline-flex h-9 items-center rounded-lg bg-white px-3 text-xs font-medium text-black hover:bg-zinc-200">Connect</a> : null}
+                Settings
+              </Button> : available ? <a href={`${base}/${provider}/start`} className="inline-flex h-9 items-center rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 text-xs text-zinc-200 hover:bg-white/[0.06] focus-visible:outline-2 focus-visible:outline-white">Connect</a> : null}
             </div>;
           })}
         </div>
@@ -875,12 +852,12 @@ export function AlertNotificationsTab() {
             <EmptyPanel message="No notifications have been sent." />
           ) : (
             notifications.map((notification) => (
-              <div key={notification.id} className="flex items-start gap-4 px-5 py-5 sm:px-6">
+              <div key={notification.id} className="flex items-start gap-4 px-4 py-4 sm:px-5">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-zinc-500">
                   <HugeiconsIcon icon={Notification02Icon} size={15} strokeWidth={1.7} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="break-all text-sm text-zinc-300">
+                  <p className="break-all text-[13px] text-zinc-300">
                     {notification.channel === "slack"
                       ? "Slack webhook"
                       : notification.channel === "discord"
@@ -895,45 +872,25 @@ export function AlertNotificationsTab() {
                     <p className="mt-2 text-xs text-rose-300">{notification.error || notification.lastError}</p>
                   )}
                 </div>
-                <span className={`shrink-0 text-xs capitalize ${
-                  notification.status === "sent" || notification.status === "delivered"
-                    ? "text-emerald-400"
-                    : notification.status === "failed"
-                      ? "text-rose-400"
-                      : notification.status === "suppressed"
-                        ? "text-zinc-500"
-                        : "text-amber-400"
-                }`}>
-                  {notification.status}
-                </span>
+                <DeliveryStatus state={notification.status} />
               </div>
             ))
           )}
         </div>
       </Panel>
-      <Modal isOpen={settingsProvider !== null} onClose={() => setSettingsProvider(null)} size="sm" appearance="flat">
-        <div className="p-6">
-          <div className="flex items-start justify-between gap-4">
-            <h3 className="text-lg font-semibold text-white">{settingsProvider === "slack" ? "Slack" : "Discord"} settings</h3>
-            <button type="button" onClick={() => setSettingsProvider(null)} aria-label="Close settings" className="flex size-9 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-              <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={1.7} />
-            </button>
-          </div>
-          <p className="mt-2 text-sm text-zinc-500">
-            {settingsProvider === "slack"
-              ? "Alerts go to this Slack channel. Removing it stops Slack notifications for this alert."
-              : "Alerts go to this Discord channel. Removing it stops Discord notifications for this alert."}
-          </p>
-          <dl className="mt-5 space-y-3 rounded-xl border border-white/[0.08] p-4 text-sm">
+      <Dialog open={settingsProvider !== null} onOpenChange={(open) => { if (!open && !saving) setSettingsProvider(null); }}>
+        <DialogContent title={`${settingsProvider === "slack" ? "Slack" : "Discord"} settings`} description="Removing this connection stops its notifications for this alert. Other destinations are unchanged." className="outray-arc outray-arc-dialog" closeDisabled={saving} onEscapeKeyDown={(event) => { if (saving) event.preventDefault(); }} onInteractOutside={(event) => { if (saving) event.preventDefault(); }}>
+          <dl className="space-y-3 rounded-lg border border-white/[0.08] p-4 text-[13px]">
             {settingsProvider === "slack" && <div><dt className="text-zinc-500">Workspace</dt><dd className="mt-1 text-zinc-200">{alert.notificationSlackTarget?.workspaceName || "Connected workspace"}</dd></div>}
             <div><dt className="text-zinc-500">Channel</dt><dd className="mt-1 text-zinc-200">{settingsProvider === "slack" ? selectedTarget?.channelName || selectedTarget?.channelId || "Selected channel" : selectedTarget?.channelId || "Selected channel"}</dd></div>
           </dl>
-          <div className="mt-6 flex flex-wrap gap-2">
-            {settingsProvider && <a href={`${base}/${settingsProvider}/start`} className="inline-flex h-9 items-center rounded-lg bg-white px-3 text-xs font-medium text-black hover:bg-zinc-200">Change channel</a>}
-            {settingsProvider && <button type="button" disabled={saving} onClick={() => void disconnect(settingsProvider)} className="h-9 rounded-lg border border-rose-400/20 px-3 text-xs font-medium text-rose-300 hover:bg-rose-400/[0.06] disabled:opacity-50">Remove from alert</button>}
+          {error && <p role="alert" className="mt-4 text-xs text-rose-400">{error}</p>}
+          <div className="mt-5 flex flex-wrap gap-2">
+            {settingsProvider && <a href={saving ? undefined : `${base}/${settingsProvider}/start`} aria-disabled={saving} className="inline-flex h-9 items-center rounded-lg border border-white/[0.1] px-3 text-xs text-zinc-200 hover:bg-white/[0.06] focus-visible:outline-2 focus-visible:outline-white">Change channel</a>}
+            {settingsProvider && <Button type="button" variant="danger" size="sm" loading={saving} onClick={() => void disconnect(settingsProvider)}>Remove from alert</Button>}
           </div>
-        </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -950,16 +907,47 @@ function TabHeading({
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
-        <p className="mt-1 text-sm text-zinc-500">{description}</p>
+        <h2 className="text-[13px] font-medium text-zinc-100">{title}</h2>
+        <p className="mt-1 text-xs leading-5 text-zinc-400">{description}</p>
       </div>
       {count !== undefined && (
-        <span className="rounded-lg border border-white/[0.08] px-3 py-1.5 text-xs text-zinc-500">
+        <span className="text-xs text-zinc-400">
           {count} recent
         </span>
       )}
     </div>
   );
+}
+
+function ObservabilityPage({ children }: { children: ReactNode }) {
+  return <div className="outray-arc outray-arc-list mx-auto max-w-[1440px] space-y-5">{children}</div>;
+}
+
+function Panel({ title, description, action, children }: { title?: string; description?: string; action?: ReactNode; children: ReactNode }) {
+  return <section className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
+    {(title || action) && <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] px-4 py-3 sm:px-5"><div>{title && <h2 className="text-[13px] font-medium text-zinc-200">{title}</h2>}{description && <p className="mt-1 text-[11px] leading-5 text-zinc-400">{description}</p>}</div>{action}</header>}
+    {children}
+  </section>;
+}
+
+function DeliveryStatus({ state }: { state: string }) {
+  const tone = state === "sent" || state === "delivered" ? "text-emerald-400 bg-emerald-400/[0.07]" : state === "failed" ? "text-rose-400 bg-rose-400/[0.07]" : state === "suppressed" ? "text-zinc-400 bg-white/[0.04]" : "text-amber-400 bg-amber-400/[0.07]";
+  return <span className={`inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full px-2 py-1 text-[11px] capitalize ${tone}`}><span aria-hidden="true" className="size-1.5 rounded-full bg-current" />{state.replaceAll("_", " ")}</span>;
+}
+
+function IncidentStatus({ state }: { state: string }) {
+  return <span className={`inline-flex w-fit items-center gap-2 rounded-full px-2 py-1 text-[11px] ${state === "open" ? "bg-rose-400/[0.07] text-rose-400" : "bg-emerald-400/[0.07] text-emerald-400"}`}><span aria-hidden="true" className="size-1.5 rounded-full bg-current" />{state === "open" ? "Open incident" : "Resolved incident"}</span>;
+}
+
+function formatIncidentDuration(incident: AlertIncident) {
+  const start = incidentStart(incident);
+  if (!start) return "Duration unavailable";
+  const from = new Date(start).getTime();
+  const end = incident.resolvedAt ? new Date(incident.resolvedAt).getTime() : Date.now();
+  if (!Number.isFinite(from) || !Number.isFinite(end)) return "Duration unavailable";
+  const minutes = Math.max(0, Math.floor((end - from) / 60_000));
+  const duration = minutes < 1 ? "Less than a minute" : minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}m` : ""}`;
+  return incident.status === "open" ? `${duration} ongoing` : duration;
 }
 
 function EvaluationChart({
@@ -990,42 +978,41 @@ function EvaluationChart({
   }
 
   return (
-    <div className="h-72 px-4 pb-5 pt-6 sm:px-6" role="img" aria-label="Alert evaluation values and threshold">
+    <div className="h-60 px-3 pb-3 pt-4 sm:px-5" role="img" aria-label="Alert evaluation values and threshold">
       <ResponsiveContainer
         width="100%"
         height="100%"
-        initialDimension={{ width: 320, height: 288 }}
+        initialDimension={{ width: 320, height: 240 }}
       >
         <AreaChart data={points} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
           <defs>
             <linearGradient id="alert-value-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.24} />
-              <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+              <stop offset="0%" stopColor="#a1a1aa" stopOpacity={0.14} />
+              <stop offset="100%" stopColor="#a1a1aa" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid
             vertical={false}
             stroke="rgba(255,255,255,0.045)"
-            strokeDasharray="3 5"
           />
           <XAxis
             dataKey="timestamp"
             axisLine={false}
             tickLine={false}
             minTickGap={36}
-            tick={{ fill: "#52525b", fontSize: 10 }}
+            tick={{ fill: "#71717a", fontSize: 11 }}
             tickFormatter={(value) => formatShortTime(String(value))}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
             width={52}
-            tick={{ fill: "#52525b", fontSize: 10 }}
+            tick={{ fill: "#71717a", fontSize: 11 }}
             tickFormatter={(value) => formatAlertValue(Number(value), alert)}
           />
           <Tooltip
             contentStyle={{
-              background: "#111111",
+              background: "#18181b",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 10,
               color: "#d4d4d8",
@@ -1055,10 +1042,10 @@ function EvaluationChart({
             type="monotone"
             dataKey="value"
             connectNulls={false}
-            stroke="#8b5cf6"
+            stroke="#a1a1aa"
             strokeWidth={1.8}
             fill="url(#alert-value-fill)"
-            activeDot={{ r: 3, fill: "#8b5cf6", stroke: "#090909" }}
+            activeDot={{ r: 3, fill: "#f4f4f5", stroke: "#111112" }}
             isAnimationActive={false}
           />
         </AreaChart>
@@ -1081,19 +1068,16 @@ function ActionButton({
   tone?: "neutral" | "danger";
 }) {
   return (
-    <button
+    <Button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex h-9 items-center gap-2 rounded-lg border px-3 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-        tone === "danger"
-          ? "border-rose-400/15 text-rose-400 hover:bg-rose-400/[0.07]"
-          : "border-white/[0.08] text-zinc-500 hover:bg-white/[0.05] hover:text-zinc-200"
-      }`}
+      size="sm"
+      variant={tone === "danger" ? "danger" : "secondary"}
     >
       <HugeiconsIcon icon={icon} size={14} strokeWidth={1.7} />
       {label}
-    </button>
+    </Button>
   );
 }
 
@@ -1109,12 +1093,12 @@ function DetailMetric({
   tone?: "neutral" | "rose";
 }) {
   return (
-    <div className="min-w-0 bg-[#080808] px-5 py-5 sm:px-6">
-      <p className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
+    <div className="min-w-0 bg-[#111112] px-4 py-4 sm:px-5">
+      <p className="text-xs text-zinc-400">
         {label}
       </p>
       <p
-        className={`mt-2 truncate text-xl font-semibold tracking-[-0.035em] ${tone === "rose" ? "text-rose-400" : "text-zinc-200"}`}
+        className={`mt-2 truncate text-[22px] font-normal tabular-nums tracking-[-0.035em] ${tone === "rose" ? "text-rose-400" : "text-zinc-200"}`}
       >
         {value}
       </p>
@@ -1125,8 +1109,8 @@ function DetailMetric({
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-5 py-4">
-      <span className="text-xs text-zinc-700">{label}</span>
+    <div className="flex items-start justify-between gap-5 py-3">
+      <span className="text-xs text-zinc-500">{label}</span>
       <span className="max-w-[65%] break-words text-right text-xs text-zinc-400">
         {value}
       </span>
@@ -1136,60 +1120,48 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 function EvaluationState({ state }: { state: string }) {
   const normalized = state === "noData" ? "no_data" : state;
-  const styles: Record<string, string> = {
-    firing: "text-rose-400",
-    pending: "text-amber-400",
-    healthy: "text-emerald-400",
-    no_data: "text-zinc-500",
-    error: "text-rose-300",
-    muted: "text-violet-300",
-    paused: "text-zinc-600",
-  };
-  return (
-    <span
-      className={`inline-flex items-center gap-2 text-xs capitalize ${styles[normalized] || "text-zinc-500"}`}
-    >
-      <span className="size-1.5 rounded-full bg-current" />
-      {normalized.replace("_", " ")}
-    </span>
-  );
+  const supported = ["firing", "pending", "healthy", "no_data", "error", "muted", "paused"].includes(normalized);
+  return <AlertStateBadge state={supported ? normalized as AlertState : "no_data"} />;
 }
 
 function EmptyPanel({ message, compact = false }: { message: string; compact?: boolean }) {
   return (
-    <div className={`px-6 text-center text-xs text-zinc-700 ${compact ? "py-10" : "py-16"}`}>
+    <div className={`px-5 text-center text-xs leading-5 text-zinc-400 ${compact ? "py-6" : "py-12"}`}>
       {message}
     </div>
   );
 }
 
 function AlertDetailSkeleton({ orgSlug }: { orgSlug: string }) {
+  const listSearch = normalizeAlertsSearch(useSearch({ strict: false }));
   return (
     <ObservabilityPage>
       <Link
         to="/$orgSlug/observability/alerts"
         params={{ orgSlug }}
-        className="inline-flex items-center gap-2 text-xs text-zinc-600"
+        search={listSearch}
+        className="inline-flex items-center gap-2 text-xs text-zinc-400"
       >
         <HugeiconsIcon icon={ArrowLeft01Icon} size={14} strokeWidth={1.7} />
         All alerts
       </Link>
-      <div className="animate-pulse space-y-7" aria-busy="true">
+      <div className="animate-pulse space-y-5 motion-reduce:animate-none" aria-busy="true" aria-label="Loading alert details">
         <header className="border-b border-white/[0.07] pb-7">
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-4">
             <span className="size-11 rounded-lg bg-white/[0.055]" />
-            <div className="space-y-3">
-              <div className="h-6 w-56 rounded bg-white/[0.07]" />
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="h-6 w-56 max-w-full rounded bg-white/[0.07]" />
               <div className="h-3 w-80 max-w-full rounded bg-white/[0.04]" />
             </div>
           </div>
         </header>
-        <div className="flex gap-7 border-b border-white/[0.07] pb-3">
+        <div className="flex gap-7 overflow-hidden border-b border-white/[0.07] pb-3">
           {Array.from({ length: 5 }).map((_, index) => (
             <div key={index} className="h-4 w-20 rounded bg-white/[0.04]" />
           ))}
         </div>
-        <div className="h-72 rounded-xl border border-white/[0.07] bg-white/[0.015]" />
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.06] xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="space-y-3 bg-[#111112] p-4"><div className="h-3 w-20 rounded bg-white/[0.07]" /><div className="h-6 w-24 rounded bg-white/[0.07]" /><div className="h-3 w-32 rounded bg-white/[0.04]" /></div>)}</div>
+        <div className="h-60 rounded-xl border border-white/[0.07] bg-white/[0.015]" />
       </div>
     </ObservabilityPage>
   );
@@ -1216,7 +1188,7 @@ function DeleteAlertModal({
     setError(null);
     try {
       const response = await fetch(
-        `/api/${orgSlug}/observability/alerts/${encodeURIComponent(alert.id)}`,
+        `/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alert.id)}`,
         { method: "DELETE" },
       );
       if (!response.ok) {
@@ -1238,58 +1210,21 @@ function DeleteAlertModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="sm" appearance="flat">
-      <header className="flex items-start justify-between gap-5 border-b border-white/[0.07] px-5 py-5">
-        <div>
-          <h2 className="text-lg font-semibold tracking-[-0.025em] text-white">
-            Delete alert
-          </h2>
-          <p className="mt-1 text-xs text-zinc-600">This cannot be undone.</p>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !deleting) onClose(); }}>
+      <DialogContent title="Delete alert?" description="This cannot be undone." className="outray-arc outray-arc-dialog" closeDisabled={deleting} onEscapeKeyDown={(event) => { if (deleting) event.preventDefault(); }} onInteractOutside={(event) => { if (deleting) event.preventDefault(); }}>
+        <div className="space-y-5" aria-busy={deleting}>
+          <div className="flex items-start gap-3 text-[13px] leading-6 text-zinc-400">
+            <HugeiconsIcon icon={Alert02Icon} size={18} className="mt-1 shrink-0 text-rose-400" />
+            <p>Delete <span className="text-zinc-200">{alert.name}</span> and stop all future evaluations. Its incident history will no longer be available from this page.</p>
+          </div>
+          {error && <p role="alert" className="text-xs text-rose-400">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={deleting}>Cancel</Button>
+            <Button type="button" variant="danger" size="sm" onClick={() => void remove()} loading={deleting}>{deleting ? "Deleting…" : "Delete alert"}</Button>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex size-9 items-center justify-center rounded-lg text-zinc-600 hover:bg-white/[0.05] hover:text-zinc-300"
-          aria-label="Close delete alert"
-        >
-          <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.7} />
-        </button>
-      </header>
-      <div className="px-5 py-6">
-        <div className="flex items-start gap-3 rounded-xl border border-rose-400/15 bg-rose-400/[0.035] px-4 py-4">
-          <HugeiconsIcon
-            icon={Alert02Icon}
-            size={17}
-            strokeWidth={1.8}
-            className="mt-0.5 shrink-0 text-rose-400"
-          />
-          <p className="text-xs leading-5 text-zinc-400">
-            Delete <span className="font-medium text-zinc-200">{alert.name}</span>{" "}
-            and stop all future evaluations. Existing incident history will no
-            longer be available from this page.
-          </p>
-        </div>
-        {error && <p className="mt-4 text-xs text-rose-400">{error}</p>}
-      </div>
-      <footer className="flex justify-end gap-2 border-t border-white/[0.07] px-5 py-4">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={deleting}
-          className="h-9 rounded-lg px-4 text-xs text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200 disabled:opacity-40"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={() => void remove()}
-          disabled={deleting}
-          className="h-9 rounded-lg bg-rose-500 px-4 text-xs font-medium text-white hover:bg-rose-400 disabled:opacity-50"
-        >
-          {deleting ? "Deleting…" : "Delete alert"}
-        </button>
-      </footer>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1320,10 +1255,6 @@ function noDataLabel(value: AlertRecord["noDataState"]) {
   }[value];
 }
 
-function formatWindow(minutes: number) {
-  if (minutes < 60) return `${minutes}m`;
-  return minutes % 60 === 0 ? `${minutes / 60}h` : `${minutes}m`;
-}
 
 function formatDateTime(value: string | null | undefined) {
   if (!value) return "Unknown";
@@ -1347,13 +1278,6 @@ function formatShortTime(value: string) {
   }).format(timestamp);
 }
 
-function formatClockTime(value: number) {
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(value);
-}
 
 function formatRelativeFuture(value: string) {
   const timestamp = new Date(value).getTime();
@@ -1361,82 +1285,4 @@ function formatRelativeFuture(value: string) {
   const seconds = Math.max(0, Math.ceil((timestamp - Date.now()) / 1_000));
   if (seconds < 60) return `in ${seconds}s`;
   return `in ${Math.ceil(seconds / 60)}m`;
-}
-
-function getEffectiveState(alert: AlertRecord): AlertState {
-  if (!alert.enabled) return "paused";
-  if (
-    alert.state === "muted" ||
-    (alert.mutedUntil && new Date(alert.mutedUntil).getTime() > Date.now())
-  ) {
-    return "muted";
-  }
-  return alert.state || "no_data";
-}
-
-function signalLabel(signal: AlertRecord["signal"]) {
-  return {
-    request_error_rate: "5xx error rate",
-    request_latency_p95: "P95 request latency",
-    request_throughput: "Request throughput",
-    metric_value: "Metric value",
-    log_count: "Log count",
-    no_telemetry: "No telemetry",
-  }[signal];
-}
-
-function conditionLabel(alert: AlertRecord) {
-  if (alert.signal === "no_telemetry") {
-    return `No telemetry for ${formatWindow(alert.windowMinutes)}`;
-  }
-  const subject =
-    alert.signal === "metric_value"
-      ? `${alert.metricAggregation || "latest"} ${alert.metricName || "metric"}`
-      : alert.signal === "log_count"
-        ? `${alert.logLevel && alert.logLevel !== "all" ? `${alert.logLevel} ` : ""}logs`
-        : signalLabel(alert.signal);
-  const operator = ({ gt: ">", gte: "≥", lt: "<", lte: "≤" } as const)[
-    alert.operator
-  ];
-  return `${subject} ${operator} ${formatAlertValue(alert.threshold, alert)} for ${formatWindow(alert.windowMinutes)}`;
-}
-
-function formatAlertValue(
-  value: number | null | undefined,
-  alert: Pick<AlertRecord, "signal" | "metricUnit">,
-) {
-  if (value === null || value === undefined || !Number.isFinite(Number(value))) {
-    return "—";
-  }
-  const numeric = Number(value);
-  if (alert.signal === "request_error_rate") return `${formatNumber(numeric)}%`;
-  if (alert.signal === "request_latency_p95") {
-    return numeric >= 1_000
-      ? `${formatNumber(numeric / 1_000)}s`
-      : `${formatNumber(numeric)}ms`;
-  }
-  if (alert.signal === "request_throughput") return `${formatNumber(numeric)} rpm`;
-  if (alert.signal === "log_count") return numeric.toLocaleString();
-  if (alert.signal === "metric_value") {
-    return `${formatNumber(numeric)}${alert.metricUnit ? ` ${alert.metricUnit}` : ""}`;
-  }
-  return formatNumber(numeric);
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("en", { maximumFractionDigits: 2 }).format(value);
-}
-
-function formatRelativeTime(value: string | null | undefined) {
-  if (!value) return "Never";
-  const timestamp = new Date(value).getTime();
-  if (!Number.isFinite(timestamp)) return "Unknown";
-  const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1_000));
-  if (seconds < 10) return "Just now";
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
 }
