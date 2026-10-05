@@ -282,7 +282,12 @@ test("context retains organization-scoped telemetry, trace, service and log link
   assert.match(html, /aria-label="Context details"/);
   assert.match(html, /href="\/acme\/observability\/traces\?search=trace-1"/);
   assert.match(html, /href="\/acme\/observability\/services\/checkout"/);
-  assert.match(html, /href="\/acme\/observability\/logs\?search=trace-1"/);
+  const logsLink = [...html.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>/g)].find(([, href]) => href.startsWith("/acme/observability/logs"));
+  assert.ok(logsLink);
+  const logsTarget = new URL(logsLink[1].replaceAll("&amp;", "&"), "http://localhost");
+  assert.equal(logsTarget.pathname, "/acme/observability/logs");
+  assert.equal(logsTarget.searchParams.get("search"), "trace-1");
+  assert.equal(logsTarget.searchParams.get("range"), "1h");
   assert.match(
     html,
     /Copy trace ID|request.id|telemetry\/span ID|environment|region|Order accepted/,
