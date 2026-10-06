@@ -4,6 +4,8 @@ import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
 import { isReservedStatusDomain } from "@/lib/reserved-status-domain";
 import { Button } from "../arc/button/button";
 import { Dialog, DialogContent } from "../arc/dialog/dialog";
+import { WorkspaceInput } from "../ui/workspace-input";
+import { workspaceInputShellClassName } from "../ui/workspace-input-styles";
 import "../outray-arc-theme.css";
 
 export interface CreateDomainModalProps {
@@ -40,10 +42,11 @@ export function CreateDomainForm({ value, onValueChange, onSubmit, onCancel, isP
   return (
     <form onSubmit={onSubmit} aria-busy={isPending} noValidate>
       <label htmlFor={inputId} className="mb-2 block text-[13px] font-normal text-zinc-200">Domain name</label>
-      <div className="flex h-11 items-center overflow-hidden rounded-lg border border-white/[0.12] bg-[#0a0a0b] transition-colors focus-within:border-white/[0.35] focus-within:ring-1 focus-within:ring-white/[0.12]">
-        <span aria-hidden="true" className="shrink-0 border-r border-white/[0.08] px-3.5 text-zinc-500"><HugeiconsIcon icon={Globe02Icon} size={16} strokeWidth={1.7} /></span>
-        <input
+      <div className={workspaceInputShellClassName}>
+        <span aria-hidden="true" className="shrink-0 border-r border-white/[0.08] pr-3.5 text-zinc-500"><HugeiconsIcon icon={Globe02Icon} size={16} strokeWidth={1.7} /></span>
+        <WorkspaceInput
           ref={inputRef}
+          variant="bare"
           id={inputId}
           data-outray-composite-input=""
           type="text"
@@ -57,7 +60,7 @@ export function CreateDomainForm({ value, onValueChange, onSubmit, onCancel, isP
           placeholder="api.example.com"
           aria-invalid={!!error}
           aria-describedby={`${hintId}${error ? ` ${errorId}` : ""}`}
-          className="h-full min-w-0 flex-1 bg-transparent px-3.5 font-mono text-[13px] text-zinc-100 outline-none placeholder:text-zinc-600 disabled:opacity-60"
+          className="min-w-0 flex-1 font-mono"
         />
       </div>
       <p id={hintId} className="mt-2 text-[12px] leading-5 text-zinc-500">Use a subdomain such as api.example.com, without https:// or a path. Root domains aren’t supported.</p>
