@@ -105,6 +105,8 @@ async function harness(filename: "alert-form" | "alert-email-recipients", props:
         useId: () => "alert-form-control",
       };
       if (specifier === "./alerts-data") return alertData;
+      // Keep the shared field boundary native; its visual implementation has its own tests.
+      if (specifier.endsWith("ui/workspace-input")) return { WorkspaceInput: "input", WorkspaceTextarea: "textarea" };
       if (specifier.endsWith(".css")) return {};
       if (specifier.startsWith("@hugeicons-pro/")) return { default: {} };
       return new Proxy({}, { get: (_target, property) => property === "__esModule" ? true : stub(String(property)) });
@@ -190,6 +192,55 @@ test("selection control retains native checkbox semantics, disabled state, and a
   assert.match(html, /aria-hidden="true"/);
   assert.match(html, /peer-focus-visible/); assert.match(html, /motion-reduce:transition-none/);
   assert.doesNotMatch(html, /role="checkbox"|accent-violet/);
+});
+
+test("alert fields share the refreshed input boundary and preserve native field constraints", async () => {
+  const source = await readFile(new URL("../src/components/observability/alert-form.tsx", import.meta.url), "utf8");
+  assert.match(source, /import \{ WorkspaceInput, WorkspaceTextarea \} from "\.\.\/ui\/workspace-input"/);
+  assert.doesNotMatch(source, /<input\b|<textarea\b|inputClassName|focus-visible:outline-accent/);
+
+  const driver = await harness("alert-form", formProps({ initialAlert: alert() }));
+  driver.render(); await driver.flush();
+  const name = driver.input("Name");
+  assert.equal(name.props.maxLength, 120);
+  assert.equal(name.props.autoFocus, true);
+  assert.equal(name.props.className, "mt-2", "only field spacing stays local");
+  const description = driver.input("Description");
+  assert.equal(description.type, "textarea");
+  assert.equal(description.props.rows, 2);
+  assert.equal(description.props.maxLength, 1000);
+  driver.changeInput("Description", "Updated response context.");
+  assert.equal(driver.input("Description").props.value, "Updated response context.");
+
+  await driver.submit();
+  const threshold = driver.input("Threshold (%)");
+  assert.equal(threshold.props.type, "number");
+  assert.equal(threshold.props.step, "any");
+  for (const label of ["Failures to fire", "Recoveries to resolve"]) {
+    const field = driver.input(label);
+    assert.equal(field.props.type, "number");
+    assert.equal(field.props.min, "1");
+    assert.equal(field.props.max, "10");
+  }
+  assert.equal(driver.input("Minimum samples").props.min, "1");
+  driver.unmount();
+});
+
+test("refreshed Observability search fields explicitly opt into the shared workspace appearance", async () => {
+  for (const filename of [
+    "alert-email-recipients",
+    "alerts-list-content",
+    "services-content",
+    "http-requests-content",
+    "metrics-content",
+    "logs-content",
+    "traces-content",
+  ]) {
+    const source = await readFile(new URL(`../src/components/observability/${filename}.tsx`, import.meta.url), "utf8");
+    const fields = [...source.matchAll(/<SearchField\b[\s\S]*?\/>/g)];
+    assert.ok(fields.length, `${filename} contains a search field`);
+    assert.ok(fields.every(([field]) => /appearance="workspace"/.test(field)), `${filename} uses the redesigned appearance rather than changing stock Arc inputs globally`);
+  }
 });
 
 test("creation validates each step before issuing any mutation and preserves entered values", async () => {
