@@ -159,8 +159,9 @@ function DashboardLayout() {
   }
 
   return (
-    <div className="workspace-ui min-h-screen bg-[#070707] text-gray-300 font-sans selection:bg-accent/30">
-      <div className="flex h-dvh overflow-hidden">
+    <div className="workspace-ui fixed inset-0 flex overflow-hidden bg-[#070707] text-gray-300 font-sans selection:bg-accent/30">
+      {/* Keep the workspace in the viewport; long pages scroll inside main. */}
+      <div className="flex h-full min-h-0 w-full overflow-hidden">
         {/* Desktop sidebar - hidden on mobile */}
         <div className="hidden md:flex h-full">
           <Sidebar
@@ -171,7 +172,7 @@ function DashboardLayout() {
           {!unifiedSidebar && <ProductSubSidebar />}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col bg-[#090909]">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#090909]">
           <WorkspaceTopbar
             onOpenNavigation={() => setMobileNavOpen(true)}
             isNavigationOpen={mobileNavOpen}
@@ -179,7 +180,7 @@ function DashboardLayout() {
           <main className="flex min-h-0 flex-1 flex-col">
             <div
               data-scroll-restoration-id={`workspace-content-${orgSlug}`}
-              className="min-h-0 flex-1 overflow-y-auto px-6 py-5 pb-[calc(80px+env(safe-area-inset-bottom))] md:px-12 md:py-8 md:pb-8"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-6 py-5 pb-[calc(80px+env(safe-area-inset-bottom))] md:px-12 md:py-8 md:pb-8"
             >
               <Outlet />
             </div>
