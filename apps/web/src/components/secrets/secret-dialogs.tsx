@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
 import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
@@ -158,205 +158,7 @@ export function ProjectDialog({
   );
 }
 
-const environmentColors = [
-  { value: "emerald", label: "Green", className: "bg-emerald-400" },
-  { value: "amber", label: "Amber", className: "bg-amber-400" },
-  { value: "rose", label: "Rose", className: "bg-rose-400" },
-  { value: "violet", label: "Violet", className: "bg-violet-400" },
-  { value: "blue", label: "Blue", className: "bg-blue-400" },
-];
-
-export function EnvironmentDialog({
-  open,
-  onClose,
-  orgSlug,
-  projectSlug,
-  environment,
-  onSaved,
-}: {
-  open: boolean;
-  onClose: () => void;
-  orgSlug: string;
-  projectSlug: string;
-  environment?: SecretEnvironment | null;
-  onSaved: (environment: SecretEnvironment) => void;
-}) {
-  const editing = !!environment;
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
-  const [color, setColor] = useState("emerald");
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [productionConfirmed, setProductionConfirmed] = useState(false);
-  const [confirmation, setConfirmation] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    setName(environment?.name || "");
-    setSlug(environment?.slug || "");
-    setDescription(environment?.description || "");
-    setColor(environment?.color || "emerald");
-    setSlugTouched(!!environment);
-    setProductionConfirmed(false);
-    setConfirmation("");
-    setSaving(false);
-    setError(null);
-  }, [environment, open]);
-
-  const isProduction = useMemo(() => {
-    const values = [name, slug].map((value) => value.trim().toLowerCase());
-    return (
-      values.includes("production") ||
-      values.includes("prod") ||
-      !!environment?.isProduction
-    );
-  }, [environment?.isProduction, name, slug]);
-  const canSave =
-    !!name.trim() &&
-    !!slug.trim() &&
-    (!isProduction || productionConfirmed) &&
-    (!editing || confirmation === environment.name);
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!canSave) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const input = {
-        name: name.trim(),
-        slug: normalizedSlug(slug),
-        description: description.trim(),
-        color,
-        confirmation: editing ? confirmation : name.trim(),
-        confirmProduction: productionConfirmed,
-      };
-      const saved = editing
-        ? await secretsClient.updateEnvironment(
-            orgSlug,
-            projectSlug,
-            environment.slug,
-            {
-              ...input,
-              expectedRevision: environment.revision,
-              confirmProduction: productionConfirmed,
-            },
-          )
-        : await secretsClient.createEnvironment(orgSlug, projectSlug, input);
-      onSaved(saved);
-      onClose();
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Could not save environment.",
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <SecretsDialog
-      open={open}
-      onClose={onClose}
-      title={editing ? "Edit environment" : "Add environment"}
-      description="Use environments to keep development, staging, and production values independent."
-    >
-      <DialogForm
-        onSubmit={handleSubmit}
-        footer={
-          <>
-            <SecretsButton onClick={onClose}>Cancel</SecretsButton>
-            <SecretsButton
-              tone="primary"
-              type="submit"
-              loading={saving}
-              disabled={!canSave}
-            >
-              {editing ? "Save environment" : "Add environment"}
-            </SecretsButton>
-          </>
-        }
-      >
-        {error && (
-          <SecretsNotice message={error} onDismiss={() => setError(null)} />
-        )}
-        <Field label="Environment name">
-          <input
-            className={fieldClassName}
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              if (!slugTouched) setSlug(normalizedSlug(event.target.value));
-            }}
-            placeholder="Staging"
-            autoFocus
-          />
-        </Field>
-        <Field label="Slug">
-          <input
-            className={`${fieldClassName} font-mono text-[13px]`}
-            value={slug}
-            onChange={(event) => {
-              setSlugTouched(true);
-              setSlug(normalizedSlug(event.target.value));
-            }}
-            placeholder="staging"
-          />
-        </Field>
-        <Field label="Color">
-          <div className="grid grid-cols-5 gap-2">
-            {environmentColors.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setColor(option.value)}
-                aria-label={option.label}
-                aria-pressed={color === option.value}
-                className={`flex h-10 items-center justify-center rounded-xl border transition-colors ${
-                  color === option.value
-                    ? "border-white/30 bg-white/[0.08]"
-                    : "border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05]"
-                }`}
-              >
-                <span className={`size-2.5 rounded-full ${option.className}`} />
-              </button>
-            ))}
-          </div>
-        </Field>
-        <Field label="Description" hint="Optional">
-          <textarea
-            className={textareaClassName}
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="Pre-release environment for final checks."
-          />
-        </Field>
-        {editing && (
-          <Field label={`Type ${environment.name} to confirm changes`}>
-            <input
-              className={`${fieldClassName} font-mono text-[13px]`}
-              value={confirmation}
-              onChange={(event) => setConfirmation(event.target.value)}
-              placeholder={environment.name}
-              spellCheck={false}
-            />
-          </Field>
-        )}
-        {isProduction && (
-          <ProductionConfirmation
-            checked={productionConfirmed}
-            onChange={setProductionConfirmed}
-            verb={editing ? "change" : "create"}
-          />
-        )}
-      </DialogForm>
-    </SecretsDialog>
-  );
-}
+export { EnvironmentDialog } from "./environment-dialog";
 
 export function SecretEditorDialog({
   open,
@@ -866,6 +668,7 @@ export function ConfirmSecretActionDialog({
   production = false,
   danger = true,
   loading = false,
+  error,
   onConfirm,
 }: {
   open: boolean;
@@ -877,6 +680,7 @@ export function ConfirmSecretActionDialog({
   production?: boolean;
   danger?: boolean;
   loading?: boolean;
+  error?: string | null;
   onConfirm: (productionConfirmed: boolean, confirmation: string) => void;
 }) {
   return (
@@ -895,6 +699,7 @@ export function ConfirmSecretActionDialog({
           production={production}
           danger={danger}
           loading={loading}
+          error={error}
           onConfirm={onConfirm}
         />
       )}
@@ -909,6 +714,7 @@ function ConfirmSecretActionContent({
   production,
   danger,
   loading,
+  error,
   onConfirm,
 }: {
   onClose: () => void;
@@ -917,6 +723,7 @@ function ConfirmSecretActionContent({
   production: boolean;
   danger: boolean;
   loading: boolean;
+  error?: string | null;
   onConfirm: (productionConfirmed: boolean, confirmation: string) => void;
 }) {
   const [typed, setTyped] = useState("");
@@ -929,6 +736,7 @@ function ConfirmSecretActionContent({
   return (
     <>
       <div className="space-y-5 px-5 py-5 sm:px-6">
+        {error && <p role="alert" className="rounded-lg border border-rose-400/20 bg-rose-400/[0.04] px-3.5 py-3 text-[13px] leading-5 text-rose-300">{error}</p>}
         <div className="flex items-start gap-3 rounded-xl border border-rose-400/15 bg-rose-400/[0.045] p-3.5">
           <HugeiconsIcon
             icon={danger ? Delete02Icon : Alert02Icon}
