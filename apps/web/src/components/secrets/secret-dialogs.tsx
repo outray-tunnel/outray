@@ -134,7 +134,7 @@ export function ProjectDialog({
             autoFocus
           />
         </Field>
-        <Field label="Slug" hint="Used in API paths">
+        <Field label="Slug">
           <input
             className={`${fieldClassName} font-mono text-[13px]`}
             value={slug}
