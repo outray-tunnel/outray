@@ -117,7 +117,7 @@ test("HTTP and successful HTML responses cannot masquerade as an empty overview"
     assert.equal(attempts, 1);
     assert.equal(client.getQueryData(options.queryKey), undefined);
     t.mock.method(globalThis, "fetch", async () => new Response("<!doctype html><title>Sign in</title>"));
-    await assert.rejects(client.fetchQuery(options), SyntaxError);
+    await assert.rejects(client.fetchQuery(options), /invalid response\. Please try again/);
     assert.equal(client.getQueryData(options.queryKey), undefined);
   } finally { client.clear(); }
 });
