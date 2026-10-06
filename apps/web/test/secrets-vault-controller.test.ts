@@ -118,6 +118,7 @@ async function controller(orgSlug = "acme", projectSlug = "api") {
     throw new Error(`Unexpected environment controller dependency: ${specifier}`);
   });
   const dialogs = evaluate(dialogSource, (specifier) => {
+    if (specifier.endsWith("ui/workspace-input")) return { WorkspaceInput: "input", WorkspaceTextarea: "textarea" };
     if (specifier === "react") return hooks;
     if (specifier === "@/lib/secrets-client") return { secretsClient: client };
     if (specifier === "./environment-dialog") return environmentController;
