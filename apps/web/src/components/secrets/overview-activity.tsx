@@ -69,7 +69,7 @@ export function SecretsOverviewActivity({
     <section aria-labelledby={headingId} className="min-w-0">
       <div className="mb-3 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 id={headingId} className="text-[13px] font-medium text-zinc-200">
+          <h2 id={headingId} className="text-[14px] font-medium text-zinc-200">
             Recent activity
           </h2>
           <p className="mt-1 text-[12px] leading-5 text-zinc-500">
