@@ -70,7 +70,7 @@ export function ServicesContent({ orgSlug, services, loading, isFetching, error,
       <section aria-label="Service inventory" className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
         <div className="flex flex-wrap items-end gap-3 border-b border-white/[0.07] p-4">
           <div className="min-w-0 flex-1 basis-full sm:basis-[240px] sm:max-w-[360px]">
-            <SearchField label="Search services" placeholder="Search by name or resource…" value={query} onValueChange={setQuery} disabled={!hasData} />
+            <SearchField appearance="workspace" label="Search services" placeholder="Search by name or resource…" value={query} onValueChange={setQuery} disabled={!hasData} />
           </div>
           <div className="min-w-0 flex-1 basis-[150px] sm:max-w-[190px]">
             <Select label="Environment" value={environment} onValueChange={setEnvironment} disabled={!hasData}
