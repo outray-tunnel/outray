@@ -4,15 +4,19 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
 import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import Loading03Icon from "@hugeicons-pro/core-stroke-rounded/Loading03Icon";
 import MoreVerticalIcon from "@hugeicons-pro/core-stroke-rounded/MoreVerticalIcon";
 import { AnimatePresence, motion } from "motion/react";
+import { Button } from "@/components/arc/button/button";
 import { Select, type SelectOption } from "@/components/ui/select";
+import "../outray-arc-theme.css";
 
 export function SecretsPage({ children }: { children: ReactNode }) {
   return <div className="mx-auto w-full max-w-7xl space-y-8">{children}</div>;
@@ -311,6 +315,16 @@ export const fieldClassName =
 export const textareaClassName =
   "min-h-28 w-full resize-y rounded-xl border border-white/[0.1] bg-[#0b0b0b] px-3.5 py-3 text-sm leading-6 text-zinc-200 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/[0.22] disabled:cursor-not-allowed disabled:opacity-50";
 
+function useSecretsPortalTarget() {
+  const [target, setTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    // Keep the server and hydration renders empty before attaching to the DOM.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (typeof document !== "undefined") setTarget(document.body);
+  }, []);
+  return target;
+}
+
 export function SecretsDialog({
   open,
   onClose,
@@ -326,11 +340,12 @@ export function SecretsDialog({
   children: ReactNode;
   size?: "sm" | "md" | "lg";
 }) {
+  const portalTarget = useSecretsPortalTarget();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
   useEffect(() => { closeRef.current = onClose; }, [onClose]);
   useEffect(() => {
-    if (!open) return;
+    if (!open || !portalTarget) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusable = () => Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
       'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
@@ -357,14 +372,14 @@ export function SecretsDialog({
       document.removeEventListener("keydown", onKeyDown);
       previousFocus?.focus();
     };
-  }, [open]);
+  }, [open, portalTarget]);
 
   const widths = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-2xl" };
 
-  return (
+  return portalTarget ? createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
+        <div data-private-product="secrets" className="workspace-ui outray-arc ph-no-capture fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
           <motion.button
             type="button"
             aria-label="Close dialog"
@@ -409,8 +424,9 @@ export function SecretsDialog({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
-  );
+    </AnimatePresence>,
+    portalTarget,
+  ) : null;
 }
 
 export function DialogForm({
@@ -445,19 +461,20 @@ export function SecretsSheet({
   description?: string;
   children: ReactNode;
 }) {
+  const portalTarget = useSecretsPortalTarget();
   useEffect(() => {
-    if (!open) return;
+    if (!open || !portalTarget) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onClose, open]);
+  }, [onClose, open, portalTarget]);
 
-  return (
+  return portalTarget ? createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[100]">
+        <div data-private-product="secrets" className="workspace-ui outray-arc ph-no-capture fixed inset-0 z-[100]">
           <motion.button
             type="button"
             aria-label="Close panel"
@@ -498,8 +515,9 @@ export function SecretsSheet({
           </motion.aside>
         </div>
       )}
-    </AnimatePresence>
-  );
+    </AnimatePresence>,
+    portalTarget,
+  ) : null;
 }
 
 export interface ActionMenuItem {
@@ -513,57 +531,149 @@ export interface ActionMenuItem {
 export function ActionMenu({
   items,
   label = "Open actions",
+  compact = false,
 }: {
   items: ActionMenuItem[];
   label?: string;
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const initialFocusRef = useRef<"first" | "last">("first");
   const menuId = useId();
+  const triggerId = `${menuId}-trigger`;
+
+  function focusTrigger() {
+    rootRef.current?.querySelector<HTMLButtonElement>("button[aria-haspopup=menu]")?.focus();
+  }
+
+  function closeMenu(returnFocus = false) {
+    setOpen(false);
+    if (returnFocus) focusTrigger();
+  }
+
+  function openMenu(position: "first" | "last") {
+    initialFocusRef.current = position;
+    if (open) {
+      const enabled = itemRefs.current.filter((item): item is HTMLButtonElement => Boolean(item && !item.disabled));
+      (position === "last" ? enabled.at(-1) : enabled[0])?.focus();
+    } else setOpen(true);
+  }
+
+  function handleTriggerKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      event.stopPropagation();
+      openMenu(event.key === "ArrowUp" ? "last" : "first");
+    } else if (event.key === "Escape" && open) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(true);
+    }
+  }
+
+  function handleMenuKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(true);
+      return;
+    }
+    if (event.key === "Tab") {
+      // Restore the anchor before removing the focused item, then let the native
+      // Tab/Shift+Tab action move to the next or previous control normally.
+      closeMenu(true);
+      return;
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const enabled = itemRefs.current.filter((item): item is HTMLButtonElement => Boolean(item && !item.disabled));
+    if (!enabled.length) return;
+    const current = enabled.indexOf(document.activeElement as HTMLButtonElement);
+    const next = event.key === "Home" ? 0
+      : event.key === "End" ? enabled.length - 1
+        : event.key === "ArrowDown" ? (current + 1) % enabled.length
+          : current <= 0 ? enabled.length - 1 : current - 1;
+    enabled[next]?.focus();
+  }
 
   useEffect(() => {
     if (!open) return;
-    const close = (event: MouseEvent) => {
+    const enabled = itemRefs.current.filter((item): item is HTMLButtonElement => Boolean(item && !item.disabled));
+    const target = initialFocusRef.current === "last" ? enabled.at(-1) : enabled[0];
+    (target ?? menuRef.current)?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: Event) => {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("focusin", close);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("focusin", close);
+    };
   }, [open]);
+
+  const triggerProps = {
+    id: triggerId,
+    type: "button" as const,
+    "aria-haspopup": "menu" as const,
+    "aria-expanded": open,
+    "aria-controls": open ? menuId : undefined,
+    onKeyDown: handleTriggerKeyDown,
+    onClick: () => {
+      if (open) closeMenu(true);
+      else openMenu("first");
+    },
+  };
 
   return (
     <div ref={rootRef} className="relative">
-      <SecretsIconButton
-        icon={MoreVerticalIcon}
-        label={label}
-        tone="quiet"
-        aria-expanded={open}
-        aria-controls={menuId}
-        onClick={() => setOpen((value) => !value)}
-      />
+      {compact ? (
+        <Button {...triggerProps} variant="ghost" size="sm" aria-label={label} title={label} className="!h-9 !min-h-9 !w-9 !min-w-9 !px-0 text-zinc-400">
+          <HugeiconsIcon icon={MoreVerticalIcon} size={16} strokeWidth={1.8} aria-hidden="true" />
+        </Button>
+      ) : <SecretsIconButton {...triggerProps} icon={MoreVerticalIcon} label={label} tone="quiet" />}
       {open && (
         <div
+          ref={menuRef}
           id={menuId}
           role="menu"
-          className="absolute right-0 top-11 z-30 min-w-44 rounded-xl border border-white/[0.1] bg-[#111] p-1.5 shadow-[0_18px_55px_rgba(0,0,0,.65)]"
+          data-secrets-action-menu=""
+          aria-labelledby={triggerId}
+          tabIndex={-1}
+          onKeyDown={handleMenuKeyDown}
+          className="absolute right-0 top-full z-30 mt-1 w-max min-w-[200px] max-w-[calc(100vw-32px)] rounded-xl border border-white/[0.1] bg-[#111] p-1 shadow-[0_18px_55px_rgba(0,0,0,.65)] outline-none"
         >
-          {items.map((item) => (
+          {items.map((item, index) => (
             <button
+              ref={(element) => { itemRefs.current[index] = element; }}
               key={item.label}
               type="button"
               role="menuitem"
+              title={item.label}
+              tabIndex={-1}
               disabled={item.disabled}
               onClick={() => {
-                setOpen(false);
+                if (item.disabled) return;
+                // Focus the persistent anchor before an action opens a dialog.
+                closeMenu(true);
                 item.onSelect();
               }}
-              className={`flex min-h-9 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              className={`flex min-h-9 w-full min-w-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none ${
                 item.danger
-                  ? "text-rose-400 hover:bg-rose-400/[0.08]"
-                  : "text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200"
+                  ? "text-rose-400 hover:bg-rose-400/[0.08] focus:bg-rose-400/[0.08]"
+                  : "text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200 focus:bg-white/[0.06] focus:text-zinc-200"
               }`}
             >
-              <HugeiconsIcon icon={item.icon} size={15} strokeWidth={1.7} />
-              {item.label}
+              <HugeiconsIcon icon={item.icon} size={15} strokeWidth={1.7} className="shrink-0" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
             </button>
           ))}
         </div>
