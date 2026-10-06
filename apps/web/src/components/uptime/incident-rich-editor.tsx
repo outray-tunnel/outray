@@ -3,6 +3,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Heading2, Heading3, Italic, Link2, List, ListOrdered, Quote, RemoveFormatting } from "lucide-react";
 import { useEffect, useState } from "react";
+import { WorkspaceInput } from "@/components/ui/workspace-input";
 import { UptimeDialog } from "./uptime-dialog";
 import { primaryButton, secondaryButton } from "./uptime-ui";
 
@@ -73,7 +74,7 @@ export function IncidentRichEditor({ initialBody, initialNote = "", onChange, di
     </div>
     <UptimeDialog open={linkOpen} onClose={() => setLinkOpen(false)} title="Add a link" footer={<><button type="button" className={secondaryButton} onClick={() => setLinkOpen(false)}>Cancel</button><button type="button" className={primaryButton} onClick={applyLink}>Apply link</button></>}>
       <label className="block text-[13px] text-zinc-300" htmlFor={`${id}-link`}>URL</label>
-      <input id={`${id}-link`} data-autofocus type="url" value={link} onChange={(event) => { setLink(event.target.value); setLinkError(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); applyLink(); } }} placeholder="https://example.com" className="mt-2 h-10 w-full rounded-lg border border-white/[0.12] bg-black px-3 text-[13px] text-zinc-200 outline-none focus:border-violet-400/50" />
+      <WorkspaceInput id={`${id}-link`} data-autofocus type="url" value={link} onChange={(event) => { setLink(event.target.value); setLinkError(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); applyLink(); } }} placeholder="https://example.com" className="mt-2" />
       {linkError && <p role="alert" className="mt-2 text-xs text-rose-300">{linkError}</p>}
     </UptimeDialog>
   </>;
