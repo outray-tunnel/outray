@@ -28,6 +28,7 @@
     "dev:ingest": "dotenv -e .env -- node scripts/with-tinybird.mjs turbo run dev --env-mode=loose --filter=outray-ingest",
     "seed:dev": "dotenv -e .env -- node scripts/with-tinybird.mjs node scripts/seed-development.mjs",
     "seed:uptime:dev": "dotenv -e .env -- node scripts/seed-uptime-development.mjs",
+    "seed:secrets:dev": "tsx scripts/seed-secrets-development.mjs",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
