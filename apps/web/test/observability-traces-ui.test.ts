@@ -113,6 +113,7 @@ test("search, status, range, clear and live controls dispatch their exact callba
   const changes: Array<Partial<tracesData.TracesSearch>> = []; const searches: string[] = [];
   let clears = 0; let toggles = 0;
   const elements = ui.render({ filters: { range: "24h", errorsOnly: true, search: "payment" }, onFiltersChange: (patch) => changes.push(patch), onSearchInputChange: (value) => searches.push(value), onClearFilters: () => clears++, onToggleLive: () => toggles++ });
+  assert.equal(elements.find((element) => element.type === ui.stubs.SearchField)!.props.appearance, "workspace");
   elements.find((element) => element.type === ui.stubs.SearchField)!.props.onValueChange("trace /? id");
   assert.deepEqual(searches, ["trace /? id"]);
   elements.find((element) => element.type === ui.stubs.SegmentedControl)!.props.onValueChange("30d");
