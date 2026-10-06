@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { VaultsPageView } from "./projects";
+import { VaultsPageView } from "@/components/secrets/vaults-workspace";
 
 export const Route = createFileRoute("/$orgSlug/secrets/vaults")({
   head: () => ({ meta: [{ title: "Vaults - OutRay Secrets" }] }),
