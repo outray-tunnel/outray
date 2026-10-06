@@ -5,6 +5,7 @@ import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
 import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
 import File01Icon from "@hugeicons-pro/core-stroke-rounded/File01Icon";
 import Upload04Icon from "@hugeicons-pro/core-stroke-rounded/Upload04Icon";
+import { WorkspaceInput, WorkspaceTextarea } from "../ui/workspace-input";
 import {
   secretsClient,
   type ImportReview,
@@ -20,8 +21,6 @@ import {
   SecretsButton,
   SecretsDialog,
   SecretsNotice,
-  fieldClassName,
-  textareaClassName,
 } from "./secrets-ui";
 
 function normalizedSlug(value: string): string {
@@ -126,8 +125,7 @@ export function ProjectDialog({
           <SecretsNotice message={error} onDismiss={() => setError(null)} />
         )}
         <Field label="Vault name">
-          <input
-            className={fieldClassName}
+          <WorkspaceInput
             value={name}
             onChange={(event) => handleNameChange(event.target.value)}
             placeholder="Payments API"
@@ -135,8 +133,8 @@ export function ProjectDialog({
           />
         </Field>
         <Field label="Slug">
-          <input
-            className={`${fieldClassName} font-mono text-[13px]`}
+          <WorkspaceInput
+            className="font-mono text-[13px]"
             value={slug}
             onChange={(event) => {
               setSlugTouched(true);
@@ -146,8 +144,7 @@ export function ProjectDialog({
           />
         </Field>
         <Field label="Description" hint="Optional">
-          <textarea
-            className={textareaClassName}
+          <WorkspaceTextarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Credentials and configuration for the payments service."
@@ -320,8 +317,8 @@ export function SecretEditorDialog({
         )}
         <div className="space-y-5">
           <Field label="Key" error={keyError}>
-            <input
-              className={`${fieldClassName} font-mono text-[13px] uppercase`}
+            <WorkspaceInput
+              className="font-mono text-[13px] uppercase"
               value={key}
               onChange={(event) =>
                 setKey(event.target.value.toUpperCase().replace(/\s+/g, "_"))
@@ -365,8 +362,9 @@ export function SecretEditorDialog({
                 : "Empty values are allowed"
             }
           >
-            <textarea
-              className={`${textareaClassName} min-h-32 font-mono text-[13px] ${showValue ? "" : "[-webkit-text-security:disc]"}`}
+            <WorkspaceTextarea
+              className={`font-mono ${showValue ? "" : "[-webkit-text-security:disc]"}`}
+              style={{ minHeight: 128 }}
               value={value}
               onChange={(event) => setValue(event.target.value)}
               placeholder={
@@ -563,8 +561,9 @@ export function ImportDotenvDialog({
               label="Dotenv contents"
               hint="Values stay in this dialog until submitted"
             >
-              <textarea
-                className={`${textareaClassName} min-h-48 font-mono text-[13px]`}
+              <WorkspaceTextarea
+                className="font-mono"
+                style={{ minHeight: 192 }}
                 value={envText}
                 onChange={(event) => setEnvText(event.target.value)}
                 placeholder={
@@ -750,8 +749,8 @@ function ConfirmSecretActionContent({
         </div>
         {confirmationText && (
           <Field label={`Type ${confirmationText} to continue`}>
-            <input
-              className={`${fieldClassName} font-mono text-[13px]`}
+            <WorkspaceInput
+              className="font-mono text-[13px]"
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
               autoFocus
