@@ -98,6 +98,7 @@ function RecipientPicker({
       </p>
       <div className="outray-arc-requests-search">
         <SearchField
+          appearance="workspace"
           label="Find a team member"
           value={query}
           onValueChange={setQuery}
