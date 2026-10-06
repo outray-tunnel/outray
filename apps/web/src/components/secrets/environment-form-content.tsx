@@ -1,6 +1,7 @@
 import { useId, type FormEvent } from "react";
 import { Check, Layers, LockKeyhole } from "lucide-react";
 import { Button } from "../arc/button/button";
+import { WorkspaceInput, WorkspaceTextarea } from "../ui/workspace-input";
 import type { SecretEnvironment } from "@/lib/secrets-client";
 import styles from "./environment-form.module.css";
 
@@ -41,12 +42,12 @@ export function EnvironmentFormContent({ projectSlug, environment, name, slug, d
       <div className={styles.identity}>
         <div className={styles.field}>
           <label htmlFor={fieldId("name")}>Environment name</label>
-          <input id={fieldId("name")} data-environment-name="" className={styles.input} value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="e.g. Staging" maxLength={100} disabled={saving} required autoComplete="off" aria-invalid={Boolean(errors.name) || undefined} aria-describedby={describedBy("name")} />
+          <WorkspaceInput id={fieldId("name")} data-environment-name="" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="e.g. Staging" maxLength={100} disabled={saving} required autoComplete="off" aria-invalid={Boolean(errors.name) || undefined} aria-describedby={describedBy("name")} />
           {errors.name && <p id={fieldId("name-error")} className={styles.fieldError}>{errors.name}</p>}
         </div>
         <div className={styles.field}>
           <label htmlFor={fieldId("slug")}>Slug</label>
-          <input id={fieldId("slug")} className={`${styles.input} ${styles.monospace}`} value={slug} onChange={(event) => onSlugChange(event.target.value)} placeholder="staging" maxLength={63} disabled={saving} required autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-invalid={Boolean(errors.slug) || undefined} aria-describedby={describedBy("slug", fieldId("slug-hint"))} />
+          <WorkspaceInput id={fieldId("slug")} className={styles.monospace} value={slug} onChange={(event) => onSlugChange(event.target.value)} placeholder="staging" maxLength={63} disabled={saving} required autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-invalid={Boolean(errors.slug) || undefined} aria-describedby={describedBy("slug", fieldId("slug-hint"))} />
           <p id={fieldId("slug-hint")} className={styles.hint}>Lowercase letters, numbers, and hyphens.</p>
           {errors.slug && <p id={fieldId("slug-error")} className={styles.fieldError}>{errors.slug}</p>}
         </div>
@@ -54,14 +55,14 @@ export function EnvironmentFormContent({ projectSlug, environment, name, slug, d
 
       <div className={styles.field}>
         <label htmlFor={fieldId("description")}>Description <span className={styles.optional}>Optional</span></label>
-        <textarea id={fieldId("description")} className={`${styles.input} ${styles.textarea}`} rows={3} value={description} onChange={(event) => onDescriptionChange(event.target.value)} placeholder="What is this environment used for?" maxLength={500} disabled={saving} aria-invalid={Boolean(errors.description) || undefined} aria-describedby={describedBy("description")} />
+        <WorkspaceTextarea id={fieldId("description")} rows={3} value={description} onChange={(event) => onDescriptionChange(event.target.value)} placeholder="What is this environment used for?" maxLength={500} disabled={saving} aria-invalid={Boolean(errors.description) || undefined} aria-describedby={describedBy("description")} />
         {errors.description && <p id={fieldId("description-error")} className={styles.fieldError}>{errors.description}</p>}
       </div>
 
       {environment && <div className={`${styles.field} ${styles.confirmation}`}>
         <label htmlFor={fieldId("confirmation")}>Confirm environment name</label>
         <p id={fieldId("confirmation-hint")} className={styles.hint}>Type <span className={styles.confirmName}>{environment.name}</span> to save these changes.</p>
-        <input id={fieldId("confirmation")} className={styles.input} value={confirmation} onChange={(event) => onConfirmationChange(event.target.value)} maxLength={100} disabled={saving} required autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-invalid={Boolean(errors.confirmation) || undefined} aria-describedby={describedBy("confirmation", fieldId("confirmation-hint"))} />
+        <WorkspaceInput id={fieldId("confirmation")} value={confirmation} onChange={(event) => onConfirmationChange(event.target.value)} maxLength={100} disabled={saving} required autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-invalid={Boolean(errors.confirmation) || undefined} aria-describedby={describedBy("confirmation", fieldId("confirmation-hint"))} />
         {errors.confirmation && <p id={fieldId("confirmation-error")} className={styles.fieldError}>{errors.confirmation}</p>}
       </div>}
 
