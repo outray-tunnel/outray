@@ -4,13 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { pageComponents } from "@/lib/uptime/incident-display";
+import { WorkspaceInput } from "@/components/ui/workspace-input";
+import { workspaceInputShellClassName } from "@/components/ui/workspace-input-styles";
 import { IncidentStatusSelect } from "./incident-ui";
 import { IncidentRichEditor } from "./incident-rich-editor";
 import { UptimeDialog } from "./uptime-dialog";
 import { useUptimeUnsavedChanges } from "./use-uptime-unsaved-changes";
 import { uptimeRequest, UptimeRequestError, type UptimeIncidentStatus, type UptimePageResponse } from "./uptime-client";
 import { UptimeSkeleton } from "./uptime-skeleton";
-import { fieldClass, labelClass, primaryButton, secondaryButton, UptimeError } from "./uptime-ui";
+import { labelClass, primaryButton, secondaryButton, UptimeError } from "./uptime-ui";
 
 export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
   orgSlug: string;
@@ -76,13 +78,13 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
       {page.isPending ? <UptimeSkeleton label="Loading components" className="space-y-5"><div className="h-10 rounded-xl bg-white/[0.04]" /><div className="h-32 rounded-xl bg-white/[0.04]" /><div className="h-24 rounded-xl bg-white/[0.04]" /></UptimeSkeleton> : page.isError && !page.data ? <div className="space-y-3"><UptimeError message="Could not load your status page and components." /><button type="button" onClick={() => void page.refetch()} className={secondaryButton}>Try again</button></div> : !page.data?.page || !components.length ? <div className="py-5 text-sm leading-6 text-zinc-400"><p>{!page.data?.page ? "Create a status page before reporting an incident." : "Add a component to your status page before reporting an incident."}</p><Link to="/$orgSlug/uptime/status-page/components" params={{ orgSlug }} className={`${secondaryButton} mt-4`}>Set up components</Link></div> : <form id={formId} ref={formRef} onSubmit={(event) => { event.preventDefault(); void create(false); }} className="space-y-5">
         <fieldset disabled={saving !== null} className="min-w-0 space-y-5">
         <label className={labelClass} htmlFor={`${formId}-title`}>Incident title
-          <input id={`${formId}-title`} data-autofocus className={`${fieldClass} mt-2`} value={title} onChange={(event) => setTitle(event.target.value)} maxLength={160} required placeholder="Elevated errors during checkout" aria-invalid={!!errors.title} aria-describedby={errors.title ? `${formId}-title-error` : undefined} />
+          <WorkspaceInput id={`${formId}-title`} data-autofocus className="mt-2" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={160} required placeholder="Elevated errors during checkout" aria-invalid={!!errors.title} aria-describedby={errors.title ? `${formId}-title-error` : undefined} />
           {errors.title && <span role="alert" id={`${formId}-title-error`} className="mt-1.5 block text-xs font-normal text-rose-300">{errors.title}</span>}
         </label>
         <fieldset>
           <legend className={`${labelClass} mb-2`}>Affected components <span className="ml-1 font-normal text-zinc-500">{selected.length ? `${selected.length} selected` : ""}</span></legend>
           <div className="overflow-hidden rounded-xl border border-white/[0.1]">
-            <div className="flex items-center gap-2 border-b border-white/[0.07] px-3 focus-within:bg-white/[0.03]"><Search size={14} className="text-zinc-600" aria-hidden="true" /><input id={`${formId}-componentIds`} className="h-10 min-w-0 flex-1 bg-transparent text-[13px] text-zinc-200 outline-none placeholder:text-zinc-600" value={componentSearch} onChange={(event) => setComponentSearch(event.target.value)} aria-label="Find a component" aria-invalid={!!errors.componentIds} aria-describedby={errors.componentIds ? `${formId}-components-error` : undefined} placeholder="Find a component" /></div>
+            <div data-field-size="compact" className={`${workspaceInputShellClassName} gap-2 !rounded-none !border-x-0 !border-t-0 px-3`}><Search size={14} className="text-zinc-600" aria-hidden="true" /><WorkspaceInput id={`${formId}-componentIds`} variant="bare" size="compact" className="min-w-0 flex-1" value={componentSearch} onChange={(event) => setComponentSearch(event.target.value)} aria-label="Find a component" aria-invalid={!!errors.componentIds} aria-describedby={errors.componentIds ? `${formId}-components-error` : undefined} placeholder="Find a component" /></div>
             <div className="max-h-44 overflow-y-auto p-2">
               {groups.map((group) => <div key={group.id} className="mb-2 last:mb-0"><p className="px-2 pb-1 pt-1.5 text-[11px] text-zinc-500">{group.name}</p>{group.components.map((component) => <label key={component.id} className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2 text-[13px] text-zinc-300 transition-colors hover:bg-white/[0.04]"><input type="checkbox" className="peer sr-only" checked={selected.includes(component.id)} onChange={(event) => setSelected((ids) => event.target.checked ? [...ids, component.id] : ids.filter((id) => id !== component.id))} /><span aria-hidden="true" className="flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border border-white/20 text-transparent transition-colors peer-checked:border-violet-400 peer-checked:bg-violet-400 peer-checked:text-black peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-violet-400">✓</span><span className="min-w-0 flex-1 truncate">{component.name}</span>{!component.visible && <span className="text-[11px] text-zinc-600">Hidden</span>}</label>)}</div>)}
               {!groups.length && <p className="px-2 py-4 text-xs text-zinc-500">No components match your search.</p>}
