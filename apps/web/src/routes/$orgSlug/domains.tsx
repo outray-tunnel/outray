@@ -180,6 +180,7 @@ function DomainsPage({ orgSlug }: { orgSlug: string }) {
           <>
             <div className="outray-arc-address-search w-full sm:max-w-[360px]">
               <SearchField
+                appearance="workspace"
                 label="Search domains"
                 placeholder="Search domains…"
                 value={search}
