@@ -54,7 +54,7 @@ export function Sidebar({
 }: SidebarProps) {
   const sidebarId = useId();
   const { setSelectedOrganization } = useAppStore();
-  const { data: orgData } = authClient.useListOrganizations();
+  const { data: orgData, isPending: isOrganizationsPending } = authClient.useListOrganizations();
   const organizations = orgData ?? [];
   const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -278,6 +278,7 @@ export function Sidebar({
         isOrgDropdownOpen={isOrgDropdownOpen}
         setIsOrgDropdownOpen={setIsOrgDropdownOpen}
         isCollapsed={isCollapsed}
+        isLoading={isOrganizationsPending}
       />
 
       {!isCollapsed && isSearchOpen && (
