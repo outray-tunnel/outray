@@ -76,7 +76,7 @@ export function TracesContent({ orgSlug, data, filters, searchInput, onSearchInp
 
       <section aria-label="Recorded traces" className="min-w-0 overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
         <div className="flex flex-wrap items-end gap-3 border-b border-white/[0.07] p-4">
-          <div className="outray-arc-requests-search min-w-0 flex-1 basis-[260px]"><SearchField ref={searchRef} label="Search traces" placeholder="Operation, service or trace ID…" value={searchInput} onValueChange={onSearchInputChange} autoComplete="off" spellCheck={false} /></div>
+          <div className="outray-arc-requests-search min-w-0 flex-1 basis-[260px]"><SearchField appearance="workspace" ref={searchRef} label="Search traces" placeholder="Operation, service or trace ID…" value={searchInput} onValueChange={onSearchInputChange} autoComplete="off" spellCheck={false} /></div>
           <div className="min-w-0 flex-1 basis-[170px] sm:max-w-[200px]"><Select label="Status" value={filters.errorsOnly ? "errors" : "all"} onValueChange={(value) => onFiltersChange({ errorsOnly: value === "errors" || undefined })} options={[{ value: "all", label: "All traces" }, { value: "errors", label: "Errors only" }]} /></div>
           {hasFilters && <Button variant="ghost" size="sm" onClick={onClearFilters}>Clear filters</Button>}
         </div>
