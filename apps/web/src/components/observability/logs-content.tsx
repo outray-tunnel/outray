@@ -75,7 +75,7 @@ export function LogsContent({
       <section aria-label="Application logs" className="min-w-0 overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
         <div className="flex flex-wrap items-end gap-3 border-b border-white/[0.07] p-4">
           <div className="outray-arc-requests-search min-w-0 flex-1 basis-full sm:basis-[260px]">
-            <SearchField ref={searchRef} label="Search logs" placeholder="Message, service, event name or trace ID…" value={searchInput} onValueChange={onSearchInputChange} autoComplete="off" spellCheck={false} />
+            <SearchField appearance="workspace" ref={searchRef} label="Search logs" placeholder="Message, service, event name or trace ID…" value={searchInput} onValueChange={onSearchInputChange} autoComplete="off" spellCheck={false} />
           </div>
           <div className="min-w-0 flex-1 basis-[180px] sm:max-w-[220px]">
             <Select label="Service" value={filters.service ? `service:${filters.service}` : "all"} onValueChange={(value) => onFiltersChange({ service: value === "all" ? undefined : value.slice("service:".length) })}
