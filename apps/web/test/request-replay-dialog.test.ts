@@ -9,6 +9,7 @@ import ts from "typescript";
 import { Button } from "../src/components/arc/button/button";
 import { Dialog, DialogContent } from "../src/components/arc/dialog/dialog";
 import { Select } from "../src/components/ui/select";
+import { WorkspaceInput, WorkspaceTextarea } from "../src/components/ui/workspace-input";
 import { formatBody, JsonViewer } from "../src/components/requests/json-viewer";
 import { getHttpMethodColor } from "../src/components/requests/utils";
 import { requestInspectorUrl } from "../src/components/requests/request-inspector-data";
@@ -102,6 +103,7 @@ async function controller({ reducedMotion = false, response = async () => ({ ok:
       if (specifier === "../arc/button/button") return { Button };
       if (specifier === "../arc/dialog/dialog") return { Dialog, DialogContent };
       if (specifier === "../ui/select") return { Select };
+      if (specifier === "../ui/workspace-input") return { WorkspaceInput, WorkspaceTextarea };
       if (specifier === "./json-viewer") return { formatBody, JsonViewer };
       if (specifier === "./utils") return { getHttpMethodColor };
       if (specifier === "./request-inspector-data") return { requestInspectorUrl };
@@ -163,6 +165,12 @@ test("replay initialization preserves captured values and excludes transport-own
   assert.deepEqual(names.map((item) => item.props.value), ["Content-Type", "X-Test"]);
   assert.equal(labeled(rendered.body, "Header 2 value").props.value, "one, two");
   assert.equal(methodSelect(rendered.body).props.value, "POST");
+  assert.equal(labeled(rendered.body, "Request URL").type, WorkspaceInput);
+  assert.equal(labeled(rendered.body, "Header 1 name").type, WorkspaceInput);
+  assert.equal(labeled(rendered.body, "Header 2 value").type, WorkspaceInput);
+  action(rendered.body, "Body").props.onClick();
+  rendered = replay.render();
+  assert.equal(labeled(rendered.body, "Request body").type, WorkspaceTextarea);
 });
 
 test("legacy null headers preserve the captured body and replay URLs recognize only real loopback hosts", async () => {
