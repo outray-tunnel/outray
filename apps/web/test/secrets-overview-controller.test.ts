@@ -78,6 +78,7 @@ async function loadController(orgSlug = "acme", initialSearch: unknown = {}) {
   runInNewContext(compile(dialogSource), {
     React, module: dialogModule, exports: dialogModule.exports,
     require: (specifier: string) => {
+      if (specifier.endsWith("ui/workspace-input")) return { WorkspaceInput: "input", WorkspaceTextarea: "textarea" };
       if (specifier === "react") return hooks;
       if (specifier === "@/lib/secrets-client") return { secretsClient: {
         createProject: async (slug: string, input: { name: string; slug: string; description: string }) => {
