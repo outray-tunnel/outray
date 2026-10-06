@@ -73,6 +73,7 @@ export function RequestsExplorer({
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] p-4">
             <div className="outray-arc-requests-search w-full min-w-0 sm:w-[320px]">
               <SearchField
+                appearance="workspace"
                 label="Search requests"
                 value={feed.search}
                 onValueChange={feed.setSearch}
