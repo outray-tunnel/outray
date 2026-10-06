@@ -11,6 +11,8 @@ import { Dialog, DialogContent } from "../src/components/arc/dialog/dialog";
 import { CreateDomainForm, type CreateDomainModalProps } from "../src/components/domains/create-domain-modal";
 import { CreateSubdomainForm } from "../src/components/subdomains/create-subdomain-modal";
 import { isReservedStatusDomain } from "../src/lib/reserved-status-domain";
+import { WorkspaceInput } from "../src/components/ui/workspace-input";
+import { workspaceInputShellClassName } from "../src/components/ui/workspace-input-styles";
 
 Object.assign(globalThis, { React });
 const requireModule = createRequire(import.meta.url);
@@ -55,6 +57,8 @@ async function controller(resource: Resource) {
     react: hooks,
     "../arc/button/button": { Button },
     "../arc/dialog/dialog": { Dialog, DialogContent },
+    "../ui/workspace-input": { WorkspaceInput },
+    "../ui/workspace-input-styles": { workspaceInputShellClassName },
     "../outray-arc-theme.css": {},
     "@/lib/reserved-status-domain": { isReservedStatusDomain },
   };
@@ -108,8 +112,7 @@ for (const resource of ["domains", "subdomains"] as const) {
     assert.match(input, /data-outray-composite-input=""|data-outray-composite-input/);
     assert.match(input, /aria-invalid="true"/);
     assert.match(input, /aria-describedby=/);
-    assert.match(html, /focus-within:border-white\/\[0\.35\]/);
-    assert.match(html, /focus-within:ring-white\/\[0\.12\]/);
+    assert.ok(html.includes(workspaceInputShellClassName), "address uses the shared composite input shell");
     assert.match(html, /role="alert"/);
     assert.match(html, /Already taken &lt;address&gt;/);
     assert.ok(html.includes(normalized));
