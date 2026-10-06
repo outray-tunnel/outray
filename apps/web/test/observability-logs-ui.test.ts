@@ -123,6 +123,7 @@ test("search, service, severity, range, clear and live controls dispatch their e
   const changes: Array<Partial<logsData.LogsSearch>> = []; const searches: string[] = [];
   let clears = 0; let toggles = 0;
   const elements = ui.render({ filters: { range: "24h", service: "payments-worker", level: "warn" }, onFiltersChange: (patch) => changes.push(patch), onSearchInputChange: (value) => searches.push(value), onClearFilters: () => clears++, onToggleLive: () => toggles++ });
+  assert.equal(elements.find((element) => element.type === ui.stubs.SearchField)!.props.appearance, "workspace");
   elements.find((element) => element.type === ui.stubs.SearchField)!.props.onValueChange("trace /? id");
   assert.deepEqual(searches, ["trace /? id"]);
   elements.find((element) => element.type === ui.stubs.SegmentedControl)!.props.onValueChange("30d");
