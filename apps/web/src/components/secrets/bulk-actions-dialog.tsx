@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { completeShareUrl, encryptShare } from "@outray/share-crypto";
 import { secretsClient, type SecretEnvironment, type SecretMetadata } from "@/lib/secrets-client";
+import { WorkspaceInput } from "../ui/workspace-input";
 import {
   DialogForm, Field, ProductionConfirmation, SecretsButton, SecretsDialog,
-  SecretsNotice, SecretsSelect, fieldClassName,
+  SecretsNotice, SecretsSelect,
 } from "./secrets-ui";
 
 export type BulkAction = "move" | "delete" | "share";
@@ -111,7 +112,7 @@ export function BulkActionsDialog({ action, onClose, onDone, orgSlug, projectSlu
         <div className="space-y-5 px-5 py-6 sm:px-6">
           <p className="text-[13px] leading-6 text-zinc-300">Your encrypted link is ready. Copy it now—OutRay cannot recover the complete link later.</p>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <input className={`${fieldClassName} min-w-0 font-mono text-xs`} aria-label="Complete viewing link" value={link} readOnly onFocus={(event) => event.currentTarget.select()} />
+            <WorkspaceInput className="min-w-0 font-mono text-xs" aria-label="Complete viewing link" value={link} readOnly onFocus={(event) => event.currentTarget.select()} />
             <SecretsButton tone="primary" onClick={() => void navigator.clipboard.writeText(link).then(() => setCopied(true)).catch(() => setError("Copy failed. Select the link and copy it manually."))}>{copied ? "Copied" : "Copy link"}</SecretsButton>
           </div>
           {error && <SecretsNotice message={error} onDismiss={() => setError(null)} />}
@@ -140,13 +141,13 @@ export function BulkActionsDialog({ action, onClose, onDone, orgSlug, projectSlu
           </>}
           {action === "delete" && <>
             <p className="text-[13px] leading-6 text-zinc-400">The selected secrets stop being available immediately and form one recoverable Trash batch.</p>
-            <Field label={`Type DELETE ${secrets.length} to confirm`}><input className={fieldClassName} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="off" /></Field>
+            <Field label={`Type DELETE ${secrets.length} to confirm`}><WorkspaceInput value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="off" /></Field>
           </>}
           {action === "share" && <>
             <p className="text-[13px] leading-6 text-zinc-400">We’ll take a one-time snapshot and encrypt it in your browser. Source changes won’t alter this link.</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Expires after"><div className="flex gap-2"><input type="number" className={fieldClassName} min={1} max={durationUnit === "days" ? 90 : 3} value={durationValue} onChange={(event) => setDurationValue(Number(event.target.value))} required /><SecretsSelect ariaLabel="Expiry unit" value={durationUnit} onChange={(value) => { setDurationUnit(value as "days" | "months"); setDurationValue(value === "days" ? 7 : 1); }} options={[{value:"days",label:"Days"},{value:"months",label:"Months"}]} /></div></Field>
-              <Field label="Maximum reveals"><input type="number" className={fieldClassName} min={1} max={100} value={maxViews} onChange={(event) => setMaxViews(Number(event.target.value))} required /></Field>
+              <Field label="Expires after"><div className="flex gap-2"><WorkspaceInput type="number" min={1} max={durationUnit === "days" ? 90 : 3} value={durationValue} onChange={(event) => setDurationValue(Number(event.target.value))} required /><SecretsSelect ariaLabel="Expiry unit" value={durationUnit} onChange={(value) => { setDurationUnit(value as "days" | "months"); setDurationValue(value === "days" ? 7 : 1); }} options={[{value:"days",label:"Days"},{value:"months",label:"Months"}]} /></div></Field>
+              <Field label="Maximum reveals"><WorkspaceInput type="number" min={1} max={100} value={maxViews} onChange={(event) => setMaxViews(Number(event.target.value))} required /></Field>
             </div>
             <p className="text-xs text-zinc-500">Defaults: 7 days and 10 reveals. Maximum: 3 months and 100 reveals.</p>
           </>}
