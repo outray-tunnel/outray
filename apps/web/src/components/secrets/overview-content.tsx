@@ -78,7 +78,7 @@ export function SecretsOverviewContent({ orgSlug, data, loading, isFetching, err
             <Button variant="secondary" size="sm" className="mt-4" onClick={onCreate}><Plus size={13} aria-hidden="true" />Create vault</Button>
           </div> : <>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="outray-arc-requests-search min-w-0 flex-1 basis-[180px]"><SearchField label="Search vaults" value={searchInput} onValueChange={onSearchInputChange} placeholder="Find a vault or environment…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
+              <div className="outray-arc-requests-search min-w-0 flex-1 basis-[180px]"><SearchField appearance="workspace" label="Search vaults" value={searchInput} onValueChange={onSearchInputChange} placeholder="Find a vault or environment…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
               <div className="outray-arc-address-filter w-[164px] shrink-0"><Select label="Sort vaults" value={sort} onValueChange={(value) => onSortChange(value as SecretsVaultSort)} options={[{ value: "updated", label: "Recently updated" }, { value: "name", label: "Name" }]} /></div>
             </div>
             <div className="overflow-hidden rounded-xl border border-white/[0.08]">
