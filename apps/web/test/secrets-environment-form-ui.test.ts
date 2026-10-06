@@ -137,6 +137,7 @@ test("actual native field handlers and footer props forward exact values/events 
       if (specifier === "react") return { useId: () => "environment-form-test" };
       if (specifier === "lucide-react") return { Check: Placeholder, Layers: Placeholder, LockKeyhole: Placeholder };
       if (specifier === "../arc/button/button") return { Button };
+      if (specifier === "../ui/workspace-input") return { WorkspaceInput: "input", WorkspaceTextarea: "textarea" };
       if (specifier.endsWith(".module.css")) return { default: new Proxy({}, { get: (_target, key) => key }), __esModule: true };
       throw new Error(`Unexpected environment form dependency: ${specifier}`);
     },
@@ -187,8 +188,9 @@ test("short-view CSS keeps the Arc header/footer fixed in a bounded flex chain a
 });
 
 test("mobile, reduced-motion, native-checkbox and scoped input-focus CSS preserve accessible controls without the global double outline", async () => {
-  const [css, theme, controller] = await Promise.all([
+  const [css, fields, theme, controller] = await Promise.all([
     readFile(new URL("../src/components/secrets/environment-form.module.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/ui/workspace-input.module.css", import.meta.url), "utf8"),
     readFile(new URL("../src/components/outray-arc-theme.css", import.meta.url), "utf8"),
     readFile(new URL("../src/components/secrets/environment-dialog.tsx", import.meta.url), "utf8"),
   ]);
@@ -196,15 +198,18 @@ test("mobile, reduced-motion, native-checkbox and scoped input-focus CSS preserv
   assert.match(cssRule(mobile, ".identity"), /gap:/);
   assert.doesNotMatch(cssRule(mobile, ".identity"), /grid-template-columns/, "mobile only adjusts spacing, not the always-stacked identity layout");
   assert.match(css, /@media \(max-width:\s*540px\)[\s\S]*?\.footer\s*\{[^}]*flex-direction:\s*column/);
-  assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.input, \.checkboxMark\s*\{\s*transition:\s*none/);
+  assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.checkboxMark\s*\{\s*transition:\s*none/);
+  assert.match(fields, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.control, \.shell\s*\{\s*transition:\s*none/);
   const nativeCheckbox = cssRule(css, ".checkbox > input"); assert.match(nativeCheckbox, /opacity:\s*0/); assert.match(nativeCheckbox, /position:\s*absolute/);
   assert.doesNotMatch(nativeCheckbox, /display:\s*none|visibility:\s*hidden/);
   assert.match(cssRule(css, ".checkbox > input:focus-visible + .checkboxMark"), /outline:\s*2px solid/);
-  const focus = cssRule(css, ".dialog .input:focus-visible");
+  const focus = cssRule(fields, ".control.control:focus, .control.control:focus-visible, .shell.shell:focus-within");
   assert.match(focus, /outline:\s*none/); assert.match(focus, /border-color:/); assert.match(focus, /box-shadow:/);
   assert.match(theme, /\.outray-arc :is\(button, input, summary\):focus-visible/);
-  // Scoped input focus (0,3,0) beats shared control focus (0,2,1). The visible
+  // Shared input focus (0,3,0) beats generic UIArc focus (0,2,1). The visible
   // checkbox mark is a span, so the generic input outline cannot style it.
+  assert.match(field(render(), "Environment name"), /data-workspace-input="default"/);
+  assert.match(field(render(), "Description"), /data-workspace-input="textarea"/);
   assert.match(controller, /className=\{`[^`]*ph-no-capture[^`]*styles\.dialog[^`]*`\} data-private-product="secrets"/);
   assert.match(controller, /onOpenAutoFocus=/); assert.match(controller, /onCloseAutoFocus=/);
   assert.match(controller, /querySelector<HTMLElement>\("\[data-environment-name\]"\)\?\.focus\(\)/);
