@@ -40,6 +40,16 @@ const domain: Domain = {
   organizationId: "acme",
 };
 
+test("refreshed address and active tunnel search fields opt into the shared compact input", async () => {
+  for (const page of ["domains.tsx", "subdomains.tsx", "tunnels/index.tsx"]) {
+    const source = await readFile(new URL(`../src/routes/$orgSlug/${page}`, import.meta.url), "utf8");
+    const searches = [...source.matchAll(/<SearchField\b[\s\S]*?\/>/g)];
+    assert.equal(searches.length, 1);
+    assert.match(searches[0][0], /appearance="workspace"/);
+    assert.match(searches[0][0], /onValueChange=/, "existing filtering callback is preserved");
+  }
+});
+
 test("address search trims and matches names or complete addresses without changing quotas or source order", () => {
   const items = [subdomain, { ...subdomain, id: "sub-2", subdomain: "docs" }];
   assert.deepEqual(
