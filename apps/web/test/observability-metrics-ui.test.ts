@@ -127,6 +127,7 @@ test("the instrument library distinguishes duplicate names and exposes one focus
 test("catalog search is local, covers description and unit, and can clear a no-results state", async () => {
   const ui = await loadContent();
   const searchField = () => ui.render().find((element) => element.type === ui.stubs.SearchField)!;
+  assert.equal(searchField().props.appearance, "workspace");
   searchField().props.onValueChange("histogram of temperatures");
   const filtered = ui.render();
   assert.equal(filtered.filter((element) => element.type === "button" && element.props.title).length, 1);
