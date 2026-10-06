@@ -35,6 +35,9 @@ const secretsProjectRoutePath = fileURLToPath(
     import.meta.url,
   ),
 );
+const secretsVaultContentPath = fileURLToPath(
+  new URL("../src/components/secrets/vault-content.tsx", import.meta.url),
+);
 const secretsProjectsRoutePath = fileURLToPath(
   new URL("../src/routes/$orgSlug/secrets/projects.tsx", import.meta.url),
 );
@@ -130,10 +133,10 @@ test("plaintext UI state is excluded from analytics and React Query caches", asy
   assert.match(createTokenModal, /30_000/);
 });
 
-test("Secrets headers, primary actions, and environment cards follow the platform UI", async () => {
-  const [secretsUi, projectRoute] = await Promise.all([
+test("Secrets headers, primary actions, and environment rows follow the platform UI", async () => {
+  const [secretsUi, vaultContent] = await Promise.all([
     readFile(secretsUiPath, "utf8"),
-    readFile(secretsProjectRoutePath, "utf8"),
+    readFile(secretsVaultContentPath, "utf8"),
   ]);
 
   assert.doesNotMatch(secretsUi, /eyebrow\s*=\s*["']Secrets["']/);
@@ -142,15 +145,12 @@ test("Secrets headers, primary actions, and environment cards follow the platfor
     secretsUi,
     /border-white bg-white text-black hover:border-zinc-200 hover:bg-zinc-200/,
   );
-  assert.match(
-    projectRoute,
-    /aria-label=\{`Open \$\{environment\.name\} environment`\}/,
-  );
-  assert.match(projectRoute, /className="group block h-full rounded-2xl/);
-  assert.match(
-    projectRoute,
-    /<\/Link>\s*<div className="absolute right-5 top-5 z-10">\s*<ActionMenu/,
-  );
+  assert.match(vaultContent, /aria-label=\{`Open \$\{environment\.name\} environment/);
+  assert.match(vaultContent, /after:absolute after:inset-0 after:z-\[1\]/);
+  assert.match(vaultContent, /relative z-\[2\]/);
+  assert.match(vaultContent, /<ActionMenu compact label=\{`Actions for/);
+  assert.match(vaultContent, /<Button size="sm" aria-haspopup="dialog" onClick=\{onCreateEnvironment\}/);
+  assert.doesNotMatch(vaultContent, /grid gap-4 md:grid-cols-2 xl:grid-cols-3/);
 });
 
 test("Bulk deletion exposes recoverable Trash batches", async () => {
@@ -166,7 +166,7 @@ test("Bulk deletion exposes recoverable Trash batches", async () => {
     readFile(productSubSidebarPath, "utf8"),
     readFile(mobileBottomNavPath, "utf8"),
     readFile(secretsOverviewRoutePath, "utf8"),
-    readFile(secretsProjectRoutePath, "utf8"),
+    readFile(secretsVaultContentPath, "utf8"),
     readFile(secretsTablePath, "utf8"),
     readFile(secretsClientPath, "utf8"),
     readFile(routeTreePath, "utf8"),
