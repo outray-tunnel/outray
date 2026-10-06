@@ -168,6 +168,7 @@ async function loadSetup(initialState: any[] = [], clients: Record<string, any> 
       if (specifier === "@/lib/app-client") return { appClient: clients.app ?? { tunnels: { list: async () => ({ tunnels: [] }) } } };
       if (specifier === "./setup-products") return { parseSetupProduct };
       if (specifier === "./observability-setup") return guideModule.exports;
+      if (specifier.endsWith("ui/workspace-input")) return { WorkspaceInput: "input", WorkspaceTextarea: "textarea" };
       if (specifier.startsWith("@/components/") || specifier === "./setup-ui" || specifier === "./onboarding-shell" || specifier === "./uptime-monitor-form") return stubs;
       throw new Error(`Unexpected setup dependency: ${specifier}`);
     },
