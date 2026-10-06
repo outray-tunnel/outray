@@ -1,0 +1,45 @@
+/* Create vault is the reference: 44px, quiet dark fill and 16px corners.
+   Higher specificity on appearance/focus avoids the generic UIArc outline,
+   including dialogs portaled outside the workspace. No document-wide rules. */
+.control.control, .shell.shell {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 16px;
+  background: #0b0b0b;
+  color: #e4e4e7;
+  outline: none;
+  outline-offset: 0;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.control.control { display: block; height: 44px; padding: 0 var(--workspace-input-padding-right, 14px) 0 var(--workspace-input-padding-left, 14px); }
+.control, .bare { font-size: 15px; font-weight: 400; line-height: 1.5; }
+.control::placeholder, .bare::placeholder { color: #71717a; opacity: 1; }
+.control:hover:not(:disabled), .shell:hover:not(:focus-within):not(:has(input:disabled)) { border-color: rgb(255 255 255 / 18%); }
+.control.control:focus, .control.control:focus-visible, .shell.shell:focus-within {
+  border-color: rgb(255 255 255 / 35%);
+  outline: none;
+  outline-offset: 0;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 8%);
+}
+.control.control[aria-invalid="true"], .shell.shell:has(input[aria-invalid="true"]) { border-color: rgb(251 113 133 / 60%); }
+.control.control[aria-invalid="true"]:focus, .shell.shell:has(input[aria-invalid="true"]):focus-within { border-color: #fb7185; box-shadow: 0 0 0 1px rgb(251 113 133 / 14%); }
+.control:disabled, .bare:disabled { cursor: not-allowed; opacity: .5; }
+.shell:has(input:disabled) { cursor: not-allowed; opacity: .5; }
+.shell.shell { display: flex; align-items: center; gap: 8px; padding: 0 14px; }
+.shell > :not(input) { flex-shrink: 0; }
+.shell > input:disabled { opacity: 1; }
+.bare.bare {
+  width: 100%; min-width: 0; height: 42px; min-height: 0;
+  border: 0; border-radius: 0; padding: 0;
+  background: transparent; color: #e4e4e7;
+  outline: none; box-shadow: none;
+}
+.bare.bare:focus, .bare.bare:focus-visible { border: 0; outline: none; outline-offset: 0; box-shadow: none; }
+.control.control[data-field-size="compact"], .shell.shell[data-field-size="compact"] { height: 36px; min-height: 36px; }
+.control[data-field-size="compact"], .bare[data-field-size="compact"] { font-size: 13px; }
+.bare.bare[data-field-size="compact"] { height: 34px; }
+.control.textarea { height: auto; min-height: 112px; resize: vertical; padding: 12px 14px; line-height: 1.6; }
+.control::-webkit-search-cancel-button, .bare::-webkit-search-cancel-button { display: none; }
+@media (prefers-reduced-motion: reduce) { .control, .shell { transition: none; } }
