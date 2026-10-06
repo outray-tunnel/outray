@@ -16,6 +16,7 @@ import { requestInspectorUrl } from "./request-inspector-data";
 import { Button } from "../arc/button/button";
 import { Dialog, DialogContent } from "../arc/dialog/dialog";
 import { Select } from "../ui/select";
+import { WorkspaceInput, WorkspaceTextarea } from "../ui/workspace-input";
 import "../outray-arc-theme.css";
 import styles from "./replay-modal.module.css";
 
@@ -54,7 +55,7 @@ function MethodDropdown({
       onChange={onChange}
       disabled={disabled}
       className="w-28 shrink-0"
-      triggerClassName="h-9 font-mono"
+      triggerClassName="h-11 font-mono"
       options={Array.from(new Set([...HTTP_METHODS, value])).map((method) => ({
         value: method,
         label: method,
@@ -339,23 +340,23 @@ export function ReplayModal({
             }} />
           ) : (
             <div
-              className={`flex h-9 w-20 shrink-0 items-center font-mono text-[11px] font-semibold ${getHttpMethodColor(method)}`}
+              className={`flex h-11 w-20 shrink-0 items-center font-mono text-[11px] font-semibold ${getHttpMethodColor(method)}`}
             >
               {method}
             </div>
           )}
           {isEditing ? (
-            <input
+            <WorkspaceInput
               type="text"
               aria-label="Request URL"
               disabled={replaying}
               value={url}
               onChange={(event) => setUrl(event.target.value)}
-              className="h-9 min-w-0 flex-1 border-b border-white/[0.12] bg-transparent px-1 font-mono text-[11px] text-zinc-300 outline-none transition-colors placeholder:text-zinc-800 focus:border-white/25"
+              className="min-w-0 flex-1 font-mono"
               placeholder="https://…"
             />
           ) : (
-            <div className="flex h-9 min-w-0 flex-1 items-center truncate border-b border-white/[0.07] font-mono text-[11px] text-zinc-500">
+            <div className="flex h-11 min-w-0 flex-1 items-center truncate border-b border-white/[0.07] font-mono text-[11px] text-zinc-500">
               {url}
             </div>
           )}
@@ -445,7 +446,7 @@ export function ReplayModal({
                       )}
                       {isEditing ? (
                         <>
-                          <input
+                          <WorkspaceInput
                             type="text"
                             aria-label={`Header ${index + 1} name`}
                             disabled={replaying}
@@ -454,9 +455,9 @@ export function ReplayModal({
                               updateHeader(index, "key", event.target.value)
                             }
                             placeholder="Header name"
-                            className="h-8 w-2/5 border-b border-white/[0.1] bg-transparent font-mono text-[10px] text-zinc-400 outline-none placeholder:text-zinc-800 focus:border-white/25"
+                            className="w-2/5 font-mono"
                           />
-                          <input
+                          <WorkspaceInput
                             type="text"
                             aria-label={`Header ${index + 1} value`}
                             disabled={replaying}
@@ -465,7 +466,7 @@ export function ReplayModal({
                               updateHeader(index, "value", event.target.value)
                             }
                             placeholder="Value"
-                            className="h-8 min-w-0 flex-1 border-b border-white/[0.1] bg-transparent font-mono text-[10px] text-zinc-400 outline-none placeholder:text-zinc-800 focus:border-white/25"
+                            className="min-w-0 flex-1 font-mono"
                           />
                           <button
                             type="button"
@@ -504,13 +505,14 @@ export function ReplayModal({
           {activeTab === "body" && hasBody && (
             <section className="overflow-hidden rounded-xl border border-white/[0.07] p-4">
               {isEditing ? (
-                <textarea
+                <WorkspaceTextarea
                   aria-label="Request body"
                   disabled={replaying}
                   value={body}
                   onChange={(event) => setBody(event.target.value)}
                   rows={12}
-                  className="w-full resize-none bg-transparent font-mono text-[11px] leading-5 text-zinc-400 outline-none placeholder:text-zinc-800"
+                  className="font-mono"
+                  style={{ resize: "none" }}
                   placeholder="Request body…"
                 />
               ) : body ? (
