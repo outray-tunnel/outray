@@ -17,6 +17,7 @@ import {
 } from "react";
 import { Button } from "@/components/arc/button/button";
 import { Select } from "@/components/ui/select";
+import { WorkspaceInput, WorkspaceTextarea } from "@/components/ui/workspace-input";
 import { OnboardingShell } from "./onboarding-shell";
 import { SetupFlow, SetupStep, SetupCodeBlock as CodeBlock } from "./setup-ui";
 import { UptimeMonitorForm } from "./uptime-monitor-form";
@@ -362,14 +363,13 @@ function SecretsSetup({
           <form onSubmit={createVault} className="space-y-4">
             <label className="block space-y-1.5">
               <span className="text-[12px] text-zinc-300">Vault name</span>
-              <input
+              <WorkspaceInput
                 value={vaultName}
                 onChange={(event) => setVaultName(event.target.value)}
                 placeholder="My application"
                 required
                 readOnly={creatingVault}
                 autoComplete="off"
-                className="h-9 w-full rounded-lg border border-white/[0.1] bg-black/20 px-3 text-[12px] text-zinc-200 outline-none transition-colors placeholder:text-zinc-400 focus:border-white/[0.25] focus:ring-2 focus:ring-accent/40 motion-reduce:transition-none"
               />
             </label>
             <Button type="submit" disabled={!vaultName.trim()} loading={creatingVault}>Create vault</Button>
@@ -420,7 +420,7 @@ function SecretsSetup({
         <form onSubmit={createSecret} className="space-y-3">
           <label className="block space-y-1.5">
             <span className="text-[12px] text-zinc-300">Key</span>
-            <input
+            <WorkspaceInput
               value={secretKey}
               onChange={(event) => {
                 setSecretKey(event.target.value.toUpperCase().replace(/\s+/g, "_").replace(/[^A-Z0-9_]/g, ""));
@@ -432,13 +432,13 @@ function SecretsSetup({
               autoComplete="off"
               aria-invalid={!!secretKey && !/^[A-Z_][A-Z0-9_]*$/.test(secretKey)}
               aria-describedby={secretKey && !/^[A-Z_][A-Z0-9_]*$/.test(secretKey) ? "setup-key-error" : undefined}
-              className="h-9 w-full rounded-lg border border-white/[0.1] bg-black/20 px-3 font-mono text-[12px] text-zinc-200 outline-none transition-colors placeholder:text-zinc-400 focus:border-white/[0.25] focus:ring-2 focus:ring-accent/40 motion-reduce:transition-none"
+              className="font-mono"
             />
           </label>
           {secretKey && !/^[A-Z_][A-Z0-9_]*$/.test(secretKey) && <p id="setup-key-error" className="text-[11px] text-rose-300">Start the key with a letter or underscore.</p>}
           <label className="block space-y-1.5">
             <span className="text-[12px] text-zinc-300">Value</span>
-            <textarea
+            <WorkspaceTextarea
               value={secretValue}
               onChange={(event) => { setSecretValue(event.target.value); setSavedMessage(null); }}
               placeholder="Secret value"
@@ -446,7 +446,7 @@ function SecretsSetup({
               autoComplete="off"
               readOnly={savingSecret}
               spellCheck={false}
-              className="ph-no-capture w-full resize-y rounded-lg border border-white/[0.1] bg-black/20 px-3 py-2.5 font-mono text-[12px] leading-5 text-zinc-200 outline-none transition-colors placeholder:text-zinc-400 focus:border-white/[0.25] focus:ring-2 focus:ring-accent/40 motion-reduce:transition-none"
+              className="ph-no-capture font-mono"
             />
           </label>
           <Button type="submit" disabled={!/^[A-Z_][A-Z0-9_]*$/.test(secretKey) || !selectedEnvironment} loading={savingSecret}>Store encrypted secret</Button>
