@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { CreateIncidentDialog } from "@/components/uptime/create-incident-dialog";
 import { IncidentBadge } from "@/components/uptime/incident-ui";
 import { Select } from "@/components/ui/select";
+import { WorkspaceInput } from "@/components/ui/workspace-input";
+import { workspaceInputShellClassName } from "@/components/ui/workspace-input-styles";
 import { CircleDot, FilePenLine, Radio } from "lucide-react";
 import { formatTime, type UptimeIncidentListResponse, type UptimePageResponse, uptimeRequest } from "@/components/uptime/uptime-client";
 import { UptimeRowsSkeleton, UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
@@ -88,7 +90,7 @@ function UptimeIncidents() {
         {views.map((view) => <button type="button" key={view.value} aria-pressed={(search.view ?? "all") === view.value} onClick={() => changeFilter({ view: view.value })} className={`min-h-9 shrink-0 rounded-lg px-4 text-[13px] transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-violet-400 ${(search.view ?? "all") === view.value ? "bg-white/[0.07] text-zinc-100" : "text-zinc-500 hover:bg-white/[0.03] hover:text-zinc-300"}`}>{view.label}</button>)}
       </nav>
       <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="flex h-10 items-center gap-2 rounded-xl border border-white/[0.09] bg-[#0d0d0f] px-3 focus-within:border-violet-400/40 sm:w-64"><Search size={15} className="shrink-0 text-zinc-600" aria-hidden="true" /><input type="search" value={searchText} onChange={(event) => changeSearch(event.target.value)} aria-label="Search incidents by title" placeholder="Search incidents" className="min-w-0 flex-1 bg-transparent text-[13px] text-zinc-200 outline-none placeholder:text-zinc-600" /></div>
+        <div data-field-size="compact" className={`${workspaceInputShellClassName} gap-2 px-3 sm:max-w-64`}><Search size={15} className="shrink-0 text-zinc-600" aria-hidden="true" /><WorkspaceInput variant="bare" size="compact" type="search" value={searchText} onChange={(event) => changeSearch(event.target.value)} aria-label="Search incidents by title" placeholder="Search incidents" className="min-w-0 flex-1" /></div>
         <Select ariaLabel="Incident source" className="sm:w-40" value={search.source ?? "all"} onChange={(value) => changeFilter({ source: value as IncidentSearch["source"] })} options={[{ value: "all", label: "All sources", icon: <CircleDot size={14} /> }, { value: "automatic", label: "Automatic", icon: <Radio size={14} /> }, { value: "manual", label: "Manual", icon: <FilePenLine size={14} /> }]} />
       </div>
     </div>
