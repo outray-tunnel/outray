@@ -164,3 +164,11 @@ body:has(.outray-arc-list) [data-radix-popper-content-wrapper] {
   outline: 2px solid #8367c7;
   outline-offset: 2px;
 }
+
+/* Menu items use their highlighted row and a quiet inset edge. The shared
+   control outline would overflow the menu and double up with item styling. */
+.outray-arc [data-secrets-action-menu] button[role="menuitem"]:focus-visible {
+  outline: 0;
+  outline-offset: 0;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 18%);
+}
