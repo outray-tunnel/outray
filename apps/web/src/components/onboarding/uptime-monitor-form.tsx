@@ -4,6 +4,7 @@ import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon"
 import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { Button } from "../arc/button/button";
 import { Select } from "../ui/select";
+import { WorkspaceInput, WorkspaceTextarea } from "../ui/workspace-input";
 import { UptimeEmailRecipients } from "../uptime/email-recipients";
 import { uptimeRequest, UptimeRequestError, type UptimeMonitor } from "../uptime/uptime-client";
 import {
@@ -20,7 +21,6 @@ export interface UptimeMonitorFormProps {
   onCreated: (monitor: UptimeMonitor) => void;
 }
 
-const inputClass = "h-9 w-full rounded-lg border border-white/[0.1] bg-black/20 px-3 text-[13px] text-zinc-200 outline-none transition-colors placeholder:text-zinc-400 focus:border-white/[0.25] focus:ring-2 focus:ring-accent/40 read-only:opacity-60 motion-reduce:transition-none";
 const selectClass = "h-9 rounded-lg focus-visible:ring-2 focus-visible:ring-accent/60 motion-reduce:transition-none";
 const selectMenuClass = "[&_.text-zinc-700]:text-zinc-400";
 const publishingModes = [
@@ -108,12 +108,12 @@ export function UptimeMonitorForm({ orgSlug, onCreated }: UptimeMonitorFormProps
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor={`${id}-name`} className="mb-1.5 block text-[13px] text-zinc-300">Monitor name</label>
-          <input id={`${id}-name`} value={draft.name} onChange={(event) => update("name", event.target.value)} required maxLength={120} readOnly={isSaving} autoComplete="off" placeholder="Public API" aria-invalid={!!errorId("name")} aria-describedby={errorId("name")} className={inputClass} />
+          <WorkspaceInput id={`${id}-name`} value={draft.name} onChange={(event) => update("name", event.target.value)} required maxLength={120} readOnly={isSaving} autoComplete="off" placeholder="Public API" aria-invalid={!!errorId("name")} aria-describedby={errorId("name")} />
           {fieldError("name")}
         </div>
         <div>
           <label htmlFor={`${id}-url`} className="mb-1.5 block text-[13px] text-zinc-300">Public URL</label>
-          <input id={`${id}-url`} value={draft.url} onChange={(event) => update("url", event.target.value)} required type="url" maxLength={2_048} readOnly={isSaving} autoComplete="url" placeholder="https://api.example.com/health" aria-invalid={!!errorId("url")} aria-describedby={[`${id}-url-hint`, errorId("url")].filter(Boolean).join(" ")} className={inputClass} />
+          <WorkspaceInput id={`${id}-url`} value={draft.url} onChange={(event) => update("url", event.target.value)} required type="url" maxLength={2_048} readOnly={isSaving} autoComplete="url" placeholder="https://api.example.com/health" aria-invalid={!!errorId("url")} aria-describedby={[`${id}-url-hint`, errorId("url")].filter(Boolean).join(" ")} />
           {fieldError("url")}
         </div>
       </div>
@@ -135,19 +135,19 @@ export function UptimeMonitorForm({ orgSlug, onCreated }: UptimeMonitorFormProps
             <div role="group" aria-label="Expected status" aria-describedby={errorId("expectedStatus")}>
               <p className="mb-1.5 text-[13px] text-zinc-300">Expected status</p>
               <Select ariaLabel="Expected status" value={draft.statusMode} disabled={isSaving} onChange={(value) => update("statusMode", value as UptimeMonitorDraft["statusMode"])} options={[{ value: "range", label: "Any 200–399" }, { value: "exact", label: "Exact code" }]} triggerClassName={selectClass} menuClassName={selectMenuClass} />
-              {draft.statusMode === "exact" && <input aria-label="Exact HTTP status code" aria-invalid={!!errorId("expectedStatus")} aria-describedby={errorId("expectedStatus")} type="number" min={100} max={599} required value={draft.expectedStatus} onChange={(event) => update("expectedStatus", event.target.value)} readOnly={isSaving} className={`${inputClass} mt-2`} />}
+              {draft.statusMode === "exact" && <WorkspaceInput aria-label="Exact HTTP status code" aria-invalid={!!errorId("expectedStatus")} aria-describedby={errorId("expectedStatus")} type="number" min={100} max={599} required value={draft.expectedStatus} onChange={(event) => update("expectedStatus", event.target.value)} readOnly={isSaving} className="mt-2" />}
               {fieldError("expectedStatus")}
             </div>
           </div>
           {draft.method === "GET" && <div>
             <label htmlFor={`${id}-responseText`} className="mb-1.5 block text-[13px] text-zinc-300">Response text <span className="text-zinc-400">(optional)</span></label>
-            <input id={`${id}-responseText`} value={draft.responseText} onChange={(event) => update("responseText", event.target.value)} maxLength={256} readOnly={isSaving} autoComplete="off" placeholder="healthy" aria-invalid={!!errorId("responseText")} aria-describedby={[`${id}-text-hint`, errorId("responseText")].filter(Boolean).join(" ")} className={inputClass} />
+            <WorkspaceInput id={`${id}-responseText`} value={draft.responseText} onChange={(event) => update("responseText", event.target.value)} maxLength={256} readOnly={isSaving} autoComplete="off" placeholder="healthy" aria-invalid={!!errorId("responseText")} aria-describedby={[`${id}-text-hint`, errorId("responseText")].filter(Boolean).join(" ")} />
             <p id={`${id}-text-hint`} className="mt-1.5 text-[11px] leading-5 text-zinc-400">Literal, case-sensitive match, up to 256 characters. Response content is not stored.</p>
             {fieldError("responseText")}
           </div>}
           <div>
             <label htmlFor={`${id}-headers`} className="mb-1.5 block text-[13px] text-zinc-300">Headers <span className="text-zinc-400">(optional)</span></label>
-            <textarea id={`${id}-headers`} value={draft.headers} onChange={(event) => update("headers", event.target.value)} rows={3} readOnly={isSaving} autoComplete="off" spellCheck={false} placeholder="Authorization: Bearer …" aria-invalid={!!errorId("headers")} aria-describedby={[`${id}-headers-hint`, errorId("headers")].filter(Boolean).join(" ")} className={`${inputClass} ph-no-capture h-auto resize-y py-2.5 font-mono text-[12px] leading-5`} />
+            <WorkspaceTextarea id={`${id}-headers`} value={draft.headers} onChange={(event) => update("headers", event.target.value)} rows={3} readOnly={isSaving} autoComplete="off" spellCheck={false} placeholder="Authorization: Bearer …" aria-invalid={!!errorId("headers")} aria-describedby={[`${id}-headers-hint`, errorId("headers")].filter(Boolean).join(" ")} className="ph-no-capture font-mono" />
             <p id={`${id}-headers-hint`} className="mt-1.5 text-[11px] leading-5 text-zinc-400">One Name: Value per line. Values are encrypted at rest and are not shown after saving. Host, Cookie, and proxy headers are not allowed.</p>
             {fieldError("headers")}
           </div>
@@ -169,7 +169,7 @@ export function UptimeMonitorForm({ orgSlug, onCreated }: UptimeMonitorFormProps
           </div>
           {draft.incidentPublishing === "after_confirmation" && <div>
             <label htmlFor={`${id}-publishAfterMinutes`} className="mb-1.5 block text-[13px] text-zinc-300">Publish if still Down after (minutes)</label>
-            <input id={`${id}-publishAfterMinutes`} type="number" min={1} max={60} required value={draft.publishAfterMinutes} onChange={(event) => update("publishAfterMinutes", event.target.value)} readOnly={isSaving} aria-invalid={!!errorId("publishAfterMinutes")} aria-describedby={errorId("publishAfterMinutes")} className={`${inputClass} max-w-28`} />
+            <WorkspaceInput id={`${id}-publishAfterMinutes`} type="number" min={1} max={60} required value={draft.publishAfterMinutes} onChange={(event) => update("publishAfterMinutes", event.target.value)} readOnly={isSaving} aria-invalid={!!errorId("publishAfterMinutes")} aria-describedby={errorId("publishAfterMinutes")} className="max-w-28" />
             {fieldError("publishAfterMinutes")}
           </div>}
           <p className="text-[11px] leading-5 text-zinc-400">Manual is the default. Public incidents need a published status page and a linked, visible component; monitor health is checked regardless.</p>
