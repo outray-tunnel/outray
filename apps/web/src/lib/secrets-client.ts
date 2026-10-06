@@ -268,6 +268,99 @@ function normalizeProjectResponse(payload: unknown): SecretProject {
   return project;
 }
 
+/** A vault read must include a real environment catalog, including a valid empty one. */
+function normalizeProjectReadResponse(payload: unknown): SecretProject {
+  const invalid = () => new SecretsClientError(
+    "The secrets environments response is invalid.", 502, "INVALID_RESPONSE",
+  );
+  if (!isRecord(payload)) throw invalid();
+  let envelope = payload;
+  // Keep the existing project/data aliases, including a data-wrapped API envelope.
+  if (envelope.project === undefined && envelope.data !== undefined) {
+    if (!isRecord(envelope.data)) throw invalid();
+    envelope = envelope.data;
+  }
+  const item = envelope.project === undefined ? envelope : envelope.project;
+  const validCount = (value: unknown) => value === undefined || (
+    typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+  );
+  const optionalText = (value: unknown) => value === undefined || value === null || typeof value === "string";
+  const optionalDate = (value: unknown) => value === undefined || (
+    typeof value === "string" && Number.isFinite(Date.parse(value))
+  );
+  const namedRecord = (value: unknown): value is JsonRecord => isRecord(value) &&
+    ["id", "name", "slug"].every((key) => value[key] === undefined || (
+      typeof value[key] === "string" && value[key].trim().length > 0
+    )) && (typeof value.name === "string" || typeof value.slug === "string") &&
+    optionalText(value.description) && optionalDate(value.createdAt) && optionalDate(value.updatedAt) &&
+    (value.deletedAt === null || optionalDate(value.deletedAt));
+  const validEnvironment = (value: unknown) => namedRecord(value) &&
+    validCount(value.secretCount) && validCount(value.secretsCount) && validCount(value.revision) &&
+    optionalText(value.color) && (value.isProduction === undefined || typeof value.isProduction === "boolean");
+  if (!namedRecord(item) || ![item.environmentCount, item.secretCount,
+    envelope.environmentCount, envelope.secretCount, payload.environmentCount, payload.secretCount].every(validCount)) {
+    throw invalid();
+  }
+  const catalogs = [payload.environments, envelope.environments, item.environments]
+    .filter((value) => value !== undefined);
+  if (!catalogs.length || !catalogs.every((value) => Array.isArray(value) && value.every(validEnvironment))) {
+    throw invalid();
+  }
+  const environments = (catalogs[0] as unknown[]).map((value) => {
+    const environment = normalizeEnvironment(value);
+    const color = environment.color?.trim().toLowerCase();
+    environment.color = color && ["emerald", "amber", "rose", "violet", "blue"].includes(color) ? color : null;
+    return environment;
+  });
+  const project = normalizeProject(item);
+  return {
+    ...project,
+    environments,
+    environmentCount: item.environments === catalogs[0] ? project.environmentCount : environments.length,
+    secretCount: integer(item.secretCount ?? envelope.secretCount ?? payload.secretCount,
+      environments.reduce((total, environment) => total + environment.secretCount, 0)),
+  };
+}
+
+/** A catalog read must contain an actual list, not a malformed response normalized to zero vaults. */
+function normalizeProjectsReadResponse(payload: unknown): SecretProject[] {
+  const invalid = () => new SecretsClientError(
+    "The secrets vaults response is invalid.", 502, "INVALID_RESPONSE",
+  );
+  const normalizeItem = (value: unknown): SecretProject => {
+    if (!isRecord(value)) throw invalid();
+    // Project reads validate and return only metadata. Project only these fields
+    // so unrelated project/data envelope keys cannot override a catalog row.
+    const metadata: JsonRecord = {};
+    for (const key of ["id", "slug", "name", "description", "environmentCount", "secretCount", "createdAt", "updatedAt", "deletedAt"]) {
+      metadata[key] = value[key];
+    }
+    // Older list responses omitted environment catalogs; explicit invalid ones
+    // must still fail instead of appearing to be legitimately empty.
+    metadata.environments = value.environments === undefined ? [] : value.environments;
+    try {
+      return normalizeProjectReadResponse(metadata);
+    } catch (error) {
+      if (error instanceof SecretsClientError && error.code === "INVALID_RESPONSE") throw invalid();
+      throw error;
+    }
+  };
+  if (Array.isArray(payload)) return payload.map(normalizeItem);
+  if (!isRecord(payload)) throw invalid();
+  const validCount = (value: unknown) => value === undefined || (
+    typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+  );
+  if (![payload.projectCount, payload.environmentCount, payload.secretCount].every(validCount)) throw invalid();
+  const catalogs = ["projects", "items", "data"].filter((key) => payload[key] !== undefined).map((key) => {
+    const collection = payload[key];
+    if (Array.isArray(collection)) return collection.map(normalizeItem);
+    if (key === "data" && isRecord(collection)) return normalizeProjectsReadResponse(collection);
+    throw invalid();
+  });
+  if (!catalogs.length) throw invalid();
+  return catalogs[0];
+}
+
 function normalizeSecret(value: unknown): SecretMetadata {
   const item = isRecord(value) ? value : {};
   return {
@@ -528,19 +621,20 @@ export const secretsClient = {
     };
   },
 
-  async projects(orgSlug: string): Promise<SecretProject[]> {
-    const payload = await jsonRequest(orgSlug, "/projects");
-    return unwrapArray(payload, ["projects", "items", "data"]).map(
-      normalizeProject,
-    );
+  async projects(orgSlug: string, signal?: AbortSignal): Promise<SecretProject[]> {
+    const payload = await jsonRequest(orgSlug, "/projects", { signal });
+    signal?.throwIfAborted();
+    return normalizeProjectsReadResponse(payload);
   },
 
-  async project(orgSlug: string, projectSlug: string): Promise<SecretProject> {
+  async project(orgSlug: string, projectSlug: string, signal?: AbortSignal): Promise<SecretProject> {
     const payload = await jsonRequest(
       orgSlug,
       `/projects/${encodePath(projectSlug)}`,
+      { signal },
     );
-    return normalizeProjectResponse(payload);
+    signal?.throwIfAborted();
+    return normalizeProjectReadResponse(payload);
   },
 
   async createProject(
