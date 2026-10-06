@@ -88,7 +88,7 @@ export function HttpRequestsContent(props: HttpRequestsContentProps) {
         <div className="space-y-4 border-b border-white/[0.07] p-4">
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <div className="outray-arc-requests-search w-full min-w-0 sm:max-w-[360px]">
-              <SearchField label="Search requests" placeholder="Path, service, request or trace ID" value={search} onValueChange={onSearchChange} autoComplete="off" spellCheck={false} />
+              <SearchField appearance="workspace" label="Search requests" placeholder="Path, service, request or trace ID" value={search} onValueChange={onSearchChange} autoComplete="off" spellCheck={false} />
             </div>
           </div>
           <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.15fr)]">
