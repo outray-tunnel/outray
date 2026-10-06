@@ -126,9 +126,29 @@ test("the dashboard places one topbar above independent content scrolling, outsi
   assert.doesNotMatch(layout, /<MobileHeader\b|<MobileNavigationTrigger\b/);
   assert.match(layout, /<WorkspaceTopbar\b[\s\S]*?<main\b[\s\S]*?data-scroll-restoration-id=\{`workspace-content-/);
   assert.doesNotMatch(layout, /\{!?unifiedSidebar && <WorkspaceTopbar/);
-  assert.match(layout, /flex h-dvh overflow-hidden/);
+  assert.match(layout, /workspace-ui fixed inset-0 flex overflow-hidden/);
+  assert.match(layout, /flex h-full min-h-0 w-full overflow-hidden/);
   assert.match(layout, /hidden md:flex h-full/);
   assert.match(layout, /min-h-0 flex-1 overflow-y-auto/);
+});
+
+test("long workspace pages cannot scroll the sidebar and topbar out of the viewport", async () => {
+  const layout = await readFile(new URL("../src/routes/$orgSlug.tsx", import.meta.url), "utf8");
+  const frame = layout.match(/className="(workspace-ui[^"]+)"/);
+  assert.ok(frame);
+  const frameClasses = frame[1].split(/\s+/);
+  for (const expected of ["fixed", "inset-0", "overflow-hidden"]) {
+    assert.ok(frameClasses.includes(expected), `workspace is viewport-bound with ${expected}`);
+  }
+  assert.ok(!frameClasses.includes("min-h-screen"), "workspace must not be a scrollable document-height wrapper");
+  assert.match(layout, /flex min-h-0 min-w-0 flex-1 flex-col/);
+  const content = layout.match(/data-scroll-restoration-id=\{`workspace-content-[\s\S]*?className="([^"]+)"/);
+  assert.ok(content);
+  const contentClasses = content[1].split(/\s+/);
+  for (const expected of ["min-h-0", "flex-1", "overflow-y-auto", "overscroll-y-contain"]) {
+    assert.ok(contentClasses.includes(expected), `content retains independent scrolling via ${expected}`);
+  }
+  assert.match(layout, /onboardingPath === `[\s\S]*?\/setup`[\s\S]*?return <Outlet\s*\/>/);
 });
 
 test("workspace content owns wider responsive gutters while preserving vertical padding and mobile safe area", async () => {
