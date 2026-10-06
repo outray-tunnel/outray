@@ -6,6 +6,7 @@ import CheckmarkCircle02Icon from "@hugeicons-pro/core-stroke-rounded/CheckmarkC
 import { Button } from "../arc/button/button";
 import { Dialog, DialogContent } from "../arc/dialog/dialog";
 import { Select } from "../arc/select/select";
+import { WorkspaceInput, WorkspaceTextarea } from "../ui/workspace-input";
 import { AlertEmailRecipients } from "./alert-email-recipients";
 import { AlertSelectionControl } from "./alert-selection-control";
 import {
@@ -693,18 +694,18 @@ function AlertForm({
                     <FormSection title="Alert details">
                       <label className="block">
                         <FieldLabel>Name</FieldLabel>
-                        <input
+                        <WorkspaceInput
                           value={name}
                           onChange={(event) => setName(event.target.value)}
                           placeholder="e.g. Checkout 5xx rate"
                           maxLength={120}
-                          className={inputClassName}
+                          className="mt-2"
                           autoFocus
                         />
                       </label>
                       <label className="block">
                         <FieldLabel>Description</FieldLabel>
-                        <textarea
+                        <WorkspaceTextarea
                           value={description}
                           onChange={(event) =>
                             setDescription(event.target.value)
@@ -712,7 +713,8 @@ function AlertForm({
                           placeholder="What this alert protects and who should respond"
                           rows={2}
                           maxLength={1000}
-                          className={`${inputClassName} min-h-20 resize-none py-3`}
+                          className="mt-2"
+                          style={{ minHeight: 80, resize: "none" }}
                         />
                       </label>
                     </FormSection>
@@ -840,13 +842,13 @@ function AlertForm({
                         </div>
                         <label>
                           <FieldLabel>Contains</FieldLabel>
-                          <input
+                          <WorkspaceInput
                             value={logQuery}
                             onChange={(event) =>
                               setLogQuery(event.target.value)
                             }
                             placeholder="Optional message search"
-                            className={inputClassName}
+                            className="mt-2"
                           />
                         </label>
                       </div>
@@ -884,12 +886,12 @@ function AlertForm({
                         <FieldLabel>
                           {thresholdLabel(signal, selectedMetric)}
                         </FieldLabel>
-                        <input
+                        <WorkspaceInput
                           type="number"
                           step="any"
                           value={threshold}
                           onChange={(event) => setThreshold(event.target.value)}
-                          className={inputClassName}
+                          className="mt-2"
                         />
                       </label>
                     </div>
@@ -917,7 +919,7 @@ function AlertForm({
                     </div>
                     <label>
                       <FieldLabel>Failures to fire</FieldLabel>
-                      <input
+                      <WorkspaceInput
                         type="number"
                         min="1"
                         max="10"
@@ -925,12 +927,12 @@ function AlertForm({
                         onChange={(event) =>
                           setConsecutiveFailures(event.target.value)
                         }
-                        className={inputClassName}
+                        className="mt-2"
                       />
                     </label>
                     <label>
                       <FieldLabel>Recoveries to resolve</FieldLabel>
-                      <input
+                      <WorkspaceInput
                         type="number"
                         min="1"
                         max="10"
@@ -938,7 +940,7 @@ function AlertForm({
                         onChange={(event) =>
                           setConsecutiveRecoveries(event.target.value)
                         }
-                        className={inputClassName}
+                        className="mt-2"
                       />
                     </label>
                   </div>
@@ -958,14 +960,14 @@ function AlertForm({
                     </div>
                     <label>
                       <FieldLabel>Minimum samples</FieldLabel>
-                      <input
+                      <WorkspaceInput
                         type="number"
                         min="1"
                         value={minimumSamples}
                         onChange={(event) =>
                           setMinimumSamples(event.target.value)
                         }
-                        className={inputClassName}
+                        className="mt-2"
                       />
                     </label>
                     <div>
@@ -1180,9 +1182,6 @@ function FormSection({
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <span className="text-xs text-zinc-400">{children}</span>;
 }
-
-const inputClassName =
-  "mt-2 h-9 w-full rounded-xl border border-white/[0.12] bg-white/[0.025] px-3 text-[13px] text-zinc-200 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50 motion-reduce:transition-none";
 
 function thresholdLabel(signal: AlertSignal, metric?: MetricOption) {
   if (signal === "request_error_rate") return "Threshold (%)";
