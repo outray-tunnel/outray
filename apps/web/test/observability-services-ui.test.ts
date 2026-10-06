@@ -174,6 +174,7 @@ test("search, environment and health controls filter locally, with one action to
   const ui = await loadContent();
   const select = (label: string) => elements(ui.render()).find((element) => element.type === ui.stubs.Select && element.props.label === label);
   const search = () => elements(ui.render()).find((element) => element.type === ui.stubs.SearchField);
+  assert.equal(search()?.props.appearance, "workspace");
   const visibleIds = () => [...renderToStaticMarkup(ui.render()).matchAll(/href="\/acme\/observability\/services\/([^"]+)"/g)].map(([, id]) => id).sort();
   assert.deepEqual(visibleIds(), ["api", "checkout", "worker"]);
   search()?.props.onValueChange("check");
