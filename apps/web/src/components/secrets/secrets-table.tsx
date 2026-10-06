@@ -276,7 +276,7 @@ export function SecretsTable({
         {notice && <SecretsNotice tone="success" message={notice} onDismiss={() => setNotice(null)} />}
       </div>}
       <div className={`flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] px-4 py-3 ${scrollRows ? "shrink-0" : ""}`}>
-        <div className="outray-arc-requests-search min-w-0 flex-1 sm:max-w-sm"><SearchField label="Search secret keys" value={query} onValueChange={setQuery} placeholder="Search keys…" autoComplete="off" spellCheck={false} /></div>
+        <div className="outray-arc-requests-search min-w-0 flex-1 sm:max-w-sm"><SearchField appearance="workspace" label="Search secret keys" value={query} onValueChange={setQuery} placeholder="Search keys…" autoComplete="off" spellCheck={false} /></div>
         {query.trim() && <span role="status" className="text-[11px] tabular-nums text-zinc-500">{visibleSecrets.length.toLocaleString()} of {secrets.length.toLocaleString()} keys</span>}
       </div>
 
