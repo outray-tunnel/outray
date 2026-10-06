@@ -163,7 +163,7 @@ function TunnelsView() {
 
         <div className="flex flex-col gap-4 border-b border-white/[0.07] px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="w-full sm:max-w-[360px]">
-            <SearchField label="Search tunnels" placeholder="Name or address" value={searchQuery} onValueChange={setSearchQuery} />
+            <SearchField appearance="workspace" label="Search tunnels" placeholder="Name or address" value={searchQuery} onValueChange={setSearchQuery} />
           </div>
           <div className="w-full sm:w-[160px]">
             <Select
