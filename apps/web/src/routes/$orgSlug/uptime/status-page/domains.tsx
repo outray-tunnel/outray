@@ -4,7 +4,8 @@ import { type FormEvent, useState } from "react";
 import { uptimeRequest, useUptimeResource } from "@/components/uptime/uptime-client";
 import { useStatusPageEditor } from "@/components/uptime/status-page-editor-context";
 import { UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
-import { fieldClass, primaryButton, secondaryButton, UptimeError, UptimePanel } from "@/components/uptime/uptime-ui";
+import { primaryButton, secondaryButton, UptimeError, UptimePanel } from "@/components/uptime/uptime-ui";
+import { WorkspaceInput } from "@/components/ui/workspace-input";
 import { statusPageUrl } from "@/lib/uptime/status-url";
 
 export const Route = createFileRoute("/$orgSlug/uptime/status-page/domains")({
@@ -104,7 +105,7 @@ function StatusPageDomains() {
       <p className="mt-1 text-xs leading-5 text-zinc-500">Use a subdomain such as status.example.com. One custom domain is available per status page.</p>
       <form onSubmit={(event) => void addDomain(event)} className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
         <label className="block min-w-0 flex-1 text-xs font-medium text-zinc-300">Subdomain
-          <input className={`${fieldClass} mt-2`} type="text" inputMode="url" autoComplete="off" autoCapitalize="none" spellCheck={false} value={hostname} onChange={(event) => setHostname(event.target.value)} placeholder="status.example.com" required maxLength={253} />
+          <WorkspaceInput className="mt-2" type="text" inputMode="url" autoComplete="off" autoCapitalize="none" spellCheck={false} value={hostname} onChange={(event) => setHostname(event.target.value)} placeholder="status.example.com" required maxLength={253} />
         </label>
         <button type="submit" className={primaryButton} disabled={working !== null}>{working === "add" ? "Adding…" : "Add domain"}</button>
       </form>
