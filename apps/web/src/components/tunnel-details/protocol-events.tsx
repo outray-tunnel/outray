@@ -1,7 +1,8 @@
 import { Search, Zap } from "lucide-react";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { appClient } from "@/lib/app-client";
+import { WorkspaceInput } from "@/components/ui/workspace-input";
 
 function formatBytes(bytes: number): string {
   if (bytes >= 1_073_741_824) {
@@ -91,15 +92,17 @@ export function ProtocolEvents({
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md group">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-accent transition-colors"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-zinc-300 transition-colors"
             size={16}
           />
-          <input
+          <WorkspaceInput
+            size="compact"
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={`Search ${isTcp ? "connections" : "packets"}...`}
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:border-accent/50 focus:bg-white/10 transition-all"
+            aria-label={`Search ${isTcp ? "connections" : "packets"}`}
+            style={{ "--workspace-input-padding-left": "40px" } as CSSProperties}
           />
         </div>
         <div className="flex bg-white/5 rounded-xl p-1 relative">
