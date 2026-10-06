@@ -59,6 +59,8 @@ test("request explorer defaults to Live with labeled search and a layout-matched
   }));
   assert.match(html, /Search requests/);
   assert.match(html, /type="search"/);
+  assert.match(html, /data-workspace-input="bare"/);
+  assert.match(html, /data-field-size="compact"/);
   assert.match(html, /Request time range/);
   assert.match(html, /aria-pressed="true"/);
   assert.match(html, /Loading requests/);
