@@ -56,7 +56,7 @@ export function AlertsListContent({ orgSlug, data, filters, searchInput, onSearc
       </div>
 
       <div className="flex flex-wrap items-end gap-3 border-b border-white/[0.07] p-4">
-        <div className="outray-arc-requests-search min-w-0 flex-1 basis-full sm:basis-[260px]"><SearchField label="Search alert rules" value={searchInput} onValueChange={onSearchInputChange} placeholder="Search rules, services or signals…" autoComplete="off" spellCheck={false} /></div>
+        <div className="outray-arc-requests-search min-w-0 flex-1 basis-full sm:basis-[260px]"><SearchField appearance="workspace" label="Search alert rules" value={searchInput} onValueChange={onSearchInputChange} placeholder="Search rules, services or signals…" autoComplete="off" spellCheck={false} /></div>
         <div className="min-w-0 flex-1 basis-[160px] sm:max-w-[200px]"><Select label="Service" value={filters.service ? `service:${filters.service}` : "all"} onValueChange={(value) => onFiltersChange({ service: value === "all" ? undefined : value.slice(8) })} options={[{ value: "all", label: "All services" }, ...services.map((name) => ({ value: `service:${name}`, label: name }))]} /></div>
         <div className="min-w-0 flex-1 basis-[180px] sm:max-w-[210px]"><Select label="Signal" value={filters.signal ?? "all"} onValueChange={(value) => onFiltersChange({ signal: value === "all" ? undefined : value as AlertsSearch["signal"] })} options={[{ value: "all", label: "All signals" }, ...signalOptions.map(({ value, label }) => ({ value, label }))]} /></div>
         {hasFilters && <Button variant="ghost" size="sm" onClick={onClearFilters}>Clear filters</Button>}
