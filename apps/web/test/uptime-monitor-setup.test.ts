@@ -91,6 +91,7 @@ test("the initial form is compact, labelled, and keeps advanced controls optiona
   assert.match(html, /Public URL/);
   assert.match(html, /Create monitor/);
   assert.match(html, /aria-expanded="false"/);
+  assert.equal((html.match(/data-workspace-input="default" data-field-size="default"/g) ?? []).length, 2, "the initial name and URL fields use the shared Create vault appearance");
   assert.doesNotMatch(html, /href="[^"]*\/uptime\/monitors|<select\b|text-\[34px\]|rounded-\[24px\]/);
 });
 
@@ -126,6 +127,7 @@ async function loadForm({ draft = validDraft(), request = async () => ({ monitor
       if (specifier.endsWith("uptime-client")) return { UptimeRequestError, uptimeRequest: async (...args: any[]) => { calls.push(args); return request(...args); } };
       if (specifier === "lucide-react") return new Proxy({}, { get: () => () => null });
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
+      if (specifier.endsWith("ui/workspace-input")) return { WorkspaceInput: "input", WorkspaceTextarea: "textarea" };
       if (specifier.startsWith("@hugeicons-pro/")) return { __esModule: true, default: [] };
       if (specifier.startsWith("@/components/") || specifier.startsWith("../")) return stubs;
       if (specifier.endsWith(".css")) return {};
