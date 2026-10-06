@@ -23,6 +23,7 @@ import {
 } from "recharts";
 import { Button } from "@/components/arc/button/button";
 import { Dialog, DialogContent } from "@/components/arc/dialog/dialog";
+import { WorkspaceInput, WorkspaceTextarea } from "@/components/ui/workspace-input";
 import { startAlertDetailPolling } from "@/components/observability/alert-detail-polling";
 import { AlertStateBadge } from "@/components/observability/alert-status-badge";
 import { conditionLabel, formatAlertValue, formatClockTime, formatRelativeTime, formatWindow, getEffectiveState, normalizeAlertsSearch, signalLabel } from "@/components/observability/alerts-data";
@@ -447,10 +448,10 @@ function AlertDetailsEditModal({
     <DialogContent title="Edit alert details" description="Update the name and description without changing the condition." className="outray-arc outray-arc-dialog" closeDisabled={saving} onEscapeKeyDown={(event) => { if (saving) event.preventDefault(); }} onInteractOutside={(event) => { if (saving) event.preventDefault(); }}>
     <form onSubmit={(event) => void save(event)} className="space-y-4" aria-busy={saving}>
       <label className="block text-xs text-zinc-400">Name
-        <input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} required disabled={saving} className="mt-2 h-10 w-full rounded-lg border border-white/[0.1] bg-black/20 px-3 text-[13px] text-zinc-200 outline-none focus:border-white/30 disabled:opacity-50" />
+        <WorkspaceInput value={name} onChange={(event) => setName(event.target.value)} maxLength={120} required disabled={saving} className="mt-2" />
       </label>
       <label className="block text-xs text-zinc-400">Description
-        <textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} rows={3} disabled={saving} className="mt-2 w-full rounded-lg border border-white/[0.1] bg-black/20 px-3 py-2 text-[13px] text-zinc-200 outline-none focus:border-white/30 disabled:opacity-50" />
+        <WorkspaceTextarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} rows={3} disabled={saving} className="mt-2" />
       </label>
       {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
       <div className="flex justify-end gap-2">
