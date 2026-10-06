@@ -167,6 +167,7 @@ test("filter, range, pause and reset controls call their existing callbacks", as
   const ui = await loadContent();
   const calls: any[] = [];
   const tree = ui.render({ search: "api", onSearchChange: (value) => calls.push(["search", value]), onServiceChange: (value) => calls.push(["service", value]), onMethodChange: (value) => calls.push(["method", value]), onStatusChange: (value) => calls.push(["status", value]), onCaptureChange: (value) => calls.push(["capture", value]), onRangeChange: (value) => calls.push(["range", value]), onToggleLive: () => calls.push(["pause"]), onResetFilters: () => calls.push(["reset"]) });
+  assert.equal(tree.find((element) => element.type === ui.stubs.SearchField)?.props.appearance, "workspace");
   tree.find((element) => element.type === ui.stubs.SearchField)?.props.onValueChange("orders");
   for (const [label, value] of [["Service", "service:worker"], ["Method", "GET"], ["Status", "errors"], ["Capture", "redacted"]]) {
     const select = tree.find((element) => element.type === ui.stubs.Select && element.props.label === label);
