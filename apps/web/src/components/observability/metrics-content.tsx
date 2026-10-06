@@ -93,7 +93,7 @@ export function MetricsContent({
           </div>
           <div id="metric-instrument-library" className={catalogOpen ? "block" : "hidden lg:block"}>
             <div className="outray-arc-requests-search px-4 pb-4">
-              <SearchField label="Search metrics" placeholder="Find a metric…" value={catalogSearch} onValueChange={setCatalogSearch} disabled={!data || !metrics.length} autoComplete="off" spellCheck={false} />
+              <SearchField appearance="workspace" label="Search metrics" placeholder="Find a metric…" value={catalogSearch} onValueChange={setCatalogSearch} disabled={!data || !metrics.length} autoComplete="off" spellCheck={false} />
             </div>
           {initialLoading ? <MetricLibrarySkeleton /> : !data ? (
             <p className="px-4 pb-5 text-[12px] text-zinc-400">The metric library is unavailable.</p>
