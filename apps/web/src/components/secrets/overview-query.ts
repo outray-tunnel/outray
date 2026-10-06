@@ -7,8 +7,16 @@ export function secretsOverviewQuery(orgSlug: string) {
   return queryOptions({
     queryKey: ["secrets", "overview", orgSlug] as const,
     queryFn: async ({ signal }): Promise<SecretsOverviewSnapshot> => {
-      const overview = await secretsClient.overview(orgSlug, signal);
-      return { ...overview, receivedAt: Date.now() };
+      try {
+        const overview = await secretsClient.overview(orgSlug, signal);
+        return { ...overview, receivedAt: Date.now() };
+      } catch (error) {
+        // A proxy/login HTML response should not expose a JSON parser error.
+        if (error instanceof SyntaxError) {
+          throw new Error("The Secrets overview returned an invalid response. Please try again.");
+        }
+        throw error;
+      }
     },
     enabled: !!orgSlug,
     retry: false,
