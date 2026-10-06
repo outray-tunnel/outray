@@ -82,7 +82,7 @@ test("the new tunnel button still opens plan-limit guidance", () => {
 
 test("composite tunnel inputs retain their neutral shell focus and accessible labels", async () => {
   const source = await readFile(new URL("../src/components/new-tunnel-modal.tsx", import.meta.url), "utf8");
-  const inputs = [...source.matchAll(/<input\b[\s\S]*?\/>/g)];
+  const inputs = [...source.matchAll(/<WorkspaceInput\b[\s\S]*?\/>/g)];
   assert.equal(inputs.length, 2);
 
   for (const [id, hint] of [
@@ -90,17 +90,16 @@ test("composite tunnel inputs retain their neutral shell focus and accessible la
     ["new-tunnel-address", "new-tunnel-address-hint"],
   ]) {
     const input = inputs.find(([markup]) => markup.includes(`id="${id}"`));
-    assert.ok(input, `${id} remains a native input`);
+    assert.ok(input, `${id} uses the shared native input component`);
+    assert.match(input[0], /variant="bare"/);
     assert.match(input[0], /data-outray-composite-input=""/);
     assert.ok(input[0].includes(`aria-describedby="${hint}"`));
     assert.ok(source.includes(`htmlFor="${id}"`));
     assert.ok(source.includes(`id="${hint}"`));
 
     const beforeInput = source.slice(0, input.index);
-    const shell = beforeInput.slice(beforeInput.lastIndexOf('<div className="'));
-    assert.ok(shell.includes("focus-within:border-white/[0.35]"));
-    assert.ok(shell.includes("focus-within:ring-1"));
-    assert.ok(shell.includes("focus-within:ring-white/[0.12]"));
+    const shell = beforeInput.slice(beforeInput.lastIndexOf('<div className='));
+    assert.ok(shell.includes("workspaceInputShellClassName"));
   }
   assert.match(source, /aria-hidden="true" className="[^"]*border-r border-white\/\[0\.08\]/);
 });
