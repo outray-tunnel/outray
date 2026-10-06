@@ -7,6 +7,8 @@ import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon"
 import { Button } from "@/components/arc/button/button";
 import { Dialog, DialogContent } from "@/components/arc/dialog/dialog";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
+import { WorkspaceInput } from "@/components/ui/workspace-input";
+import { workspaceInputShellClassName } from "@/components/ui/workspace-input-styles";
 import "./outray-arc-theme.css";
 import {
   buildNewTunnelCommand,
@@ -158,12 +160,13 @@ export function NewTunnelModal({
                       >
                         Local service port
                       </label>
-                      <div className="flex h-11 items-center overflow-hidden rounded-lg border border-white/[0.12] bg-[#0a0a0b] transition-colors focus-within:border-white/[0.35] focus-within:ring-1 focus-within:ring-white/[0.12]">
-                        <span aria-hidden="true" className="shrink-0 border-r border-white/[0.08] px-3.5 font-mono text-[13px] text-zinc-500">
+                      <div className={workspaceInputShellClassName}>
+                        <span aria-hidden="true" className="shrink-0 border-r border-white/[0.08] pr-3.5 font-mono text-[13px] text-zinc-500">
                           localhost:
                         </span>
-                        <input
+                        <WorkspaceInput
                           ref={portInput}
+                          variant="bare"
                           id="new-tunnel-local-port"
                           data-outray-composite-input=""
                           type="text"
@@ -177,7 +180,7 @@ export function NewTunnelModal({
                           }}
                           aria-invalid={!!portError}
                           aria-describedby="new-tunnel-port-hint"
-                          className="h-full min-w-0 flex-1 bg-transparent px-3.5 font-mono text-[13px] text-zinc-100 outline-none placeholder:text-zinc-500"
+                          className="min-w-0 flex-1 font-mono"
                         />
                       </div>
                       <p id="new-tunnel-port-hint" className={`mt-1.5 min-h-5 text-[12px] ${portError ? "text-rose-300" : "text-zinc-400"}`}>
@@ -218,8 +221,9 @@ export function NewTunnelModal({
                             ? "Subdomain"
                             : "Custom domain"}
                       </label>
-                      <div className="flex h-11 items-center overflow-hidden rounded-lg border border-white/[0.12] bg-[#0a0a0b] focus-within:border-white/[0.35] focus-within:ring-1 focus-within:ring-white/[0.12]">
-                        <input
+                      <div className={workspaceInputShellClassName}>
+                        <WorkspaceInput
+                          variant="bare"
                           id="new-tunnel-address"
                           data-outray-composite-input=""
                           type="text"
@@ -239,10 +243,10 @@ export function NewTunnelModal({
                           placeholder={addressMode === "subdomain" ? "my-app" : "app.example.com"}
                           aria-invalid={!!addressError}
                           aria-describedby="new-tunnel-address-hint"
-                          className="h-full min-w-0 flex-1 bg-transparent px-3.5 font-mono text-[13px] text-zinc-100 outline-none placeholder:text-zinc-500 disabled:text-zinc-500"
+                          className="min-w-0 flex-1 font-mono"
                         />
                         {addressMode === "subdomain" && (
-                          <span className="shrink-0 pr-3.5 font-mono text-[12px] text-zinc-400">
+                          <span className="shrink-0 font-mono text-[12px] text-zinc-400">
                             .outray.app
                           </span>
                         )}
