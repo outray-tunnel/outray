@@ -15,7 +15,7 @@ import { WorkspaceInput, WorkspaceTextarea } from "../src/components/ui/workspac
 import * as uptimeUi from "../src/components/uptime/uptime-ui";
 import * as skeletons from "../src/components/uptime/uptime-skeleton";
 import { appearanceDraftChanged, appearanceEditorReducer, createAppearanceState } from "../src/components/uptime/status-page-data";
-import { statusPageUrl } from "../src/lib/uptime/status-url";
+import { preferredStatusPageUrl, statusPageUrl } from "../src/lib/uptime/status-url";
 import { moveStatusLayout } from "../src/lib/uptime/status-layout";
 import type { UptimePage } from "../src/components/uptime/uptime-client";
 import type { StatusPageEditorContextValue } from "../src/components/uptime/status-page-editor-context";
@@ -79,6 +79,7 @@ type Resource = { data: any; loading: boolean; error: string | null; reload: () 
 async function loadViews(overrides: Partial<typeof context> = {}, resources?: Partial<Record<string, Resource>>, section = "") {
   const source = await readFile(sourceFile, "utf8");
   const fixture = { ...context, ...overrides };
+  const copiedAddresses: string[] = [];
   const module = { exports: {} as any };
   const route = { useParams: () => ({ orgSlug: "acme" }), useNavigate: () => () => {}, options: {} as any };
   const Link = ({ to, params, children, ...props }: any) => React.createElement("a", { ...props, href: to.replace("$orgSlug", params.orgSlug) }, children);
@@ -97,13 +98,13 @@ async function loadViews(overrides: Partial<typeof context> = {}, resources?: Pa
       if (specifier.endsWith("/uptime-skeleton")) return skeletons;
       if (specifier.endsWith("/status-page-editor-context")) return { useStatusPageEditor: () => fixture };
       if (specifier.endsWith("/status-page-editor-provider")) return { StatusPageEditorProvider: ({ children }: any) => children };
-      if (specifier.endsWith("/status-url")) return { statusPageUrl };
+      if (specifier.endsWith("/status-url")) return { preferredStatusPageUrl, statusPageUrl };
       if (specifier.endsWith("/status-layout")) return { moveStatusLayout };
       if (specifier.endsWith("/workspace-input")) return { WorkspaceInput, WorkspaceTextarea };
       if (specifier.endsWith("/button/button")) return { Button };
       if (specifier.endsWith("/select/select")) return { Select };
       if (specifier.endsWith("/search-field/search-field")) return { SearchField };
-      if (specifier.endsWith("/copy-button/copy-button")) return { CopyButton };
+      if (specifier.endsWith("/copy-button/copy-button")) return { CopyButton: (props: React.ComponentProps<typeof CopyButton>) => { copiedAddresses.push(props.value); return React.createElement(CopyButton, props); } };
       if (specifier.endsWith("/segmented-control/segmented-control")) return { __esModule: true, default: SegmentedControl };
       if (specifier.endsWith("/uptime-dialog")) return { UptimeDialog: Dialog };
       if (specifier.endsWith("/status-page-row-menu")) return { StatusPageRowMenu: () => null };
@@ -111,7 +112,7 @@ async function loadViews(overrides: Partial<typeof context> = {}, resources?: Pa
       throw new Error(`Unexpected status-page dependency: ${specifier}`);
     },
   });
-  return { render: (name: string) => renderToStaticMarkup(React.createElement(module.exports[name])), layout: () => renderToStaticMarkup(React.createElement(route.options.component)) };
+  return { render: (name: string) => renderToStaticMarkup(React.createElement(module.exports[name])), layout: () => renderToStaticMarkup(React.createElement(route.options.component)), copiedAddresses };
 }
 
 test("overview explains private visibility, handles standalone components and never invents monitor totals", async () => {
@@ -123,6 +124,27 @@ test("overview explains private visibility, handles standalone components and ne
   assert.doesNotMatch(html, /of 0 monitors|Available to visitors/);
   assert.match(html, /aria-label="Copy status page address"/);
   assert.match(html, /https:\/\/acme\.status\.outray\.app\//);
+});
+
+test("status overview and View page prioritize the custom domain without changing the reserved OutRay address", async () => {
+  const views = await loadViews({ page: { ...page, published: true, customDomain: "status.byteship.dev" } });
+  const overview = views.render("StatusPageOverview");
+  assert.match(overview, /https:\/\/status\.byteship\.dev\//);
+  assert.doesNotMatch(overview, /https:\/\/acme\.status\.outray\.app\//);
+  assert.match(overview, /aria-label="Copy status page address"/);
+  assert.deepEqual(views.copiedAddresses, ["https://status.byteship.dev/"]);
+  assert.match(views.layout(), /href="https:\/\/status\.byteship\.dev\/"[^>]*>View page/);
+  const publishing = views.render("StatusPagePublishing");
+  assert.match(publishing, /OutRay address/);
+  assert.match(publishing, /https:\/\/acme\.status\.outray\.app\//);
+});
+
+test("View page falls back to OutRay and verified domains do not make drafts public", async () => {
+  const published = await loadViews({ page: { ...page, published: true, customDomain: null } });
+  assert.match(published.layout(), /href="https:\/\/acme\.status\.outray\.app\/"[^>]*>View page/);
+  const draft = await loadViews({ page: { ...page, customDomain: "status.byteship.dev" } });
+  assert.match(draft.render("StatusPageOverview"), /https:\/\/status\.byteship\.dev\//);
+  assert.doesNotMatch(draft.layout(), />View page/);
 });
 
 test("members can inspect components without drag, mutation, or creation controls", async () => {
@@ -209,6 +231,8 @@ test("status tab and domain actions retain route, ownership, DNS and pending-con
   assert.match(domains, /_outray-challenge\./);
   assert.match(domains, /const cnameTarget = "status\.outray\.app"/);
   assert.match(domains, /DNS only/);
+  assert.match(domains, /reload: reloadPage/);
+  assert.equal(domains.match(/reload\(\); reloadPage\(\);/g)?.length, 3);
   assert.match(domains, /if \(!domain \|\| !canManage \|\| pending\.current\) return/);
   assert.match(domains, /busy=\{working === "remove"\}/);
   assert.match(domains, /error && <div className="mt-3"><UptimeError/);
