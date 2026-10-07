@@ -1,10 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/arc/button/button";
+import buttonStyles from "@/components/arc/button/button.module.css";
+import "@/components/outray-arc-theme.css";
 import { formatTime, uptimeApiPath, uptimeRequest } from "@/components/uptime/uptime-client";
 import { UptimeDialog } from "@/components/uptime/uptime-dialog";
 import { UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
-import { primaryButton, secondaryButton, UptimeError, UptimePageHeading } from "@/components/uptime/uptime-ui";
+import { secondaryButton, UptimeError, UptimePageHeading } from "@/components/uptime/uptime-ui";
 
 type Provider = "slack" | "discord";
 type IntegrationResult = "connected" | "cancelled" | "failed";
@@ -117,7 +120,7 @@ function NotificationsContent({ orgSlug, integration }: { orgSlug: string; integ
     }
   };
 
-  return <div className="mx-auto max-w-[1320px]">
+  return <div className="outray-arc mx-auto max-w-[1320px]">
     <UptimePageHeading title="Notifications" description="Manage the channels your team uses for Uptime alerts." />
     {notice && <div role={notice.kind === "error" ? "alert" : "status"} className={`mb-6 flex items-start justify-between gap-4 rounded-xl border px-4 py-3 text-[13px] ${notice.kind === "error" ? "border-rose-400/20 text-rose-300" : notice.kind === "success" ? "border-emerald-400/20 text-emerald-300" : "border-white/[0.1] text-zinc-300"}`}>
       <p className="py-2">{notice.message}</p>
@@ -156,9 +159,9 @@ function NotificationsContent({ orgSlug, integration }: { orgSlug: string; integ
                 {!available && <p className="mt-1 text-xs leading-5 text-zinc-600">{connection ? "Channel changes are unavailable until the integration is configured." : "Connection is unavailable until the integration is configured."}</p>}
               </div>
             </div>
-            {canManage && (connection ? <button type="button" className={secondaryButton} aria-label={`${name} channel settings`} onClick={() => { setRemoveError(null); setDialog({ provider, mode: "settings" }); }}>Settings</button>
-              : available ? <a className={secondaryButton} href={uptimeApiPath(orgSlug, `/integrations/${provider}/start`)}>Connect {name}</a>
-                : <button type="button" className={secondaryButton} disabled>Connect {name}</button>)}
+            {canManage && (connection ? <Button type="button" variant="secondary" size="md" aria-haspopup="dialog" aria-label={`${name} channel settings`} onClick={() => { setRemoveError(null); setDialog({ provider, mode: "settings" }); }}>Settings</Button>
+              : available ? <a className={`${buttonStyles.button} ${buttonStyles.secondary} ${buttonStyles.md}`} href={uptimeApiPath(orgSlug, `/integrations/${provider}/start`)}>Connect {name}</a>
+                : <Button type="button" variant="secondary" size="md" disabled>Connect {name}</Button>)}
           </div>;
         })}
       </div>}
@@ -174,17 +177,17 @@ function NotificationsContent({ orgSlug, integration }: { orgSlug: string; integ
       description={dialog?.mode === "remove" ? "This stops Uptime alerts to this destination. Monitor email recipients, status-page subscribers, and Observability connections are unchanged." : "Change the destination through the provider, or remove this connection from Uptime."}
       busy={removing !== null}
       footer={<>
-        <button ref={cancelButton} type="button" className={secondaryButton} disabled={removing !== null} onClick={dialog?.mode === "remove" ? () => { setRemoveError(null); setDialog(dialog ? { ...dialog, mode: "settings" } : null); } : closeDialog}>{dialog?.mode === "remove" ? "Cancel" : "Close"}</button>
+        <Button ref={cancelButton} type="button" variant="secondary" size="sm" disabled={removing !== null} onClick={dialog?.mode === "remove" ? () => { setRemoveError(null); setDialog(dialog ? { ...dialog, mode: "settings" } : null); } : closeDialog}>{dialog?.mode === "remove" ? "Cancel" : "Close"}</Button>
         {dialog && selectedConnection && canManage && (dialog.mode === "remove"
-          ? <button type="button" className={`${secondaryButton} border-rose-400/25 text-rose-300 hover:bg-rose-400/[0.07]`} disabled={removing !== null} onClick={() => void removeConnection(dialog.provider)}>{removing ? "Removing…" : `Remove ${selectedName}`}</button>
-          : resource.data?.availability[dialog.provider] ? <a className={primaryButton} href={uptimeApiPath(orgSlug, `/integrations/${dialog.provider}/start`)}>Change channel</a> : <button type="button" className={primaryButton} disabled>Change channel</button>)}
+          ? <Button type="button" variant="danger" size="sm" disabled={removing !== null} onClick={() => void removeConnection(dialog.provider)}>{removing ? "Removing…" : `Remove ${selectedName}`}</Button>
+          : resource.data?.availability[dialog.provider] ? <a className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.sm}`} href={uptimeApiPath(orgSlug, `/integrations/${dialog.provider}/start`)}>Change channel</a> : <Button type="button" size="sm" disabled>Change channel</Button>)}
       </>}>
       {selectedConnection ? <div className="space-y-5">
         <div className="flex items-center gap-3"><img src={`/logos/${selectedConnection.provider}.svg`} alt="" className="size-7 object-contain" /><div><p className="break-words text-sm text-zinc-200">{channelSummary(selectedConnection)}</p><p className="mt-1 text-xs text-zinc-500">Connected {formatTime(selectedConnection.target?.connectedAt || selectedConnection.connectedAt)}</p></div></div>
         {dialog?.mode === "settings" && canManage && <div className="border-t border-white/[0.07] pt-4">
           <p className="mb-3 text-[13px] leading-6 text-zinc-500">Changing channels opens {selectedName} to authorize a new destination. Your current channel stays connected unless the change succeeds.</p>
           {!resource.data?.availability[dialog.provider] && <p className="mb-3 text-xs text-amber-200">Channel changes are unavailable because this integration is not configured.</p>}
-          <button type="button" className={`${secondaryButton} text-rose-300`} onClick={() => setDialog({ ...dialog, mode: "remove" })}>Remove connection</button>
+          <Button type="button" variant="danger" size="sm" aria-haspopup="dialog" onClick={() => setDialog({ ...dialog, mode: "remove" })}>Remove connection</Button>
         </div>}
       </div> : <p className="text-[13px] text-zinc-500">This channel is no longer connected.</p>}
       {!canManage && <p className="mt-4 text-[13px] text-zinc-500">Only workspace owners and admins can manage this connection.</p>}
