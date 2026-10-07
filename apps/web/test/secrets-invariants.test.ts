@@ -134,9 +134,10 @@ test("plaintext UI state is excluded from analytics and React Query caches", asy
 });
 
 test("Secrets headers, primary actions, and environment rows follow the platform UI", async () => {
-  const [secretsUi, vaultContent] = await Promise.all([
+  const [secretsUi, vaultContent, secretDialogs] = await Promise.all([
     readFile(secretsUiPath, "utf8"),
     readFile(secretsVaultContentPath, "utf8"),
+    readFile(secretsDialogsPath, "utf8"),
   ]);
 
   assert.doesNotMatch(secretsUi, /eyebrow\s*=\s*["']Secrets["']/);
@@ -149,8 +150,12 @@ test("Secrets headers, primary actions, and environment rows follow the platform
   assert.match(vaultContent, /after:absolute after:inset-0 after:z-\[1\]/);
   assert.match(vaultContent, /relative z-\[2\]/);
   assert.match(vaultContent, /<ActionMenu compact label=\{`Actions for/);
-  assert.match(vaultContent, /<Button size="sm" aria-haspopup="dialog" onClick=\{onCreateEnvironment\}/);
+  assert.match(vaultContent, /<Button size="md" aria-haspopup="dialog" onClick=\{onCreateEnvironment\}/);
   assert.doesNotMatch(vaultContent, /grid gap-4 md:grid-cols-2 xl:grid-cols-3/);
+  const vaultDialog = secretDialogs.slice(secretDialogs.indexOf("export function ProjectDialog"), secretDialogs.indexOf('export { EnvironmentDialog }'));
+  assert.doesNotMatch(vaultDialog, /<SecretsButton/);
+  assert.equal((vaultDialog.match(/size="sm"/g) ?? []).length, 2, "vault modal uses the same compact Arc actions as other redesigned dialogs");
+  assert.match(vaultDialog, /<Button type="button" variant="secondary" size="sm"/);
 });
 
 test("Bulk deletion exposes recoverable Trash batches", async () => {
