@@ -4,7 +4,7 @@ import { members } from "@/db/auth-schema";
 import { uptimeComponentMonitors, uptimeMonitors, uptimeStatusComponents, uptimeStatusGroups, uptimeStatusPages } from "@/db/uptime-schema";
 import { requireAlertManager } from "@/lib/observability/alert-access";
 import { isAlertManagerRole } from "@/lib/observability/alert-validation";
-import { requireOrgFromSlug } from "@/lib/org";
+import { requireOrgMembershipFromSlug } from "@/lib/org";
 import { deriveComponentState, rollupStatus } from "./state";
 
 export function uptimeDisabled() {
@@ -17,7 +17,7 @@ export function uptimeUnavailable() {
 
 export async function requireUptimeRead(request: Request, orgSlug: string) {
   if (uptimeDisabled()) return { error: uptimeUnavailable() } as const;
-  return requireOrgFromSlug(request, orgSlug);
+  return requireOrgMembershipFromSlug(request, orgSlug);
 }
 
 export async function requireUptimeManager(request: Request, orgSlug: string) {
