@@ -94,6 +94,7 @@ export interface UptimePageResponse {
   page: UptimePage | null;
   groups: UptimeGroup[];
   standaloneComponents: UptimeComponent[];
+  canManage?: boolean;
 }
 
 export interface UptimeIncidentListResponse {
@@ -149,7 +150,7 @@ export async function uptimeRequest<T>(orgSlug: string, path: string, init?: Req
 export function useUptimeResource<T>(orgSlug: string, path: string) {
   const key = `${orgSlug}:${path}`;
   const [result, setResult] = useState<{ key: string; data: T } | null>(null);
-  const [status, setStatus] = useState<{ key: string; loading: boolean; error: string | null }>({ key, loading: true, error: null });
+  const [status, setStatus] = useState<{ key: string; revision: number; loading: boolean; error: string | null }>({ key, revision: 0, loading: true, error: null });
   const [revision, setRevision] = useState(0);
   const reload = useCallback(() => setRevision((value) => value + 1), []);
 
@@ -159,19 +160,19 @@ export function useUptimeResource<T>(orgSlug: string, path: string) {
       .then((payload) => {
         if (!controller.signal.aborted) {
           setResult({ key, data: payload });
-          setStatus({ key, loading: false, error: null });
+          setStatus({ key, revision, loading: false, error: null });
         }
       })
       .catch((cause: unknown) => {
-        if (!controller.signal.aborted) setStatus({ key, loading: false, error: cause instanceof Error ? cause.message : "Could not load Uptime data." });
+        if (!controller.signal.aborted) setStatus({ key, revision, loading: false, error: cause instanceof Error ? cause.message : "Could not load Uptime data." });
       });
     return () => controller.abort();
   }, [key, orgSlug, path, revision]);
 
   return {
     data: result?.key === key ? result.data : null,
-    loading: status.key !== key || status.loading,
-    error: status.key === key ? status.error : null,
+    loading: status.key !== key || status.revision !== revision || status.loading,
+    error: status.key === key && status.revision === revision ? status.error : null,
     reload,
   };
 }
