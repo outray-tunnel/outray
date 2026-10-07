@@ -103,7 +103,7 @@ export function ResourceDeleteDialog({
             ref={cancelRef}
             type="button"
             variant="secondary"
-            size="md"
+            size="sm"
             disabled={isPending}
             onClick={() => setIsOpen(false)}
           >
@@ -112,7 +112,7 @@ export function ResourceDeleteDialog({
           <Button
             type="button"
             variant="danger"
-            size="md"
+            size="sm"
             loading={isPending}
             onClick={() => void handleConfirm()}
           >
