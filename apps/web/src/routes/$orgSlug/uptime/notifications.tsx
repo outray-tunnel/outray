@@ -1,13 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { ArrowUpRight, Check, Mail, X } from "lucide-react";
 import { Button } from "@/components/arc/button/button";
 import buttonStyles from "@/components/arc/button/button.module.css";
 import "@/components/outray-arc-theme.css";
 import { formatTime, uptimeApiPath, uptimeRequest } from "@/components/uptime/uptime-client";
 import { UptimeDialog } from "@/components/uptime/uptime-dialog";
 import { UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
-import { secondaryButton, UptimeError, UptimePageHeading } from "@/components/uptime/uptime-ui";
+import { UptimeError, UptimePageHeading } from "@/components/uptime/uptime-ui";
 
 type Provider = "slack" | "discord";
 type IntegrationResult = "connected" | "cancelled" | "failed";
@@ -120,43 +121,44 @@ function NotificationsContent({ orgSlug, integration }: { orgSlug: string; integ
     }
   };
 
-  return <div className="outray-arc mx-auto max-w-[1320px]">
+  return <div className="outray-arc mx-auto w-full max-w-[1440px]">
     <UptimePageHeading title="Notifications" description="Manage the channels your team uses for Uptime alerts." />
-    {notice && <div role={notice.kind === "error" ? "alert" : "status"} className={`mb-6 flex items-start justify-between gap-4 rounded-xl border px-4 py-3 text-[13px] ${notice.kind === "error" ? "border-rose-400/20 text-rose-300" : notice.kind === "success" ? "border-emerald-400/20 text-emerald-300" : "border-white/[0.1] text-zinc-300"}`}>
-      <p className="py-2">{notice.message}</p>
-      <button type="button" onClick={() => setNotice(null)} className={`${secondaryButton} shrink-0`}>Dismiss</button>
+    {notice && <div role={notice.kind === "error" ? "alert" : "status"} className={`mb-4 flex items-center justify-between gap-4 rounded-lg border px-4 py-2 text-[12px] leading-5 ${notice.kind === "error" ? "border-rose-400/15 bg-rose-400/[0.025] text-rose-300" : notice.kind === "success" ? "border-emerald-400/15 bg-emerald-400/[0.025] text-emerald-300" : "border-white/[0.08] bg-white/[0.025] text-zinc-300"}`}>
+      <p>{notice.message}</p>
+      <Button type="button" variant="ghost" size="sm" aria-label="Dismiss notification feedback" onClick={() => setNotice(null)} className="!size-8 !min-w-0 !px-0 shrink-0"><X size={14} aria-hidden="true" /></Button>
     </div>}
 
-    <section aria-labelledby="team-channels-heading" className="max-w-4xl">
-      <h2 id="team-channels-heading" className="text-sm font-medium text-zinc-200">Team channels</h2>
-      <p className="mt-2 text-[13px] leading-6 text-zinc-500">Connect one destination per provider for this Uptime workspace. These connections are separate from Observability.</p>
-      {resource.data && !canManage && <p className="mt-3 text-xs text-zinc-500">You can view channels. Only workspace owners and admins can connect, change, or remove them.</p>}
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <section aria-labelledby="team-channels-heading" className="min-w-0 overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
+      <header className="border-b border-white/[0.07] px-5 py-4"><h2 id="team-channels-heading" className="text-[13px] font-medium text-zinc-200">Team channels</h2>
+      <p className="mt-1 text-[12px] leading-5 text-zinc-500">One destination per provider. Uptime connections are separate from Observability.</p>
+      {resource.data && !canManage && <p className="mt-2 text-[11px] leading-5 text-zinc-500">You can view channels. Only workspace owners and admins can connect, change, or remove them.</p>}</header>
 
-      {resource.error && <div className="mt-5 space-y-3">
+      {resource.error && <div className="space-y-3 px-5 py-4">
         <UptimeError message={`${resource.data ? "Could not refresh channels. Showing the last loaded connections. " : ""}${resource.error.message}`} />
-        <button type="button" className={secondaryButton} disabled={resource.isFetching} onClick={() => void resource.refetch()}>{resource.isFetching ? "Retrying…" : "Retry"}</button>
+        <Button type="button" variant="secondary" size="sm" loading={resource.isFetching} onClick={() => void resource.refetch()}>Retry</Button>
       </div>}
 
-      {!resource.data && resource.isPending && <UptimeSkeleton label="Loading notification channels" className="mt-5 divide-y divide-white/[0.07] border-y border-white/[0.07]">
-        {providers.map((provider) => <div key={provider} className="flex min-h-28 items-center gap-4 py-5">
+      {!resource.data && resource.isPending && <UptimeSkeleton label="Loading notification channels" className="divide-y divide-white/[0.07]">
+        {providers.map((provider) => <div key={provider} className="flex min-h-24 items-center gap-3 px-5 py-4">
           <div className="size-9 shrink-0 rounded-lg bg-white/[0.05]" />
           <div className="min-w-0 flex-1"><div className="h-3 w-20 rounded bg-white/[0.07]" /><div className="mt-3 h-3 w-52 max-w-full rounded bg-white/[0.04]" /></div>
-          <div className="h-10 w-24 rounded-xl bg-white/[0.05]" />
+          <div className="h-9 w-24 rounded-lg bg-white/[0.05]" />
         </div>)}
       </UptimeSkeleton>}
 
-      {resource.data && <div className="mt-5 divide-y divide-white/[0.07] border-y border-white/[0.07]">
+      {resource.data && <div className="divide-y divide-white/[0.07]">
         {providers.map((provider) => {
           const connection = resource.data.integrations.find((item) => item.provider === provider);
           const available = resource.data.availability[provider];
           const name = providerNames[provider];
-          return <div key={provider} className="flex min-h-28 flex-wrap items-center justify-between gap-4 py-5">
-            <div className="flex min-w-0 items-center gap-4">
-              <img src={`/logos/${provider}.svg`} alt="" className="size-9 shrink-0 object-contain" />
+          return <div key={provider} className="flex min-h-24 flex-wrap items-center justify-between gap-3 px-5 py-4">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.025]"><img src={`/logos/${provider}.svg`} alt="" className="size-5 object-contain" /></span>
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-3"><h3 id={`uptime-channel-${provider}`} tabIndex={-1} className="text-sm font-medium text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-violet-400">{name}</h3>{connection && <span className="text-xs text-emerald-300">Connected</span>}</div>
-                <p className="mt-1 break-words text-[13px] text-zinc-500">{connection ? channelSummary(connection) : available ? "Not connected" : "Not configured"}</p>
-                {!available && <p className="mt-1 text-xs leading-5 text-zinc-600">{connection ? "Channel changes are unavailable until the integration is configured." : "Connection is unavailable until the integration is configured."}</p>}
+                <div className="flex flex-wrap items-center gap-2"><h3 id={`uptime-channel-${provider}`} tabIndex={-1} className="text-[13px] font-medium text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-zinc-500">{name}</h3>{connection && <span className="inline-flex w-fit items-center gap-1 rounded-md bg-emerald-400/[0.06] px-1.5 py-0.5 text-[10px] leading-4 text-emerald-300/85"><Check size={10} aria-hidden="true" />Connected</span>}</div>
+                <p className="mt-1 break-words text-[12px] leading-5 text-zinc-500">{connection ? channelSummary(connection) : available ? "Not connected" : "Not configured"}</p>
+                {!available && <p className="mt-1 text-[11px] leading-5 text-zinc-500">{connection ? "Channel changes are unavailable until the integration is configured." : "Connection is unavailable until the integration is configured."}</p>}
               </div>
             </div>
             {canManage && (connection ? <Button type="button" variant="secondary" size="md" aria-haspopup="dialog" aria-label={`${name} channel settings`} onClick={() => { setRemoveError(null); setDialog({ provider, mode: "settings" }); }}>Settings</Button>
@@ -167,11 +169,13 @@ function NotificationsContent({ orgSlug, integration }: { orgSlug: string; integ
       </div>}
     </section>
 
-    <section aria-labelledby="email-notifications-heading" className="mt-9 max-w-4xl">
-      <h2 id="email-notifications-heading" className="text-sm font-medium text-zinc-200">Email notifications</h2>
-      <p className="mt-2 text-[13px] leading-6 text-zinc-500">Team email recipients are configured separately for each monitor. <Link to="/$orgSlug/uptime/monitors" params={{ orgSlug }} className="text-zinc-300 underline decoration-zinc-700 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-violet-400">Manage monitors</Link> to choose who receives their alerts.</p>
-      <p className="mt-2 text-[13px] leading-6 text-zinc-500">Status-page subscribers are separate from team notification channels. Publishing an incident update queues email to confirmed subscribers; saving a draft does not notify them.</p>
+    <section aria-labelledby="email-notifications-heading" className="min-w-0 rounded-xl border border-white/[0.08] bg-[#111112] px-5 py-4">
+      <h2 id="email-notifications-heading" className="flex items-center gap-2 text-[13px] font-medium text-zinc-200"><Mail size={14} className="text-zinc-500" aria-hidden="true" />Email notifications</h2>
+      <p className="mt-2 text-[12px] leading-5 text-zinc-500">Team recipients are configured per monitor. Choose who receives downtime and recovery alerts in monitor settings.</p>
+      <Link to="/$orgSlug/uptime/monitors" params={{ orgSlug }} className="mt-3 inline-flex min-h-8 items-center gap-1 text-[12px] text-zinc-300 hover:text-white focus-visible:outline-2 focus-visible:outline-zinc-500">Manage monitors<ArrowUpRight size={13} aria-hidden="true" /></Link>
+      <div className="mt-3 border-t border-white/[0.07] pt-3"><h3 className="text-[12px] font-medium text-zinc-300">Public subscribers</h3><p className="mt-1.5 text-[11px] leading-5 text-zinc-500">Status-page subscribers are separate from team channels. Publishing an incident update queues email to confirmed subscribers; saving a draft does not notify them.</p></div>
     </section>
+    </div>
 
     <UptimeDialog open={dialog !== null} onClose={closeDialog} title={dialog?.mode === "remove" ? `Remove ${selectedName}?` : `${selectedName} channel settings`}
       description={dialog?.mode === "remove" ? "This stops Uptime alerts to this destination. Monitor email recipients, status-page subscribers, and Observability connections are unchanged." : "Change the destination through the provider, or remove this connection from Uptime."}
@@ -179,7 +183,7 @@ function NotificationsContent({ orgSlug, integration }: { orgSlug: string; integ
       footer={<>
         <Button ref={cancelButton} type="button" variant="secondary" size="sm" disabled={removing !== null} onClick={dialog?.mode === "remove" ? () => { setRemoveError(null); setDialog(dialog ? { ...dialog, mode: "settings" } : null); } : closeDialog}>{dialog?.mode === "remove" ? "Cancel" : "Close"}</Button>
         {dialog && selectedConnection && canManage && (dialog.mode === "remove"
-          ? <Button type="button" variant="danger" size="sm" disabled={removing !== null} onClick={() => void removeConnection(dialog.provider)}>{removing ? "Removing…" : `Remove ${selectedName}`}</Button>
+          ? <Button type="button" variant="danger" size="sm" loading={removing !== null} onClick={() => void removeConnection(dialog.provider)}>Remove {selectedName}</Button>
           : resource.data?.availability[dialog.provider] ? <a className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.sm}`} href={uptimeApiPath(orgSlug, `/integrations/${dialog.provider}/start`)}>Change channel</a> : <Button type="button" size="sm" disabled>Change channel</Button>)}
       </>}>
       {selectedConnection ? <div className="space-y-5">
