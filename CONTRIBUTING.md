@@ -9,8 +9,12 @@ outray/
 ├── apps/
 │   ├── cli/             # CLI client for creating tunnels
 │   ├── cron/            # Background jobs (tunnel snapshots)
+│   ├── ingest/          # Observability ingestion
 │   ├── internal-check/  # Domain verification for Caddy on-demand TLS
+│   ├── secrets-share/   # Standalone encrypted secret sharing
+│   ├── status/          # Public status pages
 │   ├── tunnel/          # Tunnel server (HTTP, TCP, UDP proxying)
+│   ├── uptime-probe/    # Uptime checks and notifications
 │   └── web/             # Dashboard & API (React + TanStack Router)
 ├── packages/            # Core client and framework integrations
 ├── shared/              # Shared utilities and types
@@ -82,8 +86,11 @@ outray/
    npm run dev
    ```
 
-   This starts the web, tunnel, cron, and internal-check services. PostgreSQL,
-   Redis, and TimescaleDB must already be running.
+   This starts web, tunnel, cron, internal-check, ingest, status, secrets-share,
+   and uptime-probe. New runtime apps under `apps/` are included automatically;
+   the CLI compiler and legacy standalone website are excluded. PostgreSQL,
+   Redis, and TimescaleDB must already be running. The uptime worker still
+   honors its existing probe and notification enable flags in the root `.env`.
 
 ## Development
 
