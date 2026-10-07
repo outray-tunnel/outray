@@ -5,6 +5,7 @@ import { organizations } from "@/db/auth-schema";
 import { uptimeStatusGroups, uptimeStatusPages } from "@/db/uptime-schema";
 import { badInput, jsonBody, loadPage, notFound, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
 import { safeUptimeSlug, textField } from "@/lib/uptime/validation";
+import { isAlertManagerRole } from "@/lib/observability/alert-validation";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
   server: {
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
         const access = await requireUptimeRead(request, params.orgSlug);
         if ("error" in access) return access.error;
         const data = await loadPage(access.organization.id);
-        return Response.json(data ?? { page: null, groups: [], standaloneComponents: [] });
+        return Response.json({ ...(data ?? { page: null, groups: [], standaloneComponents: [] }), canManage: isAlertManagerRole(access.membership.role) });
       },
       POST: async ({ request, params }) => {
         const access = await requireUptimeManager(request, params.orgSlug);
