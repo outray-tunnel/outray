@@ -124,7 +124,11 @@ test("success exposes the one-time fragment-bearing URL with copy feedback, no f
   const input = controls(html)[0];
   assert.match(input, /readOnly=""/); assert.match(input, /value="https:\/\/secrets.example\/share-id#fragment-key"/);
   assert.match(input, /autofocus=""/); assert.match(input, /data-bulk-autofocus="true"/);
+  assert.match(input, /dir="ltr"/);
   assert.match(html, /aria-label="Copy link"/); assert.match(html, /complete link cannot be recovered later/);
+  const copy = buttons(html).find((button) => button.includes('aria-label="Copy link"')) ?? "";
+  assert.match(copy, /iconOnly/); assert.match(copy, /plain/);
+  assert.doesNotMatch(copy, /class="label"|>Copy link</, "the copy action has no visible label");
   assert.match(html, /including the part after #/); assert.match(html, /Done/);
   assert.doesNotMatch(html, /<form|Create share link|Expires in|Maximum reveals/);
 });
@@ -166,6 +170,18 @@ test("native and custom control adapters forward exact values, while deleting on
   hold.props.onConfirm();
   assert.deepEqual(changes, [["target", "prod /?β"], ["duplicates", "overwrite"], ["production", true], ["expiry", "3m"], ["views", ""]]);
   assert.equal(submits, 1); assert.equal(deletions, 1); assert.equal(prevented, 1);
+
+  const link = `https://secrets.example/share-id#${"synthetic-key".repeat(12)}`;
+  const success = getNodes({ action: "share", link });
+  const input = success.find((node) => node.type === "input" && node.props.value === link); assert.ok(input);
+  const selection: unknown[] = [];
+  const field = { value: link, scrollLeft: 500, setSelectionRange: (...args: unknown[]) => selection.push(...args) };
+  input.props.onFocus({ currentTarget: field });
+  assert.deepEqual(selection, [0, link.length, "backward"], "selection stays complete with its active end at the beginning");
+  assert.equal(field.scrollLeft, 0, "focus must show the link origin, not the fragment tail");
+  const copy = success.find((node) => node.type === CopyButton); assert.ok(copy);
+  assert.equal(copy.props.iconOnly, true); assert.equal(copy.props.variant, "plain");
+  assert.equal(copy.props.label, "Copy link"); assert.equal(copy.props.value, link, "copy retains the entire fragment-bearing link");
 });
 
 test("modal CSS bounds and scrolls content while preserving compact mobile actions and quiet semantic control focus", async () => {
@@ -175,6 +191,8 @@ test("modal CSS bounds and scrolls content while preserving compact mobile actio
   assert.match(css, /\.footer\s*\{[^}]*flex:\s*0 0 auto/);
   assert.match(css, /\.deleteActions\s*\{[^}]*width:\s*100%/);
   assert.match(css, /\.deleteActions\s*\{[^}]*margin(?:-left)?:\s*0/);
+  assert.match(css, /\.copyButton\.copyButton\s*\{[^}]*width:\s*44px[^}]*height:\s*44px[^}]*flex:\s*0 0 44px/);
+  assert.doesNotMatch(css, /\.linkRow\s*\{[^}]*flex-direction:\s*column/, "the compact icon stays beside the URL on mobile");
   assert.match(css, /\.checkbox > input\s*\{[^}]*opacity:\s*0/);
   assert.match(css, /\.radio > input\s*\{[^}]*opacity:\s*0/);
   assert.match(css, /input:focus-visible \+ \.checkboxMark\s*\{[^}]*outline:/);
