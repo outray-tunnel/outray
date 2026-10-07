@@ -74,9 +74,9 @@ export function EnvironmentKeysTabs({ orgSlug, projectSlug, project, environment
 
 export function EnvironmentKeysContent({ orgSlug, projectSlug, environmentSlug, data, loading, refreshing, error, actionError, exporting, onAdd, onImport, onExport, onRetry, sharedLayout = false, actionsContainer, children }: EnvironmentKeysContentProps) {
   const actions = data && <div className="flex flex-wrap items-center gap-2">
-    <Button variant="secondary" size="sm" aria-haspopup="dialog" onClick={onImport}><Upload size={13} aria-hidden="true" />Import</Button>
-    <Button variant="secondary" size="sm" loading={exporting} aria-haspopup={data.environment.isProduction ? "dialog" : undefined} onClick={onExport}><Download size={13} aria-hidden="true" />Export .env</Button>
-    <Button size="sm" aria-haspopup="dialog" onClick={onAdd}><Plus size={14} aria-hidden="true" />Add secret</Button>
+    <Button variant="secondary" size="md" aria-haspopup="dialog" onClick={onImport}><Upload size={13} aria-hidden="true" />Import</Button>
+    <Button variant="secondary" size="md" loading={exporting} aria-haspopup={data.environment.isProduction ? "dialog" : undefined} onClick={onExport}><Download size={13} aria-hidden="true" />Export .env</Button>
+    <Button size="md" aria-haspopup="dialog" onClick={onAdd}><Plus size={14} aria-hidden="true" />Add secret</Button>
   </div>;
   return <div className={sharedLayout ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "outray-arc @container/secret-keys mx-auto w-full max-w-[1440px] space-y-5"}>
     {sharedLayout ? actionsContainer && createPortal(actions, actionsContainer) : <EnvironmentKeysHeader orgSlug={orgSlug} projectSlug={projectSlug} environmentSlug={environmentSlug} project={data?.project ?? null} actions={actions} />}
