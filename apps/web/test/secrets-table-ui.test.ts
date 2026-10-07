@@ -188,6 +188,7 @@ test("compact single responsive table stays masked, uses content-width breakpoin
     for (const action of [`Reveal ${key} for 30 seconds`, `Copy value for ${key}`, `Edit secret ${key}`, `Version history ${key}`, `Delete secret ${key}`]) {
       assert.equal(view.action(action).type, "button");
       assert.equal(view.action(action).disabled, false);
+      assert.equal(view.action(action).size, "sm", "icon-only row actions remain compact");
     }
   }
   assert.equal(table.calls.length, 0, "initial and repeated renders never request plaintext");
@@ -300,6 +301,7 @@ test("scrollRows centers empty and unmatched messages in the remaining space wit
   assert.match(view.root.props.className, /h-full min-h-0 flex-col/);
   assert.match(view.html(), /flex min-h-0 flex-1 flex-col items-center justify-center/);
   assert.doesNotMatch(view.html(), /overflow-y-auto/);
+  assert.equal(view.action("Add first secret").size, "md");
   view.action("Add first secret").onClick(); assert.equal(empty.adds, 1);
   empty.dispose();
   const table = await controller({ contained: true, scrollRows: true });
@@ -374,6 +376,8 @@ test("native checkboxes and neutral selection toolbar preserve filtered selectio
   assert.doesNotMatch(view.toolbar.className, /violet|purple|rounded/);
   assert.equal(view.bulk?.secrets.length, 1);
   for (const [label, action] of [["Move to", "move"], ["Share", "share"], ["Delete", "delete"]]) {
+    assert.equal(view.action(label).size, "md");
+    assert.equal(view.action(label)["aria-haspopup"], "dialog");
     view.action(label).onClick(); view = table.render();
     assert.equal(view.bulk?.action, action);
     view.bulk!.onClose(); view = table.render();
