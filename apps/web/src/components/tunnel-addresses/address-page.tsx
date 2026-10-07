@@ -3,7 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
 import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
 import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
-import { Button } from "@/components/arc/button/button";
+import { Button, type ButtonSize } from "@/components/arc/button/button";
 import "@/components/outray-arc-theme.css";
 
 export interface AddressPageHeaderProps {
@@ -60,7 +60,7 @@ export function AddressPageHeader({
       <Button
         ref={buttonRef}
         type="button"
-        size="lg"
+        size="md"
         onClick={onAddClick}
         disabled={!isReady}
         aria-haspopup="dialog"
@@ -106,6 +106,7 @@ export function AddressEmptyState({
   onAction,
   isError = false,
   disabled = false,
+  actionSize = "sm",
 }: {
   title: string;
   description: string;
@@ -113,6 +114,7 @@ export function AddressEmptyState({
   onAction: () => void;
   isError?: boolean;
   disabled?: boolean;
+  actionSize?: ButtonSize;
 }) {
   return (
     <div
@@ -136,7 +138,7 @@ export function AddressEmptyState({
       <Button
         type="button"
         variant="secondary"
-        size="sm"
+        size={actionSize}
         className="mt-5"
         onClick={onAction}
         disabled={disabled}
