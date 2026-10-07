@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useId, useState } from "react";
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { Variants } from "motion/react";
@@ -16,7 +16,9 @@ export interface SelectProps extends Omit<ComponentPropsWithoutRef<typeof Select
   placeholder?: string;
   id?: string;
   className?: string;
-  options: { value: string; label: string; disabled?: boolean }[];
+  "aria-invalid"?: ComponentPropsWithoutRef<"button">["aria-invalid"];
+  "aria-describedby"?: string;
+  options: { value: string; label: string; disabled?: boolean; icon?: ReactNode; description?: string }[];
 }
 
 /** The shown value rolls in the direction of the list: a later option rises from below, an earlier one drops from above. */
@@ -29,7 +31,8 @@ const valueRoll: Variants = {
 const valueFade: Variants = { enter: { opacity: 0 }, center: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: motionTokens.duration.instant } }, exit: { opacity: 0, transition: { duration: motionTokens.duration.instant } } };
 
 export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select(
-  { label, description, placeholder = "Select an option", options, id, className, disabled, onValueChange, ...rootProps },
+  { label, description, placeholder = "Select an option", options, id, className, disabled, onValueChange,
+    "aria-invalid": invalid, "aria-describedby": describedBy, ...rootProps },
   ref,
 ) {
   const generatedId = useId();
@@ -51,14 +54,15 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
         <SelectPrimitive.Trigger
           ref={ref}
           id={controlId}
-          aria-describedby={hintId}
+          aria-invalid={invalid}
+          aria-describedby={[hintId, describedBy].filter(Boolean).join(" ") || undefined}
           className={[styles.trigger, className].filter(Boolean).join(" ")}
         >
           {/* Radix keeps the real value for assistive tech; the visible copy below animates between values. */}
           <span className={styles.srOnly}><SelectPrimitive.Value placeholder={placeholder} /></span>
           <span className={styles.valueText} aria-hidden="true">
             <AnimatePresence initial={false} custom={direction}>
-              <motion.span key={currentValue ? `value-${currentValue}` : "placeholder"} data-placeholder={currentValue ? undefined : ""} custom={direction} variants={reduceMotion ? valueFade : valueRoll} initial="enter" animate="center" exit="exit">{shown}</motion.span>
+              <motion.span key={currentValue ? `value-${currentValue}` : "placeholder"} data-placeholder={currentValue ? undefined : ""} custom={direction} variants={reduceMotion ? valueFade : valueRoll} initial="enter" animate="center" exit="exit"><span className={styles.optionLabel}>{options[index]?.icon && <span className={styles.optionIcon}>{options[index].icon}</span>}<span>{shown}</span></span></motion.span>
             </AnimatePresence>
           </span>
           <SelectPrimitive.Icon className={styles.chevron}>
@@ -73,8 +77,9 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
             </SelectPrimitive.ScrollUpButton>
             <SelectPrimitive.Viewport className={styles.viewport}>
               {options.map((option) => (
-                <SelectPrimitive.Item key={option.value} value={option.value} disabled={option.disabled} className={styles.item}>
-                  <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                <SelectPrimitive.Item key={option.value} value={option.value} textValue={option.label} disabled={option.disabled} className={styles.item}>
+                  {option.icon && <span className={styles.optionIcon} aria-hidden="true">{option.icon}</span>}
+                  <span className={styles.optionCopy}><SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>{option.description && <span className={styles.optionDescription}>{option.description}</span>}</span>
                   <SelectPrimitive.ItemIndicator className={styles.indicator}>
                     <Check size={16} strokeWidth={1.75} aria-hidden="true" />
                   </SelectPrimitive.ItemIndicator>
