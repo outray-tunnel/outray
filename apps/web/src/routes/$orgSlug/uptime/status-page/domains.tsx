@@ -21,7 +21,7 @@ const statusOrigin = (import.meta.env.VITE_OUTRAY_STATUS_URL || "https://status.
 const cnameTarget = "status.outray.app";
 
 function StatusPageDomains() {
-  const { orgSlug, page, canManage } = useStatusPageEditor();
+  const { orgSlug, page, canManage, reload: reloadPage } = useStatusPageEditor();
   const { data, loading, error: loadError, reload } = useUptimeResource<{ domain: StatusDomain | null }>(orgSlug, "/domains");
   const [hostname, setHostname] = useState("");
   const [working, setWorking] = useState<"add" | "verify" | "remove" | null>(null);
@@ -37,21 +37,21 @@ function StatusPageDomains() {
     event.preventDefault();
     if (!canManage || pending.current) return;
     pending.current = true; setWorking("add"); setError(null); setNotice(null);
-    try { await uptimeRequest(orgSlug, "/domains", { method: "POST", body: JSON.stringify({ domain: hostname.trim() }) }); setHostname(""); reload(); }
+    try { await uptimeRequest(orgSlug, "/domains", { method: "POST", body: JSON.stringify({ domain: hostname.trim() }) }); setHostname(""); reload(); reloadPage(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not add the domain."); }
     finally { pending.current = false; setWorking(null); }
   };
   const verifyDomain = async () => {
     if (!domain || !canManage || pending.current) return;
     pending.current = true; setWorking("verify"); setError(null); setNotice(null);
-    try { await uptimeRequest(orgSlug, "/domains/" + encodeURIComponent(domain.id) + "/verify", { method: "POST" }); setNotice("DNS verified. Your domain connection has been updated."); reload(); }
+    try { await uptimeRequest(orgSlug, "/domains/" + encodeURIComponent(domain.id) + "/verify", { method: "POST" }); setNotice("DNS verified. Your domain connection has been updated."); reload(); reloadPage(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "DNS verification failed."); }
     finally { pending.current = false; setWorking(null); }
   };
   const removeDomain = async () => {
     if (!domain || !canManage || pending.current) return;
     pending.current = true; setWorking("remove"); setError(null); setNotice(null);
-    try { await uptimeRequest(orgSlug, "/domains/" + encodeURIComponent(domain.id), { method: "DELETE" }); setConfirmRemove(false); setNotice("Custom domain removed. Your OutRay address is unchanged."); reload(); }
+    try { await uptimeRequest(orgSlug, "/domains/" + encodeURIComponent(domain.id), { method: "DELETE" }); setConfirmRemove(false); setNotice("Custom domain removed. Your OutRay address is unchanged."); reload(); reloadPage(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not remove the domain."); }
     finally { pending.current = false; setWorking(null); }
   };
