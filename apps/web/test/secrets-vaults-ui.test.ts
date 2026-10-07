@@ -49,6 +49,17 @@ const environmentLinks = (html: string) => links(html).filter((link) => /\/secre
 const buttons = (html: string) => [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(([button]) => button);
 const textContent = (html: string) => html.replace(/<[^>]*>/g, "");
 
+test("catalog vault launchers use the medium size including the empty state", () => {
+  for (const html of [render(), render({ projects: [] })]) {
+    const launchers = buttons(html).filter((button) => /New vault|Create vault/.test(button));
+    assert.ok(launchers.length > 0);
+    for (const button of launchers) {
+      assert.match(button, /class="button (?:primary|secondary) md(?:\s|")/);
+      assert.match(button, /aria-haspopup="dialog"/);
+    }
+  }
+});
+
 test("the full catalog renders every vault instead of the six-row overview preview", () => {
   const html = render();
   assert.match(html, /<h1[^>]*>Vaults<\/h1>/);
