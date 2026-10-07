@@ -147,9 +147,6 @@ body:has(.outray-arc-list) [data-radix-popper-content-wrapper] {
   --border: oklch(29% 0 0);
   --danger: oklch(76% .2 25);
   --radius-control: 1.125rem;
-  --control-height-sm: 2.25rem;
-  --control-height-md: 2.75rem;
-  --control-height-lg: 3.125rem;
   --text-sm: 0.875rem;
   --leading-body: 1.4;
 }
