@@ -55,7 +55,7 @@ export function ServicesContent({ orgSlug, services, loading, isFetching, error,
           <h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Services</h1>
           <p className="mt-1 text-[12px] text-zinc-400">Applications sending telemetry to your workspace.</p>
         </div>
-        <Button ref={connectTrigger} aria-haspopup="dialog" aria-expanded={connectOpen} onClick={() => setConnectOpen(true)}>
+        <Button ref={connectTrigger} size="md" aria-haspopup="dialog" aria-expanded={connectOpen} onClick={() => setConnectOpen(true)}>
           <Plus size={15} aria-hidden="true" /> Connect a service
         </Button>
       </header>
