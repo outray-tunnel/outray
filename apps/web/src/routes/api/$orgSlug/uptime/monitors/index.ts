@@ -8,6 +8,7 @@ import { activeOrganizationKey } from "@/lib/secrets/database";
 import { encryptUptimeHeaders } from "@/lib/secrets/crypto";
 import { badInput, jsonBody, requireUptimeManager, requireUptimeRead, serializeMonitor } from "@/lib/uptime/api";
 import { UPTIME_LIMITS, validateMonitorInput } from "@/lib/uptime/validation";
+import { isAlertManagerRole } from "@/lib/observability/alert-validation";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/")({
   server: {
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/")({
         const monitors = await db.select().from(uptimeMonitors)
           .where(and(eq(uptimeMonitors.organizationId, access.organization.id), isNull(uptimeMonitors.deletedAt)))
           .orderBy(desc(uptimeMonitors.createdAt));
-        return Response.json({ monitors: monitors.map(serializeMonitor), limit: UPTIME_LIMITS.monitors });
+        return Response.json({ monitors: monitors.map(serializeMonitor), limit: UPTIME_LIMITS.monitors, canManage: isAlertManagerRole(access.membership.role) });
       },
       POST: async ({ request, params }) => {
         const access = await requireUptimeManager(request, params.orgSlug);
