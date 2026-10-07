@@ -52,8 +52,12 @@ outray/
 ├── apps/
 │   ├── cli/             # CLI client
 │   ├── cron/            # Background jobs
+│   ├── ingest/          # Observability ingestion
 │   ├── internal-check/  # Domain verification for Caddy
+│   ├── secrets-share/   # Standalone encrypted secret sharing
+│   ├── status/          # Public status pages
 │   ├── tunnel/          # Tunnel server
+│   ├── uptime-probe/    # Uptime checks and notifications
 │   └── web/             # Dashboard & API
 ├── packages/            # Core client and framework integrations
 ├── shared/              # Shared utilities
@@ -73,16 +77,26 @@ set +a
 npm install
 ```
 
-Ensure PostgreSQL, Redis, and TimescaleDB are running, then start the web,
-tunnel, cron, and internal-check services together:
+Ensure PostgreSQL, Redis, and TimescaleDB are running, then start all runtime
+apps together:
 
 ```bash
 npm run dev
 ```
 
-Use `npm run dev:web`, `npm run dev:tunnel`, `npm run dev:cron`, or
-`npm run dev:internal-check` to run a single service and its workspace
-dependencies.
+This includes web, tunnel, cron, internal-check, ingest, status, secrets-share,
+and uptime-probe. New runtime workspaces under `apps/` are included automatically.
+The CLI compiler watcher and legacy standalone website remain separate;
+the landing page runs in web, and `dev:website` is an alias for `dev:web`.
+
+Use `npm run dev:web`, `npm run dev:tunnel`, `npm run dev:cron`,
+`npm run dev:internal-check`, `npm run dev:ingest`, `npm run dev:status`,
+`npm run dev:secrets-share`, or `npm run dev:uptime-probe` to run a single service
+and its workspace dependencies. Status uses port 4323; Secrets Share defaults to
+4324. All services load the root `.env`, including `SHARE_DATABASE_URL` for
+Secrets Share. The uptime worker honors the existing `UPTIME_PROBES_ENABLED`
+and `UPTIME_NOTIFICATIONS_ENABLED` flags; starting it does not enable these
+features automatically.
 
 ### Secrets development
 
