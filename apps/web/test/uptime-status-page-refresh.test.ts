@@ -129,7 +129,7 @@ test("overview explains private visibility, handles standalone components and ne
 test("status overview and View page prioritize the custom domain without changing the reserved OutRay address", async () => {
   const views = await loadViews({ page: { ...page, published: true, customDomain: "status.byteship.dev" } });
   const overview = views.render("StatusPageOverview");
-  assert.match(overview, /https:\/\/status\.byteship\.dev\//);
+  assert.match(overview, /<a href="https:\/\/status\.byteship\.dev\/" target="_blank" rel="noopener noreferrer"[^>]*>https:\/\/status\.byteship\.dev\/<\/a>/);
   assert.doesNotMatch(overview, /https:\/\/acme\.status\.outray\.app\//);
   assert.match(overview, /aria-label="Copy status page address"/);
   assert.deepEqual(views.copiedAddresses, ["https://status.byteship.dev/"]);
@@ -141,6 +141,7 @@ test("status overview and View page prioritize the custom domain without changin
 
 test("View page falls back to OutRay and verified domains do not make drafts public", async () => {
   const published = await loadViews({ page: { ...page, published: true, customDomain: null } });
+  assert.match(published.render("StatusPageOverview"), /<a href="https:\/\/acme\.status\.outray\.app\/" target="_blank" rel="noopener noreferrer"[^>]*>https:\/\/acme\.status\.outray\.app\/<\/a>/);
   assert.match(published.layout(), /href="https:\/\/acme\.status\.outray\.app\/"[^>]*>View page/);
   const draft = await loadViews({ page: { ...page, customDomain: "status.byteship.dev" } });
   assert.match(draft.render("StatusPageOverview"), /https:\/\/status\.byteship\.dev\//);
