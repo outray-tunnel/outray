@@ -1,0 +1,38 @@
+/* Scope the Arc tokens to the button and its portalled menu, not the page. */
+.theme {
+  --foreground: #e7e7ea;
+  --background: #080809;
+  --surface: #1a1a1e;
+  --surface-raised: #1b1b20;
+  --surface-muted: #303036;
+  --border: #38383e;
+  --border-subtle: #38383e;
+  --danger: #fb7185;
+  --radius-control: 12px;
+  --radius-pill: 12px;
+  --radius-panel: 12px;
+  --control-height-sm: 36px;
+  --control-height-md: 44px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --duration-instant: 120ms;
+  --duration-fast: 160ms;
+  --duration-standard: 240ms;
+  --duration-spring: 580ms;
+  --ease-enter: cubic-bezier(.16, 1, .3, 1);
+  --ease-standard: cubic-bezier(.22, 1, .36, 1);
+  --ease-spring: linear(0, .09, .27, .47, .64, .77, .86, .92, .97, .99, 1.006, 1);
+  --shadow-floating: 0 16px 34px #0009;
+}
+
+.warning {
+  margin: 5px 5px 3px;
+  padding: 9px 5px 2px;
+  border-top: 1px solid #34343b;
+  color: #a2a2aa;
+  font-size: 11px;
+  line-height: 1.5;
+}
