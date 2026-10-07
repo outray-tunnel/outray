@@ -59,8 +59,13 @@ export function BulkActionContent({ action, selectedKeys, environment, targets, 
       <div className={styles.field}>
         <label htmlFor={fieldId("link")}>Private viewing link</label>
         <div className={styles.linkRow}>
-          <WorkspaceInput id={fieldId("link")} className={styles.monospace} value={link} readOnly autoFocus data-bulk-autofocus onFocus={(event) => event.target.select()} aria-describedby={fieldId("link-hint")} autoComplete="off" spellCheck={false} />
-          <CopyButton value={link} label="Copy link" className={styles.copyButton} onCopyError={() => onCopyError("Could not copy the link. Select it above and copy it manually.")} />
+          <WorkspaceInput id={fieldId("link")} className={styles.monospace} value={link} readOnly autoFocus data-bulk-autofocus dir="ltr" onFocus={(event) => {
+            const input = event.currentTarget;
+            // Keep the complete link selected, with its active end at the start.
+            input.setSelectionRange(0, input.value.length, "backward");
+            input.scrollLeft = 0;
+          }} aria-describedby={fieldId("link-hint")} autoComplete="off" spellCheck={false} />
+          <CopyButton value={link} label="Copy link" iconOnly variant="plain" className={styles.copyButton} onCopyError={() => onCopyError("Could not copy the link. Select it above and copy it manually.")} />
         </div>
         <p id={fieldId("link-hint")} className={styles.hint}>Copy it before closing. The complete link cannot be recovered later.</p>
       </div>
