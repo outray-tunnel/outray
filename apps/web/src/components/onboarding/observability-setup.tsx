@@ -151,11 +151,13 @@ export default createOutrayTanStackServerEntry({
 export function ObservabilitySetup({
   orgSlug,
   onRecheck,
+  buttonSize = "md",
   tokenModalOpen: controlledTokenModalOpen,
   onTokenModalOpenChange,
 }: {
   orgSlug: string;
   onRecheck: () => void;
+  buttonSize?: "sm" | "md";
   tokenModalOpen?: boolean;
   onTokenModalOpenChange?: (open: boolean) => void;
 }) {
@@ -176,10 +178,10 @@ export function ObservabilitySetup({
 
   return (
     <>
-      <SetupFlow steps={[{ id: "01", title: "Ingest token" }, { id: "02", title: "Install SDK" }, { id: "03", title: "Configure" }]} onRecheck={onRecheck}>
+      <SetupFlow steps={[{ id: "01", title: "Ingest token" }, { id: "02", title: "Install SDK" }, { id: "03", title: "Configure" }]} onRecheck={onRecheck} buttonSize={buttonSize}>
         <SetupStep number="01" title="Create an ingest token">
           <p className="mb-4 text-[12px] leading-5 text-zinc-400">Create a server-side credential scoped to sending telemetry. Keep it out of browser code and source control.</p>
-          <Button ref={tokenTrigger} variant="secondary" onClick={() => setTokenModalOpen(true)} aria-haspopup="dialog">
+          <Button ref={tokenTrigger} variant="secondary" size={buttonSize} onClick={() => setTokenModalOpen(true)} aria-haspopup="dialog">
             <HugeiconsIcon icon={Key01Icon} size={14} strokeWidth={1.8} />
             Create ingest token
           </Button>
@@ -232,6 +234,7 @@ export function ObservabilitySetup({
             orgSlug={orgSlug}
             defaultName="Observability ingest"
             defaultScopes={["observability:write"]}
+            actionSize="sm"
           />
         </DialogPrimitive.Content>}
       </DialogPrimitive.Root>
