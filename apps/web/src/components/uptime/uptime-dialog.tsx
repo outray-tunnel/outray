@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import "../outray-arc-theme.css";
 
 export function UptimeDialog({ open, onClose, title, description, children, footer, busy = false }: {
   open: boolean;
@@ -34,7 +35,7 @@ export function UptimeDialog({ open, onClose, title, description, children, foot
     aria-labelledby={titleId}
     aria-describedby={description ? descriptionId : undefined}
     aria-busy={busy}
-    className="fixed inset-0 m-auto max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-xl overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d0d0f] p-0 text-zinc-200 shadow-2xl outline-none backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+    className="outray-arc fixed inset-0 m-auto max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-xl overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d0d0f] p-0 text-zinc-200 shadow-2xl outline-none backdrop:bg-black/70 backdrop:backdrop-blur-sm"
     onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }}
     onClick={(event) => {
       if (busy || event.target !== event.currentTarget) return;
