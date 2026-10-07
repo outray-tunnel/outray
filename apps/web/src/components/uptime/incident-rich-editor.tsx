@@ -24,7 +24,7 @@ export function IncidentRichEditor({ initialBody, initialNote = "", onChange, di
     content: initialBody ?? legacyIncidentDocument(initialNote),
     immediatelyRender: false,
     editable: !disabled,
-    editorProps: { attributes: { id, role: "textbox", "aria-label": "Incident update", "aria-multiline": "true", class: "min-h-32 px-3 py-3 text-[13px] leading-6 text-zinc-200 outline-none [&_p]:my-1 [&_h2]:my-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:my-2 [&_h3]:text-[13px] [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:border-l-2 [&_blockquote]:border-zinc-600 [&_blockquote]:pl-3 [&_a]:text-violet-300 [&_a]:underline" } },
+    editorProps: { attributes: { id, role: "textbox", "aria-label": "Incident update", "aria-multiline": "true", class: "min-h-36 px-3.5 py-3 text-[13px] leading-6 text-zinc-200 outline-none [&_p]:my-1 [&_h2]:my-2 [&_h2]:text-sm [&_h2]:font-medium [&_h3]:my-2 [&_h3]:text-[13px] [&_h3]:font-medium [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:border-l-2 [&_blockquote]:border-zinc-600 [&_blockquote]:pl-3 [&_a]:text-violet-300 [&_a]:underline" } },
     onUpdate: ({ editor }) => { onChange(editor.getJSON() as IncidentDocument); setRevision((value) => value + 1); },
     onSelectionUpdate: () => setRevision((value) => value + 1),
   });
@@ -66,16 +66,16 @@ export function IncidentRichEditor({ initialBody, initialNote = "", onChange, di
   ];
 
   return <>
-    <div className={`mt-2 overflow-hidden rounded-xl border bg-[#0b0b0d] focus-within:border-violet-400/50 ${invalid ? "border-rose-400/60" : "border-white/[0.1]"}`}>
-      <div role="toolbar" aria-label="Format incident update" className="flex flex-wrap gap-1 border-b border-white/[0.08] p-1.5">
-        {tools.map((tool) => <button key={tool.label} type="button" title={tool.label} aria-label={tool.label} aria-pressed={!!tool.active} disabled={!editor || disabled} onMouseDown={(event) => event.preventDefault()} onClick={tool.run} className={`flex size-8 items-center justify-center rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-violet-400 disabled:opacity-35 ${tool.active ? "bg-violet-400/15 text-violet-200" : "text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-200"}`}><tool.icon size={15} strokeWidth={1.8} aria-hidden="true" /></button>)}
+    <div className={`mt-2 overflow-hidden rounded-xl border bg-white/[0.015] transition-colors focus-within:border-white/25 motion-reduce:transition-none ${invalid ? "border-rose-400/60" : "border-white/[0.1]"}`}>
+      <div role="toolbar" aria-label="Format incident update" className="flex flex-wrap gap-0.5 border-b border-white/[0.07] bg-white/[0.015] p-1.5">
+        {tools.map((tool) => <Button key={tool.label} variant="ghost" size="sm" type="button" title={tool.label} aria-label={tool.label} aria-pressed={!!tool.active} disabled={!editor || disabled} onMouseDown={(event) => event.preventDefault()} onClick={tool.run} className={`!size-8 !min-w-0 !px-0 ${tool.active ? "!bg-white/[0.08] !text-zinc-100" : "!text-zinc-400"}`}><tool.icon size={14} strokeWidth={1.7} aria-hidden="true" /></Button>)}
       </div>
       <EditorContent editor={editor} />
     </div>
     <UptimeDialog open={linkOpen} onClose={() => setLinkOpen(false)} title="Add a link" footer={<><Button type="button" variant="secondary" size="sm" onClick={() => setLinkOpen(false)}>Cancel</Button><Button type="button" size="sm" onClick={applyLink}>Apply link</Button></>}>
       <label className="block text-[13px] text-zinc-300" htmlFor={`${id}-link`}>URL</label>
-      <WorkspaceInput id={`${id}-link`} data-autofocus type="url" value={link} onChange={(event) => { setLink(event.target.value); setLinkError(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); applyLink(); } }} placeholder="https://example.com" className="mt-2" />
-      {linkError && <p role="alert" className="mt-2 text-xs text-rose-300">{linkError}</p>}
+      <WorkspaceInput id={`${id}-link`} data-autofocus type="url" size="compact" value={link} onChange={(event) => { setLink(event.target.value); setLinkError(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); applyLink(); } }} placeholder="https://example.com" aria-invalid={!!linkError} aria-describedby={linkError ? `${id}-link-error` : undefined} className="mt-2" />
+      {linkError && <p id={`${id}-link-error`} role="alert" className="mt-2 text-xs text-rose-300">{linkError}</p>}
     </UptimeDialog>
   </>;
 }
