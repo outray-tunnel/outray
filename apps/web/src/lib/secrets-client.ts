@@ -46,6 +46,10 @@ export interface SecretVersion {
   createdBy?: string | null;
   action?: string | null;
   isCurrent?: boolean;
+  key?: string | null;
+  source?: string | null;
+  sourceVersion?: number | null;
+  createdByType?: string | null;
 }
 
 export interface SecretAuditEvent {
@@ -384,7 +388,11 @@ function normalizeVersion(value: unknown): SecretVersion {
     createdAt: isoDate(item.createdAt),
     createdBy: nullableText(item.createdByName ?? item.createdBy),
     action: nullableText(item.action),
-    isCurrent: boolean(item.isCurrent),
+    isCurrent: typeof item.isCurrent === "boolean" ? item.isCurrent : undefined,
+    key: nullableText(item.key),
+    source: nullableText(item.source),
+    sourceVersion: typeof item.sourceVersion === "number" ? integer(item.sourceVersion) : null,
+    createdByType: nullableText(item.createdByType),
   };
 }
 
@@ -808,12 +816,14 @@ export const secretsClient = {
     environmentSlug: string,
     secretId: string,
     input: { intent: "reveal" | "copy"; version?: number },
+    signal?: AbortSignal,
   ): Promise<{ value: string; expiresIn: number }> {
     const payload = await jsonRequest(
       orgSlug,
       `${secretPath(projectSlug, environmentSlug, secretId)}/reveal`,
-      { method: "POST", body: body(input) },
+      { method: "POST", body: body(input), signal },
     );
+    signal?.throwIfAborted();
     const record = unwrapRecord(payload, ["secret", "data"]);
     return {
       value: text(record.value),
@@ -826,14 +836,23 @@ export const secretsClient = {
     projectSlug: string,
     environmentSlug: string,
     secretId: string,
+    signal?: AbortSignal,
   ): Promise<SecretVersion[]> {
     const payload = await jsonRequest(
       orgSlug,
       `${secretPath(projectSlug, environmentSlug, secretId)}/versions`,
+      { signal },
     );
-    return unwrapArray(payload, ["versions", "items", "data"]).map(
-      normalizeVersion,
-    );
+    signal?.throwIfAborted();
+    const items = Array.isArray(payload) ? payload : isRecord(payload)
+      ? [payload.versions, payload.items, payload.data].find((value) => value !== undefined)
+      : undefined;
+    if (!Array.isArray(items) || !items.every((item) => isRecord(item) &&
+      typeof item.version === "number" && Number.isSafeInteger(item.version) && item.version > 0 &&
+      typeof item.createdAt === "string" && Number.isFinite(Date.parse(item.createdAt)))) {
+      throw new SecretsClientError("The version history response is invalid.", 502, "INVALID_RESPONSE");
+    }
+    return items.map(normalizeVersion);
   },
 
   async rollback(
