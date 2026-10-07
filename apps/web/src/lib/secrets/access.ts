@@ -7,7 +7,7 @@ import {
   organizations,
 } from "../../db/auth-schema";
 import { machineTokens } from "../../db/secrets-schema";
-import { requireOrgFromSlug } from "../org";
+import { requireOrgMembershipFromSlug } from "../org";
 import { hashMachineToken } from "../machine-tokens";
 import {
   hasSecretsMetadataScope,
@@ -169,7 +169,7 @@ export async function requireSecretsAccess(
     });
   }
 
-  const orgResult = await requireOrgFromSlug(request, orgSlug);
+  const orgResult = await requireOrgMembershipFromSlug(request, orgSlug);
   if ("error" in orgResult) {
     throw new SecretsError(
       orgResult.error.status === 401 ? "Unauthorized" : "Forbidden",
@@ -186,16 +186,6 @@ export async function requireSecretsAccess(
       status: 401,
     });
   }
-  const membership = await db.query.members.findFirst({
-    columns: { role: true },
-    where: and(
-      eq(members.organizationId, orgResult.organization.id),
-      eq(members.userId, session.user.id),
-    ),
-  });
-  if (!membership) {
-    throw new SecretsError("Forbidden", { code: "FORBIDDEN", status: 403 });
-  }
   return {
     organization: {
       id: orgResult.organization.id,
@@ -207,7 +197,7 @@ export async function requireSecretsAccess(
       credential: "session",
       id: session.user.id,
       userId: session.user.id,
-      role: membership.role,
+      role: orgResult.membership.role,
       tokenId: null,
       projectId: null,
       environmentId: null,
