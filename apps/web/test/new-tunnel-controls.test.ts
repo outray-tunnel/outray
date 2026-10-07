@@ -67,7 +67,7 @@ test("a loading UIArc button stays focusable and announces that it is busy", () 
   assert.doesNotMatch(html, /disabled=""/);
 });
 
-test("the new tunnel button still opens plan-limit guidance", () => {
+test("the new tunnel button uses the shared medium size and still opens plan-limit guidance", () => {
   const html = renderToStaticMarkup(
     React.createElement(NewTunnelButton, {
       isAtLimit: true,
@@ -77,6 +77,7 @@ test("the new tunnel button still opens plan-limit guidance", () => {
 
   assert.match(html, /New tunnel \(plan limit reached\)/);
   assert.match(html, /<button/);
+  assert.match(html, /<button\b[^>]*class="[^"]*\bmd\b/);
   assert.doesNotMatch(html, /disabled=""/);
 });
 
@@ -102,6 +103,13 @@ test("composite tunnel inputs retain their neutral shell focus and accessible la
     assert.ok(shell.includes("workspaceInputShellClassName"));
   }
   assert.match(source, /aria-hidden="true" className="[^"]*border-r border-white\/\[0\.08\]/);
+});
+
+test("new tunnel command actions use the small size inside the modal", async () => {
+  const source = await readFile(new URL("../src/components/new-tunnel-modal.tsx", import.meta.url), "utf8");
+  const buttons = [...source.matchAll(/<Button\b[\s\S]*?>/g)];
+  assert.equal(buttons.length, 2);
+  for (const [button] of buttons) assert.match(button, /size="sm"/);
 });
 
 test("only marked composite inputs suppress their inner outline while other controls keep visible focus", async () => {
