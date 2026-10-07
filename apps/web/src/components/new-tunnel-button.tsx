@@ -18,7 +18,7 @@ export function NewTunnelButton({
       type="button"
       ref={buttonRef}
       variant="primary"
-      size="lg"
+      size="md"
       onClick={onClick}
       aria-label={isAtLimit ? "New tunnel (plan limit reached)" : "New tunnel"}
       className="outray-arc shrink-0"
