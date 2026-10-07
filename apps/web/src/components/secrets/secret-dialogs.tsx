@@ -5,6 +5,7 @@ import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
 import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
 import File01Icon from "@hugeicons-pro/core-stroke-rounded/File01Icon";
 import Upload04Icon from "@hugeicons-pro/core-stroke-rounded/Upload04Icon";
+import { Button } from "../arc/button/button";
 import { WorkspaceInput, WorkspaceTextarea } from "../ui/workspace-input";
 import {
   secretsClient,
@@ -18,7 +19,6 @@ import {
   Field,
   ProductionConfirmation,
   SecretsBadge,
-  SecretsButton,
   SecretsDialog,
   SecretsNotice,
 } from "./secrets-ui";
@@ -108,16 +108,17 @@ export function ProjectDialog({
         onSubmit={handleSubmit}
         footer={
           <>
-            <SecretsButton onClick={onClose}>Cancel</SecretsButton>
-            <SecretsButton
-              tone="primary"
-              icon={editing ? undefined : Add01Icon}
+            <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
+            <Button
+              variant="primary"
+              size="sm"
               type="submit"
               loading={saving}
               disabled={!name.trim() || !slug.trim()}
             >
+              {!editing && <HugeiconsIcon icon={Add01Icon} size={14} aria-hidden="true" />}
               {editing ? "Save changes" : "Create vault"}
-            </SecretsButton>
+            </Button>
           </>
         }
       >
@@ -298,9 +299,10 @@ export function SecretEditorDialog({
         onSubmit={handleSubmit}
         footer={
           <>
-            <SecretsButton onClick={onClose}>Cancel</SecretsButton>
-            <SecretsButton
-              tone="primary"
+            <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
+            <Button
+              variant="primary"
+              size="sm"
               type="submit"
               loading={saving}
               disabled={!canSubmit}
@@ -308,7 +310,7 @@ export function SecretEditorDialog({
               {editing
                 ? "Save changes"
                 : `Add to ${selectedEnvironments.length} environment${selectedEnvironments.length === 1 ? "" : "s"}`}
-            </SecretsButton>
+            </Button>
           </>
         }
       >
@@ -627,23 +629,28 @@ export function ImportDotenvDialog({
         )}
       </div>
       <div className="flex flex-col-reverse gap-2 border-t border-white/[0.08] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
-        <SecretsButton onClick={onClose}>Cancel</SecretsButton>
+        <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
         {review ? (
-          <SecretsButton onClick={() => setReview(null)}>
+          <Button type="button" variant="secondary" size="sm" onClick={() => setReview(null)}>
             Edit dotenv
-          </SecretsButton>
+          </Button>
         ) : (
-          <SecretsButton
-            icon={File01Icon}
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
             onClick={() => void runImport(true)}
             loading={loading}
             disabled={!envText.trim()}
           >
+            <HugeiconsIcon icon={File01Icon} size={14} aria-hidden="true" />
             Review changes
-          </SecretsButton>
+          </Button>
         )}
-        <SecretsButton
-          tone="primary"
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
           onClick={() => void runImport(false)}
           loading={loading && !!review}
           disabled={
@@ -651,7 +658,7 @@ export function ImportDotenvDialog({
           }
         >
           Apply import
-        </SecretsButton>
+        </Button>
       </div>
     </SecretsDialog>
   );
@@ -766,15 +773,17 @@ function ConfirmSecretActionContent({
         )}
       </div>
       <div className="flex justify-end gap-2 border-t border-white/[0.08] px-5 py-4 sm:px-6">
-        <SecretsButton onClick={onClose}>Cancel</SecretsButton>
-        <SecretsButton
-          tone={danger ? "danger" : "primary"}
+        <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
+        <Button
+          type="button"
+          variant={danger ? "danger" : "primary"}
+          size="sm"
           loading={loading}
           disabled={!enabled}
           onClick={() => onConfirm(productionConfirmed, typed)}
         >
           {confirmLabel}
-        </SecretsButton>
+        </Button>
       </div>
     </>
   );
