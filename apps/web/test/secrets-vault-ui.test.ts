@@ -53,6 +53,22 @@ const textContent = (html: string) => html.replace(/<[^>]*>/g, "");
 const summary = (html: string) => html.match(/<dl\b[^>]*aria-label="Vault summary"[^>]*>[\s\S]*?<\/dl>/)?.[0] ?? "";
 const identity = (row: string) => row.match(/<span\b[^>]*class="flex size-8[^>]*>/)?.[0] ?? "";
 
+test("add environment launchers are medium while row menu affordances stay compact", () => {
+  const emptyProject = { ...project, environments: [], environmentCount: 0, secretCount: 0 };
+  for (const html of [render(), render({ project: emptyProject })]) {
+    const launchers = buttons(html).filter((button) => button.includes("Add environment"));
+    assert.ok(launchers.length > 0);
+    for (const button of launchers) {
+      assert.match(button, /class="button (?:primary|secondary) md(?:\s|")/);
+      assert.match(button, /aria-haspopup="dialog"/);
+    }
+  }
+  for (const row of rows(render())) {
+    const action = buttons(row).find((button) => button.includes('aria-label="Actions for')) ?? "";
+    assert.match(action, /class="button ghost sm /);
+  }
+});
+
 test("the vault shows its complete environment inventory and inline persisted metadata rather than summary cards or tiles", () => {
   const html = render();
   assert.match(html, /<h1[^>]*>Payments API<\/h1>/);
