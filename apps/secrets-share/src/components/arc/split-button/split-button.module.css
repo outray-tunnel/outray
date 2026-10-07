@@ -1,0 +1,55 @@
+/* UIArc registry: https://uiarc.dev/r/split-button.json */
+/* One pill, two actions. The whole pill presses in for the main action; the menu half answers in color only, because Radix measures it on pointerdown to place the menu. */
+.group { display: inline-flex; align-items: stretch; border: 1px solid var(--foreground); border-radius: var(--radius-control); background: var(--foreground); transition: transform var(--duration-spring) var(--ease-spring); }
+.group:has(> .primary:active:not(:disabled)) { transform: scale(.97); transition-duration: var(--duration-instant); transition-timing-function: var(--ease-standard); }
+.primary, .trigger { border: 0; background: var(--foreground); color: var(--background); font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard); }
+.primary { position: relative; display: inline-grid; min-height: var(--control-height-md); place-items: center; padding: 0 var(--space-4); border-radius: calc(var(--radius-control) - 1px) 0 0 calc(var(--radius-control) - 1px); font-size: var(--text-sm); font-weight: 500; }
+/* The slot springs to the width of the next label; the content leads from the start edge and is clipped only while it morphs. */
+.primarySlot { display: inline-flex; min-width: 0; align-items: center; }
+.primarySlot[data-morphing] { clip-path: inset(-50% calc(var(--space-2) * -1)); }
+.primaryContent { display: inline-flex; flex: none; align-items: center; gap: var(--space-2); white-space: nowrap; }
+.mainIcon { display: inline-grid; flex: none; place-items: center; }
+.iconPhase { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; }
+.glyphs { position: relative; display: inline-flex; flex: none; white-space: pre; }
+.glyph { display: inline-block; }
+.trigger { display: grid; width: 38px; min-height: var(--control-height-md); place-items: center; border-left: 1px solid color-mix(in oklab, var(--background) 18%, var(--foreground)); border-radius: 0 calc(var(--radius-control) - 1px) calc(var(--radius-control) - 1px) 0; }
+.chevron { transition: transform var(--duration-spring) var(--ease-spring); }
+.trigger[data-state="open"] .chevron { transform: rotate(180deg); }
+@media (hover: hover) and (pointer: fine) {
+  .primary:hover:not(:disabled), .trigger:hover:not(:disabled) { background: color-mix(in oklab, var(--foreground) 88%, var(--background)); }
+  .secondary .primary:hover:not(:disabled), .secondary .trigger:hover:not(:disabled) { background: var(--surface-muted); }
+}
+.primary:active:not(:disabled), .trigger:active:not(:disabled), .trigger[data-state="open"] { background: color-mix(in oklab, var(--foreground) 80%, var(--background)); }
+.primary:disabled, .trigger:disabled { cursor: not-allowed; opacity: .52; }
+.secondary { border-color: var(--border); border-radius: var(--radius-pill); background: var(--surface); }
+.secondary .primary, .secondary .trigger { min-height: var(--control-height-sm); background: var(--surface); color: var(--foreground); }
+.secondary .primary { min-width: 142px; border-radius: var(--radius-pill) 0 0 var(--radius-pill); padding-inline: var(--space-3); font-size: var(--text-xs); }
+.secondary .trigger { width: 32px; border-left-color: var(--border-subtle); border-radius: 0 var(--radius-pill) var(--radius-pill) 0; }
+.secondary .primary:active:not(:disabled), .secondary .trigger:active:not(:disabled), .secondary .trigger[data-state="open"] { background: color-mix(in oklab, var(--surface-muted), var(--border) 55%); }
+.icon { display: inline-flex; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* The menu grows from the trigger edge: offset toward the trigger, scale from the Radix origin, fade quickly; it leaves faster than it arrives.
+   Transitions instead of keyframes, so a close that interrupts the open reverses from where the menu is instead of snapping to rest first. */
+.menu { --menu-x: 0px; --menu-y: -5px; z-index: 60; min-width: min(12rem, var(--radix-dropdown-menu-content-available-width)); max-width: var(--radix-dropdown-menu-content-available-width); padding: 5px; border: 1px solid var(--border); border-radius: var(--radius-panel); background: var(--surface-raised); color: var(--foreground); box-shadow: var(--shadow-floating); transform-origin: var(--radix-dropdown-menu-content-transform-origin); transition: opacity var(--duration-fast) var(--ease-enter), transform var(--duration-spring) var(--ease-spring); }
+.menu[data-side="top"] { --menu-y: 5px; }
+.menu[data-side="left"] { --menu-x: 5px; --menu-y: 0px; }
+.menu[data-side="right"] { --menu-x: -5px; --menu-y: 0px; }
+@starting-style {
+  .menu[data-state="open"] { opacity: 0; transform: translate(var(--menu-x), var(--menu-y)) scale(.97); }
+  .menu[data-state="open"] .item { opacity: 0; transform: translate(calc(var(--menu-x) * .4), calc(var(--menu-y) * .4)); }
+}
+/* Radix unmounts when the exit animation ends, so a no-op keyframe times the exit while the transition does the visual work. */
+.menu[data-state="closed"] { opacity: 0; transform: translate(calc(var(--menu-x) * .5), calc(var(--menu-y) * .5)) scale(.985); transition: opacity 130ms var(--ease-standard), transform 130ms var(--ease-standard); animation: menu-exit 130ms linear both; pointer-events: none; }
+/* Highlight follows the pointer and arrow keys instantly, like a native menu. */
+.item { display: flex; min-height: var(--control-height-sm); align-items: center; gap: 10px; padding: 0 11px; border-radius: calc(var(--radius-panel) - 6px); font-size: var(--text-sm); cursor: pointer; outline: none; transition: opacity var(--duration-standard) var(--ease-enter) calc(min(var(--i, 0), 4) * 35ms), transform var(--duration-standard) var(--ease-enter) calc(min(var(--i, 0), 4) * 35ms); }
+.item[data-highlighted] { background: var(--surface-muted); }
+.item[data-disabled] { cursor: default; opacity: .45; }
+.destructive { color: var(--danger); }
+.destructive[data-highlighted] { background: color-mix(in oklab, var(--danger) 8%, var(--surface)); }
+@keyframes menu-exit { to { --menu-exit: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .group, .primary, .trigger, .chevron { transition: none; }
+  .group:has(> .primary:active:not(:disabled)) { transform: none; }
+  .item { transition: none; }
+  .menu, .menu[data-state="closed"] { transform: none; transition: opacity var(--duration-instant) linear; }
+}
