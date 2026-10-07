@@ -8,14 +8,17 @@
     "build": "astro build",
     "check": "astro check",
     "lint": "astro check",
-    "test": "tsx --test test/*.test.ts",
+    "test": "tsx --tsconfig ./tsconfig.json --import ./test/register-css-loader.mjs --test test/*.test.ts",
     "start": "node dist/server/entry.mjs"
   },
   "dependencies": {
     "@astrojs/node": "9.5.5",
     "@astrojs/react": "4.3.0",
     "@outray/share-crypto": "file:../../packages/share-crypto",
+    "@radix-ui/react-dropdown-menu": "2.1.16",
     "astro": "5.18.2",
+    "lucide-react": "^0.560.0",
+    "motion": "12.25.0",
     "pg": "^8.16.3",
     "react": "19.2.0",
     "react-dom": "19.2.0"
