@@ -111,7 +111,19 @@ test("detail has five preserved route tabs with a reduced-motion neutral animate
   }
   assert.equal(links.find((node) => node.props.to === "/$orgSlug/observability/alerts")?.props.search.state, "healthy");
   assert.equal(harness.button(nodes, "Delete").props.variant, "danger");
+  assert.equal(harness.button(nodes, "Delete").props.size, "md");
   assert.ok(harness.button(nodes, "Run now"));
+  assert.equal(harness.button(nodes, "Run now").props.size, "sm");
+});
+
+test("alert page modal triggers are medium while dialog actions remain small", async () => {
+  const harness = await load();
+  assert.equal(harness.button(harness.render("AlertOverviewTab"), "Edit details").props.size, "md");
+  assert.equal(harness.button(harness.render("AlertConditionTab"), "Edit condition").props.size, "md");
+  harness.reset();
+  const edit = harness.render("AlertDetailsEditModal", { isOpen: true, alert, orgSlug: "acme", onClose: () => {}, onSaved: () => {} });
+  assert.equal(harness.button(edit, "Cancel").props.size, "sm");
+  assert.equal(harness.button(edit, "Save details").props.size, "sm");
 });
 
 test("pausing uses encoded workspace paths and disables evaluation until resumed", async () => {
