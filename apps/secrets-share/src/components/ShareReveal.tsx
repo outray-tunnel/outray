@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { decryptShare, shareNeedsPassword, sharePasswordVerifier, shareVerifier, type ShareContent } from "@outray/share-crypto";
 import { entriesAsEnv, entriesAsJson, type NamedEntry } from "../lib/export-entries";
+import { ShareExportButton } from "./ShareExportButton";
 
 export default function ShareReveal({ id }: { id: string }) {
   const [content, setContent] = useState<ShareContent | null>(null);
@@ -10,9 +11,6 @@ export default function ShareReveal({ id }: { id: string }) {
   const [passwordProtected, setPasswordProtected] = useState(false);
   const [password, setPassword] = useState("");
   const [exportError, setExportError] = useState<string | null>(null);
-  const [exportOpen, setExportOpen] = useState(false);
-  const exportControlRef = useRef<HTMLDivElement>(null);
-  const exportButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     try {
@@ -21,24 +19,6 @@ export default function ShareReveal({ id }: { id: string }) {
       setError("This share link is incomplete or invalid.");
     }
   }, []);
-
-  useEffect(() => {
-    if (!exportOpen) return;
-    const closeOnOutsidePress = (event: PointerEvent) => {
-      if (!exportControlRef.current?.contains(event.target as Node)) setExportOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setExportOpen(false);
-      exportButtonRef.current?.focus();
-    };
-    document.addEventListener("pointerdown", closeOnOutsidePress);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePress);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [exportOpen]);
 
   const reveal = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -70,7 +50,6 @@ export default function ShareReveal({ id }: { id: string }) {
   };
 
   const downloadEntries = (format: "env" | "json", entries: NamedEntry[]) => {
-    setExportOpen(false);
     setExportError(null);
     try {
       const body = format === "env" ? entriesAsEnv(entries) : entriesAsJson(entries);
@@ -91,17 +70,8 @@ export default function ShareReveal({ id }: { id: string }) {
   return <div className="share-card reveal-card">
     <div className="card-top reveal-card-top">
       <div><h2>{content ? "Shared with you" : "Ready when you are"}</h2><p>{content ? "This content is visible only in this browser session." : "The content stays hidden until you choose to reveal it."}</p></div>
-      {content?.type === "bundle" && <div className="export-control" ref={exportControlRef} onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setExportOpen(false);
-      }}>
-        <button className="export-trigger" ref={exportButtonRef} type="button" aria-expanded={exportOpen} aria-controls="share-export-options" onClick={() => setExportOpen((open) => !open)}>
-          Export <svg aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </button>
-        {exportOpen && <div className="export-dropdown" id="share-export-options">
-          <button type="button" onClick={() => downloadEntries("env", content.entries)}><span>Download .env</span><small>Environment variables</small></button>
-          <button type="button" onClick={() => downloadEntries("json", content.entries)}><span>Download JSON</span><small>Key/value object</small></button>
-          <p>Files contain unencrypted secrets.</p>
-        </div>}
+      {content?.type === "bundle" && <div className="export-control">
+        <ShareExportButton onExport={(format) => downloadEntries(format, content.entries)} />
       </div>}
     </div>
     <div className="card-body">
