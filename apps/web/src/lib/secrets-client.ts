@@ -70,6 +70,15 @@ export interface SecretAuditEvent {
   actorEmail?: string | null;
   createdAt: string;
   metadata?: Record<string, unknown> | null;
+  /** Keep the original audit target without changing legacy resourceType consumers. */
+  targetType?: string | null;
+  result?: "success" | "failure" | "denied" | null;
+  actorCredential?: string | null;
+  actorTokenId?: string | null;
+  entryId?: string | null;
+  requestId?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
 }
 
 export interface SecretAuditPage {
@@ -97,7 +106,7 @@ export interface SecretTrashItem {
   itemCount: number;
   isProduction: boolean;
   deletedAt: string;
-  expiresAt: string;
+  expiresAt: string | null;
   metadata?: Record<string, unknown> | null;
 }
 
@@ -438,6 +447,14 @@ function normalizeAuditEvent(value: unknown): SecretAuditEvent {
     actorEmail,
     createdAt: isoDate(item.createdAt),
     metadata,
+    targetType: text(item.targetType, rawType),
+    result: item.result === "success" || item.result === "failure" || item.result === "denied" ? item.result : null,
+    actorCredential: nullableText(item.actorCredential),
+    actorTokenId: nullableText(item.actorTokenId),
+    entryId: nullableText(item.entryId),
+    requestId: nullableText(item.requestId),
+    ipAddress: nullableText(item.ipAddress),
+    userAgent: nullableText(item.userAgent),
   };
 }
 
