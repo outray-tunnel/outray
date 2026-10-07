@@ -117,6 +117,9 @@ for (const resource of ["domains", "subdomains"] as const) {
     assert.match(html, /Already taken &lt;address&gt;/);
     assert.ok(html.includes(normalized));
     assert.match(html, /Cancel/);
+    const buttons = [...html.matchAll(/<button\b[^>]*>/g)].map(([button]) => button);
+    assert.equal(buttons.length, 2);
+    for (const button of buttons) assert.match(button, /class="[^"]*\bsm\b/, "modal actions use the shared small size");
     assert.doesNotMatch(html, /fixed inset-0|autoFocus|user@example/);
   });
 
