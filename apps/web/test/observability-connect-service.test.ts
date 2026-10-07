@@ -39,7 +39,7 @@ async function loadComponent(path: string, initialState: any[] = []) {
   const effects: Array<() => void> = [];
   let stateIndex = 0;
   let refIndex = 0;
-  const names = ["Button", "SideSheet", "ObservabilitySetup", "ConnectServiceSheet", "Select", "CreateTokenModal", "SetupFlow", "SetupStep", "SetupCodeBlock", "Root", "Portal", "Overlay", "Content", "Title", "Description", "Close", "AnimatePresence", "MotionDiv"];
+  const names = ["Button", "SideSheet", "ObservabilitySetup", "ConnectServiceSheet", "Select", "CreateTokenModal", "SetupFlow", "SetupStep", "SetupCodeBlock", "Root", "Portal", "Overlay", "Content", "Title", "Description", "Close", "AnimatePresence", "MotionDiv", "Input", "Label", "Modal", "ModalContent", "ModalFooter", "ModalHeader"];
   const stubs = Object.fromEntries(names.map((name) => [name, (props: any) => React.createElement("div", { "data-component": name }, props.children)]));
   const activeElement = new FocusTarget();
   const module = { exports: {} as Record<string, (props: any) => React.ReactNode> };
@@ -58,6 +58,8 @@ async function loadComponent(path: string, initialState: any[] = []) {
       };
       if (specifier === "./overview-data") return overviewData;
       if (specifier === "@tanstack/react-router") return { Link: (props: any) => React.createElement("a", { href: props.to }, props.children) };
+      if (specifier === "@tanstack/react-query") return { useQuery: () => ({}), useQueryClient: () => ({ invalidateQueries: () => {} }) };
+      if (specifier === "@/lib/app-client") return { appClient: {} };
       if (specifier === "@radix-ui/react-dialog") return stubs;
       if (specifier === "motion/react") return { AnimatePresence: stubs.AnimatePresence, motion: { div: stubs.MotionDiv }, useReducedMotion: () => false };
       if (specifier === "lucide-react") return { X: () => null, ArrowRight: () => null, RefreshCw: () => null, Server: () => null };
@@ -82,8 +84,9 @@ test("Connect a service opens an organization-scoped sheet without navigating aw
   const retry = () => {};
   const props = { orgSlug: "acme", range: "24h", onRangeChange: () => {}, onRetry: retry, referenceTime: 0 };
   let tree = elements(ui.render("ObservabilityOverviewContent", props));
-  const trigger = tree.find((element) => element.type === "button" && element.props["aria-haspopup"] === "dialog");
+  const trigger = tree.find((element) => element.type === ui.stubs.Button && element.props["aria-haspopup"] === "dialog");
   assert.ok(trigger);
+  assert.equal(trigger.props.size, "md");
   assert.equal(trigger.props["aria-expanded"], false);
   assert.equal(trigger.props.href, undefined);
   trigger.props.onClick();
@@ -120,6 +123,8 @@ test("nested token Escape dismisses the token dialog, not the connection sheet",
   const guide = elements(sheet).find((element) => element.type === ui.stubs.ObservabilitySetup);
   assert.ok(guide);
   assert.equal(guide.props.onRecheck, props.onRecheck);
+  assert.equal(guide.props.buttonSize, "sm");
+  assert.equal(sheet.props.footer.props.size, "sm");
   guide.props.onTokenModalOpenChange(true);
   sheet = ui.render("ConnectServiceSheet", props) as React.ReactElement<any>;
   assert.equal(sheet.props.closeDisabled, true);
@@ -185,12 +190,14 @@ test("the token modal unmounts on close and restores its ingest-token trigger", 
   ui.refs[0].current = trigger;
   const create = tree.find((element) => element.type === ui.stubs.Button && element.props["aria-haspopup"] === "dialog");
   assert.ok(create);
+  assert.equal(create.props.size, "md");
   create.props.onClick();
   tree = elements(ui.render("ObservabilitySetup", props));
   ui.effects.forEach((effect) => effect());
   const modal = tree.find((element) => element.type === ui.stubs.CreateTokenModal);
   assert.ok(modal);
   assert.equal(modal.props.orgSlug, "acme");
+  assert.equal(modal.props.actionSize, "sm");
   assert.deepEqual(Array.from(modal.props.defaultScopes), ["observability:write"]);
   assert.ok(tree.find((element) => element.type === ui.stubs.Title && element.props.children === "Create ingest token"));
   modal.props.onClose();
@@ -198,6 +205,30 @@ test("the token modal unmounts on close and restores its ingest-token trigger", 
   ui.effects.forEach((effect) => effect());
   assert.equal(trigger.focused, 1);
   assert.equal(tree.some((element) => element.type === ui.stubs.CreateTokenModal), false);
+});
+
+test("the embedded connection guide uses small actions without shrinking standalone setup", async () => {
+  const ui = await loadComponent("../src/components/onboarding/observability-setup.tsx");
+  for (const buttonSize of [undefined, "sm"] as const) {
+    const tree = elements(ui.render("ObservabilitySetup", { orgSlug: "acme", onRecheck: () => {}, buttonSize }));
+    const create = tree.find((element) => element.type === ui.stubs.Button && element.props["aria-haspopup"] === "dialog");
+    const flow = tree.find((element) => element.type === ui.stubs.SetupFlow);
+    assert.equal(create?.props.size, buttonSize ?? "md");
+    assert.equal(flow?.props.buttonSize, buttonSize ?? "md");
+  }
+});
+
+test("token dialog footer actions opt into small sizing without changing unrelated token pages", async () => {
+  for (const actionSize of [undefined, "sm"] as const) {
+    for (const createdToken of [null, "synthetic-test-token"] as const) {
+      const ui = await loadComponent("../src/components/create-token-modal.tsx", ["Ingest", "organization", "", "", "90d", ["observability:write"], createdToken]);
+      const tree = elements(ui.render("CreateTokenModal", { isOpen: true, orgSlug: "acme", onClose: () => {}, actionSize }));
+      const actions = tree.filter((element) => element.type === ui.stubs.Button);
+      assert.equal(actions.length, createdToken ? 1 : 2);
+      for (const action of actions) assert.equal(action.props.size, actionSize ?? "md");
+      if (!createdToken) assert.equal(actions[1].props.disabled, false);
+    }
+  }
 });
 
 test("framework menu portals remain inside native and Radix dialogs", async () => {
