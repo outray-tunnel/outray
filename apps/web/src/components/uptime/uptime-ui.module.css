@@ -1,0 +1,22 @@
+.dialog.dialog.dialog { display: flex; flex-direction: column; width: min(calc(100vw - 32px), 560px); max-height: calc(100dvh - 32px); overflow: hidden; background: #111112; --text-lg: 18px; }
+.dialog > div:first-child { flex: none; padding: 20px 24px; }
+.dialog > div:first-child h2 { font-weight: 400; letter-spacing: -.025em; }
+.dialog > div:last-child { display: flex; flex-direction: column; min-height: 0; padding: 0; }
+.dialogBody { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 24px; }
+.dialogFooter { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; padding: 16px 24px max(16px, env(safe-area-inset-bottom)); border-top: 1px solid rgb(255 255 255 / 8%); }
+.overlay.overlay { z-index: 80; }
+.dialog.dialog { z-index: 81; }
+.raisedOverlay.raisedOverlay { z-index: 90; }
+.raisedDialog.raisedDialog { z-index: 91; }
+.checkbox { position: relative; display: inline-flex; width: 16px; height: 16px; flex: none; }
+.checkbox input { appearance: none; width: 100%; height: 100%; margin: 0; border: 1px solid rgb(255 255 255 / 18%); border-radius: 4px; background: rgb(255 255 255 / 3%); cursor: pointer; transition: background-color 120ms, border-color 120ms; }
+.checkbox input:checked { border-color: #d4d4d8; background: #d4d4d8; }
+.checkbox input:focus-visible { outline: 2px solid #a1a1aa; outline-offset: 3px; }
+.checkbox input:disabled { cursor: not-allowed; opacity: .5; }
+.checkbox svg { position: absolute; inset: 2px; color: #18181b; pointer-events: none; opacity: 0; }
+.checkbox input:checked + svg { opacity: 1; }
+.controls > div > label { font-size: 12px; font-weight: 400; color: #d4d4d8; }
+.controls button[role="combobox"] { background: #0c0c0e; }
+.controls button[role="combobox"]:focus-visible { outline: none; border-color: rgb(255 255 255 / 25%); box-shadow: 0 0 0 1px rgb(255 255 255 / 7%); }
+@media (max-width: 639px) { .dialog > div:first-child, .dialogBody, .dialogFooter { padding-inline: 20px; } }
+@media (prefers-reduced-motion: reduce) { .checkbox input { transition: none; } }
