@@ -67,8 +67,8 @@ export function CreateSubdomainForm({ value, onValueChange, onSubmit, onCancel, 
       </div>
 
       <div className="mt-5 flex justify-end gap-2 border-t border-white/[0.07] pt-4">
-        <Button type="button" variant="secondary" size="md" disabled={isPending} onClick={onCancel}>Cancel</Button>
-        <Button ref={submitRef} type="submit" variant="primary" size="md" loading={isPending} disabled={!normalized} aria-describedby={error ? errorId : undefined}>Reserve subdomain</Button>
+        <Button type="button" variant="secondary" size="sm" disabled={isPending} onClick={onCancel}>Cancel</Button>
+        <Button ref={submitRef} type="submit" variant="primary" size="sm" loading={isPending} disabled={!normalized} aria-describedby={error ? errorId : undefined}>Reserve subdomain</Button>
       </div>
     </form>
   );
