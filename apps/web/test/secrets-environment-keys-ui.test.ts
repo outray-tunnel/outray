@@ -190,6 +190,7 @@ test("the environment header preserves add, import and export actions alongside 
   for (const label of ["Import", "Export .env", "Add secret"]) {
     const action = buttons(html).find((button) => button.includes(label)) ?? "";
     assert.ok(action, `${label} remains available`);
+    assert.match(action, /class="button (?:primary|secondary) md(?:\s|")/);
     assert.match(action, /tabindex="0"/);
     assert.doesNotMatch(action, /disabled/);
   }
@@ -209,6 +210,7 @@ test("initial key rendering contains metadata only and a genuine empty environme
   const empty = render({ data: { ...data, environment: emptyEnvironment, secrets: [], revision: 0 } });
   assert.match(empty, /No secrets in this environment/);
   assert.match(empty, /Add first secret/);
+  assert.match(buttons(empty).find((button) => button.includes("Add first secret")) ?? "", /class="button secondary md /);
   assert.equal(environmentLinks(empty).length, environments.length);
   assert.doesNotMatch(empty, /DATABASE_URL|API_KEY|Try again/);
 });
