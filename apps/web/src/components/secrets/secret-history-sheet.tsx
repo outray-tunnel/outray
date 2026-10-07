@@ -1,11 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import CheckmarkCircle02Icon from "@hugeicons-pro/core-stroke-rounded/CheckmarkCircle02Icon";
-import Clock01Icon from "@hugeicons-pro/core-stroke-rounded/Clock01Icon";
-import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
-import RefreshIcon from "@hugeicons-pro/core-stroke-rounded/RefreshIcon";
-import ViewIcon from "@hugeicons-pro/core-stroke-rounded/ViewIcon";
-import ViewOffIcon from "@hugeicons-pro/core-stroke-rounded/ViewOffIcon";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { LockKeyhole } from "lucide-react";
+import { SideSheet } from "@/components/ui/side-sheet";
 import {
   secretsClient,
   type SecretEnvironment,
@@ -13,33 +8,13 @@ import {
   type SecretVersion,
 } from "@/lib/secrets-client";
 import {
-  ConfirmSecretActionDialog,
-} from "./secret-dialogs";
-import {
-  SecretsBadge,
-  SecretsButton,
-  SecretsIconButton,
-  SecretsNotice,
-  SecretsSheet,
-} from "./secrets-ui";
-import { formatSecretDate } from "./utils";
+  SecretHistoryContent,
+  SecretHistoryRestoreDialog,
+  type PendingHistoryAction,
+  type RevealedHistoryValue,
+} from "./secret-history-content";
 
-interface RevealedVersion {
-  version: number;
-  value: string;
-  expiresAt: number;
-}
-
-export function SecretHistorySheet({
-  open,
-  onClose,
-  orgSlug,
-  projectSlug,
-  environment,
-  secret,
-  revision,
-  onRolledBack,
-}: {
+interface HistoryProps {
   open: boolean;
   onClose: () => void;
   orgSlug: string;
@@ -48,222 +23,259 @@ export function SecretHistorySheet({
   secret: SecretMetadata | null;
   revision: number;
   onRolledBack: () => void;
+}
+interface InteractionState { confirming: boolean; restoring: boolean }
+interface RestoreTarget {
+  version: number;
+  currentVersion: number;
+  revision: number;
+  production: boolean;
+}
+
+export function SecretHistorySheet(props: HistoryProps) {
+  const { open, secret, orgSlug, projectSlug, environment } = props;
+  const scope = JSON.stringify([orgSlug, projectSlug, environment.id, environment.slug, secret?.id]);
+  const [interaction, setInteraction] = useState<InteractionState & { scope: string } | null>(null);
+  const onInteractionChange = useCallback((state: InteractionState) => {
+    setInteraction({ ...state, scope });
+  }, [scope]);
+  const blocked = interaction?.scope === scope && (interaction.confirming || interaction.restoring);
+
+  return <SideSheet
+    open={open && Boolean(secret)}
+    onClose={props.onClose}
+    title="Version history"
+    description="Review previous values or restore an earlier version."
+    closeDisabled={blocked}
+    footer={<p className="flex w-full items-center gap-2 text-[11px] leading-5 text-zinc-500">
+      <LockKeyhole size={13} aria-hidden="true" />
+      Values stay hidden until revealed. Access is recorded in the audit log.
+    </p>}
+  >
+    <div className="ph-no-capture" data-private-product="secrets">
+      {/* Unmount before the panel's exit animation: no plaintext lingers on close. */}
+      {open && secret && <SecretHistorySession
+        key={scope}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+        environment={environment}
+        secret={secret}
+        revision={props.revision}
+        onClose={props.onClose}
+        onRolledBack={props.onRolledBack}
+        onInteractionChange={onInteractionChange}
+      />}
+    </div>
+  </SideSheet>;
+}
+
+/** One open org/vault/environment/secret scope; plaintext never enters a shared cache. */
+export function SecretHistorySession({
+  orgSlug, projectSlug, environment, secret, revision, onClose, onRolledBack, onInteractionChange,
+}: Omit<HistoryProps, "open" | "secret"> & {
+  secret: SecretMetadata;
+  onInteractionChange: (state: InteractionState) => void;
 }) {
   const [versions, setVersions] = useState<SecretVersion[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState<RevealedVersion | null>(null);
+  const [retry, setRetry] = useState(0);
+  const [actionError, setActionError] = useState<{ version: number; message: string } | null>(null);
+  const [pending, setPending] = useState<PendingHistoryAction | null>(null);
+  const [revealed, setRevealed] = useState<RevealedHistoryValue | null>(null);
   const [now, setNow] = useState(Date.now());
   const [copiedVersion, setCopiedVersion] = useState<number | null>(null);
-  const [rollbackVersion, setRollbackVersion] = useState<number | null>(null);
-  const [rollingBack, setRollingBack] = useState(false);
+  const [restoreTarget, setRestoreTarget] = useState<RestoreTarget | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [productionConfirmed, setProductionConfirmed] = useState(false);
+  const mounted = useRef(true);
+  const completed = useRef(false);
+  const pendingRef = useRef<PendingHistoryAction | null>(null);
+  const restoreRef = useRef<RestoreTarget | null>(null);
+  const productionRef = useRef(false);
+  const sequence = useRef(0);
+  const actionRequest = useRef<AbortController | null>(null);
   const revealTimer = useRef<number | undefined>(undefined);
   const copyTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    if (!open || !secret) return;
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      actionRequest.current?.abort();
+      if (revealTimer.current !== undefined) window.clearTimeout(revealTimer.current);
+      if (copyTimer.current !== undefined) window.clearTimeout(copyTimer.current);
+      onInteractionChange({ confirming: false, restoring: false });
+    };
+  }, [onInteractionChange]);
+
+  useEffect(() => {
     const controller = new AbortController();
-    let disposed = false;
+    let active = true;
     setLoading(true);
     setError(null);
-    setVersions([]);
-    setRevealed(null);
-
-    void secretsClient
-      .versions(orgSlug, projectSlug, environment.slug, secret.id)
+    void secretsClient.versions(orgSlug, projectSlug, environment.slug, secret.id, controller.signal)
       .then((items) => {
-        if (!disposed) setVersions(items.sort((a, b) => b.version - a.version));
+        if (active && !controller.signal.aborted) setVersions([...items].sort((a, b) => b.version - a.version));
       })
-      .catch((requestError) => {
-        if (!disposed) {
-          setError(requestError instanceof Error ? requestError.message : "Could not load version history.");
-        }
+      .catch((requestError: unknown) => {
+        if (active && !controller.signal.aborted) setError(message(requestError, "Could not load version history."));
       })
-      .finally(() => {
-        if (!disposed) setLoading(false);
-      });
-
-    return () => {
-      disposed = true;
-      controller.abort();
-    };
-  }, [environment.slug, open, orgSlug, projectSlug, secret]);
+      .finally(() => { if (active && !controller.signal.aborted) setLoading(false); });
+    return () => { active = false; controller.abort(); };
+  }, [orgSlug, projectSlug, environment.slug, secret.id, retry]);
 
   useEffect(() => {
     if (!revealed) return;
-    const interval = window.setInterval(() => setNow(Date.now()), 1_000);
-    return () => window.clearInterval(interval);
+    const tick = () => {
+      const time = Date.now();
+      setNow(time);
+      setRevealed((value) => value && value.expiresAt <= time ? null : value);
+    };
+    const timer = window.setInterval(tick, 1_000);
+    window.addEventListener("focus", tick);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", tick);
+      document.removeEventListener("visibilitychange", tick);
+    };
   }, [revealed]);
 
-  useEffect(
-    () => () => {
-      if (revealTimer.current) window.clearTimeout(revealTimer.current);
-      if (copyTimer.current) window.clearTimeout(copyTimer.current);
-      setRevealed(null);
-    },
-    [],
-  );
+  function hide() {
+    if (revealTimer.current !== undefined) window.clearTimeout(revealTimer.current);
+    revealTimer.current = undefined;
+    setRevealed(null);
+  }
 
-  const visibleReveal = useMemo(
-    () => (revealed && revealed.expiresAt > now ? revealed : null),
-    [now, revealed],
-  );
-
-  const revealVersion = async (version: number) => {
-    if (!secret) return;
-    setError(null);
+  async function readValue(type: "reveal" | "copy", version: number) {
+    if (!mounted.current || completed.current || pendingRef.current || restoreRef.current ||
+      !versions.some((item) => item.version === version)) return;
+    const action: PendingHistoryAction = { type, version };
+    pendingRef.current = action;
+    setPending(action);
+    setActionError(null);
+    const request = new AbortController();
+    actionRequest.current = request;
+    const generation = ++sequence.current;
+    const active = () => mounted.current && sequence.current === generation && !request.signal.aborted;
     try {
-      const result = await secretsClient.revealSecret(
-        orgSlug,
-        projectSlug,
-        environment.slug,
-        secret.id,
-        { intent: "reveal", version },
-      );
-      const expiresAt = Date.now() + result.expiresIn * 1_000;
-      setNow(Date.now());
-      setRevealed({ version, value: result.value, expiresAt });
-      if (revealTimer.current) window.clearTimeout(revealTimer.current);
-      revealTimer.current = window.setTimeout(() => setRevealed(null), result.expiresIn * 1_000);
+      const result = await secretsClient.revealSecret(orgSlug, projectSlug, environment.slug, secret.id,
+        { intent: type, version }, request.signal);
+      if (!active()) return;
+      if (type === "copy") {
+        await navigator.clipboard.writeText(result.value);
+        if (!active()) return;
+        setCopiedVersion(version);
+        if (copyTimer.current !== undefined) window.clearTimeout(copyTimer.current);
+        copyTimer.current = window.setTimeout(() => { if (mounted.current) setCopiedVersion(null); }, 2_000);
+      } else {
+        hide();
+        const seconds = Number.isFinite(result.expiresIn) ? Math.min(30, Math.max(1, result.expiresIn)) : 30;
+        const time = Date.now();
+        setNow(time);
+        setRevealed({ version, value: result.value, expiresAt: time + seconds * 1_000 });
+        revealTimer.current = window.setTimeout(() => {
+          if (mounted.current) setRevealed(null);
+        }, seconds * 1_000);
+      }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not reveal this version.");
+      if (active()) setActionError({ version, message: message(requestError,
+        type === "copy" ? "Could not copy this version." : "Could not reveal this version.") });
+    } finally {
+      if (active()) {
+        pendingRef.current = null;
+        actionRequest.current = null;
+        setPending(null);
+      }
     }
-  };
+  }
 
-  const copyVersion = async (version: number) => {
-    if (!secret) return;
-    setError(null);
-    try {
-      const result = await secretsClient.revealSecret(
-        orgSlug,
-        projectSlug,
-        environment.slug,
-        secret.id,
-        { intent: "copy", version },
-      );
-      await navigator.clipboard.writeText(result.value);
-      setCopiedVersion(version);
-      if (copyTimer.current) window.clearTimeout(copyTimer.current);
-      copyTimer.current = window.setTimeout(() => setCopiedVersion(null), 2_000);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not copy this version.");
-    }
-  };
+  function openRestore(version: number) {
+    if (!mounted.current || completed.current || pendingRef.current || restoreRef.current ||
+      !versions.some((item) => item.version === version)) return;
+    const currentVersion = versions.find((item) => item.isCurrent)?.version ?? secret.version;
+    if (version === currentVersion) return;
+    const target = { version, currentVersion, revision, production: environment.isProduction };
+    restoreRef.current = target;
+    productionRef.current = false;
+    setRestoreTarget(target);
+    setProductionConfirmed(false);
+    setRestoreError(null);
+    onInteractionChange({ confirming: true, restoring: false });
+  }
 
-  const rollback = async (productionConfirmed: boolean) => {
-    if (!secret || rollbackVersion === null) return;
-    setRollingBack(true);
-    setError(null);
+  function closeRestore() {
+    if (pendingRef.current?.type === "restore") return;
+    restoreRef.current = null;
+    productionRef.current = false;
+    setRestoreTarget(null);
+    setRestoreError(null);
+    setProductionConfirmed(false);
+    onInteractionChange({ confirming: false, restoring: false });
+  }
+
+  async function restore() {
+    const target = restoreRef.current;
+    if (!mounted.current || completed.current || pendingRef.current || !target ||
+      (target.production && !productionRef.current)) return;
+    const action: PendingHistoryAction = { type: "restore", version: target.version };
+    pendingRef.current = action;
+    setPending(action);
+    setRestoreError(null);
+    onInteractionChange({ confirming: true, restoring: true });
     try {
       await secretsClient.rollback(orgSlug, projectSlug, environment.slug, secret.id, {
-        version: rollbackVersion,
-        expectedRevision: revision,
-        expectedVersion: secret.version,
-        confirmProduction: productionConfirmed,
+        version: target.version,
+        expectedRevision: target.revision,
+        expectedVersion: target.currentVersion,
+        confirmProduction: productionRef.current,
       });
-      setRollbackVersion(null);
-      setRevealed(null);
-      onRolledBack();
-      onClose();
+      if (!mounted.current) return;
+      completed.current = true;
+      hide();
+      restoreRef.current = null;
+      setRestoreTarget(null);
+      onInteractionChange({ confirming: false, restoring: false });
+      try { onRolledBack(); } finally { onClose(); }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not roll back this secret.");
+      if (mounted.current && !completed.current) setRestoreError(message(requestError, "Could not restore this version."));
     } finally {
-      setRollingBack(false);
+      if (mounted.current) {
+        pendingRef.current = null;
+        setPending(null);
+        onInteractionChange({ confirming: Boolean(restoreRef.current), restoring: false });
+      }
     }
-  };
+  }
 
-  const secondsRemaining = visibleReveal
-    ? Math.max(0, Math.ceil((visibleReveal.expiresAt - now) / 1_000))
-    : 0;
+  const visibleReveal = revealed && revealed.expiresAt > now ? revealed : null;
+  const secondsRemaining = visibleReveal ? Math.max(0, Math.ceil((visibleReveal.expiresAt - now) / 1_000)) : 0;
 
-  return (
-    <>
-      <SecretsSheet
-        open={open}
-        onClose={onClose}
-        title={secret ? `${secret.key} history` : "Version history"}
-        description="Versions contain metadata only until you explicitly reveal one."
-      >
-        <div className="space-y-4 p-5 sm:p-6">
-          {error && <SecretsNotice message={error} onDismiss={() => setError(null)} />}
-          {visibleReveal && (
-            <div className="rounded-xl border border-amber-400/20 bg-amber-400/[0.045] p-4">
-              <div className="flex items-center gap-3">
-                <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-amber-200">
-                  {visibleReveal.value}
-                </span>
-                <span className="text-[13px] tabular-nums text-amber-400">{secondsRemaining}s</span>
-                <SecretsIconButton icon={ViewOffIcon} label="Hide value" tone="quiet" onClick={() => setRevealed(null)} />
-              </div>
-              <p className="mt-2 text-[13px] text-amber-200/45">
-                Version {visibleReveal.version}. This plaintext is held only in memory and clears automatically.
-              </p>
-            </div>
-          )}
+  return <>
+    <SecretHistoryContent
+      secret={secret} environment={environment} versions={versions} loading={loading}
+      error={error} actionError={actionError} pending={pending} revealed={visibleReveal}
+      secondsRemaining={secondsRemaining} copiedVersion={copiedVersion}
+      onReveal={(version) => void readValue("reveal", version)}
+      onCopy={(version) => void readValue("copy", version)}
+      onHide={hide} onRestore={openRestore} onRetry={() => setRetry((value) => value + 1)}
+    />
+    <SecretHistoryRestoreDialog
+      open={restoreTarget !== null} secretKey={secret.key} version={restoreTarget?.version ?? null}
+      currentVersion={restoreTarget?.currentVersion ?? secret.version}
+      production={restoreTarget?.production ?? false} productionConfirmed={productionConfirmed}
+      onProductionChange={(confirmed) => {
+        if (!mounted.current || pendingRef.current || !restoreRef.current) return;
+        productionRef.current = confirmed;
+        setProductionConfirmed(confirmed);
+      }}
+      pending={pending?.type === "restore"} error={restoreError}
+      onClose={closeRestore} onConfirm={() => void restore()}
+    />
+  </>;
+}
 
-          {loading ? (
-            <div className="space-y-2 animate-pulse">
-              {[0, 1, 2].map((item) => (
-                <div key={item} className="h-24 rounded-xl border border-white/[0.07] bg-white/[0.025]" />
-              ))}
-            </div>
-          ) : versions.length === 0 ? (
-            <div className="rounded-xl border border-white/[0.08] px-5 py-12 text-center">
-              <HugeiconsIcon icon={Clock01Icon} size={21} strokeWidth={1.6} className="mx-auto text-zinc-500" />
-              <p className="mt-3 text-[13px] text-zinc-500">No versions are available.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {versions.map((version, index) => {
-                const current = version.isCurrent || version.version === secret?.version || index === 0;
-                return (
-                  <article key={version.id} className="rounded-xl border border-white/[0.08] bg-white/[0.018] p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-zinc-500">
-                        <HugeiconsIcon icon={current ? CheckmarkCircle02Icon : Clock01Icon} size={17} strokeWidth={1.7} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-[13px] font-medium text-zinc-300">Version {version.version}</p>
-                          {current && <SecretsBadge tone="green">Current</SecretsBadge>}
-                        </div>
-                        <p className="mt-1.5 text-[13px] leading-4 text-zinc-500">
-                          {formatSecretDate(version.createdAt)}{version.createdBy ? ` by ${version.createdBy}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-white/[0.06] pt-3">
-                      <SecretsButton icon={ViewIcon} className="h-9 px-3" onClick={() => void revealVersion(version.version)}>
-                        Reveal
-                      </SecretsButton>
-                      <SecretsButton icon={copiedVersion === version.version ? CheckmarkCircle02Icon : Copy01Icon} className="h-9 px-3" onClick={() => void copyVersion(version.version)}>
-                        {copiedVersion === version.version ? "Copied" : "Copy"}
-                      </SecretsButton>
-                      {!current && (
-                        <SecretsButton icon={RefreshIcon} className="h-9 px-3" onClick={() => setRollbackVersion(version.version)}>
-                          Roll back
-                        </SecretsButton>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </SecretsSheet>
-
-      <ConfirmSecretActionDialog
-        open={rollbackVersion !== null}
-        onClose={() => setRollbackVersion(null)}
-        title={`Roll back to version ${rollbackVersion ?? ""}?`}
-        description="Rollback creates a new version from the selected value. Existing version history remains intact."
-        confirmLabel="Roll back"
-        production={environment.isProduction}
-        danger={false}
-        loading={rollingBack}
-        onConfirm={(confirmed) => void rollback(confirmed)}
-      />
-    </>
-  );
+function message(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
