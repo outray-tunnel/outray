@@ -120,6 +120,9 @@ test("both headers share small typography, full action labels, and clickable pla
     );
     assert.match(html, /text-\[20px\] font-normal/);
     assert.match(html, /aria-haspopup="dialog"/);
+    const button = html.match(/<button\b[^>]*>/)?.[0];
+    assert.ok(button);
+    assert.match(button, /class="[^"]*\bmd\b/);
     assert.ok(html.includes(`aria-label="${label} (plan limit reached)"`));
     assert.match(html, /5<\/span> of 5 used/);
     assert.doesNotMatch(html, /disabled=""|text-2xl|rounded-full/);
@@ -191,6 +194,16 @@ test("failed requests and empty histories have distinct accessible actions", () 
   );
   assert.doesNotMatch(empty, /role="alert"/);
   assert.match(empty, /No matching domains|Clear filters/);
+});
+
+test("empty address creation uses md while retry and clear actions stay compact", () => {
+  for (const actionSize of ["md", "sm"] as const) {
+    const html = renderToStaticMarkup(React.createElement(AddressEmptyState, {
+      title: "No addresses", description: "Add an address", action: "Add domain",
+      actionSize, onAction() {},
+    }));
+    assert.ok(html.match(/<button\b[^>]*>/)?.[0].includes(` ${actionSize} `));
+  }
 });
 
 type Mutation = {
