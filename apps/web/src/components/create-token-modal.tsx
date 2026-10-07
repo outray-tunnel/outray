@@ -22,6 +22,7 @@ interface CreateTokenModalProps {
   orgSlug: string;
   defaultName?: string;
   defaultScopes?: AuthToken["scopes"];
+  actionSize?: "sm" | "md";
 }
 
 interface ProjectOption {
@@ -83,6 +84,7 @@ export function CreateTokenModal({
   orgSlug,
   defaultName = "",
   defaultScopes = ["tunnel:connect"],
+  actionSize = "md",
 }: CreateTokenModalProps) {
   const queryClient = useQueryClient();
   const [name, setName] = useState(defaultName);
@@ -306,7 +308,7 @@ export function CreateTokenModal({
             </div>
           </ModalContent>
           <ModalFooter>
-            <Button onClick={resetAndClose}>Done</Button>
+            <Button size={actionSize} onClick={resetAndClose}>Done</Button>
           </ModalFooter>
         </>
       ) : (
@@ -462,10 +464,10 @@ export function CreateTokenModal({
             )}
           </ModalContent>
           <ModalFooter>
-            <Button type="button" variant="ghost" onClick={resetAndClose}>
+            <Button type="button" variant="ghost" size={actionSize} onClick={resetAndClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!canSubmit} isLoading={isCreating}>
+            <Button type="submit" size={actionSize} disabled={!canSubmit} isLoading={isCreating}>
               Create token
             </Button>
           </ModalFooter>
