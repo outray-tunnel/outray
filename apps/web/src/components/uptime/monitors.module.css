@@ -1,0 +1,19 @@
+.form { display: flex; min-width: 0; flex-direction: column; gap: 20px; }
+.fields { display: flex; min-width: 0; flex-direction: column; gap: 18px; margin: 0; border: 0; padding: 0; }
+.field { display: flex; min-width: 0; flex-direction: column; gap: 7px; }
+.field > label { color: #d4d4d8; font-size: 12px; font-weight: 500; line-height: 1.6; }
+.field > label > span { margin-left: 5px; color: #71717a; font-size: 11px; font-weight: 400; }
+.field > p { margin: 0; color: #71717a; font-size: 11px; line-height: 1.7; }
+.headers { border: 1px solid rgba(255, 255, 255, .07); border-radius: 10px; background: rgba(255, 255, 255, .012); }
+.headers > summary { display: flex; min-height: 44px; align-items: center; gap: 8px; border-radius: 10px; padding: 11px 12px; color: #a1a1aa; font-size: 12px; list-style: none; cursor: pointer; transition: background-color 120ms ease; }
+.headers > summary::-webkit-details-marker { display: none; }
+.headers > summary:hover { background: rgba(255, 255, 255, .025); }
+.headers > summary:focus-visible { outline: 2px solid #a1a1aa; outline-offset: 3px; }
+.headers > summary > small { margin-left: auto; color: #71717a; font-size: 10px; }
+.headerFields { display: flex; flex-direction: column; gap: 14px; border-top: 1px solid rgba(255, 255, 255, .06); padding: 14px 12px; }
+.headerFields > p { margin: 0; color: #71717a; font-size: 11px; line-height: 1.7; }
+.headerInput.headerInput { font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace); font-size: 12px; }
+.section { border-top: 1px solid rgba(255, 255, 255, .07); padding-top: 20px; }
+.checkboxChoice { display: flex; min-height: 32px; align-items: center; gap: 9px; color: #d4d4d8; font-size: 12px; line-height: 1.6; cursor: pointer; }
+.fields:disabled .checkboxChoice { cursor: not-allowed; opacity: .5; }
+@media (prefers-reduced-motion: reduce) { .headers > summary { transition: none; } }
