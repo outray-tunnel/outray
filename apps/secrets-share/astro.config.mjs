@@ -6,6 +6,11 @@ export default defineConfig({
   output: "server",
   adapter: node({ mode: "standalone" }),
   integrations: [react()],
+  vite: {
+    // Hoisted UI dependencies must share the app's React instance.
+    resolve: { dedupe: ["react", "react-dom"] },
+    ssr: { noExternal: ["motion", "framer-motion", /^@radix-ui\//] },
+  },
   site: process.env.SHARE_PUBLIC_ORIGIN || "http://localhost:4324",
   server: {
     host: process.env.HOST || "0.0.0.0",
