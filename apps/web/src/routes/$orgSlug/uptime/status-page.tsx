@@ -9,7 +9,7 @@ import { UptimeHeaderSkeleton, UptimeSkeleton, UptimeSummarySkeleton } from "@/c
 import { useStatusPageEditor } from "@/components/uptime/status-page-editor-context";
 import { StatusPageEditorProvider } from "@/components/uptime/status-page-editor-provider";
 import { labelClass, secondaryButton, StateBadge, UptimeCheckbox, UptimeError, UptimePageHeading, UptimePanel } from "@/components/uptime/uptime-ui";
-import { statusPageUrl } from "@/lib/uptime/status-url";
+import { preferredStatusPageUrl, statusPageUrl } from "@/lib/uptime/status-url";
 import { moveStatusLayout, type StatusLayout } from "@/lib/uptime/status-layout";
 import { WorkspaceInput, WorkspaceTextarea } from "@/components/ui/workspace-input";
 import { Button } from "@/components/arc/button/button";
@@ -68,7 +68,7 @@ function WorkspaceStatusPage({ orgSlug }: { orgSlug: string }) {
           <div className="flex flex-wrap items-center gap-2.5"><h1 className="min-w-0 break-words text-[20px] font-normal tracking-[-0.035em] text-zinc-100">{page.name}</h1><span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] ${page.published ? "border-emerald-400/15 bg-emerald-400/[0.06] text-emerald-300" : "border-white/[0.08] bg-white/[0.025] text-zinc-400"}`}><span className="size-1.5 rounded-full bg-current" aria-hidden="true" />{page.published ? "Published" : "Draft"}</span></div>
           <p className="mt-1 text-[12px] leading-5 text-zinc-500">Components, branding, and a home for your public updates.</p>
         </div>
-        {page.published && <a className={`${secondaryButton} gap-2`} href={statusPageUrl(statusBase, page.slug)} target="_blank" rel="noopener noreferrer">View page <ExternalLink size={14} aria-hidden="true" /></a>}
+        {page.published && <a className={`${secondaryButton} gap-2`} href={preferredStatusPageUrl(statusBase, page)} target="_blank" rel="noopener noreferrer">View page <ExternalLink size={14} aria-hidden="true" /></a>}
       </header>
       <nav aria-label="Status page sections" className="mb-6 border-b border-white/[0.07] pb-4"><SegmentedControl label="Status page section" options={editorTabs.map(({ label }) => ({ value: label, label }))} value={selectedTab} onValueChange={(label) => { const tab = editorTabs.find((item) => item.label === label); if (tab) void navigate({ to: tab.to, params: { orgSlug } }); }} /></nav>
       {monitorData.error && ["Components", "Overview"].includes(selectedTab) && <div className="mb-4 space-y-2"><UptimeError message={monitorData.error} /><Button type="button" variant="secondary" size="sm" onClick={monitorData.reload}>Retry monitors</Button></div>}
@@ -84,7 +84,7 @@ export function StatusPageOverview() {
     ...groups.filter((group) => group.visible).flatMap((group) => group.components.filter((component) => component.visible)),
   ];
   const linked = visible.filter((component) => component.monitorIds.length > 0);
-  const publicUrl = statusPageUrl(statusBase, page.slug);
+  const publicUrl = preferredStatusPageUrl(statusBase, page);
   return <div className="space-y-4">
     <div className="grid gap-3 sm:grid-cols-3">
       {[{ label: "Visible components", value: visible.length, detail: `${standaloneComponents.filter((component) => component.visible).length} standalone · ${groups.filter((group) => group.visible).length} groups` }, { label: "Connected monitors", value: new Set(linked.flatMap((component) => component.monitorIds)).size, detail: monitorsLoaded ? `of ${monitors.length} monitors` : "Linked to visible components" }, { label: "Page visibility", value: page.published ? "Live" : "Draft", detail: page.published ? "Available to visitors" : "Not publicly available" }].map((item) => <UptimePanel key={item.label} className="p-4"><p className="text-[12px] text-zinc-500">{item.label}</p><p className="mt-2 text-[24px] font-normal tracking-tight text-zinc-100">{item.value}</p><p className="mt-1 text-[11px] text-zinc-600">{item.detail}</p></UptimePanel>)}
