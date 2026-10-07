@@ -16,7 +16,9 @@ import {
   organizationKeyForVersion,
   resolveEnvironment,
   resolveProject,
+  resolveSecretForReveal,
   transactionKeyForVersion,
+  transactionSecretVersionForReveal,
 } from "./database";
 import { decryptSecretValue, encryptSecretValue } from "./crypto";
 import type { SecretsAccess } from "./types";
@@ -757,12 +759,12 @@ export async function revealSecret(
   secretId: string,
   input: Record<string, unknown>,
 ) {
-  const { project, environment } = await resolveContext(
+  const { project, environment, entry } = await resolveSecretForReveal(
     access,
     projectSlug,
     environmentSlug,
+    secretId,
   );
-  const entry = await resolveEntry(access, environment, secretId);
   const intent = input.intent;
   if (intent !== "reveal" && intent !== "copy") {
     throw new SecretsError("intent must be reveal or copy", {
@@ -814,26 +816,11 @@ export async function revealSecret(
       });
     }
     const versionNumber = requestedVersion ?? lockedEntry.currentVersion;
-    const [version] = await tx
-      .select()
-      .from(secretVersions)
-      .where(
-        and(
-          eq(secretVersions.entryId, lockedEntry.id),
-          eq(secretVersions.version, versionNumber),
-        ),
-      )
-      .limit(1);
-    if (!version) {
-      throw new SecretsError("Secret version not found", {
-        code: "NOT_FOUND",
-        status: 404,
-      });
-    }
-    const organizationKey = await transactionKeyForVersion(
+    const { version, organizationKey } = await transactionSecretVersionForReveal(
       tx,
       access.organization.id,
-      version.organizationKeyVersion,
+      lockedEntry.id,
+      versionNumber,
     );
     let value: string;
     try {
