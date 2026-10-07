@@ -49,14 +49,20 @@ connectDb();
 const db = drizzle(pool);
 
 const app = express();
-const port = process.env.INTERNAL_CHECK_PORT || process.env.PORT || 3001;
+const port = process.env.INTERNAL_CHECK_PORT || process.env.PORT || 3344;
 
 app.get("/internal/domain-check", async (req, res) => {
-  const domain = typeof req.query.domain === "string"
-    ? req.query.domain.toLowerCase().replace(/\.$/, "")
-    : "";
+  const domain =
+    typeof req.query.domain === "string"
+      ? req.query.domain.toLowerCase().replace(/\.$/, "")
+      : "";
 
-  if (!domain || domain.length > 253 || !/^[a-z0-9.-]+$/.test(domain) || domain.includes("..")) {
+  if (
+    !domain ||
+    domain.length > 253 ||
+    !/^[a-z0-9.-]+$/.test(domain) ||
+    domain.includes("..")
+  ) {
     return res.status(400).send(); // Caddy expects 200 for allow, non-200 for deny
   }
 
@@ -82,7 +88,8 @@ app.get("/internal/domain-check", async (req, res) => {
     // fail-closed check also protects the catch-all on-demand TLS path.
     if (isStatusNamespaceHost(domain)) {
       const slug = statusPageSlugFromHost(domain);
-      if (process.env.UPTIME_ENABLED !== "true" || !slug) return res.status(403).send();
+      if (process.env.UPTIME_ENABLED !== "true" || !slug)
+        return res.status(403).send();
       const page = await pool.query(
         "SELECT 1 FROM uptime_status_pages WHERE slug = $1 AND published = true LIMIT 1",
         [slug],
@@ -114,11 +121,17 @@ app.get("/internal/domain-check", async (req, res) => {
       .where(eq(domains.domain, domain))
       .limit(1);
 
-    if (customDomain?.status === "active" && customDomain.purpose === "tunnel") {
+    if (
+      customDomain?.status === "active" &&
+      customDomain.purpose === "tunnel"
+    ) {
       return res.status(200).send();
     }
 
-    if (customDomain?.status === "active" && customDomain.purpose === "status") {
+    if (
+      customDomain?.status === "active" &&
+      customDomain.purpose === "status"
+    ) {
       const statusPage = await pool.query(
         "SELECT 1 FROM uptime_status_pages WHERE domain_id = $1 AND published = true LIMIT 1",
         [customDomain.id],
