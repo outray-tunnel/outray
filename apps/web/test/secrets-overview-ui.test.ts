@@ -26,6 +26,19 @@ import type {
 
 Object.assign(globalThis, { React });
 
+test("overview vault launchers use the medium size in the header and empty state", () => {
+  const emptyData = { ...data, projectCount: 0, environmentCount: 0, secretCount: 0, projects: [] };
+  for (const html of [render(), render({ data: emptyData })]) {
+    const launchers = [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)]
+      .map(([button]) => button).filter((button) => /New vault|Create vault/.test(button));
+    assert.ok(launchers.length > 0);
+    for (const button of launchers) {
+      assert.match(button, /class="button (?:primary|secondary) md(?:\s|")/);
+      assert.match(button, /aria-haspopup="dialog"/);
+    }
+  }
+});
+
 function environment(index: number, overrides: Partial<SecretEnvironment> = {}): SecretEnvironment {
   return {
     id: `environment-${index}`,
