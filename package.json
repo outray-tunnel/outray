@@ -29,6 +29,8 @@
     "seed:dev": "dotenv -e .env -- node scripts/with-tinybird.mjs node scripts/seed-development.mjs",
     "seed:uptime:dev": "dotenv -e .env -- node scripts/seed-uptime-development.mjs",
     "seed:secrets:dev": "tsx scripts/seed-secrets-development.mjs",
+    "load:k6": "k6 run load/k6/outray-rehearsal.js",
+    "load:k6:smoke": "K6_PROFILE=smoke k6 run load/k6/outray-rehearsal.js",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",

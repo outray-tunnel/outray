@@ -1,5 +1,5 @@
 import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
-import { db } from "../../db";
+import { db, pool } from "../../db";
 import {
   secretDeletionBatches,
   secretAuditEvents,
@@ -24,6 +24,24 @@ import {
   lockOrganization,
   resolveProject,
 } from "./database";
+
+const dbTimingEnabled = process.env.NODE_ENV !== "production";
+
+async function timedDb<T>(label: string, query: Promise<T>): Promise<T> {
+  if (!dbTimingEnabled) return query;
+  const startedAt = performance.now();
+  const result = await query;
+  console.info("[secrets-db]", JSON.stringify({
+    label,
+    durationMs: Math.round((performance.now() - startedAt) * 100) / 100,
+    pool: {
+      total: pool.totalCount,
+      idle: pool.idleCount,
+      waiting: pool.waitingCount,
+    },
+  }));
+  return result;
+}
 
 function serializeProject(
   row: typeof secretProjects.$inferSelect,
@@ -72,6 +90,18 @@ function serializeEnvironment(
   };
 }
 
+type OverviewProject = ReturnType<typeof serializeProject> & {
+  environments: Array<ReturnType<typeof serializeEnvironment>>;
+};
+
+type OverviewActivity = {
+  id: string;
+  action: string;
+  targetType: string;
+  targetName: string | null;
+  createdAt: Date | string;
+};
+
 async function projectCounts(access: SecretsAccess, projectIds: string[]) {
   if (!projectIds.length) {
     return {
@@ -82,7 +112,7 @@ async function projectCounts(access: SecretsAccess, projectIds: string[]) {
       >,
     };
   }
-  const environments = await db
+  const environments = await timedDb("projectCounts.environments", db
     .select()
     .from(secretEnvironments)
     .where(
@@ -95,9 +125,9 @@ async function projectCounts(access: SecretsAccess, projectIds: string[]) {
           : []),
       ),
     )
-    .orderBy(asc(secretEnvironments.name));
+    .orderBy(asc(secretEnvironments.name)));
   const secretRows = environments.length
-    ? await db
+    ? await timedDb("projectCounts.secretCounts", db
         .select({
           projectId: secretEntries.projectId,
           environmentId: secretEntries.environmentId,
@@ -115,7 +145,7 @@ async function projectCounts(access: SecretsAccess, projectIds: string[]) {
             isNull(secretEntries.deletedAt),
           ),
         )
-        .groupBy(secretEntries.projectId, secretEntries.environmentId)
+        .groupBy(secretEntries.projectId, secretEntries.environmentId))
     : [];
   const environmentCounts = new Map(
     secretRows.map((row) => [row.environmentId, row.total]),
@@ -152,15 +182,15 @@ export async function listProjects(access: SecretsAccess) {
   if (access.actor.type === "machine" && access.actor.projectId) {
     conditions.push(eq(secretProjects.id, access.actor.projectId));
   }
-  const rows = await db
+  const rows = await timedDb("listProjects.projects", db
     .select()
     .from(secretProjects)
     .where(and(...conditions))
-    .orderBy(asc(secretProjects.name));
-  const counts = await projectCounts(
+    .orderBy(asc(secretProjects.name)));
+  const counts = await timedDb("listProjects.counts", projectCounts(
     access,
     rows.map((row) => row.id),
-  );
+  ));
   return rows.map((row) => ({
     ...serializeProject(
       row,
@@ -943,98 +973,169 @@ export async function deleteEnvironment(
 }
 
 export async function getOverview(access: SecretsAccess) {
-  const projects = await listProjects(access);
-  const projectIds = projects.map((project) => project.id);
-  const trashConditions = [
-    eq(secretDeletionBatches.organizationId, access.organization.id),
-    eq(secretDeletionBatches.status, "active"),
-  ];
-  const activityConditions = [
-    eq(secretAuditEvents.organizationId, access.organization.id),
-  ];
-  if (access.actor.type === "machine" && access.actor.projectId) {
-    trashConditions.push(
-      eq(secretDeletionBatches.projectId, access.actor.projectId),
-    );
-    activityConditions.push(
-      eq(secretAuditEvents.projectId, access.actor.projectId),
-    );
-  }
-  if (access.actor.type === "machine" && access.actor.environmentId) {
-    trashConditions.push(
-      eq(secretDeletionBatches.environmentId, access.actor.environmentId),
-    );
-    activityConditions.push(
-      eq(secretAuditEvents.environmentId, access.actor.environmentId),
-    );
-  }
-  const [[environmentTotal], [secretTotal], [trashTotal], activity, keyEvent] =
-    await Promise.all([
-      projectIds.length
-        ? db
-            .select({ total: count() })
-            .from(secretEnvironments)
-            .where(
-              and(
-                eq(secretEnvironments.organizationId, access.organization.id),
-                inArray(secretEnvironments.projectId, projectIds),
-                ...(access.actor.type === "machine" &&
-                access.actor.environmentId
-                  ? [eq(secretEnvironments.id, access.actor.environmentId)]
-                  : []),
-                isNull(secretEnvironments.deletedAt),
-              ),
-            )
-        : Promise.resolve([{ total: 0 }]),
-      projectIds.length
-        ? db
-            .select({ total: count() })
-            .from(secretEntries)
-            .where(
-              and(
-                eq(secretEntries.organizationId, access.organization.id),
-                inArray(secretEntries.projectId, projectIds),
-                ...(access.actor.type === "machine" &&
-                access.actor.environmentId
-                  ? [
-                      eq(
-                        secretEntries.environmentId,
-                        access.actor.environmentId,
-                      ),
-                    ]
-                  : []),
-                isNull(secretEntries.deletedAt),
-              ),
-            )
-        : Promise.resolve([{ total: 0 }]),
-      db
-        .select({ total: count() })
-        .from(secretDeletionBatches)
-        .where(and(...trashConditions)),
-      db
-        .select({
-          id: secretAuditEvents.id,
-          action: secretAuditEvents.action,
-          targetType: secretAuditEvents.targetType,
-          targetName: secretAuditEvents.targetName,
-          createdAt: secretAuditEvents.createdAt,
-        })
-        .from(secretAuditEvents)
-        .where(and(...activityConditions))
-        .orderBy(desc(secretAuditEvents.createdAt), desc(secretAuditEvents.id))
-        .limit(10),
-      latestOrganizationKeyEvent(access.organization.id),
-    ]);
+  const projectScope =
+    access.actor.type === "machine" && access.actor.projectId
+      ? sql`and p.id = ${access.actor.projectId}`
+      : sql``;
+  const environmentScope =
+    access.actor.type === "machine" && access.actor.environmentId
+      ? sql`and e.id = ${access.actor.environmentId}`
+      : sql``;
+  const trashScope =
+    access.actor.type === "machine" && access.actor.projectId
+      ? sql`and d.project_id = ${access.actor.projectId}`
+      : sql``;
+  const trashEnvironmentScope =
+    access.actor.type === "machine" && access.actor.environmentId
+      ? sql`and d.environment_id = ${access.actor.environmentId}`
+      : sql``;
+  const activityScope =
+    access.actor.type === "machine" && access.actor.projectId
+      ? sql`and a.project_id = ${access.actor.projectId}`
+      : sql``;
+  const activityEnvironmentScope =
+    access.actor.type === "machine" && access.actor.environmentId
+      ? sql`and a.environment_id = ${access.actor.environmentId}`
+      : sql``;
+
+  const [row] = (
+    await timedDb(
+      "getOverview.query",
+      db.execute(sql`
+        with active_projects as (
+          select p.*
+          from secret_projects p
+          where p.organization_id = ${access.organization.id}
+            and p.deleted_at is null
+            ${projectScope}
+        ),
+        active_environments as (
+          select e.*
+          from secret_environments e
+          join active_projects p on p.id = e.project_id
+          where e.organization_id = ${access.organization.id}
+            and e.deleted_at is null
+            ${environmentScope}
+        ),
+        secret_counts as (
+          select se.environment_id, count(*)::int as total
+          from secret_entries se
+          join active_environments e on e.id = se.environment_id
+          where se.organization_id = ${access.organization.id}
+            and se.deleted_at is null
+          group by se.environment_id
+        ),
+        project_rows as (
+          select
+            p.id,
+            p.name,
+            p.slug,
+            p.description,
+            p.created_at,
+            p.updated_at,
+            count(e.id)::int as environment_count,
+            coalesce(sum(sc.total), 0)::int as secret_count,
+            coalesce(
+              jsonb_agg(
+                jsonb_build_object(
+                  'id', e.id,
+                  'name', e.name,
+                  'slug', e.slug,
+                  'description', e.description,
+                  'isProduction', e.is_production,
+                  'revision', e.revision,
+                  'secretCount', coalesce(sc.total, 0),
+                  'createdAt', e.created_at,
+                  'updatedAt', e.updated_at
+                ) order by e.name
+              ) filter (where e.id is not null),
+              '[]'::jsonb
+            ) as environments
+          from active_projects p
+          left join active_environments e on e.project_id = p.id
+          left join secret_counts sc on sc.environment_id = e.id
+          group by p.id, p.name, p.slug, p.description, p.created_at, p.updated_at
+        ),
+        recent_activity as (
+          select coalesce(
+            jsonb_agg(
+              jsonb_build_object(
+                'id', recent.id,
+                'action', recent.action,
+                'targetType', recent.target_type,
+                'targetName', recent.target_name,
+                'createdAt', recent.created_at
+              ) order by recent.created_at desc, recent.id desc
+            ),
+            '[]'::jsonb
+          ) as events
+          from (
+            select a.id, a.action, a.target_type, a.target_name, a.created_at
+            from secret_audit_events a
+            where a.organization_id = ${access.organization.id}
+              ${activityScope}
+              ${activityEnvironmentScope}
+            order by a.created_at desc, a.id desc
+            limit 10
+          ) recent
+        )
+        select
+          coalesce(jsonb_agg(
+            jsonb_build_object(
+              'id', pr.id,
+              'name', pr.name,
+              'slug', pr.slug,
+              'description', pr.description,
+              'environmentCount', pr.environment_count,
+              'secretCount', pr.secret_count,
+              'createdAt', pr.created_at,
+              'updatedAt', pr.updated_at,
+              'environments', pr.environments
+            ) order by pr.name
+          ), '[]'::jsonb) as projects,
+          count(pr.id)::int as project_count,
+          coalesce(sum(pr.environment_count), 0)::int as environment_count,
+          coalesce(sum(pr.secret_count), 0)::int as secret_count,
+          (
+            select count(*)::int
+            from secret_deletion_batches d
+            where d.organization_id = ${access.organization.id}
+              and d.status = 'active'
+              ${trashScope}
+              ${trashEnvironmentScope}
+          ) as deleted_item_count,
+          (
+            select coalesce(k.rewrapped_at, k.created_at)
+            from secret_organization_keys k
+            where k.organization_id = ${access.organization.id}
+            order by k.version desc
+            limit 1
+          ) as last_rotation_at,
+          recent_activity.events as recent_activity
+        from recent_activity
+        left join project_rows pr on true
+        group by recent_activity.events
+      `),
+    )
+  ).rows as Array<{
+    projects: OverviewProject[];
+    project_count: number;
+    environment_count: number;
+    secret_count: number;
+    deleted_item_count: number;
+    last_rotation_at: Date | null;
+    recent_activity: OverviewActivity[];
+  }>;
 
   return {
     summary: {
-      projects: projects.length,
-      environments: environmentTotal?.total ?? 0,
-      secrets: secretTotal?.total ?? 0,
-      deletedItems: trashTotal?.total ?? 0,
-      lastRotationAt: keyEvent?.rewrappedAt ?? keyEvent?.createdAt ?? null,
+      projects: row?.project_count ?? 0,
+      environments: row?.environment_count ?? 0,
+      secrets: row?.secret_count ?? 0,
+      deletedItems: row?.deleted_item_count ?? 0,
+      lastRotationAt: row?.last_rotation_at ?? null,
     },
-    projects,
-    recentActivity: activity,
+    projects: row?.projects ?? [],
+    recentActivity: row?.recent_activity ?? [],
   };
 }
