@@ -227,6 +227,7 @@ function DomainsPage({ orgSlug }: { orgSlug: string }) {
             title="Make the address yours"
             description="Connect a subdomain such as api.example.com, add your DNS records, and verify ownership."
             action={isAtLimit && isReady ? "View plan limits" : "Add domain"}
+            actionSize="md"
             onAction={openCreate}
             disabled={!isReady}
           />
