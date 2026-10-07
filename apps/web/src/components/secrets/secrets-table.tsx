@@ -264,7 +264,7 @@ export function SecretsTable({
         <HugeiconsIcon icon={Key01Icon} size={22} strokeWidth={1.7} className="mx-auto text-zinc-500" aria-hidden="true" />
         <h3 className="mt-3 text-[14px] font-medium text-zinc-200">No secrets in this environment</h3>
         <p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-zinc-500">Add a secret or import a dotenv file. Values stay encrypted and hidden by default.</p>
-        <Button type="button" variant="secondary" size="sm" className="mt-4" aria-haspopup="dialog" onClick={onAdd}><Plus size={13} aria-hidden="true" />Add first secret</Button>
+        <Button type="button" variant="secondary" size="md" className="mt-4" aria-haspopup="dialog" onClick={onAdd}><Plus size={13} aria-hidden="true" />Add first secret</Button>
       </div>
     </div>;
   }
@@ -282,9 +282,9 @@ export function SecretsTable({
 
       {selected.length > 0 && <div className={`flex flex-wrap items-center gap-2 border-b border-white/[0.07] bg-white/[0.025] px-4 py-2.5 ${scrollRows ? "shrink-0" : ""}`} role="toolbar" aria-label="Selected secrets actions">
         <span className="mr-auto text-[12px] tabular-nums text-zinc-300">{selected.length.toLocaleString()} selected</span>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setBulkAction("move")}>Move to</Button>
-        {canShare && selected.length <= 50 && <Button type="button" variant="ghost" size="sm" onClick={() => setBulkAction("share")}>Share</Button>}
-        <Button type="button" variant="danger" size="sm" onClick={() => setBulkAction("delete")}>Delete</Button>
+        <Button type="button" variant="ghost" size="md" aria-haspopup="dialog" onClick={() => setBulkAction("move")}>Move to</Button>
+        {canShare && selected.length <= 50 && <Button type="button" variant="ghost" size="md" aria-haspopup="dialog" onClick={() => setBulkAction("share")}>Share</Button>}
+        <Button type="button" variant="danger" size="md" aria-haspopup="dialog" onClick={() => setBulkAction("delete")}>Delete</Button>
         <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedIds([])}>Clear</Button>
       </div>}
 
