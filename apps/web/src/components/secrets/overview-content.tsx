@@ -38,7 +38,7 @@ export function SecretsOverviewContent({ orgSlug, data, loading, isFetching, err
         <h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Overview</h1>
         <p className="mt-1 text-[12px] text-zinc-500">Vaults, environments, and recent changes.</p>
       </div>
-      <Button size="sm" aria-haspopup="dialog" onClick={onCreate}><Plus size={14} aria-hidden="true" />New vault</Button>
+      <Button size="md" aria-haspopup="dialog" onClick={onCreate}><Plus size={14} aria-hidden="true" />New vault</Button>
     </header>
 
     {error && data && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-400/15 bg-amber-400/[0.035] px-4 py-2.5 text-[12px] text-amber-100/75">
@@ -75,7 +75,7 @@ export function SecretsOverviewContent({ orgSlug, data, loading, isFetching, err
             <FolderKey size={24} className="mx-auto text-zinc-500" aria-hidden="true" />
             <h3 className="mt-3 text-[14px] font-medium text-zinc-200">Create your first vault</h3>
             <p className="mx-auto mt-1 max-w-xs text-[12px] leading-5 text-zinc-500">Give an application a home for its secrets, then separate values by environment.</p>
-            <Button variant="secondary" size="sm" className="mt-4" onClick={onCreate}><Plus size={13} aria-hidden="true" />Create vault</Button>
+            <Button variant="secondary" size="md" className="mt-4" aria-haspopup="dialog" onClick={onCreate}><Plus size={13} aria-hidden="true" />Create vault</Button>
           </div> : <>
             <div className="flex flex-wrap items-center gap-2">
               <div className="outray-arc-requests-search min-w-0 flex-1 basis-[180px]"><SearchField appearance="workspace" label="Search vaults" value={searchInput} onValueChange={onSearchInputChange} placeholder="Find a vault or environment…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
