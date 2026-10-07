@@ -1,73 +1,92 @@
-import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { HugeiconsIcon } from "@hugeicons/react";
-import LinkSquare01Icon from "@hugeicons-pro/core-stroke-rounded/LinkSquare01Icon";
+import { useEffect, useRef, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePermission } from "@/lib/auth-client";
 import { secretsClient, type SecretShareRecord } from "@/lib/secrets-client";
 import { ConfirmSecretActionDialog } from "@/components/secrets/secret-dialogs";
-import { useSecretsResource } from "@/components/secrets/use-secrets-resource";
-import { SecretsButton, SecretsEmptyState, SecretsHeader, SecretsNotice, SecretsPage, SecretsSkeleton } from "@/components/secrets/secrets-ui";
+import { SecretsSharesContent } from "@/components/secrets/shares-content";
+import type { SharesView } from "@/components/secrets/shares-data";
 
 export const Route = createFileRoute("/$orgSlug/secrets/shares")({
   head: () => ({ meta: [{ title: "Shares - OutRay Secrets" }] }),
   component: SharesPage,
 });
 
-function shareState(share: SecretShareRecord): { label: string; className: string } {
-  if (share.revokedAt) return { label: "Revoked", className: "text-zinc-500" };
-  if (new Date(share.expiresAt).getTime() <= Date.now()) return { label: "Expired", className: "text-zinc-500" };
-  if (share.views >= share.maxViews) return { label: "Used up", className: "text-zinc-500" };
-  return { label: "Active", className: "text-emerald-400" };
-}
-
 function SharesPage() {
   const { orgSlug } = Route.useParams();
-  const { data: canManage, isPending } = usePermission({ secretShare: ["create"] });
-  const resource = useSecretsResource(() => canManage ? secretsClient.shares(orgSlug) : Promise.resolve([]), [orgSlug, canManage]);
+  return <WorkspaceSharesPage key={orgSlug} orgSlug={orgSlug} />;
+}
+
+export function WorkspaceSharesPage({ orgSlug }: { orgSlug: string }) {
+  const navigate = Route.useNavigate();
+  const queryClient = useQueryClient();
+  const { data: canManage, isPending: permissionPending } = usePermission({ secretShare: ["create"] });
+  const queryKey = ["secrets", orgSlug, "shares"];
+  const query = useQuery({
+    queryKey,
+    queryFn: () => secretsClient.shares(orgSlug),
+    enabled: !permissionPending && Boolean(canManage),
+    staleTime: 15_000,
+  });
+  const [search, setSearch] = useState("");
+  const [view, setView] = useState<SharesView>("all");
+  const [now, setNow] = useState(Date.now);
   const [revoking, setRevoking] = useState<SecretShareRecord | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const pending = useRef(false);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    const tick = () => { if (!document.hidden) setNow(Date.now()); };
+    const timer = window.setInterval(tick, 60_000);
+    window.addEventListener("focus", tick);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      mounted.current = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", tick);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
 
   const revoke = async () => {
-    if (!revoking) return;
+    if (!revoking || pending.current || !canManage) return;
+    const share = revoking;
+    pending.current = true;
     setBusy(true);
     setError(null);
     try {
-      await secretsClient.revokeShare(orgSlug, revoking.id);
+      await secretsClient.revokeShare(orgSlug, share.id);
+      if (!mounted.current) return;
+      // A pre-revocation refresh must not overwrite the confirmed result.
+      await queryClient.cancelQueries({ queryKey });
+      if (!mounted.current) return;
+      queryClient.setQueryData<SecretShareRecord[]>(queryKey, (shares) => shares?.map((record) => record.id === share.id ? { ...record, revokedAt: new Date().toISOString() } : record));
       setRevoking(null);
-      resource.reload();
+      setNotice("Share revoked. The link can no longer reveal secrets.");
+      void query.refetch();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not revoke this share.");
+      if (mounted.current) setError(cause instanceof Error ? cause.message : "Could not revoke this share.");
     } finally {
-      setBusy(false);
+      pending.current = false;
+      if (mounted.current) setBusy(false);
     }
   };
 
-  return <SecretsPage>
-    <SecretsHeader title="Shares" description="Links created from this organization. The complete viewing link is shown only once, at creation." />
-    {error && <SecretsNotice message={error} onDismiss={() => setError(null)} />}
-    {isPending || resource.loading && !resource.data ? <SecretsSkeleton rows={4} cards={0} /> : !canManage ?
-      <SecretsEmptyState icon={LinkSquare01Icon} title="Shares are managed by admins" description="Ask an organization owner or admin to create or revoke secret shares." /> :
-      resource.error && !resource.data ? <SecretsEmptyState icon={LinkSquare01Icon} title="Could not load shares" description={resource.error} action={<SecretsButton onClick={resource.reload}>Try again</SecretsButton>} /> :
-      (resource.data || []).length === 0 ? <SecretsEmptyState icon={LinkSquare01Icon} title="No shares yet" description="Select secrets in a vault environment and choose Share to create an encrypted link." action={<Link to="/$orgSlug/secrets/vaults" params={{ orgSlug }}><SecretsButton>Go to vaults</SecretsButton></Link>} /> :
-      <div className="overflow-hidden rounded-2xl border border-white/[0.08]">
-        {(resource.data || []).map((share) => {
-          const state = shareState(share);
-          return <div key={share.id} className="flex flex-col gap-3 border-b border-white/[0.07] px-5 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.025] text-zinc-500"><HugeiconsIcon icon={LinkSquare01Icon} size={16} /></span>
-              <div className="min-w-0"><p className="truncate text-[13px] font-medium text-zinc-200">{share.keyNames.join(", ")}</p>
-                <p className="mt-1 text-xs text-zinc-500">Created {new Date(share.createdAt).toLocaleDateString()} · Expires {new Date(share.expiresAt).toLocaleDateString()} · {Math.max(0, share.maxViews - share.views)} of {share.maxViews} reveals left</p>
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-3 pl-11 sm:pl-0"><span className={`text-xs ${state.className}`}>{state.label}</span>
-              {state.label === "Active" && <SecretsButton className="h-9 px-3" tone="danger" onClick={() => setRevoking(share)}>Revoke</SecretsButton>}
-            </div>
-          </div>;
-        })}
-      </div>}
-    <ConfirmSecretActionDialog open={!!revoking} onClose={() => setRevoking(null)} title="Revoke share?"
-      description="This link will stop revealing content immediately. You cannot restore it."
-      confirmLabel="Revoke share" danger loading={busy} onConfirm={() => void revoke()} />
-  </SecretsPage>;
+  return <>
+    <SecretsSharesContent shares={query.data} loading={query.isPending} refreshing={query.isFetching && Boolean(query.data)}
+      permissionPending={permissionPending} canManage={Boolean(canManage)} now={now} error={query.error?.message}
+      search={search} view={view} onSearchChange={setSearch} onViewChange={setView}
+      onClearFilters={() => { setSearch(""); setView("all"); }}
+      onChooseSecrets={() => void navigate({ to: "/$orgSlug/secrets/vaults", params: { orgSlug } })}
+      onRetry={() => { setNow(Date.now()); void query.refetch(); }}
+      onRevoke={(share) => { setError(null); setNotice(null); setRevoking(share); }}
+      notice={notice} onDismissNotice={() => setNotice(null)} />
+    <ConfirmSecretActionDialog open={Boolean(revoking)} onClose={() => { if (!pending.current) { setRevoking(null); setError(null); } }} title="Revoke share?"
+      description={`Stop access to ${revoking?.keyNames.length === 1 ? "this secret" : "these secrets"} through this link. Revocation is immediate and cannot be undone.`}
+      confirmLabel="Revoke share" danger loading={busy} error={error} onConfirm={() => void revoke()} />
+  </>;
 }
