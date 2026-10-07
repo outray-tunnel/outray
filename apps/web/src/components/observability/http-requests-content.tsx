@@ -116,7 +116,7 @@ export function HttpRequestsContent(props: HttpRequestsContentProps) {
           <ListMessage icon={hasFilters ? <Search size={20} aria-hidden="true" /> : <Radio size={20} aria-hidden="true" />}
             title={hasFilters ? "No matching requests" : page > 0 ? "No requests on this page" : "No requests in this period"}
             detail={hasFilters ? "Try a different search or clear the active filters." : page > 0 ? "The requests on this page may have expired. Return to the previous page." : "HTTP requests appear here when your service sends server spans. Try a longer range to find earlier traffic."}
-            action={hasFilters ? <Button variant="secondary" className="mt-4" onClick={onResetFilters}>Clear filters</Button> : page > 0 ? <Button variant="secondary" className="mt-4" onClick={onPreviousPage}>Previous page</Button> : <Button ref={connectTrigger} variant="secondary" className="mt-4" aria-haspopup="dialog" aria-expanded={connectOpen} onClick={() => setConnectOpen(true)}>Connect a service <ArrowRight size={13} aria-hidden="true" /></Button>} />
+            action={hasFilters ? <Button variant="secondary" className="mt-4" onClick={onResetFilters}>Clear filters</Button> : page > 0 ? <Button variant="secondary" className="mt-4" onClick={onPreviousPage}>Previous page</Button> : <Button ref={connectTrigger} variant="secondary" size="md" className="mt-4" aria-haspopup="dialog" aria-expanded={connectOpen} onClick={() => setConnectOpen(true)}>Connect a service <ArrowRight size={13} aria-hidden="true" /></Button>} />
         ) : (
           <>
             <ul className="divide-y divide-white/[0.06]">
