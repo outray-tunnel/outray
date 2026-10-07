@@ -257,6 +257,7 @@ test("the empty-state setup opens an on-demand sheet and wires retry and focus r
   const onRetry = () => {};
   const view = () => ui.render({ data: { ...snapshot, logs: [] }, onRetry });
   const trigger = namedButton(view(), "Connect a service")!;
+  assert.equal(trigger.props.size, "md");
   assert.equal(trigger.props["aria-haspopup"], "dialog"); assert.equal(trigger.props["aria-expanded"], false);
   assert.equal(view().find((element) => element.type === ui.stubs.ConnectServiceSheet)?.props.open, false);
   trigger.props.onClick();
