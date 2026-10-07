@@ -324,7 +324,9 @@ test("a retry and connect action stay actionable without replacing the loaded sn
   assert.equal(retries, 1);
   const emptyData: Snapshot = { ...data, metrics: [], selectedMetric: null, points: [], breakdown: [], services: [] };
   const empty = ui.render({ data: emptyData });
-  namedButton(empty, "Connect a service")!.props.onClick();
+  const connect = namedButton(empty, "Connect a service")!;
+  assert.equal(connect.props.size, "md");
+  connect.props.onClick();
   const sheet = ui.render({ data: emptyData }).find((element) => element.type === ui.stubs.ConnectServiceSheet)!;
   assert.equal(sheet.props.open, true);
   assert.equal(sheet.props.orgSlug, "outray-tunnel");
