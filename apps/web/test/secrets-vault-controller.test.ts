@@ -122,6 +122,7 @@ async function controller(orgSlug = "acme", projectSlug = "api") {
     if (specifier === "react") return hooks;
     if (specifier === "@/lib/secrets-client") return { secretsClient: client };
     if (specifier === "./environment-dialog") return environmentController;
+    if (specifier === "../arc/button/button") return { Button };
     if (specifier === "./secrets-ui") return { SecretsDialog: Dialog, DialogForm: Form, Field, SecretsButton: Button, ProductionConfirmation: Production, SecretsNotice: Notice, SecretsBadge: Placeholder, fieldClassName: "field", textareaClassName: "textarea" };
     if (specifier.startsWith("@hugeicons")) return { HugeiconsIcon: Placeholder };
     throw new Error(`Unexpected vault dialog dependency: ${specifier}`);
