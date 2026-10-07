@@ -183,6 +183,7 @@ function SubdomainsPage({ orgSlug }: { orgSlug: string }) {
             title="Your address, every time"
             description="Reserve a name so your tunnel keeps the same OutRay address whenever it connects."
             action="Reserve subdomain"
+            actionSize="md"
             onAction={openCreate}
             disabled={!isReady}
           />
