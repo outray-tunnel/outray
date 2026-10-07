@@ -8,6 +8,7 @@ import { activeOrganizationKey } from "@/lib/secrets/database";
 import { encryptUptimeHeaders } from "@/lib/secrets/crypto";
 import { badInput, jsonBody, notFound, requireUptimeManager, requireUptimeRead, serializeMonitor } from "@/lib/uptime/api";
 import { UPTIME_LIMITS, validateMonitorInput } from "@/lib/uptime/validation";
+import { isAlertManagerRole } from "@/lib/observability/alert-validation";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/$monitorId")({
   server: {
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/$monitorId")
         ]);
         const observed = totals[0] ?? { total: 0, successful: 0, averageLatencyMs: null };
         return Response.json({
+          canManage: isAlertManagerRole(access.membership.role),
           monitor: serializeMonitor(monitor), checks, incidents: incidentRows,
           summary: {
             observedChecks: observed.total,
