@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
+import { domains } from "@/db/app-schema";
 import { members } from "@/db/auth-schema";
 import { uptimeComponentMonitors, uptimeMonitors, uptimeStatusComponents, uptimeStatusGroups, uptimeStatusPages } from "@/db/uptime-schema";
 import { requireAlertManager } from "@/lib/observability/alert-access";
@@ -66,9 +67,13 @@ export async function loadPage(organizationId: string) {
   const [page] = await db.select().from(uptimeStatusPages)
     .where(eq(uptimeStatusPages.organizationId, organizationId)).limit(1);
   if (!page) return null;
-  const [groups, components] = await Promise.all([
+  const [groups, components, statusDomains] = await Promise.all([
     db.select().from(uptimeStatusGroups).where(and(eq(uptimeStatusGroups.organizationId, organizationId), eq(uptimeStatusGroups.pageId, page.id))),
     db.select().from(uptimeStatusComponents).where(and(eq(uptimeStatusComponents.organizationId, organizationId), eq(uptimeStatusComponents.pageId, page.id))),
+    page.domainId ? db.select({ domain: domains.domain }).from(domains).where(and(
+      eq(domains.id, page.domainId), eq(domains.organizationId, organizationId),
+      eq(domains.purpose, "status"), eq(domains.status, "active"),
+    )).limit(1) : Promise.resolve([]),
   ]);
   const links = components.length ? await db.select().from(uptimeComponentMonitors)
     .where(and(eq(uptimeComponentMonitors.organizationId, organizationId), inArray(uptimeComponentMonitors.componentId, components.map((component) => component.id)))) : [];
@@ -108,6 +113,7 @@ export async function loadPage(organizationId: string) {
   return {
     page: {
       ...page,
+      customDomain: statusDomains[0]?.domain ?? null,
       state: rollupStatus([
         ...standaloneComponents.filter((component) => component.visible).map((component) => component.state),
         ...assembledGroups.filter((group) => group.visible)
