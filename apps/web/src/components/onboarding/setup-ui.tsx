@@ -28,10 +28,12 @@ export function SetupFlow({
   steps,
   children,
   onRecheck,
+  buttonSize = "md",
 }: {
   steps: readonly SetupFlowStep[];
   children: ReactNode;
   onRecheck?: () => void;
+  buttonSize?: "sm" | "md";
 }) {
   const id = useId();
   const reducedMotion = useReducedMotion();
@@ -93,13 +95,13 @@ export function SetupFlow({
         {children}
         {steps.length > 1 && (
           <div className="flex flex-wrap items-center justify-center gap-3 border-t border-white/[0.07] px-5 py-3.5 sm:px-6">
-            <Button size="md" variant="ghost" disabled={selectedIndex === 0} onClick={() => setSelectedId(steps[selectedIndex - 1].id)}>
+            <Button size={buttonSize} variant="ghost" disabled={selectedIndex === 0} onClick={() => setSelectedId(steps[selectedIndex - 1].id)}>
               <ArrowLeft size={14} aria-hidden="true" /> Back
             </Button>
             <span aria-live="polite" className="min-w-14 text-center text-[11px] tabular-nums text-zinc-400">
               {selectedIndex + 1} of {steps.length}
             </span>
-            <Button size="md" variant="secondary" disabled={isFinalStep && !onRecheck} onClick={isFinalStep ? onRecheck : () => setSelectedId(steps[selectedIndex + 1].id)}>
+            <Button size={buttonSize} variant="secondary" disabled={isFinalStep && !onRecheck} onClick={isFinalStep ? onRecheck : () => setSelectedId(steps[selectedIndex + 1].id)}>
               {isFinalStep && onRecheck ? <><RefreshCw size={13} aria-hidden="true" /> Check connection</> : <>Next step <ArrowRight size={14} aria-hidden="true" /></>}
             </Button>
           </div>
