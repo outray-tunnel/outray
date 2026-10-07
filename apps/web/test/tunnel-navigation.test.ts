@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFile } from "node:fs/promises";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
@@ -96,4 +97,18 @@ test("tunnel header back navigation uses the route organization slug", () => {
 
   assert.match(html, /href="\/current-org\/tunnels"[^>]*>[^<]*<svg[^>]*>[\s\S]*?All tunnels/);
   assert.doesNotMatch(html, /href="\/stale-org\/tunnels"/);
+  assert.match(html, /<button\b[^>]*class="[^"]*\bmd\b[^>]*>[\s\S]*?Stop tunnel/);
+});
+
+test("stop confirmations use small actions without overriding shared control heights", async () => {
+  const source = await readFile(new URL("../src/components/tunnel-details/tunnel-header.tsx", import.meta.url), "utf8");
+  const footer = source.slice(source.indexOf('<div className="outray-arc-stock-buttons flex justify-end gap-2">'));
+  const buttons = [...footer.matchAll(/<Button\b[\s\S]*?>/g)].map(([button]) => button);
+  assert.equal(buttons.length, 2);
+  for (const button of buttons) assert.match(button, /size="sm"/);
+  const theme = await readFile(new URL("../src/components/outray-arc-theme.css", import.meta.url), "utf8");
+  const stockTokens = theme.match(/\.outray-arc-stock-buttons\s*\{([^}]+)\}/)?.[1];
+  assert.ok(stockTokens);
+  assert.doesNotMatch(stockTokens, /--control-height-/);
+  assert.match(stockTokens, /--danger:/, "danger colors retain UIArc's styling");
 });
