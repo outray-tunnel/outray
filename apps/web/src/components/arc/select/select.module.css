@@ -24,6 +24,12 @@
 .item[data-highlighted]:not([data-disabled]) { background: var(--surface-muted); }
 @media (hover: hover) and (pointer: fine) { .item:hover:not([data-disabled]) { background: var(--surface-muted); } }
 .item[data-disabled] { opacity: .45; }
+.optionLabel { display: flex; min-width: 0; align-items: center; gap: 8px; }
+.optionLabel > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.optionIcon { display: inline-flex; flex: none; align-items: center; justify-content: center; }
+.item > .optionIcon { margin-right: 8px; }
+.optionCopy { display: grid; min-width: 0; gap: 3px; padding-block: 8px; }
+.optionDescription { color: var(--text-muted); font-size: 11px; line-height: 1.5; }
 .indicator { position: absolute; right: 10px; display: inline-flex; align-items: center; color: var(--foreground); animation: indicator-in var(--duration-standard) var(--ease-enter) 40ms both; }
 .scrollButton { display: grid; height: 28px; place-items: center; color: var(--text-muted); }
 @keyframes select-in { from { opacity: 0; transform: translate(var(--menu-x), var(--menu-y)) scale(.97); } }
