@@ -238,6 +238,9 @@ test("the shared delete dialog closes only after awaited success and retains fai
   assert.doesNotMatch(errorBranch, /setIsOpen\(false\)/);
   assert.match(source, /finally\s*\{\s*inFlight\.current = false;\s*setIsPending\(false\)/);
   assert.match(source, /error && <p role="alert"[^>]*>\{error\}<\/p>/);
+  const buttons = [...source.matchAll(/<Button\b[\s\S]*?>/g)].map(([button]) => button);
+  assert.equal(buttons.length, 3);
+  for (const button of buttons.slice(1)) assert.match(button, /size="sm"/, "confirmation actions use the shared small size");
 });
 
 test("pending deletion guards all dismissal routes and focuses the safe Cancel action first", async () => {
