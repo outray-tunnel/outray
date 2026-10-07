@@ -39,11 +39,12 @@ export function ConnectServiceSheet({
       onInteractOutside={(event) => {
         if (tokenModalOpen) event.preventDefault();
       }}
-      footer={<Button variant="secondary" onClick={close} disabled={tokenModalOpen}>Done</Button>}
+      footer={<Button variant="secondary" size="sm" onClick={close} disabled={tokenModalOpen}>Done</Button>}
     >
       <ObservabilitySetup
         orgSlug={orgSlug}
         onRecheck={onRecheck}
+        buttonSize="sm"
         tokenModalOpen={tokenModalOpen}
         onTokenModalOpenChange={setTokenModalOpen}
       />
