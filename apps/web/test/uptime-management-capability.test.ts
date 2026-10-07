@@ -24,7 +24,7 @@ test("Uptime read access exposes the existing URL membership with no added role 
   runInNewContext(compiled, { process, Response, module, exports: module.exports, require: (specifier: string) => {
     if (specifier === "drizzle-orm") return {};
     if (specifier === "@/db") return { db: new Proxy({}, { get: () => { throw new Error("Read access must not add a database call"); } }) };
-    if (specifier === "@/db/auth-schema" || specifier === "@/db/uptime-schema") return {};
+    if (specifier === "@/db/app-schema" || specifier === "@/db/auth-schema" || specifier === "@/db/uptime-schema") return {};
     if (specifier === "@/lib/observability/alert-access") return { requireAlertManager: () => {} };
     if (specifier === "@/lib/observability/alert-validation") return { isAlertManagerRole };
     if (specifier === "@/lib/org") return { requireOrgMembershipFromSlug: async (request: Request, slug: string) => { calls.push([request, slug]); return access; } };
