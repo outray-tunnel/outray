@@ -269,7 +269,7 @@ export function TunnelHeader({
             ref={cancelRef}
             type="button"
             variant="secondary"
-            size="md"
+            size="sm"
             disabled={stopPending}
             onClick={() => setIsConfirmOpen(false)}
           >
@@ -278,7 +278,7 @@ export function TunnelHeader({
           <Button
             type="button"
             variant="danger"
-            size="md"
+            size="sm"
             loading={stopPending}
             onClick={() => void handleStop()}
           >
