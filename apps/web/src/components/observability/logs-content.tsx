@@ -114,7 +114,7 @@ export function LogsContent({
           </LogListMessage>
         ) : !logs.length ? (
           <LogListMessage icon={<FileText size={21} aria-hidden="true" />} title="No logs in this period" detail={`No application logs were received in the last ${displayed.range}. Choose a longer range, or connect a service that sends logs through OTLP.`}>
-            <Button ref={connectTrigger} variant="secondary" className="mt-4" aria-haspopup="dialog" aria-expanded={connectOpen} onClick={() => setConnectOpen(true)}><Plus size={14} aria-hidden="true" /> Connect a service</Button>
+            <Button ref={connectTrigger} variant="secondary" size="md" className="mt-4" aria-haspopup="dialog" aria-expanded={connectOpen} onClick={() => setConnectOpen(true)}><Plus size={14} aria-hidden="true" /> Connect a service</Button>
           </LogListMessage>
         ) : (
           <ul className="divide-y divide-white/[0.06]">
