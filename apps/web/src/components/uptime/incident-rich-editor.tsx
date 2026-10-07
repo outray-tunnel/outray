@@ -4,8 +4,8 @@ import StarterKit from "@tiptap/starter-kit";
 import { Bold, Heading2, Heading3, Italic, Link2, List, ListOrdered, Quote, RemoveFormatting } from "lucide-react";
 import { useEffect, useState } from "react";
 import { WorkspaceInput } from "@/components/ui/workspace-input";
+import { Button } from "@/components/arc/button/button";
 import { UptimeDialog } from "./uptime-dialog";
-import { primaryButton, secondaryButton } from "./uptime-ui";
 
 export function IncidentRichEditor({ initialBody, initialNote = "", onChange, disabled = false, id, invalid = false }: {
   initialBody?: IncidentDocument | null;
@@ -72,7 +72,7 @@ export function IncidentRichEditor({ initialBody, initialNote = "", onChange, di
       </div>
       <EditorContent editor={editor} />
     </div>
-    <UptimeDialog open={linkOpen} onClose={() => setLinkOpen(false)} title="Add a link" footer={<><button type="button" className={secondaryButton} onClick={() => setLinkOpen(false)}>Cancel</button><button type="button" className={primaryButton} onClick={applyLink}>Apply link</button></>}>
+    <UptimeDialog open={linkOpen} onClose={() => setLinkOpen(false)} title="Add a link" footer={<><Button type="button" variant="secondary" size="sm" onClick={() => setLinkOpen(false)}>Cancel</Button><Button type="button" size="sm" onClick={applyLink}>Apply link</Button></>}>
       <label className="block text-[13px] text-zinc-300" htmlFor={`${id}-link`}>URL</label>
       <WorkspaceInput id={`${id}-link`} data-autofocus type="url" value={link} onChange={(event) => { setLink(event.target.value); setLinkError(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); applyLink(); } }} placeholder="https://example.com" className="mt-2" />
       {linkError && <p role="alert" className="mt-2 text-xs text-rose-300">{linkError}</p>}
