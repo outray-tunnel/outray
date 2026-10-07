@@ -3,6 +3,8 @@ import { legacyIncidentDocument, parseIncidentDocument, type IncidentDocument } 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight, ChevronDown, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/arc/button/button";
+import "@/components/outray-arc-theme.css";
 import { IncidentBadge, IncidentStatusSelect, StagePill } from "@/components/uptime/incident-ui";
 import { incidentStageDescriptions } from "@/components/uptime/incident-stages";
 import { IncidentRichContent, IncidentRichEditor } from "@/components/uptime/incident-rich-editor";
@@ -15,7 +17,7 @@ import {
   uptimeRequest,
 } from "@/components/uptime/uptime-client";
 import { UptimeHeaderSkeleton, UptimeRowsSkeleton, UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
-import { labelClass, primaryButton, secondaryButton, UptimeError } from "@/components/uptime/uptime-ui";
+import { labelClass, secondaryButton, UptimeError } from "@/components/uptime/uptime-ui";
 import { UptimeDialog } from "@/components/uptime/uptime-dialog";
 import { UptimeSideSheet } from "@/components/uptime/uptime-side-sheet";
 import { useUptimeUnsavedChanges } from "@/components/uptime/use-uptime-unsaved-changes";
@@ -79,7 +81,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     await queryClient.invalidateQueries({ queryKey: ["uptime", orgSlug] });
   };
 
-  if (resource.isPending) return <div className="mx-auto max-w-[1120px] pb-12">
+  if (resource.isPending) return <div className="outray-arc mx-auto max-w-[1120px] pb-12">
     {back}
     <UptimeSkeleton label="Loading incident" className="space-y-7">
       <UptimeHeaderSkeleton action />
@@ -89,7 +91,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     </UptimeSkeleton>
   </div>;
 
-  if (!resource.data) return <div className="mx-auto max-w-[1120px] pb-12">
+  if (!resource.data) return <div className="outray-arc mx-auto max-w-[1120px] pb-12">
     {back}
     <h1 className="mb-3 text-xl font-normal text-zinc-100">{resource.error instanceof UptimeRequestError && resource.error.status === 404 ? "Incident not found" : "Could not load incident"}</h1>
     <UptimeError message={resource.error?.message || "This incident is not available."} />
@@ -134,7 +136,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     finally { setIgnoring(false); }
   };
 
-  return <div className="mx-auto max-w-[1120px] pb-12">
+  return <div className="outray-arc mx-auto max-w-[1120px] pb-12">
     {back}
     <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0 flex-1">
@@ -150,7 +152,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     {privateDetection && <section aria-label="Private detected issue" className="mb-6 rounded-xl border border-amber-400/20 bg-amber-400/[0.035] p-4 sm:p-5">
       <p className="text-[13px] font-medium text-amber-200">{incident.uptimePublicationState === "ignored" ? "Detection ignored" : incident.status === "resolved" ? "Recovered without a public incident" : "Downtime detected · not published"}</p>
       <p className="mt-2 text-xs leading-5 text-zinc-400">The monitor and linked components reflect their checks. No public incident report or subscriber email was created for this detection. Team alert delivery is tracked below.</p>
-      {canManage && !editor && <div className="mt-4 flex flex-wrap gap-2"><button ref={composerTrigger} type="button" className={primaryButton} onClick={() => { setFeedback(null); setEditor({}); }}>Acknowledge &amp; publish</button><button type="button" className={secondaryButton} onClick={() => { setIgnoreError(null); setIgnoreOpen(true); }}>Ignore detection</button></div>}
+      {canManage && !editor && <div className="mt-4 flex flex-wrap gap-2"><Button ref={composerTrigger} type="button" size="md" aria-haspopup="dialog" onClick={() => { setFeedback(null); setEditor({}); }}>Acknowledge &amp; publish</Button><Button type="button" variant="secondary" size="md" aria-haspopup="dialog" onClick={() => { setIgnoreError(null); setIgnoreOpen(true); }}>Ignore detection</Button></div>}
     </section>}
 
     <dl className="grid gap-x-8 gap-y-5 border-y border-white/[0.08] py-5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto]">
@@ -163,7 +165,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     <section className="mt-7" aria-labelledby="incident-timeline-title">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 id="incident-timeline-title" className="text-sm font-medium text-zinc-200">Timeline</h2>
-        {editable && !editor && !detected && <button ref={composerTrigger} type="button" className={`${primaryButton} gap-2`} onClick={() => { draftTrigger.current = null; setFeedback(null); setEditor({}); }}><Plus size={14} aria-hidden="true" />Add update</button>}
+        {editable && !editor && !detected && <Button ref={composerTrigger} type="button" size="md" aria-haspopup="dialog" onClick={() => { draftTrigger.current = null; setFeedback(null); setEditor({}); }}><Plus size={14} aria-hidden="true" />Add update</Button>}
       </div>
 
       {editor && <IncidentUpdateEditor
@@ -196,7 +198,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     {drafts.length > 0 && <section aria-labelledby="incident-drafts-title" className="mt-9 border-t border-white/[0.08] pt-6">
       <div className="flex items-center gap-2"><h2 id="incident-drafts-title" className="text-sm font-medium text-zinc-200">Drafts</h2><span className="text-xs text-zinc-500">{drafts.length}</span></div>
       <p className="mt-2 text-xs text-zinc-500">Visible only to your team. Drafts do not change public status or send email.</p>
-      <div className="mt-2 divide-y divide-white/[0.07]">{drafts.map((draft) => <article key={draft.id} className="py-5"><div className="flex flex-wrap items-center justify-between gap-3"><div className="flex flex-wrap items-center gap-3"><StagePill stage="draft" /><span className="text-xs text-zinc-500">Planned stage: {draft.status}</span></div><time dateTime={draft.createdAt} className="text-xs text-zinc-500">Created {formatTime(draft.createdAt)}</time></div><IncidentRichContent body={draft.bodyJson} note={draft.note} />{editable && <button type="button" className={`${secondaryButton} mt-3`} disabled={!!editor} onClick={(event) => { draftTrigger.current = event.currentTarget; setFeedback(null); setEditor({ draft }); }}>Edit draft</button>}</article>)}</div>
+      <div className="mt-2 divide-y divide-white/[0.07]">{drafts.map((draft) => <article key={draft.id} className="py-5"><div className="flex flex-wrap items-center justify-between gap-3"><div className="flex flex-wrap items-center gap-3"><StagePill stage="draft" /><span className="text-xs text-zinc-500">Planned stage: {draft.status}</span></div><time dateTime={draft.createdAt} className="text-xs text-zinc-500">Created {formatTime(draft.createdAt)}</time></div><IncidentRichContent body={draft.bodyJson} note={draft.note} />{editable && <Button type="button" variant="secondary" size="md" className="mt-3" aria-haspopup="dialog" disabled={!!editor} onClick={(event) => { draftTrigger.current = event.currentTarget; setFeedback(null); setEditor({ draft }); }}>Edit draft</Button>}</article>)}</div>
     </section>}
 
     <details className="group mt-9 border-t border-white/[0.08] pt-2">
@@ -205,7 +207,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
       {!notifications.length && <p className="py-3 text-[13px] text-zinc-500">No delivery attempts recorded.</p>}
       <ul className="divide-y divide-white/[0.06]">{notifications.map((notification) => <li key={notification.id} className="py-3"><div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 text-xs"><span className="text-zinc-300"><span className="capitalize">{notification.channel}</span><span className="mx-2 text-zinc-600">·</span><span className="capitalize">{notification.event.replaceAll("_", " ")}</span></span><span className={notification.status === "failed" ? "text-rose-300" : "text-zinc-500"}><span className="capitalize">{notification.status}</span> · {notification.attempts} {notification.attempts === 1 ? "attempt" : "attempts"} · {formatTime(notification.sentAt || notification.createdAt)}</span></div>{notification.lastError && <p className="mt-2 break-words text-xs text-rose-300/80">{notification.lastError}</p>}</li>)}</ul>
     </details>
-    <UptimeDialog open={ignoreOpen} onClose={() => setIgnoreOpen(false)} title="Ignore this detection?" description="No public incident will be created for this occurrence." busy={ignoring} footer={<><button type="button" className={secondaryButton} onClick={() => setIgnoreOpen(false)} disabled={ignoring}>Keep issue</button><button type="button" className={primaryButton} disabled={ignoring} onClick={() => void ignoreDetection()}>{ignoring ? "Ignoring…" : "Ignore detection"}</button></>}><p className="text-[13px] leading-6 text-zinc-400">Ignoring only dismisses this private issue. Checks continue, and a linked component may still show downtime. A new detection can be created after recovery and another confirmed outage.</p>{ignoreError && <div className="mt-4"><UptimeError message={ignoreError} /></div>}</UptimeDialog>
+    <UptimeDialog open={ignoreOpen} onClose={() => setIgnoreOpen(false)} title="Ignore this detection?" description="No public incident will be created for this occurrence." busy={ignoring} footer={<><Button type="button" variant="secondary" size="sm" onClick={() => setIgnoreOpen(false)} disabled={ignoring}>Keep issue</Button><Button type="button" size="sm" disabled={ignoring} onClick={() => void ignoreDetection()}>{ignoring ? "Ignoring…" : "Ignore detection"}</Button></>}><p className="text-[13px] leading-6 text-zinc-400">Ignoring only dismisses this private issue. Checks continue, and a linked component may still show downtime. A new detection can be created after recovery and another confirmed outage.</p>{ignoreError && <div className="mt-4"><UptimeError message={ignoreError} /></div>}</UptimeDialog>
   </div>;
 }
 
@@ -292,9 +294,9 @@ function IncidentUpdateEditor({ orgSlug, incidentId, incidentTitle, draft, defau
   };
 
   return <><UptimeSideSheet open onClose={requestClose} title={draft ? "Edit update draft" : "Share update"} description={incidentTitle} busy={!!saving} footer={<>
-    <button type="button" className={`${secondaryButton} mr-auto`} disabled={!!saving} onClick={requestClose}>Cancel</button>
-    <button type="submit" form="incident-update-form" className={secondaryButton} disabled={!!saving || !editable}>{saving === "draft" ? "Saving…" : "Save draft"}</button>
-    <button type="button" className={primaryButton} disabled={!!saving || !editable || !pagePublished} onClick={() => void save(true)}>{saving === "publish" ? "Publishing…" : firstPublication ? "Acknowledge & publish" : "Publish update"}</button>
+    <Button type="button" variant="secondary" size="sm" className="mr-auto" disabled={!!saving} onClick={requestClose}>Cancel</Button>
+    <Button type="submit" variant="secondary" size="sm" form="incident-update-form" disabled={!!saving || !editable}>{saving === "draft" ? "Saving…" : "Save draft"}</Button>
+    <Button type="button" size="sm" disabled={!!saving || !editable || !pagePublished} onClick={() => void save(true)}>{saving === "publish" ? "Publishing…" : firstPublication ? "Acknowledge & publish" : "Publish update"}</Button>
   </>}>
     <form id="incident-update-form" aria-busy={!!saving} className="space-y-7" onSubmit={(event) => { event.preventDefault(); void save(false); }}>
       {automatic && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 py-3"><span className="text-xs text-zinc-500">Monitor state</span><StagePill stage={monitorRecovered ? "recovered" : "down"} compact /><span className="text-xs leading-5 text-zinc-500">Checks control recovery; your update status describes the team’s progress.</span></div>}
@@ -315,5 +317,5 @@ function IncidentUpdateEditor({ orgSlug, incidentId, incidentTitle, draft, defau
       {!editable && <p role="status" className="text-xs leading-5 text-amber-200/80">This update is no longer editable. Your text remains here so you can copy it.</p>}
       {error && <div ref={errorRef} tabIndex={-1} className="outline-none"><UptimeError message={error} /></div>}
     </form>
-  </UptimeSideSheet><UptimeDialog open={discardOpen || blocker.status === "blocked"} onClose={keepEditing} title="Discard unsaved changes?" busy={!!saving} footer={<><button type="button" data-autofocus className={secondaryButton} onClick={keepEditing} disabled={!!saving}>Keep editing</button><button type="button" className={primaryButton} onClick={discard} disabled={!!saving}>Discard changes</button></>}><p className="text-[13px] leading-6 text-zinc-400">{saving ? "Wait for this update to finish saving before leaving." : "Your unsaved update text and status changes will be lost."}</p></UptimeDialog></>;
+  </UptimeSideSheet><UptimeDialog open={discardOpen || blocker.status === "blocked"} onClose={keepEditing} title="Discard unsaved changes?" busy={!!saving} footer={<><Button type="button" variant="secondary" size="sm" data-autofocus onClick={keepEditing} disabled={!!saving}>Keep editing</Button><Button type="button" size="sm" onClick={discard} disabled={!!saving}>Discard changes</Button></>}><p className="text-[13px] leading-6 text-zinc-400">{saving ? "Wait for this update to finish saving before leaving." : "Your unsaved update text and status changes will be lost."}</p></UptimeDialog></>;
 }
