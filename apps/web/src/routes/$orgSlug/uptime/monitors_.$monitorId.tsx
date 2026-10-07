@@ -1,123 +1,102 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { type FormEvent, useEffect, useState } from "react";
-import { UptimeEmailRecipients } from "@/components/uptime/email-recipients";
-import { IncidentPublishingFields, type IncidentPublishingMode } from "@/components/uptime/incident-publishing-fields";
+import { useEffect, useId, useRef, useState } from "react";
+import { Activity, ArrowLeft, ChevronRight, Clock3, FilePenLine, Pause, Play, RotateCcw } from "lucide-react";
+import { Button } from "@/components/arc/button/button";
+import { CopyButton } from "@/components/arc/copy-button/copy-button";
+import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
+import { MonitorForm } from "@/components/uptime/monitor-form";
+import { monitorPublishingLabel } from "@/components/uptime/monitor-data";
 import { formatTime, type UptimeCheck, type UptimeIncident, type UptimeMonitor, useUptimeResource, uptimeRequest } from "@/components/uptime/uptime-client";
+import { UptimeDialog } from "@/components/uptime/uptime-dialog";
+import { useUptimeRefresh } from "@/components/uptime/use-uptime-refresh";
 import { UptimeHeaderSkeleton, UptimeRowsSkeleton, UptimeSkeleton, UptimeSummarySkeleton } from "@/components/uptime/uptime-skeleton";
-import { fieldClass, labelClass, primaryButton, secondaryButton, StateBadge, UptimeError, UptimePageHeading, UptimePanel } from "@/components/uptime/uptime-ui";
+import { StateBadge, UptimeError, UptimePageHeading, UptimePanel } from "@/components/uptime/uptime-ui";
 
 interface MonitorDetails {
   monitor: UptimeMonitor;
+  canManage: boolean;
   checks: UptimeCheck[];
   incidents: UptimeIncident[];
-  summary?: { observedUptimePercent?: number | null; averageLatencyMs?: number | null; observedChecks?: number };
+  summary?: { observedUptimePercent?: number | null; averageLatencyMs?: number | null; observedChecks?: number; historyDays?: number };
 }
 
 export const Route = createFileRoute("/$orgSlug/uptime/monitors_/$monitorId")({
-  head: () => ({ meta: [{ title: "Monitor - OutRay Uptime" }] }),
-  component: MonitorDetail,
+  head: () => ({ meta: [{ title: "Monitor - OutRay Uptime" }] }), component: MonitorDetail,
 });
 
 function MonitorDetail() {
   const { orgSlug, monitorId } = Route.useParams();
+  return <MonitorDetailSession key={JSON.stringify([orgSlug, monitorId])} orgSlug={orgSlug} monitorId={monitorId} />;
+}
+
+function MonitorDetailSession({ orgSlug, monitorId }: { orgSlug: string; monitorId: string }) {
   const resource = useUptimeResource<MonitorDetails>(orgSlug, `/monitors/${encodeURIComponent(monitorId)}`);
+  useUptimeRefresh(resource.reload);
   const monitor = resource.data?.monitor;
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
-  const [method, setMethod] = useState<"GET" | "HEAD">("GET");
-  const [expectedStatus, setExpectedStatus] = useState("");
-  const [responseText, setResponseText] = useState("");
-  const [replaceHeaders, setReplaceHeaders] = useState(false);
-  const [headerLines, setHeaderLines] = useState("");
-  const [notificationEmails, setNotificationEmails] = useState<string[]>([]);
-  const [failureThreshold, setFailureThreshold] = useState(3);
-  const [incidentPublishing, setIncidentPublishing] = useState<IncidentPublishingMode>("manual");
-  const [publishAfterMinutes, setPublishAfterMinutes] = useState(5);
+  const formId = useId();
+  const [editing, setEditing] = useState<UptimeMonitor | null>(null);
+  const [busy, setBusy] = useState<"save" | "toggle" | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"checks" | "incidents">("checks");
+  const [checkCount, setCheckCount] = useState(25);
+  const [incidentCount, setIncidentCount] = useState(25);
+  const pending = useRef(false), mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const close = () => { if (!pending.current) { setEditing(null); setEditError(null); } };
 
-  useEffect(() => {
-    if (!monitor) return;
-    setName(monitor.name); setUrl(monitor.url); setMethod(monitor.method);
-    setExpectedStatus(monitor.expectedStatus?.toString() || "");
-    setResponseText(monitor.responseText || "");
-    setReplaceHeaders(false); setHeaderLines("");
-    setNotificationEmails(monitor.notificationEmails || []);
-    setFailureThreshold(monitor.failureThreshold); setIncidentPublishing(monitor.incidentPublishing);
-    setPublishAfterMinutes(monitor.publishAfterMinutes);
-  }, [monitor]);
-
-  const save = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); setSaving(true); setError(null);
+  const save = async (payload: Record<string, unknown>) => {
+    if (pending.current || !resource.data?.canManage) return;
+    pending.current = true; setBusy("save"); setEditError(null);
     try {
-      const headers: Record<string, string> = {};
-      if (replaceHeaders) {
-        for (const line of headerLines.split("\n")) {
-          if (!line.trim()) continue;
-          const colon = line.indexOf(":");
-          if (colon < 1) throw new Error("Each header needs a name and value separated by a colon.");
-          const name = line.slice(0, colon).trim();
-          const value = line.slice(colon + 1).trim();
-          if (!name || !value) throw new Error("Header names and values cannot be empty.");
-          headers[name] = value;
-        }
-      }
-      await uptimeRequest(orgSlug, `/monitors/${encodeURIComponent(monitorId)}`, { method: "PATCH", body: JSON.stringify({ name, url, method, expectedStatus: expectedStatus ? Number(expectedStatus) : null, responseText: method === "GET" ? responseText || null : null, notificationEmails, failureThreshold, incidentPublishing, publishAfterMinutes, ...(replaceHeaders ? { headers } : {}) }) });
-      setEditing(false); resource.reload();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save monitor."); }
-    finally { setSaving(false); }
+      await uptimeRequest(orgSlug, `/monitors/${encodeURIComponent(monitorId)}`, { method: "PATCH", body: JSON.stringify(payload) });
+      if (mounted.current) { setEditing(null); resource.reload(); }
+    } catch (cause) { if (mounted.current) setEditError(cause instanceof Error ? cause.message : "Could not save monitor."); }
+    finally { pending.current = false; if (mounted.current) setBusy(null); }
   };
-
   const toggle = async () => {
-    if (!monitor) return;
-    try { setError(null); await uptimeRequest(orgSlug, `/monitors/${encodeURIComponent(monitorId)}`, { method: "PATCH", body: JSON.stringify({ enabled: !monitor.enabled }) }); resource.reload(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Could not update monitor."); }
+    if (!monitor || pending.current || !resource.data?.canManage) return;
+    pending.current = true; setBusy("toggle"); setActionError(null);
+    try {
+      await uptimeRequest(orgSlug, `/monitors/${encodeURIComponent(monitorId)}`, { method: "PATCH", body: JSON.stringify({ enabled: !monitor.enabled }) });
+      if (mounted.current) resource.reload();
+    } catch (cause) { if (mounted.current) setActionError(cause instanceof Error ? cause.message : "Could not update monitor."); }
+    finally { pending.current = false; if (mounted.current) setBusy(null); }
   };
 
-  if (resource.loading && !resource.data) return <div className="mx-auto max-w-[1180px]">
-    <Link to="/$orgSlug/uptime/monitors" params={{ orgSlug }} className="mb-5 inline-block text-xs text-zinc-500 hover:text-white">← All monitors</Link>
-    <UptimeSkeleton label="Loading monitor details" className="space-y-5">
-      <UptimeHeaderSkeleton action />
-      <UptimeSummarySkeleton />
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(300px,1fr)]">
-        <UptimePanel className="overflow-hidden"><div className="h-14 border-b border-white/[0.07] px-5 py-5"><div className="h-3 w-28 rounded bg-white/[0.06]" /></div><UptimeRowsSkeleton rows={3} /></UptimePanel>
-        <UptimePanel className="h-52 bg-white/[0.015]" />
-      </div>
-    </UptimeSkeleton>
-  </div>;
-  if (resource.error && !resource.data) return <div className="mx-auto max-w-[1180px]"><Link to="/$orgSlug/uptime/monitors" params={{ orgSlug }} className="mb-5 inline-block text-xs text-zinc-500 hover:text-white">← All monitors</Link><UptimeError message={resource.error} /></div>;
+  const back = <Link to="/$orgSlug/uptime/monitors" params={{ orgSlug }} className="inline-flex min-h-8 items-center gap-1.5 text-[12px] text-zinc-500 transition-colors hover:text-zinc-200 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-zinc-400 motion-reduce:transition-none"><ArrowLeft size={13} aria-hidden="true" />Monitors</Link>;
+  if (resource.loading && !resource.data) return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">{back}<UptimeSkeleton label="Loading monitor details" className="space-y-5"><UptimeHeaderSkeleton action /><UptimeSummarySkeleton /><UptimePanel className="overflow-hidden"><UptimeRowsSkeleton rows={5} /></UptimePanel></UptimeSkeleton></div>;
+  if (!monitor) return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">{back}<UptimeError message={resource.error || "This monitor could not be loaded."} /><Button type="button" variant="secondary" size="sm" onClick={resource.reload}><RotateCcw size={13} aria-hidden="true" />Try again</Button></div>;
 
-  return <div className="mx-auto max-w-[1180px]">
-    <Link to="/$orgSlug/uptime/monitors" params={{ orgSlug }} className="mb-5 inline-block text-xs text-zinc-500 hover:text-white">← All monitors</Link>
-    <UptimePageHeading title={monitor?.name || "Monitor"} description={monitor ? `${monitor.method} ${monitor.url}` : "Check history and incidents for this endpoint."} action={monitor && <div className="flex flex-wrap gap-2"><button type="button" className={secondaryButton} onClick={() => setEditing((value) => !value)}>{editing ? "Close editor" : "Edit"}</button><button type="button" className={secondaryButton} onClick={() => void toggle()}>{monitor.enabled ? "Pause" : "Resume"}</button></div>} />
-    {resource.error && <UptimeError message={resource.error} />}
-    {error && <div className="mb-5"><UptimeError message={error} /></div>}
-    {monitor && <>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <UptimePanel className="p-5"><p className="text-xs text-zinc-500">Current state</p><div className="mt-4"><StateBadge state={monitor.state} /></div><p className="mt-3 text-xs text-zinc-600">{monitor.enabled ? `Every minute · Down after ${monitor.failureThreshold} failures` : "Paused"}</p><p className="mt-1 text-xs text-zinc-600">Incident publishing: {monitor.incidentPublishing === "after_confirmation" ? `after ${monitor.publishAfterMinutes} minutes` : monitor.incidentPublishing}</p></UptimePanel>
-        <UptimePanel className="p-5"><p className="text-xs text-zinc-500">Observed uptime</p><p className="mt-3 text-xl font-semibold text-zinc-100">{resource.data?.summary?.observedUptimePercent == null ? "—" : `${resource.data.summary.observedUptimePercent.toFixed(2)}%`}</p><p className="mt-2 text-xs text-zinc-600">Based on recorded checks, last 30 days</p></UptimePanel>
-        <UptimePanel className="p-5"><p className="text-xs text-zinc-500">Average latency</p><p className="mt-3 text-xl font-semibold text-zinc-100">{resource.data?.summary?.averageLatencyMs == null ? "—" : `${Math.round(resource.data.summary.averageLatencyMs)} ms`}</p><p className="mt-2 text-xs text-zinc-600">Successful observed checks</p></UptimePanel>
-        <UptimePanel className="p-5"><p className="text-xs text-zinc-500">Last check</p><p className="mt-3 text-sm font-medium text-zinc-200">{formatTime(monitor.lastCheckedAt)}</p><p className="mt-2 text-xs text-zinc-600">Stale checks show Unknown</p></UptimePanel>
-      </div>
-      {editing && <UptimePanel className="mt-5 p-5 md:p-7"><h2 className="text-base font-semibold text-zinc-100">Monitor settings</h2><form onSubmit={(event) => void save(event)} className="mt-5 grid gap-5 md:grid-cols-2">
-        <label className={labelClass}>Name<input className={`${fieldClass} mt-2`} value={name} onChange={(event) => setName(event.target.value)} required /></label>
-        <label className={labelClass}>Public URL<input className={`${fieldClass} mt-2`} value={url} onChange={(event) => setUrl(event.target.value)} type="url" required /></label>
-        <label className={labelClass}>Method<select className={`${fieldClass} mt-2`} value={method} onChange={(event) => setMethod(event.target.value as "GET" | "HEAD")}><option value="GET">GET</option><option value="HEAD">HEAD</option></select></label>
-        <label className={labelClass}>Exact status (blank accepts 200–399)<input className={`${fieldClass} mt-2`} type="number" min={100} max={599} value={expectedStatus} onChange={(event) => setExpectedStatus(event.target.value)} /></label>
-        {method === "GET" && <label className={`${labelClass} md:col-span-2`}>Response text (optional)<input className={`${fieldClass} mt-2`} value={responseText} onChange={(event) => setResponseText(event.target.value)} /></label>}
-        <div className="md:col-span-2 space-y-3"><p className="text-xs text-zinc-400">{monitor.hasHeaders ? "Custom headers are encrypted and cannot be retrieved. Changing the URL clears them unless you enter replacements." : "No custom headers configured."}</p><label className="flex items-center gap-2 text-xs text-zinc-300"><input type="checkbox" checked={replaceHeaders} onChange={(event) => setReplaceHeaders(event.target.checked)} />Replace or clear custom headers</label>{replaceHeaders && <label className={labelClass}>New headers (leave blank to clear)<textarea className={`${fieldClass} mt-2 min-h-24 resize-y py-3 font-mono text-xs`} value={headerLines} onChange={(event) => setHeaderLines(event.target.value)} placeholder="Authorization: Bearer …" /><span className="mt-1 block text-[11px] font-normal text-zinc-600">One Name: Value per line. Existing values will be replaced.</span></label>}</div>
-        <div className="md:col-span-2"><UptimeEmailRecipients orgSlug={orgSlug} value={notificationEmails} onChange={setNotificationEmails} /></div>
-        <IncidentPublishingFields failureThreshold={failureThreshold} onFailureThresholdChange={setFailureThreshold} mode={incidentPublishing} onModeChange={setIncidentPublishing} publishAfterMinutes={publishAfterMinutes} onPublishAfterMinutesChange={setPublishAfterMinutes} />
-        <div className="md:col-span-2"><button type="submit" className={primaryButton} disabled={saving}>{saving ? "Saving…" : "Save changes"}</button></div>
-      </form></UptimePanel>}
-      <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(300px,1fr)]">
-        <UptimePanel className="overflow-hidden"><div className="border-b border-white/[0.07] px-5 py-4"><h2 className="text-sm font-semibold text-zinc-200">Recent checks</h2></div>
-          {!resource.data?.checks.length && <p className="p-5 text-sm text-zinc-500">No checks yet. The first run should arrive within a minute after the worker is enabled.</p>}
-          {resource.data?.checks.map((check) => <div key={check.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] px-5 py-3 last:border-0"><div><StateBadge state={check.success ? "up" : "down"} /><span className="ml-3 text-xs text-zinc-500">{formatTime(check.checkedAt)}</span></div><div className="text-xs text-zinc-400">{check.statusCode ?? check.errorKind ?? "—"} · {check.latencyMs == null ? "—" : `${Math.round(check.latencyMs)} ms`}</div></div>)}
-        </UptimePanel>
-        <UptimePanel className="p-5"><h2 className="text-sm font-semibold text-zinc-200">Related incidents</h2>{resource.data?.incidents.length ? <div className="mt-4 space-y-3">{resource.data.incidents.map((incident) => <Link key={incident.id} to="/$orgSlug/uptime/incidents/$incidentId" params={{ orgSlug, incidentId: incident.id }} className="block rounded-xl border border-white/[0.07] p-3 transition-colors hover:border-white/[0.15] hover:bg-white/[0.025] focus-visible:outline-2 focus-visible:outline-violet-400 motion-reduce:transition-none"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-zinc-200">{incident.title}</p><span className="text-[11px] text-zinc-500">{incident.uptimePublicationState === "ignored" ? "Ignored" : incident.uptimePublicationState === "detected" ? "Private detection" : incident.status === "resolved" ? "Resolved" : "Public incident"}</span></div><p className="mt-1 text-xs text-zinc-600">{formatTime(incident.startedAt || incident.createdAt)}</p></Link>)}</div> : <p className="mt-4 text-sm text-zinc-500">No incidents recorded.</p>}</UptimePanel>
-      </div>
-    </>}
+  const summary = resource.data?.summary;
+  const historyDays = summary?.historyDays ?? 30;
+  const checks = resource.data?.checks ?? [], incidents = resource.data?.incidents ?? [];
+  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+    {back}
+    <UptimePageHeading title={monitor.name} description={`${monitor.method} ${monitor.url}`}
+      action={<div className="flex flex-wrap items-center gap-2"><CopyButton value={monitor.url} label="Copy endpoint URL" iconOnly variant="plain" />{resource.data?.canManage ? <><Button type="button" variant="secondary" size="md" aria-haspopup="dialog" disabled={Boolean(busy)} onClick={() => { setEditError(null); setEditing({ ...monitor, notificationEmails: [...(monitor.notificationEmails ?? [])] }); }}><FilePenLine size={14} aria-hidden="true" />Edit monitor</Button><Button type="button" variant="secondary" size="md" loading={busy === "toggle"} disabled={busy === "save"} onClick={() => void toggle()}>{monitor.enabled ? <Pause size={14} fill="currentColor" aria-hidden="true" /> : <Play size={14} fill="currentColor" aria-hidden="true" />}{monitor.enabled ? "Pause" : "Resume"}</Button></> : null}</div>} />
+    {resource.error ? <div className="flex flex-wrap items-center gap-3"><div className="min-w-0 flex-1"><UptimeError message={resource.error} /></div><Button type="button" size="sm" variant="secondary" onClick={resource.reload}>Retry</Button></div> : null}
+    {actionError ? <UptimeError message={actionError} /> : null}
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <UptimePanel className="p-4"><p className="text-[11px] text-zinc-500">Current state</p><div className="mt-3">{monitor.enabled ? <StateBadge state={monitor.state} /> : <span className="inline-flex items-center gap-1.5 text-[13px] text-zinc-400"><Pause size={13} aria-hidden="true" />Paused</span>}</div><p className="mt-3 text-[11px] leading-5 text-zinc-500">{monitor.enabled ? `Every minute · Down after ${monitor.failureThreshold} failures` : "Checks are paused"}</p></UptimePanel>
+      <UptimePanel className="p-4"><p className="text-[11px] text-zinc-500">Observed uptime</p><p className="mt-3 text-[24px] font-normal tracking-tight text-zinc-100">{summary?.observedUptimePercent == null ? "—" : `${summary.observedUptimePercent.toFixed(2)}%`}</p><p className="mt-2 text-[11px] leading-5 text-zinc-500">Recorded checks · Last {historyDays} days</p></UptimePanel>
+      <UptimePanel className="p-4"><p className="text-[11px] text-zinc-500">Average latency</p><p className="mt-3 text-[24px] font-normal tracking-tight text-zinc-100">{summary?.averageLatencyMs == null ? "—" : <>{Math.round(summary.averageLatencyMs)}<span className="ml-1.5 text-[13px] text-zinc-500">ms</span></>}</p><p className="mt-2 text-[11px] leading-5 text-zinc-500">Observed checks · Last {historyDays} days</p></UptimePanel>
+      <UptimePanel className="p-4"><p className="text-[11px] text-zinc-500">Last check</p><p className="mt-3 text-[13px] leading-6 text-zinc-200">{formatTime(monitor.lastCheckedAt)}</p><p className="mt-3 text-[11px] leading-5 text-zinc-500">Stale checks show Unknown</p></UptimePanel>
+    </div>
+    <dl className="flex flex-wrap items-start gap-x-10 gap-y-3 px-1 text-[11px]"><div><dt className="text-zinc-500">Incident publishing</dt><dd className="mt-1 text-zinc-300">{monitorPublishingLabel(monitor)}</dd></div><div><dt className="text-zinc-500">Expected status</dt><dd className="mt-1 text-zinc-300">{monitor.expectedStatus ?? "200–399"}</dd></div><div><dt className="text-zinc-500">Email alerts</dt><dd className="mt-1 text-zinc-300">{monitor.notificationEmails?.length ? `${monitor.notificationEmails.length} team ${monitor.notificationEmails.length === 1 ? "member" : "members"}` : "No recipients"}</dd></div><div><dt className="text-zinc-500">Headers</dt><dd className="mt-1 text-zinc-300">{monitor.hasHeaders ? "Encrypted headers configured" : "None"}</dd></div></dl>
+    <UptimePanel className="@container/monitor-history overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] p-4"><SegmentedControl value={tab} onValueChange={(value) => setTab(value as "checks" | "incidents")} label="Monitor activity" options={[{ value: "checks", label: "Checks" }, { value: "incidents", label: "Incidents", accessory: incidents.length ? <span className="ml-1.5 text-[10px] opacity-50">{incidents.length}</span> : undefined }]} /><span className="text-[11px] text-zinc-500">{tab === "checks" ? `Last ${historyDays} days · ${Math.min(checkCount, checks.length)} of ${checks.length} recent checks` : `${incidents.length} related ${incidents.length === 1 ? "incident" : "incidents"}`}</span></div>
+      {tab === "checks" ? checks.length ? <>
+        <div className="hidden grid-cols-[120px_minmax(0,1fr)_140px_120px] gap-4 border-b border-white/[0.06] px-4 py-3 text-[11px] text-zinc-500 @[650px]/monitor-history:grid"><span>Result</span><span>Checked at</span><span>Response</span><span className="text-right">Latency</span></div>
+        {checks.slice(0, checkCount).map((check) => <div key={check.id} className="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-3 border-b border-white/[0.06] px-4 py-3 text-[12px] last:border-0 @[650px]/monitor-history:grid-cols-[120px_minmax(0,1fr)_140px_120px] @[650px]/monitor-history:gap-4"><div><StateBadge state={check.success ? "up" : "down"} /></div><span className="text-[11px] text-zinc-500">{formatTime(check.checkedAt)}</span><span className="break-words text-[11px] text-zinc-400">{check.statusCode ?? check.errorKind?.replaceAll("_", " ") ?? "—"}</span><span className="text-[11px] tabular-nums text-zinc-400 @[650px]/monitor-history:text-right">{check.latencyMs == null ? "—" : `${Math.round(check.latencyMs)} ms`}</span></div>)}
+        {checks.length > checkCount ? <div className="border-t border-white/[0.06] px-4 py-3"><Button type="button" variant="ghost" size="sm" onClick={() => setCheckCount((count) => count + 25)}>Show more checks</Button></div> : null}
+      </> : <div className="px-5 py-12 text-center"><Activity size={21} strokeWidth={1.5} className="mx-auto text-zinc-500" aria-hidden="true" /><p className="mt-3 text-[13px] text-zinc-300">No checks yet</p><p className="mx-auto mt-2 max-w-sm text-[12px] leading-5 text-zinc-500">{monitor.enabled ? "The first check should arrive within a minute once the uptime worker is running." : "Resume this monitor to start collecting check history."}</p></div>
+        : incidents.length ? <>{incidents.slice(0, incidentCount).map((incident) => <Link key={incident.id} to="/$orgSlug/uptime/incidents/$incidentId" params={{ orgSlug, incidentId: incident.id }} className="group flex items-center gap-3 border-b border-white/[0.06] px-4 py-4 transition-colors last:border-0 hover:bg-white/[0.025] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-zinc-400 motion-reduce:transition-none"><span className="min-w-0 flex-1"><span className="block truncate text-[13px] text-zinc-200">{incident.title}</span><span className="mt-1 block text-[11px] text-zinc-500">{formatTime(incident.startedAt || incident.createdAt)}</span></span><span className="text-right text-[11px] text-zinc-500">{incident.uptimePublicationState === "ignored" ? "Ignored" : incident.uptimePublicationState === "detected" ? "Private detection" : incident.status === "resolved" ? "Resolved" : "Public incident"}</span><ChevronRight size={14} className="shrink-0 text-zinc-600 group-hover:text-zinc-400" aria-hidden="true" /></Link>)}{incidents.length > incidentCount ? <div className="border-t border-white/[0.06] px-4 py-3"><Button type="button" variant="ghost" size="sm" onClick={() => setIncidentCount((count) => count + 25)}>Show more incidents</Button></div> : null}</>
+          : <div className="px-5 py-12 text-center"><Clock3 size={21} strokeWidth={1.5} className="mx-auto text-zinc-500" aria-hidden="true" /><p className="mt-3 text-[13px] text-zinc-300">No related incidents</p><p className="mt-2 text-[12px] leading-5 text-zinc-500">Detected downtime and published incidents for this endpoint appear here.</p></div>}
+    </UptimePanel>
+    {editing && resource.data?.canManage ? <UptimeDialog open onClose={close} title="Edit monitor" description="Update the endpoint, alerts, and publishing behaviour." busy={busy === "save"}
+      footer={<><Button type="button" variant="secondary" size="sm" disabled={Boolean(busy)} onClick={close}>Cancel</Button><Button type="submit" form={formId} size="sm" loading={busy === "save"} disabled={busy === "toggle"}>Save changes</Button></>}>
+      <MonitorForm orgSlug={orgSlug} formId={formId} monitor={editing} busy={Boolean(busy)} error={editError} onSubmit={(payload) => void save(payload)} />
+    </UptimeDialog> : null}
   </div>;
 }
