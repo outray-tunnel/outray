@@ -260,6 +260,7 @@ test("no-activity setup opens an on-demand service sheet with retry and focus re
   const onRetry = () => {};
   const view = () => ui.render({ data: { ...snapshot, traces: [] }, onRetry });
   const trigger = namedButton(view(), "Connect a service")!;
+  assert.equal(trigger.props.size, "md");
   assert.equal(trigger.props["aria-haspopup"], "dialog"); assert.equal(trigger.props["aria-expanded"], false);
   assert.equal(view().find((element) => element.type === ui.stubs.ConnectServiceSheet)?.props.open, false);
   trigger.props.onClick();
