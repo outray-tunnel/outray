@@ -201,6 +201,7 @@ test("Connect a service stays on the inventory and returns retry and focus handl
   const renderTree = () => elements(ui.render({ onRetry: retry }));
   const trigger = renderTree().find((element) => element.type === ui.stubs.Button && element.props["aria-haspopup"] === "dialog");
   assert.ok(trigger);
+  assert.equal(trigger.props.size, "md");
   assert.equal(trigger.props["aria-expanded"], false);
   assert.equal(trigger.props.href, undefined);
   trigger.props.onClick();
