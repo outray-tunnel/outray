@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -71,6 +72,15 @@ test("opening capture settings does not write and unchanged Save is disabled", (
   assert.match(html, /Save changes/);
   assert.match(html, /Cancel/);
   assert.doesNotMatch(html, /role="switch"/);
+  for (const [button] of html.matchAll(/<button\b[^>]*>/g)) assert.match(button, /class="[^"]*\bsm\b/);
+});
+
+test("the requests page opens capture settings with a medium launcher", async () => {
+  const source = await readFile(new URL("../src/routes/$orgSlug/requests.tsx", import.meta.url), "utf8");
+  const trigger = source.match(/<DialogTrigger asChild>[\s\S]*?<\/DialogTrigger>/)?.[0];
+  assert.ok(trigger);
+  assert.match(trigger, /<Button type="button" variant="secondary" size="md"/);
+  assert.match(trigger, /Capture settings/);
 });
 
 test("capture settings describe organization scope, sensitive data and future-only effects", () => {
