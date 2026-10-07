@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import "../outray-arc-theme.css";
 
 export function UptimeSideSheet({ open, onClose, title, description, children, footer, busy = false }: {
   open: boolean;
@@ -37,7 +38,7 @@ export function UptimeSideSheet({ open, onClose, title, description, children, f
     aria-labelledby={titleId}
     aria-describedby={description ? descriptionId : undefined}
     aria-busy={busy}
-    className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-dvh w-full max-w-[640px] overflow-hidden border-0 border-l border-white/[0.1] bg-[#0d0d0f] p-0 text-zinc-200 shadow-[-20px_0_80px_rgba(0,0,0,0.45)] outline-none backdrop:bg-black/65 backdrop:backdrop-blur-[2px] sm:w-[min(640px,92vw)]"
+    className="outray-arc fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-dvh w-full max-w-[640px] overflow-hidden border-0 border-l border-white/[0.1] bg-[#0d0d0f] p-0 text-zinc-200 shadow-[-20px_0_80px_rgba(0,0,0,0.45)] outline-none backdrop:bg-black/65 backdrop:backdrop-blur-[2px] sm:w-[min(640px,92vw)]"
     onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }}
     onClick={(event) => {
       if (busy || event.target !== event.currentTarget) return;
