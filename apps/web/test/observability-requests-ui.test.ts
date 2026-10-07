@@ -227,6 +227,7 @@ test("empty history connects inline and error actions retain the supplied retry 
   const emptyProps = { data: { ...data, requests: [], total: 0, hasMore: false, nextCursor: null }, total: 0, onRetry: retry };
   let tree = ui.render(emptyProps);
   const trigger = tree.find((element) => element.type === ui.stubs.Button && element.props["aria-haspopup"] === "dialog");
+  assert.equal(trigger?.props.size, "md");
   assert.ok(trigger);
   assert.equal(trigger.props["aria-expanded"], false);
   trigger.props.onClick();
