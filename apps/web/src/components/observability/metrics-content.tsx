@@ -134,7 +134,7 @@ export function MetricsContent({
           ) : !selected || !data ? (
             <MetricsMessage icon={<Activity size={21} aria-hidden="true" />} title={data ? `No metrics in the last ${data.range}` : "No metrics in this period"} detail="Metrics appear when an instrumented service sends OpenTelemetry measurements. Try a longer range or connect a service.">
               {data && !matches && <p role="status" className="mt-2 text-[11px] text-zinc-400">{isFetching ? `Loading ${search.range}` : "The new selection is unavailable"} · Showing the last available {data.range} period.</p>}
-              <Button ref={connectTrigger} variant="secondary" className="mt-4" aria-haspopup="dialog" aria-expanded={connectOpen} onClick={() => setConnectOpen(true)}><Plus size={14} aria-hidden="true" /> Connect a service</Button>
+              <Button ref={connectTrigger} variant="secondary" size="md" className="mt-4" aria-haspopup="dialog" aria-expanded={connectOpen} onClick={() => setConnectOpen(true)}><Plus size={14} aria-hidden="true" /> Connect a service</Button>
             </MetricsMessage>
           ) : (
             <MetricExplorer
