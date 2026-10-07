@@ -299,6 +299,7 @@ function AlertDetailWorkspace({ orgSlug, alertId }: { orgSlug: string; alertId: 
               onClick={() => setIsDeleting(true)}
               disabled={Boolean(action)}
               tone="danger"
+              size="md"
             />
           </div>
         </div>
@@ -473,7 +474,7 @@ export function AlertOverviewTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-sm font-medium text-zinc-200">At a glance</h2>
-        <Button type="button" variant="secondary" size="sm" onClick={onEditDetails}>
+        <Button type="button" variant="secondary" size="md" onClick={onEditDetails} aria-haspopup="dialog">
           <HugeiconsIcon icon={PencilEdit02Icon} size={15} strokeWidth={1.7} />
           Edit details
         </Button>
@@ -549,7 +550,7 @@ export function AlertConditionTab() {
       />
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/[0.08] bg-[#111112] px-4 py-4 text-[13px] leading-5 text-zinc-300 sm:px-4">
         <span>{conditionLabel(alert)}</span>
-        <Button type="button" variant="secondary" size="sm" onClick={onEditCondition}>
+        <Button type="button" variant="secondary" size="md" onClick={onEditCondition} aria-haspopup="dialog">
           <HugeiconsIcon icon={PencilEdit02Icon} size={15} strokeWidth={1.7} />
           Edit condition
         </Button>
@@ -839,7 +840,7 @@ export function AlertNotificationsTab() {
                     : available ? "Connect and select a channel" : "OAuth app not configured"}
                 </p>
               </div>
-              {connected ? <Button type="button" variant="secondary" size="sm" disabled={saving} onClick={() => { setSettingsProvider(provider); setError(null); }} aria-label={`${title} settings`}>
+              {connected ? <Button type="button" variant="secondary" size="md" disabled={saving} onClick={() => { setSettingsProvider(provider); setError(null); }} aria-haspopup="dialog" aria-label={`${title} settings`}>
                 <HugeiconsIcon icon={Settings02Icon} size={17} strokeWidth={1.7} />
                 Settings
               </Button> : available ? <a href={`${base}/${provider}/start`} className="inline-flex h-9 items-center rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 text-xs text-zinc-200 hover:bg-white/[0.06] focus-visible:outline-2 focus-visible:outline-white">Connect</a> : null}
@@ -1061,19 +1062,21 @@ function ActionButton({
   onClick,
   disabled,
   tone = "neutral",
+  size = "sm",
 }: {
   icon: Parameters<typeof HugeiconsIcon>[0]["icon"];
   label: string;
   onClick: () => void;
   disabled?: boolean;
   tone?: "neutral" | "danger";
+  size?: "sm" | "md";
 }) {
   return (
     <Button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      size="sm"
+      size={size}
       variant={tone === "danger" ? "danger" : "secondary"}
     >
       <HugeiconsIcon icon={icon} size={14} strokeWidth={1.7} />
