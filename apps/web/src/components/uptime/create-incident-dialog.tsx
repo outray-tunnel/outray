@@ -5,6 +5,8 @@ import { Search } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { pageComponents } from "@/lib/uptime/incident-display";
 import { WorkspaceInput } from "@/components/ui/workspace-input";
+import { Button } from "@/components/arc/button/button";
+import buttonStyles from "@/components/arc/button/button.module.css";
 import { workspaceInputShellClassName } from "@/components/ui/workspace-input-styles";
 import { IncidentStatusSelect } from "./incident-ui";
 import { IncidentRichEditor } from "./incident-rich-editor";
@@ -12,7 +14,7 @@ import { UptimeDialog } from "./uptime-dialog";
 import { useUptimeUnsavedChanges } from "./use-uptime-unsaved-changes";
 import { uptimeRequest, UptimeRequestError, type UptimeIncidentStatus, type UptimePageResponse } from "./uptime-client";
 import { UptimeSkeleton } from "./uptime-skeleton";
-import { labelClass, primaryButton, secondaryButton, UptimeError } from "./uptime-ui";
+import { labelClass, UptimeError } from "./uptime-ui";
 
 export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
   orgSlug: string;
@@ -71,11 +73,11 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
 
   return <>
     <UptimeDialog open onClose={requestClose} title="Create incident" description="Keep customers informed about an issue affecting your services." busy={saving !== null} footer={<>
-      <button type="button" onClick={requestClose} className={`${secondaryButton} mr-auto`} disabled={saving !== null}>Cancel</button>
-      <button type="submit" form={formId} className={secondaryButton} disabled={saving !== null || !page.data?.page || !components.length}>{saving === "draft" ? "Saving…" : "Save draft"}</button>
-      <button type="button" onClick={() => void create(true)} className={primaryButton} disabled={saving !== null || !page.data?.page?.published || !components.length}>{saving === "publish" ? "Publishing…" : "Publish incident"}</button>
+      <Button type="button" variant="secondary" size="sm" onClick={requestClose} className="mr-auto" disabled={saving !== null}>Cancel</Button>
+      <Button type="submit" variant="secondary" size="sm" form={formId} disabled={saving !== null || !page.data?.page || !components.length}>{saving === "draft" ? "Saving…" : "Save draft"}</Button>
+      <Button type="button" size="sm" onClick={() => void create(true)} disabled={saving !== null || !page.data?.page?.published || !components.length}>{saving === "publish" ? "Publishing…" : "Publish incident"}</Button>
     </>}>
-      {page.isPending ? <UptimeSkeleton label="Loading components" className="space-y-5"><div className="h-10 rounded-xl bg-white/[0.04]" /><div className="h-32 rounded-xl bg-white/[0.04]" /><div className="h-24 rounded-xl bg-white/[0.04]" /></UptimeSkeleton> : page.isError && !page.data ? <div className="space-y-3"><UptimeError message="Could not load your status page and components." /><button type="button" onClick={() => void page.refetch()} className={secondaryButton}>Try again</button></div> : !page.data?.page || !components.length ? <div className="py-5 text-sm leading-6 text-zinc-400"><p>{!page.data?.page ? "Create a status page before reporting an incident." : "Add a component to your status page before reporting an incident."}</p><Link to="/$orgSlug/uptime/status-page/components" params={{ orgSlug }} className={`${secondaryButton} mt-4`}>Set up components</Link></div> : <form id={formId} ref={formRef} onSubmit={(event) => { event.preventDefault(); void create(false); }} className="space-y-5">
+      {page.isPending ? <UptimeSkeleton label="Loading components" className="space-y-5"><div className="h-10 rounded-xl bg-white/[0.04]" /><div className="h-32 rounded-xl bg-white/[0.04]" /><div className="h-24 rounded-xl bg-white/[0.04]" /></UptimeSkeleton> : page.isError && !page.data ? <div className="space-y-3"><UptimeError message="Could not load your status page and components." /><Button type="button" variant="secondary" size="sm" onClick={() => void page.refetch()}>Try again</Button></div> : !page.data?.page || !components.length ? <div className="py-5 text-sm leading-6 text-zinc-400"><p>{!page.data?.page ? "Create a status page before reporting an incident." : "Add a component to your status page before reporting an incident."}</p><Link to="/$orgSlug/uptime/status-page/components" params={{ orgSlug }} className={`${buttonStyles.button} ${buttonStyles.secondary} ${buttonStyles.sm} mt-4`}>Set up components</Link></div> : <form id={formId} ref={formRef} onSubmit={(event) => { event.preventDefault(); void create(false); }} className="space-y-5">
         <fieldset disabled={saving !== null} className="min-w-0 space-y-5">
         <label className={labelClass} htmlFor={`${formId}-title`}>Incident title
           <WorkspaceInput id={`${formId}-title`} data-autofocus className="mt-2" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={160} required placeholder="Elevated errors during checkout" aria-invalid={!!errors.title} aria-describedby={errors.title ? `${formId}-title-error` : undefined} />
@@ -104,6 +106,6 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
         </fieldset>
       </form>}
     </UptimeDialog>
-    <UptimeDialog open={discard || blocker.status === "blocked"} onClose={() => { setDiscard(false); blocker.reset?.(); }} title="Discard this draft?" busy={saving !== null} footer={<><button type="button" className={secondaryButton} onClick={() => { setDiscard(false); blocker.reset?.(); }}>Keep editing</button><button type="button" className={primaryButton} disabled={saving !== null} onClick={() => { if (blocker.status === "blocked") blocker.proceed(); onClose(); }}>Discard draft</button></>}><p className="text-sm leading-6 text-zinc-400">Your unsaved incident details will be lost.</p></UptimeDialog>
+    <UptimeDialog open={discard || blocker.status === "blocked"} onClose={() => { setDiscard(false); blocker.reset?.(); }} title="Discard this draft?" busy={saving !== null} footer={<><Button type="button" variant="secondary" size="sm" onClick={() => { setDiscard(false); blocker.reset?.(); }}>Keep editing</Button><Button type="button" size="sm" disabled={saving !== null} onClick={() => { if (blocker.status === "blocked") blocker.proceed(); onClose(); }}>Discard draft</Button></>}><p className="text-sm leading-6 text-zinc-400">Your unsaved incident details will be lost.</p></UptimeDialog>
   </>;
 }
