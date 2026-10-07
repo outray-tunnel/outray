@@ -57,6 +57,16 @@ test("setup is a real tab interface, with only one selected keyboard stop", () =
   assert.equal((html.match(/aria-selected="true"/g) ?? []).length, 1);
 });
 
+test("embedded setup can use small actions while standalone navigation remains medium", () => {
+  for (const buttonSize of [undefined, "sm"] as const) {
+    const html = renderToStaticMarkup(React.createElement(SetupFlow, { steps, buttonSize, children: "Guide" }));
+    const actions = [...html.matchAll(/<button\b([^>]*)>[\s\S]*?<\/button>/g)]
+      .filter(([button]) => button.includes("Back") || button.includes("Next step"));
+    assert.equal(actions.length, 2);
+    for (const [, attributes] of actions) assert.match(attributes, new RegExp(`class="[^"]*\\b${buttonSize ?? "md"}\\b`));
+  }
+});
+
 test("inactive setup panels remain mounted but hidden, preserving all form values", () => {
   const html = renderFlow();
   const panels = [...html.matchAll(/<div[^>]*role="tabpanel"[^>]*>/g)].map(([panel]) => panel);
