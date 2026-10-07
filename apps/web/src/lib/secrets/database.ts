@@ -3,9 +3,11 @@ import { db } from "../../db";
 import { organizations } from "../../db/auth-schema";
 import {
   secretAuditEvents,
+  secretEntries,
   secretEnvironments,
   secretOrganizationKeys,
   secretProjects,
+  secretVersions,
 } from "../../db/secrets-schema";
 import {
   createOrganizationKey,
@@ -77,6 +79,78 @@ export async function resolveEnvironment(
     environmentId: environment.id,
   });
   return environment;
+}
+
+/** Resolve reveal metadata in one trip, without changing scope/error order. */
+export async function resolveSecretForReveal(
+  access: SecretsAccess,
+  projectSlug: string,
+  environmentSlug: string,
+  secretId: string,
+) {
+  const [context] = await db
+    .select({
+      project: secretProjects,
+      environment: secretEnvironments,
+      entry: secretEntries,
+    })
+    .from(secretProjects)
+    .leftJoin(
+      secretEnvironments,
+      and(
+        eq(secretEnvironments.organizationId, access.organization.id),
+        eq(secretEnvironments.projectId, secretProjects.id),
+        eq(secretEnvironments.slug, environmentSlug),
+        isNull(secretEnvironments.deletedAt),
+      ),
+    )
+    .leftJoin(
+      secretEntries,
+      and(
+        eq(secretEntries.id, secretId),
+        eq(secretEntries.organizationId, access.organization.id),
+        eq(secretEntries.projectId, secretProjects.id),
+        eq(secretEntries.environmentId, secretEnvironments.id),
+        isNull(secretEntries.deletedAt),
+      ),
+    )
+    .where(
+      and(
+        eq(secretProjects.organizationId, access.organization.id),
+        eq(secretProjects.slug, projectSlug),
+        isNull(secretProjects.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!context) {
+    throw new SecretsError("Vault not found", {
+      code: "NOT_FOUND",
+      status: 404,
+    });
+  }
+  const { project, environment, entry } = context;
+  assertActorScope(access.actor, { projectId: project.id });
+  if (!environment) {
+    throw new SecretsError("Environment not found", {
+      code: "NOT_FOUND",
+      status: 404,
+    });
+  }
+  assertActorScope(access.actor, {
+    projectId: project.id,
+    environmentId: environment.id,
+  });
+  if (!entry) {
+    throw new SecretsError("Secret not found", {
+      code: "NOT_FOUND",
+      status: 404,
+    });
+  }
+  assertActorScope(access.actor, {
+    projectId: entry.projectId,
+    environmentId: entry.environmentId,
+  });
+  return { project, environment, entry };
 }
 
 export async function lockOrganization(
@@ -222,6 +296,49 @@ export async function transactionKeyForVersion(
     });
   }
   return unwrapRow(row);
+}
+
+/** Call only after the reveal's organization and resource locks are held. */
+export async function transactionSecretVersionForReveal(
+  tx: SecretsTransaction,
+  organizationId: string,
+  entryId: string,
+  versionNumber: number,
+) {
+  const [result] = await tx
+    .select({ version: secretVersions, organizationKey: secretOrganizationKeys })
+    .from(secretVersions)
+    .leftJoin(
+      secretOrganizationKeys,
+      and(
+        eq(secretOrganizationKeys.organizationId, organizationId),
+        eq(secretOrganizationKeys.version, secretVersions.organizationKeyVersion),
+      ),
+    )
+    .where(
+      and(
+        eq(secretVersions.organizationId, organizationId),
+        eq(secretVersions.entryId, entryId),
+        eq(secretVersions.version, versionNumber),
+      ),
+    )
+    .limit(1);
+  if (!result) {
+    throw new SecretsError("Secret version not found", {
+      code: "NOT_FOUND",
+      status: 404,
+    });
+  }
+  if (!result.organizationKey) {
+    throw new SecretsError("Secret organization key version not found", {
+      code: "SECRETS_KEY_UNAVAILABLE",
+      status: 503,
+    });
+  }
+  return {
+    version: result.version,
+    organizationKey: unwrapRow(result.organizationKey),
+  };
 }
 
 export async function auditEvent(
