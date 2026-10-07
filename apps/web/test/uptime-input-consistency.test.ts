@@ -25,7 +25,6 @@ test("refreshed Uptime incident and Setup text controls use the shared fields", 
     "components/onboarding/uptime-monitor-form.tsx",
     "components/uptime/create-incident-dialog.tsx",
     "components/uptime/incident-rich-editor.tsx",
-    "routes/$orgSlug/uptime/incidents.tsx",
     "routes/$orgSlug/uptime/status-page.tsx",
     "routes/$orgSlug/uptime/status-page/domains.tsx",
   ]) {
@@ -35,24 +34,24 @@ test("refreshed Uptime incident and Setup text controls use the shared fields", 
   }
 });
 
-test("incident searches share neutral shells and compact bare controls", async () => {
+test("incident searches use the actual workspace Arc search fields", async () => {
   const list = await readSource("routes/$orgSlug/uptime/incidents.tsx");
   const picker = await readSource("components/uptime/create-incident-dialog.tsx");
-  for (const source of [list, picker]) {
-    assert.match(source, /data-field-size="compact" className=\{`\$\{workspaceInputShellClassName\}/);
-    assert.match(source, /<WorkspaceInput[^>]+variant="bare"[^>]+size="compact"/);
-  }
-  assert.match(list, /aria-label="Search incidents by title"/);
-  assert.match(picker, /aria-label="Find a component" aria-invalid=\{!!errors\.componentIds\}/);
+  assert.match(list, /<SearchField appearance="workspace" label="Search incidents by title"/);
+  assert.match(picker, /<SearchField[^>]+appearance="workspace"[^>]+label="Find a component" aria-invalid=\{!!errors\.componentIds\}/);
 });
 
-test("legacy Uptime monitor fields and shared fieldClass are not restyled by this opt-in migration", async () => {
-  const legacy = await readSource("routes/$orgSlug/uptime/monitors.tsx");
+test("all refreshed Uptime monitor and publishing text fields use the shared control", async () => {
+  const form = await readSource("components/uptime/monitor-form.tsx");
   const helpers = await readSource("components/uptime/uptime-ui.tsx");
   const publishing = await readSource("components/uptime/incident-publishing-fields.tsx");
-  assert.doesNotMatch(legacy, /ui\/workspace-input/);
-  assert.doesNotMatch(publishing, /ui\/workspace-input/, "shared legacy monitor settings must not change untouched screens");
-  assert.match(helpers, /export const fieldClass = "min-h-10 w-full rounded-xl/);
+  assert.match(form, /WorkspaceInput, WorkspaceTextarea.*ui\/workspace-input/);
+  assert.match(publishing, /WorkspaceInput.*ui\/workspace-input/);
+  assert.ok(rawFields(form).every((type) => ["checkbox", "radio", "hidden"].includes(type)));
+  assert.ok(rawFields(publishing).every((type) => ["checkbox", "radio", "hidden"].includes(type)));
+  assert.match(helpers, /export const fieldClass = workspaceInputClassName/);
+  assert.match(form, /components\/arc|\.\.\/arc\/select\/select/);
+  assert.match(publishing, /\.\.\/arc\/select\/select/);
 });
 
 test("incident title and link controls retain focus targets and handlers", async () => {
