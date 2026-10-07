@@ -72,8 +72,8 @@ export function CreateDomainForm({ value, onValueChange, onSubmit, onCancel, isP
       </div>
 
       <div className="mt-5 flex justify-end gap-2 border-t border-white/[0.07] pt-4">
-        <Button type="button" variant="secondary" size="md" disabled={isPending} onClick={onCancel}>Cancel</Button>
-        <Button ref={submitRef} type="submit" variant="primary" size="md" loading={isPending} disabled={!normalized} aria-describedby={error ? errorId : undefined}>Add domain</Button>
+        <Button type="button" variant="secondary" size="sm" disabled={isPending} onClick={onCancel}>Cancel</Button>
+        <Button ref={submitRef} type="submit" variant="primary" size="sm" loading={isPending} disabled={!normalized} aria-describedby={error ? errorId : undefined}>Add domain</Button>
       </div>
     </form>
   );
