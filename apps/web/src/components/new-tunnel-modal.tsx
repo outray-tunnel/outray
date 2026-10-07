@@ -287,7 +287,7 @@ export function NewTunnelModal({
                         <Button
                           type="button"
                           variant="primary"
-                          size="md"
+                          size="sm"
                           disabled={!command}
                           onClick={() => {
                             if (command) void copyToClipboard(command, "start");
