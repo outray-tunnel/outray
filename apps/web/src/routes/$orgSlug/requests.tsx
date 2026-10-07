@@ -149,7 +149,7 @@ function OrganizationRequestsView({ orgSlug }: { orgSlug: string }) {
             </span>
             {fullCaptureFeatureEnabled && (
               <DialogTrigger asChild>
-                <Button type="button" variant="secondary" size="sm">
+                <Button type="button" variant="secondary" size="md">
                   <HugeiconsIcon
                     icon={Settings02Icon}
                     size={14}
