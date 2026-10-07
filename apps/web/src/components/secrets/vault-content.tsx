@@ -61,7 +61,7 @@ export function VaultContent({ orgSlug, project, loading, refreshing, error, sea
             { label: "Edit vault", icon: Edit02Icon, onSelect: onEditVault },
             { label: "Delete vault", icon: Delete02Icon, onSelect: onDeleteVault, danger: true },
           ]} />
-          <Button size="sm" aria-haspopup="dialog" onClick={onCreateEnvironment}><Plus size={14} aria-hidden="true" />Add environment</Button>
+          <Button size="md" aria-haspopup="dialog" onClick={onCreateEnvironment}><Plus size={14} aria-hidden="true" />Add environment</Button>
         </div>}
       </div>
     </header>
@@ -84,7 +84,7 @@ export function VaultContent({ orgSlug, project, loading, refreshing, error, sea
           <p role="status" aria-live="polite" className="inline-flex items-center gap-1.5 text-[11px] tabular-nums text-zinc-500">{refreshing && <RefreshCw size={11} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}{refreshing ? "Updating" : search.trim() ? `${environments.length} of ${project.environments.length} environments` : `${project.environments.length} ${project.environments.length === 1 ? "environment" : "environments"}`}</p>
         </div>
         {project.environments.length === 0 ? <div className="rounded-xl border border-dashed border-white/[0.12] px-5 py-12 text-center">
-          <Layers size={24} className="mx-auto text-zinc-500" aria-hidden="true" /><h3 className="mt-3 text-[14px] font-medium text-zinc-200">Add your first environment</h3><p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-zinc-500">Start with development, staging, or production. Each keeps its own set of values.</p><Button variant="secondary" size="sm" className="mt-4" aria-haspopup="dialog" onClick={onCreateEnvironment}><Plus size={13} aria-hidden="true" />Add environment</Button>
+          <Layers size={24} className="mx-auto text-zinc-500" aria-hidden="true" /><h3 className="mt-3 text-[14px] font-medium text-zinc-200">Add your first environment</h3><p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-zinc-500">Start with development, staging, or production. Each keeps its own set of values.</p><Button variant="secondary" size="md" className="mt-4" aria-haspopup="dialog" onClick={onCreateEnvironment}><Plus size={13} aria-hidden="true" />Add environment</Button>
         </div> : <>
           <div className="outray-arc-requests-search max-w-sm"><SearchField appearance="workspace" label="Search environments" value={search} onValueChange={onSearchChange} placeholder="Find an environment…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
           {environments.length === 0 ? <div className="rounded-xl border border-white/[0.08] bg-[#111112] px-5 py-12 text-center"><Search size={22} className="mx-auto text-zinc-500" aria-hidden="true" /><h3 className="mt-3 text-[14px] font-medium text-zinc-200">No matching environments</h3><p className="mt-1 text-[12px] leading-5 text-zinc-500">Try another name or clear your search.</p><Button variant="ghost" size="sm" className="mt-3" onClick={() => onSearchChange("")}>Clear search</Button></div> : <div className="rounded-xl border border-white/[0.08] bg-[#111112]">
