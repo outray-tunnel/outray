@@ -6,8 +6,8 @@ const spanOffset = Number(process.env.OUTRAY_OTEL_SPAN_OFFSET || 0);
 const metricRows = Number(process.env.OUTRAY_OTEL_METRICS || 1_000_000);
 const metricOffset = Number(process.env.OUTRAY_OTEL_METRIC_OFFSET || 0);
 const metricTotal = Math.ceil(metricRows / 36);
-const spanBatchSize = 5_000;
-const metricBatchSize = 100;
+const spanBatchSize = Number(process.env.OUTRAY_OTEL_SPAN_BATCH || 500);
+const metricBatchSize = Number(process.env.OUTRAY_OTEL_METRIC_BATCH || 25);
 const remoteStageSeed =
   process.env.OUTRAY_ALLOW_REMOTE_LOAD_SEED === "true" &&
   process.env.OUTRAY_LOAD_SEED_TARGET === "outray.co";
