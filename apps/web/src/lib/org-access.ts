@@ -1,3 +1,5 @@
+import { getCachedAuthSession } from "./auth-session-cache";
+
 type SessionWithUser = { user: { id: string } };
 
 export type OrganizationAccess<Session, Organization> =
@@ -31,7 +33,7 @@ export function createOrganizationAccessResolver<
 
     let session = sessions.get(request);
     if (!session) {
-      session = Promise.resolve().then(() => dependencies.getSession(request));
+      session = getCachedAuthSession(request, dependencies.getSession);
       sessions.set(request, session);
     }
     const result = session.then(
