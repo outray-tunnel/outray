@@ -88,10 +88,16 @@ async function fixture(name: RouteName) {
       dashboardCacheKey: (endpoint: string, parameters: Record<string, unknown>) =>
         `${endpoint}:${JSON.stringify(parameters)}`,
     },
+    "../../../../lib/dashboard-redis-cache": {
+      cachedDashboardRedisRead: (_key: string, read: () => Promise<unknown>) => read(),
+    },
     "@/lib/dashboard-cache": {
       cachedDashboardRead: (_key: string, read: () => Promise<unknown>) => read(),
       dashboardCacheKey: (endpoint: string, parameters: Record<string, unknown>) =>
         `${endpoint}:${JSON.stringify(parameters)}`,
+    },
+    "@/lib/dashboard-redis-cache": {
+      cachedDashboardRedisRead: (_key: string, read: () => Promise<unknown>) => read(),
     },
     "@/lib/subscription-plans": { SUBSCRIPTION_PLANS: { free: { features: { bandwidthPerMonth: 100 } } } },
     "../../../../../../../shared/utils": { getBandwidthKey },
