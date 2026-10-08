@@ -9,7 +9,7 @@ interface TinybirdResponse<T> {
 }
 
 type QueryCacheEntry =
-  | { expiresAt: number; value: unknown[] }
+  | { expiresAt: number; value: unknown[]; refresh?: Promise<unknown[]> }
   | { promise: Promise<unknown[]> };
 
 const queryCache = new Map<string, QueryCacheEntry>();
@@ -53,21 +53,13 @@ export async function queryTinybird<T>(
 ): Promise<T[]> {
   const { apiHost, token } = tinybirdConfig();
   const cacheKey = queryCacheKey(endpoint, parameters);
-  if (queryCacheTtlMs > 0) {
-    const cached = queryCache.get(cacheKey);
-    if (cached) {
-      if ("promise" in cached) return (await cached.promise) as T[];
-      if (cached.expiresAt > Date.now()) return cached.value as T[];
-      queryCache.delete(cacheKey);
-    }
-  }
 
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(parameters)) {
     if (value !== undefined && value !== "") search.set(key, String(value));
   }
 
-  const request = (async () => {
+  const load = async (): Promise<unknown[]> => {
     const response = await fetch(
       `${apiHost}/v0/pipes/${encodeURIComponent(endpoint)}.json?${search}`,
       {
@@ -83,7 +75,41 @@ export async function queryTinybird<T>(
 
     const result = (await response.json()) as TinybirdResponse<T>;
     return result.data || [];
-  })();
+  };
+
+  if (queryCacheTtlMs > 0) {
+    const cached = queryCache.get(cacheKey);
+    if (cached) {
+      if ("promise" in cached) return (await cached.promise) as T[];
+      if (cached.expiresAt > Date.now()) return cached.value as T[];
+
+      // Keep serving the last successful result while one request refreshes
+      // it. Remote Tinybird queries can occasionally take several seconds;
+      // dashboard reads should not turn that refresh into a user-visible
+      // timeout or a thundering herd.
+      if (!cached.refresh) {
+        cached.refresh = load()
+          .then((value) => {
+            queryCache.set(cacheKey, {
+              expiresAt: Date.now() + queryCacheTtlMs,
+              value,
+            });
+            return value;
+          })
+          .catch(() => {
+            cached.expiresAt = Date.now() + 5_000;
+            return cached.value;
+          })
+          .finally(() => {
+            const current = queryCache.get(cacheKey);
+            if (current && "value" in current) delete current.refresh;
+          });
+      }
+      return cached.value as T[];
+    }
+  }
+
+  const request = load();
 
   if (queryCacheTtlMs <= 0) return request;
   queryCache.set(cacheKey, { promise: request as Promise<unknown[]> });
