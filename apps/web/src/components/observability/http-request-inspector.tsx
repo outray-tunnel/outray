@@ -1,6 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode, type RefObject } from "react";
-import { FileText, Network, Server } from "lucide-react";
+import { FileText, Network, Server, Sparkles } from "lucide-react";
+import { Button } from "@/components/arc/button/button";
+import { useAgentChat } from "@/components/agent/agent-chat-context";
+import { createAgentRequestContext } from "@/components/agent/agent-chat-data";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import { JsonViewer, formatBody } from "@/components/requests/json-viewer";
 import { formatBytes } from "@/components/requests/utils";
@@ -56,6 +59,7 @@ export function HttpRequestInspector({
           key={`${orgSlug}:${request.id}`}
           request={request}
           orgSlug={orgSlug}
+          onClose={onClose}
         />
       )}
     </SideSheet>
@@ -65,10 +69,13 @@ export function HttpRequestInspector({
 function InspectorDetails({
   request,
   orgSlug,
+  onClose,
 }: {
   request: HttpRequestSummary;
   orgSlug: string;
+  onClose: () => void;
 }) {
+  const { startThread } = useAgentChat();
   const [tab, setTab] = useState<InspectorTab>("request");
   const [details, setDetails] = useState<RequestDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,14 +116,25 @@ function InspectorDetails({
   return (
     <div className="space-y-5">
       <RequestSummary request={request} />
-      <SegmentedControl
-        options={inspectorTabs}
-        value={tab}
-        onValueChange={setTab}
-        label="Request detail sections"
-        fullWidth
-        className="[&_button]:h-8 [&_button]:text-xs"
-      />
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] text-zinc-500">Start a conversation about this request.</p>
+        <Button variant="secondary" size="sm" aria-haspopup="dialog" onClick={() => {
+          startThread(createAgentRequestContext(orgSlug, request, details));
+          onClose();
+        }}>
+          <Sparkles size={13} aria-hidden="true" />Ask agent
+        </Button>
+      </div>
+      <div aria-label="Request detail navigation">
+        <SegmentedControl
+          options={inspectorTabs}
+          value={tab}
+          onValueChange={setTab}
+          label="Request detail sections"
+          fullWidth
+          className="[&_button]:h-8 [&_button]:text-xs"
+        />
+      </div>
       {copyError && (
         <p
           role="alert"
