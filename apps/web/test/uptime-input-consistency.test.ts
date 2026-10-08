@@ -36,9 +36,12 @@ test("refreshed Uptime incident and Setup text controls use the shared fields", 
 
 test("incident searches use the actual workspace Arc search fields", async () => {
   const list = await readSource("routes/$orgSlug/uptime/incidents.tsx");
-  const picker = await readSource("components/uptime/create-incident-dialog.tsx");
+  const create = await readSource("components/uptime/create-incident-dialog.tsx");
+  const picker = await readSource("components/uptime/incident-component-picker.tsx");
   assert.match(list, /<SearchField appearance="workspace" label="Search incidents by title"/);
-  assert.match(picker, /<SearchField[^>]+appearance="workspace"[^>]+label="Find a component" aria-invalid=\{!!errors\.componentIds\}/);
+  assert.match(create, /<IncidentComponentPicker[^>]+error=\{errors\.componentIds\}/);
+  assert.match(picker, /<SearchField[^>]+appearance="workspace"/);
+  assert.match(picker, /label="Find a component" aria-invalid=\{!!error\}/);
 });
 
 test("all refreshed Uptime monitor and publishing text fields use the shared control", async () => {
