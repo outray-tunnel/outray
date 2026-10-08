@@ -10,9 +10,9 @@ type Entry<T> = {
 
 const entries = new Map<string, Entry<unknown>>();
 // Keep authenticated dashboard reads from re-querying the session database on
-// every request during a burst. This is deliberately short so revocations are
-// observed quickly while concurrent requests can share one lookup.
-const defaultTtlMs = 2_000;
+// every request during a burst. Thirty seconds covers a dashboard refresh
+// burst while still bounding how long a revoked session can remain cached.
+const defaultTtlMs = 30_000;
 const defaultMaxEntries = 1_000;
 
 function configuredNumber(name: string, fallback: number): number {
