@@ -1,15 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { legacyIncidentDocument, parseIncidentDocument, type IncidentDocument } from "@outray/incident-content";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Info } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { Info } from "lucide-react";
+import { useCallback, useId, useMemo, useRef, useState } from "react";
 import { pageComponents } from "@/lib/uptime/incident-display";
 import { WorkspaceInput } from "@/components/ui/workspace-input";
 import { Button } from "@/components/arc/button/button";
 import buttonStyles from "@/components/arc/button/button.module.css";
-import { SearchField } from "@/components/arc/search-field/search-field";
 import { IncidentStatusSelect } from "./incident-ui";
 import { IncidentRichEditor } from "./incident-rich-editor";
+import { IncidentComponentPicker } from "./incident-component-picker";
 import { UptimeDialog } from "./uptime-dialog";
 import { useUptimeUnsavedChanges } from "./use-uptime-unsaved-changes";
 import { uptimeRequest, UptimeRequestError, type UptimeIncidentStatus, type UptimePageResponse } from "./uptime-client";
@@ -26,7 +26,6 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
   const [body, setBody] = useState<IncidentDocument>(() => legacyIncidentDocument(""));
   const [status, setStatus] = useState<UptimeIncidentStatus>("investigating");
   const [selected, setSelected] = useState<string[]>([]);
-  const [componentSearch, setComponentSearch] = useState("");
   const [saving, setSaving] = useState<"draft" | "publish" | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [discard, setDiscard] = useState(false);
@@ -35,11 +34,10 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
   const submitting = useRef(false);
   const dirty = Boolean(title || JSON.stringify(body) !== JSON.stringify(legacyIncidentDocument("")) || selected.length || status !== "investigating");
   const blocker = useUptimeUnsavedChanges(dirty);
-  const components = pageComponents(page.data);
-  const groups = [
-    { id: "standalone", name: "Standalone components", components: page.data?.standaloneComponents ?? [] },
-    ...(page.data?.groups ?? []),
-  ].map((group) => ({ ...group, components: group.components.filter((component) => component.name.toLowerCase().includes(componentSearch.trim().toLowerCase())) })).filter((group) => group.components.length);
+  const components = useMemo(() => pageComponents(page.data), [page.data]);
+  const toggleComponent = useCallback((id: string, checked: boolean) => {
+    setSelected((ids) => checked ? ids.includes(id) ? ids : [...ids, id] : ids.filter((selectedId) => selectedId !== id));
+  }, []);
 
   const requestClose = () => { if (!saving) { if (dirty) setDiscard(true); else onClose(); } };
   const showErrors = (nextErrors: Record<string, string>) => {
@@ -83,17 +81,7 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
           <WorkspaceInput id={`${formId}-title`} data-autofocus size="compact" className="mt-1.5" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={160} required placeholder="Elevated errors during checkout" aria-invalid={!!errors.title} aria-describedby={errors.title ? `${formId}-title-error` : undefined} />
           {errors.title && <span role="alert" id={`${formId}-title-error`} className="mt-1.5 block text-xs font-normal text-rose-300">{errors.title}</span>}
         </label>
-        <fieldset>
-          <legend className={`${labelClass} mb-2`}>Affected components <span className="ml-1 font-normal text-zinc-500">{selected.length ? `${selected.length} selected` : ""}</span></legend>
-          <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.015]">
-            <div className="outray-arc-requests-search border-b border-white/[0.07] p-2"><SearchField id={`${formId}-componentIds`} appearance="workspace" value={componentSearch} onValueChange={setComponentSearch} label="Find a component" aria-invalid={!!errors.componentIds} aria-describedby={errors.componentIds ? `${formId}-components-error` : undefined} placeholder="Find a component…" /></div>
-            <div className="max-h-40 overflow-y-auto p-1.5">
-              {groups.map((group) => <div key={group.id} className="mb-1.5 last:mb-0"><p className="px-2 pb-1 pt-1.5 text-[10px] text-zinc-500">{group.name}</p>{group.components.map((component) => <label key={component.id} className="flex min-h-9 cursor-pointer items-center gap-2.5 rounded-md px-2 text-[12px] text-zinc-300 transition-colors hover:bg-white/[0.04] motion-reduce:transition-none"><input type="checkbox" className="peer sr-only" checked={selected.includes(component.id)} onChange={(event) => setSelected((ids) => event.target.checked ? [...ids, component.id] : ids.filter((id) => id !== component.id))} /><span aria-hidden="true" className="flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-white/20 text-transparent transition-colors peer-checked:border-zinc-300 peer-checked:bg-zinc-200 peer-checked:text-zinc-950 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-zinc-500 motion-reduce:transition-none"><Check size={11} strokeWidth={2} /></span><span className="min-w-0 flex-1 truncate">{component.name}</span>{!component.visible && <span className="text-[10px] text-zinc-500">Hidden</span>}</label>)}</div>)}
-              {!groups.length && <p className="px-2 py-4 text-xs text-zinc-500">No components match your search.</p>}
-            </div>
-          </div>
-          {errors.componentIds && <p id={`${formId}-components-error`} role="alert" className="mt-1.5 text-xs text-rose-300">{errors.componentIds}</p>}
-        </fieldset>
+        <IncidentComponentPicker page={page.data} selected={selected} onToggle={toggleComponent} id={`${formId}-componentIds`} error={errors.componentIds} />
         <div className={labelClass}>Status
           <div className="mt-1.5"><IncidentStatusSelect id={`${formId}-status`} value={status} onChange={setStatus} disabled={saving !== null} invalid={!!errors.status} describedBy={errors.status ? `${formId}-status-error` : undefined} /></div>
           {errors.status && <span id={`${formId}-status-error`} role="alert" className="mt-1.5 block text-xs text-rose-300">{errors.status}</span>}
