@@ -6,6 +6,7 @@ import { redis } from "@/lib/redis";
 import { SUBSCRIPTION_PLANS } from "@/lib/subscription-plans";
 import { requireOrgFromSlug } from "@/lib/org";
 import { cachedDashboardRead, dashboardCacheKey } from "@/lib/dashboard-cache";
+import { cachedDashboardRedisRead } from "@/lib/dashboard-redis-cache";
 import { getBandwidthKey } from "../../../../../../../shared/utils";
 
 export const Route = createFileRoute("/api/$orgSlug/stats/bandwidth")({
@@ -21,7 +22,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/bandwidth")({
           async () => {
             const key = getBandwidthKey(organization.id);
             const [usageStr, subscription] = await Promise.all([
-              redis.get(key),
+              cachedDashboardRedisRead(
+                `bandwidth-usage:${organization.id}`,
+                () => redis.get(key),
+              ),
               db
                 .select()
                 .from(subscriptions)
