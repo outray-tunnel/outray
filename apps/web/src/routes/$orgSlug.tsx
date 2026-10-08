@@ -15,6 +15,8 @@ import { MobileNavSheet } from "@/components/mobile-nav-sheet";
 import { useAppStore } from "@/lib/store";
 import { useFeatureFlag } from "@/lib/feature-flags";
 import { ArrowRight } from "lucide-react";
+import { AgentChatProvider } from "@/components/agent/agent-chat-provider";
+import { AgentChatHost } from "@/components/agent/agent-chat-host";
 
 export const Route = createFileRoute("/$orgSlug")({
   head: () => ({
@@ -31,6 +33,7 @@ function DashboardLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { data: organizations, isPending } = authClient.useListOrganizations();
   const { data: activeOrg } = authClient.useActiveOrganization();
+  const { data: session } = authClient.useSession();
   const setSelectedOrganization = useAppStore(
     (state) => state.setSelectedOrganization,
   );
@@ -159,6 +162,7 @@ function DashboardLayout() {
   }
 
   return (
+    <AgentChatProvider key={`${session?.user.id ?? "pending"}:${matchedOrgId}`} orgSlug={orgSlug}>
     <div className="workspace-ui fixed inset-0 flex overflow-hidden bg-[#070707] text-gray-300 font-sans selection:bg-accent/30">
       {/* Keep the workspace in the viewport; long pages scroll inside main. */}
       <div className="flex h-full min-h-0 w-full overflow-hidden">
@@ -186,6 +190,7 @@ function DashboardLayout() {
             </div>
           </main>
         </div>
+        <AgentChatHost />
       </div>
 
       {/* Mobile bottom navigation */}
@@ -199,5 +204,6 @@ function DashboardLayout() {
         orgSlug={orgSlug}
       />
     </div>
+    </AgentChatProvider>
   );
 }
