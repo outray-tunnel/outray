@@ -138,6 +138,8 @@ import { Route as ApiOrgSlugRequestsReplayRouteImport } from './routes/api/$orgS
 import { Route as ApiOrgSlugRequestsCaptureRouteImport } from './routes/api/$orgSlug/requests/capture'
 import { Route as ApiOrgSlugPortalPolarRouteImport } from './routes/api/$orgSlug/portal/polar'
 import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$orgSlug/domains/$domainId'
+import { Route as ApiOrgSlugAgentThreadsRouteImport } from './routes/api/$orgSlug/agent/threads'
+import { Route as ApiOrgSlugAgentChatRouteImport } from './routes/api/$orgSlug/agent/chat'
 import { Route as OrgSlugUptimeStatusPagePublishingRouteImport } from './routes/$orgSlug/uptime/status-page/publishing'
 import { Route as OrgSlugUptimeStatusPageDomainsRouteImport } from './routes/$orgSlug/uptime/status-page/domains'
 import { Route as OrgSlugUptimeStatusPageComponentsRouteImport } from './routes/$orgSlug/uptime/status-page/components'
@@ -885,6 +887,16 @@ const ApiOrgSlugDomainsDomainIdRoute =
     path: '/api/$orgSlug/domains/$domainId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiOrgSlugAgentThreadsRoute = ApiOrgSlugAgentThreadsRouteImport.update({
+  id: '/api/$orgSlug/agent/threads',
+  path: '/api/$orgSlug/agent/threads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugAgentChatRoute = ApiOrgSlugAgentChatRouteImport.update({
+  id: '/api/$orgSlug/agent/chat',
+  path: '/api/$orgSlug/agent/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrgSlugUptimeStatusPagePublishingRoute =
   OrgSlugUptimeStatusPagePublishingRouteImport.update({
     id: '/publishing',
@@ -1484,6 +1496,8 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/uptime/status-page/components': typeof OrgSlugUptimeStatusPageComponentsRoute
   '/$orgSlug/uptime/status-page/domains': typeof OrgSlugUptimeStatusPageDomainsRoute
   '/$orgSlug/uptime/status-page/publishing': typeof OrgSlugUptimeStatusPagePublishingRoute
+  '/api/$orgSlug/agent/chat': typeof ApiOrgSlugAgentChatRoute
+  '/api/$orgSlug/agent/threads': typeof ApiOrgSlugAgentThreadsRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -1683,6 +1697,8 @@ export interface FileRoutesByTo {
   '/$orgSlug/uptime/status-page/components': typeof OrgSlugUptimeStatusPageComponentsRoute
   '/$orgSlug/uptime/status-page/domains': typeof OrgSlugUptimeStatusPageDomainsRoute
   '/$orgSlug/uptime/status-page/publishing': typeof OrgSlugUptimeStatusPagePublishingRoute
+  '/api/$orgSlug/agent/chat': typeof ApiOrgSlugAgentChatRoute
+  '/api/$orgSlug/agent/threads': typeof ApiOrgSlugAgentThreadsRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -1890,6 +1906,8 @@ export interface FileRoutesById {
   '/$orgSlug/uptime/status-page/components': typeof OrgSlugUptimeStatusPageComponentsRoute
   '/$orgSlug/uptime/status-page/domains': typeof OrgSlugUptimeStatusPageDomainsRoute
   '/$orgSlug/uptime/status-page/publishing': typeof OrgSlugUptimeStatusPagePublishingRoute
+  '/api/$orgSlug/agent/chat': typeof ApiOrgSlugAgentChatRoute
+  '/api/$orgSlug/agent/threads': typeof ApiOrgSlugAgentThreadsRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
@@ -2098,6 +2116,8 @@ export interface FileRouteTypes {
     | '/$orgSlug/uptime/status-page/components'
     | '/$orgSlug/uptime/status-page/domains'
     | '/$orgSlug/uptime/status-page/publishing'
+    | '/api/$orgSlug/agent/chat'
+    | '/api/$orgSlug/agent/threads'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -2297,6 +2317,8 @@ export interface FileRouteTypes {
     | '/$orgSlug/uptime/status-page/components'
     | '/$orgSlug/uptime/status-page/domains'
     | '/$orgSlug/uptime/status-page/publishing'
+    | '/api/$orgSlug/agent/chat'
+    | '/api/$orgSlug/agent/threads'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -2503,6 +2525,8 @@ export interface FileRouteTypes {
     | '/$orgSlug/uptime/status-page/components'
     | '/$orgSlug/uptime/status-page/domains'
     | '/$orgSlug/uptime/status-page/publishing'
+    | '/api/$orgSlug/agent/chat'
+    | '/api/$orgSlug/agent/threads'
     | '/api/$orgSlug/domains/$domainId'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
@@ -2655,6 +2679,8 @@ export interface RootRouteChildren {
   ApiTunnelRegisterRoute: typeof ApiTunnelRegisterRoute
   ApiWebhooksPaystackRoute: typeof ApiWebhooksPaystackRoute
   ApiWebhooksPolarRoute: typeof ApiWebhooksPolarRoute
+  ApiOrgSlugAgentChatRoute: typeof ApiOrgSlugAgentChatRoute
+  ApiOrgSlugAgentThreadsRoute: typeof ApiOrgSlugAgentThreadsRoute
   ApiOrgSlugDomainsDomainIdRoute: typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
   ApiOrgSlugPortalPolarRoute: typeof ApiOrgSlugPortalPolarRoute
   ApiOrgSlugSecretsAuditRoute: typeof ApiOrgSlugSecretsAuditRoute
@@ -3609,6 +3635,20 @@ declare module '@tanstack/react-router' {
       path: '/api/$orgSlug/domains/$domainId'
       fullPath: '/api/$orgSlug/domains/$domainId'
       preLoaderRoute: typeof ApiOrgSlugDomainsDomainIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/agent/threads': {
+      id: '/api/$orgSlug/agent/threads'
+      path: '/api/$orgSlug/agent/threads'
+      fullPath: '/api/$orgSlug/agent/threads'
+      preLoaderRoute: typeof ApiOrgSlugAgentThreadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/agent/chat': {
+      id: '/api/$orgSlug/agent/chat'
+      path: '/api/$orgSlug/agent/chat'
+      fullPath: '/api/$orgSlug/agent/chat'
+      preLoaderRoute: typeof ApiOrgSlugAgentChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$orgSlug/uptime/status-page/publishing': {
@@ -4746,6 +4786,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTunnelRegisterRoute: ApiTunnelRegisterRoute,
   ApiWebhooksPaystackRoute: ApiWebhooksPaystackRoute,
   ApiWebhooksPolarRoute: ApiWebhooksPolarRoute,
+  ApiOrgSlugAgentChatRoute: ApiOrgSlugAgentChatRoute,
+  ApiOrgSlugAgentThreadsRoute: ApiOrgSlugAgentThreadsRoute,
   ApiOrgSlugDomainsDomainIdRoute: ApiOrgSlugDomainsDomainIdRouteWithChildren,
   ApiOrgSlugPortalPolarRoute: ApiOrgSlugPortalPolarRoute,
   ApiOrgSlugSecretsAuditRoute: ApiOrgSlugSecretsAuditRoute,
