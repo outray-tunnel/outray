@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { cachedDashboardRead, dashboardCacheKey } from "@/lib/dashboard-cache";
 import { queryObservabilityServiceNames } from "@/lib/observability-services";
 import { requireOrgFromSlug } from "@/lib/org";
 import { queryTinybird } from "@/lib/tinybird";
@@ -88,39 +89,54 @@ export const Route = createFileRoute("/api/$orgSlug/observability/requests/")({
         const organizationId = orgResult.organization.id;
 
         try {
-          const [rows, statistics, facets, services] = await Promise.all([
-            queryTinybird<HttpRequestRow>("http_requests", {
-              organization_id: organizationId,
-              hours,
+          const [rows, statistics, facets, services] = await cachedDashboardRead(
+            dashboardCacheKey("observability-requests", {
+              organizationId,
+              range,
               search,
               service,
               method,
               status,
               capture,
               limit,
-              before_timestamp: cursor?.timestamp,
-              before_trace_id: cursor?.traceId,
-              before_span_id: cursor?.spanId,
+              includeFacets,
+              cursor: cursor ? `${cursor.timestamp}:${cursor.traceId}:${cursor.spanId}` : undefined,
             }),
-            queryTinybird<HttpRequestStatsRow>("http_request_stats", {
-              organization_id: organizationId,
-              hours,
-              search,
-              service,
-              method,
-              status,
-              capture,
-            }),
-            includeFacets
-              ? queryTinybird<HttpRequestFacetRow>("http_request_facets", {
+            () =>
+              Promise.all([
+                queryTinybird<HttpRequestRow>("http_requests", {
                   organization_id: organizationId,
                   hours,
-                })
-              : Promise.resolve([] as HttpRequestFacetRow[]),
-            includeFacets
-              ? queryObservabilityServiceNames(organizationId)
-              : Promise.resolve([] as string[]),
-          ]);
+                  search,
+                  service,
+                  method,
+                  status,
+                  capture,
+                  limit,
+                  before_timestamp: cursor?.timestamp,
+                  before_trace_id: cursor?.traceId,
+                  before_span_id: cursor?.spanId,
+                }),
+                queryTinybird<HttpRequestStatsRow>("http_request_stats", {
+                  organization_id: organizationId,
+                  hours,
+                  search,
+                  service,
+                  method,
+                  status,
+                  capture,
+                }),
+                includeFacets
+                  ? queryTinybird<HttpRequestFacetRow>("http_request_facets", {
+                      organization_id: organizationId,
+                      hours,
+                    })
+                  : Promise.resolve([] as HttpRequestFacetRow[]),
+                includeFacets
+                  ? queryObservabilityServiceNames(organizationId)
+                  : Promise.resolve([] as string[]),
+              ]),
+          );
 
           const requests = rows.map(mapRequestRow);
           const last = requests.at(-1);
