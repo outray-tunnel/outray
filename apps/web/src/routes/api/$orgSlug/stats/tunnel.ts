@@ -6,6 +6,7 @@ import { requireOrgFromSlug } from "../../../../lib/org";
 import { tigerData } from "../../../../lib/timescale";
 import { getTunnelEventIdentifiers } from "../../../../lib/tunnel-event-identifiers";
 import { parseTunnelStatsRange, tunnelStatsWindow } from "../../../../lib/tunnel-stats-range";
+import { cachedDashboardRead, dashboardCacheKey } from "../../../../lib/dashboard-cache";
 
 function number(value: unknown): number {
   const parsed = Number(value);
@@ -48,6 +49,9 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
         const { start, end, bucket } = tunnelStatsWindow(timeRange);
 
         try {
+          const responseBody = await cachedDashboardRead(
+            dashboardCacheKey("stats-tunnel", { organizationId, tunnelId, range: timeRange }),
+            async () => {
           // One captured window is shared by the headline, chart and activity preview.
           const [statsResult, chartResult, requestsResult] = await Promise.all([
             tigerData.query(
@@ -111,7 +115,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
           const totalRequests = number(aggregate?.total_requests);
           const errors = number(aggregate?.errors);
 
-          return Response.json({
+          return {
             stats: {
               totalRequests,
               avgDuration: number(aggregate?.avg_duration),
@@ -140,7 +144,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/tunnel")({
               size: row.size,
             })),
             timeRange,
-          });
+          };
+            },
+          );
+          return Response.json(responseBody);
         } catch (error) {
           console.error("Failed to fetch tunnel stats:", error);
           return Response.json({ error: "Failed to fetch stats" }, { status: 500 });
