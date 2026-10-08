@@ -7,6 +7,7 @@ import { domains, subdomains } from "../../../db/app-schema";
 import { members } from "../../../db/auth-schema";
 import { redis } from "../../../lib/redis";
 import { requireOrgFromSlug } from "../../../lib/org";
+import { cachedDashboardRedisRead } from "../../../lib/dashboard-redis-cache";
 
 export const Route = createFileRoute("/api/$orgSlug/subscriptions")({
   server: {
@@ -39,7 +40,10 @@ export const Route = createFileRoute("/api/$orgSlug/subscriptions")({
                 .select({ value: count() })
                 .from(members)
                 .where(eq(members.organizationId, organizationId)),
-              redis.scard(`org:${organizationId}:online_tunnels`),
+              cachedDashboardRedisRead(
+                `online-tunnel-count:${organizationId}`,
+                () => redis.scard(`org:${organizationId}:online_tunnels`),
+              ),
             ]);
 
           return new Response(
