@@ -3,12 +3,12 @@ import { createHash } from "node:crypto";
 type Session = { user: { id: string } };
 type SessionLoader = (request: Request) => Promise<Session | null>;
 
-type Entry = {
+type Entry<T> = {
   expiresAt: number;
-  value: Promise<Session | null>;
+  value: Promise<T>;
 };
 
-const entries = new Map<string, Entry>();
+const entries = new Map<string, Entry<unknown>>();
 const defaultTtlMs = 250;
 const defaultMaxEntries = 1_000;
 
@@ -17,12 +17,14 @@ function configuredNumber(name: string, fallback: number): number {
   return Number.isFinite(value) && value >= 0 ? value : fallback;
 }
 
-function cacheKey(request: Request): string | null {
+function cacheKey(request: Request, namespace: string): string | null {
   const cookie = request.headers.get("cookie");
   const authorization = request.headers.get("authorization");
   if (!cookie && !authorization) return null;
 
   return createHash("sha256")
+    .update(namespace)
+    .update("\0")
     .update(cookie || "")
     .update("\0")
     .update(authorization || "")
@@ -48,22 +50,37 @@ export function getCachedAuthSession(
   request: Request,
   load: SessionLoader,
 ): Promise<Session | null> {
-  const key = cacheKey(request);
-  const ttlMs = configuredNumber("AUTH_SESSION_CACHE_TTL_MS", defaultTtlMs);
-  if (!key || ttlMs === 0) return load(request);
+  return getCachedAuthValue(request, "session", () => load(request), {
+    environmentVariable: "AUTH_SESSION_CACHE_TTL_MS",
+    shouldCache: (session) => session !== null,
+  });
+}
+
+export function getCachedAuthValue<T>(
+  request: Request,
+  namespace: string,
+  load: () => Promise<T>,
+  options: {
+    environmentVariable: string;
+    shouldCache?: (value: T) => boolean;
+  },
+): Promise<T> {
+  const key = cacheKey(request, namespace);
+  const ttlMs = configuredNumber(options.environmentVariable, defaultTtlMs);
+  if (!key || ttlMs === 0) return load();
 
   const now = Date.now();
-  const existing = entries.get(key);
+  const existing = entries.get(key) as Entry<T> | undefined;
   if (existing && existing.expiresAt > now) return existing.value;
   if (existing) entries.delete(key);
 
   prune(now, configuredNumber("AUTH_SESSION_CACHE_MAX_ENTRIES", defaultMaxEntries));
   const value = Promise.resolve()
-    .then(() => load(request))
+    .then(load)
     .then(
-      (session) => {
-        if (!session) entries.delete(key);
-        return session;
+      (result) => {
+        if (options.shouldCache && !options.shouldCache(result)) entries.delete(key);
+        return result;
       },
       (error) => {
         entries.delete(key);
@@ -73,4 +90,3 @@ export function getCachedAuthSession(
   entries.set(key, { expiresAt: now + ttlMs, value });
   return value;
 }
-
