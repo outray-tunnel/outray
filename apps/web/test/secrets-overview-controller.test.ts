@@ -93,6 +93,7 @@ async function loadController(orgSlug = "acme", initialSearch: unknown = {}) {
       // This harness exercises ProjectDialog; environment controller behavior
       // is covered by its own scoped dialog tests.
       if (specifier === "./environment-dialog") return { EnvironmentDialog: Placeholder };
+      if (specifier === "../arc/button/button") return { Button: Placeholder };
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: Placeholder };
       if (specifier.startsWith("@hugeicons-pro/")) return Placeholder;
       throw new Error(`Unexpected vault dialog dependency: ${specifier}`);
