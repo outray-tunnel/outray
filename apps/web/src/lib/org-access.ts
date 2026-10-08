@@ -1,4 +1,4 @@
-import { getCachedAuthSession } from "./auth-session-cache";
+import { getCachedAuthSession, getCachedAuthValue } from "./auth-session-cache";
 
 type SessionWithUser = { user: { id: string } };
 
@@ -37,14 +37,24 @@ export function createOrganizationAccessResolver<
       sessions.set(request, session);
     }
     const result = session.then(
-      async (value): Promise<OrganizationAccess<Session, Organization>> => {
-        if (!value) return { status: 401 };
-        const organization = await dependencies.findOrganization(
-          value.user.id,
-          slug,
+      (value): Promise<OrganizationAccess<Session, Organization>> => {
+        if (!value) return Promise.resolve({ status: 401 as const });
+        return getCachedAuthValue(
+          request,
+          `organization:${slug}`,
+          async () => {
+            const organization = await dependencies.findOrganization(
+              value.user.id,
+              slug,
+            );
+            if (!organization) return { status: 403 };
+            return { session: value, organization };
+          },
+          {
+            environmentVariable: "AUTH_ORG_ACCESS_CACHE_TTL_MS",
+            shouldCache: (access) => "organization" in access,
+          },
         );
-        if (!organization) return { status: 403 };
-        return { session: value, organization };
       },
     );
     access.set(slug, result);
