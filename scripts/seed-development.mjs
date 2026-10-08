@@ -146,12 +146,14 @@ async function assertFixtureOwnership(client, organizationId) {
 function pgOptions(name) {
   const url = parsedUrl(name);
   assertDevelopmentTarget(name, url);
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname.toLowerCase());
   const sslMode = url.searchParams.get("sslmode");
   url.searchParams.delete("sslmode");
   return {
     connectionString: url.toString(),
-    ssl:
-      sslMode || process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === "false"
+    ssl: local
+      ? false
+      : sslMode || process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === "false"
         ? { rejectUnauthorized: false }
         : undefined,
   };
@@ -697,7 +699,13 @@ function baseResource(service, version) {
   };
 }
 
-export function buildTinybirdRecords(organizationId) {
+export function buildTinybirdRecords(organizationId, options = {}) {
+  const spanStart = options.spanStart ?? 0;
+  const spanCount = options.spanCount ?? 1_440;
+  const spanTotal = options.spanTotal ?? 1_440;
+  const metricStart = options.metricStart ?? 0;
+  const metricPoints = options.metricPoints ?? 192;
+  const metricTotal = options.metricTotal ?? 192;
   const anchor = Math.floor(Date.now() / 3_600_000) * 3_600_000;
   const ingestedAt = iso(Date.now());
   const services = [
@@ -714,9 +722,10 @@ export function buildTinybirdRecords(organizationId) {
   const logs = [];
   const metrics = [];
 
-  for (let index = 0; index < 1_440; index += 1) {
+  for (let offset = 0; offset < spanCount; offset += 1) {
+    const index = spanStart + offset;
     const service = services[index % services.length];
-    const startMs = anchor - Math.pow((1_439 - index) / 1_439, 2.4) * 29.5 * DAY_MS;
+    const startMs = anchor - Math.pow((spanTotal - 1 - index) / (spanTotal - 1), 2.4) * 29.5 * DAY_MS;
     const traceId = hex(`dev-trace:${organizationId}:${anchor}:${index}`, 32);
     const rootSpanId = hex(`dev-root:${organizationId}:${anchor}:${index}`, 16);
     const isError = index % service.errorEvery === 0;
@@ -856,8 +865,9 @@ export function buildTinybirdRecords(organizationId) {
     ["queue.depth", "Pending background jobs", "{job}", "gauge"],
     ["orders.processed", "Processed orders", "{order}", "sum"],
   ];
-  for (let point = 0; point < 192; point += 1) {
-    const timestamp = anchor - Math.pow((191 - point) / 191, 2.4) * 29.5 * DAY_MS;
+  for (let offset = 0; offset < metricPoints; offset += 1) {
+    const point = metricStart + offset;
+    const timestamp = anchor - Math.pow((metricTotal - 1 - point) / (metricTotal - 1), 2.4) * 29.5 * DAY_MS;
     for (const service of services) {
       for (const [name, description, unit, type] of metricDefinitions) {
         const identity = `${anchor}:${point}:${service.name}:${name}`;
