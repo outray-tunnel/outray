@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { cachedDashboardRead, dashboardCacheKey } from "@/lib/dashboard-cache";
 import { requireOrgFromSlug } from "@/lib/org";
 import { queryTinybird } from "@/lib/tinybird";
 
@@ -74,20 +75,28 @@ export const Route = createFileRoute("/api/$orgSlug/observability/services/")({
         const organizationId = orgResult.organization.id;
 
         try {
-          const [catalog, traffic] = await Promise.all([
-            queryTinybird<ServiceCatalogRow>("service_catalog", {
-              organization_id: organizationId,
-              hours,
+          const [catalog, traffic] = await cachedDashboardRead(
+            dashboardCacheKey("observability-services", {
+              organizationId,
+              range,
               service,
-              limit: 250,
             }),
-            queryTinybird<ServiceTrafficRow>("service_traffic", {
-              organization_id: organizationId,
-              hours,
-              service,
-              interval_seconds: RANGE_INTERVAL_SECONDS[range],
-            }),
-          ]);
+            () =>
+              Promise.all([
+                queryTinybird<ServiceCatalogRow>("service_catalog", {
+                  organization_id: organizationId,
+                  hours,
+                  service,
+                  limit: 250,
+                }),
+                queryTinybird<ServiceTrafficRow>("service_traffic", {
+                  organization_id: organizationId,
+                  hours,
+                  service,
+                  interval_seconds: RANGE_INTERVAL_SECONDS[range],
+                }),
+              ]),
+          );
 
           const services = catalog.map((row) => ({
             id: row.id,
