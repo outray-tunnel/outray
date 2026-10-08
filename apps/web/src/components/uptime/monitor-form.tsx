@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from "react";
+import { useCallback, useId, useState, type FormEvent } from "react";
 import { KeyRound } from "lucide-react";
 import { Select } from "../arc/select/select";
 import { WorkspaceInput, WorkspaceTextarea } from "../ui/workspace-input";
@@ -23,6 +23,11 @@ export function MonitorForm({ orgSlug, formId, monitor, busy, error, onSubmit }:
   const id = useId();
   const [draft, setDraft] = useState(() => initialMonitorDraft(monitor));
   const [validationError, setValidationError] = useState<string | null>(null);
+  const changeRecipients = useCallback((notificationEmails: string[]) => {
+    if (busy) return;
+    setDraft((previous) => ({ ...previous, notificationEmails }));
+    setValidationError(null);
+  }, [busy]);
   const change = <Key extends keyof MonitorDraft>(key: Key, value: MonitorDraft[Key]) => {
     if (busy) return;
     setDraft((previous) => ({ ...previous, [key]: value }));
@@ -50,7 +55,7 @@ export function MonitorForm({ orgSlug, formId, monitor, busy, error, onSubmit }:
           {!monitor || draft.replaceHeaders ? <div className={styles.field}><label htmlFor={`${id}-headers`}>{monitor ? "New headers" : "Headers"}</label><WorkspaceTextarea id={`${id}-headers`} rows={3} value={draft.headerLines} onChange={(event) => change("headerLines", event.target.value)} className={styles.headerInput} placeholder="Authorization: Bearer …" /><p>One Name: Value per line. {monitor ? "Leave blank to clear existing headers." : "Proxy, Host, and connection-control headers are rejected."}</p></div> : null}
         </div>
       </details>
-      <div className={styles.section}><UptimeEmailRecipients orgSlug={orgSlug} value={draft.notificationEmails} onChange={(value) => change("notificationEmails", value)} disabled={busy} /></div>
+      <div className={styles.section}><UptimeEmailRecipients orgSlug={orgSlug} value={draft.notificationEmails} onChange={changeRecipients} disabled={busy} /></div>
       <IncidentPublishingFields failureThreshold={draft.failureThreshold} onFailureThresholdChange={(value) => change("failureThreshold", value)} mode={draft.incidentPublishing} onModeChange={(value) => change("incidentPublishing", value)} publishAfterMinutes={draft.publishAfterMinutes} onPublishAfterMinutesChange={(value) => change("publishAfterMinutes", value)} disabled={busy} />
     </fieldset>
     {validationError || error ? <UptimeError message={validationError || error!} /> : null}
