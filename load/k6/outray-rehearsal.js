@@ -9,6 +9,7 @@ const authCookie = __ENV.K6_AUTH_COOKIE || "";
 const bearerToken = __ENV.K6_BEARER_TOKEN || "";
 const smokeProfile = __ENV.K6_PROFILE === "smoke";
 const profile150 = __ENV.K6_PROFILE === "150vu";
+const profile1000 = __ENV.K6_PROFILE === "1000vu";
 const endpointFilter = __ENV.K6_ENDPOINT?.trim() || "";
 
 if (!baseUrl || !orgSlug || !tunnelId || (!authCookie && !bearerToken)) {
@@ -21,13 +22,23 @@ export const options = {
   discardResponseBodies: __ENV.K6_DEBUG !== "true",
   insecureSkipTLSVerify: __ENV.K6_INSECURE_SKIP_TLS_VERIFY === "true",
   thresholds: {
-    http_req_failed: [smokeProfile || profile150 ? "rate<0.05" : "rate<0.01"],
-    http_req_duration: smokeProfile || profile150
+    http_req_failed: [smokeProfile || profile150 || profile1000 ? "rate<0.05" : "rate<0.01"],
+    http_req_duration: profile1000
+      ? ["p(95)<300", "p(99)<1000"]
+      : smokeProfile || profile150
       ? ["p(95)<5000", "p(99)<10000"]
       : ["p(95)<1500", "p(99)<3000"],
-    outray_failed_checks: [smokeProfile || profile150 ? "count<10" : "count<25"],
+    outray_failed_checks: [profile1000 ? "count<25" : smokeProfile || profile150 ? "count<10" : "count<25"],
   },
-  stages: profile150
+  stages: profile1000
+    ? [
+        { duration: "30s", target: 250 },
+        { duration: "60s", target: 500 },
+        { duration: "90s", target: 1000 },
+        { duration: "120s", target: 1000 },
+        { duration: "60s", target: 0 },
+      ]
+    : profile150
     ? [
         { duration: "30s", target: 150 },
         { duration: "4m", target: 150 },
