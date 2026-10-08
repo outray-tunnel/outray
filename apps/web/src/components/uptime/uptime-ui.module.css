@@ -4,7 +4,8 @@
 .dialog > div:last-child { display: flex; flex-direction: column; min-height: 0; padding: 0; }
 .dialogBody { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 24px; }
 .dialogFooter { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; padding: 16px 24px max(16px, env(safe-area-inset-bottom)); border-top: 1px solid rgb(255 255 255 / 8%); }
-.overlay.overlay { z-index: 80; }
+/* Dimming keeps focus on the editor without repainting a blurred workspace on input. */
+.overlay.overlay { z-index: 80; backdrop-filter: none; }
 .dialog.dialog { z-index: 81; }
 .raisedOverlay.raisedOverlay { z-index: 90; }
 .raisedDialog.raisedDialog { z-index: 91; }
