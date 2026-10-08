@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterContextProvider } from "@tanstack/react-router";
 import ts from "typescript";
 import { HttpRequestsContent } from "../src/components/observability/http-requests-content";
+import { AgentChatProvider } from "../src/components/agent/agent-chat-provider";
 import * as requestData from "../src/components/observability/http-requests-data";
 import * as requestBadges from "../src/components/observability/http-request-badges";
 import * as requestUtils from "../src/components/requests/utils";
@@ -37,17 +38,18 @@ function render(overrides: Partial<ContentProps> = {}) {
   const org = createRoute({ getParentRoute: () => root, path: "$orgSlug" });
   const rest = createRoute({ getParentRoute: () => org, path: "$" });
   const router = createRouter({ routeTree: root.addChildren([org.addChildren([rest])]), history: createMemoryHistory({ initialEntries: ["/acme/observability/requests"] }) });
-  return renderToStaticMarkup(React.createElement(RouterContextProvider, { router, children: React.createElement(HttpRequestsContent, { ...baseProps, ...overrides }) }));
+  return renderToStaticMarkup(React.createElement(RouterContextProvider, { router, children: React.createElement(AgentChatProvider, { orgSlug: "acme", children: React.createElement(HttpRequestsContent, { ...baseProps, ...overrides }) }) }));
 }
 
 async function loadContent() {
   const source = await readFile(new URL("../src/components/observability/http-requests-content.tsx", import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true } }).outputText;
-  const stubs = Object.fromEntries(["Button", "SearchField", "Select", "SegmentedControl", "ConnectServiceSheet"].map((name) => [name, (props: any) => React.createElement("div", null, props.children)]));
+  const stubs = Object.fromEntries(["Button", "SearchField", "Select", "SegmentedControl", "ConnectServiceSheet", "RequestExplanationPreviewSheet"].map((name) => [name, (props: any) => React.createElement("div", null, props.children)]));
   const values: any[] = [];
   const refs: Array<{ current: any }> = [];
   let stateIndex = 0;
   let refIndex = 0;
+  const threadCalls: unknown[][] = [];
   const module = { exports: {} as { HttpRequestsContent: (props: ContentProps) => React.ReactNode } };
   runInNewContext(compiled, {
     React, module, exports: module.exports,
@@ -62,12 +64,13 @@ async function loadContent() {
         },
       };
       if (specifier === "./http-requests-data") return requestData;
+      if (specifier === "@/components/agent/agent-chat-context") return { useAgentChat: () => ({ startThread: (...args: unknown[]) => threadCalls.push(args) }) };
       if (specifier === "./http-request-badges") return requestBadges;
       if (specifier.endsWith("/requests/utils")) return requestUtils;
       if (specifier === "lucide-react") return new Proxy({}, { get: () => () => null });
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
       if (specifier.startsWith("@hugeicons-pro/")) return { __esModule: true, default: [] };
-      if (specifier.startsWith("../arc/") || specifier === "../ui/segmented-control" || specifier === "./connect-service-sheet" || specifier.endsWith(".css")) return stubs;
+      if (specifier.startsWith("../arc/") || specifier === "../ui/segmented-control" || specifier === "./connect-service-sheet" || specifier === "./request-explanation-preview" || specifier.endsWith(".css")) return stubs;
       throw new Error(`Unexpected requests UI dependency: ${specifier}`);
     },
   });
@@ -79,9 +82,43 @@ async function loadContent() {
     const rendered = typeof element.type === "function" && !stubComponents.has(element.type as any) ? element.type(element.props) : element.props.children;
     return [element, ...elements(rendered)];
   }
-  return { stubs, render: (overrides: Partial<ContentProps> = {}) => {
+  return { stubs, threadCalls, render: (overrides: Partial<ContentProps> = {}) => {
     stateIndex = 0; refIndex = 0;
     return elements(module.exports.HttpRequestsContent({ ...baseProps, ...overrides }));
+  } };
+}
+
+async function loadPreview() {
+  const source = await readFile(new URL("../src/components/observability/request-explanation-preview.tsx", import.meta.url), "utf8");
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true } }).outputText;
+  const refs: Array<{ current: any }> = [];
+  const dependencies: unknown[][] = [];
+  let effects: Array<() => void> = [];
+  let refIndex = 0;
+  let effectIndex = 0;
+  const calls: string[] = [];
+  const startThread = () => calls.push("thread");
+  const module = { exports: {} as { RequestExplanationPreviewSheet: (props: { open: boolean; onClose: () => void }) => null } };
+  runInNewContext(compiled, {
+    module, exports: module.exports,
+    require: (specifier: string) => {
+      if (specifier === "react") return {
+        useRef: (initial: any) => { const slot = refIndex++; return refs[slot] ??= { current: initial }; },
+        useEffect: (callback: () => void, next: unknown[]) => {
+          const slot = effectIndex++;
+          if (!dependencies[slot] || next.some((value, index) => !Object.is(value, dependencies[slot][index]))) effects.push(callback);
+          dependencies[slot] = next;
+        },
+      };
+      if (specifier === "@/components/agent/agent-chat-context") return { useAgentChat: () => ({ startThread }) };
+      throw new Error(`Unexpected preview dependency: ${specifier}`);
+    },
+  });
+  return { calls, render: (props: { open: boolean; onClose: () => void }) => {
+    refIndex = 0; effectIndex = 0; effects = [];
+    const result = module.exports.RequestExplanationPreviewSheet(props);
+    for (const effect of effects) effect();
+    return result;
   } };
 }
 
@@ -124,7 +161,9 @@ test("refresh and shared duration controls stay in the top-right page header, no
   assert.match(header, /Requests|HTTP traffic from your instrumented services/);
   assert.match(header, /ml-auto[^"]*justify-end/);
   const pause = header.indexOf("Pause");
+  const preview = header.indexOf("Ask agent");
   const duration = header.indexOf('aria-label="Request time range"');
+  assert.ok(preview >= 0 && pause > preview);
   assert.ok(pause >= 0 && duration > pause);
   assert.equal((html.match(/aria-label="Request time range"/g) ?? []).length, 1);
   assert.doesNotMatch(inventory, /Pause automatic refresh|Resume automatic refresh|aria-label="Request time range"/);
@@ -220,13 +259,51 @@ test("a whole native row opens its inspector once and passes its focus-return ta
   assert.equal(selected?.props["aria-expanded"], true);
 });
 
+test("Ask agent creates a new central thread on every click without a local preview sheet", async () => {
+  const ui = await loadContent();
+  const tree = ui.render({ data: null, error: "Request unavailable" });
+  const trigger = tree.find((element) => element.type === ui.stubs.Button && React.Children.toArray(element.props.children).includes("Ask agent"));
+  assert.ok(trigger);
+  assert.equal(trigger.props.variant, "secondary");
+  assert.equal(trigger.props.size, "md");
+  assert.equal(trigger.props.disabled, undefined);
+  trigger.props.onClick();
+  trigger.props.onClick();
+  assert.deepEqual(ui.threadCalls, [[], []], "each action starts a fresh generic thread");
+  assert.equal(ui.render().some((element) => element.type === ui.stubs.RequestExplanationPreviewSheet), false);
+  const source = await readFile(new URL("../src/components/observability/http-requests-content.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /previewOpen|RequestExplanationPreviewSheet|requestExplanationDemoScenarios/);
+});
+
+test("Ask agent remains available with no loaded request data", () => {
+  for (const overrides of [{ data: null, loading: true }, { data: null, error: "Request unavailable" }, { data: { ...data, requests: [], total: 0, hasMore: false, nextCursor: null }, total: 0 }]) {
+    const header = render(overrides).match(/<header\b[^>]*>([\s\S]*?)<\/header>/)?.[1] ?? "";
+    assert.match(header, /Ask agent/);
+    assert.doesNotMatch(header, /disabled=/);
+  }
+});
+
+test("the compatibility preview launcher forwards once per opening without stacking sheets", async () => {
+  const ui = await loadPreview();
+  const onClose = () => ui.calls.push("close");
+  assert.equal(ui.render({ open: false, onClose }), null);
+  assert.deepEqual(ui.calls, []);
+  assert.equal(ui.render({ open: true, onClose }), null);
+  assert.deepEqual(ui.calls, ["thread", "close"]);
+  ui.render({ open: true, onClose: () => ui.calls.push("repeat close") });
+  assert.deepEqual(ui.calls, ["thread", "close"], "rerenders must not create another thread");
+  ui.render({ open: false, onClose });
+  ui.render({ open: true, onClose });
+  assert.deepEqual(ui.calls, ["thread", "close", "thread", "close"]);
+});
+
 test("empty history connects inline and error actions retain the supplied retry callback", async () => {
   const ui = await loadContent();
   let retried = 0;
   const retry = () => { retried++; };
   const emptyProps = { data: { ...data, requests: [], total: 0, hasMore: false, nextCursor: null }, total: 0, onRetry: retry };
   let tree = ui.render(emptyProps);
-  const trigger = tree.find((element) => element.type === ui.stubs.Button && element.props["aria-haspopup"] === "dialog");
+  const trigger = tree.find((element) => element.type === ui.stubs.Button && React.Children.toArray(element.props.children).includes("Connect a service "));
   assert.equal(trigger?.props.size, "md");
   assert.ok(trigger);
   assert.equal(trigger.props["aria-expanded"], false);
