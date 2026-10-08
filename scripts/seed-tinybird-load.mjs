@@ -8,6 +8,9 @@ const metricOffset = Number(process.env.OUTRAY_OTEL_METRIC_OFFSET || 0);
 const metricTotal = Math.ceil(metricRows / 36);
 const spanBatchSize = 5_000;
 const metricBatchSize = 100;
+const remoteStageSeed =
+  process.env.OUTRAY_ALLOW_REMOTE_LOAD_SEED === "true" &&
+  process.env.OUTRAY_LOAD_SEED_TARGET === "outray.co";
 
 function required(name) {
   const value = process.env[name]?.trim();
@@ -31,8 +34,13 @@ async function append(apiHost, token, dataSource, records) {
 }
 
 async function main() {
-  if (process.env.NODE_ENV === "production") throw new Error("Refusing to seed load data in production");
-  if (process.env.TINYBIRD_BRANCH !== "development") {
+  if (process.env.NODE_ENV === "production" && !remoteStageSeed) {
+    throw new Error("Refusing to seed load data in production");
+  }
+  const allowedBranch =
+    process.env.TINYBIRD_BRANCH === "development" ||
+    (remoteStageSeed && process.env.TINYBIRD_BRANCH === "next");
+  if (!allowedBranch) {
     throw new Error(`TINYBIRD_BRANCH must be development; got ${process.env.TINYBIRD_BRANCH || "<unset>"}`);
   }
   if (!organizationId) throw new Error("OUTRAY_LOAD_ORGANIZATION_ID is required");
