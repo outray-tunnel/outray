@@ -80,6 +80,15 @@ import {
 } from "./uptime-schema";
 
 export {
+  agentThreads,
+  agentMessages,
+  agentRuns,
+  agentThreadsRelations,
+  agentMessagesRelations,
+  agentRunsRelations,
+} from "./agent-schema";
+
+export {
   accounts,
   sessions,
   users,
