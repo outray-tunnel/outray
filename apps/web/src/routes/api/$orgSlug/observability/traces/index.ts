@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { cachedDashboardRead, dashboardCacheKey } from "@/lib/dashboard-cache";
 import { requireOrgFromSlug } from "@/lib/org";
 import { queryTinybird } from "@/lib/tinybird";
 
@@ -53,23 +54,33 @@ export const Route = createFileRoute("/api/$orgSlug/observability/traces/")({
         const organizationId = orgResult.organization.id;
 
         try {
-          const [traces, statistics, distribution] = await Promise.all([
-            queryTinybird<TraceRow>("traces", {
-              organization_id: organizationId,
-              hours,
+          const [traces, statistics, distribution] = await cachedDashboardRead(
+            dashboardCacheKey("observability-traces", {
+              organizationId,
+              range,
               limit,
               search,
-              errors_only: errorsOnly || undefined,
+              errorsOnly,
             }),
-            queryTinybird<TraceStatsRow>("trace_stats", {
-              organization_id: organizationId,
-              hours,
-            }),
-            queryTinybird<DurationBucketRow>("trace_duration_distribution", {
-              organization_id: organizationId,
-              hours,
-            }),
-          ]);
+            () =>
+              Promise.all([
+                queryTinybird<TraceRow>("traces", {
+                  organization_id: organizationId,
+                  hours,
+                  limit,
+                  search,
+                  errors_only: errorsOnly || undefined,
+                }),
+                queryTinybird<TraceStatsRow>("trace_stats", {
+                  organization_id: organizationId,
+                  hours,
+                }),
+                queryTinybird<DurationBucketRow>("trace_duration_distribution", {
+                  organization_id: organizationId,
+                  hours,
+                }),
+              ]),
+          );
 
           return Response.json({
             traces: traces.map((trace) => ({
