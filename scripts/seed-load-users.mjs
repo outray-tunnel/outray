@@ -4,13 +4,19 @@ const targetDatabase = process.env.DATABASE_URL || "";
 const targetOrgSlug = process.env.OUTRAY_SEED_ORG?.trim() || "outray-tunnel";
 const userCount = Number(process.env.OUTRAY_LOAD_USERS || 10_000);
 const tunnelCount = Number(process.env.OUTRAY_LOAD_TUNNELS || 1_000);
+const remoteStageSeed =
+  process.env.OUTRAY_ALLOW_REMOTE_LOAD_SEED === "true" &&
+  process.env.OUTRAY_LOAD_SEED_TARGET === "outray.co";
 
 function assertLocalTarget() {
   if (process.env.NODE_ENV === "production") {
-    throw new Error("Refusing to seed load data with NODE_ENV=production");
+    if (!remoteStageSeed) {
+      throw new Error("Refusing to seed load data with NODE_ENV=production");
+    }
   }
   const url = new URL(targetDatabase);
-  if (!["localhost", "127.0.0.1", "[::1]"].includes(url.hostname.toLowerCase())) {
+  const localTarget = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname.toLowerCase());
+  if (!localTarget && !remoteStageSeed) {
     throw new Error(`Load seed requires local Postgres; got ${url.hostname}`);
   }
   if (!Number.isInteger(userCount) || userCount < 1 || userCount > 100_000) {
