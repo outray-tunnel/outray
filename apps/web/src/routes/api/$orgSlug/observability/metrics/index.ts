@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { cachedDashboardRead, dashboardCacheKey } from "@/lib/dashboard-cache";
 import { queryObservabilityServiceNames } from "@/lib/observability-services";
 import { requireOrgFromSlug } from "@/lib/org";
 import { queryTinybird } from "@/lib/tinybird";
@@ -68,87 +69,99 @@ export const Route = createFileRoute("/api/$orgSlug/observability/metrics/")({
         const organizationId = orgResult.organization.id;
 
         try {
-          const [catalog, services] = await Promise.all([
-            queryTinybird<MetricCatalogRow>("metric_catalog", {
-              organization_id: organizationId,
-              hours,
-              limit: 500,
-            }),
-            queryObservabilityServiceNames(organizationId),
-          ]);
-          const selectedRow =
-            catalog.find((item) => item.metric_key === requestedMetricKey) ||
-            catalog[0];
-
-          if (!selectedRow) {
-            return Response.json({
-              metrics: [],
-              selectedMetric: null,
-              services,
-              points: [],
-              breakdown: [],
+          const responseBody = await cachedDashboardRead(
+            dashboardCacheKey("observability-metrics", {
+              organizationId,
               range,
-            });
-          }
+              metricKey: requestedMetricKey,
+              service,
+            }),
+            async () => {
+              const [catalog, services] = await Promise.all([
+                queryTinybird<MetricCatalogRow>("metric_catalog", {
+                  organization_id: organizationId,
+                  hours,
+                  limit: 500,
+                }),
+                queryObservabilityServiceNames(organizationId),
+              ]);
+              const selectedRow =
+                catalog.find((item) => item.metric_key === requestedMetricKey) ||
+                catalog[0];
 
-          const selectedTemporality = temporalityCode(
-            selectedRow.aggregation_temporality,
+              if (!selectedRow) {
+                return {
+                  metrics: [],
+                  selectedMetric: null,
+                  services,
+                  points: [],
+                  breakdown: [],
+                  range,
+                };
+              }
+
+              const selectedTemporality = temporalityCode(
+                selectedRow.aggregation_temporality,
+              );
+
+              const [series, serviceBreakdown] = await Promise.all([
+                queryTinybird<MetricSeriesRow>("metric_series", {
+                  organization_id: organizationId,
+                  metric_name: selectedRow.name,
+                  hours,
+                  interval_seconds: RANGE_INTERVAL_SECONDS[range],
+                  service: service === "all" ? undefined : service,
+                  metric_type: selectedRow.type,
+                  metric_unit: selectedRow.unit || "__outray_empty__",
+                  aggregation_temporality: selectedTemporality,
+                  is_monotonic: Number(Boolean(Number(selectedRow.is_monotonic))),
+                }),
+                queryTinybird<MetricServiceRow>("metric_service_breakdown", {
+                  organization_id: organizationId,
+                  metric_name: selectedRow.name,
+                  hours,
+                  limit: 250,
+                  metric_type: selectedRow.type,
+                  metric_unit: selectedRow.unit || "__outray_empty__",
+                  aggregation_temporality: selectedTemporality,
+                  is_monotonic: Number(Boolean(Number(selectedRow.is_monotonic))),
+                }),
+              ]);
+
+              const metrics = catalog.map(mapCatalogRow);
+              const breakdown = serviceBreakdown
+                .filter((item) => isFiniteMetricValue(item.value))
+                .map((item) => ({
+                  service: item.service || "unknown-service",
+                  type: item.type,
+                  value: Number(item.value),
+                  sampleCount: Number(item.count),
+                  lastSeen: item.last_seen,
+                  aggregation: item.aggregation,
+                }));
+
+              return {
+                metrics,
+                selectedMetric:
+                  metrics.find((item) => item.key === selectedRow.metric_key) ||
+                  null,
+                services,
+                points: series
+                  .filter((item) => isFiniteMetricValue(item.value))
+                  .map((item) => ({
+                    timestamp: item.timestamp,
+                    type: item.type,
+                    value: Number(item.value),
+                    sampleCount: Number(item.count),
+                    aggregation: item.aggregation,
+                  })),
+                breakdown,
+                range,
+              };
+            },
           );
 
-          const [series, serviceBreakdown] = await Promise.all([
-            queryTinybird<MetricSeriesRow>("metric_series", {
-              organization_id: organizationId,
-              metric_name: selectedRow.name,
-              hours,
-              interval_seconds: RANGE_INTERVAL_SECONDS[range],
-              service: service === "all" ? undefined : service,
-              metric_type: selectedRow.type,
-              metric_unit: selectedRow.unit || "__outray_empty__",
-              aggregation_temporality: selectedTemporality,
-              is_monotonic: Number(Boolean(Number(selectedRow.is_monotonic))),
-            }),
-            queryTinybird<MetricServiceRow>("metric_service_breakdown", {
-              organization_id: organizationId,
-              metric_name: selectedRow.name,
-              hours,
-              limit: 250,
-              metric_type: selectedRow.type,
-              metric_unit: selectedRow.unit || "__outray_empty__",
-              aggregation_temporality: selectedTemporality,
-              is_monotonic: Number(Boolean(Number(selectedRow.is_monotonic))),
-            }),
-          ]);
-
-          const metrics = catalog.map(mapCatalogRow);
-          const breakdown = serviceBreakdown
-            .filter((item) => isFiniteMetricValue(item.value))
-            .map((item) => ({
-              service: item.service || "unknown-service",
-              type: item.type,
-              value: Number(item.value),
-              sampleCount: Number(item.count),
-              lastSeen: item.last_seen,
-              aggregation: item.aggregation,
-            }));
-
-          return Response.json({
-            metrics,
-            selectedMetric:
-              metrics.find((item) => item.key === selectedRow.metric_key) ||
-              null,
-            services,
-            points: series
-              .filter((item) => isFiniteMetricValue(item.value))
-              .map((item) => ({
-                timestamp: item.timestamp,
-                type: item.type,
-                value: Number(item.value),
-                sampleCount: Number(item.count),
-                aggregation: item.aggregation,
-              })),
-            breakdown,
-            range,
-          });
+          return Response.json(responseBody);
         } catch (error) {
           console.error("Failed to query observability metrics", error);
           return Response.json(
