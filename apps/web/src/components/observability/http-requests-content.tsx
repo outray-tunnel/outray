@@ -1,6 +1,7 @@
 import { useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, CircleAlert, Radio, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleAlert, Radio, Search, Sparkles } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useAgentChat } from "@/components/agent/agent-chat-context";
 import PauseIcon from "@hugeicons-pro/core-solid-rounded/PauseIcon";
 import PlayIcon from "@hugeicons-pro/core-solid-rounded/PlayIcon";
 import { Button } from "../arc/button/button";
@@ -53,6 +54,7 @@ export function HttpRequestsContent(props: HttpRequestsContentProps) {
   const { orgSlug, data, loading, refreshing, error, lastSuccessAt, search, service, method, status, capture, range, live, facets, selectedId, page, total, onSearchChange, onServiceChange, onMethodChange, onStatusChange, onCaptureChange, onRangeChange, onToggleLive, onRetry, onResetFilters, onNextPage, onPreviousPage, onInspect } = props;
   const [connectOpen, setConnectOpen] = useState(false);
   const connectTrigger = useRef<HTMLButtonElement>(null);
+  const { startThread } = useAgentChat();
   const hasFilters = !!search.trim() || service !== "" || method !== "all" || status !== "all" || capture !== "all";
   const hasRequests = Number.isFinite(data?.statistics.totalRequests) && (data?.statistics.totalRequests ?? 0) > 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -68,6 +70,9 @@ export function HttpRequestsContent(props: HttpRequestsContentProps) {
           <p className="mt-1 text-[12px] text-zinc-400">HTTP traffic from your instrumented services.</p>
         </div>
         <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
+          <Button variant="secondary" size="md" aria-haspopup="dialog" onClick={() => startThread()}>
+            <Sparkles size={13} aria-hidden="true" />Ask agent
+          </Button>
           <Button variant="ghost" size="sm" onClick={onToggleLive} aria-pressed={!live} title={live ? "Pause automatic refresh" : "Resume automatic refresh"}>
             <HugeiconsIcon icon={live ? PauseIcon : PlayIcon} size={13} aria-hidden="true" />{live ? "Pause" : "Resume"}
           </Button>
