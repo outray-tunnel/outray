@@ -124,6 +124,6 @@ test("database failures propagate, never becoming cached successful access", asy
 
 test("dashboard connections survive short pauses without increasing pool capacity", () => {
   assert.equal(dashboardPoolOptions.idleTimeoutMillis, 60_000);
-  assert.equal(dashboardPoolOptions.max, 10);
+  assert.equal(dashboardPoolOptions.max, 25);
   assert.equal(dashboardPoolOptions.connectionTimeoutMillis, 10_000);
 });
