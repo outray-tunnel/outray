@@ -5,6 +5,7 @@ import { subscriptions } from "@/db/subscription-schema";
 import { redis } from "@/lib/redis";
 import { SUBSCRIPTION_PLANS } from "@/lib/subscription-plans";
 import { requireOrgFromSlug } from "@/lib/org";
+import { cachedDashboardRead, dashboardCacheKey } from "@/lib/dashboard-cache";
 import { getBandwidthKey } from "../../../../../../../shared/utils";
 
 export const Route = createFileRoute("/api/$orgSlug/stats/bandwidth")({
@@ -15,27 +16,34 @@ export const Route = createFileRoute("/api/$orgSlug/stats/bandwidth")({
         if ("error" in orgResult) return orgResult.error;
         const { organization } = orgResult;
 
-        const key = getBandwidthKey(organization.id);
-        const [usageStr, subscription] = await Promise.all([
-          redis.get(key),
-          db
-            .select()
-            .from(subscriptions)
-            .where(eq(subscriptions.organizationId, organization.id))
-            .limit(1),
-        ]);
-        const usage = parseInt(usageStr || "0", 10);
+        const responseBody = await cachedDashboardRead(
+          dashboardCacheKey("bandwidth", { organizationId: organization.id }),
+          async () => {
+            const key = getBandwidthKey(organization.id);
+            const [usageStr, subscription] = await Promise.all([
+              redis.get(key),
+              db
+                .select()
+                .from(subscriptions)
+                .where(eq(subscriptions.organizationId, organization.id))
+                .limit(1),
+            ]);
+            const usage = parseInt(usageStr || "0", 10);
 
-        const planId = subscription[0]?.plan || "free";
-        const plan =
-          SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS];
-        const limit = plan.features.bandwidthPerMonth;
+            const planId = subscription[0]?.plan || "free";
+            const plan =
+              SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS];
+            const limit = plan.features.bandwidthPerMonth;
 
-        return Response.json({
-          usage,
-          limit,
-          percentage: Math.min((usage / limit) * 100, 100),
-        });
+            return {
+              usage,
+              limit,
+              percentage: Math.min((usage / limit) * 100, 100),
+            };
+          },
+        );
+
+        return Response.json(responseBody);
       },
     },
   },
