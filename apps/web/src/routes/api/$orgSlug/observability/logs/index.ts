@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { cachedDashboardRead, dashboardCacheKey } from "@/lib/dashboard-cache";
 import { queryObservabilityServiceNames } from "@/lib/observability-services";
 import { requireOrgFromSlug } from "@/lib/org";
 import { queryTinybird } from "@/lib/tinybird";
@@ -61,45 +62,59 @@ export const Route = createFileRoute("/api/$orgSlug/observability/logs/")({
         const organizationId = orgResult.organization.id;
 
         try {
-          const [logs, services] = await Promise.all([
-            queryTinybird<LogRow>("logs", {
-              organization_id: organizationId,
-              hours,
+          const responseBody = await cachedDashboardRead(
+            dashboardCacheKey("observability-logs", {
+              organizationId,
+              range,
               search,
               service,
               level,
               limit,
             }),
-            queryObservabilityServiceNames(organizationId),
-          ]);
+            async () => {
+              const [logs, services] = await Promise.all([
+                queryTinybird<LogRow>("logs", {
+                  organization_id: organizationId,
+                  hours,
+                  search,
+                  service,
+                  level,
+                  limit,
+                }),
+                queryObservabilityServiceNames(organizationId),
+              ]);
 
-          return Response.json({
-            logs: logs.map((log) => ({
-              id: log.id,
-              timestamp: log.timestamp,
-              observedTimestamp: log.observed_timestamp,
-              level: log.level,
-              severityNumber: Number(log.severity_number),
-              severityText: log.severity_text,
-              message: log.message,
-              eventName: log.event_name,
-              traceId: log.trace_id,
-              spanId: log.span_id,
-              flags: Number(log.flags),
-              service: log.service,
-              serviceNamespace: log.service_namespace,
-              serviceVersion: log.service_version,
-              environment: log.environment,
-              region: log.region,
-              scopeName: log.scope_name,
-              scopeVersion: log.scope_version,
-              attributes: log.attributes,
-              resourceAttributes: log.resource_attributes,
-              scopeAttributes: log.scope_attributes,
-            })),
-            services,
-            range,
-          });
+              return {
+                logs: logs.map((log) => ({
+                  id: log.id,
+                  timestamp: log.timestamp,
+                  observedTimestamp: log.observed_timestamp,
+                  level: log.level,
+                  severityNumber: Number(log.severity_number),
+                  severityText: log.severity_text,
+                  message: log.message,
+                  eventName: log.event_name,
+                  traceId: log.trace_id,
+                  spanId: log.span_id,
+                  flags: Number(log.flags),
+                  service: log.service,
+                  serviceNamespace: log.service_namespace,
+                  serviceVersion: log.service_version,
+                  environment: log.environment,
+                  region: log.region,
+                  scopeName: log.scope_name,
+                  scopeVersion: log.scope_version,
+                  attributes: log.attributes,
+                  resourceAttributes: log.resource_attributes,
+                  scopeAttributes: log.scope_attributes,
+                })),
+                services,
+                range,
+              };
+            },
+          );
+
+          return Response.json(responseBody);
         } catch (error) {
           console.error("Failed to query observability logs", error);
           return Response.json(
