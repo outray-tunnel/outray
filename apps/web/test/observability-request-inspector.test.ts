@@ -162,6 +162,7 @@ test("the inspector delegates modal focus, Escape and return-focus behavior to S
   assert.equal(tree.props.onClose, onClose);
   assert.equal(tree.props.returnFocusRef, returnFocusRef);
   assert.equal(tree.props.children.key, "acme:telemetry-span-1");
+  assert.equal(tree.props.children.props.onClose, onClose);
   const next = HttpRequestInspector({
     request,
     orgSlug: "other",
@@ -496,6 +497,7 @@ async function loadInteractiveInspector(fetcher: typeof fetch) {
     },
   });
   const values: any[] = [];
+  const refs: Array<{ current: any }> = [];
   const effects: Array<{
     callback: () => (() => void) | void;
     dependencies: unknown[];
@@ -507,9 +509,10 @@ async function loadInteractiveInspector(fetcher: typeof fetch) {
     dependencies: unknown[];
   }> = [];
   let stateIndex = 0;
+  let refIndex = 0;
   let effectIndex = 0;
   const stubs = Object.fromEntries(
-    ["CopyButton", "SegmentedControl", "SideSheet", "JsonViewer"].map(
+    ["CopyButton", "SegmentedControl", "SideSheet", "JsonViewer", "Button"].map(
       (name) => [
         name,
         (props: any) =>
@@ -525,6 +528,9 @@ async function loadInteractiveInspector(fetcher: typeof fetch) {
     exports:
       {} as typeof import("../src/components/observability/http-request-inspector"),
   };
+  const agentCalls: unknown[][] = [];
+  const contextCalls: unknown[][] = [];
+  const context = { type: "request", source: "inspector" };
   runInNewContext(compiled, {
     React,
     module,
@@ -547,6 +553,10 @@ async function loadInteractiveInspector(fetcher: typeof fetch) {
               },
             ];
           },
+          useRef: (initial: any) => {
+            const slot = refIndex++;
+            return refs[slot] ??= { current: initial };
+          },
           useEffect: (
             callback: () => (() => void) | void,
             dependencies: unknown[],
@@ -566,6 +576,8 @@ async function loadInteractiveInspector(fetcher: typeof fetch) {
       if (specifier === "lucide-react")
         return new Proxy({}, { get: () => () => null });
       if (specifier === "./http-requests-data") return requestsData;
+      if (specifier === "@/components/agent/agent-chat-context") return { useAgentChat: () => ({ startThread: (next: unknown) => agentCalls.push(["thread", next]) }) };
+      if (specifier === "@/components/agent/agent-chat-data") return { createAgentRequestContext: (...args: unknown[]) => { contextCalls.push(args); return context; } };
       if (specifier === "./http-request-inspector-data")
         return helperModule.exports;
       if (specifier === "./http-request-badges")
@@ -592,15 +604,19 @@ async function loadInteractiveInspector(fetcher: typeof fetch) {
   const outer = module.exports.HttpRequestInspector({
     request,
     orgSlug: "acme",
-    onClose: () => {},
+    onClose: () => agentCalls.push(["close"]),
   }) as Element;
   const inner = outer.props.children as Element;
   return {
     values,
     stubs,
     module,
+    agentCalls,
+    contextCalls,
+    context,
     render() {
       stateIndex = 0;
+      refIndex = 0;
       effectIndex = 0;
       return (inner.type as (props: any) => React.ReactNode)(inner.props);
     },
@@ -623,6 +639,32 @@ async function loadInteractiveInspector(fetcher: typeof fetch) {
 }
 
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+test("Ask agent snapshots the actual request into a new thread and then closes the inspector", async () => {
+  let fetchCount = 0;
+  const view = await loadInteractiveInspector(async () => {
+    fetchCount++;
+    return Response.json(details);
+  });
+  let tree = view.render();
+  const action = () => elements(tree).find((element) => element.type === view.stubs.Button && React.Children.toArray(element.props.children).includes("Ask agent"));
+  assert.ok(action());
+  assert.equal(action()!.props.size, "sm");
+  assert.equal(action()!.props.variant, "secondary");
+  action()!.props.onClick();
+  assert.deepEqual(view.contextCalls[0], ["acme", request, null], "metadata is available before payload fetch");
+  assert.deepEqual(view.agentCalls, [["thread", view.context], ["close"]], "snapshot must be captured before the source inspector is closed");
+  view.commit();
+  await tick();
+  tree = view.render();
+  action()!.props.onClick();
+  assert.deepEqual(view.contextCalls[1], ["acme", request, details]);
+  assert.deepEqual(view.agentCalls, [["thread", view.context], ["close"], ["thread", view.context], ["close"]], "every action starts a new thread");
+  assert.equal(fetchCount, 1, "Ask agent reuses loaded request data, without additional network calls");
+  const source = await readFile(new URL("../src/components/observability/http-request-inspector.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /RequestExplanation|onOpenEvidence/);
+  view.cleanup();
+});
 
 test("detail tabs, inline copy failures and retry preserve real drawer state", async () => {
   let fetchCount = 0;
