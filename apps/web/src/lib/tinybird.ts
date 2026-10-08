@@ -50,6 +50,7 @@ function tinybirdConfig() {
 export async function queryTinybird<T>(
   endpoint: string,
   parameters: Record<string, string | number | boolean | undefined>,
+  options: { cache?: "default" | "no-store"; signal?: AbortSignal } = {},
 ): Promise<T[]> {
   const { apiHost, token } = tinybirdConfig();
   const cacheKey = queryCacheKey(endpoint, parameters);
@@ -64,18 +65,54 @@ export async function queryTinybird<T>(
       `${apiHost}/v0/pipes/${encodeURIComponent(endpoint)}.json?${search}`,
       {
         headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(10_000),
+        signal: options.signal
+          ? AbortSignal.any([options.signal, AbortSignal.timeout(10_000)])
+          : AbortSignal.timeout(10_000),
+        cache: "no-store",
       },
     );
 
     if (!response.ok) {
+      if (options.cache === "no-store") {
+        // Error pages are not evidence. Cancel without reading potentially large
+        // bodies or carrying their raw details into an investigation exception.
+        await response.body?.cancel();
+        throw new Error(`Tinybird query failed (${response.status})`);
+      }
       const detail = (await response.text()).slice(0, 500);
       throw new Error(`Tinybird query failed (${response.status}): ${detail}`);
     }
 
-    const result = (await response.json()) as TinybirdResponse<T>;
+    let result: TinybirdResponse<T>;
+    if (options.cache === "no-store") {
+      // Bound investigations even when a legacy pipe (trace_details) does not
+      // have a SQL limit. Existing dashboard query behavior stays unchanged.
+      const maximum = 1_048_576;
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("Malformed Tinybird evidence response");
+      let bytes = 0;
+      const chunks: Uint8Array[] = [];
+      try {
+        while (true) {
+          const part = await reader.read();
+          if (part.done) break;
+          bytes += part.value.byteLength;
+          if (bytes > maximum) { await reader.cancel(); throw new Error("Tinybird evidence response is too large"); }
+          chunks.push(part.value);
+        }
+      } finally { reader.releaseLock(); }
+      const buffer = new Uint8Array(bytes);
+      let offset = 0;
+      for (const chunk of chunks) { buffer.set(chunk, offset); offset += chunk.byteLength; }
+      result = JSON.parse(new TextDecoder().decode(buffer)) as TinybirdResponse<T>;
+      if (!result || !Array.isArray(result.data)) throw new Error("Malformed Tinybird evidence response");
+    } else result = (await response.json()) as TinybirdResponse<T>;
     return result.data || [];
   };
+
+  // Investigations must distinguish fresh evidence from failed queries. They
+  // opt out of the dashboard's stale-while-refresh cache without changing it.
+  if (options.cache === "no-store") return (await load()) as T[];
 
   if (queryCacheTtlMs > 0) {
     const cached = queryCache.get(cacheKey);
@@ -111,7 +148,7 @@ export async function queryTinybird<T>(
 
   const request = load();
 
-  if (queryCacheTtlMs <= 0) return request;
+  if (queryCacheTtlMs <= 0) return (await request) as T[];
   queryCache.set(cacheKey, { promise: request as Promise<unknown[]> });
   evictOldestCacheEntries();
   try {
@@ -121,7 +158,7 @@ export async function queryTinybird<T>(
       value,
     });
     evictOldestCacheEntries();
-    return value;
+    return value as T[];
   } catch (error) {
     queryCache.delete(cacheKey);
     throw error;
