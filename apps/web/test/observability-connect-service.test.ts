@@ -21,8 +21,10 @@ class FocusTarget {
   isConnected = true;
   focused = 0;
   expandedListbox = false;
+  dialog: FocusTarget | null = null;
   focus() { this.focused++; }
   closest(selector: string) {
+    if (selector === '[role="dialog"]') return this.dialog;
     assert.equal(selector, '[aria-haspopup="listbox"][aria-expanded="true"]');
     return this.expandedListbox ? this : null;
   }
@@ -179,6 +181,23 @@ test("closing the sheet returns focus to its trigger or a still-connected origin
   content.props.onCloseAutoFocus({ preventDefault: () => { prevented++; } });
   assert.equal(ui.activeElement.focused, 1);
   assert.equal(prevented, 2);
+});
+
+test("a closing sheet does not steal focus from a newly opened Agent dialog", async () => {
+  const ui = await loadComponent("../src/components/ui/side-sheet.tsx");
+  const trigger = new FocusTarget();
+  const closingPanel = new FocusTarget(); closingPanel.dialog = closingPanel;
+  const agentPanel = new FocusTarget(); agentPanel.dialog = agentPanel;
+  const tree = elements(ui.render("SideSheet", { open: true, title: "Request details", children: "Request", onClose: () => {}, returnFocusRef: { current: trigger } }));
+  const content = tree.find((element) => element.type === ui.stubs.Content);
+  assert.ok(content);
+  content.props.onOpenAutoFocus();
+  ui.activeElement.dialog = agentPanel;
+  let prevented = 0;
+  content.props.onCloseAutoFocus({ target: closingPanel, preventDefault: () => { prevented++; } });
+  assert.equal(prevented, 1);
+  assert.equal(trigger.focused, 0);
+  assert.equal(ui.activeElement.focused, 0);
 });
 
 test("the token modal unmounts on close and restores its ingest-token trigger", async () => {
