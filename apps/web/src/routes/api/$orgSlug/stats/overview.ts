@@ -4,6 +4,7 @@ import { redis } from "../../../../lib/redis";
 import { requireOrgFromSlug } from "../../../../lib/org";
 import { tigerData } from "../../../../lib/timescale";
 import { cachedDashboardRead, dashboardCacheKey } from "../../../../lib/dashboard-cache";
+import { cachedDashboardRedisRead } from "../../../../lib/dashboard-redis-cache";
 import {
   mapOrgOverviewStats,
   type OrgOverviewAggregateRow,
@@ -108,7 +109,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
              ORDER BY times.time ASC`,
               [organizationId, start, end, bucket],
             ),
-            redis.scard(`org:${organizationId}:online_tunnels`),
+            cachedDashboardRedisRead(
+              `online-tunnel-count:${organizationId}`,
+              () => redis.scard(`org:${organizationId}:online_tunnels`),
+            ),
           ]);
 
           return {
