@@ -4,12 +4,19 @@ import { runInNewContext } from "node:vm";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ts from "typescript";
 import { MonitorForm } from "../src/components/uptime/monitor-form";
 import * as helpers from "../src/components/uptime/monitor-data";
 import type { UptimeMonitor } from "../src/components/uptime/uptime-client";
 
 Object.assign(globalThis, { React });
+
+const renderForm = (props: React.ComponentProps<typeof MonitorForm>) => {
+  const client = new QueryClient();
+  try { return renderToStaticMarkup(React.createElement(QueryClientProvider, { client }, React.createElement(MonitorForm, props))); }
+  finally { client.clear(); }
+};
 
 const monitor: UptimeMonitor = {
   id: "monitor-a", name: "API", url: "https://api.example.com/health", method: "GET", expectedStatus: 204, responseText: "healthy", hasHeaders: true,
@@ -64,7 +71,7 @@ test("monitor search matches endpoint metadata while paused monitors never leak 
 });
 
 test("monitor form uses real Arc method/status menus, stacked shared inputs, recipients, and publishing controls", () => {
-  const html = renderToStaticMarkup(React.createElement(MonitorForm, { orgSlug: "workspace", formId: "new-monitor", busy: false, error: null, onSubmit: () => {} }));
+  const html = renderForm({ orgSlug: "workspace", formId: "new-monitor", busy: false, error: null, onSubmit: () => {} });
   assert.match(html, /<form id="new-monitor"/); assert.match(html, /ph-no-capture/);
   assert.match(html, /Request method/); assert.match(html, /Expected status/); assert.match(html, /role="combobox"/);
   assert.match(html, /data-workspace-input="default"/); assert.match(html, /data-workspace-input="textarea"/);
@@ -75,7 +82,7 @@ test("monitor form uses real Arc method/status menus, stacked shared inputs, rec
 });
 
 test("editing shows a designed header-replacement checkbox and warns that changing URL clears credentials", () => {
-  const html = renderToStaticMarkup(React.createElement(MonitorForm, { orgSlug: "workspace", formId: "edit-monitor", monitor, busy: false, error: "Could not save monitor.", onSubmit: () => {} }));
+  const html = renderForm({ orgSlug: "workspace", formId: "edit-monitor", monitor, busy: false, error: "Could not save monitor.", onSubmit: () => {} });
   assert.match(html, /type="checkbox"/); assert.match(html, /Replace or clear existing headers/);
   assert.match(html, /Changing the URL clears them unless you enter replacements/);
   assert.match(html, /role="alert"/); assert.match(html, /Could not save monitor/);
@@ -91,7 +98,12 @@ async function stubbedForm() {
   const Placeholder = () => null, Select = () => null, UptimeError = () => null, UptimeCheckbox = () => null;
   const module = { exports: {} as any };
   runInNewContext(compiled, { React, Error, module, exports: module.exports, require: (specifier: string) => {
-    if (specifier === "react") return { useId: () => "monitor-form", useState: (initial: unknown) => {
+    if (specifier === "react") return { useId: () => "monitor-form", useCallback: (callback: unknown, dependencies: unknown[]) => {
+      const current = index++;
+      const previous = states[current] as { callback: unknown; dependencies: unknown[] } | undefined;
+      if (!previous || previous.dependencies.some((dependency, position) => !Object.is(dependency, dependencies[position]))) states[current] = { callback, dependencies };
+      return (states[current] as { callback: unknown }).callback;
+    }, useState: (initial: unknown) => {
       const current = index++; if (!(current in states)) states[current] = typeof initial === "function" ? initial() : initial;
       return [states[current], (value: unknown) => { states[current] = typeof value === "function" ? value(states[current]) : value; }];
     } };
@@ -106,7 +118,7 @@ async function stubbedForm() {
     throw new Error(`Unexpected monitor form dependency: ${specifier}`);
   } });
   const renders = (props: Record<string, unknown>) => { index = 0; return module.exports.MonitorForm(props); };
-  return { renders, Select, UptimeError, UptimeCheckbox };
+  return { renders, Select, UptimeError, UptimeCheckbox, UptimeEmailRecipients: Placeholder };
 }
 
 function elements(node: React.ReactNode): React.ReactElement<any>[] {
@@ -130,6 +142,19 @@ test("refreshes cannot overwrite unsaved monitor settings or header choices; fai
   assert.equal(nodes.find((node) => node.type === UptimeCheckbox)?.props.checked, true);
   tree.props.onSubmit({ preventDefault: () => {} });
   assert.equal(submitted[0].name, "Unsaved name"); assert.deepEqual(submitted[0].headers, {});
+});
+
+test("typing in monitor fields preserves the memoized recipient picker props and stable change callback", async () => {
+  const { renders, UptimeEmailRecipients } = await stubbedForm();
+  const props = { orgSlug: "workspace", formId: "edit", monitor, busy: false, error: null, onSubmit: () => {} };
+  const first = elements(renders(props));
+  const recipients = first.find((node) => node.type === UptimeEmailRecipients && node.props.orgSlug)!;
+  first.find((node) => node.props.id === "monitor-form-name")!.props.onChange({ target: { value: "Typing a name" } });
+  const afterTyping = elements(renders(props)).find((node) => node.type === UptimeEmailRecipients && node.props.orgSlug)!;
+  assert.equal(afterTyping.props.onChange, recipients.props.onChange);
+  assert.equal(afterTyping.props.value, recipients.props.value);
+  recipients.props.onChange(["grace@example.com"]);
+  assert.deepEqual(Array.from(elements(renders(props)).find((node) => node.type === UptimeEmailRecipients && node.props.orgSlug)!.props.value), ["grace@example.com"]);
 });
 
 test("busy forms cannot change controls or submit, and header validation errors are visible beside the attempted action", async () => {
