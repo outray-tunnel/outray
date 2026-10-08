@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { redis } from "../../../../lib/redis";
 import { requireOrgFromSlug } from "../../../../lib/org";
 import { tigerData } from "../../../../lib/timescale";
+import { cachedDashboardRead, dashboardCacheKey } from "../../../../lib/dashboard-cache";
 import {
   mapOrgOverviewStats,
   type OrgOverviewAggregateRow,
@@ -31,6 +32,9 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
         const previousStart = new Date(start.getTime() - (end.getTime() - start.getTime()));
 
         try {
+          const responseBody = await cachedDashboardRead(
+            dashboardCacheKey("stats-overview", { organizationId, range: timeRange }),
+            async () => {
           // A single captured boundary is shared by headlines, comparisons and
           // chart buckets. HTTP errors/rates use HTTP traffic only; protocol
           // events do not have an HTTP status code.
@@ -107,7 +111,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
             redis.scard(`org:${organizationId}:online_tunnels`),
           ]);
 
-          return Response.json({
+          return {
             ...mapOrgOverviewStats(
               aggregateResult.rows[0],
               chartResult.rows,
@@ -116,7 +120,10 @@ export const Route = createFileRoute("/api/$orgSlug/stats/overview")({
             timeRange,
             windowStart: start,
             windowEnd: end,
-          });
+          };
+            },
+          );
+          return Response.json(responseBody);
         } catch (error) {
           console.error("Failed to fetch stats overview:", error);
           return Response.json({ error: "Failed to fetch stats" }, { status: 500 });
