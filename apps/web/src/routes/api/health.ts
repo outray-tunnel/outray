@@ -6,8 +6,31 @@ import { redis } from "@/lib/redis";
 export const Route = createFileRoute("/api/health")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
         const startTime = Date.now();
+
+        // Keep the platform liveness probe independent of remote services.
+        // Dependency checks remain available explicitly for diagnostics, but
+        // a slow Redis or database must not make the web process look dead.
+        const deep = new URL(request.url).searchParams.get("deep") === "true";
+        if (!deep) {
+          return new Response(
+            JSON.stringify({
+              status: "healthy",
+              timestamp: new Date().toISOString(),
+              services: { application: "healthy" },
+              latency: { total: Date.now() - startTime },
+              mode: "liveness",
+            }),
+            {
+              status: 200,
+              headers: {
+                "Cache-Control": "no-store",
+                "Content-Type": "application/json",
+              },
+            },
+          );
+        }
         
         let dbStatus = "healthy";
         let dbLatency = 0;
@@ -53,6 +76,7 @@ export const Route = createFileRoute("/api/health")({
           {
             status: isHealthy ? 200 : 503,
             headers: {
+              "Cache-Control": "no-store",
               "Content-Type": "application/json",
             },
           }
