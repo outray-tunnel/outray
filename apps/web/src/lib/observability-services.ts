@@ -9,6 +9,49 @@ interface TraceServiceNameRow {
 }
 
 const SERVICE_INVENTORY_HOURS = 30 * 24;
+const defaultServiceNamesTtlMs = 5 * 60_000;
+const serviceNamesCache = new Map<
+  string,
+  {
+    value: string[];
+    expiresAt: number;
+    refresh?: Promise<void>;
+  }
+>();
+
+function serviceNamesTtlMs() {
+  const configured = Number(
+    process.env.OBSERVABILITY_SERVICE_NAMES_CACHE_TTL_MS,
+  );
+  return Number.isFinite(configured) && configured >= 0
+    ? configured
+    : defaultServiceNamesTtlMs;
+}
+
+function refreshServiceNames(
+  organizationId: string,
+  entry: {
+    value: string[];
+    expiresAt: number;
+    refresh?: Promise<void>;
+  },
+) {
+  if (entry.refresh) return;
+
+  entry.refresh = loadServiceNames(organizationId)
+    .then((names) => {
+      entry.value = names;
+      entry.expiresAt = Date.now() + serviceNamesTtlMs();
+    })
+    .catch(() => {
+      // Service names are filter metadata. Keep the primary observability
+      // response available if this ancillary query is temporarily slow.
+      entry.expiresAt = Date.now() + 5_000;
+    })
+    .finally(() => {
+      entry.refresh = undefined;
+    });
+}
 
 /**
  * Return the stable service inventory used by observability filters. The
@@ -17,6 +60,19 @@ const SERVICE_INVENTORY_HOURS = 30 * 24;
 export async function queryObservabilityServiceNames(
   organizationId: string,
 ): Promise<string[]> {
+  let entry = serviceNamesCache.get(organizationId);
+  if (!entry) {
+    entry = { value: [], expiresAt: 0 };
+    serviceNamesCache.set(organizationId, entry);
+  }
+
+  // This metadata is not on the critical path for the data response. Return
+  // the last known inventory immediately and refresh it asynchronously.
+  if (entry.expiresAt <= Date.now()) refreshServiceNames(organizationId, entry);
+  return entry.value;
+}
+
+async function loadServiceNames(organizationId: string): Promise<string[]> {
   let names: string[];
   try {
     const rows = await queryTinybird<ObservabilityServiceNameRow>(
