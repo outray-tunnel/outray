@@ -6,6 +6,7 @@ import { tunnels } from "../../../../db/app-schema";
 import { redis } from "../../../../lib/redis";
 import { requireOrgFromSlug } from "../../../../lib/org";
 import { cachedDashboardRead, dashboardCacheKey } from "../../../../lib/dashboard-cache";
+import { cachedDashboardRedisRead } from "../../../../lib/dashboard-redis-cache";
 
 export const Route = createFileRoute("/api/$orgSlug/tunnels/")({
   server: {
@@ -18,8 +19,10 @@ export const Route = createFileRoute("/api/$orgSlug/tunnels/")({
         const responseBody = await cachedDashboardRead(
           dashboardCacheKey("tunnels", { organizationId: organization.id }),
           async () => {
-            const onlineIds = await redis.smembers(
-              `org:${organization.id}:online_tunnels`,
+            const onlineIds = await cachedDashboardRedisRead(
+              `online-tunnel-ids:${organization.id}`,
+              () =>
+                redis.smembers(`org:${organization.id}:online_tunnels`),
             );
 
             if (onlineIds.length === 0) return { tunnels: [] };
@@ -30,7 +33,10 @@ export const Route = createFileRoute("/api/$orgSlug/tunnels/")({
               .where(inArray(tunnels.id, onlineIds));
 
             const lastSeenKeys = onlineIds.map((id) => `tunnel:last_seen:${id}`);
-            const lastSeenValues = await redis.mget(...lastSeenKeys);
+            const lastSeenValues = await cachedDashboardRedisRead(
+              `online-tunnel-last-seen:${organization.id}:${onlineIds.join(",")}`,
+              () => redis.mget(...lastSeenKeys),
+            );
             const lastSeenMap = new Map(
               onlineIds.map((id, i) => [id, lastSeenValues[i]]),
             );
