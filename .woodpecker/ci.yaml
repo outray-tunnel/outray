@@ -15,6 +15,16 @@ steps:
     commands:
       - npm ci --no-audit
 
+  # Apply checked-in migrations before any service deployment. The database
+  # URL is available only to this step and never enters the application image.
+  - name: migrate-database
+    image: node:20-bookworm
+    environment:
+      DATABASE_URL:
+        from_secret: database_url
+    commands:
+      - npm run db:migrate:ci
+
   - name: build
     image: node:20-bookworm
     commands:

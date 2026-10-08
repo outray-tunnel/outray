@@ -11,6 +11,7 @@
     "test": "tsx --tsconfig tsconfig.app.json --import ./test/register-css-loader.mjs --test test/*.test.ts",
     "db:generate-auth": "npx @better-auth/cli generate --output=src/db/auth-schema.ts -y",
     "db:migrate": "npx drizzle-kit generate && npx drizzle-kit migrate",
+    "db:migrate:ci": "npx drizzle-kit migrate",
     "tokens:backfill": "tsx scripts/backfill-machine-tokens.ts",
     "secrets:rewrap": "tsx src/lib/secrets/rewrap-command.ts",
     "secrets:rewrap:verify": "tsx src/lib/secrets/rewrap-command.ts --verify-only"
