@@ -11,7 +11,7 @@ compose ps` to inspect services, and `docker compose logs --tail=100 server agen
 for diagnostics. The health endpoint is `https://ci.outray.dev/healthz` (HTTP 204).
 
 The repository workflow is `.woodpecker/ci.yaml`. Pushes to either `main` or
-`next` install dependencies, build the edge, status renderer, and uptime probe,
+`next` install dependencies, apply checked-in PostgreSQL migrations, build the edge, status renderer, and uptime probe,
 deploy Tinybird endpoints, then deploy Status, Edge, and the uptime probe as
 separate, health-gated steps. Status is deployed first so the edge has a healthy
 upstream; the probe is deployed last. Each step copies only its own artifacts.
@@ -20,8 +20,9 @@ Woodpecker serializes these workflows across both branches. Both branches use
 the **same production Tinybird workspace and edge VPS**, so the latest successful deploy
 from either branch becomes live. The GitHub Actions deploy is a manual fallback,
 not a second automatic deploy path.
-The web app is not built or deployed by this workflow. Brimble handles database
-migrations separately; Woodpecker does not run PostgreSQL or Timescale migrations.
+The web app is not built or deployed by this workflow. Woodpecker applies the
+checked-in PostgreSQL migrations before deploying the edge services. Brimble's
+web build must therefore compile the web app without running `drizzle-kit migrate`.
 
 Required repository secrets, with pull-request exposure disabled:
 
@@ -32,6 +33,7 @@ Required repository secrets, with pull-request exposure disabled:
 | `tinybird_token` | Push, Manual | Tinybird deployment token, not the query token. |
 | `edge_ssh_key` | Push, Manual | SSH from CI to the edge VPS. |
 | `unbe_token` | Push, Manual | Project-scoped, read-only access to OutRay Production secrets in Unbe. |
+| `database_url` | Push, Manual | Production PostgreSQL URL used only by the migration step. |
 
 The edge deployment key is already generated in
 `/opt/woodpecker/secrets/edge-deploy` on the CI VPS. Its public key is restricted
