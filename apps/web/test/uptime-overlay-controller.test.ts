@@ -129,6 +129,7 @@ test("nested dialogs inherit raised layers and sibling discard confirmations opt
   const sibling = dialog.render({ layer: 1 }); assert.match(sibling.content.className, /raised-dialog/); assert.match(sibling.content.overlayClassName, /raised-overlay/);
   const css = await readFile(new URL("../src/components/uptime/uptime-ui.module.css", import.meta.url), "utf8");
   assert.match(css, /\.overlay\.overlay\s*\{\s*z-index:\s*80/); assert.match(css, /\.dialog\.dialog\s*\{\s*z-index:\s*81/);
+  assert.match(css, /\.overlay\.overlay\s*\{[^}]*backdrop-filter:\s*none/, "Uptime editors dim the workspace without full-screen backdrop repainting");
   assert.match(css, /\.raisedOverlay\.raisedOverlay\s*\{\s*z-index:\s*90/); assert.match(css, /\.raisedDialog\.raisedDialog\s*\{\s*z-index:\s*91/);
   for (const path of ["../src/components/uptime/create-incident-dialog.tsx", "../src/routes/$orgSlug/uptime/incidents_.$incidentId.tsx"]) {
     const source = await readFile(new URL(path, import.meta.url), "utf8");
