@@ -1,9 +1,14 @@
-/** Keep warm connections across normal dashboard navigation pauses. */
+/** Keep enough warm connections for concurrent dashboard/API reads. */
+const configuredPoolMax = Number(process.env.DASHBOARD_DB_POOL_MAX);
+const dashboardPoolMax = Number.isFinite(configuredPoolMax)
+  ? Math.max(10, configuredPoolMax)
+  : 50;
+
 export const dashboardPoolOptions = {
-  // Bound total database pressure across the main and Timescale pools on
-  // both production replicas. More clients here only queue behind the
-  // database's connection and CPU limits during a burst.
-  max: 10,
+  // The production database allows 100 connections. The app currently runs
+  // as one instance, so leave headroom for migrations and background jobs
+  // while avoiding a ten-connection queue at dashboard load-test volume.
+  max: dashboardPoolMax,
   idleTimeoutMillis: 60_000,
   connectionTimeoutMillis: 10_000,
 };
