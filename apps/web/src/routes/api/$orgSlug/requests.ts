@@ -5,6 +5,7 @@ import { tunnels } from "../../../db/app-schema";
 import { requireOrgFromSlug } from "../../../lib/org";
 import { tigerData } from "../../../lib/timescale";
 import { getTunnelEventIdentifiers } from "../../../lib/tunnel-event-identifiers";
+import { cachedDashboardRead, dashboardCacheKey } from "../../../lib/dashboard-cache";
 
 export const Route = createFileRoute("/api/$orgSlug/requests")({
   server: {
@@ -87,14 +88,22 @@ export const Route = createFileRoute("/api/$orgSlug/requests")({
           query += ` ORDER BY timestamp DESC LIMIT $${paramIndex}`;
           queryParams.push(limit);
 
-          const requestsResult = await tigerData.query(query, queryParams);
-          const requests = requestsResult.rows;
+          const responseBody = await cachedDashboardRead(
+            dashboardCacheKey("requests", {
+              organizationId,
+              tunnelId: tunnelId || undefined,
+              range: timeRange,
+              limit,
+              search: search || undefined,
+            }),
+            async () => {
+              const requestsResult = await tigerData.query(query, queryParams);
+              const requests = requestsResult.rows;
+              return { requests, timeRange, count: requests.length };
+            },
+          );
 
-          return Response.json({
-            requests,
-            timeRange,
-            count: requests.length,
-          });
+          return Response.json(responseBody);
         } catch (error) {
           console.error("Failed to fetch requests:", error);
           
