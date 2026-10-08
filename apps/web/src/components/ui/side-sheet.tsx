@@ -78,6 +78,13 @@ export function SideSheet({
             }}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
+              // A handoff may have already focused another dialog (for example, Ask agent).
+              // Do not pull focus back out of that newly opened modal when this sheet exits.
+              const activeDialog = document.activeElement instanceof HTMLElement
+                ? document.activeElement.closest('[role="dialog"]') : null;
+              const closingDialog = event.target instanceof HTMLElement
+                ? event.target.closest('[role="dialog"]') : null;
+              if (activeDialog?.isConnected && activeDialog !== closingDialog) return;
               const target = returnFocusRef?.current?.isConnected ? returnFocusRef.current : opener.current;
               if (target?.isConnected) target.focus();
             }}
