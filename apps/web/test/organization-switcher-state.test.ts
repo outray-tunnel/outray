@@ -10,7 +10,8 @@ import {
 
 test("switching organizations preserves each audited static page and canonicalizes legacy sections", () => {
   const sections = [
-    "", "/tunnels", "/requests", "/subdomains", "/domains", "/members", "/tokens", "/billing",
+    "/tunnel", "/tunnel/tunnels", "/tunnel/requests", "/tunnel/subdomains", "/tunnel/domains",
+    "/members", "/tokens", "/billing",
     "/settings", "/settings/profile", "/settings/organization", "/get-started", "/setup",
     "/observability", "/observability/alerts", "/observability/services", "/observability/requests",
     "/observability/logs", "/observability/metrics", "/observability/traces",
@@ -22,6 +23,14 @@ test("switching organizations preserves each audited static page and canonicaliz
     assert.equal(organizationSwitchDestination(`/current${section}`, "current", "next"), `/next${section}`, section);
     assert.equal(organizationSwitchDestination(`/current${section}/`, "current", "next"), `/next${section}`, "trailing slashes do not change the destination");
   }
+  for (const [source, destination] of [
+    ["", "/tunnel"], ["/tunnels", "/tunnel/tunnels"], ["/requests", "/tunnel/requests"],
+    ["/subdomains", "/tunnel/subdomains"], ["/domains", "/tunnel/domains"],
+  ]) {
+    for (const suffix of ["", "/"]) {
+      assert.equal(organizationSwitchDestination(`/current${source}${suffix}`, "current", "next"), `/next${destination}`, source);
+    }
+  }
   assert.equal(organizationSwitchDestination("/current/secrets/projects", "current", "next"), "/next/secrets/vaults");
   assert.equal(organizationSwitchDestination("/current/observability/monitors", "current", "next"), "/next/observability/alerts");
 });
@@ -32,7 +41,9 @@ test("organization-scoped detail IDs and nested tabs return to their correspondi
     ["/secrets/vaults/payments/environments/production", "/secrets/vaults"],
     ["/secrets/projects/payments", "/secrets/vaults"],
     ["/secrets/projects/payments/environments/staging", "/secrets/vaults"],
-    ["/tunnels/tunnel-123", "/tunnels"],
+    ["/tunnels/tunnel-123", "/tunnel/tunnels"],
+    ["/tunnel/tunnels/tunnel-123", "/tunnel/tunnels"],
+    ["/tunnel/tunnels/tunnel-123/requests", "/tunnel/tunnels"],
     ["/uptime/monitors/monitor-123", "/uptime/monitors"],
     ["/uptime/incidents/incident-123", "/uptime/incidents"],
     ["/observability/services/service-123", "/observability/services"],
@@ -50,10 +61,13 @@ test("organization-scoped detail IDs and nested tabs return to their correspondi
 
 test("targets encode the next slug, recognize encoded current slugs, and cannot retain unknown or mismatched paths", () => {
   assert.equal(organizationSwitchDestination("/team%20%2F%3F%CE%B2/secrets/vaults/api", "team /?β", "next /?β"), "/next%20%2F%3F%CE%B2/secrets/vaults");
-  for (const source of ["/other/billing", "/current/unknown", "/current/settings/unknown", "/current/secrets/vaults-unsafe/api", "/currentish/members", "/%E0%A4%A/billing", "current/billing", "https://evil.test/current/billing", "//evil.test/current/billing"]) {
-    assert.equal(organizationSwitchDestination(source, "current", "next"), "/next", source);
+  for (const source of ["/other/billing", "/current/unknown", "/current/settings/unknown", "/current/secrets/vaults-unsafe/api", "/current/tunnel-old", "/current/tunnel/tunnels-unsafe/tunnel-123", "/currentish/tunnel", "/currentish/members", "/%E0%A4%A/billing", "current/billing", "https://evil.test/current/billing", "//evil.test/current/billing"]) {
+    assert.equal(organizationSwitchDestination(source, "current", "next"), "/next/tunnel", source);
   }
-  assert.equal(organizationSwitchDestination("/current/tunnels/t-123?tab=requests#request-456", "current", "next"), "/next/tunnels", "only the destination path survives a detail fallback");
+  for (const prefix of ["tunnels", "tunnel/tunnels"]) {
+    assert.equal(organizationSwitchDestination(`/current/${prefix}/t-123?tab=requests#request-456`, "current", "next"), "/next/tunnel/tunnels", "only the destination path survives a detail fallback");
+  }
+  assert.equal(organizationSwitchDestination("/team%20%2F%3F%CE%B2/tunnel/tunnels/private-tunnel", "team /?β", "next /?β"), "/next%20%2F%3F%CE%B2/tunnel/tunnels");
 });
 
 test("organization search is trimmed, case-insensitive, name-or-slug based and preserves input order without mutation", () => {
