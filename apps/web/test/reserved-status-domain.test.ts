@@ -11,6 +11,14 @@ test("status gateway and nested hosted-page names cannot be tunnel domains", () 
   ]) assert.equal(isReservedStatusDomain(domain), true, domain);
 });
 
+test("self-hosted status namespace is reserved without reserving OutRay's namespace", () => {
+  const env = { STATUS_PUBLIC_URL: "https://health.example.net" };
+  assert.equal(isReservedStatusDomain("api.health.example.net", env), true);
+  assert.equal(isReservedStatusDomain("nested.api.health.example.net", env), true);
+  assert.equal(isReservedStatusDomain("status.outray.app", env), false);
+  assert.equal(isReservedStatusDomain("api.health.example.net.attacker.test", env), false);
+});
+
 test("other customer and OutRay hostnames are unaffected", () => {
   for (const domain of [
     "status.example.com",
