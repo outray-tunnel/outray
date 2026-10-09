@@ -1,0 +1,41 @@
+---
+title: Create your first monitor
+description: Configure a public health check and decide how detected downtime reaches your team and customers.
+icon: Plus
+---
+
+## 1. Choose the endpoint
+
+Use an HTTP(S) health endpoint on a public DNS hostname, such as your application's `/health` route. It must resolve to public addresses and use HTTP port 80 or HTTPS port 443. Localhost, literal IP targets in the dashboard, private addresses, URL credentials, and alternate ports are not valid dashboard targets.
+
+Choose a small endpoint with a meaningful success condition. It should answer whether the dependency or customer-facing capability you intend to monitor is usable, without doing expensive work on every check.
+
+## 2. Add the monitor
+
+As an owner/admin, open **Uptime → Monitors**, create a monitor, and configure:
+
+- A recognizable name and public URL.
+- `GET` or `HEAD`.
+- Any 200–399 response, or an exact expected HTTP status.
+- Optional case-sensitive response text for `GET`.
+- Optional encrypted request headers and organization-member email recipients.
+
+Use narrowly scoped credentials if the endpoint needs authorization. Saved header values cannot be retrieved from the monitor editor. Avoid putting a token into the URL.
+
+## 3. Confirm detection and publication settings
+
+Choose **Confirm Down after** 2–5 consecutive failures; the default is three. Start with **Manual** incident publication if your team wants to review downtime before issuing a customer-facing report.
+
+The [monitor guide](/docs/uptime/monitors) explains **After confirmation** and **Automatic**. These settings control incident publication, not whether the check runs or whether a linked component reflects measured health.
+
+## 4. Verify observed checks
+
+Open the monitor details after it has had time to run. A first successful observation establishes Up. Confirmed recovery from Down requires two consecutive successful checks. Unknown means no fresh usable evidence, not a successful check.
+
+If no checks arrive, ensure the monitor is enabled and the deployment's probe service is available. Stale checks older than three minutes are treated as Unknown. Creating a monitor does not itself prove that the probe worker is running.
+
+## 5. Add customer-facing status when ready
+
+Create a [status page](/docs/uptime/status-page), add a component, link the monitor, and choose visibility. Review the preview and publish the page when the information is appropriate for customers.
+
+An unpublished page or hidden/unlinked component prevents automatic public incident publication. It does not prevent private checks or team detection. Use [incident drafts](/docs/uptime/incidents) to prepare communications and [notifications](/docs/uptime/notifications) to distinguish team delivery from subscribers.
