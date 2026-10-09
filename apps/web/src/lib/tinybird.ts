@@ -50,7 +50,7 @@ function tinybirdConfig() {
 export async function queryTinybird<T>(
   endpoint: string,
   parameters: Record<string, string | number | boolean | undefined>,
-  options: { cache?: "default" | "no-store"; signal?: AbortSignal } = {},
+  options: { cache?: "default" | "no-store"; signal?: AbortSignal; maximumResponseBytes?: number } = {},
 ): Promise<T[]> {
   const { apiHost, token } = tinybirdConfig();
   const cacheKey = queryCacheKey(endpoint, parameters);
@@ -87,7 +87,10 @@ export async function queryTinybird<T>(
     if (options.cache === "no-store") {
       // Bound investigations even when a legacy pipe (trace_details) does not
       // have a SQL limit. Existing dashboard query behavior stays unchanged.
-      const maximum = 1_048_576;
+      const requestedMaximum = options.maximumResponseBytes;
+      const maximum = typeof requestedMaximum === "number" && Number.isSafeInteger(requestedMaximum) && requestedMaximum > 0
+        ? Math.min(requestedMaximum, 4 * 1_048_576)
+        : 1_048_576;
       const reader = response.body?.getReader();
       if (!reader) throw new Error("Malformed Tinybird evidence response");
       let bytes = 0;
