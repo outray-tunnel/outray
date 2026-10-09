@@ -28,7 +28,13 @@ test("status routing validates hosts and replaces forged edge credentials", asyn
   process.env.UPTIME_ENABLED = "true";
   process.env.STATUS_EDGE_SECRET = "trusted-edge-secret";
   process.env.STATUS_PORT = String(rendererPort);
-  const { normalizeHost, isStatusPlatformHost, proxyToStatus } = await import("../src/lib/status-routing");
+  const { normalizeHost, isStatusPlatformHost, proxyToStatus, isTrustedStatusProxyPeer } = await import("../src/lib/status-routing");
+
+  assert.equal(isTrustedStatusProxyPeer("172.30.40.2", "172.30.40.2"), true);
+  assert.equal(isTrustedStatusProxyPeer("::ffff:172.30.40.2", "172.30.40.2"), true);
+  assert.equal(isTrustedStatusProxyPeer("172.30.40.3", "172.30.40.2"), false);
+  assert.equal(isTrustedStatusProxyPeer("172.30.40.2", ""), false);
+  assert.equal(isTrustedStatusProxyPeer("203.0.113.44", "0.0.0.0/0"), false);
 
   assert.equal(normalizeHost("STATUS.OUTRAY.APP:443"), "status.outray.app");
   assert.equal(isStatusPlatformHost(normalizeHost("status.outray.app")), true);
