@@ -1,9 +1,11 @@
+import emailConfig from "../../../../shared/email-sender";
+
 export async function sendViaZepto({
   recipientEmail,
   htmlString,
   subject,
-  senderEmail = "no-reply@outray.dev",
-  senderName = "OutRay",
+  senderEmail,
+  senderName,
 }: {
   recipientEmail: string;
   htmlString: string;
@@ -13,10 +15,13 @@ export async function sendViaZepto({
 }): Promise<void> {
   const url = "https://api.zeptomail.com/v1.1/email";
   const token = process.env.ZEPTO_API_KEY;
+  if (!token) throw new Error("Email delivery is not configured for this installation");
+  const defaults = emailConfig.emailSender("OutRay");
+  const configuredSender = senderEmail || defaults.address;
 
-  const senderAddress = senderEmail.includes("<")
-    ? senderEmail.split("<")[1].replace(">", "").trim()
-    : senderEmail;
+  const senderAddress = configuredSender.includes("<")
+    ? configuredSender.split("<")[1].replace(">", "").trim()
+    : configuredSender;
 
   const response = await fetch(url, {
     method: "POST",
@@ -28,7 +33,7 @@ export async function sendViaZepto({
     body: JSON.stringify({
       from: {
         address: senderAddress,
-        name: senderName,
+        name: senderName || defaults.name,
       },
       to: [
         {
