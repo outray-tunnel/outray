@@ -1,338 +1,117 @@
 ---
 title: Express Plugin
-description: Automatically expose your Express dev server via OutRay tunnel
+description: Register Express request telemetry and optionally open a development tunnel.
 icon: SiExpress
 ---
 
-The `@outray/express` plugin automatically creates an OutRay tunnel when your Express development server starts, giving you a public URL to share your local development environment.
+`@outray/express` supports an HTTP development tunnel and separately configured request telemetry. Observability can remain enabled when the tunnel is disabled.
 
-## Installation
+## Install
 
-```bash
+~~~bash
 npm install @outray/express
-```
+~~~
 
-```bash
-pnpm add @outray/express
-```
+The package supports Express 4 and 5. Its observability dependency requires Node.js 20 or later.
 
-```bash
-yarn add @outray/express
-```
+## Development tunnel
 
-## Quick Start
+Call the default export before `app.listen()`:
 
-Add the plugin to your Express application:
-
-```js
-// index.js
-import express from 'express';
-import outray from '@outray/express';
-
-const app = express();
-
-// Apply OutRay middleware
-outray(app);
-
-app.listen(3000, () => {
-  console.log('Server running on port 3000');
-});
-```
-
-When you run your Express server in development mode, you'll see your tunnel URL:
-
-```bash
-Server running on port 3000
-  ➜  Tunnel:  https://abc123.outray.dev
-```
-
-## Configuration
-
-The plugin accepts an options object to customize its behavior:
-
-```js
-import express from 'express';
-import outray from '@outray/express';
+~~~ts
+import express from "express";
+import outray from "@outray/express";
 
 const app = express();
 
 outray(app, {
-  subdomain: 'my-api',
   apiKey: process.env.OUTRAY_API_KEY,
+  subdomain: "my-api",
+});
+
+app.get("/health", (_request, response) => {
+  response.json({ ok: true });
 });
 
 app.listen(3000);
-```
+~~~
 
-### Options
+The tunnel starts only when `NODE_ENV === "development"` and `enabled` is true. The plugin detects the port when the HTTP server starts listening, including when you use an automatically assigned port.
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `subdomain` | `string` | — | Request a specific subdomain for your tunnel URL. Requires authentication. |
-| `customDomain` | `string` | — | Use a custom domain. Must be configured in the OutRay dashboard first. |
-| `apiKey` | `string` | `process.env.OUTRAY_API_KEY` | API key for authentication. |
-| `serverUrl` | `string` | `wss://api.outray.dev/` | OutRay server WebSocket URL. Only change this for self-hosted instances. |
-| `enabled` | `boolean` | `process.env.OUTRAY_ENABLED !== "false"` | Enable or disable the tunnel. |
-| `silent` | `boolean` | `false` | Suppress tunnel status logs. |
-| `onTunnelReady` | `(url: string) => void` | — | Callback fired when tunnel is successfully established. |
-| `onError` | `(error: Error) => void` | — | Callback fired when tunnel encounters an error. |
-| `onClose` | `() => void` | — | Callback fired when tunnel connection is closed. |
-| `onReconnecting` | `() => void` | — | Callback fired when tunnel is attempting to reconnect. |
+Supply a token with `tunnel:connect`. The plugin does not reuse a saved `outray login` session.
 
-## Environment Variables
+## Request telemetry
 
-The plugin respects the following environment variables:
+Register observability before body parsers and routes:
 
-| Variable | Description |
-|----------|-------------|
-| `NODE_ENV` | Set to `development` to enable the tunnel (production is disabled by default) |
-| `OUTRAY_API_KEY` | API key for authentication (fallback for `apiKey` option) |
-| `OUTRAY_SUBDOMAIN` | Subdomain to use (fallback for `subdomain` option) |
-| `OUTRAY_SERVER_URL` | Server URL (fallback for `serverUrl` option) |
-| `OUTRAY_ENABLED` | Set to `"false"` to disable the tunnel |
-
-## Examples
-
-### Custom Subdomain
-
-Reserve a consistent subdomain for your API:
-
-```js
-import express from 'express';
-import outray from '@outray/express';
+~~~ts
+import express from "express";
+import { registerOutrayObservability } from "@outray/express";
 
 const app = express();
-
-outray(app, {
-  subdomain: 'my-api',
-  apiKey: process.env.OUTRAY_API_KEY,
-});
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
-app.listen(3000);
-```
-
-### Custom Domain
-
-Use your own domain for the tunnel:
-
-```js
-import express from 'express';
-import outray from '@outray/express';
-
-const app = express();
-
-outray(app, {
-  customDomain: 'api.example.com',
-  apiKey: process.env.OUTRAY_API_KEY,
-});
-
-app.listen(3000);
-```
-
-### Conditional Enabling
-
-Only enable the tunnel in certain environments:
-
-```js
-import express from 'express';
-import outray from '@outray/express';
-
-const app = express();
-
-outray(app, {
-  enabled: process.env.EXPOSE_TUNNEL === 'true',
-});
-
-app.listen(3000);
-```
-
-### With Callbacks
-
-React to tunnel events in your application:
-
-```js
-import express from 'express';
-import outray from '@outray/express';
-
-const app = express();
-
-outray(app, {
-  onTunnelReady: (url) => {
-    console.log(`API accessible at: ${url}`);
-    // Send to Slack, update config, etc.
-  },
-  onError: (error) => {
-    console.error('Tunnel error:', error.message);
-  },
-  onReconnecting: () => {
-    console.log('Connection lost, reconnecting...');
-  },
-});
-
-app.listen(3000);
-```
-
-### Silent Mode
-
-Disable all tunnel logs:
-
-```js
-import express from 'express';
-import outray from '@outray/express';
-
-const app = express();
-
-outray(app, {
-  silent: true,
-  onTunnelReady: (url) => {
-    // Handle the URL silently
-  },
-});
-
-app.listen(3000);
-```
-
-### Dynamic Port
-
-Works perfectly with dynamically assigned ports:
-
-```js
-import express from 'express';
-import outray from '@outray/express';
-
-const app = express();
-
-outray(app);
-
-// Use port 0 for a random available port
-const server = app.listen(0, () => {
-  const port = server.address().port;
-  console.log(`Server running on port ${port}`);
-});
-```
-
-## REST API Integration
-
-Perfect for exposing your local API for webhook testing:
-
-```js
-import express from 'express';
-import outray from '@outray/express';
-
-const app = express();
-
-outray(app, {
-  subdomain: 'webhook-test',
-  onTunnelReady: (url) => {
-    console.log(`Webhook endpoint: ${url}/webhooks`);
+const telemetry = registerOutrayObservability(app, {
+  apiKey: process.env.OBSERVABILITY_TOKEN,
+  serviceName: "orders-api",
+  environment: process.env.NODE_ENV,
+  captureConsole: true,
+  capturePayloads: {
+    maxBodyBytes: 16 * 1024,
+    redactedFields: ["accountPin"],
   },
 });
 
 app.use(express.json());
 
-app.post('/webhooks', (req, res) => {
-  console.log('Received webhook:', req.body);
-  res.json({ received: true });
+app.post("/orders", (request, response) => {
+  telemetry.info("order received", { itemCount: request.body.items.length });
+  response.json({ accepted: true });
 });
 
 app.listen(3000);
-```
+~~~
 
-## TypeScript Support
+Use a server-only `observability:write` token. The returned object provides `debug`, `info`, `warn`, `error`, `forceFlush()`, and `shutdown()`.
 
-The plugin includes full TypeScript definitions:
+Request middleware records spans and HTTP request count, duration, and active-request metrics. It uses the matched route when available. `request.routeResolver` and `request.ignore` let you customize route naming and filtering.
 
-```ts
-import express, { Application } from 'express';
-import outray, { OutrayPluginOptions } from '@outray/express';
+This registration works without a tunnel or Node preloader. For automatic database, HTTP-client, or logger instrumentation, initialize the [Node.js SDK](/docs/node-sdk) before those libraries are imported. The SDK uses one active process-wide instance, so configure that bootstrap with the intended service and token.
 
-const app: Application = express();
+## Combining both
 
-const options: OutrayPluginOptions = {
-  subdomain: 'my-api',
-  apiKey: process.env.OUTRAY_API_KEY,
-  onTunnelReady: (url: string) => {
-    console.log(`Tunnel ready: ${url}`);
+The default export also accepts an `observability` object:
+
+~~~ts
+outray(app, {
+  apiKey: process.env.TUNNEL_TOKEN,
+  observability: {
+    apiKey: process.env.OBSERVABILITY_TOKEN,
+    serviceName: "orders-api",
   },
-};
+});
+~~~
 
-outray(app, options);
+The top-level `apiKey` configures the tunnel. The nested `observability.apiKey` configures telemetry. They can be different scoped tokens.
 
-app.listen(3000);
-```
+## Tunnel options
 
-## Middleware Stack
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `apiKey` | `OUTRAY_API_KEY` | Tunnel authentication |
+| `subdomain` | `OUTRAY_SUBDOMAIN` | Requested address |
+| `customDomain` | Unset | Verified custom tunnel hostname |
+| `serverUrl` | `OUTRAY_SERVER_URL` or `wss://api.outray.dev/` | Tunnel server |
+| `enabled` | `OUTRAY_ENABLED !== "false"` | Enable tunnel, still development-only |
+| `silent` | `false` | Suppress tunnel status output |
+| `local` | `false` | Add mDNS LAN access |
 
-The OutRay plugin doesn't interfere with your middleware stack. You can place it anywhere:
+Lifecycle callbacks are `onTunnelReady(url)`, `onError(error)`, `onClose()`, `onReconnecting()`, and `onLocalReady(info)`.
 
-```js
-import express from 'express';
-import outray from '@outray/express';
-import cors from 'cors';
-import helmet from 'helmet';
+## Payload capture and privacy
 
-const app = express();
+`capturePayloads` is opt-in and separate from tunnel enablement. Request bodies are captured only when a body parser exposes `request.body`; OutRay does not consume the request stream itself.
 
-// Apply OutRay before or after other middleware
-outray(app);
+Eligible JSON and URL-encoded bodies are bounded and redacted. The defaults are 16 KiB per body and 8 KiB of serialized headers, with hard caps of 64 KiB and 32 KiB respectively. Add application-specific `redactedFields` and `redactedHeaders` before enabling capture.
 
-app.use(cors());
-app.use(helmet());
-app.use(express.json());
+Top-level `capturePayloads` without an `observability` object installs capture middleware but does not initialize an exporter; it requires an existing recording OpenTelemetry span.
 
-app.listen(3000);
-```
-
-## Express Compatibility
-
-The plugin supports Express versions 4.x and 5.x.
-
-## How It Works
-
-The plugin hooks into Express's `app.listen()` method to:
-
-1. Detect when your server starts listening
-2. Capture the port number (even for dynamic ports)
-3. Establish a WebSocket tunnel to OutRay servers
-4. Proxy all incoming HTTP requests to your local server
-
-## Troubleshooting
-
-### Tunnel not starting
-
-- Ensure `NODE_ENV` is set to `development`
-- Check that `OUTRAY_ENABLED` is not set to `"false"`
-- Verify your server is listening on a TCP port (not a Unix socket)
-
-### Authentication errors
-
-- Run `outray login` in your terminal to authenticate
-- Or set the `OUTRAY_API_KEY` environment variable
-
-### Connection issues
-
-- Check your internet connection
-- Verify the server URL is correct (default: `wss://api.outray.dev/`)
-- The plugin will automatically attempt to reconnect on connection loss
-
-### Not seeing tunnel URL
-
-Make sure you're running in development mode:
-
-```bash
-NODE_ENV=development node app.js
-```
-
-Or add it to your package.json:
-
-```json
-{
-  "scripts": {
-    "dev": "NODE_ENV=development node app.js"
-  }
-}
-```
+This capture writes span attributes in Observability. It is not the same as full tunnel request capture in the Tunnels console. Review [request and trace inspection](/docs/observability/requests-and-traces) before capturing real traffic.
