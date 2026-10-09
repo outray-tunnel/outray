@@ -1,7 +1,7 @@
 import { useId, useRef, useState, type CSSProperties } from "react";
 import { ChevronDown } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
+import Globe02Icon from "@outray/icons/stroke/Globe02Icon";
 import { Button } from "@/components/arc/button/button";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import { ResourceDeleteDialog } from "../resource-delete-dialog";
