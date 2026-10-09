@@ -4,6 +4,7 @@ import test from "node:test";
 import { mapOrgOverviewStats } from "../src/lib/org-overview-stats";
 import { getTunnelEventIdentifiers } from "../src/lib/tunnel-event-identifiers";
 import { parseTunnelStatsRange, tunnelStatsWindow } from "../src/lib/tunnel-stats-range";
+import { fillTunnelBuckets, tunnelBucketSeconds, tunnelEventTime } from "../src/lib/tunnel-tinybird";
 import { loadRouteHandlers } from "./helpers/load-route";
 
 // Shared utilities are published as CommonJS outside the web workspace.
@@ -33,10 +34,10 @@ const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
 async function fixture(name: RouteName) {
   const auth = deferred<OrgResult>();
   const database = deferred<Row[]>();
-  const sql = Array.from({ length: 3 }, () => deferred<{ rows: Row[] }>());
+  const sql = Array.from({ length: 3 }, () => deferred<Row[]>());
   const redis = deferred<number | string | null>();
   const calls: string[] = [];
-  const queries: { text: string; params: unknown[] }[] = [];
+  const queries: { endpoint: string; params: Record<string, string | number> }[] = [];
   let windows = 0;
   const readDatabase = () => { calls.push("database"); return database.promise; };
   const builder = {
@@ -64,16 +65,15 @@ async function fixture(name: RouteName) {
     "@/lib/org": { requireOrgFromSlug: () => auth.promise },
     "../../../../lib/redis": { redis: redisClient },
     "@/lib/redis": { redis: redisClient },
-    "../../../../lib/timescale": {
-      tigerData: {
-        query: (text: string, params: unknown[]) => {
+    "../../../../lib/tinybird": {
+        queryTinybird: (endpoint: string, params: Record<string, string | number>) => {
           const index = queries.length;
-          calls.push(`sql:${index}`);
-          queries.push({ text, params });
+          calls.push(`tinybird:${index}`);
+          queries.push({ endpoint, params });
           return sql[index].promise;
         },
-      },
     },
+    "../../../../lib/tunnel-tinybird": { fillTunnelBuckets, tunnelBucketSeconds, tunnelEventTime },
     "../../../../lib/org-overview-stats": { mapOrgOverviewStats },
     "../../../../lib/tunnel-event-identifiers": { getTunnelEventIdentifiers },
     "../../../../lib/tunnel-stats-range": {
@@ -99,7 +99,7 @@ async function fixture(name: RouteName) {
     "@/lib/dashboard-redis-cache": {
       cachedDashboardRedisRead: (_key: string, read: () => Promise<unknown>) => read(),
     },
-    "@/lib/subscription-plans": { SUBSCRIPTION_PLANS: { free: { features: { bandwidthPerMonth: 100 } } } },
+    "@/lib/subscription-plans": { installationPlan: (plan: string | null | undefined) => plan || "free", getPlanLimits: () => ({ bandwidthPerMonth: 100 }) },
     "../../../../../../../shared/utils": { getBandwidthKey },
   };
   const { GET } = await loadRouteHandlers<{ GET: Handler }>({
@@ -125,29 +125,34 @@ for (const name of ["overview", "tunnel", "protocol", "bandwidth"] as const) {
   });
 }
 
-test("overview starts both Timescale queries and Redis together and retains one boundary", async () => {
+test("overview starts both Tinybird queries and Redis together and retains one boundary", async () => {
   const f = await fixture("overview");
   const response = f.execute();
   f.auth.resolve({ organization: { id: "org-a" } });
   await tick();
-  assert.deepEqual(f.calls, ["sql:0", "sql:1", "redis"]);
+  assert.deepEqual(f.calls, ["tinybird:0", "tinybird:1", "redis"]);
   assert.equal(f.windows(), 1);
   const aggregate = f.queries[0].params;
   const chart = f.queries[1].params;
-  assert.equal(aggregate[0], "org-a");
-  assert.equal(chart[0], "org-a");
-  assert.strictEqual(aggregate[2], chart[1]);
-  assert.strictEqual(aggregate[3], chart[2]);
-  assert.equal((chart[2] as Date).toISOString(), boundary.toISOString());
+  assert.equal(aggregate.organization_id, "org-a");
+  assert.equal(chart.organization_id, "org-a");
+  assert.equal(aggregate.start, chart.start);
+  assert.equal(aggregate.end, chart.end);
+  assert.equal(chart.end, boundary.toISOString());
+  assert.equal(chart.bucket_seconds, 3_600);
+  assert.deepEqual(f.queries.map(({ endpoint }) => endpoint), ["tunnel_overview_stats", "tunnel_overview_chart"]);
 
   f.redis.resolve(3);
-  f.sql[1].resolve({ rows: [{ time: boundary, http_requests: "2", protocol_events: "1", errors: "1", http_bytes: "10", protocol_bytes: "5" }] });
-  f.sql[0].resolve({ rows: [{ http_requests: "4", previous_http_requests: "2", protocol_events: "2", previous_protocol_events: "1", http_errors: "1", previous_http_errors: "0", http_bytes: "20", previous_http_bytes: "10", protocol_bytes: "10", previous_protocol_bytes: "5" }] });
+  const bucketTime = "2026-10-04T12:00:00.000Z";
+  f.sql[1].resolve([{ time: "2026-10-04 12:00:00.000", http_requests: "2", protocol_events: "1", errors: "1", http_bytes: "10", protocol_bytes: "5" }]);
+  f.sql[0].resolve([{ http_requests: "4", previous_http_requests: "2", protocol_events: "2", previous_protocol_events: "1", http_errors: "1", previous_http_errors: "0", http_bytes: "20", previous_http_bytes: "10", protocol_bytes: "10", previous_protocol_bytes: "5" }]);
   const data = await (await response).json();
   assert.equal(data.totalRequests, 6);
   assert.equal(data.activeTunnels, 3);
   assert.equal(data.totalDataTransfer, 30);
-  assert.deepEqual(data.chartData[0], { time: boundary.toISOString(), requests: 3, httpRequests: 2, protocolEvents: 1, errors: 1, errorRate: 50, bandwidth: 15 });
+  assert.deepEqual(data.chartData.at(-1), { time: bucketTime, requests: 3, httpRequests: 2, protocolEvents: 1, errors: 1, errorRate: 50, bandwidth: 15 });
+  assert.equal(data.chartData.length, 25);
+  assert.equal(data.chartData[0].requests, 0);
   assert.equal(data.windowEnd, boundary.toISOString());
   assert.equal(data.timeRange, "24h");
 });
@@ -161,34 +166,39 @@ for (const name of ["tunnel", "protocol"] as const) {
     assert.deepEqual(f.calls, ["database"]);
     f.database.resolve([ownTunnel]);
     await tick();
-    assert.deepEqual(f.calls, ["database", "sql:0", "sql:1", "sql:2"]);
+    assert.deepEqual(f.calls, ["database", "tinybird:0", "tinybird:1", "tinybird:2"]);
     assert.equal(f.windows(), 1);
-    const dateOffset = name === "tunnel" ? 2 : 1;
     for (const { params } of f.queries) {
-      assert.strictEqual(params[dateOffset], f.queries[0].params[dateOffset]);
-      assert.strictEqual(params[dateOffset + 1], f.queries[0].params[dateOffset + 1]);
-      assert.equal((params[dateOffset + 1] as Date).toISOString(), boundary.toISOString());
-      if (name === "tunnel") assert.equal(params[1], "org-a");
-      else assert.equal(params[0], "tunnel-a");
+      assert.equal(params.start, f.queries[0].params.start);
+      assert.equal(params.end, boundary.toISOString());
+      assert.equal(params.organization_id, "org-a");
+      assert.deepEqual(JSON.parse(String(params.tunnel_ids)), ["tunnel-a", "test", "test.outray.dev"]);
     }
-    f.sql[2].resolve({ rows: [{ timestamp: boundary.toISOString(), method: "GET", path: "/a", status_code: 200, request_duration_ms: 10, size: 3, event_type: "connection" }] });
-    f.sql[1].resolve({ rows: [{ time: boundary.toISOString(), requests: "4", duration: "10", bandwidth: "30", errors: "1", connections: "4", unique_connections: "3", unique_clients: "2", bytes_in: "10", bytes_out: "20" }] });
-    f.sql[0].resolve({ rows: [{ total_requests: "4", avg_duration: "10", total_bytes: "30", errors: "1", total_connections: "4", unique_connections: "3", unique_clients: "2", total_bytes_in: "10", total_bytes_out: "20" }] });
+    f.sql[2].resolve([{ timestamp: boundary.toISOString(), method: "GET", path: "/a", status_code: "200", request_duration_ms: "10", size: "3", event_type: "connection", client_port: "54321", bytes_in: "10", bytes_out: "20", duration_ms: "42" }]);
+    f.sql[1].resolve([{ time: "2026-10-04 12:00:00.000", requests: "4", duration: "10", bandwidth: "30", errors: "1", connections: "4", unique_connections: "3", unique_clients: "2", bytes_in: "10", bytes_out: "20" }]);
+    f.sql[0].resolve([{ total_requests: "4", avg_duration: "10", total_bytes: "30", errors: "1", total_connections: "4", unique_connections: "3", unique_clients: "2", total_bytes_in: "10", total_bytes_out: "20" }]);
     const data = await (await response).json();
     assert.equal(data.timeRange, "24h");
     if (name === "tunnel") {
       assert.deepEqual(data.stats, { totalRequests: 4, avgDuration: 10, totalBandwidth: 30, errorRate: 25 });
       assert.equal(data.requests[0].path, "/a");
-      assert.equal(data.chartData[0].errorRate, 25);
+      assert.equal(data.requests[0].status, 200);
+      assert.equal(data.requests[0].duration, 10);
+      assert.equal(data.requests[0].size, 3);
+      assert.equal(data.chartData.at(-1).errorRate, 25);
     } else {
       assert.equal(data.protocol, "tcp");
       assert.equal(data.stats.totalConnections, 4);
-      assert.equal(data.chartData[0].uniqueConnections, 3);
+      assert.equal(data.chartData.at(-1).uniqueConnections, 3);
       assert.equal(data.recentEvents[0].event_type, "connection");
+      assert.equal(data.recentEvents[0].client_port, 54321);
+      assert.equal(data.recentEvents[0].bytes_in, 10);
+      assert.equal(data.recentEvents[0].bytes_out, 20);
+      assert.equal(data.recentEvents[0].duration_ms, 42);
     }
   });
 
-  test(`${name} stats reject another tenant's tunnel before Timescale reads`, async () => {
+  test(`${name} stats reject another tenant's tunnel before Tinybird reads`, async () => {
     const f = await fixture(name);
     const response = f.execute();
     f.auth.resolve({ organization: { id: "org-a" } });
@@ -218,10 +228,10 @@ for (const name of ["overview", "tunnel", "protocol"] as const) {
     f.database.resolve([ownTunnel]);
     await tick();
     assert.equal(f.queries.length, name === "overview" ? 2 : 3);
-    f.sql[1].reject(new Error("Timescale unavailable"));
+    f.sql[1].reject(new Error("Tinybird unavailable"));
     assert.equal((await response).status, 500);
-    f.sql[0].resolve({ rows: [] });
-    f.sql[2].resolve({ rows: [] });
+    f.sql[0].resolve([]);
+    f.sql[2].resolve([]);
     f.redis.resolve(0);
   });
 }
