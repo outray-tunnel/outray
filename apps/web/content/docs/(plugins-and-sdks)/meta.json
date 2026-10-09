@@ -1,4 +1,12 @@
 {
   "title": "Plugins & SDKs",
-  "pages": ["vite-plugin", "nextjs-plugin", "nestjs-plugin", "express-plugin"]
+  "pages": [
+    "node-sdk",
+    "tanstack-start-sdk",
+    "nextjs-plugin",
+    "express-plugin",
+    "nestjs-plugin",
+    "hono-sdk",
+    "vite-plugin"
+  ]
 }
