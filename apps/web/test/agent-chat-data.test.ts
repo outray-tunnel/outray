@@ -121,6 +121,18 @@ test("only known workspace observability paths can become evidence links", () =>
   for (const link of ["https://evil.example", "//evil.example", "/other/observability/requests", "/acme/settings", "/acme/observability/requests/extra", "/acme/observability/../settings", "/\\evil.example", "javascript:alert(1)", "/acme/observability/requests\n"]) assert.equal(safeAgentEvidenceHref(link, "acme"), null, link);
 });
 
+test("the canonical tunnel namespace does not widen the Agent evidence allowlist or workspace scope", () => {
+  for (const page of ["", "/tunnels", "/tunnels/tunnel-1", "/requests", "/subdomains", "/domains"]) {
+    assert.equal(safeAgentEvidenceHref(`/acme/tunnel${page}`, "acme"), null);
+    assert.equal(safeAgentEvidenceHref(`/other/tunnel${page}`, "acme"), null);
+  }
+  for (const kind of ["requests", "logs", "traces"]) {
+    const href = `/acme/observability/${kind}?range=24h&search=source`;
+    assert.equal(safeAgentEvidenceHref(href, "acme"), href);
+    assert.equal(safeAgentEvidenceHref(href, "other"), null);
+  }
+});
+
 test("context uses a safe local metadata snapshot, not private request payloads", () => {
   const request = { ...requestExplanationDemoScenarios[0].request, path: "https://name:secret@private.example/path?token=secret#secret", traceId: "private-trace", spanId: "private-span", region: "private-region" };
   const snapshot = createAgentRequestContext("acme", request);
