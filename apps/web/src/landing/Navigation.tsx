@@ -13,7 +13,7 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
   const { data: activeOrganization } = authClient.useActiveOrganization();
   const { data: organizations } = authClient.useListOrganizations();
   const dashboardOrganization = organizations?.find((organization) => organization.id === activeOrganization?.id) ?? organizations?.[0];
-  const dashboardUrl = dashboardOrganization ? `/${encodeURIComponent(dashboardOrganization.slug)}` : "/select";
+  const dashboardUrl = dashboardOrganization ? `/${encodeURIComponent(dashboardOrganization.slug)}/tunnel` : "/select";
 
   return (
 <header className="site-header" data-site-header>
