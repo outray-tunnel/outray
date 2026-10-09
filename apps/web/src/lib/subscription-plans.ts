@@ -1,3 +1,6 @@
+import instancePolicy from "../../../../shared/instance-config";
+
+const { instanceConfig } = instancePolicy;
 // Subscription plan definitions for Polar and Paystack
 export const SUBSCRIPTION_PLANS = {
   free: {
@@ -85,8 +88,7 @@ export const SUBSCRIPTION_PLANS = {
       maxSubdomains: 999999999,
       maxMembers: 999999999,
       bandwidthPerMonth: 1024 * 1024 * 1024 * 1024 * 1024, // 1PB
-      // Stored in Timescale SMALLINT columns. 32,767 days (~89 years) is the
-      // database-safe representation of effectively unlimited retention.
+      // Internal sentinel; telemetry storage still enforces its maximum TTL.
       retentionDays: 32_767,
       customDomains: true,
       prioritySupport: true,
@@ -121,7 +123,7 @@ export function canUseFeature(
   const planFeatures: Record<
     keyof (typeof SUBSCRIPTION_PLANS)["free"]["features"],
     number | boolean
-  > = SUBSCRIPTION_PLANS[plan].features;
+  > = getPlanLimits(plan);
   const limit = planFeatures[feature];
 
   if (limit === -1) return true; // Unlimited
@@ -134,7 +136,17 @@ export function canUseFeature(
 }
 
 export function getPlanLimits(plan: SubscriptionPlan) {
+  const instance = instanceConfig();
+  if (instance.selfHosted) return {
+    ...SUBSCRIPTION_PLANS.unlimited.features, ...instance.limits,
+    retentionDays: instance.retentionDays,
+  };
   return SUBSCRIPTION_PLANS[plan].features;
+}
+
+export function installationPlan(plan: string | null | undefined): SubscriptionPlan {
+  if (instanceConfig().selfHosted) return "unlimited";
+  return plan && Object.hasOwn(SUBSCRIPTION_PLANS, plan) ? plan as SubscriptionPlan : "free";
 }
 
 export function isUnlimitedPlanLimit(
