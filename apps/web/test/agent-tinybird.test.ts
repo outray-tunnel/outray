@@ -159,6 +159,25 @@ test("no-store permits exactly 1 MiB of valid JSON and releases the reader", asy
   assert.equal(response.body!.locked, false);
 });
 
+test("capture no-store queries can request up to 4 MiB without caching a missing result", async () => {
+  const prefix = '{"data":[{"largeCapture":true}],"padding":"';
+  const suffix = '"}';
+  const payload = prefix + "x".repeat(2 * maximum - prefix.length - suffix.length) + suffix;
+  const f = await harness((_call, index) => index === 1 ? body([]) : new Response(payload));
+  assert.deepEqual(await f.query("tunnel_capture", scope, { cache: "no-store", maximumResponseBytes: 4 * maximum }), []);
+  assert.deepEqual(await f.query("tunnel_capture", scope, { cache: "no-store", maximumResponseBytes: 4 * maximum }), [{ largeCapture: true }]);
+  assert.equal(f.calls.length, 2);
+});
+
+test("no-store response bounds clamp excessive limits and default invalid limits safely", async () => {
+  for (const maximumResponseBytes of [0, -1, NaN, Infinity, 1.5]) {
+    const f = await harness(() => new Response("x".repeat(maximum + 1)));
+    await assert.rejects(f.query(endpoint, scope, { cache: "no-store", maximumResponseBytes }), /response is too large/);
+  }
+  const f = await harness(() => new Response("x".repeat(4 * maximum + 1)));
+  await assert.rejects(f.query(endpoint, scope, { cache: "no-store", maximumResponseBytes: Number.MAX_SAFE_INTEGER }), /response is too large/);
+});
+
 test("no-store releases its reader after a stream transport failure", async () => {
   const stream = new ReadableStream<Uint8Array>({
     pull(controller) { controller.error(new Error("Synthetic stream failure")); },
