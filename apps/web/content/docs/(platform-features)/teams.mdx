@@ -1,41 +1,61 @@
 ---
 title: Teams & Organizations
-description: Collaborate with your team on OutRay
+description: Select the workspace that owns your tunnels, telemetry, and secrets.
 icon: Users
 ---
 
-OutRay is built for collaboration. You can create organizations and invite team members to share resources.
+An OutRay organization is the shared workspace for your team. Its members, API tokens, subscription, and product resources belong to that workspace.
 
-## Features
+Tunnel reservations and custom domains are shared within an organization. Observability services, Secrets vaults, and Uptime monitors also use the selected organization; switching products does not switch the workspace.
 
-- **Shared Domains**: Any domain added to an organization is available to all members.
-- **Centralized Billing**: Manage subscriptions for your entire team in one place.
-- **Role-Based Access**: Control who can manage domains and billing.
+## Select an organization in the CLI
 
-## Switching Organizations
+Browser login asks you to choose an organization:
 
-If you belong to multiple organizations, you can switch between them using the CLI.
+~~~bash
+outray login
+outray whoami
+~~~
 
-### Interactive Switch
+Change the saved selection interactively or by slug:
 
-Run the following command to see a list of your organizations and select one:
-
-```bash
+~~~bash
 outray switch
-```
+outray switch my-team
+~~~
 
-### Direct Switch
+## Override one tunnel
 
-If you know the slug of the organization you want to switch to, you can pass it directly:
+~~~bash
+outray 3000 --org another-team
+~~~
 
-```bash
-outray switch my-org-slug
-```
+This uses a browser login that has access to the requested organization and leaves the saved selection unchanged.
 
-### Per-Command Override
+API tokens already belong to an organization. Passing `--org` does not move a token to another workspace; create a token in the intended organization instead.
 
-You can also override the active organization for a single command using the `--org` flag:
+## Multiple tunnels
 
-```bash
-outray 3000 --org my-other-org
-```
+Use `[global].org` for a shared default or a tunnel's `org` field to choose a specific organization:
+
+~~~toml
+[global]
+org = "my-team"
+
+[tunnel.web]
+protocol = "http"
+local_port = 3000
+
+[tunnel.api]
+protocol = "http"
+local_port = 8000
+org = "another-team"
+~~~
+
+The CLI uses your saved browser login for `outray start`. Confirm that login has access to every configured organization; if a configured organization cannot be found, the current implementation warns and falls back to the active organization.
+
+## Membership and automation
+
+Manage invitations and roles in your organization's settings. Some actions, including API token management, are restricted to owners and admins.
+
+For automation, issue a separate scoped token for each integration. Grant only its required permissions and revoke unused credentials. See [Authentication](/docs/authentication) and [CI/CD integration](/docs/ci-cd).
