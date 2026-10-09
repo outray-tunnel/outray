@@ -168,8 +168,13 @@ test("thread source request cannot be rebound on subsequent messages", async () 
 
 test("step/evidence snapshots persist only into the owned assistant and running run", async () => {
   const f = harness();
+  const presentation = {
+    kind: "request" as const, method: "GET", route: "/api/orders", service: "checkout-api",
+    statusCode: 200, durationMs: 783, timestamp: now.toISOString(),
+    captureState: "redacted" as const, requestSizeBytes: 0, responseSizeBytes: 48,
+  };
   await f.store.updateRun({ ...scope, runId, text: "Investigating", steps: [{ id: "step-1", label: "Query request", status: "complete" }],
-    evidence: [{ id: "request-a", label: "Request", href: "/team/observability/requests", observedAt: now.toISOString() }], inputTokens: 9, outputTokens: 3 });
+    evidence: [{ id: "request-a", label: "Request", href: "/team/observability/requests", observedAt: now.toISOString(), presentation }], inputTokens: 9, outputTokens: 3 });
   const runWrite = f.queries.find((query) => query.sql.startsWith('update "agent_runs"'))!;
   const messageWrite = f.queries.find((query) => query.sql.startsWith('update "agent_messages"'))!;
   assertOwned(runWrite); assertOwned(messageWrite);
@@ -178,6 +183,9 @@ test("step/evidence snapshots persist only into the owned assistant and running 
   assert.ok(messageWrite.params.includes(assistantId));
   assert.ok(messageWrite.params.includes(threadId));
   assert.ok(messageWrite.params.some((value) => typeof value === "string" && value.includes('"id":"step-1"')));
+  const savedEvidence = messageWrite.params.find((value) => typeof value === "string" && value.includes('"id":"request-a"'));
+  assert.equal(typeof savedEvidence, "string");
+  assert.deepEqual(JSON.parse(savedEvidence as string)[0].presentation, presentation);
 });
 
 test("terminal runs cannot be resurrected by late stream updates", async () => {
