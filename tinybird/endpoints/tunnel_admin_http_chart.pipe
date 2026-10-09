@@ -8,11 +8,10 @@ SQL >
     %
     SELECT toStartOfHour(timestamp) AS hour, count() AS requests
     FROM tunnel_events FINAL
-    WHERE timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')
-      AND timestamp < parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+    WHERE timestamp >= toDateTime64({{DateTime64(start)}}, 3, 'UTC')
+      AND timestamp < toDateTime64({{DateTime64(end)}}, 3, 'UTC')
       AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
     GROUP BY hour
     ORDER BY hour ASC
 
 TYPE endpoint
-
