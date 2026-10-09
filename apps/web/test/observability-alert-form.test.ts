@@ -108,7 +108,7 @@ async function harness(filename: "alert-form" | "alert-email-recipients", props:
       // Keep the shared field boundary native; its visual implementation has its own tests.
       if (specifier.endsWith("ui/workspace-input")) return { WorkspaceInput: "input", WorkspaceTextarea: "textarea" };
       if (specifier.endsWith(".css")) return {};
-      if (specifier.startsWith("@hugeicons-pro/")) return { default: {} };
+      if (specifier.startsWith("@outray/icons/")) return { default: {} };
       return new Proxy({}, { get: (_target, property) => property === "__esModule" ? true : stub(String(property)) });
     },
   });
