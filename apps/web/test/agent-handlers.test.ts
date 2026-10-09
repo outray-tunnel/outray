@@ -20,7 +20,14 @@ const thread: AgentSavedThread = { id: threadId, title: prompt.message, sourceRe
 const saved: AgentRunResult = { kind: "created", thread, userMessage: user, assistantMessage: assistant,
   run: { id: runId, threadId, clientMessageId, assistantMessageId: assistantId, status: "running", inputTokens: 0, outputTokens: 0,
     maxTokens: 24_000, maxSteps: 6, error: null, startedAt: new Date(), updatedAt: new Date(), completedAt: null } };
-const evidence: AgentEvidenceReference = { id: `request:${sourceRequestId}`, label: "Request", href: "/team/observability/requests?range=30d", observedAt: "2026-10-08T10:00:00Z" };
+const evidence: AgentEvidenceReference = {
+  id: `request:${sourceRequestId}`, label: "Request", href: "/team/observability/requests?range=30d", observedAt: "2026-10-08T10:00:00Z",
+  presentation: {
+    kind: "request", method: "GET", route: "/api/orders", service: "checkout-api",
+    statusCode: 503, durationMs: 783, timestamp: "2026-10-08T09:00:00.000Z",
+    captureState: "redacted", requestSizeBytes: 0, responseSizeBytes: 48,
+  },
+};
 type Overrides = Partial<Parameters<typeof createAgentHandlers>[0]>;
 function harness(overrides: Overrides = {}) {
   const admissions: BeginAgentRun[] = [];
@@ -79,6 +86,8 @@ test("authenticated chat scopes all work server-side and streams ordered real pr
   assert.equal(f.completions[0].steps?.length, 1);
   assert.equal(f.completions[0].steps?.[0].status, "complete");
   assert.deepEqual(f.completions[0].evidence, [evidence]);
+  assert.deepEqual(output.find((event) => event.type === "evidence"), { type: "evidence", evidence: [evidence] });
+  assert.ok(f.checkpoints.some((checkpoint) => JSON.stringify(checkpoint.evidence?.[0]?.presentation) === JSON.stringify(evidence.presentation)));
   assert.doesNotMatch(JSON.stringify(output), /synthetic-server-only-key/);
 });
 
@@ -143,6 +152,7 @@ test("idempotent terminal replay uses saved output without another investigation
   const output = await events(await f.handlers.chat(request(), "team"));
   assert.deepEqual(output.at(-1), { type: "finish", status: "complete" });
   assert.ok(output.some((event) => event.type === "text" && event.delta === "Saved answer"));
+  assert.deepEqual(output.find((event) => event.type === "evidence"), { type: "evidence", evidence: [evidence] });
   assert.equal(f.investigations.length, 0);
   assert.equal(f.readers.length, 0);
 });
