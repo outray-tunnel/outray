@@ -12,8 +12,8 @@ SQL >
            sum(bytes_in + bytes_out) AS http_bytes, 0 AS protocol_bytes
     FROM tunnel_events FINAL
     WHERE organization_id = {{String(organization_id)}}
-      AND timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')
-      AND timestamp < parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+      AND timestamp >= toDateTime64({{DateTime64(start)}}, 3, 'UTC')
+      AND timestamp < toDateTime64({{DateTime64(end)}}, 3, 'UTC')
       AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
     GROUP BY time
     UNION ALL
@@ -22,8 +22,8 @@ SQL >
            0 AS http_bytes, sum(bytes_in + bytes_out) AS protocol_bytes
     FROM tunnel_protocol_events FINAL
     WHERE organization_id = {{String(organization_id)}}
-      AND timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')
-      AND timestamp < parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+      AND timestamp >= toDateTime64({{DateTime64(start)}}, 3, 'UTC')
+      AND timestamp < toDateTime64({{DateTime64(end)}}, 3, 'UTC')
       AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
     GROUP BY time
 
@@ -38,4 +38,3 @@ SQL >
     ORDER BY time ASC
 
 TYPE endpoint
-
