@@ -14,7 +14,7 @@ const runHelper = new AsyncFunction(
 
 const managedSecrets = {
   REDIS_URL: "redis://synthetic-redis",
-  TIMESCALE_URL: "postgres://synthetic-timescale",
+  TINYBIRD_INGEST_TOKEN: "synthetic-ingest-token",
   DATABASE_URL: "postgres://synthetic-database",
   INTERNAL_API_SECRET: "synthetic-internal-secret",
   TINYBIRD_API_HOST: "https://synthetic-tinybird.test",
@@ -101,7 +101,7 @@ for (const service of ["edge", "status", "uptime-probe"]) {
     assert.equal(options.env.APP_URL, current.APP_URL);
     assert.equal(options.env.UNRELATED_SETTING, "keep-me");
     assert.equal(options.env.DEPLOY_CRON, "false");
-    assert.equal(options.env.DEPLOY_TIMESCALE_MIGRATIONS, "false");
+    assert.equal(options.env.TIMESCALE_URL, undefined);
     for (const [name, value] of Object.entries(managedSecrets)) {
       assert.equal(options.env[name], value, `${name} must remain unchanged`);
       assert.ok(!logs.some((message) => message.includes(value)));
