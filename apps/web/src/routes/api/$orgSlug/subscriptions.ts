@@ -8,6 +8,7 @@ import { members } from "../../../db/auth-schema";
 import { redis } from "../../../lib/redis";
 import { requireOrgFromSlug } from "../../../lib/org";
 import { cachedDashboardRedisRead } from "../../../lib/dashboard-redis-cache";
+import { instanceConfig } from "../../../../../../shared/instance-config";
 
 export const Route = createFileRoute("/api/$orgSlug/subscriptions")({
   server: {
@@ -48,7 +49,10 @@ export const Route = createFileRoute("/api/$orgSlug/subscriptions")({
 
           return new Response(
             JSON.stringify({
-              subscription: subscription || null,
+              subscription: instanceConfig().selfHosted
+                ? { plan: "unlimited", status: "active", organizationId }
+                : subscription || null,
+              instanceLimits: instanceConfig().selfHosted ? instanceConfig().limits : null,
               usage: {
                 tunnels: Number(liveTunnels ?? 0),
                 domains: Number(domainCount?.value ?? 0),
