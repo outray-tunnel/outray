@@ -1,0 +1,61 @@
+---
+title: Logs and metrics
+description: Emit structured logs, inspect correlated events, and interpret measured metric values.
+icon: ChartNoAxesCombined
+---
+
+## Emit structured application logs
+
+The initialized SDK exposes `debug`, `info`, `warn`, and `error`. These keep local console output and also emit structured OTLP logs:
+
+```ts
+telemetry.info("order accepted", { component: "checkout" });
+telemetry.warn("payment retry scheduled", { attempt: 2 });
+telemetry.error("payment failed", error, { component: "checkout" });
+```
+
+Use the singleton when passing the initialized object around is inconvenient:
+
+```ts
+import outray from "@outray/observability";
+outray.info("background job started", { jobType: "daily-report" });
+```
+
+Initialize the SDK once before logging. Active trace/span context is attached by OpenTelemetry. Framework packages also expose logging helpers and `withOutraySpan`; use the integration you already initialized.
+
+## Capture existing console output
+
+Set `captureConsole: true` during initialization to export `console.debug`, `info`, `log`, `warn`, and `error` while preserving normal process output. Capture is off by default; the original console functions are restored on SDK shutdown.
+
+Values are bounded and common credential fields are redacted. Redaction is not permission to log sensitive material: avoid secrets, personal data, and unbounded objects in application messages or attributes.
+
+## Inspect logs
+
+Open **Observability → Logs** and choose a range, service, level, and search text. Select a log to inspect its message, event time, observed time, severity, trace context, and reported attributes.
+
+Event time is when the application recorded the event; observed time reflects when it was observed. Delayed export can separate the two. A missing trace ID commonly means there was no active trace context at emission.
+
+## Emit custom metrics
+
+Use the OpenTelemetry meter accessor for application measurements:
+
+```ts
+import { getOutrayMeter } from "@outray/observability";
+
+const ordersCreated = getOutrayMeter().createCounter("orders.created", {
+  description: "Accepted orders",
+});
+ordersCreated.add(1, { channel: "web" });
+```
+
+Keep dimension values bounded. An order ID, email address, or arbitrary URL as a metric dimension creates excessive cardinality and can leak sensitive data.
+
+Framework request adapters record `http.server.request.count`, `http.server.request.duration`, and `http.server.active_requests`. The duration histogram uses seconds, while the request inspector displays durations in milliseconds. The duration measurement and active-request count are separate instruments, not alternative names for the same value.
+
+## Inspect metrics
+
+Open **Observability → Metrics**, select an observed metric, then choose service and time range. The catalog includes type, unit, aggregation temporality, monotonicity, dimensions, and reporting services. Read those fields before comparing values with similarly named metrics.
+
+The chart and service breakdown show reported observations. A gap is missing evidence, not zero. Changing aggregation semantics can make points unsuitable for the same chart scale; do not silently treat them as comparable. If a refresh fails, the dashboard can retain the previous snapshot with a warning rather than claim it is fresh.
+
+Metric-value [alerts](/docs/observability/alerts) currently support cataloged **gauge** metrics. Request signals and log-count alerts have separate rules; a counter's name alone does not make it eligible for a gauge alert.
