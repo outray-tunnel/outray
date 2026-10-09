@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight, Clock3, FolderKey, KeyRound, Layers, LockKeyhole, Plus, RefreshCw, Search } from "lucide-react";
-import Edit02Icon from "@hugeicons-pro/core-stroke-rounded/Edit02Icon";
-import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
+import Edit02Icon from "@outray/icons/stroke/Edit02Icon";
+import Delete02Icon from "@outray/icons/stroke/Delete02Icon";
 import { Button } from "../arc/button/button";
 import { SearchField } from "../arc/search-field/search-field";
 import { ActionMenu } from "./secrets-ui";
