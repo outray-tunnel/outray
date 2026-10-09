@@ -1,0 +1,79 @@
+.page {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100svh;
+  flex-direction: column;
+  background: #080808;
+  color: #e4e4e7;
+}
+.header {
+  display: flex;
+  width: 100%;
+  max-width: 1180px;
+  min-height: 76px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-inline: auto;
+  padding: 20px 32px;
+}
+.brand { display: inline-flex; align-items: center; gap: 10px; border-radius: 6px; color: #fafafa; text-decoration: none; }
+.brand img { object-fit: contain; }
+.brand span { font-size: 17px; font-weight: 600; letter-spacing: -0.035em; }
+.home { display: inline-flex; align-items: center; gap: 7px; border-radius: 5px; color: #a1a1aa; font-size: 12px; text-decoration: none; transition: color 160ms ease; }
+.home:hover { color: #f4f4f5; }
+.main {
+  display: grid;
+  width: 100%;
+  max-width: 1040px;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 80px;
+  margin-inline: auto;
+  padding: 64px 32px 88px;
+}
+.signIn { width: 100%; max-width: 352px; justify-self: center; }
+.heading { margin-bottom: 28px; }
+.heading h1 { margin: 0; color: #fafafa; font-size: 26px; font-weight: 400; line-height: 1.25; letter-spacing: -0.045em; }
+.heading > p { margin: 10px 0 0; color: #a1a1aa; font-size: 14px; line-height: 1.65; }
+.providers { display: grid; gap: 12px; }
+.provider { width: 100%; font-size: 13px; }
+.provider:focus-visible { outline: 2px solid #a1a1aa; outline-offset: 4px; }
+.provider[aria-busy="true"] { cursor: progress; }
+.status { min-height: 20px; margin: 12px 0 0; color: #a1a1aa; font-size: 12px; line-height: 20px; }
+.error { display: flex; align-items: flex-start; gap: 9px; margin-top: 10px; border: 1px solid rgb(251 113 133 / 16%); border-radius: 10px; background: rgb(251 113 133 / 4%); padding: 10px 12px; color: #fda4af; font-size: 12px; line-height: 1.65; }
+.error > svg { flex: none; margin-top: 2px; }
+.error > p { margin: 0; overflow-wrap: anywhere; }
+.signUp { margin: 25px 0 0; color: #a1a1aa; font-size: 13px; line-height: 1.7; }
+.signUp a { margin-left: 4px; color: #e4e4e7; }
+.legal { max-width: 310px; margin: 23px 0 0; color: #8b8b94; font-size: 11px; line-height: 1.8; }
+.legal a { color: #a1a1aa; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #3f3f46; }
+.signUp a, .legal a, .footer a { border-radius: 3px; transition: color 160ms ease; }
+.signUp a:hover, .legal a:hover, .footer a:hover { color: #fafafa; }
+.page :where(a):focus-visible { outline: 2px solid #a1a1aa; outline-offset: 4px; }
+.productIntro { min-width: 0; border-left: 1px solid rgb(255 255 255 / 8%); padding: 14px 0 14px 56px; }
+.eyebrow { color: #a1a1aa; font-size: 12px; }
+.introHeading h2 { margin: 13px 0 0; color: #e4e4e7; font-size: 26px; font-weight: 400; line-height: 1.35; letter-spacing: -0.04em; }
+.products { display: grid; gap: 24px; margin: 32px 0 0; padding: 0; list-style: none; }
+.products > li { display: flex; align-items: center; gap: 14px; }
+.productIcon { display: flex; width: 38px; height: 38px; flex: none; align-items: center; justify-content: center; border: 1px solid rgb(255 255 255 / 7%); border-radius: 10px; background: rgb(255 255 255 / 2%); color: #c0b3df; }
+.products h3 { margin: 0; color: #d4d4d8; font-size: 13px; font-weight: 500; line-height: 1.5; }
+.products p { margin: 3px 0 0; color: #8b8b94; font-size: 12px; line-height: 1.7; }
+.footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px 8px; padding: 24px 24px 30px; color: #8b8b94; font-size: 11px; line-height: 1.7; }
+.footer a { color: #a1a1aa; text-decoration: none; }
+
+@media (max-width: 800px) {
+  .main { max-width: 440px; grid-template-columns: minmax(0, 1fr); padding: 60px 24px; }
+  .productIntro { display: none; }
+  .header { min-height: 64px; padding: 18px 24px; }
+}
+@media (max-width: 400px) {
+  .header { padding-inline: 20px; }
+  .main { padding: 44px 20px; }
+  .heading h1 { font-size: 24px; }
+  .home { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home, .signUp a, .legal a, .footer a { transition: none; }
+}
