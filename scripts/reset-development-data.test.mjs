@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { assertDevelopmentTargets, databaseIdentity, tinybirdBackupProjection } from "./reset-development-data.mjs";
 import { buildTinybirdRecords } from "./seed-development.mjs";
 
@@ -11,6 +13,20 @@ const environment = {
   REDIS_URL: "redis://:synthetic-only@redis-dev.example.test/0",
   TINYBIRD_BRANCH: "development",
 };
+
+test("the archived reset CLI refuses every mode before opening any store", () => {
+  const script = fileURLToPath(new URL("./reset-development-data.mjs", import.meta.url));
+  for (const mode of ["inspect", "backup", "reset", "refresh-primary-reset", "seed", "seed-telemetry", "verify"]) {
+    const result = spawnSync(process.execPath, [script, mode], {
+      // Also fail closed if the archival guard were ever accidentally removed.
+      env: { NODE_ENV: "production" }, encoding: "utf8", timeout: 5_000,
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Legacy development reset is disabled after the tunnel Tinybird migration/);
+    assert.match(result.stderr, /no stores were opened/);
+    assert.equal(result.stdout, "");
+  }
+});
 
 test("development target identities exclude credentials, canonicalize default ports and preserve database names", () => {
   assert.equal(databaseIdentity(environment.DATABASE_URL), "postgres-dev.example.test:5432/primary");
