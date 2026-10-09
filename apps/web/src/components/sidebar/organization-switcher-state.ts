@@ -6,7 +6,7 @@ export interface SwitcherOrganization {
 }
 
 const staticSections = new Set([
-  "", "/tunnels", "/requests", "/subdomains", "/domains", "/members", "/tokens", "/billing",
+  "/tunnel", "/tunnel/tunnels", "/tunnel/requests", "/tunnel/subdomains", "/tunnel/domains", "/members", "/tokens", "/billing",
   "/settings", "/settings/profile", "/settings/organization", "/get-started", "/setup",
   "/observability", "/observability/alerts", "/observability/services", "/observability/requests",
   "/observability/logs", "/observability/metrics", "/observability/traces",
@@ -18,21 +18,23 @@ const staticSections = new Set([
 /** Preserve only known section paths, never an organization-scoped resource ID. */
 export function organizationSwitchDestination(pathname: string, currentSlug: string, nextSlug: string): string {
   const base = `/${encodeURIComponent(nextSlug)}`;
-  if (!pathname.startsWith("/")) return base;
+  const overview = `${base}/tunnel`;
+  if (!pathname.startsWith("/")) return overview;
   const [, encodedCurrent, ...segments] = pathname.replace(/\/+$/, "").split("/");
   try {
-    if (decodeURIComponent(encodedCurrent) !== currentSlug) return base;
+    if (decodeURIComponent(encodedCurrent) !== currentSlug) return overview;
   } catch {
-    return base;
+    return overview;
   }
   const section = segments.length ? `/${segments.join("/")}` : "";
+  if (["/tunnels", "/requests", "/subdomains", "/domains"].includes(section)) return `${overview}${section}`;
   if (section === "/secrets/projects") return `${base}/secrets/vaults`;
   if (section === "/observability/monitors") return `${base}/observability/alerts`;
   if (staticSections.has(section)) return `${base}${section}`;
   if (/^\/secrets\/(?:vaults|projects)\/[^/]+(?:\/.*)?$/.test(section)) return `${base}/secrets/vaults`;
-  if (/^\/tunnels\/[^/]+(?:\/.*)?$/.test(section)) return `${base}/tunnels`;
+  if (/^\/(?:tunnel\/)?tunnels\/[^/]+(?:\/.*)?$/.test(section)) return `${overview}/tunnels`;
   const resourceList = /^\/(uptime\/(?:monitors|incidents)|observability\/(?:alerts|services))\/[^/]+(?:\/.*)?$/.exec(section);
-  return resourceList ? `${base}/${resourceList[1]}` : base;
+  return resourceList ? `${base}/${resourceList[1]}` : overview;
 }
 
 export function filterSwitcherOrganizations<T extends SwitcherOrganization>(organizations: readonly T[], query: string): T[] {
