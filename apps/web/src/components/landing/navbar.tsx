@@ -328,7 +328,7 @@ export const Navbar = () => {
           </div>
           {session ? (
             <Link
-              to={organizations?.length ? "/$orgSlug" : "/select"}
+              to={organizations?.length ? "/$orgSlug/tunnel" : "/select"}
               params={{
                 orgSlug:
                   organizations && organizations.length
@@ -470,7 +470,7 @@ export const Navbar = () => {
           <div className="mt-auto pt-6">
             {session ? (
               <Link
-                to={organizations?.length ? "/$orgSlug" : "/select"}
+                to={organizations?.length ? "/$orgSlug/tunnel" : "/select"}
                 params={{
                   orgSlug:
                     organizations && organizations.length
