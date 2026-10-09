@@ -5,8 +5,14 @@
 FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 COPY . .
-RUN --mount=type=secret,id=hugeicons_license_key,required=true \
-    HUGEICONS_LICENSE_KEY="$(cat /run/secrets/hugeicons_license_key)" npm ci
+ARG OUTRAY_ICON_MODE=free
+ENV OUTRAY_ICON_MODE=${OUTRAY_ICON_MODE}
+RUN --mount=type=secret,id=hugeicons_license_key \
+    case "$OUTRAY_ICON_MODE" in free|pro) ;; *) echo "Docker OUTRAY_ICON_MODE must be free or pro" >&2; exit 1 ;; esac; \
+    if [ "$OUTRAY_ICON_MODE" = pro ] && [ -f /run/secrets/hugeicons_license_key ]; then \
+      export HUGEICONS_LICENSE_KEY="$(cat /run/secrets/hugeicons_license_key)"; \
+    fi; \
+    npm ci
 
 # These are public, build-time browser origins; changing them requires rebuilding.
 ARG APP_PUBLIC_URL
@@ -14,7 +20,11 @@ ARG STATUS_PUBLIC_URL
 ARG SHARE_PUBLIC_URL
 ARG EDGE_PUBLIC_URL
 ARG INGEST_PUBLIC_URL
+# Optional V8 old-space ceiling in MiB; unset preserves Node's default behavior.
+ARG BUILD_NODE_MAX_OLD_SPACE_SIZE
 ENV NODE_ENV=production \
+    TURBO_TELEMETRY_DISABLED=1 \
+    ASTRO_TELEMETRY_DISABLED=1 \
     OUTRAY_DEPLOYMENT_MODE=self-hosted \
     PUBLIC_OUTRAY_DEPLOYMENT_MODE=self-hosted \
     OUTRAY_ENABLED=false \
@@ -30,7 +40,17 @@ ENV NODE_ENV=production \
     PUBLIC_POSTHOG_KEY=
 # Harmless loopback placeholders let SSR bundlers import configuration without
 # granting the build access to a runtime database, Redis or OAuth credentials.
-RUN DATABASE_URL=postgresql://build:build@127.0.0.1:1/build?sslmode=disable \
+RUN --mount=type=secret,id=hugeicons_license_key \
+    if [ "$OUTRAY_ICON_MODE" = pro ] && [ -f /run/secrets/hugeicons_license_key ]; then \
+      export HUGEICONS_LICENSE_KEY="$(cat /run/secrets/hugeicons_license_key)"; \
+    fi; \
+    if [ -n "$BUILD_NODE_MAX_OLD_SPACE_SIZE" ]; then \
+      case "$BUILD_NODE_MAX_OLD_SPACE_SIZE" in \
+        *[!0-9]*|0*) echo "BUILD_NODE_MAX_OLD_SPACE_SIZE must be a positive integer" >&2; exit 1 ;; \
+      esac; \
+      export NODE_OPTIONS="${NODE_OPTIONS:+${NODE_OPTIONS} }--max-old-space-size=${BUILD_NODE_MAX_OLD_SPACE_SIZE}"; \
+    fi; \
+    DATABASE_URL=postgresql://build:build@127.0.0.1:1/build?sslmode=disable \
     REDIS_URL=redis://127.0.0.1:1 \
     npm run build -- \
     --filter=outray-web --filter=outray-tunnel --filter=outray-internal-check \
