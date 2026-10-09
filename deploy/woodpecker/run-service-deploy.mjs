@@ -171,11 +171,12 @@ try {
   process.exit(1);
 }
 
-// Uptime notification links must use the production dashboard origin, not an
-// older value inherited from the edge process during deployment.
-if (service === "uptime-probe") {
-  runtime.OUTRAY_DASHBOARD_URL = "https://outray.co";
-}
+// Keep every service on the currently public dashboard. Inheriting an older
+// origin can silently send authenticated API calls to another deployment.
+// Change this origin explicitly only when the new dashboard is launched.
+const dashboardOrigin = "https://outray.dev";
+runtime.OUTRAY_DASHBOARD_URL = dashboardOrigin;
+runtime.WEB_API_URL = `${dashboardOrigin}/api`;
 
 // Cron runs separately on Aeroplane. Do not start a second evaluator here.
 runtime.DEPLOY_CRON = "false";
@@ -188,6 +189,7 @@ const required = [
   "DATABASE_URL",
   "INTERNAL_API_SECRET",
   "OUTRAY_DASHBOARD_URL",
+  "WEB_API_URL",
   "OUTRAY_STATUS_URL",
   "STATUS_EDGE_SECRET",
 ];
