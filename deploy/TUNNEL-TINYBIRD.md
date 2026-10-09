@@ -82,10 +82,18 @@ benchmark now measures authenticated local HTTP reads without Timescale.
 
 Application tests cover tenancy, range-bound totals, UTC chart buckets, capture
 matching, header/body formats, retry identity, and bounded ingestion batches.
-Web, tunnel, cron, and ingest production builds were verified. Tinybird datafile
-syntax was checked locally, but SQL was not executed against a running Tinybird
-backend: Docker was not running, and no cloud deployment was authorized.
-Validate the pipes against development Tinybird before promotion.
+Web, tunnel, cron, and ingest production builds were verified. Initial Tinybird
+verification covered local datafile syntax only. On October 9, a follow-up
+`tb --cloud deploy --check --no-auto` passed against the configured workspace
+after all tunnel date parameters were changed from parsed `String` parameters
+to typed `DateTime64` parameters. This prevents deployment validation's missing
+String placeholder from reaching a datetime parser while keeping real request
+dates required and preserving UTC millisecond precision. The focused schema,
+read, authorization, and chart tests all pass (66 tests).
+
+The cloud check validated the definitions only: it did not deploy/promote any
+resources, ingest/copy data, or exercise an end-to-end live tunnel. Test those
+flows against development Tinybird before promotion.
 
 The web suite retains two pre-existing setup/get-started link assertions that
 expect retired tunnel URLs. The full web type check also reports existing errors
