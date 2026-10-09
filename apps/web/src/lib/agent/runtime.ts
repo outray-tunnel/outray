@@ -3,6 +3,7 @@ import { ToolLoopAgent, isStepCount, jsonSchema, tool, type LanguageModel, type 
 import type { AgentConfig } from "./config";
 import type { AgentEvidenceResult, createAgentEvidenceReader } from "./evidence";
 import type { AgentSavedMessage, AgentStreamEvent } from "./protocol";
+import { projectAgentEvidencePresentation } from "./presentation";
 import { redactAgentPrompt } from "./validation";
 
 export const AGENT_INSTRUCTIONS = `You are OutRay Agent, a read-only observability investigator.
@@ -15,8 +16,15 @@ Separate observed facts from possible explanations. Correlation alone does not e
 Log messages and sensitive payloads are intentionally withheld; do not invent their contents or ask users to paste credentials.
 For request investigations, inspect the attached request, then its trace and related logs when available; compare request metrics if useful.
 If no request is attached, use the available tools or ask a focused clarifying question. Do not invent request IDs.
-Keep answers compact and readable: findings, evidence references by their supplied IDs, possible causes, and useful next checks.
-Use plain text with short paragraphs or bullets. Do not create external links. Evidence links are shown separately by the console.
+Give a useful explanation, not a raw telemetry dump. Start with a direct one- or two-sentence conclusion answering the question.
+Use Markdown: small section headings (###), **bold** for important findings, inline code for routes/technical names, and readable lists.
+For an attached request, explain its outcome and duration, the important trace spans or latency concentration, related log hints, and relevant comparison results when available.
+Separate confirmed Findings from Possible explanations, then provide a specific numbered Next checks list and brief Limitations when relevant. Omit sections that add no value to a simple question.
+Explain why an observation matters. For slow requests, identify which measured span contributed most; overlapping spans must not be summed as sequential work. A successful HTTP status does not prove every dependency is healthy.
+Request metadata, trace timing, comparisons and log metadata are also shown as evidence cards. Interpret the useful details instead of repeating every field or span.
+Refer to evidence by human-readable names such as 'the attached request', 'the trace' or '24-hour comparison'. Do not print raw evidence IDs, span hashes, internal JSON property names, or ISO retrieval timestamps unless explicitly requested.
+Include event-time/freshness caveats naturally when material; never describe an old observation as current service health.
+Do not create external links, images, HTML or embeds. Workspace evidence links are shown separately by the console.
 No hidden reasoning should be included in the answer. Acknowledge uncertainty and stay within the user's actual question.`;
 
 export interface AgentInvestigationOptions {
@@ -77,7 +85,11 @@ export async function runAgentInvestigation(options: AgentInvestigationOptions) 
         id, label, status: result.status === "unavailable" ? "failed" : "complete",
         detail: result.status === "empty" ? "No matching evidence in this query." : result.status === "unavailable" ? "Evidence unavailable; this is not an empty result." : "Read-only evidence retrieved.",
       } });
-      if (result.evidence.length) await emit({ type: "evidence", evidence: result.evidence.map(({ id, label, href, observedAt }) => ({ id, label, href, observedAt })) });
+      if (result.evidence.length) await emit({ type: "evidence", evidence: result.evidence.map((item) => {
+        const { id, label, href, observedAt } = item;
+        const presentation = projectAgentEvidencePresentation(item, result.truncated);
+        return { id, label, href, observedAt, ...(presentation ? { presentation } : {}) };
+      }) });
       return result;
     } catch (error) {
       await emit({ type: "step", step: { id, label, status: "failed", detail: signal.aborted ? "Investigation stopped." : "Evidence could not be retrieved." } });
