@@ -32,6 +32,7 @@ type LegacyRoute = {
   options: {
     beforeLoad: (context: {
       params: { orgSlug: string; tunnelId?: string };
+      context: { instance: { products: string[] } };
       location: { publicHref: string; href?: string; searchStr?: string; hash?: string; search: Record<string, unknown> };
     }) => never;
     component?: unknown;
@@ -69,6 +70,7 @@ function thrownRedirect(route: LegacyRoute, orgSlug: string, publicHref: string,
   try {
     route.options.beforeLoad({
       params: { orgSlug, ...(tunnelId ? { tunnelId } : {}) },
+      context: { instance: { products: ["tunnels", "observability", "secrets", "uptime"] } },
       // These normalized values must never replace the original query/hash.
       location: { publicHref, href: "/wrong-org/requests?lost=true", searchStr: "?lost=true", hash: "wrong", search: { tab: "requests", range: "7d" } },
     });
