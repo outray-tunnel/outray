@@ -45,7 +45,7 @@ export function RequestInspectorDrawer({
             {request.request_id && <CopyButton value={request.request_id} label="Copy request ID" iconOnly variant="plain" />}
           </div>
           <Link
-            to="/$orgSlug/tunnels/$tunnelId"
+            to="/$orgSlug/tunnel/tunnels/$tunnelId"
             params={{ orgSlug, tunnelId: request.tunnel_id }}
             search={{ tab: "overview", range: "24h" }}
             onClick={onClose}
