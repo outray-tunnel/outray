@@ -2,6 +2,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Link, useLocation, useParams } from "@tanstack/react-router";
 import { Menu } from "lucide-react";
 import { mobileItemIsActive, mobileProductForPath, mobileProducts } from "./mobile-navigation";
+import { useInstance } from "@/lib/instance-context";
 
 export function MobileBottomNav({ onOpenNavigation, isNavigationOpen }: {
   onOpenNavigation: () => void;
@@ -9,15 +10,16 @@ export function MobileBottomNav({ onOpenNavigation, isNavigationOpen }: {
 }) {
   const { orgSlug } = useParams({ from: "/$orgSlug" });
   const { pathname } = useLocation();
+  const instance = useInstance();
   const product = mobileProductForPath(pathname, orgSlug);
-  const shortcuts = product?.pages.slice(0, 3) ?? mobileProducts.map((item) => ({
+  const shortcuts = product?.pages.slice(0, 3) ?? mobileProducts.filter((item) => instance.products.includes(item.key)).map((item) => ({
     to: item.to, label: item.label, shortLabel: item.label === "Observability" ? "Observe" : item.label,
     icon: item.icon, exact: true,
   }));
   const moreIsCurrent = !!product && !shortcuts.some((item) => mobileItemIsActive(item, pathname, orgSlug));
 
   return <nav aria-label="Mobile navigation" className="safe-area-pb fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.08] bg-[#0b0b0d]/95 backdrop-blur-xl md:hidden">
-    <div className={`grid h-[62px] gap-1 px-2 ${product ? "grid-cols-4" : "grid-cols-5"}`}>
+    <div className="grid h-[62px] gap-1 px-2" style={{ gridTemplateColumns: `repeat(${shortcuts.length + 1}, minmax(0, 1fr))` }}>
       {shortcuts.map((item) => {
         const active = mobileItemIsActive(item, pathname, orgSlug);
         return <Link key={item.to} to={item.to} params={{ orgSlug }} aria-label={item.label} aria-current={active ? "page" : undefined}
