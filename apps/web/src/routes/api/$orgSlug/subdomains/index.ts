@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { db } from "../../../../db";
 import { subdomains } from "../../../../db/app-schema";
 import { subscriptions } from "../../../../db/subscription-schema";
+import { organizations } from "../../../../db/auth-schema";
 import { requireOrgFromSlug } from "../../../../lib/org";
-import { getPlanLimits } from "../../../../lib/subscription-plans";
+import { capacityDescription, getPlanLimits } from "../../../../lib/subscription-plans";
 
 export const Route = createFileRoute("/api/$orgSlug/subdomains/")({
   server: {
@@ -53,7 +54,9 @@ export const Route = createFileRoute("/api/$orgSlug/subdomains/")({
         // This ensures atomic check-and-insert to enforce subdomain limits
         try {
           const result = await db.transaction(async (tx) => {
-            // Lock the organization's subscription row to serialize concurrent requests
+            // Serialize quotas even when this organization has no paid subscription.
+            await tx.select({ id: organizations.id }).from(organizations)
+              .where(eq(organizations.id, organization.id)).for("update");
             const [subscription] = await tx
               .select()
               .from(subscriptions)
@@ -75,7 +78,7 @@ export const Route = createFileRoute("/api/$orgSlug/subdomains/")({
 
             if (subdomainLimit !== -1 && existingCount >= subdomainLimit) {
               return {
-                error: `Subdomain limit reached. The ${currentPlan} plan allows ${subdomainLimit} subdomain${subdomainLimit > 1 ? "s" : ""}.`,
+                error: `Subdomain limit reached. ${capacityDescription(currentPlan, subdomainLimit, `subdomain${subdomainLimit > 1 ? "s" : ""}`)}`,
                 status: 403,
               };
             }
