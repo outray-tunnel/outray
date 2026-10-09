@@ -40,7 +40,7 @@ const productConfig: Record<
     completeLabel: string;
     icon: IconSvgElement;
     consoleTo:
-      | "/$orgSlug"
+      | "/$orgSlug/tunnel"
       | "/$orgSlug/observability"
       | "/$orgSlug/secrets"
       | "/$orgSlug/uptime";
@@ -54,7 +54,7 @@ const productConfig: Record<
     waitingLabel: "Waiting for your first tunnel",
     completeLabel: "First tunnel received",
     icon: Cone01Icon,
-    consoleTo: "/$orgSlug",
+    consoleTo: "/$orgSlug/tunnel",
   },
   observability: {
     name: "Observability",
