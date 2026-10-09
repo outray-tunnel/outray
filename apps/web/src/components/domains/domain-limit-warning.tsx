@@ -1,7 +1,7 @@
 import { Link, useParams } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
+import Alert02Icon from "@outray/icons/stroke/Alert02Icon";
+import ArrowRight01Icon from "@outray/icons/stroke/ArrowRight01Icon";
 
 interface DomainLimitWarningProps {
   isAtLimit: boolean;
