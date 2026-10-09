@@ -1,5 +1,6 @@
-const DEFAULT_PUBLIC_URL = "https://status.outray.app";
-export const STATUS_PAGE_SLUG = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
+import publicHosts from "../../../../shared/public-hosts";
+import instancePolicy from "../../../../shared/instance-config";
+export const STATUS_PAGE_SLUG = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 export interface StatusConfig {
   publicUrl: URL;
@@ -14,28 +15,23 @@ export interface StatusConfig {
 }
 
 export function getStatusConfig(): StatusConfig {
-  const publicUrl = new URL(process.env.OUTRAY_STATUS_URL ||
-    (process.env.NODE_ENV !== "production" ? process.env.STATUS_PUBLIC_URL : undefined) ||
-    DEFAULT_PUBLIC_URL);
+  const publicUrl = publicHosts.statusPublicOrigin();
   if (publicUrl.protocol !== "https:" && process.env.NODE_ENV === "production") {
-    throw new Error("OUTRAY_STATUS_URL must use HTTPS in production");
+    throw new Error("STATUS_PUBLIC_URL or OUTRAY_STATUS_URL must use HTTPS in production");
   }
-  if (process.env.NODE_ENV === "production" && !process.env.OUTRAY_STATUS_URL) {
-    throw new Error("OUTRAY_STATUS_URL is required in production");
-  }
-  if (publicUrl.pathname !== "/" || publicUrl.search || publicUrl.hash) {
-    throw new Error("OUTRAY_STATUS_URL must be an origin without a path or query");
+  if (process.env.NODE_ENV === "production" && !process.env.OUTRAY_STATUS_URL && !process.env.STATUS_PUBLIC_URL) {
+    throw new Error("STATUS_PUBLIC_URL or OUTRAY_STATUS_URL is required in production");
   }
   return {
     publicUrl,
-    canonicalHost: publicUrl.hostname.toLowerCase(),
+    canonicalHost: publicUrl.hostname.toLowerCase().replace(/\.$/, ""),
     databaseUrl: process.env.DATABASE_URL || "",
     zeptoApiKey: process.env.ZEPTO_API_KEY || "",
-    fromEmail: process.env.ZEPTO_FROM_EMAIL || "no-reply@outray.dev",
+    fromEmail: process.env.ZEPTO_FROM_EMAIL || (instancePolicy.instanceConfig().selfHosted ? "" : "no-reply@outray.dev"),
     rateLimitSecret: process.env.UPTIME_RATE_LIMIT_SECRET || "",
     unsubscribeSecret: process.env.UPTIME_UNSUBSCRIBE_SECRET || "",
     edgeSecret: process.env.STATUS_EDGE_SECRET || "",
-    enabled: process.env.UPTIME_ENABLED !== "false",
+    enabled: process.env.UPTIME_ENABLED !== "false" && instancePolicy.instanceConfig().products.includes("uptime"),
   };
 }
 
