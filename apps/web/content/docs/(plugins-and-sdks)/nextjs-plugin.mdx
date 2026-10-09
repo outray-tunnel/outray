@@ -1,236 +1,117 @@
 ---
 title: Next.js Plugin
-description: Automatically expose your Next.js dev server via OutRay tunnel
+description: Use development tunnels and configure server-side Next.js telemetry independently.
 icon: SiNextdotjs
 ---
 
-The `@outray/next` plugin automatically creates an OutRay tunnel when your Next.js development server starts, giving you a public URL to share your local development environment.
+`@outray/next` provides a development tunnel wrapper, server-side observability initialization, and App Router request instrumentation. These are separate integrations: a tunnel is not required to export telemetry.
 
-## Installation
+## Install
 
-```bash
+~~~bash
 npm install @outray/next
-```
+~~~
 
-```bash
-pnpm add @outray/next
-```
+The package declares compatibility with Next.js 13–16. Its observability dependency requires Node.js 20 or later; use the runtime supported by your Next.js version.
 
-```bash
-yarn add @outray/next
-```
+## Development tunnel
 
-## Quick Start
+In `next.config.ts`:
 
-Wrap your Next.js configuration with the plugin:
-
-```ts
-// next.config.ts
-import withOutray from '@outray/next'
-
-export default withOutray({
-  // your Next.js config
-})
-```
-
-When you run `next dev` or `npm run dev`, you'll see your tunnel URL printed in the terminal:
-
-```bash
-  ➜  Local:   http://localhost:3000
-  ➜  Tunnel:  https://abc123.outray.dev
-```
-
-## Configuration
-
-The plugin accepts an options object as the second argument:
-
-```ts
-// next.config.ts
-import withOutray from '@outray/next'
+~~~ts
+import withOutray from "@outray/next";
 
 export default withOutray(
+  {},
   {
-    // your Next.js config
+    apiKey: process.env.OUTRAY_API_KEY,
+    subdomain: "my-app",
   },
-  {
-    subdomain: 'my-app',
-    apiKey: process.env.OUTRAY_API_KEY,
-  }
-)
-```
+);
+~~~
 
-### Options
+Use a token with `tunnel:connect`. Run your normal `next dev` command and copy the URL printed by OutRay.
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `subdomain` | `string` | — | Request a specific subdomain for your tunnel URL. Requires authentication. |
-| `customDomain` | `string` | — | Use a custom domain. Must be configured in the OutRay dashboard first. |
-| `apiKey` | `string` | `process.env.OUTRAY_API_KEY` | API key for authentication. |
-| `serverUrl` | `string` | `wss://api.outray.dev/` | OutRay server WebSocket URL. Only change this for self-hosted instances. |
-| `enabled` | `boolean` | `process.env.OUTRAY_ENABLED !== "false"` | Enable or disable the tunnel. |
-| `silent` | `boolean` | `false` | Suppress tunnel status logs. |
-| `onTunnelReady` | `(url: string) => void` | — | Callback fired when tunnel is successfully established. |
-| `onError` | `(error: Error) => void` | — | Callback fired when tunnel encounters an error. |
-| `onClose` | `() => void` | — | Callback fired when tunnel connection is closed. |
-| `onReconnecting` | `() => void` | — | Callback fired when tunnel is attempting to reconnect. |
+The wrapper starts only when `NODE_ENV === "development"`. It starts from config loading, not a webpack hook, and reads `PORT` to determine the target port (default 3000). For a different port, set `PORT` as well as the port used by Next.js.
 
-## Environment Variables
+| Tunnel option | Default | Behavior |
+| --- | --- | --- |
+| `apiKey` | `OUTRAY_API_KEY` | Tunnel credential; no CLI-login fallback |
+| `subdomain` | `OUTRAY_SUBDOMAIN` | Requested subdomain |
+| `customDomain` | Unset | Verified custom tunnel hostname |
+| `serverUrl` | `OUTRAY_SERVER_URL` or `wss://api.outray.dev/` | Tunnel server |
+| `enabled` | `OUTRAY_ENABLED !== "false"` | Enable development tunnel |
+| `silent` | `false` | Suppress tunnel status output |
+| `local` | `false` | Also provide mDNS LAN access |
 
-The plugin respects the following environment variables:
+Callbacks include `onTunnelReady(url)`, `onError(error)`, `onClose()`, `onReconnecting()`, and `onLocalReady(info)`.
 
-| Variable | Description |
-|----------|-------------|
-| `OUTRAY_API_KEY` | API key for authentication (fallback for `apiKey` option) |
-| `OUTRAY_SUBDOMAIN` | Subdomain to use (fallback for `subdomain` option) |
-| `OUTRAY_SERVER_URL` | Server URL (fallback for `serverUrl` option) |
-| `OUTRAY_ENABLED` | Set to `"false"` to disable the tunnel |
-| `PORT` | The port your Next.js dev server runs on (default: 3000) |
+## Initialize observability
 
-## Examples
+Use Next.js's server instrumentation hook. In `instrumentation.ts` (or `src/instrumentation.ts` when your application uses `src`):
 
-### Custom Subdomain
+~~~ts
+export async function register() {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
-Reserve a consistent subdomain for your project:
+  const { registerOutrayObservability } =
+    await import("@outray/next/observability");
 
-```ts
-// next.config.ts
-import withOutray from '@outray/next'
+  const telemetry = registerOutrayObservability({
+    apiKey: process.env.OBSERVABILITY_TOKEN,
+    serviceName: "storefront",
+    environment: process.env.NODE_ENV,
+    captureConsole: true,
+  });
 
-export default withOutray(
-  {
-    // your Next.js config
-  },
-  {
-    subdomain: 'my-app',
-    apiKey: process.env.OUTRAY_API_KEY,
-  }
-)
-```
-
-### Custom Domain
-
-Use your own domain for the tunnel:
-
-```ts
-// next.config.ts
-import withOutray from '@outray/next'
-
-export default withOutray(
-  {},
-  {
-    customDomain: 'dev.example.com',
-    apiKey: process.env.OUTRAY_API_KEY,
-  }
-)
-```
-
-### Conditional Enabling
-
-Only enable the tunnel in certain environments:
-
-```ts
-// next.config.ts
-import withOutray from '@outray/next'
-
-export default withOutray(
-  {},
-  {
-    enabled: process.env.EXPOSE_TUNNEL === 'true',
-  }
-)
-```
-
-### With Callbacks
-
-React to tunnel events in your application:
-
-```ts
-// next.config.ts
-import withOutray from '@outray/next'
-
-export default withOutray(
-  {},
-  {
-    onTunnelReady: (url) => {
-      console.log(`Share this URL: ${url}`)
-    },
-    onError: (error) => {
-      console.error('Tunnel error:', error.message)
-    },
-    onReconnecting: () => {
-      console.log('Connection lost, reconnecting...')
-    },
-  }
-)
-```
-
-### Silent Mode
-
-Disable all tunnel logs:
-
-```ts
-// next.config.ts
-import withOutray from '@outray/next'
-
-export default withOutray(
-  {},
-  {
-    silent: true,
-    onTunnelReady: (url) => {
-      // Handle the URL silently
-    },
-  }
-)
-```
-
-### With Other Plugins
-
-Compose with other Next.js plugins:
-
-```ts
-// next.config.ts
-import withOutray from '@outray/next'
-import withBundleAnalyzer from '@next/bundle-analyzer'
-
-const config = {
-  // your Next.js config
+  telemetry.info("observability started");
 }
+~~~
 
-export default withOutray(
-  withBundleAnalyzer({ enabled: process.env.ANALYZE === 'true' })(config),
+Use a token with `observability:write` (**Send telemetry**), supplied from server-only configuration. Do not use `NEXT_PUBLIC_*` variables for the credential.
+
+The runtime check and dynamic import keep the Node.js SDK out of edge runtimes. The configuration wrapper alone does not initialize this telemetry integration.
+
+## Instrument App Router handlers
+
+~~~ts
+// app/api/orders/route.ts
+import { withOutrayRequest } from "@outray/next";
+
+export const POST = withOutrayRequest(
+  async (request: Request) => {
+    const order = await request.json();
+    return Response.json({ accepted: true, itemCount: order.items.length });
+  },
   {
-    subdomain: 'my-app',
-  }
-)
-```
+    routeResolver: () => "/api/orders",
+    capturePayloads: {
+      maxBodyBytes: 16 * 1024,
+      redactedFields: ["accountPin"],
+    },
+  },
+);
+~~~
 
-## App Router & Pages Router
+The wrapper records route-aware spans, response status, failures, and HTTP request count, duration, and active-request metrics. It reuses a recording server span when one exists, or creates one through the configured provider.
 
-The plugin works seamlessly with both Next.js App Router and Pages Router. No additional configuration is required.
+`routeResolver` supplies a stable route template; otherwise common identifier segments are normalized to `:id`. `ignore` can skip additional requests. Common Next.js asset paths are ignored by default.
 
-## Next.js Compatibility
+Payload capture is disabled by default. When enabled, eligible JSON and URL-encoded payloads are bounded and common sensitive fields and headers are redacted. Capture inspects clones rather than consuming or replacing the handler's original Request/Response.
 
-The plugin supports Next.js versions 13.x, 14.x, and 15.x.
+`withOutrayPayloadCapture(handler, options)` is a shortcut for request instrumentation with capture enabled. These wrappers are for App Router handlers returning a `Response`, not Pages Router API handlers.
 
-## Troubleshooting
+## Application logs and spans
 
-### Tunnel not starting
+~~~ts
+import { outray, withOutraySpan } from "@outray/next/observability";
 
-- Ensure you're running in development mode (`next dev`)
-- Check that `OUTRAY_ENABLED` is not set to `"false"`
-- Verify the `PORT` environment variable matches your dev server port
+outray.info("order accepted", { orderId: "order_123" });
+await withOutraySpan("process order", async () => {
+  // Perform the operation here.
+});
+~~~
 
-### Authentication errors
+Structured logging preserves local output and can correlate logs with the active trace. Console capture is separately opt-in via `captureConsole`.
 
-- Run `outray login` in your terminal to authenticate
-- Or set the `OUTRAY_API_KEY` environment variable
-
-### Connection issues
-
-- Check your internet connection
-- Verify the server URL is correct (default: `wss://api.outray.dev/`)
-- The plugin will automatically attempt to reconnect on connection loss
-
-### Turbopack compatibility
-
-The plugin works with both webpack and Turbopack. The tunnel is started during the webpack configuration phase, which runs even when using Turbopack for development.
+See the [Node.js SDK](/docs/node-sdk) for shared configuration, export timing, payload privacy, and shutdown behavior.
