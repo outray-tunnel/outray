@@ -27,7 +27,7 @@ outray/
 - npm
 - Redis (for tunnel state)
 - PostgreSQL (for user data)
-- Tiger Data / TimescaleDB (for analytics)
+- Tinybird (for tunnel analytics and observability)
 
 ## Getting Started
 
@@ -72,12 +72,12 @@ outray/
    npm run db:migrate
    ```
 
-5. **Set up Tiger Data (TimescaleDB) tables**
+5. **Set up Tinybird data sources and endpoints**
 
-   Run the schema file against your TimescaleDB instance:
+   Deploy the project to your isolated development branch before starting services:
 
    ```bash
-   psql "$TIMESCALE_URL" -f deploy/setup_tigerdata.sql
+   tb --branch development deploy
    ```
 
 6. **Start development servers**
@@ -89,7 +89,7 @@ outray/
    This starts web, tunnel, cron, internal-check, ingest, status, secrets-share,
    and uptime-probe. New runtime apps under `apps/` are included automatically;
    the CLI compiler and legacy standalone website are excluded. PostgreSQL,
-   Redis, and TimescaleDB must already be running. The uptime worker still
+   Redis must already be running, and Tinybird must be configured. The uptime worker still
    honors its existing probe and notification enable flags in the root `.env`.
 
 ## Development
