@@ -4,6 +4,9 @@ import {
   getPlanLimits,
   type SubscriptionPlan,
 } from "./subscription-plans";
+import instancePolicy from "../../../../shared/instance-config";
+
+const { instanceConfig } = instancePolicy;
 
 export const BETTER_AUTH_MEMBERSHIP_CEILING =
   SUBSCRIPTION_PLANS.unlimited.features.maxMembers;
@@ -34,6 +37,10 @@ export function getMemberLimitMessage(
   const resolvedPlan = resolveSubscriptionPlan(plan);
   const limit = getMemberLimitForPlan(resolvedPlan);
   const memberLabel = limit === 1 ? "member" : "members";
+
+  if (instanceConfig().selfHosted) {
+    return `Member limit reached. This installation allows ${limit} ${memberLabel} per organization. Contact your administrator.`;
+  }
 
   return `Member limit reached. The ${resolvedPlan} plan allows ${limit} ${memberLabel}.`;
 }
