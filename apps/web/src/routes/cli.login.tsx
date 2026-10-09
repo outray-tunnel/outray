@@ -6,11 +6,11 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import CommandLineIcon from "@hugeicons-pro/core-stroke-rounded/CommandLineIcon";
-import InformationCircleIcon from "@hugeicons-pro/core-stroke-rounded/InformationCircleIcon";
-import LockKeyIcon from "@hugeicons-pro/core-stroke-rounded/LockKeyIcon";
-import UserCircleIcon from "@hugeicons-pro/core-stroke-rounded/UserCircleIcon";
+import ArrowRight01Icon from "@outray/icons/stroke/ArrowRight01Icon";
+import CommandLineIcon from "@outray/icons/stroke/CommandLineIcon";
+import InformationCircleIcon from "@outray/icons/stroke/InformationCircleIcon";
+import LockKeyIcon from "@outray/icons/stroke/LockKeyIcon";
+import UserCircleIcon from "@outray/icons/stroke/UserCircleIcon";
 import { authClient } from "@/lib/auth-client";
 import { appClient } from "@/lib/app-client";
 
