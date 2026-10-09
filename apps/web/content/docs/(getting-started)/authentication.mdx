@@ -1,41 +1,73 @@
 ---
 title: Authentication
-description: How to authenticate with the OutRay CLI
+description: Choose browser login or a scoped API token for the CLI.
 icon: Key
 ---
 
-Before you can start a tunnel, you need to authenticate with your OutRay account. This ensures that your tunnels are secure and associated with your user profile.
+OutRay credentials identify the organization a tunnel belongs to. They do not authenticate visitors to the public tunnel URL.
 
-## Interactive Login
+## Browser login
 
-The easiest way to authenticate is using the interactive login command. Run the following command in your terminal:
-
-```bash
+~~~bash
 outray login
-```
+~~~
 
-This command will:
+The CLI opens an authorization page on `https://outray.dev`, waits for approval, and asks you to select an organization. If the browser does not open, copy the authorization URL printed in your terminal.
 
-1.  Open your default web browser to the OutRay dashboard.
-2.  Ask you to authorize the CLI.
-3.  Once authorized, the CLI will automatically receive an authentication token and save it locally.
+The saved login is stored in `~/.outray/config.json`. Treat that file as a credential: do not commit or share it. The CLI refreshes its organization token when needed.
 
-## API Key Login
+## Check or change your organization
 
-For environments where you cannot use a browser (like a remote server or CI/CD pipeline), you can authenticate using an API key.
-
-1.  Go to your [Organization Settings](https://outray.dev/settings) in the dashboard.
-2.  Generate a new API Key.
-3.  Use the `--key` flag when running commands:
-
-```bash
-outray 3000 --key outray_sk_...
-```
-
-## Checking Status
-
-To verify that you are logged in and see which user/organization is active, run:
-
-```bash
+~~~bash
 outray whoami
-```
+outray switch
+outray switch my-team
+~~~
+
+`whoami` shows the active organization and your role for a saved browser login. `switch` changes that saved organization.
+
+To use a different organization for one tunnel without changing your saved selection:
+
+~~~bash
+outray 3000 --org another-team
+~~~
+
+The override requires a browser login that has access to that organization.
+
+## API tokens for automation
+
+Open your organization's **API tokens** page at `https://outray.dev/<org-slug>/tokens`. Create a token with **Connect tunnels** permission (`tunnel:connect`), and store the full value in a server-side secret store.
+
+Pass the token explicitly:
+
+~~~bash
+outray 3000 --key "$OUTRAY_API_KEY"
+~~~
+
+The single-tunnel CLI does not automatically read `OUTRAY_API_KEY`; the shell expands the variable into `--key`. A token already belongs to its organization, so `--org` does not change its scope.
+
+<Callout type="warn">
+Never place tokens in browser code, public configuration, screenshots, or committed files. Command-line arguments can be visible to other local processes; use a restricted automation runner and a narrowly scoped token.
+</Callout>
+
+## Secrets and SDK credentials
+
+Authentication differs by workflow:
+
+| Workflow | Credential source |
+| --- | --- |
+| One HTTP, TCP, or UDP tunnel | Saved CLI login, or explicit `--key` |
+| `outray start` with TOML | Saved browser login |
+| `outray secrets` commands | `OUTRAY_TOKEN`, then `OUTRAY_API_KEY`, then saved login |
+| Tunnel plugins | Explicit `apiKey` or `OUTRAY_API_KEY`; no saved-login fallback |
+| Observability SDKs | Explicit `apiKey` or `OUTRAY_API_KEY`; require `observability:write` |
+
+See [Secrets](/docs/secrets) and [SDK setup](/docs/observability/sdk-setup) for their permission requirements.
+
+## Sign out
+
+~~~bash
+outray logout
+~~~
+
+This clears the saved local login. It does not revoke separately created API tokens. Revoke those in the API tokens page when no longer needed.
