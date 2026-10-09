@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { test } from "node:test";
-import { statusPageUrl } from "../src/lib/config";
+import { getStatusConfig, statusPageUrl } from "../src/lib/config";
 import { addIncidentsToHistory, aggregateMonitorEvidence, aggregateStates, buildDailyHistory, normalizeRequestHost, publishedIncidentStage, safeLogoUrl, slugFromStatusHost, type PublicIncident } from "../src/lib/status-data";
 import { isSameOrigin, makeUnsubscribeToken, safeClientIp, verifyUnsubscribeToken } from "../src/lib/security";
 
@@ -145,6 +145,31 @@ test("canonical status pages use a single page-slug subdomain", () => {
   assert.equal(slugFromStatusHost("acme.status.outray.app.evil.example", base.canonicalHost), null);
   assert.equal(slugFromStatusHost("-bad.status.outray.app", base.canonicalHost), null);
   assert.throws(() => statusPageUrl("a.b", base), /Invalid status page slug/);
+});
+
+test("production status renderer accepts the host-neutral public origin", () => {
+  const keys = ["NODE_ENV", "STATUS_PUBLIC_URL", "OUTRAY_STATUS_URL", "OUTRAY_DEPLOYMENT_MODE", "OUTRAY_PRODUCTS"] as const;
+  const before = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  try {
+    process.env.NODE_ENV = "production";
+    process.env.OUTRAY_DEPLOYMENT_MODE = "self-hosted";
+    process.env.STATUS_PUBLIC_URL = "https://health.example.net";
+    delete process.env.OUTRAY_STATUS_URL;
+    delete process.env.OUTRAY_PRODUCTS;
+    const config = getStatusConfig();
+    assert.equal(config.canonicalHost, "health.example.net");
+    assert.equal(statusPageUrl("acme", config).toString(), "https://acme.health.example.net/");
+    process.env.STATUS_PUBLIC_URL = "http://health.example.net";
+    assert.throws(() => getStatusConfig(), /HTTPS/);
+    process.env.STATUS_PUBLIC_URL = "https://health.example.net";
+    process.env.OUTRAY_PRODUCTS = "tunnels";
+    assert.equal(getStatusConfig().enabled, false);
+  } finally {
+    for (const key of keys) {
+      if (before[key] === undefined) delete process.env[key];
+      else process.env[key] = before[key];
+    }
+  }
 });
 
 test("subscription POST origin must match a status page subdomain", () => {
