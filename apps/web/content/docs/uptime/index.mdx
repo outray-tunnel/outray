@@ -1,0 +1,32 @@
+---
+title: Uptime
+description: Check public HTTP endpoints, review private detections, and publish status information.
+icon: HeartPulse
+---
+
+OutRay Uptime checks public HTTP(S) endpoints every minute from one region. It records success, HTTP status, latency, and an error classification without retaining the response body. A status page lets you present selected components and incident updates to customers.
+
+<Cards>
+  <Card title="Create your first monitor" href="/docs/uptime/getting-started">
+    Start with a public endpoint and a clear success condition.
+  </Card>
+  <Card title="Monitor behavior" href="/docs/uptime/monitors">
+    Understand failure thresholds, recovery, stale evidence, and publication modes.
+  </Card>
+  <Card title="Manage incidents" href="/docs/uptime/incidents">
+    Review private detections, write drafts, and publish updates deliberately.
+  </Card>
+  <Card title="Build a status page" href="/docs/uptime/status-page">
+    Choose visible components, appearance, and a custom subdomain.
+  </Card>
+</Cards>
+
+## Keep three decisions separate
+
+The probe produces **check evidence**. Consecutive results produce a confirmed **monitor state**. Incident publishing controls whether a detected issue becomes a **public incident**.
+
+A linked component can show measured health on a published page even when incident publication is manual. Keeping a detection private does not hide the component's observed state. Decide which components to expose before publishing the page.
+
+Team [notifications](/docs/uptime/notifications) and public subscriber emails also have different triggers. Confirmed downtime can alert the team; a published written update can notify confirmed subscribers. Automatic incident publication alone does not email subscribers.
+
+Members can view Uptime. Owners and admins manage monitors, incidents, status-page configuration, and notification destinations. Uptime is an endpoint probe, not a substitute for [application traces and logs](/docs/observability).
