@@ -70,7 +70,7 @@ async function loadComponent(path: string, initialState: any[] = []) {
       if (specifier === "motion/react") return { AnimatePresence: stubs.AnimatePresence, motion: { div: stubs.MotionDiv }, useReducedMotion: () => false };
       if (specifier === "lucide-react") return { X: () => null, ArrowRight: () => null, RefreshCw: () => null, Server: () => null, Check: () => null, KeyRound: () => null };
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
-      if (specifier.startsWith("@hugeicons-pro/")) return { __esModule: true, default: [] };
+      if (specifier.startsWith("@outray/icons/")) return { __esModule: true, default: [] };
       if (specifier.endsWith(".css")) return {};
       if (specifier.startsWith(".") || specifier.startsWith("@/components/")) return stubs;
       throw new Error(`Unexpected UI dependency: ${specifier}`);
