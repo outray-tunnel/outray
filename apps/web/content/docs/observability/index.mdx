@@ -1,0 +1,36 @@
+---
+title: Observability
+description: Connect application telemetry and investigate services, requests, traces, logs, and metrics.
+icon: Activity
+---
+
+OutRay Observability receives application traces, structured logs, and metrics over OTLP/HTTP. Use it to follow a request through measured operations, inspect errors, compare service activity, and alert on a signal that matters to your team.
+
+Observability runs independently of Tunnels. A public tunnel URL does not initialize application telemetry, and you do not need a tunnel to observe a production service.
+
+<Cards>
+  <Card title="Connect a service" href="/docs/observability/getting-started">
+    Create a telemetry token, initialize the Node SDK, and verify data arrives.
+  </Card>
+  <Card title="Choose a framework SDK" href="/docs/observability/sdk-setup">
+    Set up Node.js, Express, NestJS, Next.js, Hono, or TanStack Start.
+  </Card>
+  <Card title="Investigate a request" href="/docs/observability/requests-and-traces">
+    Follow request details into a trace and correlated logs.
+  </Card>
+  <Card title="Configure an alert" href="/docs/observability/alerts">
+    Select a service signal, evaluation window, and team destinations.
+  </Card>
+</Cards>
+
+## Use the right view
+
+[Services](/docs/observability/services) provides an inventory and activity summaries. Requests focuses on incoming HTTP operations. Traces shows the related spans and their timing. [Logs and Metrics](/docs/observability/logs-and-metrics) let you inspect application messages and measured values.
+
+Service health is derived from reported telemetry in the selected period. It is not an external availability check. Use [Uptime](/docs/uptime) to probe an endpoint from outside the application.
+
+## Data and credential boundaries
+
+Keep telemetry tokens on the server. Console capture and HTTP payload capture are opt-in. Payload capture is bounded and redacted, but you should still add application-specific redaction and avoid recording sensitive business data.
+
+An empty query means no matching evidence was returned for that query. A failed query means evidence was unavailable. Neither should be interpreted as proof of healthy operation. Inspect event time, selected range, and data freshness when drawing conclusions.
