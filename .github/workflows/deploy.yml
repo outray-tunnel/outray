@@ -40,7 +40,7 @@ jobs:
           HUGEICONS_LICENSE_KEY: ${{ secrets.HUGEICONS_LICENSE_KEY }}
         run: npm ci
 
-      - name: Detect Alert Evaluator Changes
+      - name: Detect Tinybird Resource Changes
         id: alert_evaluators
         env:
           BEFORE_SHA: ${{ github.event.before }}
@@ -48,7 +48,7 @@ jobs:
         run: |
           if [[ "$BEFORE_SHA" =~ ^0+$ ]] || ! git cat-file -e "$BEFORE_SHA^{commit}" 2>/dev/null; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
-          elif git diff --quiet "$BEFORE_SHA" "$CURRENT_SHA" -- ':(glob)tinybird/endpoints/alert_*.pipe'; then
+          elif git diff --quiet "$BEFORE_SHA" "$CURRENT_SHA" -- tinybird; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -64,7 +64,7 @@ jobs:
           if [ -n "$TINYBIRD_HOST" ] && [ -n "$TINYBIRD_TOKEN" ]; then
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::error::Tinybird alert evaluators changed, but TINYBIRD_HOST/TINYBIRD_TOKEN are not configured. Refusing to roll out a cron worker whose query endpoints were not deployed."
+            echo "::error::Tinybird resources changed, but TINYBIRD_HOST/TINYBIRD_TOKEN are not configured. Refusing to roll out workers whose data sources/endpoints were not deployed."
             exit 1
           fi
 
@@ -78,7 +78,7 @@ jobs:
         if: steps.tinybird_credentials.outputs.configured == 'true'
         run: python -m pip install tinybird==4.6.15
 
-      - name: Validate Tinybird Alert Evaluators
+      - name: Validate Tinybird Resources
         if: steps.tinybird_credentials.outputs.configured == 'true'
         env:
           TINYBIRD_HOST: ${{ secrets.TINYBIRD_HOST }}
@@ -111,7 +111,7 @@ jobs:
           TEST_MASTER_KEY="$(node -e 'process.stdout.write(Buffer.alloc(32, 7).toString("base64"))')"
           OUTRAY_SECRETS_ACTIVE_MASTER_KEY="$TEST_MASTER_KEY" npm run test --workspace=outray-web
 
-      - name: Deploy Tinybird Alert Evaluators
+      - name: Deploy Tinybird Resources
         if: steps.tinybird_credentials.outputs.configured == 'true'
         env:
           TINYBIRD_HOST: ${{ secrets.TINYBIRD_HOST }}
@@ -207,7 +207,7 @@ jobs:
           REDIS_URL: ${{ secrets.REDIS_URL }}
           REDIS_TUNNEL_TTL_SECONDS: "120"
           REDIS_HEARTBEAT_INTERVAL_MS: "20000"
-          TIMESCALE_URL: ${{ secrets.TIMESCALE_URL }}
+          TINYBIRD_INGEST_TOKEN: ${{ secrets.TINYBIRD_INGEST_TOKEN }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_SSL_REJECT_UNAUTHORIZED: ${{ vars.DATABASE_SSL_REJECT_UNAUTHORIZED || 'true' }}
           INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
@@ -239,7 +239,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          envs: REDIS_URL,REDIS_TUNNEL_TTL_SECONDS,REDIS_HEARTBEAT_INTERVAL_MS,TIMESCALE_URL,DATABASE_URL,DATABASE_SSL_REJECT_UNAUTHORIZED,INTERNAL_API_SECRET,PAYSTACK_SECRET_KEY,TINYBIRD_API_HOST,TINYBIRD_QUERY_TOKEN,ZEPTO_API_KEY,APP_URL,ALERT_POLL_INTERVAL_MS,ALERT_BATCH_SIZE,ALERT_EVALUATION_CONCURRENCY,ALERT_LEASE_SECONDS,ALERT_LATE_DATA_SECONDS,ALERT_EVALUATION_RETENTION_DAYS,UPTIME_ENABLED,UPTIME_PROBES_ENABLED,UPTIME_NOTIFICATIONS_ENABLED,UPTIME_EGRESS_POLICY_READY,OUTRAY_DASHBOARD_URL,OUTRAY_STATUS_URL,STATUS_EDGE_SECRET,UPTIME_RATE_LIMIT_SECRET,UPTIME_UNSUBSCRIBE_SECRET,OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID,OUTRAY_SECRETS_ACTIVE_MASTER_KEY,OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS
+          envs: REDIS_URL,REDIS_TUNNEL_TTL_SECONDS,REDIS_HEARTBEAT_INTERVAL_MS,TINYBIRD_INGEST_TOKEN,DATABASE_URL,DATABASE_SSL_REJECT_UNAUTHORIZED,INTERNAL_API_SECRET,PAYSTACK_SECRET_KEY,TINYBIRD_API_HOST,TINYBIRD_QUERY_TOKEN,ZEPTO_API_KEY,APP_URL,ALERT_POLL_INTERVAL_MS,ALERT_BATCH_SIZE,ALERT_EVALUATION_CONCURRENCY,ALERT_LEASE_SECONDS,ALERT_LATE_DATA_SECONDS,ALERT_EVALUATION_RETENTION_DAYS,UPTIME_ENABLED,UPTIME_PROBES_ENABLED,UPTIME_NOTIFICATIONS_ENABLED,UPTIME_EGRESS_POLICY_READY,OUTRAY_DASHBOARD_URL,OUTRAY_STATUS_URL,STATUS_EDGE_SECRET,UPTIME_RATE_LIMIT_SECRET,UPTIME_UNSUBSCRIBE_SECRET,OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID,OUTRAY_SECRETS_ACTIVE_MASTER_KEY,OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS
           script: |
             chmod +x /root/outray/deploy.sh
             chmod +x /root/outray/deploy-status.sh /root/outray/deploy-uptime-probe.sh
