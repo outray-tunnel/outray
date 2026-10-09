@@ -11,6 +11,8 @@ import {
   getBetterAuthInvitationLimit,
 } from "./member-limits.server";
 import { BETTER_AUTH_MEMBERSHIP_CEILING } from "./member-limit-policy";
+import { APIError } from "better-auth/api";
+import { instanceConfig, instanceSignupAllowed } from "../../../../shared/instance-config";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -18,14 +20,22 @@ export const auth = betterAuth({
     usePlural: true,
   }),
   socialProviders: {
-    github: {
+    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET ? { github: {
       clientId: process.env.GITHUB_CLIENT_ID as string,
       clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
-    },
-    google: {
+    } } : {}),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? { google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    },
+    } } : {}),
+  },
+  databaseHooks: {
+    user: { create: { before: async (user) => {
+      if (!instanceSignupAllowed(user)) {
+        throw new APIError("FORBIDDEN", { message: "Signup is restricted on this installation. Contact your administrator." });
+      }
+      return { data: user };
+    } } },
   },
   plugins: [
     organization({
@@ -92,7 +102,7 @@ export const auth = betterAuth({
           const now = Date.now();
           const isNewUser = now - createdAt < 30000; // 30 seconds
 
-          if (isNewUser) {
+          if (isNewUser && instanceConfig().marketingEnabled) {
             // Send welcome email
             try {
               const { html, subject } = generateEmail("welcome", {
