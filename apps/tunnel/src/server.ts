@@ -9,6 +9,7 @@ import { UDPProxy } from "./core/UDPProxy";
 import { WSProxy } from "./core/WSProxy";
 import { LogManager } from "./core/LogManager";
 import { config } from "./config";
+import publicHosts from "../../../shared/public-hosts";
 import {
   startTinybirdLoggers,
   shutdownLoggers,
@@ -187,11 +188,7 @@ httpServer.on("upgrade", (request, socket, head) => {
     wssDashboard.handleUpgrade(request, socket, head, (ws) => {
       wssDashboard.emit("connection", ws, request);
     });
-  } else if (
-    host === config.baseDomain.toLowerCase() ||
-    host === "localhost" ||
-    host.startsWith("api.")
-  ) {
+  } else if (publicHosts.isTunnelControlHost(host, config.baseDomain)) {
     // Control plane WebSocket (CLI clients connecting)
     wssTunnel.handleUpgrade(request, socket, head, (ws) => {
       wssTunnel.emit("connection", ws, request);
@@ -229,7 +226,7 @@ httpServer.on("request", async (req, res) => {
   
   // Health check endpoint — only for the tunnel server itself, not tunneled subdomains
   const cleanHost = host;
-  const isBaseDomain = cleanHost === config.baseDomain.toLowerCase() || cleanHost === "localhost";
+  const isBaseDomain = publicHosts.isTunnelControlHost(cleanHost, config.baseDomain);
   
   if (url.pathname === "/health" && isBaseDomain) {
     const redisStatus = redis.status === "ready" ? "healthy" : "unhealthy";
@@ -251,7 +248,7 @@ httpServer.on("request", async (req, res) => {
     return;
   }
   
-  if (host.startsWith("api.")) {
+  if (publicHosts.isTunnelControlHost(host, config.baseDomain) && host !== config.baseDomain.toLowerCase() && host !== "localhost") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "ok", version: "1.0.0" }));
     return;
