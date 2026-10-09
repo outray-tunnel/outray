@@ -1,0 +1,5 @@
+{
+  "title": "Workspace platform",
+  "icon": "Building2",
+  "pages": ["index", "organizations", "api-tokens", "agent"]
+}
