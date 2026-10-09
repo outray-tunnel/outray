@@ -1,0 +1,21 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Range-bound HTTP statistics for authorized tunnel identifiers.
+
+NODE statistics
+SQL >
+    %
+    SELECT count() AS total_requests,
+           if(total_requests = 0, 0, avg(request_duration_ms)) AS avg_duration,
+           sum(bytes_in + bytes_out) AS total_bytes,
+           countIf(status_code >= 400) AS errors
+    FROM tunnel_events FINAL
+    WHERE organization_id = {{String(organization_id)}}
+      AND timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')
+      AND timestamp < parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+      AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
+      AND has(JSONExtract({{String(tunnel_ids)}}, 'Array(String)'), tunnel_id)
+
+TYPE endpoint
+
