@@ -1,7 +1,7 @@
-import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
-import Bug01Icon from "@hugeicons-pro/core-stroke-rounded/Bug01Icon";
-import Loading03Icon from "@hugeicons-pro/core-stroke-rounded/Loading03Icon";
-import Logout02Icon from "@hugeicons-pro/core-stroke-rounded/Logout02Icon";
+import ArrowDown01Icon from "@outray/icons/stroke/ArrowDown01Icon";
+import Bug01Icon from "@outray/icons/stroke/Bug01Icon";
+import Loading03Icon from "@outray/icons/stroke/Loading03Icon";
+import Logout02Icon from "@outray/icons/stroke/Logout02Icon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   useCallback,
