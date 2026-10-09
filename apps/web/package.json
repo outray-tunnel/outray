@@ -16,6 +16,7 @@
     "db:migrate": "npx drizzle-kit generate && npx drizzle-kit migrate",
     "db:migrate:ci": "npx drizzle-kit migrate",
     "tokens:backfill": "tsx scripts/backfill-machine-tokens.ts",
+    "agent:usage:reconcile": "tsx scripts/reconcile-agent-usage.ts",
     "secrets:rewrap": "tsx src/lib/secrets/rewrap-command.ts",
     "secrets:rewrap:verify": "tsx src/lib/secrets/rewrap-command.ts --verify-only"
   },
@@ -72,6 +73,7 @@
     "react-icons": "^5.5.0",
     "recharts": "^3.6.0",
     "sonner": "^2.0.7",
+    "streamdown": "^2.7.0",
     "tailwindcss": "^4.1.18",
     "three": "^0.182.0",
     "vite": "^7.2.4",
