@@ -4,13 +4,14 @@ import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterContextProvider } from "@tanstack/react-router";
-import { AuthPage } from "../src/components/auth/auth-page";
+import { AuthPage, AuthPageView } from "../src/components/auth/auth-page";
 import { Button, type ButtonProps } from "../src/components/arc/button/button";
 import type { LoginProvider } from "../src/lib/login";
 
 Object.assign(globalThis, { React });
 type PageProps = React.ComponentProps<typeof AuthPage>;
 const defaults: PageProps = { mode: "signup", loading: null, sessionPending: false, error: null, onLogin: () => {} };
+const hostedInstance = { selfHosted: false, authProviders: ["github", "google"] as LoginProvider[] };
 
 function renderSignup(overrides: Partial<PageProps> = {}) {
   const root = createRootRoute();
@@ -74,11 +75,11 @@ test("signup view forwards exact provider actions only when not busy", () => {
   const calls: LoginProvider[] = [];
   const onLogin = (provider: LoginProvider) => { calls.push(provider); };
   for (const overrides of [{ sessionPending: true }, { loading: "github" as const }, { loading: "google" as const }]) {
-    const options = elements(AuthPage({ ...defaults, ...overrides, onLogin })).filter((element) => element.type === Button);
+    const options = elements(AuthPageView({ ...defaults, ...overrides, onLogin, instance: hostedInstance })).filter((element) => element.type === Button);
     options.forEach((option) => { (option.props as ButtonProps).onClick?.({} as React.MouseEvent<HTMLButtonElement>); });
     assert.deepEqual(calls, []);
   }
-  const options = elements(AuthPage({ ...defaults, onLogin })).filter((element) => element.type === Button);
+  const options = elements(AuthPageView({ ...defaults, onLogin, instance: hostedInstance })).filter((element) => element.type === Button);
   options.forEach((option) => { (option.props as ButtonProps).onClick?.({} as React.MouseEvent<HTMLButtonElement>); });
   assert.deepEqual(calls, ["github", "google"]);
 });
