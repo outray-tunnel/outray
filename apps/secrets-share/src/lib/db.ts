@@ -1,5 +1,5 @@
 import pg from "pg";
-import { postgresSsl } from "../../../../shared/postgres-ssl";
+import postgresConfig from "../../../../shared/postgres-ssl";
 
 const { Pool } = pg;
 let pool: pg.Pool | undefined;
@@ -12,7 +12,7 @@ export function shareDb(): pg.Pool {
       connectionString: databaseUrl,
       max: 8,
       connectionTimeoutMillis: 3_000,
-      ssl: postgresSsl(databaseUrl, process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false"),
+      ssl: postgresConfig.postgresSsl(databaseUrl, process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false"),
     });
   }
   return pool;
