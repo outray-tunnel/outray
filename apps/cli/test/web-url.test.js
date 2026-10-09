@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { canonicalConsoleOrigin } = require("../dist/config.js");
 
 // Evaluate the built CLI's URL initializers without importing its main entry,
 // which would start commands, read local credentials, or contact the network.
@@ -21,6 +22,7 @@ const initializer = new vm.Script(
 function webUrl(env = {}, args = []) {
   return initializer.runInNewContext({
     process: { env, argv: ["node", "outray", ...args] },
+    config_1: { canonicalConsoleOrigin },
   });
 }
 
@@ -53,4 +55,11 @@ test("an empty override falls back to the environment's console URL", () => {
     webUrl({ NODE_ENV: "development", OUTRAY_WEB_URL: "" }),
     "http://localhost:6767",
   );
+});
+
+test("custom console URL is normalized and unsafe origins fail before loading credentials", () => {
+  assert.equal(webUrl({ OUTRAY_WEB_URL: "https://CONSOLE.EXAMPLE.TEST:443/" }), "https://console.example.test");
+  for (const override of ["http://console.example.test", "https://user:password@console.example.test", "https://console.example.test/path", "https://console.example.test/?query=1", "https://console.example.test/#key"]) {
+    assert.throws(() => webUrl({ OUTRAY_WEB_URL: override }), /OUTRAY_WEB_URL/);
+  }
 });
