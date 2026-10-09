@@ -1,5 +1,5 @@
 import WebSocket from "ws";
-import { TunnelEvent } from "../lib/timescale";
+import type { TunnelEvent } from "../lib/tinybird";
 
 export class LogManager {
   private logs = new Map<string, TunnelEvent[]>();
