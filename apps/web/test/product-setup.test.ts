@@ -163,7 +163,7 @@ async function loadSetup(initialState: any[] = [], clients: Record<string, any> 
       };
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
       if (specifier === "@radix-ui/react-dialog") return { Root: stubs.DialogRoot, Content: stubs.DialogContent, Title: stubs.DialogTitle };
-      if (specifier.startsWith("@hugeicons-pro/")) return { __esModule: true, default: [] };
+      if (specifier.startsWith("@outray/icons/")) return { __esModule: true, default: [] };
       if (specifier === "@tanstack/react-router") return { Link: (props: any) => React.createElement("a", { href: props.to }, props.children) };
       if (specifier === "@/lib/secrets-client") return { secretsClient };
       if (specifier === "@/lib/app-client") return { appClient: clients.app ?? { tunnels: { list: async () => ({ tunnels: [] }) } } };
