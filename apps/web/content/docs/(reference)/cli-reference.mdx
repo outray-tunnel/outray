@@ -1,177 +1,211 @@
 ---
 title: CLI Reference
-description: Comprehensive guide to the OutRay CLI commands and flags
+description: Commands, flags, configuration, and environment variables for the OutRay CLI.
 icon: LuSquareTerminal
 ---
 
-The OutRay CLI is your primary tool for interacting with the OutRay network. This reference covers all available commands and flags.
+The `outray` package provides tunnel clients, browser authentication, and Secrets commands. It does not start your local application or install an observability SDK.
 
 ## Commands
 
-### `outray login`
+| Command | Purpose |
+| --- | --- |
+| `outray login` | Authorize in the browser and save an organization login |
+| `outray whoami` | Show the active organization and role for a saved login |
+| `outray switch [slug]` | Change the saved organization, interactively or by slug |
+| `outray logout` | Remove the saved local login |
+| `outray <port>` | Start an HTTP tunnel to a local port |
+| `outray http <port>` | Explicit HTTP tunnel command |
+| `outray tcp <port>` | Forward a raw TCP service |
+| `outray udp <port>` | Forward a UDP service |
+| `outray start` | Start tunnels from a TOML config using saved login |
+| `outray validate-config` | Validate a TOML config without connecting |
+| `outray secrets <command>` | Manage or inject Secrets values |
+| `outray --version` | Print the installed version |
+| `outray --help` | Print CLI help |
 
-Initiates the authentication process. This command opens your default browser to the OutRay dashboard where you can authorize the CLI.
+`version` and `-v` are version aliases; `help` and `-h` are help aliases. `validate` is an alias for `validate-config`.
 
-```bash
-outray login
-```
+## Tunnel flags
 
-Once authenticated, your session token is stored locally in your configuration file.
+Local ports must be between 1 and 65535. Direct tunnel commands forward to `localhost`.
 
-### `outray start`
+| Flag | Applies to | Behavior |
+| --- | --- | --- |
+| `--key <token>` | HTTP, TCP, UDP | Use an explicit API token instead of saved login |
+| `--org <slug>` | HTTP, TCP, UDP with browser login | Select an organization for this invocation |
+| `--subdomain <name>` | HTTP | Request a subdomain |
+| `--domain <hostname>` | HTTP | Use a verified organization custom domain |
+| `--password <password>` | HTTP | Require Basic authentication for HTTP requests; paid plans |
+| `--remote-port <port>` | TCP, UDP | Request a port in the server's configured public port range |
+| `--no-logs` | HTTP, TCP, UDP | Suppress local traffic log lines, not server-side records |
+| `--local` | HTTP | Also advertise local-network access using mDNS |
+| `--local-only` | HTTP workflow | LAN access without a remote connection or login |
+| `--qr` | HTTP | Display a QR code for the public URL |
 
-Starts multiple tunnels from a TOML configuration file. This is useful when you need to run multiple tunnels simultaneously.
+~~~bash
+outray 3000 --subdomain preview
+outray http 8080 --domain api.example.com
+outray tcp 5432 --remote-port 25432
+outray udp 5000 --remote-port 35000
+outray 3000 --key "$OUTRAY_API_KEY"
+outray 3000 --local-only --subdomain preview
+~~~
 
-```bash
-# Use default outray/config.toml
-outray start
+The single-tunnel CLI reads `--key`, not `OUTRAY_API_KEY` automatically. API tokens belong to their issuing organization; `--org` does not change a token's scope.
 
-# Use a custom config file
-outray start --config /path/to/config.toml
-```
+Read [TCP & UDP tunnels](/docs/protocols) for endpoint and port behavior and [Password protection](/docs/password-protection) for its security boundaries.
 
-**Options:**
+## Configuration files
 
-- `--config <path>`: Path to the TOML configuration file (default: `outray/config.toml`).
+Both `start` and `validate-config` default to `outray/config.toml` relative to the current working directory:
 
-See the [Configuration Files](#configuration-files) section below for details on the config file format.
-
-### `outray validate-config`
-
-Validates a TOML configuration file without starting any tunnels. Useful for checking your config file syntax and structure.
-
-```bash
-# Validate default outray/config.toml
+~~~bash
 outray validate-config
+outray start
+outray validate-config --config ./outray/team.toml
+outray start --config ./outray/team.toml
+~~~
 
-# Validate a custom config file
-outray validate-config --config /path/to/config.toml
-```
+Only the supported fields below are accepted. Values are literal TOML; environment-variable interpolation is not performed.
 
-**Options:**
-
-- `--config <path>`: Path to the TOML configuration file (default: `outray/config.toml`).
-
-### `outray <port>`
-
-Starts a tunnel for the specified local port. This is the most common command you will use.
-
-```bash
-outray 3000
-```
-
-**Arguments:**
-
-- `port`: The local port number you want to expose (e.g., `3000`, `8080`).
-
-**Options:**
-
-- `--subdomain <name>`: Request a specific subdomain.
-- `--domain <domain>`: Use a custom domain.
-- `--org <slug>`: Run the tunnel under a specific organization.
-- `--key <token>`: Use a specific API key instead of the logged-in user.
-- `--no-logs`: Disable tunnel request logs.
-
-### `outray switch`
-
-Switch between organizations. If you belong to multiple organizations, you can use this command to change your active context.
-
-```bash
-# Interactive selection
-outray switch
-
-# Direct switch
-outray switch my-org-slug
-```
-
-### `outray whoami`
-
-Displays information about the currently authenticated user and the active organization.
-
-```bash
-outray whoami
-```
-
-### `outray logout`
-
-Clears the local authentication credentials.
-
-```bash
-outray logout
-```
-
-## Configuration Files
-
-You can define multiple tunnels in a TOML configuration file and start them all at once using the `outray start` command.
-
-### Config File Format
-
-Create an `outray/config.toml` file in your project directory:
-
-```toml
+~~~toml
 [global]
 org = "my-team"
-server_url = "wss://api.outray.dev/"
 
 [tunnel.web]
 protocol = "http"
 local_port = 3000
-local_host = "localhost"
 subdomain = "my-app"
-custom_domain = "app.example.com"
 
 [tunnel.api]
 protocol = "http"
 local_port = 8000
-subdomain = "api"
+custom_domain = "api.example.com"
 
-[tunnel.postgres]
+[tunnel.database]
 protocol = "tcp"
 local_port = 5432
 local_host = "localhost"
-remote_port = 20000
+remote_port = 25432
 
-[tunnel.game-server]
+[tunnel.game]
 protocol = "udp"
 local_port = 5000
-remote_port = 30000
-```
+remote_port = 35000
 
-### Configuration Options
+[secrets]
+org = "my-team"
+vault = "my-app"
+environment = "development"
+~~~
 
-**Global Settings:**
+### Global fields
 
-- `org`: Default organization slug for all tunnels (can be overridden per tunnel)
-- `server_url`: Tunnel server URL (optional, defaults to production server)
+| Field | Behavior |
+| --- | --- |
+| `org` | Default organization slug, overridden by a tunnel's `org` |
+| `server_url` | Optional `ws://` or `wss://` tunnel server URL; defaults to the hosted endpoint |
 
-**Tunnel Settings:**
+### Tunnel fields
 
-- `protocol`: Tunnel protocol - `"http"`, `"tcp"`, or `"udp"` (required)
-- `local_port`: Local port number to expose (required, 1-65535)
-- `local_host`: Local hostname (optional, defaults to `"localhost"`)
-- `subdomain`: Custom subdomain for HTTP tunnels (optional, HTTP only)
-- `custom_domain`: Custom domain for HTTP tunnels (optional, HTTP only)
-- `remote_port`: Remote port for TCP/UDP tunnels (optional, TCP/UDP only)
-- `org`: Organization slug for this tunnel (optional, overrides global setting)
+| Field | Behavior |
+| --- | --- |
+| `protocol` | Required: `"http"`, `"tcp"`, or `"udp"` |
+| `local_port` | Required integer from 1 to 65535 |
+| `local_host` | Local hostname, default `"localhost"`; used by TCP/UDP clients |
+| `subdomain` | Optional HTTP subdomain |
+| `custom_domain` | Optional HTTP custom hostname |
+| `remote_port` | Optional TCP/UDP public port |
+| `org` | Optional per-tunnel organization slug |
+| `local` | Optional HTTP LAN advertisement, default `false` |
+| `password` | Optional password for HTTP request protection |
 
-### Example Usage
+The current HTTP client always forwards to `localhost`, including when `local_host` appears in TOML. Use `local_host` for TCP or UDP targets.
 
-```bash
-# Validate your config file first
-outray validate-config
+`outray start` requires a saved browser login and at least one tunnel. Direct-command flags such as `--key`, `--no-logs`, and `--qr` are not applied by `start`. To change tunnel behavior, use the fields supported by the config parser.
 
-# Start all tunnels from outray/config.toml
-outray start
+The `[secrets]` section is target metadata for Secrets commands; `start` does not automatically inject those values into applications.
 
-# Start tunnels from a custom config file
-outray start --config production.toml
-```
+## Secrets commands
 
-## Global Flags
+Create a vault and environment in the console before targeting them from the CLI. Run `outray secrets --help` for local help.
 
-These flags can be used with most commands:
+| Command | Behavior |
+| --- | --- |
+| `outray secrets use` | Select and save the organization, vault, and environment target |
+| `outray secrets list` | List keys, versions, and update times without revealing values |
+| `outray secrets list --values` | Explicitly print values in dotenv format |
+| `outray secrets pull` | Export values to stdout in dotenv format |
+| `outray secrets set <KEY>` | Enter a value using a hidden prompt |
+| `outray secrets import --from <FILE>` | Create or update values from a dotenv file |
+| `outray secrets delete <KEY>` | Delete one key after confirmation |
+| `outray secrets rollback <KEY> --version <N>` | Restore a historical value after confirmation |
+| `outray secrets run -- <COMMAND...>` | Inject remote values into a child process |
 
-- `--version`, `-v`: Display the current CLI version.
-- `--help`, `-h`: Display help information.
-- `--config <path>`: Path to config file (for `start` and `validate-config` commands).
-- `--no-logs`: Disable tunnel request logs (for tunnel commands).
+### Target and authentication
+
+~~~bash
+outray secrets use --org my-team --vault my-app --env development
+outray secrets list
+outray secrets run -- npm run dev
+~~~
+
+Use `--org`/`-o`, `--vault`/`-v`, and `--env`/`-e` to choose a target. `--config <path>` selects an explicit TOML file; otherwise the CLI searches ancestor directories for the nearest `outray/config.toml`.
+
+Target precedence is explicit flags, then environment variables, then config. For the organization, `[global].org` and the active browser-login organization are additional fallbacks.
+
+Authentication tries `OUTRAY_TOKEN`, then `OUTRAY_API_KEY`, then saved browser login. A token needs the appropriate `secrets:read`, `secrets:write`, or `secrets:delete` permission and must allow the target vault/environment.
+
+`--project`/`-p`, `OUTRAY_SECRETS_PROJECT`, and `[secrets].project` are retained compatibility aliases for vault selection; prefer `vault`.
+
+### Export and set values
+
+~~~bash
+outray secrets pull --format json
+outray secrets pull --out .env.local
+outray secrets set DATABASE_URL
+outray secrets set DATABASE_URL --value-stdin < private-database-url.txt
+outray secrets import --from .env.local
+~~~
+
+`pull` accepts `--format env|json`, `--out <path>`, and `--force`. Without `--out`, values go to stdout. File exports do not overwrite an existing file unless `--force` is provided.
+
+`set` does not accept a secret value as a positional argument. Use its hidden prompt or `--value-stdin` (`--stdin` is an alias). A single trailing newline is stripped from stdin input. `import --from -` reads a dotenv document from stdin.
+
+Exported files contain plaintext secrets. Keep them out of version control, logs, and build artifacts.
+
+### Delete, rollback, and production
+
+`delete` and `rollback` require an interactive confirmation, or an explicit `--yes` in automation. Rollback version numbers must be positive integers.
+
+For environments named `prod` or `production`, commands that reveal values, inject values, or mutate secrets also require `--confirm-production`. This does not bypass token scopes or resource restrictions.
+
+### Watch mode
+
+~~~bash
+outray secrets run --watch --watch-interval 5 -- npm run dev
+~~~
+
+Watch mode polls for changes and restarts the child process when values change. The default interval is 5 seconds; `--watch-interval` must be at least 1 second. A temporary connection failure leaves the existing child running, while loss of access stops it.
+
+Remote values override matching inherited environment variables. The CLI removes `OUTRAY_TOKEN` and `OUTRAY_API_KEY` from the child environment, including values supplied under those names. Use a separate key such as `OBSERVABILITY_TOKEN` and pass it as the SDK's `apiKey` when combining Secrets injection with observability.
+
+There are no CLI commands here for creating vaults, creating environments, or listing historical versions. Use the [Secrets console](/docs/secrets) for those workflows.
+
+## Environment variables
+
+| Variable | Read by | Behavior |
+| --- | --- | --- |
+| `OUTRAY_SERVER_URL` | CLI tunnel connections | Override `wss://api.outray.dev/` |
+| `OUTRAY_WEB_URL` | CLI login and Secrets API | Override `https://outray.dev` |
+| `NODE_ENV=development` | CLI environment selection | Select local development endpoints and separate saved login |
+| `OUTRAY_TOKEN` | Secrets commands | Preferred machine credential |
+| `OUTRAY_API_KEY` | Secrets commands | Machine credential fallback |
+| `OUTRAY_ORG` | Secrets commands | Organization target fallback |
+| `OUTRAY_SECRETS_VAULT` | Secrets commands | Vault target fallback |
+| `OUTRAY_SECRETS_ENVIRONMENT` | Secrets commands | Environment target fallback |
+
+`--dev` also selects the CLI's development environment. The default development endpoints are `ws://localhost:3547` and `http://localhost:6767`, and login is stored separately in `~/.outray/config.dev.json`. Do not use `--dev` simply because you are tunneling a development application; it is for a local OutRay installation.
+
+Secrets commands additionally accept `--api-url <url>` to override their API base. SDKs and framework plugins have their own environment variables; see their individual guides.
