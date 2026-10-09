@@ -6,6 +6,7 @@ import { CreateTokenModal } from "@/components/create-token-modal";
 import { Button } from "@/components/arc/button/button";
 import { Select } from "@/components/ui/select";
 import { SetupFlow, SetupStep, SetupCodeBlock as CodeBlock } from "./setup-ui";
+import { observabilitySetupCode } from "./setup-endpoints";
 
 type ObservabilityFramework =
   | "node"
@@ -211,7 +212,7 @@ export function ObservabilitySetup({
         </SetupStep>
         <SetupStep number="03" title={`Configure ${selectedFramework.label}`}>
           <p className="mb-4 text-[12px] leading-5 text-zinc-400">Add this to <span className="font-mono text-zinc-300">{selectedFramework.fileName}</span>, replace the token placeholder, then start your application.</p>
-          <CodeBlock multiline fileName={selectedFramework.fileName}>{selectedFramework.code}</CodeBlock>
+          <CodeBlock multiline fileName={selectedFramework.fileName}>{observabilitySetupCode(selectedFramework.code)}</CodeBlock>
           <p className="mt-3 text-[11px] leading-5 text-zinc-400">Start instrumentation before importing your application. Verification will pick up its first telemetry automatically.</p>
         </SetupStep>
       </SetupFlow>
