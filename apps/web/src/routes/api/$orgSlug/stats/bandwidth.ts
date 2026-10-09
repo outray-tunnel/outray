@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { subscriptions } from "@/db/subscription-schema";
 import { redis } from "@/lib/redis";
-import { SUBSCRIPTION_PLANS } from "@/lib/subscription-plans";
+import { getPlanLimits, installationPlan } from "@/lib/subscription-plans";
 import { requireOrgFromSlug } from "@/lib/org";
 import { cachedDashboardRead, dashboardCacheKey } from "@/lib/dashboard-cache";
 import { cachedDashboardRedisRead } from "@/lib/dashboard-redis-cache";
@@ -34,10 +34,7 @@ export const Route = createFileRoute("/api/$orgSlug/stats/bandwidth")({
             ]);
             const usage = parseInt(usageStr || "0", 10);
 
-            const planId = subscription[0]?.plan || "free";
-            const plan =
-              SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS];
-            const limit = plan.features.bandwidthPerMonth;
+            const limit = getPlanLimits(installationPlan(subscription[0]?.plan)).bandwidthPerMonth;
 
             return {
               usage,
