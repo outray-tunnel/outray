@@ -11,6 +11,7 @@ import type { LoginProvider } from "../../lib/login";
 import { Button } from "../arc/button/button";
 import "../outray-arc-theme.css";
 import styles from "./auth-page.module.css";
+import { useInstance, type PublicInstanceConfig } from "@/lib/instance-context";
 
 const products = [
   { name: "Tunnels", description: "Bring your local services online.", icon: Cone01Icon },
@@ -28,7 +29,14 @@ interface AuthPageProps {
   onLogin: (provider: LoginProvider) => void;
 }
 
-export function AuthPage({ mode = "login", loading, sessionPending, error, redirect, onLogin }: AuthPageProps) {
+export function AuthPage(props: AuthPageProps) {
+  const instance = useInstance();
+  return <AuthPageView {...props} instance={instance} />;
+}
+
+export function AuthPageView({ mode = "login", loading, sessionPending, error, redirect, onLogin, instance }: AuthPageProps & {
+  instance: Pick<PublicInstanceConfig, "selfHosted" | "authProviders">;
+}) {
   const isSignup = mode === "signup";
   const titleId = `${mode}-title`;
   const productsTitleId = `${mode}-products-title`;
@@ -46,18 +54,19 @@ export function AuthPage({ mode = "login", loading, sessionPending, error, redir
       <section className={styles.signIn} aria-labelledby={titleId}>
         <div className={styles.heading}>
           <h1 id={titleId}>{isSignup ? "Create your account" : "Welcome back"}</h1>
-          <p>{isSignup ? "Start building with OutRay." : "Sign in to your OutRay workspace."}</p>
+          <p>{instance.selfHosted ? "Use an approved account to access this installation. Signup is restricted by your administrator." : isSignup ? "Start building with OutRay." : "Sign in to your OutRay workspace."}</p>
         </div>
 
         <div className={styles.providers} role="group" aria-label={isSignup ? "Sign-up options" : "Sign-in options"} aria-busy={busy}>
-          <Button type="button" variant="primary" size="lg" className={styles.provider} loading={loading === "github"}
+          {instance.authProviders.includes("github") && <Button type="button" variant="primary" size="lg" className={styles.provider} loading={loading === "github"}
             disabled={sessionPending || loading === "google"} onClick={() => { if (!busy) onLogin("github"); }} aria-label="Continue with GitHub">
             <FaGithub size={17} aria-hidden="true" />Continue with GitHub
-          </Button>
-          <Button type="button" variant="secondary" size="lg" className={styles.provider} loading={loading === "google"}
+          </Button>}
+          {instance.authProviders.includes("google") && <Button type="button" variant="secondary" size="lg" className={styles.provider} loading={loading === "google"}
             disabled={sessionPending || loading === "github"} onClick={() => { if (!busy) onLogin("google"); }} aria-label="Continue with Google">
             <FcGoogle size={17} aria-hidden="true" />Continue with Google
-          </Button>
+          </Button>}
+          {!instance.authProviders.length && <p role="alert">Sign-in is not configured. Ask your administrator to configure GitHub or Google OAuth.</p>}
         </div>
         <p className={styles.status} role="status" aria-live="polite" aria-atomic="true">{status}</p>
         {error && <div className={styles.error} role="alert"><CircleAlert size={15} aria-hidden="true" /><p>{error}</p></div>}
