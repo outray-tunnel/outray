@@ -90,7 +90,7 @@ async function controller(initial: Partial<OrganizationDropdownProps> = {}) {
     if (specifier === "@radix-ui/react-popover") return { Root, Trigger, Portal, Content: Panel };
     if (specifier === "./organization-switcher-content") return contentModule;
     if (specifier === "@hugeicons/react") return { HugeiconsIcon: Icon };
-    if (specifier.startsWith("@hugeicons-pro/")) return {};
+    if (specifier.startsWith("@outray/icons/")) return {};
     if (specifier.endsWith(".css")) return {};
     throw new Error(`Unexpected organization dropdown dependency: ${specifier}`);
   });
