@@ -101,7 +101,7 @@ export function MobileNavSheet({ isOpen, onClose, orgSlug }: { isOpen: boolean; 
 
           {organizations.length > 1 && <section aria-labelledby="mobile-organizations-heading" className="pt-8">
             <h3 id="mobile-organizations-heading" className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">Organizations</h3>
-            <div className="divide-y divide-white/[0.06]">{organizations.map((org) => <Link key={org.id} to="/$orgSlug" params={{ orgSlug: org.slug }} onClick={() => { setSelectedOrganization(org); onClose(); }}
+            <div className="divide-y divide-white/[0.06]">{organizations.map((org) => <Link key={org.id} to="/$orgSlug/tunnel" params={{ orgSlug: org.slug }} onClick={() => { setSelectedOrganization(org); onClose(); }}
               aria-current={org.slug === orgSlug ? "page" : undefined}
               className={`flex min-h-12 items-center gap-3 rounded-lg px-2 text-[13px] transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-violet-400 ${org.slug === orgSlug ? "text-zinc-100" : "text-zinc-400 hover:bg-white/[0.035] hover:text-zinc-200"}`}>
               <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-white/[0.1] bg-white/[0.04] text-xs">{org.name.charAt(0).toUpperCase()}</span><span className="min-w-0 flex-1 truncate">{org.name}</span>{org.slug === orgSlug && <Check size={15} className="text-zinc-400" aria-hidden="true" />}
