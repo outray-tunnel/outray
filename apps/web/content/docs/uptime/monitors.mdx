@@ -1,0 +1,47 @@
+---
+title: Monitor checks and publishing rules
+description: Configure success conditions, confirmed failure/recovery, and public-incident timing.
+icon: HeartPulse
+---
+
+## Configure the check
+
+Monitors use `GET` or `HEAD` once per minute from one region. With no exact status configured, 200–399 is considered successful. An exact expected status can be any valid HTTP status from 100–599. Response-text matching is a literal, case-sensitive check and requires `GET`; text is limited to 256 characters.
+
+The probe follows at most three redirects, validating every target. Private and special-use network addresses and HTTPS-to-HTTP downgrades are rejected. Request work is bounded by a ten-second timeout; response-text inspection is limited to the bounded response read. Do not expect a match in arbitrarily large or streaming output.
+
+Use a public DNS hostname with the standard protocol port. The public-endpoint restriction is intentional; this is not a private-network or localhost probe.
+
+## Manage request headers
+
+Optional headers are encrypted at rest. Host, proxy, forwarded, cookie, and connection-control headers are restricted. Saved plaintext headers are not returned to the dashboard editor.
+
+When editing, choose **Replace or clear existing headers** to supply replacements; leaving replacement input blank clears them. Changing the target URL clears existing credentials unless replacements are supplied. This prevents silently carrying a credential to a different endpoint.
+
+## Read confirmed monitor state
+
+- **Unknown:** no current usable check evidence, a paused monitor, or evidence older than three minutes.
+- **Up:** a successful first observation, or confirmed recovery.
+- **Down:** the configured 2–5 consecutive failures have been reached.
+
+The first success establishes Up. Recovery from Down needs two consecutive successes. Before a threshold is reached, the monitor retains its last confirmed state. Raw check failures and the confirmed state therefore need not change together.
+
+Raw checks are retained for 30 days. Compact daily evidence supports a 90-day public history; periods without observations are not invented as successful checks. These are measured observations from one region, not a multi-region uptime guarantee.
+
+## Choose public incident timing
+
+| Mode | When a detected issue can become public |
+| --- | --- |
+| Manual (`manual`) | The team decides to publish a written update |
+| After confirmation (`after_confirmation`) | Downtime persists for the configured 1–60 minutes after Down is confirmed |
+| Automatic (`automatic`) | The failure threshold confirms Down |
+
+The default mode is Manual. Automatic and delayed publication require a published status page and a visible linked component; a component in a hidden group is not eligible. A recovered or ignored private detection is not an active incident to publish later.
+
+The confirmation delay starts after Down is confirmed, not at the first failed check. A three-failure threshold plus five-minute confirmation delay is therefore not a promise to publish five minutes after the first failure. Publication occurs when the worker next evaluates the eligible still-down incident.
+
+These modes do not hide a linked component's live health or send subscriber email by themselves. See [incidents](/docs/uptime/incidents) and [notification triggers](/docs/uptime/notifications).
+
+## Troubleshooting
+
+For unexpected Down, inspect recorded status, latency, and error classification; review DNS, redirects, exact status, and response-text conditions. Response bodies are not stored for later debugging. For Unknown, inspect enabled state and last-check time before calling it an outage. For missing public incidents, check page publication, component/group visibility, monitor links, publication mode, and whether the detection already recovered or was ignored.
