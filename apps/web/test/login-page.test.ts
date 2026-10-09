@@ -4,7 +4,7 @@ import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterContextProvider } from "@tanstack/react-router";
-import { AuthPage } from "../src/components/auth/auth-page";
+import { AuthPage, AuthPageView } from "../src/components/auth/auth-page";
 import { Button, type ButtonProps } from "../src/components/arc/button/button";
 import type { LoginProvider } from "../src/lib/login";
 
@@ -13,6 +13,7 @@ Object.assign(globalThis, { React });
 
 type PageProps = React.ComponentProps<typeof AuthPage>;
 const defaults: PageProps = { loading: null, sessionPending: false, error: null, onLogin: () => {} };
+const hostedInstance = { selfHosted: false, authProviders: ["github", "google"] as LoginProvider[] };
 
 function renderLogin(overrides: Partial<PageProps> = {}) {
   const root = createRootRoute();
@@ -82,12 +83,12 @@ test("the real view forwards provider actions only at rest", () => {
   const onLogin = (provider: LoginProvider) => { calls.push(provider); };
   const event = {} as React.MouseEvent<HTMLButtonElement>;
   for (const state of [{ sessionPending: true }, { loading: "github" as const }, { loading: "google" as const }]) {
-    const options = elements(AuthPage({ ...defaults, ...state, onLogin })).filter((element) => element.type === Button);
+    const options = elements(AuthPageView({ ...defaults, ...state, onLogin, instance: hostedInstance })).filter((element) => element.type === Button);
     assert.equal(options.length, 2);
     options.forEach((option) => { (option.props as ButtonProps).onClick?.(event); });
     assert.deepEqual(calls, []);
   }
-  const options = elements(AuthPage({ ...defaults, onLogin })).filter((element) => element.type === Button);
+  const options = elements(AuthPageView({ ...defaults, onLogin, instance: hostedInstance })).filter((element) => element.type === Button);
   options.forEach((option) => { (option.props as ButtonProps).onClick?.(event); });
   assert.deepEqual(calls, ["github", "google"]);
 });
