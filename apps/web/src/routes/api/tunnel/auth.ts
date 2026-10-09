@@ -13,7 +13,7 @@ import {
   hashMachineToken,
   machineTokenPrefix,
 } from "../../../lib/machine-tokens";
-import { SUBSCRIPTION_PLANS } from "../../../lib/subscription-plans";
+import { installationPlan, getPlanLimits } from "../../../lib/subscription-plans";
 import {rateLimiters, getClientIdentifier, createRateLimitResponse,} from "../../../lib/rate-limiter";
 
 export const Route = createFileRoute("/api/tunnel/auth")({
@@ -181,11 +181,9 @@ export const Route = createFileRoute("/api/tunnel/auth")({
             where: eq(organizationSettings.organizationId, organizationId),
           });
 
-          const plan = (subscription?.plan ||
-            "free") as keyof typeof SUBSCRIPTION_PLANS;
-          const bandwidthLimit =
-            SUBSCRIPTION_PLANS[plan].features.bandwidthPerMonth;
-          const retentionDays = SUBSCRIPTION_PLANS[plan].features.retentionDays;
+          const plan = installationPlan(subscription?.plan);
+          const bandwidthLimit = getPlanLimits(plan).bandwidthPerMonth;
+          const retentionDays = getPlanLimits(plan).retentionDays;
           const fullCaptureEnabled = orgSettings?.fullCaptureEnabled ?? false;
 
           return Response.json({
