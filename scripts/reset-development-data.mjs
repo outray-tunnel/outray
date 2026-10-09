@@ -479,18 +479,11 @@ async function verify(r) {
 }
 
 async function main() {
-  const [mode, manifest] = process.argv.slice(2);
-  if (!["inspect", "backup", "reset", "refresh-primary-reset", "seed", "seed-telemetry", "verify"].includes(mode)) throw new Error("Use inspect, backup, reset <manifest>, refresh-primary-reset <manifest>, seed, seed-telemetry, or verify.");
-  const r = await resources();
-  try {
-    if (mode === "inspect") { const data = await inspect(r); console.log(JSON.stringify({ ...data, redis: { ...data.redis, deleteKeys: data.redis.deleteKeys.map(({ key, type, ttlMs }) => ({ key, type, ttlMs })) } }, null, 2)); }
-    if (mode === "backup") await backup(r);
-    if (mode === "reset") await reset(r, manifest);
-    if (mode === "refresh-primary-reset") await refreshPrimaryAndReset(r, manifest);
-    if (mode === "seed") await seed(r);
-    if (mode === "seed-telemetry") await seedTelemetry(r);
-    if (mode === "verify") await verify(r);
-  } finally { await r.close(); }
+  // This archived implementation inventories/deletes tunnel history in
+  // Timescale and would miss the new Tinybird tunnel datasources. Fail before
+  // loading environment files or connecting to any store, for every mode.
+  // Keep the pure exported policy/projection helpers for existing tests.
+  throw new Error("Legacy development reset is disabled after the tunnel Tinybird migration. Its backup and deletion plan does not include the new tunnel datasources. Adapt and verify the complete cross-store backup/reset plan before running a reset; no stores were opened.");
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
