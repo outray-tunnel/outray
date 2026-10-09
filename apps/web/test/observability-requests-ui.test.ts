@@ -66,7 +66,7 @@ async function loadContent() {
       if (specifier.endsWith("/requests/utils")) return requestUtils;
       if (specifier === "lucide-react") return new Proxy({}, { get: () => () => null });
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
-      if (specifier.startsWith("@hugeicons-pro/")) return { __esModule: true, default: [] };
+      if (specifier.startsWith("@outray/icons/")) return { __esModule: true, default: [] };
       if (specifier.startsWith("../arc/") || specifier === "../ui/segmented-control" || specifier === "./connect-service-sheet" || specifier === "./request-explanation-preview" || specifier.endsWith(".css")) return stubs;
       throw new Error(`Unexpected requests UI dependency: ${specifier}`);
     },
