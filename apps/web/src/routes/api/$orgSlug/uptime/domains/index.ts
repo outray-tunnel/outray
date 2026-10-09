@@ -5,6 +5,7 @@ import { domains } from "@/db/app-schema";
 import { organizations } from "@/db/auth-schema";
 import { uptimeStatusPages } from "@/db/uptime-schema";
 import { badInput, jsonBody, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
+import { isReservedStatusCustomDomain, statusDnsTarget } from "@/lib/uptime/domain-config";
 
 const domainPattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/;
 
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/domains/")({
       if (typeof body.domain !== "string") return badInput("Enter a custom status subdomain", "domain");
       const candidate = body.domain.trim().toLowerCase().replace(/\.$/, "");
       if (candidate.length > 253 || candidate.split(".").length < 3 || !domainPattern.test(candidate) ||
-        candidate.endsWith(".outray.app") || candidate.endsWith(".outray.dev")) {
+        isReservedStatusCustomDomain(candidate)) {
         return badInput("Use a subdomain you own, such as status.example.com", "domain");
       }
       try {
@@ -56,7 +57,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/domains/")({
             txtName: `_outray-challenge.${candidate}`,
             txtValue: result.domain.id,
             cnameName: candidate,
-            cnameTarget: "status.outray.app",
+            cnameTarget: statusDnsTarget(),
             proxy: "DNS only",
           },
         }, { status: 201 });
