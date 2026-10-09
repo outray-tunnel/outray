@@ -5,9 +5,10 @@ import { nanoid } from "nanoid";
 import { db } from "../../../../db";
 import { domains } from "../../../../db/app-schema";
 import { subscriptions } from "../../../../db/subscription-schema";
+import { organizations } from "../../../../db/auth-schema";
 import { requireOrgFromSlug } from "../../../../lib/org";
 import { isReservedStatusDomain } from "../../../../lib/reserved-status-domain";
-import { getPlanLimits } from "../../../../lib/subscription-plans";
+import { capacityDescription, getPlanLimits } from "../../../../lib/subscription-plans";
 
 export const Route = createFileRoute("/api/$orgSlug/domains/")({
   server: {
@@ -45,7 +46,7 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
 
         if (isReservedStatusDomain(normalizedDomain)) {
           return Response.json(
-            { error: "status.outray.app and its subdomains are reserved for Uptime status pages" },
+            { error: "The status-page address and its subdomains are reserved for Uptime" },
             { status: 400 },
           );
         }
@@ -73,7 +74,10 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
         // Use a transaction with row-level locking to prevent race conditions
         try {
           const result = await db.transaction(async (tx) => {
-            // Lock the organization's subscription row to serialize concurrent requests
+            // Every organization exists, even without a hosted subscription.
+            // Lock it so concurrent self-hosted/free creates cannot exceed capacity.
+            await tx.select({ id: organizations.id }).from(organizations)
+              .where(eq(organizations.id, organization.id)).for("update");
             const [subscription] = await tx
               .select()
               .from(subscriptions)
@@ -95,7 +99,7 @@ export const Route = createFileRoute("/api/$orgSlug/domains/")({
 
             if (existingCount >= domainLimit) {
               return {
-                error: `Domain limit reached. The ${currentPlan} plan allows ${domainLimit} custom domain${domainLimit !== 1 ? "s" : ""}.`,
+                error: `Domain limit reached. ${capacityDescription(currentPlan, domainLimit, `custom domain${domainLimit !== 1 ? "s" : ""}`)}`,
                 status: 403,
               };
             }
