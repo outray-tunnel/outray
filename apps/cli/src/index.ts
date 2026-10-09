@@ -5,7 +5,7 @@ import path from "path";
 import { OutRayClient } from "./client";
 import { TCPTunnelClient } from "./tcp-client";
 import { UDPTunnelClient } from "./udp-client";
-import { ConfigManager, OutRayConfig } from "./config";
+import { ConfigManager, OutRayConfig, canonicalConsoleOrigin } from "./config";
 import { AuthManager } from "./auth";
 import { TomlConfigParser, ParsedTunnelConfig } from "./toml-config";
 import { runSecretsCommand } from "./secrets-cli";
@@ -468,11 +468,11 @@ async function main() {
   const serverUrl =
     process.env.OUTRAY_SERVER_URL ||
     (isDev ? "ws://localhost:3547" : "wss://api.outray.dev/");
-  const webUrl =
+  const webUrl = canonicalConsoleOrigin(
     process.env.OUTRAY_WEB_URL ||
-    (isDev ? "http://localhost:6767" : "https://outray.dev");
+    (isDev ? "http://localhost:6767" : "https://outray.dev"));
 
-  const configManager = new ConfigManager(isDev);
+  const configManager = new ConfigManager(isDev, webUrl);
 
   if (command === "version" || command === "-v" || command === "--version") {
     console.log(`outray version ${version}`);
