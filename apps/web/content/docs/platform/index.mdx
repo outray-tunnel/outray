@@ -1,0 +1,23 @@
+---
+title: Workspace platform
+description: Understand organizations, membership, machine credentials, and read-only Agent investigations.
+icon: Building2
+---
+
+Tunnels, Observability, Secrets, and Uptime use the selected organization as their workspace boundary. Human membership controls dashboard access; scoped API tokens authenticate machine clients.
+
+<Cards>
+  <Card title="Organizations and members" href="/docs/platform/organizations">
+    Select the right workspace, invite collaborators, and understand roles.
+  </Card>
+  <Card title="API tokens" href="/docs/platform/api-tokens">
+    Grant explicit product permissions and maintain credential lifecycle.
+  </Card>
+  <Card title="Agent" href="/docs/platform/agent">
+    Investigate observability evidence with a read-only assistant.
+  </Card>
+</Cards>
+
+Resources do not move between organizations when you switch the dashboard selection. Likewise, choosing an organization or vault in a CLI configuration file does not grant access: the authenticated identity or token must be authorized for that target.
+
+Use the dashboard's current controls for any account-specific availability or limits. These guides describe implemented workflows, not billing entitlements or a guaranteed AI allowance.
