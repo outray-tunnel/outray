@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent, type RefObject } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Globe02Icon from "@hugeicons-pro/core-stroke-rounded/Globe02Icon";
+import Globe02Icon from "@outray/icons/stroke/Globe02Icon";
 import { isReservedStatusDomain } from "@/lib/reserved-status-domain";
 import { Button } from "../arc/button/button";
 import { Dialog, DialogContent } from "../arc/dialog/dialog";
