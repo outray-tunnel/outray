@@ -3,9 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { appClient, type Subdomain } from "@/lib/app-client";
 import {
-  getPlanLimits,
+  getSubscriptionLimits,
   isUnlimitedPlanLimit,
-  type SubscriptionPlan,
 } from "@/lib/subscription-plans";
 import { SearchField } from "@/components/arc/search-field/search-field";
 import { SubdomainHeader } from "@/components/subdomains/subdomain-header";
@@ -95,8 +94,8 @@ function SubdomainsPage({ orgSlug }: { orgSlug: string }) {
   const subdomains = listQuery.data?.subdomains ?? [];
   const filtered = filterSubdomains(subdomains, search);
   const currentPlan = subscriptionQuery.data?.subscription?.plan || "free";
-  const limit = getPlanLimits(currentPlan as SubscriptionPlan).maxSubdomains;
-  const isUnlimited = isUnlimitedPlanLimit(currentPlan, limit);
+  const limit = getSubscriptionLimits(subscriptionQuery.data).maxSubdomains;
+  const isUnlimited = isUnlimitedPlanLimit(currentPlan, limit, !!subscriptionQuery.data?.instanceLimits);
   const isAtLimit = !isUnlimited && subdomains.length >= limit;
   const isReady = Boolean(listQuery.data && subscriptionQuery.data);
 
@@ -137,6 +136,7 @@ function SubdomainsPage({ orgSlug }: { orgSlug: string }) {
       )}
       {isReady && (
         <SubdomainLimitWarning
+          instanceOwned={!!subscriptionQuery.data?.instanceLimits}
           isAtLimit={isAtLimit}
           subdomainLimit={limit}
           currentPlan={currentPlan}
