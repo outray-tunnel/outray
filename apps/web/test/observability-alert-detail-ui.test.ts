@@ -47,7 +47,7 @@ async function load() {
       if (specifier === "@tanstack/react-router") return { createFileRoute: () => () => ({ useNavigate: () => () => { deleted++; } }), Link: stubs.Link, Outlet: stub("div"), useSearch: () => searches };
       if (specifier === "motion/react") return { LayoutGroup: stub("div"), motion: { span: ({ className, children }: any) => React.createElement("span", { className }, children) }, useReducedMotion: () => true };
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
-      if (specifier.startsWith("@hugeicons-pro/")) return {};
+      if (specifier.startsWith("@outray/icons/")) return {};
       if (specifier === "recharts") return new Proxy({}, { get: () => stub("div") });
       if (specifier.endsWith("alerts-data")) return alertsData;
       if (specifier.endsWith("alert-detail-polling")) return { startAlertDetailPolling: () => () => {} };
