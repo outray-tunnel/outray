@@ -144,7 +144,7 @@ function GetStarted() {
         <p className="mt-7 text-[12px] leading-5 text-zinc-700">
           Not sure?{" "}
           <Link
-            to="/$orgSlug"
+            to="/$orgSlug/tunnel"
             params={{ orgSlug }}
             className="text-zinc-500 transition-colors hover:text-zinc-200"
           >
