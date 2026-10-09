@@ -1,0 +1,37 @@
+---
+title: Investigate with Agent
+description: Ask a read-only assistant about request evidence and keep conclusions tied to observed data.
+icon: Sparkles
+---
+
+OutRay Agent investigates observability evidence. It can read safe request metadata, bounded trace-span metadata, correlated log hints, and request statistics. It cannot modify configuration, publish an incident, replay requests, read secret values, run code, execute SQL, or browse the web.
+
+## Start from a request
+
+Open a request in **Observability → Requests** and use **Explain request**. The conversation is attached to that operation so Agent can inspect the request, follow its trace, check correlated logs, and compare relevant activity.
+
+Ask a focused follow-up, such as “Which measured operation contributed most to this request's duration?” or “Does the comparison show the same failure pattern?” Evidence cards and workspace links let you return to the underlying records.
+
+## Start a general investigation
+
+Open Agent from the workspace and ask a specific observability question. With no attached request, describe a service or route and a narrow comparison rather than expecting Agent to know an incident or operation you have not identified.
+
+The current tools are for request-oriented evidence; this is not a general assistant with access to every product. Raw log messages, sensitive payloads, and secret values are intentionally withheld from its investigation tools. Do not paste credentials to fill a gap.
+
+## Read the answer as an investigation
+
+Distinguish measured findings from possible explanations. Correlation is not proof of root cause, and overlapping span durations are not sequential work to add together. A successful HTTP status does not establish that every dependency was healthy.
+
+Agent queries evidence without the dashboard cache, but that does not guarantee fresh source events. Ingestion lag, source retention, missing context, and bounded/truncated results can limit the answer. Retrieval time is not event time. Empty evidence and failed evidence retrieval are different outcomes.
+
+## Conversation lifecycle
+
+Use **Chat history** to reopen saved conversations in the current organization. Conversations are scoped to the signed-in creator and organization; they are not a shared team-chat channel. Use **New chat** for a separate investigation.
+
+Closing the panel is not the same as stopping the response: workspace state keeps an active conversation while the panel is closed. Use the stop control to cancel your active response. If a saved response is still running, refresh chats to inspect its state rather than repeatedly resubmitting the same request.
+
+## If Agent is unavailable
+
+Agent requires the deployment's server-side AI provider configuration and conversation storage. An unconfigured message is an operator setup issue, not an instruction to add a provider key to your browser.
+
+For a timeout or evidence failure, try a narrower question and inspect the linked records manually. Access, concurrency, and usage limits may prevent a run; follow the displayed message. These docs do not promise a plan-specific AI quota or that every investigation can complete.
