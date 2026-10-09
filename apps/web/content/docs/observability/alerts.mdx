@@ -1,0 +1,39 @@
+---
+title: Configure alerts
+description: Evaluate service signals over a window and notify organization members, Slack, or Discord.
+icon: Bell
+---
+
+Organization members can view alerts; owners and admins manage their configuration and destinations.
+
+## Choose the signal
+
+Open **Observability → Alerts**, create an alert, and select the service and optional environment. Supported signals are request error rate, request P95 latency, request throughput, metric value, log count, and no telemetry.
+
+Choose a signal that answers a specific question. For example, error rate describes failed measured requests, while **no telemetry** asks whether the selected service is reporting evidence. It is not an HTTP probe; use [Uptime](/docs/uptime) for reachability.
+
+Metric-value alerts require a cataloged **gauge** metric. Select its catalog identity and aggregation (latest, average, maximum, or minimum), not only a display name. Log-count alerts can restrict severity and search text.
+
+## Set evaluation behavior
+
+Configure the comparison operator, threshold, rolling window, and evaluation interval. Error-rate thresholds use percent, request-latency thresholds use milliseconds, and throughput thresholds use requests per minute. Read the selected metric's unit for metric-value rules.
+
+Available windows are 1, 5, 10, 15, 30, and 60 minutes; evaluations can run every 1, 5, or 15 minutes. No-telemetry rules require at least a five-minute window.
+
+Set consecutive failures and recoveries to control how many evaluations confirm a transition. Configure minimum samples so low traffic does not give a misleading latency or error-rate result. Defaults are 20 samples for request error rate/P95 and one for other signals.
+
+Choose what insufficient evidence should mean: **No data**, **Healthy**, or **Alerting**. This is a deliberate policy decision, not proof that an empty result is healthy. Review how it behaves for a quiet development service before using the same rule in production.
+
+## Select team notifications
+
+On the alert's **Notifications** page, choose organization members for email delivery. Arbitrary external email addresses are not valid team recipients.
+
+Connect Slack or Discord through the provider's authorization screen to select a channel. OutRay stores the resulting delivery credential encrypted and does not return it from alert APIs. Change the channel or remove the destination from the alert when needed. Provider connection controls depend on the deployment having that integration configured.
+
+Observability alert destinations belong to each alert. [Uptime notifications](/docs/uptime/notifications) are configured separately; connecting one product does not configure the other.
+
+## Review and troubleshoot
+
+Inspect the alert's condition, state, and evaluation history before changing the threshold. Use the manual evaluation control when available to check the current rule against evidence. A muted alert and a disabled alert are not the same configuration choice; review both when an expected notification does not arrive.
+
+If an alert has no data, verify the service/environment selection, metric eligibility, window, and minimum samples. If evidence is unavailable, diagnose that separately from an empty query. If notifications are missing, confirm recipients are still organization members and destinations remain connected. Delivery depends on the deployment's evaluator and notification services, not merely on saving a rule.
