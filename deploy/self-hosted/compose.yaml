@@ -1,0 +1,378 @@
+name: outray-self-hosted
+
+x-build: &build
+  context: ../..
+  dockerfile: deploy/self-hosted/Dockerfile
+  args:
+    APP_PUBLIC_URL: https://${OUTRAY_APP_HOST:?Set OUTRAY_APP_HOST}
+    STATUS_PUBLIC_URL: https://${OUTRAY_STATUS_HOST:?Set OUTRAY_STATUS_HOST}
+    SHARE_PUBLIC_URL: https://${OUTRAY_SHARE_HOST:?Set OUTRAY_SHARE_HOST}
+    EDGE_PUBLIC_URL: wss://${OUTRAY_EDGE_HOST:?Set OUTRAY_EDGE_HOST}
+    INGEST_PUBLIC_URL: https://${OUTRAY_INGEST_HOST:?Set OUTRAY_INGEST_HOST}
+  secrets:
+    - hugeicons_license_key
+
+x-app: &app
+  image: ${OUTRAY_IMAGE:-outray-self-hosted:local}
+  build: *build
+  init: true
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  networks:
+    - services
+    - database
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-policy: &policy
+  NODE_ENV: production
+  HOST: 0.0.0.0
+  OUTRAY_DEPLOYMENT_MODE: self-hosted
+  OUTRAY_PRODUCTS: ${OUTRAY_PRODUCTS:-tunnels,observability,secrets,uptime}
+  OUTRAY_RETENTION_DAYS: ${OUTRAY_RETENTION_DAYS:-30}
+  OUTRAY_MAX_TUNNELS: ${OUTRAY_MAX_TUNNELS:-1000}
+  OUTRAY_MAX_DOMAINS: ${OUTRAY_MAX_DOMAINS:-1000}
+  OUTRAY_MAX_SUBDOMAINS: ${OUTRAY_MAX_SUBDOMAINS:-1000}
+  OUTRAY_MAX_MEMBERS: ${OUTRAY_MAX_MEMBERS:-1000}
+  OUTRAY_MAX_UPTIME_MONITORS: ${OUTRAY_MAX_UPTIME_MONITORS:-1000}
+  OUTRAY_MAX_OBSERVABILITY_ALERTS: ${OUTRAY_MAX_OBSERVABILITY_ALERTS:-1000}
+  OUTRAY_BANDWIDTH_BYTES_PER_MONTH: ${OUTRAY_BANDWIDTH_BYTES_PER_MONTH:-1099511627776}
+
+x-database: &database-environment
+  DATABASE_URL: postgresql://${POSTGRES_USER:-outray}:${POSTGRES_PASSWORD:?Run the self-hosted initializer}@postgres:5432/${POSTGRES_DB:-outray}?sslmode=disable
+  DATABASE_SSL_REJECT_UNAUTHORIZED: "true"
+
+x-redis: &redis-environment
+  REDIS_URL: redis://redis:6379
+
+x-tinybird-read: &tinybird-read-environment
+  TINYBIRD_API_HOST: ${TINYBIRD_API_HOST:?Set your Tinybird API origin}
+  TINYBIRD_QUERY_TOKEN: ${TINYBIRD_QUERY_TOKEN:?Set a scoped Tinybird read token}
+
+x-tinybird-write: &tinybird-write-environment
+  TINYBIRD_API_HOST: ${TINYBIRD_API_HOST:?Set your Tinybird API origin}
+  TINYBIRD_INGEST_TOKEN: ${TINYBIRD_INGEST_TOKEN:?Set a scoped Tinybird append token}
+  TINYBIRD_TUNNEL_INGEST_TOKEN: ${TINYBIRD_TUNNEL_INGEST_TOKEN:-}
+
+x-crypto: &crypto-environment
+  OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID: ${OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID:-v1}
+  OUTRAY_SECRETS_ACTIVE_MASTER_KEY: ${OUTRAY_SECRETS_ACTIVE_MASTER_KEY:?Run the self-hosted initializer}
+  OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS: ${OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS:-}
+
+x-uptime: &uptime-environment
+  UPTIME_ENABLED: "true"
+  OUTRAY_STATUS_URL: https://${OUTRAY_STATUS_HOST}
+  STATUS_PUBLIC_URL: https://${OUTRAY_STATUS_HOST}
+  OUTRAY_DASHBOARD_URL: https://${OUTRAY_APP_HOST}
+  UPTIME_RATE_LIMIT_SECRET: ${UPTIME_RATE_LIMIT_SECRET:?Run the self-hosted initializer}
+  UPTIME_UNSUBSCRIBE_SECRET: ${UPTIME_UNSUBSCRIBE_SECRET:?Run the self-hosted initializer}
+  STATUS_EDGE_SECRET: ${STATUS_EDGE_SECRET:?Run the self-hosted initializer}
+  ZEPTO_API_KEY: ${ZEPTO_API_KEY:-}
+  ZEPTO_FROM_EMAIL: ${ZEPTO_FROM_EMAIL:-}
+  ZEPTO_FROM_NAME: ${ZEPTO_FROM_NAME:-OutRay}
+
+x-dependencies: &dependencies
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  migrate:
+    condition: service_completed_successfully
+
+services:
+  postgres:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-outray}
+      POSTGRES_DB: ${POSTGRES_DB:-outray}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run the self-hosted initializer}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+  redis:
+    image: redis:7-bookworm
+    restart: unless-stopped
+    # Do not evict durable ingestion queues or counters under memory pressure.
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "${REDIS_MAX_MEMORY:-512mb}", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+  migrate:
+    <<: *app
+    restart: "no"
+    working_dir: /app/apps/web
+    command: ["sh", "-ec", "node /app/node_modules/drizzle-kit/bin.cjs migrate && node /app/scripts/self-hosted-share-role.mjs"]
+    environment:
+      <<: [*policy, *database-environment]
+      SHARE_DATABASE_URL: postgresql://outray_share_app:${SHARE_DATABASE_PASSWORD:?Run the self-hosted initializer}@postgres:5432/${POSTGRES_DB:-outray}?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    command: ["node", "apps/web/.output/server/index.mjs"]
+    environment:
+      <<: [*policy, *database-environment, *redis-environment, *tinybird-read-environment, *crypto-environment, *uptime-environment]
+      PORT: "6767"
+      APP_URL: https://${OUTRAY_APP_HOST}
+      CONSOLE_PUBLIC_URL: https://${OUTRAY_APP_HOST}
+      TUNNEL_PUBLIC_URL: https://${OUTRAY_EDGE_HOST}
+      INGEST_PUBLIC_URL: https://${OUTRAY_INGEST_HOST}
+      SHARE_PUBLIC_URL: https://${OUTRAY_SHARE_HOST}
+      BETTER_AUTH_URL: https://${OUTRAY_APP_HOST}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Run the self-hosted initializer}
+      BASE_DOMAIN: ${OUTRAY_TUNNEL_DOMAIN:?Set OUTRAY_TUNNEL_DOMAIN}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:?Run the self-hosted initializer}
+      SHARE_PUBLIC_ORIGIN: https://${OUTRAY_SHARE_HOST}
+      # Preflight requires at least one address or explicitly allowed domain;
+      # the auth policy fails closed if both are empty when bypassing preflight.
+      OUTRAY_SIGNUP_ALLOWED_EMAILS: ${OUTRAY_SIGNUP_ALLOWED_EMAILS:-}
+      OUTRAY_SIGNUP_ALLOWED_DOMAINS: ${OUTRAY_SIGNUP_ALLOWED_DOMAINS:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      OUTRAY_SLACK_CLIENT_ID: ${OUTRAY_SLACK_CLIENT_ID:-}
+      OUTRAY_SLACK_CLIENT_SECRET: ${OUTRAY_SLACK_CLIENT_SECRET:-}
+      OUTRAY_DISCORD_CLIENT_ID: ${OUTRAY_DISCORD_CLIENT_ID:-}
+      OUTRAY_DISCORD_CLIENT_SECRET: ${OUTRAY_DISCORD_CLIENT_SECRET:-}
+      XAI_API_KEY: ${XAI_API_KEY:-}
+      AGENT_GROK_MODEL: ${AGENT_GROK_MODEL:-grok-4.7}
+      ADMIN_PASSPHRASE: ${ADMIN_PASSPHRASE:?Run the self-hosted initializer}
+    depends_on: *dependencies
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:6767/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  internal-check:
+    <<: *app
+    command: ["node", "apps/internal-check/dist/index.js"]
+    environment:
+      <<: [*policy, *database-environment, *uptime-environment]
+      INTERNAL_CHECK_PORT: "3344"
+      BASE_DOMAIN: ${OUTRAY_TUNNEL_DOMAIN}
+      CONSOLE_PUBLIC_URL: https://${OUTRAY_APP_HOST}
+      TUNNEL_PUBLIC_URL: https://${OUTRAY_EDGE_HOST}
+      INGEST_PUBLIC_URL: https://${OUTRAY_INGEST_HOST}
+      SHARE_PUBLIC_URL: https://${OUTRAY_SHARE_HOST}
+      OUTRAY_EDGE_HOST: ${OUTRAY_EDGE_HOST}
+      OUTRAY_INGEST_HOST: ${OUTRAY_INGEST_HOST}
+      SHARE_PUBLIC_ORIGIN: https://${OUTRAY_SHARE_HOST}
+    depends_on: *dependencies
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3344/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+
+  tunnel:
+    <<: *app
+    command: ["node", "apps/tunnel/dist/server.js"]
+    environment:
+      <<: [*policy, *database-environment, *redis-environment, *tinybird-write-environment, *uptime-environment]
+      TUNNEL_PORT: "3547"
+      TUNNEL_BIND_HOST: 0.0.0.0
+      BASE_DOMAIN: ${OUTRAY_TUNNEL_DOMAIN}
+      CONSOLE_PUBLIC_URL: https://${OUTRAY_APP_HOST}
+      TUNNEL_PUBLIC_URL: https://${OUTRAY_EDGE_HOST}
+      STATUS_UPSTREAM_URL: http://status:4323
+      STATUS_TRUSTED_PROXY_IPS: ${OUTRAY_CADDY_PRIVATE_IP:-172.30.40.2}
+      WEB_API_URL: http://web:6767/api
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      TCP_PORT_RANGE_MIN: ${TCP_PORT_RANGE_MIN:-20000}
+      TCP_PORT_RANGE_MAX: ${TCP_PORT_RANGE_MAX:-20009}
+      UDP_PORT_RANGE_MIN: ${UDP_PORT_RANGE_MIN:-30000}
+      UDP_PORT_RANGE_MAX: ${UDP_PORT_RANGE_MAX:-30009}
+    # Port bounds and mappings must change together; keep the default exposure small.
+    ports:
+      - "${TCP_PORT_RANGE_MIN:-20000}-${TCP_PORT_RANGE_MAX:-20009}:${TCP_PORT_RANGE_MIN:-20000}-${TCP_PORT_RANGE_MAX:-20009}/tcp"
+      - "${UDP_PORT_RANGE_MIN:-30000}-${UDP_PORT_RANGE_MAX:-30009}:${UDP_PORT_RANGE_MIN:-30000}-${UDP_PORT_RANGE_MAX:-30009}/udp"
+    depends_on:
+      <<: *dependencies
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3547/health',{headers:{Host:process.env.BASE_DOMAIN}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+
+  ingest:
+    <<: *app
+    command: ["node", "apps/ingest/dist/server.js"]
+    environment:
+      <<: [*policy, *database-environment, *redis-environment, *tinybird-write-environment]
+      INGEST_PORT: "4318"
+    depends_on: *dependencies
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4318/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+
+  cron:
+    <<: *app
+    command: ["node", "apps/cron/dist/index.js"]
+    environment:
+      <<: [*policy, *database-environment, *redis-environment, *tinybird-read-environment, *tinybird-write-environment, *crypto-environment, *uptime-environment]
+      APP_URL: https://${OUTRAY_APP_HOST}
+    depends_on: *dependencies
+    # These workers have no HTTP endpoint; this is process liveness, not job readiness.
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.kill(1,0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  status:
+    <<: *app
+    command: ["node", "apps/status/dist/server/entry.mjs"]
+    environment:
+      <<: [*policy, *database-environment, *uptime-environment]
+      PORT: "4323"
+      STATUS_BIND_HOST: 0.0.0.0
+    depends_on: *dependencies
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4323/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+
+  secrets-share:
+    <<: *app
+    command: ["node", "apps/secrets-share/dist/server/entry.mjs"]
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "4324"
+      # The anonymous service never receives the owner DATABASE_URL or vault keys.
+      SHARE_DATABASE_URL: postgresql://outray_share_app:${SHARE_DATABASE_PASSWORD}@postgres:5432/${POSTGRES_DB:-outray}?sslmode=disable
+      SHARE_PUBLIC_ORIGIN: https://${OUTRAY_SHARE_HOST}
+      SHARE_RATE_LIMIT_SECRET: ${SHARE_RATE_LIMIT_SECRET:?Run the self-hosted initializer}
+      SHARE_CLIENT_IP_HEADER: X-Outray-Client-IP
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4324/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+
+  uptime-probe:
+    <<: *app
+    profiles: ["uptime-worker"]
+    command: ["node", "apps/uptime-probe/dist/index.js"]
+    environment:
+      <<: [*policy, *database-environment, *crypto-environment, *uptime-environment]
+      UPTIME_PROBES_ENABLED: ${UPTIME_PROBES_ENABLED:-false}
+      UPTIME_NOTIFICATIONS_ENABLED: ${UPTIME_NOTIFICATIONS_ENABLED:-false}
+      UPTIME_EGRESS_POLICY_READY: ${UPTIME_EGRESS_POLICY_READY:-false}
+    depends_on: *dependencies
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.kill(1,0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      CADDY_EMAIL: ${CADDY_EMAIL:?Set the ACME contact email}
+      OUTRAY_APP_HOST: ${OUTRAY_APP_HOST}
+      OUTRAY_TUNNEL_DOMAIN: ${OUTRAY_TUNNEL_DOMAIN}
+      OUTRAY_EDGE_HOST: ${OUTRAY_EDGE_HOST}
+      OUTRAY_INGEST_HOST: ${OUTRAY_INGEST_HOST}
+      OUTRAY_STATUS_HOST: ${OUTRAY_STATUS_HOST}
+      OUTRAY_SHARE_HOST: ${OUTRAY_SHARE_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      services:
+        ipv4_address: ${OUTRAY_CADDY_PRIVATE_IP:-172.30.40.2}
+    depends_on:
+      internal-check:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+      tunnel:
+        condition: service_healthy
+      status:
+        condition: service_healthy
+      secrets-share:
+        condition: service_healthy
+      ingest:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+networks:
+  services:
+    ipam:
+      config:
+        - subnet: ${OUTRAY_DOCKER_SUBNET:-172.30.40.0/24}
+  database:
+    internal: true
+
+volumes:
+  postgres-data:
+  redis-data:
+  caddy-data:
+  caddy-config:
+
+secrets:
+  hugeicons_license_key:
+    environment: HUGEICONS_LICENSE_KEY
