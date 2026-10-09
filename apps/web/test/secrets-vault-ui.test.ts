@@ -241,7 +241,7 @@ test("actual content actions preserve environment identity and only invoke their
       if (specifier === "react") return { useMemo: (callback: () => unknown) => callback() };
       if (specifier === "@tanstack/react-router") return { Link: Placeholder };
       if (specifier === "lucide-react") return { ArrowLeft: Placeholder, ArrowUpRight: Placeholder, Clock3: Placeholder, FolderKey: Placeholder, KeyRound: Placeholder, Layers: Placeholder, LockKeyhole: Placeholder, Plus: Placeholder, RefreshCw: Placeholder, Search: Placeholder };
-      if (specifier.startsWith("@hugeicons-pro/")) return Placeholder;
+      if (specifier.startsWith("@outray/icons/")) return Placeholder;
       if (specifier === "../arc/button/button") return { Button };
       if (specifier === "../arc/search-field/search-field") return { SearchField };
       if (specifier === "./secrets-ui") return { ActionMenu };
