@@ -1,0 +1,32 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Organization-isolated HTTP request history and recent tunnel requests.
+
+NODE requests
+SQL >
+    %
+    SELECT timestamp, event_id, request_id, tunnel_id, organization_id,
+           host, method, path, status_code, request_duration_ms,
+           bytes_in, bytes_out, bytes_in + bytes_out AS size,
+           client_ip, user_agent
+    FROM tunnel_events FINAL
+    WHERE organization_id = {{String(organization_id)}}
+      AND timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')
+      AND timestamp < parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+      AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
+    {% if defined(tunnel_ids) %}
+      AND has(JSONExtract({{String(tunnel_ids)}}, 'Array(String)'), tunnel_id)
+    {% end %}
+    {% if defined(search) %}
+      AND (positionCaseInsensitive(path, {{String(search)}}) > 0
+           OR positionCaseInsensitive(host, {{String(search)}}) > 0
+           OR positionCaseInsensitive(method, {{String(search)}}) > 0
+           OR positionCaseInsensitive(client_ip, {{String(search)}}) > 0
+           OR positionCaseInsensitive(request_id, {{String(search)}}) > 0)
+    {% end %}
+    ORDER BY timestamp DESC, event_id DESC
+    LIMIT least(greatest({{UInt32(limit, 50)}}, 1), 501)
+
+TYPE endpoint
+
