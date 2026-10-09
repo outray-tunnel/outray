@@ -15,6 +15,7 @@ import { metricIdentityExists } from "@/lib/observability/alert-metric";
 import { alertOAuthCredentials } from "@/lib/observability/alert-oauth";
 import { validateAlertCreateInput } from "@/lib/observability/alert-validation";
 import { requireOrgFromSlug } from "@/lib/org";
+import { getObservabilityAlertLimit } from "@/lib/subscription-plans";
 
 export const Route = createFileRoute(
   "/api/$orgSlug/observability/alerts/",
@@ -163,6 +164,7 @@ export const Route = createFileRoute(
         }
 
         const now = new Date();
+        const alertLimit = getObservabilityAlertLimit();
         const result = await db.transaction(async (tx) => {
           await tx
             .select({ id: organizations.id })
@@ -179,8 +181,8 @@ export const Route = createFileRoute(
                 isNull(observabilityAlerts.deletedAt),
               ),
             )
-            .limit(200);
-          if (existing.length >= 200) return { limitReached: true } as const;
+            .limit(alertLimit);
+          if (existing.length >= alertLimit) return { limitReached: true } as const;
 
           const alertId = crypto.randomUUID();
           const [created] = await tx
@@ -200,7 +202,7 @@ export const Route = createFileRoute(
 
         if ("limitReached" in result) {
           return Response.json(
-            { error: "Organization alert limit reached (200)" },
+            { error: `Organization alert limit reached (${alertLimit})` },
             { status: 403 },
           );
         }
