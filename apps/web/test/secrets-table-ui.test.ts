@@ -85,7 +85,7 @@ async function controller(update: Partial<TableProps> = {}, canShare: boolean | 
       };
       if (specifier === "lucide-react") return { Check: Icon, Minus: Icon, Plus: Icon, Search: Icon };
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: Icon };
-      if (specifier.startsWith("@hugeicons-pro/")) return [];
+      if (specifier.startsWith("@outray/icons/")) return [];
       if (specifier === "../arc/button/button") return { Button };
       if (specifier === "../arc/search-field/search-field") return { SearchField };
       if (specifier === "./secret-dialogs") return { SecretEditorDialog: Editor, ConfirmSecretActionDialog: Confirm };
