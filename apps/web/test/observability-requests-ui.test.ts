@@ -7,7 +7,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterContextProvider } from "@tanstack/react-router";
 import ts from "typescript";
 import { HttpRequestsContent } from "../src/components/observability/http-requests-content";
-import { AgentChatProvider } from "../src/components/agent/agent-chat-provider";
 import * as requestData from "../src/components/observability/http-requests-data";
 import * as requestBadges from "../src/components/observability/http-request-badges";
 import * as requestUtils from "../src/components/requests/utils";
@@ -38,7 +37,7 @@ function render(overrides: Partial<ContentProps> = {}) {
   const org = createRoute({ getParentRoute: () => root, path: "$orgSlug" });
   const rest = createRoute({ getParentRoute: () => org, path: "$" });
   const router = createRouter({ routeTree: root.addChildren([org.addChildren([rest])]), history: createMemoryHistory({ initialEntries: ["/acme/observability/requests"] }) });
-  return renderToStaticMarkup(React.createElement(RouterContextProvider, { router, children: React.createElement(AgentChatProvider, { orgSlug: "acme", children: React.createElement(HttpRequestsContent, { ...baseProps, ...overrides }) }) }));
+  return renderToStaticMarkup(React.createElement(RouterContextProvider, { router, children: React.createElement(HttpRequestsContent, { ...baseProps, ...overrides }) }));
 }
 
 async function loadContent() {
@@ -49,7 +48,6 @@ async function loadContent() {
   const refs: Array<{ current: any }> = [];
   let stateIndex = 0;
   let refIndex = 0;
-  const threadCalls: unknown[][] = [];
   const module = { exports: {} as { HttpRequestsContent: (props: ContentProps) => React.ReactNode } };
   runInNewContext(compiled, {
     React, module, exports: module.exports,
@@ -64,7 +62,6 @@ async function loadContent() {
         },
       };
       if (specifier === "./http-requests-data") return requestData;
-      if (specifier === "@/components/agent/agent-chat-context") return { useAgentChat: () => ({ startThread: (...args: unknown[]) => threadCalls.push(args) }) };
       if (specifier === "./http-request-badges") return requestBadges;
       if (specifier.endsWith("/requests/utils")) return requestUtils;
       if (specifier === "lucide-react") return new Proxy({}, { get: () => () => null });
@@ -82,7 +79,7 @@ async function loadContent() {
     const rendered = typeof element.type === "function" && !stubComponents.has(element.type as any) ? element.type(element.props) : element.props.children;
     return [element, ...elements(rendered)];
   }
-  return { stubs, threadCalls, render: (overrides: Partial<ContentProps> = {}) => {
+  return { stubs, render: (overrides: Partial<ContentProps> = {}) => {
     stateIndex = 0; refIndex = 0;
     return elements(module.exports.HttpRequestsContent({ ...baseProps, ...overrides }));
   } };
@@ -161,9 +158,8 @@ test("refresh and shared duration controls stay in the top-right page header, no
   assert.match(header, /Requests|HTTP traffic from your instrumented services/);
   assert.match(header, /ml-auto[^"]*justify-end/);
   const pause = header.indexOf("Pause");
-  const preview = header.indexOf("Ask agent");
   const duration = header.indexOf('aria-label="Request time range"');
-  assert.ok(preview >= 0 && pause > preview);
+  assert.doesNotMatch(header, /Ask agent/);
   assert.ok(pause >= 0 && duration > pause);
   assert.equal((html.match(/aria-label="Request time range"/g) ?? []).length, 1);
   assert.doesNotMatch(inventory, /Pause automatic refresh|Resume automatic refresh|aria-label="Request time range"/);
@@ -259,27 +255,24 @@ test("a whole native row opens its inspector once and passes its focus-return ta
   assert.equal(selected?.props["aria-expanded"], true);
 });
 
-test("Ask agent creates a new central thread on every click without a local preview sheet", async () => {
+test("the requests page does not depend on agent chat or open a generic preview", async () => {
   const ui = await loadContent();
-  const tree = ui.render({ data: null, error: "Request unavailable" });
-  const trigger = tree.find((element) => element.type === ui.stubs.Button && React.Children.toArray(element.props.children).includes("Ask agent"));
-  assert.ok(trigger);
-  assert.equal(trigger.props.variant, "secondary");
-  assert.equal(trigger.props.size, "md");
-  assert.equal(trigger.props.disabled, undefined);
-  trigger.props.onClick();
-  trigger.props.onClick();
-  assert.deepEqual(ui.threadCalls, [[], []], "each action starts a fresh generic thread");
-  assert.equal(ui.render().some((element) => element.type === ui.stubs.RequestExplanationPreviewSheet), false);
+  const tree = ui.render();
+  assert.equal(tree.some((element) => element.type === ui.stubs.Button && React.Children.toArray(element.props.children).includes("Ask agent")), false);
+  assert.equal(tree.some((element) => element.type === ui.stubs.RequestExplanationPreviewSheet), false);
   const source = await readFile(new URL("../src/components/observability/http-requests-content.tsx", import.meta.url), "utf8");
-  assert.doesNotMatch(source, /previewOpen|RequestExplanationPreviewSheet|requestExplanationDemoScenarios/);
+  assert.doesNotMatch(source, /useAgentChat|startThread|Ask agent|Sparkles|previewOpen|RequestExplanationPreviewSheet|requestExplanationDemoScenarios/);
 });
 
-test("Ask agent remains available with no loaded request data", () => {
-  for (const overrides of [{ data: null, loading: true }, { data: null, error: "Request unavailable" }, { data: { ...data, requests: [], total: 0, hasMore: false, nextCursor: null }, total: 0 }]) {
-    const header = render(overrides).match(/<header\b[^>]*>([\s\S]*?)<\/header>/)?.[1] ?? "";
-    assert.match(header, /Ask agent/);
-    assert.doesNotMatch(header, /disabled=/);
+test("loaded, loading, failed and empty pages omit Ask agent while preserving header and filter controls", () => {
+  for (const overrides of [{}, { data: null, loading: true }, { data: null, error: "Request unavailable" }, { data: { ...data, requests: [], total: 0, hasMore: false, nextCursor: null }, total: 0 }]) {
+    const html = render(overrides);
+    const header = html.match(/<header\b[^>]*>([\s\S]*?)<\/header>/)?.[1] ?? "";
+    assert.doesNotMatch(html, /Ask agent/);
+    assert.match(header, /Pause automatic refresh/);
+    assert.match(header, /aria-label="Request time range"/);
+    for (const label of ["Service", "Method", "Status", "Capture"]) assert.ok(html.includes(label));
+    assert.match(html, /type="search"/);
   }
 });
 
