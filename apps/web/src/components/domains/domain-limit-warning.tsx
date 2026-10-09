@@ -7,12 +7,14 @@ interface DomainLimitWarningProps {
   isAtLimit: boolean;
   domainLimit: number;
   currentPlan: string;
+  instanceOwned?: boolean;
 }
 
 export function DomainLimitWarning({
   isAtLimit,
   domainLimit,
   currentPlan,
+  instanceOwned = false,
 }: DomainLimitWarningProps) {
   const { orgSlug } = useParams({ from: "/$orgSlug" });
 
@@ -49,14 +51,16 @@ export function DomainLimitWarning({
             </span>
           </div>
           <p className="mt-1 text-[12px] leading-5 text-zinc-500">
-            {domainLimit === 0
+            {instanceOwned
+              ? `This installation allows ${domainLimit} custom ${domainLabel}. Contact your administrator to increase capacity.`
+              : domainLimit === 0
               ? "Upgrade to connect your own tunnel address."
               : `Your ${planName} plan includes ${domainLimit} custom ${domainLabel}. Upgrade to connect another address.`}
           </p>
         </div>
       </div>
 
-      <Link
+      {!instanceOwned && <Link
         to="/$orgSlug/billing"
         params={{ orgSlug }}
         className="group ml-11 flex w-fit shrink-0 items-center gap-1.5 text-[11px] font-medium text-zinc-300 transition-colors hover:text-white sm:ml-0"
@@ -68,7 +72,7 @@ export function DomainLimitWarning({
           strokeWidth={1.8}
           className="transition-transform group-hover:translate-x-0.5"
         />
-      </Link>
+      </Link>}
     </aside>
   );
 }
