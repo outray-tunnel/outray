@@ -1,10 +1,40 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { createHash } from "crypto";
+import { isIP } from "net";
 
 const CONFIG_DIR = path.join(os.homedir(), ".outray");
-const PROD_CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
-const DEV_CONFIG_FILE = path.join(CONFIG_DIR, "config.dev.json");
+const HOSTED_ORIGINS = new Set(["https://outray.dev", "https://outray.co"]);
+
+/** Browser authentication is bound to an origin, never a user-supplied path.
+ * Remote origins must use TLS; plain HTTP is only useful for local development. */
+export function canonicalConsoleOrigin(value: string): string {
+  let url: URL;
+  try { url = new URL(value); }
+  catch { throw new Error("OUTRAY_WEB_URL must be a valid console origin"); }
+  const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
+  const address = hostname.replace(/^\[|\]$/g, "");
+  const loopback = hostname === "localhost" || address === "::1" ||
+    (isIP(address) === 4 && address.startsWith("127."));
+  if (url.username || url.password || url.search || url.hash || url.pathname !== "/" ||
+      (url.protocol !== "https:" && !(url.protocol === "http:" && loopback))) {
+    throw new Error("OUTRAY_WEB_URL must be an HTTPS origin (or loopback HTTP), without credentials, a path, query or fragment");
+  }
+  url.hostname = hostname;
+  return url.origin;
+}
+
+/** Hosted login files remain compatible. Custom installations use separate
+ * files so neither user tokens nor exchanged organization tokens cross origins. */
+export function authConfigFilename(isDev: boolean, webUrl?: string): string {
+  const legacy = isDev ? "config.dev.json" : "config.json";
+  if (webUrl === undefined) return legacy;
+  const origin = canonicalConsoleOrigin(webUrl);
+  if (HOSTED_ORIGINS.has(origin) || (isDev && origin === "http://localhost:6767")) return legacy;
+  const scope = createHash("sha256").update(origin).digest("hex");
+  return `config.instance.${scope}.json`;
+}
 
 export interface OutRayConfig {
   authType: "user";
@@ -16,16 +46,18 @@ export interface OutRayConfig {
 
 export class ConfigManager {
   private configFile: string;
+  private configDir: string;
 
-  constructor(isDev: boolean) {
-    this.configFile = isDev ? DEV_CONFIG_FILE : PROD_CONFIG_FILE;
+  constructor(isDev: boolean, webUrl?: string, configDir = CONFIG_DIR) {
+    this.configDir = configDir;
+    this.configFile = path.join(configDir, authConfigFilename(isDev, webUrl));
   }
 
   ensureConfigDir(): void {
-    if (!fs.existsSync(CONFIG_DIR)) {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
+    if (!fs.existsSync(this.configDir)) {
+      fs.mkdirSync(this.configDir, { recursive: true, mode: 0o700 });
     }
-    fs.chmodSync(CONFIG_DIR, 0o700);
+    fs.chmodSync(this.configDir, 0o700);
   }
 
   load(): OutRayConfig | null {
