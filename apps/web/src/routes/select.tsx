@@ -94,7 +94,7 @@ function SelectOrganization() {
               organizations?.map((organization, index) => (
                 <Link
                   key={organization.id}
-                  to="/$orgSlug"
+                  to="/$orgSlug/tunnel"
                   params={{ orgSlug: organization.slug }}
                   className={`group flex min-h-[104px] items-center gap-4 px-5 py-5 transition-colors hover:bg-white/[0.045] sm:gap-5 sm:px-6 ${
                     index ? "border-t border-white/[0.075]" : ""
