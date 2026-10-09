@@ -105,10 +105,13 @@ export function ProductStories({ docsUrl }: { docsUrl: string }) {
         <p className="product-index">01 / Tunnels</p>
         <h2 className="product-title">Give localhost a real address.</h2>
         <p className="product-description">Put a local service online in seconds, keep a stable domain, and inspect the requests that cross the tunnel.</p>
-        <a className="inline-link product-link" href={docsUrl} data-track="cta" data-track-label="tunnels-read-docs">
-          Read the docs
+        <div className="product-story-actions">
+        <a className="inline-link product-link" href="/products/tunnels" data-track="cta" data-track-label="tunnels-explore">
+          Explore Tunnels
           <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"></path></svg>
         </a>
+        <a className="inline-link" href={`${docsUrl}/tunnels`} data-track="cta" data-track-label="tunnels-read-docs">Documentation</a>
+        </div>
       </div>
 
       <div className="product-panel tunnel-panel" role="group" aria-label="Tunnel request interface">
@@ -159,10 +162,13 @@ export function ProductStories({ docsUrl }: { docsUrl: string }) {
         <p className="product-index">02 / Observability</p>
         <h2 className="product-title">Follow a request all the way through.</h2>
         <p className="product-description">See what your server did, where it spent time, and which log belongs to which request—without instrumenting every handler by hand.</p>
-        <a className="inline-link product-link" href={docsUrl} data-track="cta" data-track-label="observability-read-docs">
-          Read the docs
+        <div className="product-story-actions">
+        <a className="inline-link product-link" href="/products/observability" data-track="cta" data-track-label="observability-explore">
+          Explore Observability
           <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"></path></svg>
         </a>
+        <a className="inline-link" href={`${docsUrl}/observability`} data-track="cta" data-track-label="observability-read-docs">Documentation</a>
+        </div>
       </div>
 
       <div className="product-panel trace-panel" role="group" aria-label="Distributed trace interface">
@@ -207,10 +213,13 @@ export function ProductStories({ docsUrl }: { docsUrl: string }) {
         <p className="product-index">03 / Secrets</p>
         <h2 className="product-title">Keep configuration out of the repo.</h2>
         <p className="product-description">Store encrypted values in a vault, organize them across environments, and inject them only when your process starts.</p>
-        <a className="inline-link product-link" href={docsUrl} data-track="cta" data-track-label="secrets-read-docs">
-          Read the docs
+        <div className="product-story-actions">
+        <a className="inline-link product-link" href="/products/secrets" data-track="cta" data-track-label="secrets-explore">
+          Explore Secrets
           <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"></path></svg>
         </a>
+        <a className="inline-link" href={`${docsUrl}/secrets`} data-track="cta" data-track-label="secrets-read-docs">Documentation</a>
+        </div>
       </div>
 
       <div className="product-panel secrets-panel" role="group" aria-label="Secrets vault interface">
@@ -248,10 +257,13 @@ export function ProductStories({ docsUrl }: { docsUrl: string }) {
         <p className="product-index">04 / Uptime</p>
         <h2 className="product-title">Know when a service goes down.</h2>
         <p className="product-description">Check your public endpoints, alert your team when they fail, and keep everyone informed on a status page you control.</p>
-        <a className="inline-link product-link" href={docsUrl} data-track="cta" data-track-label="uptime-read-docs">
-          Read the docs
+        <div className="product-story-actions">
+        <a className="inline-link product-link" href="/products/uptime" data-track="cta" data-track-label="uptime-explore">
+          Explore Uptime
           <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"></path></svg>
         </a>
+        <a className="inline-link" href={`${docsUrl}/uptime`} data-track="cta" data-track-label="uptime-read-docs">Documentation</a>
+        </div>
       </div>
 
       <div className="product-panel uptime-panel" role="group" aria-label="Uptime status page interface">
