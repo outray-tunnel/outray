@@ -10,6 +10,7 @@ import { UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
 import { secondaryButton, UptimeError, UptimePanel } from "@/components/uptime/uptime-ui";
 import { WorkspaceInput } from "@/components/ui/workspace-input";
 import { statusPageUrl } from "@/lib/uptime/status-url";
+import publicHosts from "../../../../../../../shared/public-hosts";
 
 export const Route = createFileRoute("/$orgSlug/uptime/status-page/domains")({
   head: () => ({ meta: [{ title: "Status page domains - OutRay Uptime" }] }),
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/$orgSlug/uptime/status-page/domains")({
 
 interface StatusDomain { id: string; domain: string; status: string }
 const statusOrigin = (import.meta.env.VITE_OUTRAY_STATUS_URL || "https://status.outray.app").replace(/\/$/, "");
-const cnameTarget = "status.outray.app";
+const cnameTarget = publicHosts.canonicalStatusHostname({ OUTRAY_STATUS_URL: statusOrigin });
 
 function StatusPageDomains() {
   const { orgSlug, page, canManage, reload: reloadPage } = useStatusPageEditor();
