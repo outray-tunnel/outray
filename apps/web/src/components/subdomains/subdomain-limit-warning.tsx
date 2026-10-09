@@ -7,12 +7,14 @@ interface SubdomainLimitWarningProps {
   isAtLimit: boolean;
   subdomainLimit: number;
   currentPlan: string;
+  instanceOwned?: boolean;
 }
 
 export function SubdomainLimitWarning({
   isAtLimit,
   subdomainLimit,
   currentPlan,
+  instanceOwned = false,
 }: SubdomainLimitWarningProps) {
   const { orgSlug } = useParams({ from: "/$orgSlug" });
 
@@ -45,13 +47,14 @@ export function SubdomainLimitWarning({
             </span>
           </div>
           <p className="mt-1 text-[12px] leading-5 text-zinc-500">
-            Your {planName} plan includes {subdomainLimit} reserved{" "}
-            {subdomainLabel}. Upgrade to reserve more addresses.
+            {instanceOwned
+              ? `This installation allows ${subdomainLimit} reserved ${subdomainLabel}. Contact your administrator to increase capacity.`
+              : `Your ${planName} plan includes ${subdomainLimit} reserved ${subdomainLabel}. Upgrade to reserve more addresses.`}
           </p>
         </div>
       </div>
 
-      <Link
+      {!instanceOwned && <Link
         to="/$orgSlug/billing"
         params={{ orgSlug }}
         className="group ml-11 flex w-fit shrink-0 items-center gap-1.5 text-[11px] font-medium text-zinc-300 transition-colors hover:text-white sm:ml-0"
@@ -63,7 +66,7 @@ export function SubdomainLimitWarning({
           strokeWidth={1.8}
           className="transition-transform group-hover:translate-x-0.5"
         />
-      </Link>
+      </Link>}
     </aside>
   );
 }
