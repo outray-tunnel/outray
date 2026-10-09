@@ -1,5 +1,7 @@
 import {
   SUBSCRIPTION_PLANS,
+  installationPlan,
+  getPlanLimits,
   type SubscriptionPlan,
 } from "./subscription-plans";
 
@@ -9,20 +11,13 @@ export const BETTER_AUTH_MEMBERSHIP_CEILING =
 export function resolveSubscriptionPlan(
   plan: string | null | undefined,
 ): SubscriptionPlan {
-  if (
-    plan &&
-    Object.prototype.hasOwnProperty.call(SUBSCRIPTION_PLANS, plan)
-  ) {
-    return plan as SubscriptionPlan;
-  }
-
-  return "free";
+  return installationPlan(plan);
 }
 
 export function getMemberLimitForPlan(
   plan: string | null | undefined,
 ): number {
-  return SUBSCRIPTION_PLANS[resolveSubscriptionPlan(plan)].features.maxMembers;
+  return getPlanLimits(resolveSubscriptionPlan(plan)).maxMembers;
 }
 
 export function hasAvailableMemberSeat(
