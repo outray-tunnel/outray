@@ -66,6 +66,12 @@ outray/
 
 ## Development
 
+For an independent installation with all products, restricted OAuth signup,
+and instance-owned limits instead of paid plans, see the
+[self-hosting guide](deploy/self-hosted/README.md). It includes a separate
+Docker Compose stack, configuration initializer, and deployment checks;
+it does not use the hosted edge VPS or production credentials.
+
 Create the single local environment file, add your Hugeicons Pro license key,
 then export it while installing the workspaces:
 
