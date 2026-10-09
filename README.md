@@ -43,7 +43,7 @@ outray udp 53
 - npm 10+
 - PostgreSQL
 - Redis
-- Tiger Data (TimescaleDB)
+- Tinybird (tunnel analytics and observability)
 
 ### Project Structure
 
@@ -77,7 +77,7 @@ set +a
 npm install
 ```
 
-Ensure PostgreSQL, Redis, and TimescaleDB are running, then start all runtime
+Ensure PostgreSQL and Redis are running and the Tinybird project is deployed, then start all runtime
 apps together:
 
 ```bash
