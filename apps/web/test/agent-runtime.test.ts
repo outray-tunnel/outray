@@ -149,8 +149,14 @@ test("attached request uses real scoped reader and emits complete evidence befor
   assert.equal(f.calls[0].options.signal, f.signal);
   const evidence = f.events[2];
   if (evidence.type !== "evidence") assert.fail("Missing evidence event");
-  assert.deepEqual(Object.keys(evidence.evidence[0]).sort(), ["href", "id", "label", "observedAt"]);
+  assert.deepEqual(Object.keys(evidence.evidence[0]).sort(), ["href", "id", "label", "observedAt", "presentation"]);
   assert.equal(evidence.evidence[0].id, `request:${requestId}`);
+  assert.deepEqual(evidence.evidence[0].presentation, {
+    kind: "request", method: "GET", route: "/payments/:id", service: "payments-worker",
+    statusCode: 503, durationMs: 80, timestamp: "2026-10-08T12:30:00.000Z",
+    captureState: "full", requestSizeBytes: null, responseSizeBytes: null,
+  });
+  assert.doesNotMatch(JSON.stringify(evidence), /private-|192\.168|headers|attributes|payload/);
   const prompt = JSON.stringify(f.model.doStreamCalls[0].prompt);
   assert.ok(f.model.doStreamCalls[0].prompt.some((item) => item.role === "system" && item.content === AGENT_INSTRUCTIONS));
   assert.ok(prompt.includes(`Attached request ${requestId}`));
@@ -186,6 +192,21 @@ test("SDK multi-step tool calls execute only typed scoped reads and accumulate u
   assert.ok(lastPrompt.includes("measurementScope"));
   for (const forbidden of ["private-status", "private-attribute", "private-person", "private-event-id", "private-body"]) assert.ok(!lastPrompt.includes(forbidden), forbidden);
   assert.equal(f.events.filter((event) => event.type === "step" && event.step.status === "running").length, 4);
+  const references = f.events.flatMap((event) => event.type === "evidence" ? event.evidence : []);
+  assert.deepEqual(references.map((reference) => reference.presentation?.kind), ["request", "trace", "log", "comparison", "comparison"]);
+  const trace = references[1].presentation;
+  assert.equal(trace?.kind, "trace");
+  if (trace?.kind === "trace") assert.deepEqual(trace.spans.map(({ operationName, offsetMs, durationMs }) => ({ operationName, offsetMs, durationMs })), [{ operationName: "GET /payments/:id", offsetMs: 0, durationMs: 80 }]);
+  assert.doesNotMatch(JSON.stringify(references), /private-|192\.168|headers|attributes|payload/);
+});
+
+test("answer instructions request readable Markdown and interpretation without raw telemetry dumps", () => {
+  assert.match(AGENT_INSTRUCTIONS, /Use Markdown/);
+  assert.match(AGENT_INSTRUCTIONS, /Findings/);
+  assert.match(AGENT_INSTRUCTIONS, /Next checks/);
+  assert.match(AGENT_INSTRUCTIONS, /Refer to evidence by human-readable names/);
+  assert.match(AGENT_INSTRUCTIONS, /overlapping/);
+  assert.doesNotMatch(AGENT_INSTRUCTIONS, /answer in plain text/i);
 });
 
 test("unrelated trace tool calls remain unavailable without invoking an out-of-scope query", async () => {
