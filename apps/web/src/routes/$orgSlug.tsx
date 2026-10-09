@@ -2,6 +2,7 @@ import {
   createFileRoute,
   Outlet,
   Navigate,
+  notFound,
   useLocation,
 } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
@@ -16,8 +17,16 @@ import { useFeatureFlag } from "@/lib/feature-flags";
 import { OrganizationAccessPage, OrganizationAccessSkeleton } from "@/components/organization/organization-access-page";
 import { AgentChatProvider } from "@/components/agent/agent-chat-provider";
 import { AgentChatHost } from "@/components/agent/agent-chat-host";
+import { instanceProductForPath } from "../../../../shared/instance-config";
 
 export const Route = createFileRoute("/$orgSlug")({
+  beforeLoad: ({ context, location }) => {
+    const product = instanceProductForPath(location.pathname);
+    if ((product && !context.instance.products.includes(product)) ||
+        (!context.instance.billingEnabled && /\/billing(?:\/|$)/.test(location.pathname))) {
+      throw notFound();
+    }
+  },
   head: () => ({
     meta: [{ title: "Dashboard - OutRay" }],
   }),
