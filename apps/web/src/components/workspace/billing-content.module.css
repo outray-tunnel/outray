@@ -1,0 +1,75 @@
+.content { display: flex; flex-direction: column; gap: 26px; color: #d4d4d8; font-size: 13px; }
+.panel { overflow: hidden; border: 1px solid rgb(255 255 255 / 8%); border-radius: 14px; background: #0b0b0b; }
+.overview { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding: 20px; }
+.planIdentity { display: flex; flex: 1; min-width: 180px; align-items: center; gap: 12px; }
+.planIcon { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid rgb(255 255 255 / 8%); border-radius: 11px; color: #a1a1aa; }
+.metadata { margin: 0 0 5px; font-size: 11px; color: #71717a; }
+.planName { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.planName h2 { margin: 0; font-size: 17px; font-weight: 500; color: #f4f4f5; letter-spacing: -.02em; }
+.status { display: inline-flex; align-items: center; gap: 5px; color: #a1a1aa; font-size: 11px; text-transform: capitalize; }
+.status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #71717a; }
+.status[data-active]::before { background: #6ee7b7; }
+.currentPrice { display: flex; align-items: baseline; gap: 5px; }
+.currentPrice strong { color: #f4f4f5; font-weight: 500; font-size: 23px; letter-spacing: -.035em; }
+.currentPrice > span, .noPayment { color: #71717a; font-size: 11px; }
+.billingDetails { display: flex; flex-wrap: wrap; margin: 0; gap: 30px; padding: 0 20px 17px; }
+.billingDetails div { display: flex; gap: 8px; font-size: 11px; }
+.billingDetails dt { color: #71717a; }
+.billingDetails dd { margin: 0; color: #a1a1aa; }
+.usageHeader { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; padding: 14px 20px 0; border-top: 1px solid rgb(255 255 255 / 8%); }
+.usageHeader h3 { margin: 0; color: #d4d4d8; font-size: 12px; font-weight: 500; }
+.usageHeader span { color: #71717a; font-size: 11px; }
+.usageGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.metric { min-width: 0; padding: 14px 20px 18px; }
+.metricTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 11px; color: #a1a1aa; }
+.metricValue { color: #e4e4e7; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.metricLimit { color: #71717a; }
+.meter { height: 3px; margin-top: 11px; overflow: hidden; border-radius: 3px; background: rgb(255 255 255 / 7%); }
+.meter > span { display: block; height: 100%; border-radius: inherit; background: #9f8ac5; transition: width .3s ease; }
+.meter > span[data-full] { background: #fbbf24; }
+.metricHint { margin: 7px 0 0; color: #71717a; font-size: 10px; line-height: 1; }
+.sectionHeader { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 15px; }
+.sectionHeader h2 { margin: 0; font-size: 14px; color: #e4e4e7; font-weight: 500; }
+.sectionHeader p { margin: 5px 0 0; font-size: 12px; color: #71717a; }
+.controls { display: flex; min-width: 0; flex-wrap: wrap; gap: 8px; margin: 0; border: 0; padding: 0; }
+.controls:disabled { opacity: .58; }
+.controls:disabled button { cursor: not-allowed; }
+.intervalControl, .currencyControl { --control-height-sm: 28px; --text-sm: 11px; --radius-control: 10px; --surface-muted: #0b0b0b; --surface: #202020; --border: rgb(255 255 255 / 8%); }
+.savings { font-size: 9px; color: #a3bda9; }
+.lockedNote { display: flex; align-items: flex-start; gap: 7px; margin: -3px 0 14px; color: #71717a; font-size: 11px; line-height: 1.6; }
+.lockedNote svg { flex-shrink: 0; margin-top: 2px; }
+.planGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.planOption { min-width: 0; padding: 18px 20px; border-right: 1px solid rgb(255 255 255 / 8%); }
+.planOption:last-child { border-right: 0; }
+.planOption[data-current] { background: rgb(255 255 255 / 2%); }
+.planOption[data-recommended] { background: rgb(157 129 206 / 7%); box-shadow: inset 0 0 0 1px rgb(157 129 206 / 32%); }
+.optionTitle { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 5px; }
+.optionTitle h3 { margin: 0; color: #e4e4e7; font-size: 14px; font-weight: 500; }
+.recommended { border: 1px solid rgb(157 129 206 / 24%); border-radius: 5px; padding: 3px 6px; color: #d8c7f5; background: rgb(157 129 206 / 15%); font-size: 10px; font-weight: 500; line-height: 1.4; }
+.optionDescription { margin: 6px 0 13px; color: #71717a; font-size: 11px; }
+.optionPrice { display: flex; align-items: baseline; gap: 5px; margin: 0 0 14px; }
+.optionPrice strong { color: #f4f4f5; font-weight: 500; font-size: 24px; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.optionPrice span { color: #71717a; font-size: 11px; }
+.planAction { width: 100%; }
+.tableRegion { overflow-x: auto; border-top: 1px solid rgb(255 255 255 / 8%); }
+.comparison { width: 100%; min-width: 640px; border-collapse: collapse; table-layout: fixed; font-size: 11px; text-align: left; }
+.comparison th, .comparison td { padding: 9px 20px; font-weight: 400; }
+.comparison th:first-child { width: 24%; }
+.comparison thead th { color: #a1a1aa; padding-top: 15px; padding-bottom: 13px; }
+.comparison tbody th { color: #a1a1aa; }
+.comparison td { color: #d4d4d8; font-variant-numeric: tabular-nums; }
+.comparison tr:not(.groupRow) + tr:not(.groupRow) { border-top: 1px solid rgb(255 255 255 / 3%); }
+.comparison .groupRow th { padding-top: 14px; padding-bottom: 8px; color: #71717a; font-size: 10px; }
+.comparison tbody:last-child tr:last-child > * { padding-bottom: 18px; }
+.skeleton { display: flex; flex-direction: column; gap: 24px; animation: pulse 1.8s ease-in-out infinite; }
+.skeletonOverview, .skeletonPlans { border: 1px solid rgb(255 255 255 / 8%); border-radius: 14px; padding: 20px; }
+.skeletonOverview { display: flex; height: 156px; gap: 30px; align-items: flex-start; }
+.skeletonOverview > span { width: 130px; height: 30px; border-radius: 6px; background: rgb(255 255 255 / 5%); }
+.skeletonPlans { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 30px; }
+.skeletonPlans > div { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.skeletonPlans span { height: 16px; width: 80%; background: rgb(255 255 255 / 5%); border-radius: 5px; }
+.skeletonPlans span:last-child { height: 40px; width: 100%; margin-top: 7px; }
+@keyframes pulse { 50% { opacity: .55; } }
+@media (max-width: 900px) { .usageGrid, .planGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .planOption:nth-child(2) { border-right: 0; } .planOption:nth-child(-n+2) { border-bottom: 1px solid rgb(255 255 255 / 8%); } }
+@media (max-width: 520px) { .overview { gap: 15px; padding: 17px; } .planIdentity { flex-basis: 100%; } .currentPrice { flex: 1; } .billingDetails { flex-direction: column; gap: 9px; padding-inline: 17px; } .metric, .planOption { padding-inline: 14px; } .metricTop { flex-direction: column; align-items: flex-start; gap: 5px; } .optionPrice strong { font-size: 21px; } .optionDescription { min-height: 28px; line-height: 1.4; } .skeletonPlans { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .meter > span { transition: none; } .skeleton { animation: none; } }
