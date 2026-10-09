@@ -1,7 +1,7 @@
 import { HugeiconsIcon } from "@hugeicons/react";
-import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import Building06Icon from "@hugeicons-pro/core-stroke-rounded/Building06Icon";
+import Add01Icon from "@outray/icons/stroke/Add01Icon";
+import ArrowRight01Icon from "@outray/icons/stroke/ArrowRight01Icon";
+import Building06Icon from "@outray/icons/stroke/Building06Icon";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
 
