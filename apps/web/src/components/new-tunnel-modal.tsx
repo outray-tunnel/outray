@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import CommandLineIcon from "@hugeicons-pro/core-stroke-rounded/CommandLineIcon";
-import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
-import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
-import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
+import CommandLineIcon from "@outray/icons/stroke/CommandLineIcon";
+import Copy01Icon from "@outray/icons/stroke/Copy01Icon";
+import Tick02Icon from "@outray/icons/stroke/Tick02Icon";
+import ArrowDown01Icon from "@outray/icons/stroke/ArrowDown01Icon";
 import { Button } from "@/components/arc/button/button";
 import { Dialog, DialogContent } from "@/components/arc/dialog/dialog";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
