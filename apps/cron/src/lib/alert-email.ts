@@ -1,4 +1,5 @@
 import { config } from "../config";
+import emailConfig from "../../../../shared/email-sender";
 
 export interface AlertEmailPayload {
   alertId: string;
@@ -38,7 +39,7 @@ export async function sendAlertEmail(
       Authorization: `Zoho-enczapikey ${config.zeptoApiKey}`,
     },
     body: JSON.stringify({
-      from: { address: "no-reply@outray.dev", name: "OutRay Alerts" },
+      from: emailConfig.emailSender("OutRay Alerts"),
       to: [
         {
           email_address: {
