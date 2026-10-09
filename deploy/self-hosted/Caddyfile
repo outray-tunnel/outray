@@ -1,0 +1,52 @@
+{
+	email {$CADDY_EMAIL}
+	# The certificate-authorization service is private to this Compose network.
+	on_demand_tls {
+		ask http://internal-check:3344/internal/domain-check
+	}
+	servers {
+		strict_sni_host
+	}
+}
+
+(edge_proxy) {
+	reverse_proxy tunnel:3547 {
+		# Always replace client-supplied forwarding/security headers.
+		header_up -X-Outray-Edge-Secret
+		header_up X-Outray-Client-IP {remote_host}
+	}
+}
+
+{$OUTRAY_APP_HOST} {
+	encode zstd gzip
+	reverse_proxy web:6767
+}
+
+{$OUTRAY_INGEST_HOST} {
+	reverse_proxy ingest:4318
+}
+
+{$OUTRAY_SHARE_HOST} {
+	encode zstd gzip
+	reverse_proxy secrets-share:4324 {
+		header_up X-Outray-Client-IP {remote_host}
+	}
+}
+
+{$OUTRAY_EDGE_HOST}, {$OUTRAY_TUNNEL_DOMAIN}, {$OUTRAY_STATUS_HOST} {
+	import edge_proxy
+}
+
+# Approved tunnel/status subdomains and active custom domains get individual
+# certificates through HTTP-01/TLS-ALPN-01. No DNS API token is required.
+# The edge routes status pages to the private renderer and injects its secret.
+:443 {
+	tls {
+		on_demand
+	}
+	import edge_proxy
+}
+
+:80 {
+	redir https://{host}{uri} 308
+}
