@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from "@hugeicons/react";
-import Activity03Icon from "@hugeicons-pro/core-stroke-rounded/Activity03Icon";
+import Activity03Icon from "@outray/icons/stroke/Activity03Icon";
 import {
   Area,
   AreaChart,
