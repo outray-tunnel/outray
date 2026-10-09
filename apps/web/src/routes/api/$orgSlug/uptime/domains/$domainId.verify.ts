@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { domains } from "@/db/app-schema";
 import { uptimeStatusPages } from "@/db/uptime-schema";
 import { badInput, notFound, requireUptimeManager } from "@/lib/uptime/api";
+import { statusDnsTarget } from "@/lib/uptime/domain-config";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/domains/$domainId/verify")({
   server: { handlers: {
@@ -26,9 +27,10 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/domains/$domainId/ver
           resolveCname(domain.domain),
         ]);
         const owns = txt.some((record) => record.join("").trim() === domain.id);
-        const pointsHere = cname.some((target) => target.replace(/\.$/, "").toLowerCase() === "status.outray.app");
+        const cnameTarget = statusDnsTarget();
+        const pointsHere = cname.some((target) => target.replace(/\.$/, "").toLowerCase() === cnameTarget);
         if (!owns || !pointsHere) return badInput(
-          "Verify the TXT ownership token and a DNS-only CNAME to status.outray.app",
+          `Verify the TXT ownership token and a DNS-only CNAME to ${cnameTarget}`,
           "domain",
         );
         const [active] = await db.update(domains).set({ status: "active", updatedAt: new Date() })
