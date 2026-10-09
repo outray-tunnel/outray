@@ -8,11 +8,68 @@ export interface AgentStep {
   detail?: string;
 }
 
+/** Whitelisted telemetry for deterministic UI cards, never model-generated facts. */
+export type AgentEvidencePresentation =
+  | {
+    kind: "request";
+    method: string | null;
+    route: string | null;
+    service: string | null;
+    statusCode: number | null;
+    durationMs: number | null;
+    timestamp: string | null;
+    captureState: "metadata" | "redacted" | "full" | "unknown";
+    requestSizeBytes: number | null;
+    responseSizeBytes: number | null;
+  }
+  | {
+    kind: "trace";
+    spanCount: number;
+    returnedSpanCount: number;
+    truncated: boolean;
+    spans: Array<{
+      spanId: string;
+      parentSpanId: string | null;
+      operationName: string | null;
+      service: string | null;
+      startedAt: string | null;
+      offsetMs: number | null;
+      durationMs: number | null;
+      status: "ok" | "error" | "unknown";
+      kind: number | null;
+    }>;
+  }
+  | {
+    kind: "comparison";
+    hours: 1 | 24;
+    service: string | null;
+    path: string | null;
+    totalRequests: number | null;
+    errorRequests: number | null;
+    /** Percentage, not a fraction: 3.03 means 3.03%. */
+    errorRate: number | null;
+    p95DurationMs: number | null;
+    averageDurationMs: number | null;
+    measurement: "aggregate" | "sample";
+    sampleSize: number | null;
+    truncated: boolean;
+  }
+  | {
+    kind: "log";
+    level: string;
+    timestamp: string | null;
+    service: string | null;
+    /** A fixed redaction category, never the raw log message. */
+    messageSummary: string;
+    spanId: string | null;
+  };
+
 export interface AgentEvidenceReference {
   id: string;
   label: string;
   href: string;
   observedAt: string;
+  presentation?: AgentEvidencePresentation;
 }
 
 export interface AgentSavedMessage {
