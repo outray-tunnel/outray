@@ -69,7 +69,9 @@ export function checkEnvironment(env) {
     const url = new URL(env.TINYBIRD_API_HOST);
     if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || url.search || url.hash) throw new Error();
   } catch { errors.push("TINYBIRD_API_HOST must be a bare HTTPS API origin"); }
-  for (const key of ["TINYBIRD_INGEST_TOKEN", "TINYBIRD_QUERY_TOKEN", "HUGEICONS_LICENSE_KEY"]) if (!env[key]?.trim() || /^(?:your_|replace_|CHANGE_ME)/i.test(env[key])) errors.push(`${key} is required`);
+  for (const key of ["TINYBIRD_INGEST_TOKEN", "TINYBIRD_QUERY_TOKEN"]) if (!env[key]?.trim() || /^(?:your_|replace_|CHANGE_ME)/i.test(env[key])) errors.push(`${key} is required`);
+  if (!["auto", "free", "pro"].includes(env.OUTRAY_ICON_MODE || "auto")) errors.push("OUTRAY_ICON_MODE must be auto, free, or pro");
+  if (env.OUTRAY_ICON_MODE === "pro" && (!env.HUGEICONS_LICENSE_KEY?.trim() || /^(?:your_|replace_|CHANGE_ME)/i.test(env.HUGEICONS_LICENSE_KEY))) errors.push("OUTRAY_ICON_MODE=pro needs your own HUGEICONS_LICENSE_KEY; free mode needs no license");
   if (env.TINYBIRD_INGEST_TOKEN && env.TINYBIRD_INGEST_TOKEN === env.TINYBIRD_QUERY_TOKEN) errors.push("Use separate APPEND-only and READ-only Tinybird tokens");
   for (const key of integerKeys) if (!Number.isSafeInteger(Number(env[key])) || Number(env[key]) < 1) errors.push(`${key} must be a positive safe integer`);
   if (!Number.isInteger(Number(env.OUTRAY_RETENTION_DAYS)) || Number(env.OUTRAY_RETENTION_DAYS) < 1 || Number(env.OUTRAY_RETENTION_DAYS) > 90) errors.push("OUTRAY_RETENTION_DAYS must be between 1 and 90");
@@ -117,7 +119,7 @@ export function main(args = process.argv.slice(2)) {
   const file = resolve(root, option(args, "--file", ".env.self-hosted"));
   if (command === "init") {
     initialize(file, option(args, "--domain"), option(args, "--email"));
-    console.log("Created private self-hosted configuration. Fill OAuth/Tinybird/build credentials, back up the master key, then run npm run self-host:check. No services were started.");
+    console.log("Created private self-hosted configuration. Fill OAuth/Tinybird credentials, back up the master key, then run npm run self-host:check. Free icons need no build credential. No services were started.");
     return;
   }
   if (command !== "check" && command !== "up") throw new Error("Use init --domain ops.your-domain --email you@your-domain, check, or up (optional --file path)");
@@ -128,6 +130,9 @@ export function main(args = process.argv.slice(2)) {
   console.log("Self-hosted configuration passes local checks. No credential values were printed.");
   if (command === "check") return;
   const dockerArgs = ["compose", "--project-name", "outray-self-hosted", "--env-file", file, "--file", resolve(root, "deploy/self-hosted/compose.yaml")];
+  if (env.OUTRAY_ICON_MODE !== "free" && env.HUGEICONS_LICENSE_KEY?.trim() && !/^(?:your_|replace_|CHANGE_ME)/i.test(env.HUGEICONS_LICENSE_KEY)) {
+    dockerArgs.push("--file", resolve(root, "deploy/self-hosted/compose.pro-icons.yaml"));
+  }
   if (env.UPTIME_PROBES_ENABLED === "true" || env.UPTIME_NOTIFICATIONS_ENABLED === "true") dockerArgs.push("--profile", "uptime-worker");
   dockerArgs.push("up", "--detach", "--build");
   const result = spawnSync("docker", dockerArgs, { cwd: root, env: { ...process.env, ...env }, stdio: "inherit" });
