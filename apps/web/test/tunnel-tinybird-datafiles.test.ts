@@ -20,9 +20,43 @@ const dataSources = [
   "tunnel_events", "tunnel_protocol_events", "tunnel_request_captures",
   "tunnel_active_snapshots",
 ];
+const dateTimeParameters = Object.fromEntries(
+  [...organizationEndpoints, ...adminEndpoints].map((name) => [name, [
+    "start", "end",
+    ...(name === "tunnel_overview_stats" ? ["previous_start"] : []),
+    ...(name === "tunnel_capture" ? ["timestamp"] : []),
+  ]]),
+);
 
 async function endpoint(name: string) {
   return readFile(new URL(`endpoints/${name}.pipe`, project), "utf8");
+}
+
+for (const [name, parameters] of Object.entries(dateTimeParameters)) {
+  test(`${name} declares required millisecond UTC time parameters for deployment validation`, async () => {
+    const source = await endpoint(name);
+    // Tinybird validates endpoint SQL without request values. String parameters
+    // become '__no_value__', which a DateTime parser cannot parse. DateTime64
+    // parameters supply typed validation values and preserve real millisecond
+    // boundaries. Keep them required rather than hiding omissions with defaults.
+    for (const parameter of parameters) {
+      const interpolations = [...source.matchAll(/\{\{\s*([^{}]+?)\s*\}\}/g)]
+        .map((match) => match[1].trim())
+        .filter((expression) => new RegExp(`\\(\\s*${parameter}\\s*(?:,|\\))`).test(expression));
+      assert.ok(interpolations.length > 0, `${name} uses ${parameter}`);
+      for (const expression of interpolations) {
+        assert.match(expression, new RegExp(`^DateTime64\\(\\s*${parameter}\\s*\\)$`),
+          `${name}.${parameter} is a required DateTime64, not a String or a default`);
+      }
+      const utcConversions = [...source.matchAll(new RegExp(
+        `toDateTime64\\(\\s*\\{\\{\\s*DateTime64\\(\\s*${parameter}\\s*\\)\\s*\\}\\}\\s*,\\s*3\\s*,\\s*'UTC'\\s*\\)`, "g",
+      ))];
+      assert.equal(utcConversions.length, interpolations.length,
+        `${name}.${parameter} preserves UTC millisecond precision on every use`);
+    }
+    assert.doesNotMatch(source, /parseDateTime\w*\(\s*\{\{\s*String\(/,
+      `${name} never parses Tinybird's missing String validation placeholder`);
+  });
 }
 
 for (const name of organizationEndpoints) {
@@ -93,8 +127,8 @@ test("request search is literal substring matching with stable time/ID ordering"
 
 test("comparison windows share one captured start/end boundary", async () => {
   const source = await endpoint("tunnel_overview_stats");
-  assert.equal((source.match(/timestamp >= parseDateTime64BestEffort\(\{\{String\(previous_start\)\}\}/g) || []).length, 2);
-  assert.equal((source.match(/timestamp < parseDateTime64BestEffort\(\{\{String\(end\)\}\}/g) || []).length, 2);
+  assert.equal((source.match(/timestamp >= toDateTime64\(\{\{DateTime64\(previous_start\)\}\}/g) || []).length, 2);
+  assert.equal((source.match(/timestamp < toDateTime64\(\{\{DateTime64\(end\)\}\}/g) || []).length, 2);
   assert.match(source, /http_errors/);
   assert.match(source, /previous_http_errors/);
   assert.doesNotMatch(source, /event_type .*http_errors/);
