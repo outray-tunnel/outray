@@ -1,0 +1,5 @@
+{
+  "title": "Observability",
+  "icon": "Activity",
+  "pages": ["index", "getting-started", "sdk-setup", "services", "requests-and-traces", "logs-and-metrics", "alerts"]
+}
