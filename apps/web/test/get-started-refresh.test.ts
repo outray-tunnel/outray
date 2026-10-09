@@ -29,7 +29,7 @@ async function render(orgSlug = "acme") {
         createFileRoute: () => (options: object) => ({ options, useParams: () => ({ orgSlug }) }),
       };
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
-      if (specifier.startsWith("@hugeicons-pro/")) return { default: [] };
+      if (specifier.startsWith("@outray/icons/")) return { default: [] };
       throw new Error(`Unexpected Get started dependency: ${specifier}`);
     },
   });
