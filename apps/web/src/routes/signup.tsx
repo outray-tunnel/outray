@@ -1,91 +1,63 @@
-import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { AuthPage } from "@/components/auth/auth-page";
 import { authClient } from "@/lib/auth-client";
-import { FaGithub, FaGoogle } from "react-icons/fa";
-import { useState } from "react";
-import { Button } from "@/components/ui";
+import { readLoginSearch, signupCallbackErrorMessage, signupCallbacks, type LoginProvider } from "@/lib/login";
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({
-    meta: [
-      { title: "Sign Up - OutRay" },
-    ],
-  }),
-  component: RouteComponent,
-  validateSearch: (search?: Record<string, unknown>): { redirect?: string } => {
-    return {
-      redirect: (search?.redirect as string) || undefined,
-    };
-  },
+  head: () => ({ meta: [{ title: "Sign Up - OutRay" }] }),
+  component: SignupRoute,
+  validateSearch: readLoginSearch,
 });
 
-function RouteComponent() {
-  const [loading, setLoading] = useState<string | null>(null);
-  const { redirect } = Route.useSearch();
-  const { data: session } = authClient.useSession();
+export function SignupRoute() {
+  const [loading, setLoading] = useState<LoginProvider | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const inFlight = useRef(false);
+  const mounted = useRef(true);
+  const { redirect, error } = Route.useSearch();
+  const { data: session, isPending } = authClient.useSession();
+  useEffect(() => {
+    mounted.current = true;
+    // Browser Back from the provider can restore a still-busy page from BFCache.
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        inFlight.current = false;
+        setLoading(null);
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      mounted.current = false;
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, []);
 
   if (session?.user) {
-    return <Navigate to="/select" />;
+    // Preserve invitation tokens and CLI codes for people already signed in.
+    return <Navigate to="/select" href={redirect ?? "/select"} replace />;
   }
 
-  const handleSignup = async (provider: "github" | "google") => {
+  const handleSignup = async (provider: LoginProvider) => {
+    if (inFlight.current || isPending) return;
+    inFlight.current = true;
     setLoading(provider);
-    await authClient.signIn.social({
-      provider,
-      callbackURL: redirect || "/select",
-      newUserCallbackURL: redirect || "/onboarding",
-    });
-    setLoading(null);
+    setActionError(null);
+    let redirecting = false;
+    try {
+      const result = await authClient.signIn.social(signupCallbacks(provider, redirect));
+      // Better Auth opens the provider; retain the busy state until navigation.
+      redirecting = !result.error && result.data?.redirect === true && Boolean(result.data.url);
+      if (!redirecting && mounted.current) setActionError(`Could not continue with ${provider === "github" ? "GitHub" : "Google"}. Please try again.`);
+    } catch {
+      if (mounted.current) setActionError(`Could not continue with ${provider === "github" ? "GitHub" : "Google"}. Please try again.`);
+    } finally {
+      if (!redirecting) {
+        inFlight.current = false;
+        if (mounted.current) setLoading(null);
+      }
+    }
   };
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#070707] text-gray-300">
-      <div className="w-full max-w-md space-y-8 p-8">
-        <div className="text-center mb-12">
-          <Link to="/" className="flex items-center justify-center gap-3 mb-6">
-            <img src="/logo.png" alt="OutRay Logo" className="w-12" />
-            <p className="font-bold text-white text-2xl tracking-tight">
-              OutRay
-            </p>
-          </Link>
-          <h2 className="text-3xl font-bold tracking-tight text-white">
-            Create an account
-          </h2>
-          <p className="mt-2 text-sm text-gray-500">
-            Sign up to get started with OutRay
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <Button
-            variant="outline"
-            size="lg"
-            fullWidth
-            onClick={() => handleSignup("github")}
-            disabled={loading !== null}
-            isLoading={loading === "github"}
-            leftIcon={loading !== "github" ? <FaGithub className="h-5 w-5" /> : undefined}
-          >
-            Continue with GitHub
-          </Button>
-
-          <Button
-            variant="outline"
-            size="lg"
-            fullWidth
-            onClick={() => handleSignup("google")}
-            disabled={loading !== null}
-            isLoading={loading === "google"}
-            leftIcon={loading !== "google" ? <FaGoogle className="h-5 w-5" /> : undefined}
-          >
-            Continue with Google
-          </Button>
-        </div>
-
-        <p className="text-center text-xs text-gray-600 mt-8">
-          By continuing, you agree to OutRay's Terms of Service and Privacy
-          Policy
-        </p>
-      </div>
-    </div>
-  );
+  return <AuthPage mode="signup" loading={loading} sessionPending={isPending} redirect={redirect} error={loading ? null : actionError ?? signupCallbackErrorMessage(error)} onLogin={(provider) => { void handleSignup(provider); }} />;
 }
