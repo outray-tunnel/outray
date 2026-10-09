@@ -1,0 +1,23 @@
+# Optional, licensed build overlay. The default Compose file needs no icon key.
+x-pro-build: &pro-build
+  build:
+    args:
+      # BuildKit secrets do not invalidate layers; always separate Pro/free keys.
+      OUTRAY_ICON_MODE: pro
+    secrets:
+      - hugeicons_license_key
+
+services:
+  web: *pro-build
+  tunnel: *pro-build
+  internal-check: *pro-build
+  ingest: *pro-build
+  cron: *pro-build
+  status: *pro-build
+  secrets-share: *pro-build
+  uptime-probe: *pro-build
+  migrate: *pro-build
+
+secrets:
+  hugeicons_license_key:
+    environment: HUGEICONS_LICENSE_KEY
