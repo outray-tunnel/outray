@@ -5,8 +5,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import type { IconSvgElement } from "@hugeicons/react";
-import SidebarLeft01Icon from "@hugeicons-pro/core-stroke-rounded/SidebarLeft01Icon";
-import SidebarRight01Icon from "@hugeicons-pro/core-stroke-rounded/SidebarRight01Icon";
+import SidebarLeft01Icon from "@outray/icons/stroke/SidebarLeft01Icon";
+import SidebarRight01Icon from "@outray/icons/stroke/SidebarRight01Icon";
 import { SidebarCollapseControl } from "../src/components/sidebar/sidebar-collapse-control";
 
 // The Node test runner uses classic JSX; Vite uses automatic JSX.
