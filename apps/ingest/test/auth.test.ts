@@ -64,6 +64,35 @@ test("authenticates active hashed machine tokens with observability scope", asyn
   );
 });
 
+test("disabled Observability rejects standalone ingestion credentials before any database call", async () => {
+  const previous = process.env.OUTRAY_PRODUCTS;
+  process.env.OUTRAY_PRODUCTS = "tunnels,secrets,uptime";
+  try {
+    const { database, calls } = fakeDatabase({ machine: activeMachine });
+    assert.equal(await authenticateApiToken(database, "outray_machine_token"), null);
+    assert.equal(calls.length, 0);
+  } finally {
+    if (previous === undefined) delete process.env.OUTRAY_PRODUCTS;
+    else process.env.OUTRAY_PRODUCTS = previous;
+  }
+});
+
+test("self-hosted ingestion uses installation retention instead of the stored hosted subscription", async () => {
+  const previousMode = process.env.OUTRAY_DEPLOYMENT_MODE;
+  const previousRetention = process.env.OUTRAY_RETENTION_DAYS;
+  process.env.OUTRAY_DEPLOYMENT_MODE = "self-hosted";
+  process.env.OUTRAY_RETENTION_DAYS = "21";
+  try {
+    const { database } = fakeDatabase({ machine: { ...activeMachine, plan: "free" } });
+    assert.equal((await authenticateApiToken(database, "outray_machine_token"))?.retentionDays, 21);
+  } finally {
+    if (previousMode === undefined) delete process.env.OUTRAY_DEPLOYMENT_MODE;
+    else process.env.OUTRAY_DEPLOYMENT_MODE = previousMode;
+    if (previousRetention === undefined) delete process.env.OUTRAY_RETENTION_DAYS;
+    else process.env.OUTRAY_RETENTION_DAYS = previousRetention;
+  }
+});
+
 test("fails closed for revoked or expired hashed tokens", async () => {
   for (const machine of [
     { ...activeMachine, revoked_at: new Date() },
