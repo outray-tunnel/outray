@@ -9,11 +9,10 @@ SQL >
     SELECT toDate(ts) AS day, round(avg(active_tunnels)) AS avg,
            max(active_tunnels) AS max
     FROM tunnel_active_snapshots FINAL
-    WHERE ts >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')
-      AND ts < parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+    WHERE ts >= toDateTime64({{DateTime64(start)}}, 3, 'UTC')
+      AND ts < toDateTime64({{DateTime64(end)}}, 3, 'UTC')
       AND ts >= now64(3, 'UTC') - INTERVAL 90 DAY
     GROUP BY day
     ORDER BY day ASC
 
 TYPE endpoint
-
