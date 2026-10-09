@@ -1,35 +1,51 @@
 ---
 title: Opening a Tunnel
-description: How to expose your local server to the internet
+description: Expose a local service, inspect traffic, and stop the connection.
 icon: Zap
 ---
 
-Once you are authenticated, you can start exposing your local services to the internet.
+Start your local application first and confirm it responds on its port. Then connect OutRay from a separate terminal:
 
-## Basic Usage
-
-To expose a local server running on a specific port (e.g., 3000), simply run:
-
-```bash
+~~~bash
+outray login
 outray 3000
-```
+~~~
 
-You will see an output similar to this:
+`outray http 3000` is the explicit form of the same command. Once connected, the CLI prints the assigned public URL. Use that URL for a preview, callback, or webhook destination.
 
-```bash
-Connecting to OutRay...
-Linked to your local port 3000
-Tunnel ready: https://random-name.tunnel.outray.app
-Keep this running to keep your tunnel active.
-```
+<Callout type="warn">
+The public URL is reachable by anyone who knows it. CLI authentication controls who opens a tunnel, not who visits it. Keep application authentication enabled and avoid exposing admin interfaces or sensitive data.
+</Callout>
 
-Now, anyone with the public URL can access your local server.
+## Choose an address
 
-## Using Configuration Files
+For repeatable callbacks, use a [reserved subdomain](/docs/reserved-subdomains):
 
-For managing multiple tunnels, you can use a TOML configuration file. Create an `outray/config.toml` file in your project directory:
+~~~bash
+outray 3000 --subdomain my-app
+~~~
 
-```toml
+For a verified [custom domain](/docs/custom-domains):
+
+~~~bash
+outray 3000 --domain preview.example.com
+~~~
+
+The CLI also supports [password protection](/docs/password-protection) for HTTP requests on paid plans.
+
+## Inspect tunnel traffic
+
+The terminal shows request method, path, status, and duration. Use `--no-logs` to hide local request lines; it does not disable server-side tunnel traffic records.
+
+In the console, select your organization and open **Tunnels** at `/<org-slug>/tunnel`. Request details and any enabled full request capture belong to that tunnel workspace.
+
+Tunnel traffic records show requests passing through the public endpoint. They are separate from [Observability](/docs/observability), which uses an SDK to collect application traces, logs, and metrics even without a tunnel.
+
+## Start multiple tunnels
+
+Create `outray/config.toml` in your project:
+
+~~~toml
 [tunnel.web]
 protocol = "http"
 local_port = 3000
@@ -37,26 +53,34 @@ local_port = 3000
 [tunnel.api]
 protocol = "http"
 local_port = 8000
-```
 
-Then start all tunnels at once:
+[tunnel.database]
+protocol = "tcp"
+local_port = 5432
+~~~
 
-```bash
-outray start
-```
+Validate and start the configuration:
 
-You can validate your config file before starting:
-
-```bash
+~~~bash
 outray validate-config
-```
+outray start
+~~~
 
-See the [CLI Reference](/docs/reference/cli-reference#configuration-files) for complete configuration options.
+`start` uses your saved browser login. It does not accept the single-tunnel `--key` authentication workflow. See the [CLI reference](/docs/cli-reference#configuration-files) for supported fields and custom config paths.
 
-## Inspecting Traffic
+## Local network access
 
-OutRay provides a real-time view of requests and responses in your terminal. As requests come in, you will see the method, path, and status code.
+`--local` adds a `.local` address alongside the public HTTP tunnel. `--local-only` provides LAN access without a remote tunnel or OutRay login:
 
-## Stopping the Tunnel
+~~~bash
+outray 3000 --local
+outray 3000 --local-only --subdomain my-app
+~~~
 
-To stop the tunnel, simply press `Ctrl+C` in your terminal. This will close the connection and the public URL will no longer be accessible.
+Devices must be on the same network and able to resolve mDNS. Follow the terminal's actual URLs: availability of local ports 80/443 and certificate trust affects the address you can use.
+
+## Stop or troubleshoot
+
+Press `Ctrl+C` to stop the tunnel. The public endpoint no longer forwards to your application; a reserved address remains reserved.
+
+If a request fails, check the local service first, then the CLI's connection and authentication messages. For raw socket services, choose [TCP or UDP](/docs/protocols) rather than an HTTP tunnel.
