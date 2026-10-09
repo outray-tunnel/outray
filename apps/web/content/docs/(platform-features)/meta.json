@@ -5,7 +5,6 @@
     "password-protection",
     "custom-domains",
     "teams",
-    "ci-cd",
-    "observability"
+    "ci-cd"
   ]
 }
