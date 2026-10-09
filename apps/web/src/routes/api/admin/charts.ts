@@ -4,7 +4,7 @@ import { users, organizations, tunnels, subscriptions } from "../../../db/schema
 import { redis } from "../../../lib/redis";
 import { hashToken } from "../../../lib/hash";
 import { sql, count, gte, desc, eq } from "drizzle-orm";
-import { tigerData } from "../../../lib/timescale";
+import { queryTinybird } from "../../../lib/tinybird";
 
 export const Route = createFileRoute("/api/admin/charts")({
   server: {
@@ -72,26 +72,19 @@ export const Route = createFileRoute("/api/admin/charts")({
             .from(tunnels)
             .groupBy(tunnels.protocol);
 
-          // Hourly request activity (from TimescaleDB if available)
+          // Count actual HTTP requests, not active-tunnel samples.
           let hourlyRequests: { hour: string; requests: number }[] = [];
           try {
-            const result = await tigerData.query(`
-              SELECT 
-                time_bucket('1 hour', ts) as hour,
-                SUM(active_tunnels) as requests
-              FROM active_tunnel_snapshots
-              WHERE ts >= NOW() - INTERVAL '24 hours'
-              GROUP BY hour
-              ORDER BY hour
-            `);
-            hourlyRequests = result.rows.map((r) => ({
+            const result = await queryTinybird<{ hour: string; requests: number }>("tunnel_admin_http_chart", {
+              start: new Date(now.getTime() - 24 * 60 * 60_000).toISOString(), end: now.toISOString(),
+            });
+            hourlyRequests = result.map((r) => ({
               hour: r.hour,
               requests: Number(r.requests) || 0,
             }));
           } catch (e) {
-            // TimescaleDB might not be available; log in non-production for debugging
             if (process.env.NODE_ENV !== "production") {
-              console.error("Failed to fetch hourly request activity from TimescaleDB:", e);
+              console.error("Failed to fetch hourly tunnel request activity:", e);
             }
           }
 
@@ -126,26 +119,19 @@ export const Route = createFileRoute("/api/admin/charts")({
             .orderBy(desc(count()))
             .limit(10);
 
-          // Weekly active tunnels trend (from TimescaleDB)
+          // Weekly active tunnels trend.
           let weeklyTunnelTrend: { day: string; avg: number; max: number }[] = [];
           try {
-            const result = await tigerData.query(`
-              SELECT 
-                time_bucket('1 day', ts) as day,
-                AVG(active_tunnels)::int as avg,
-                MAX(active_tunnels) as max
-              FROM active_tunnel_snapshots
-              WHERE ts >= NOW() - INTERVAL '7 days'
-              GROUP BY day
-              ORDER BY day
-            `);
-            weeklyTunnelTrend = result.rows.map((r) => ({
+            const result = await queryTinybird<{ day: string; avg: number; max: number }>("tunnel_admin_active_chart", {
+              start: new Date(now.getTime() - 7 * 24 * 60 * 60_000).toISOString(), end: now.toISOString(),
+            });
+            weeklyTunnelTrend = result.map((r) => ({
               day: r.day,
               avg: Number(r.avg) || 0,
               max: Number(r.max) || 0,
             }));
-          } catch (e) {
-            // TimescaleDB might not be available
+          } catch {
+            // Other admin charts remain available when analytics is unavailable.
           }
 
           // Cumulative user growth
