@@ -7,8 +7,9 @@ import { notificationEmailsBelongToOrganization } from "@/lib/observability/aler
 import { activeOrganizationKey } from "@/lib/secrets/database";
 import { encryptUptimeHeaders } from "@/lib/secrets/crypto";
 import { badInput, jsonBody, requireUptimeManager, requireUptimeRead, serializeMonitor } from "@/lib/uptime/api";
-import { UPTIME_LIMITS, validateMonitorInput } from "@/lib/uptime/validation";
+import { validateMonitorInput } from "@/lib/uptime/validation";
 import { isAlertManagerRole } from "@/lib/observability/alert-validation";
+import { getUptimeMonitorLimit } from "@/lib/subscription-plans";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/")({
   server: {
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/")({
         const monitors = await db.select().from(uptimeMonitors)
           .where(and(eq(uptimeMonitors.organizationId, access.organization.id), isNull(uptimeMonitors.deletedAt)))
           .orderBy(desc(uptimeMonitors.createdAt));
-        return Response.json({ monitors: monitors.map(serializeMonitor), limit: UPTIME_LIMITS.monitors, canManage: isAlertManagerRole(access.membership.role) });
+        return Response.json({ monitors: monitors.map(serializeMonitor), limit: getUptimeMonitorLimit(), canManage: isAlertManagerRole(access.membership.role) });
       },
       POST: async ({ request, params }) => {
         const access = await requireUptimeManager(request, params.orgSlug);
@@ -32,13 +33,14 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/")({
           return badInput("Email recipients must be current organization members", "notificationEmails");
         }
         try {
+          const monitorLimit = getUptimeMonitorLimit();
           const result = await db.transaction(async (tx) => {
             await tx.select({ id: organizations.id }).from(organizations)
               .where(eq(organizations.id, access.organization.id)).for("update");
             const existing = await tx.select({ id: uptimeMonitors.id }).from(uptimeMonitors)
               .where(and(eq(uptimeMonitors.organizationId, access.organization.id), isNull(uptimeMonitors.deletedAt)))
-              .limit(UPTIME_LIMITS.monitors);
-            if (existing.length >= UPTIME_LIMITS.monitors) return null;
+              .limit(monitorLimit);
+            if (existing.length >= monitorLimit) return null;
             const id = crypto.randomUUID();
             let headersCiphertext = null;
             if (Object.keys(input.data.headers).length) {
@@ -65,7 +67,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/")({
             }).returning();
             return monitor;
           });
-          if (!result) return Response.json({ error: "Beta limit reached: 10 monitors per organization" }, { status: 403 });
+          if (!result) return Response.json({ error: `Monitor limit reached: ${monitorLimit} monitors per organization` }, { status: 403 });
           return Response.json({ monitor: serializeMonitor(result) }, { status: 201 });
         } catch (error) {
           // Configuration errors are not exposed with key material or header values.
