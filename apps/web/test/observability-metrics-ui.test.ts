@@ -71,7 +71,7 @@ async function loadContent() {
       if (specifier === "./metrics-data") return metricData;
       if (specifier === "lucide-react") return new Proxy({}, { get: () => () => null });
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
-      if (specifier.startsWith("@hugeicons-pro/")) return {};
+      if (specifier.startsWith("@outray/icons/")) return {};
       if (specifier.startsWith("../") || specifier.startsWith("./")) return stubs;
       throw new Error(`Unexpected metrics view dependency: ${specifier}`);
     },
