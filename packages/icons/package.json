@@ -1,0 +1,28 @@
+{
+  "name": "@outray/icons",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./solid/*": {
+      "types": "./generated/solid/*.d.ts",
+      "import": "./generated/solid/*.js",
+      "require": "./generated/solid/*.cjs",
+      "default": "./generated/solid/*.js"
+    },
+    "./stroke/*": {
+      "types": "./generated/stroke/*.d.ts",
+      "import": "./generated/stroke/*.js",
+      "require": "./generated/stroke/*.cjs",
+      "default": "./generated/stroke/*.js"
+    }
+  },
+  "dependencies": {
+    "@hugeicons/core-free-icons": "4.3.5"
+  },
+  "optionalDependencies": {
+    "@hugeicons-pro/core-solid-rounded": "4.3.0",
+    "@hugeicons-pro/core-stroke-rounded": "4.3.0"
+  }
+}
