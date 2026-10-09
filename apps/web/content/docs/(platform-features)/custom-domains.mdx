@@ -1,21 +1,44 @@
 ---
 title: Custom Domains
-description: Use your own domain names for tunnels
+description: Connect a hostname you own to an HTTP tunnel.
 icon: Globe
 ---
 
-OutRay allows you to white-label your tunnels by using your own domain names. Instead of `random-name.tunnel.outray.app`, you can use `api.yourcompany.com`.
+Use a custom domain when a preview or integration needs a hostname such as `preview.example.com` rather than an assigned OutRay address.
 
-## Setup
+Custom tunnel domains and [Uptime status-page domains](/docs/uptime) are separate resources. The records below are for tunnels.
 
-1.  **Add Domain**: Go to the **Domains** section in your dashboard and add your domain (e.g., `tunnel.yourcompany.com`).
-2.  **DNS Configuration**: Create a CNAME record in your DNS provider pointing to `edge.outray.app`.
-3.  **Verification**: OutRay will automatically verify the DNS record and issue an SSL certificate.
+## Add the hostname
 
-## Usage
+In your organization's console, open **Tunnels → Domains** at `/<org-slug>/tunnel/domains` and add the hostname. Open its DNS instructions to see your ownership token.
 
-Once your domain is verified, you can use it with the `--domain` flag:
+For `preview.example.com`, configure:
 
-```bash
-outray 3000 --domain tunnel.yourcompany.com
-```
+| Type | Name | Value |
+| --- | --- | --- |
+| CNAME | `preview.example.com` | `edge.outray.app` |
+| TXT | `_outray-challenge.preview.example.com` | The ownership token shown for this domain |
+
+If your DNS provider automatically appends `example.com`, enter the relative names `preview` and `_outray-challenge.preview` instead.
+
+Wait for the records to become visible in DNS, then choose **Verify DNS** in the console. Do not omit the TXT record: it proves that your organization controls the hostname.
+
+## Connect your local server
+
+Once the domain is active:
+
+~~~bash
+outray 3000 --domain preview.example.com
+~~~
+
+The domain must belong to the same organization as the CLI login or token used to open the tunnel. The CLI needs to remain connected for traffic to reach your local application.
+
+You can also configure `custom_domain` in a [TOML tunnel configuration](/docs/cli-reference#configuration-files).
+
+## Troubleshooting
+
+If ownership verification fails, check the TXT name and token, including whether the DNS provider appended the zone twice.
+
+If the domain is active but does not reach your application, check the CNAME independently, the tunnel's live connection, and the local server. Domain verification is not a health check of your running application.
+
+Removing a domain from OutRay does not remove its DNS records at your provider.
