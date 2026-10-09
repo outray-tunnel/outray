@@ -1,7 +1,7 @@
 import { useId, useRef, useState, type FormEvent } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
-import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
+import ArrowDown01Icon from "@outray/icons/stroke/ArrowDown01Icon";
+import Tick02Icon from "@outray/icons/stroke/Tick02Icon";
 import { Button } from "../arc/button/button";
 import { Select } from "../ui/select";
 import { WorkspaceInput, WorkspaceTextarea } from "../ui/workspace-input";
