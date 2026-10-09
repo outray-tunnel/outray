@@ -3,6 +3,13 @@ import test from "node:test";
 import { agentResponseError, consumeAgentStream, createAgentSseParser, readAgentStreamEvent, readAgentThreadList } from "../src/components/agent/agent-chat-transport";
 import type { AgentStreamEvent } from "../src/lib/agent/protocol";
 
+const presentation = {
+  kind: "request" as const, method: "GET", route: "/api/orders", service: "checkout-api",
+  statusCode: 200, durationMs: 783, timestamp: "2026-10-08T01:00:00.000Z",
+  captureState: "redacted" as const, requestSizeBytes: 0, responseSizeBytes: 48,
+};
+const reference = { id: "request:abc:def", label: "Observed request", href: "/acme/observability/requests?search=id", observedAt: "2026-10-08T13:00:00.000Z", presentation };
+
 function response(chunks: string[]) {
   return new Response(new ReadableStream<Uint8Array>({ start(controller) { const encoder = new TextEncoder(); for (const chunk of chunks) controller.enqueue(encoder.encode(chunk)); controller.close(); } }), { headers: { "content-type": "text/event-stream" } });
 }
@@ -41,6 +48,30 @@ test("untrusted evidence cannot navigate outside the current workspace", () => {
 test("history validates persisted fields while configuration can truthfully remain absent", () => {
   assert.deepEqual(readAgentThreadList({ threads: [], configured: false, model: null }, "acme"), { threads: [], configured: false, model: null });
   assert.throws(() => readAgentThreadList({ threads: [{ id: "bad" }], configured: true, model: "grok" }, "acme"), /history/);
+});
+test("rich evidence survives SSE framing and saved history without forwarding arbitrary fields", async () => {
+  const events: AgentStreamEvent[] = [];
+  const event = { type: "evidence", evidence: [{ ...reference, rawTelemetry: "PRIVATE_PAYLOAD" }] };
+  const source = `data: ${JSON.stringify(event)}\n\ndata: {"type":"finish","status":"complete"}\n\n`;
+  await consumeAgentStream(response([...source]), "acme", (item) => events.push(item));
+  assert.deepEqual(events[0], { type: "evidence", evidence: [reference] });
+  const history = readAgentThreadList({ configured: true, model: "grok", threads: [{
+    id: "thread", title: "Explain this request", sourceRequestId: null, createdAt: 1, updatedAt: 2,
+    messages: [{ id: "reply", role: "assistant", text: "### Findings\nSuccessful request.", status: "complete", steps: [], evidence: [reference] }],
+  }] }, "acme");
+  assert.deepEqual(history.threads[0].messages[0].evidence, [reference]);
+  assert.equal(history.threads[0].messages[0].text, "### Findings\nSuccessful request.");
+});
+test("invalid optional cards fall back to legacy sources while invalid links suppress cards too", () => {
+  const { presentation: _presentation, ...legacy } = reference;
+  const event = readAgentStreamEvent({ type: "evidence", evidence: [
+    { ...reference, presentation: { ...presentation, durationMs: -1 } },
+    { ...reference, id: "with-extra", presentation: { ...presentation, body: "PRIVATE_PAYLOAD" } },
+    { ...reference, id: "other", href: "/other/observability/requests" },
+    { ...reference, id: "external", href: "https://evil.example" },
+  ] }, "acme");
+  assert.deepEqual(event, { type: "evidence", evidence: [legacy, { ...legacy, id: "with-extra" }] });
+  assert.doesNotMatch(JSON.stringify(event), /PRIVATE|durationMs|presentation|evil/);
 });
 test("API errors are plain messages, not HTML, with actionable unavailable fallback", async () => {
   assert.equal(await agentResponseError(Response.json({ error: "Apply the Agent migration" }, { status: 503 })), "Apply the Agent migration");
