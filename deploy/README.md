@@ -7,7 +7,7 @@ happens before any database mutation. The migration step runs before the cron
 process is restarted and uses `drizzle-kit migrate`; it never generates schema
 changes in CI.
 
-When a change includes `tinybird/endpoints/alert_*.pipe`, the workflow also
+When a change includes resources under `tinybird/`, the workflow also
 checks and deploys the Tinybird project before applying the database migration
 and restarting cron. Tinybird deployments are project-atomic, so the CLI cannot
 deploy only those four files; the path check limits when this deployment runs.
@@ -19,13 +19,16 @@ The existing server deployment secrets remain required, including
 
 Alerts add these secrets:
 
-- `TINYBIRD_QUERY_TOKEN`: runtime token scoped to read the four `alert_*`
-  endpoints.
+- `TINYBIRD_QUERY_TOKEN`: runtime token scoped to read the dashboard and alert
+  endpoints, including the new `tunnel_*` endpoints.
+- `TINYBIRD_INGEST_TOKEN`: tunnel edge and cron runtime token scoped to append
+  `tunnel_events`, `tunnel_request_captures`, `tunnel_protocol_events`, and
+  `tunnel_active_snapshots`. Never provide a workspace-admin token to a runtime.
 - `ZEPTO_API_KEY`: runtime ZeptoMail API key for firing and recovery emails.
 - `TINYBIRD_HOST` and `TINYBIRD_TOKEN`: CI deployment credentials using
   Tinybird's standard CI names. `TINYBIRD_TOKEN` must be able to deploy the
   project and is intentionally distinct from `TINYBIRD_QUERY_TOKEN`. They are
-  required whenever an `alert_*.pipe` file changes; the rollout fails closed if
+  required whenever a Tinybird resource changes; the rollout fails closed if
   either is absent.
 
 Alerts also use these repository variables:
