@@ -6,7 +6,7 @@ export function Hero({ signupUrl, githubUrl }: { signupUrl: string; githubUrl: s
   <div className="page-shell hero-content hero-shell">
     <h1 className="hero-title" id="hero-title">Everything between <span className="hero-endpoint hero-endpoint-local">localhost</span> and <span className="hero-endpoint hero-endpoint-production">production</span></h1>
     <p className="hero-lede">
-      Secure tunnels, server-side observability, and encrypted runtime secrets in one developer platform.
+      Connect your services, understand your systems, and keep your apps secure and reliable—all in one developer platform.
     </p>
     <div className="hero-actions">
       <a className="button button-primary" href={signupUrl} data-track="cta" data-track-label="hero-start-free">
