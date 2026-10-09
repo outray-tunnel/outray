@@ -1,100 +1,36 @@
-import { X, Shield } from "lucide-react";
-import { useState, useEffect } from "react";
-import { Button, Label, Select, IconButton } from "@/components/ui";
+import { useId, useState } from "react";
+import { Button } from "./arc/button/button";
+import { Select } from "./arc/select/select";
+import { workspaceMemberRoles, type WorkspaceMemberRole } from "./workspace/members-data";
+import { WorkspaceDialog, WorkspaceNotice } from "./workspace/workspace-ui";
 
 interface ChangeRoleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentRole: "member" | "admin" | "owner";
-  onConfirm: (role: "member" | "admin" | "owner") => void;
+  currentRole: WorkspaceMemberRole;
+  memberName?: string;
+  onConfirm: (role: WorkspaceMemberRole) => void;
   isPending: boolean;
+  error?: string | null;
 }
 
-export function ChangeRoleModal({
-  isOpen,
-  onClose,
-  currentRole,
-  onConfirm,
-  isPending,
-}: ChangeRoleModalProps) {
-  const [selectedRole, setSelectedRole] = useState<
-    "member" | "admin" | "owner"
-  >(currentRole);
+export function ChangeRoleModal(props: ChangeRoleModalProps) {
+  return props.isOpen ? <ChangeRoleDialog key={props.currentRole} {...props} /> : null;
+}
 
-  useEffect(() => {
-    setSelectedRole(currentRole);
-  }, [currentRole, isOpen]);
+function ChangeRoleDialog({ isOpen, onClose, currentRole, memberName, onConfirm, isPending, error }: ChangeRoleModalProps) {
+  const [selectedRole, setSelectedRole] = useState<WorkspaceMemberRole>(currentRole);
+  const formId = useId();
+  const close = () => { if (!isPending) onClose(); };
+  const selectedRoleData = workspaceMemberRoles.find((role) => role.value === selectedRole);
 
-  if (!isOpen) return null;
-
-  const roles = [
-    {
-      value: "member",
-      label: "Member",
-      description:
-        "Can view and manage resources but cannot manage billing or members.",
-    },
-    {
-      value: "admin",
-      label: "Admin",
-      description: "Can manage all resources, billing, and members.",
-    },
-    {
-      value: "owner",
-      label: "Owner",
-      description:
-        "Full access to everything including deleting the organization.",
-    },
-  ] as const;
-
-  const selectedRoleData = roles.find((r) => r.value === selectedRole);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-[#101010] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
-        <div className="p-6 border-b border-white/10 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-white">Change Member Role</h3>
-          <IconButton
-            onClick={onClose}
-            icon={<X size={20} />}
-            aria-label="Close"
-          />
-        </div>
-        <div className="p-6 space-y-4">
-          <div>
-            <Label>Select Role</Label>
-            <Select
-              options={[...roles]}
-              value={selectedRole}
-              onChange={(value) =>
-                setSelectedRole(value as "member" | "admin" | "owner")
-              }
-              icon={<Shield size={18} />}
-            />
-            <p className="mt-2 text-xs text-gray-500">
-              {selectedRoleData?.description}
-            </p>
-          </div>
-          <div className="pt-2 flex gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClose}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => onConfirm(selectedRole)}
-              disabled={isPending}
-              isLoading={isPending}
-              className="flex-1"
-            >
-              {isPending ? "Updating..." : "Update Role"}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <WorkspaceDialog open={isOpen} onClose={close} title="Change member role" description={memberName ? `Update workspace access for ${memberName}.` : "Update this member's workspace access."} busy={isPending} size="md" footer={<>
+    <Button type="button" size="sm" variant="secondary" onClick={close} disabled={isPending}>Cancel</Button>
+    <Button type="submit" size="sm" form={formId} disabled={selectedRole === currentRole} loading={isPending}>Update role</Button>
+  </>}>
+    <form id={formId} className="space-y-4" onSubmit={(event) => { event.preventDefault(); if (!isPending && selectedRole !== currentRole) onConfirm(selectedRole); }}>
+      {error && <WorkspaceNotice message={error} />}
+      <Select label="Role" value={selectedRole} onValueChange={(value) => setSelectedRole(value as WorkspaceMemberRole)} options={[...workspaceMemberRoles]} description={selectedRoleData?.description} disabled={isPending} />
+    </form>
+  </WorkspaceDialog>;
 }
