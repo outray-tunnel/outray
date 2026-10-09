@@ -87,6 +87,7 @@ async function routeHarness(path: string, role: string, denied = false) {
       loadPage: async (orgId: string) => { scopes.push(orgId); return { page: { id: "page-url" }, groups: [], standaloneComponents: [] }; },
     };
     if (specifier === "@/lib/uptime/validation") return { UPTIME_LIMITS: { monitors: 10, checkHistoryDays: 30 } };
+    if (specifier === "@/lib/subscription-plans") return { getUptimeMonitorLimit: () => 10 };
     if (specifier === "@/lib/observability/alert-access" || specifier === "@/lib/secrets/database" || specifier === "@/lib/secrets/crypto") return {};
     throw new Error(`Unexpected capability route dependency: ${specifier}`);
   } });
