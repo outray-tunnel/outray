@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { redis } from "../../../lib/redis";
 import { hashToken } from "../../../lib/hash";
-import { tigerData } from "../../../lib/timescale";
+import { queryTinybird } from "../../../lib/tinybird";
 
 export const Route = createFileRoute("/api/admin/stats")({
   server: {
@@ -48,32 +48,24 @@ export const Route = createFileRoute("/api/admin/stats")({
             break;
         }
 
-        const query = `
-          WITH times AS (
-            SELECT generate_series(
-              time_bucket($1::interval, NOW()) - ($1::interval * $2),
-              time_bucket($1::interval, NOW()),
-              $1::interval
-            ) AS time
-          )
-          SELECT
-            t.time as time,
-            COALESCE(MAX(s.active_tunnels), 0) as active_tunnels
-          FROM times t
-          LEFT JOIN active_tunnel_snapshots s ON
-            time_bucket($1::interval, s.ts) = t.time
-          GROUP BY t.time
-          ORDER BY t.time ASC
-        `;
-
         try {
-          const result = await tigerData.query(query, [
-            `${intervalMinutes} minutes`,
-            points,
-          ]);
-          return Response.json(result.rows);
+          const bucketMs = intervalMinutes * 60_000;
+          const end = Math.floor(Date.now() / bucketMs) * bucketMs;
+          const start = end - bucketMs * points;
+          const rows = await queryTinybird<{ time: string; active_tunnels: number }>(
+            "tunnel_admin_active_series",
+            { start: new Date(start).toISOString(), end: new Date(end + bucketMs).toISOString(), interval_minutes: intervalMinutes },
+          );
+          const values = new Map(rows.map((row) => [
+            Date.parse(row.time.endsWith("Z") ? row.time : `${row.time.replace(" ", "T")}Z`),
+            Number(row.active_tunnels),
+          ]));
+          return Response.json(Array.from({ length: points + 1 }, (_, index) => {
+            const time = start + index * bucketMs;
+            return { time: new Date(time).toISOString(), active_tunnels: values.get(time) || 0 };
+          }));
         } catch (error) {
-          console.error("TimescaleDB query error:", error);
+          console.error("Tunnel analytics query failed:", error);
           return Response.json({ error: "Failed to fetch stats" }, { status: 500 });
         }
       },
