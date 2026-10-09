@@ -1,25 +1,16 @@
 import { redis } from "./lib/redis";
-import { pool, execute } from "./lib/timescale";
+import { activeTunnelSnapshot, createSnapshotLogger } from "./lib/tinybird-tunnels";
 import { chargePaystackSubscriptions } from "./lib/paystack";
 import { startAlertWorkers } from "./lib/alerts";
+import { instanceConfig } from "../../../shared/instance-config";
 
 async function connectRedis() {
   await redis.connect();
   console.log("Connected to Redis");
 }
 
-async function connectTimescaleDB() {
-  try {
-    const client = await pool.connect();
-    // Verify connection with a simple query
-    await client.query("SELECT 1");
-    console.log("Connected to TimescaleDB");
-    client.release();
-  } catch (error) {
-    console.error("Failed to connect to TimescaleDB", error);
-    throw error;
-  }
-}
+const { logger: snapshots, configured: tinybirdConfigured } = createSnapshotLogger();
+const timers: NodeJS.Timeout[] = [];
 
 let isSampling = false;
 let isCleaning = false;
@@ -127,16 +118,11 @@ async function sampleActiveTunnels() {
 
     console.log("Active tunnels:", totalCount);
 
-    // Insert into TimescaleDB
-    try {
-      await execute(
-        "INSERT INTO active_tunnel_snapshots (ts, active_tunnels) VALUES ($1, $2)",
-        [ts, totalCount],
-      );
-      console.log(`Inserted snapshot into TimescaleDB: ${totalCount} tunnels`);
-    } catch (error) {
-      console.error("Failed to insert into TimescaleDB", error);
-    }
+    snapshots.log(activeTunnelSnapshot(ts, totalCount));
+    await snapshots.flush();
+    console.log(`Queued active tunnel snapshot: ${totalCount} tunnels`);
+  } catch {
+    console.error("Could not durably queue the active tunnel snapshot; buffered snapshots will retry");
   } finally {
     isSampling = false;
   }
@@ -204,30 +190,46 @@ async function rebuildGlobalOrgIndex() {
 }
 
 async function start() {
-  startAlertWorkers();
+  const instance = instanceConfig();
+  if (instance.products.includes("observability")) startAlertWorkers();
 
-  try {
-    await connectRedis();
-    await connectTimescaleDB();
-    await rebuildGlobalOrgIndex();
-    await sampleActiveTunnels();
-    await cleanupStaleTunnels();
-    setInterval(sampleActiveTunnels, 60_000);
-    setInterval(cleanupStaleTunnels, 5 * 60_000);
-    setInterval(rebuildGlobalOrgIndex, 60 * 60_000);
-  } catch (error) {
-    console.error(
-      "Tunnel analytics jobs are disabled; alert evaluation will continue",
-      error,
-    );
+  if (instance.products.includes("tunnels")) {
+    try {
+      await connectRedis();
+      snapshots.start(tinybirdConfigured);
+      if (!tinybirdConfigured) console.error("Tinybird tunnel ingestion is not configured; snapshots will remain queued in Redis");
+      await rebuildGlobalOrgIndex();
+      await sampleActiveTunnels();
+      await cleanupStaleTunnels();
+      timers.push(setInterval(sampleActiveTunnels, 60_000));
+      timers.push(setInterval(cleanupStaleTunnels, 5 * 60_000));
+      timers.push(setInterval(rebuildGlobalOrgIndex, 60 * 60_000));
+    } catch (error) {
+      console.error(
+        "Tunnel analytics jobs are disabled; alert evaluation will continue",
+        error,
+      );
+    }
   }
-
-  try {
-    await chargePaystackSubscriptions();
-    setInterval(chargePaystackSubscriptions, 24 * 60 * 60_000);
-  } catch (error) {
-    console.error("Paystack subscription job failed to start", error);
+  if (instance.billingEnabled) {
+    try {
+      await chargePaystackSubscriptions();
+      timers.push(setInterval(chargePaystackSubscriptions, 24 * 60 * 60_000));
+    } catch (error) {
+      console.error("Paystack subscription job failed to start", error);
+    }
   }
 }
 
 start();
+
+async function shutdown() {
+  timers.forEach(clearInterval);
+  try { await snapshots.shutdown(); }
+  catch { console.error("Could not persist buffered tunnel snapshots before shutdown"); }
+  await redis.quit().catch(() => undefined);
+  process.exit(0);
+}
+
+process.once("SIGINT", () => { void shutdown(); });
+process.once("SIGTERM", () => { void shutdown(); });
