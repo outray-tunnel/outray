@@ -1,0 +1,29 @@
+---
+title: Services and health
+description: Understand service identity, activity summaries, resource attributes, and missing evidence.
+icon: Server
+---
+
+## Find a service
+
+Open **Observability → Services**, choose a time range, and select a service to open its details. Services are discovered from reported telemetry, not created by adding a name to a dashboard form. [Initialize an SDK](/docs/observability/getting-started) and send traffic to establish activity.
+
+Keep `serviceName` stable and descriptive, such as `orders-api`. Use `serviceVersion`, `environment`, and optional `serviceNamespace` to describe deployment context. Only add non-secret resource attributes.
+
+## Read the activity summary
+
+Service details shows operations, throughput, error rate, and P95 latency for the selected period. Where server spans are available, operations and throughput represent completed server operations. Otherwise they can represent reported spans; do not assume every span is one incoming HTTP request.
+
+P95 describes the measured distribution, not the slowest request. For a specific operation, follow the links to [Requests or Traces](/docs/observability/requests-and-traces). Resource details show the environment, namespace, version, region if reported, instrumentation scope, and last span.
+
+## Interpret health cautiously
+
+The Healthy, Degraded, Critical, or Unknown badge reflects telemetry available in the selected range. No measured operations leaves health, rates, and latency unknown. A service with no activity in a short range may still appear when you select a longer range.
+
+This is not an external reachability test or a guarantee that every dependency is healthy. Use [Uptime monitors](/docs/uptime/monitors) for HTTP availability checks and [alerts](/docs/observability/alerts) for explicit threshold rules.
+
+## Troubleshoot a missing or stale service
+
+Confirm the organization matches the token, the configured service name is what you expect, and new spans are being exported. Check the selected range before treating a missing row as an outage.
+
+When refresh fails, the dashboard can retain the last available evidence and show its update time. Read that warning: old observations do not become current because the page is open. Missing resource attributes mean the application did not report them, not that OutRay inferred a value.
