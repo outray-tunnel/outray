@@ -2,15 +2,15 @@ import { createFileRoute, Link, Outlet, useSearch } from "@tanstack/react-router
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
-import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
-import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
-import Notification02Icon from "@hugeicons-pro/core-stroke-rounded/Notification02Icon";
-import PauseIcon from "@hugeicons-pro/core-solid-rounded/PauseIcon";
-import PencilEdit02Icon from "@hugeicons-pro/core-stroke-rounded/PencilEdit02Icon";
-import PlayIcon from "@hugeicons-pro/core-solid-rounded/PlayIcon";
-import RefreshIcon from "@hugeicons-pro/core-stroke-rounded/RefreshIcon";
-import Settings02Icon from "@hugeicons-pro/core-stroke-rounded/Settings02Icon";
+import Alert02Icon from "@outray/icons/stroke/Alert02Icon";
+import ArrowLeft01Icon from "@outray/icons/stroke/ArrowLeft01Icon";
+import Delete02Icon from "@outray/icons/stroke/Delete02Icon";
+import Notification02Icon from "@outray/icons/stroke/Notification02Icon";
+import PauseIcon from "@outray/icons/solid/PauseIcon";
+import PencilEdit02Icon from "@outray/icons/stroke/PencilEdit02Icon";
+import PlayIcon from "@outray/icons/solid/PlayIcon";
+import RefreshIcon from "@outray/icons/stroke/RefreshIcon";
+import Settings02Icon from "@outray/icons/stroke/Settings02Icon";
 import {
   Area,
   AreaChart,
