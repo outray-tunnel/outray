@@ -1,48 +1,23 @@
 ---
 title: Installation
-description: How to install the OutRay CLI
+description: Install the OutRay CLI and connect a local service.
 icon: Terminal
 ---
 
-# Installation
+This page is retained for existing links. The main installation guide is at [Install the CLI](/docs/installation).
 
-You can install the OutRay CLI globally using npm. This is the recommended way to install OutRay as it allows you to run the `outray` command from anywhere in your terminal.
+Use Node.js 18 or later for the complete authentication workflow:
 
-## Prerequisites
-
-- [Node.js](https://nodejs.org/) (version 18 or higher)
-- npm (comes with Node.js)
-
-## Install via npm
-
-Run the following command in your terminal:
-
-```bash
+~~~bash
 npm install -g outray
-```
-
-## Verify Installation
-
-To verify that OutRay has been installed successfully, run:
-
-```bash
 outray --version
-```
+outray login
+~~~
 
-You should see the version number of the installed CLI.
+Start your application separately, then expose its port:
 
-## Updating
+~~~bash
+outray 3000
+~~~
 
-To update OutRay to the latest version, simply run the install command again:
-
-```bash
-npm install -g outray@latest
-```
-
-## Uninstalling
-
-If you need to remove OutRay from your system:
-
-```bash
-npm uninstall -g outray
-```
+Keep the application and CLI running for as long as you need the public URL. Continue with [Opening a tunnel](/docs/opening-a-tunnel), or see the [CLI reference](/docs/cli-reference).
