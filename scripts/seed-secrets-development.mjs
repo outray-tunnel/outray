@@ -136,7 +136,7 @@ async function activeKey(client, organizationId, keyring) {
   }
 }
 
-export async function seedDemoSecrets(client, keyring, vaultSlug = "vault") {
+export async function seedDemoSecrets(client, keyring, vaultSlug = "vault", organizationSlug = ORGANIZATION_SLUG) {
   let organizationKey;
   const summary = [];
   await client.query("BEGIN");
@@ -144,9 +144,9 @@ export async function seedDemoSecrets(client, keyring, vaultSlug = "vault") {
     await client.query("SET LOCAL lock_timeout = '10s'");
     await client.query("SET LOCAL statement_timeout = '30s'");
     const { rows: [organization] } = await client.query(
-      "SELECT id FROM organizations WHERE slug = $1 FOR UPDATE", [ORGANIZATION_SLUG],
+      "SELECT id FROM organizations WHERE slug = $1 FOR UPDATE", [organizationSlug],
     );
-    if (!organization) throw new SeedError("The outray-tunnel organization was not found.");
+    if (!organization) throw new SeedError("The requested organization was not found.");
     const { rows: [project] } = await client.query(
       "SELECT id FROM secret_projects WHERE organization_id = $1 AND slug = $2 AND deleted_at IS NULL FOR UPDATE",
       [organization.id, vaultSlug],
