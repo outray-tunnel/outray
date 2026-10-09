@@ -1,14 +1,17 @@
-const STATUS_BASE_HOST = "status.outray.app";
-const PAGE_SLUG = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/;
+import publicHosts from "../../../shared/public-hosts";
+import type { PublicHostEnvironment } from "../../../shared/public-hosts";
+const PAGE_SLUG = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
-export function isStatusNamespaceHost(host: string): boolean {
-  return host === STATUS_BASE_HOST || host.endsWith(`.${STATUS_BASE_HOST}`);
+export function isStatusNamespaceHost(host: string, env?: PublicHostEnvironment): boolean {
+  const base = publicHosts.canonicalStatusHostname(env);
+  return host === base || host.endsWith(`.${base}`);
 }
 
 /** Only published one-label page hosts may use on-demand certificate checks.
  * The normal wildcard certificate does not need this path. */
-export function statusPageSlugFromHost(host: string): string | null {
-  if (!host.endsWith(`.${STATUS_BASE_HOST}`)) return null;
-  const label = host.slice(0, -`.${STATUS_BASE_HOST}`.length);
+export function statusPageSlugFromHost(host: string, env?: PublicHostEnvironment): string | null {
+  const base = publicHosts.canonicalStatusHostname(env);
+  if (!host.endsWith(`.${base}`)) return null;
+  const label = host.slice(0, -`.${base}`.length);
   return PAGE_SLUG.test(label) ? label : null;
 }
