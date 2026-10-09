@@ -1,0 +1,44 @@
+---
+title: Tunnels
+description: Connect a local service to a public HTTP, TCP, or UDP address.
+icon: TbBuildingTunnel
+---
+
+Use a tunnel when a service on your machine needs to receive traffic from outside your local network. Common tasks include receiving webhooks, sharing a development build, and testing a client against a local API.
+
+## Open your first HTTP tunnel
+
+Start the local application first, then install and run the CLI:
+
+```bash
+npm install -g outray
+outray http 3000
+```
+
+Use the public URL printed by the CLI. Keep the tunnel process running while you want the service to be reachable. The tunnel does not start your application for you.
+
+Follow [installation](/docs/installation), [authentication](/docs/authentication), and [opening a tunnel](/docs/opening-a-tunnel) for the complete workflow, including authenticated workspace resources.
+
+## Choose the protocol
+
+- **HTTP** exposes a web server using a public URL.
+- **TCP** forwards stream-based services such as a database or custom socket server.
+- **UDP** forwards datagrams for services that use UDP.
+
+[Protocols](/docs/protocols) explains the differences. [CLI reference](/docs/cli-reference) lists supported commands and flags.
+
+## Control the public address and access
+
+[Reserved subdomains](/docs/reserved-subdomains) and [custom domains](/docs/custom-domains) let authenticated workspaces control the address. [Password protection](/docs/password-protection) adds a password gate to HTTP tunnels.
+
+Only expose a service you intend to make reachable. A tunnel is not a replacement for application authentication, database authorization, or checking what your development server makes available.
+
+## Integrate with a development server
+
+Use the [Vite](/docs/vite-plugin), [Next.js](/docs/nextjs-plugin), [Express](/docs/express-plugin), or [NestJS](/docs/nestjs-plugin) tunnel integration to connect from your application's development lifecycle. [CI/CD](/docs/ci-cd) covers non-interactive tunnel credentials.
+
+## Inspect application behavior
+
+Tunnel traffic inspection and [application Observability](/docs/observability) are separate. To send production request traces, structured logs, and metrics, configure an observability SDK with a **Send telemetry** token. It works without opening a tunnel.
+
+If a tunnel cannot reach the application, first confirm the application responds locally on the selected port, then check the CLI connection and authentication. Use the [tunnel quickstart](/docs/opening-a-tunnel) for the next checks.
