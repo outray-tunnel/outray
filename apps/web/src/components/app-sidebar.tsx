@@ -3,7 +3,7 @@ import { useLocation, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import Cone01Icon from "@hugeicons-pro/core-stroke-rounded/Cone01Icon";
-import LicenseIcon from "@hugeicons-pro/core-stroke-rounded/LicenseIcon";
+import Key02Icon from "@hugeicons-pro/core-stroke-rounded/Key02Icon";
 import LockPasswordIcon from "@hugeicons-pro/core-stroke-rounded/LockPasswordIcon";
 import Pulse02Icon from "@hugeicons-pro/core-stroke-rounded/Pulse02Icon";
 import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
@@ -12,7 +12,7 @@ import Settings02Icon from "@hugeicons-pro/core-stroke-rounded/Settings02Icon";
 import UserGroupIcon from "@hugeicons-pro/core-stroke-rounded/UserGroupIcon";
 import WalletCardsIcon from "@hugeicons-pro/core-stroke-rounded/WalletCardsIcon";
 import Cone01SolidIcon from "@hugeicons-pro/core-solid-rounded/Cone01Icon";
-import LicenseSolidIcon from "@hugeicons-pro/core-solid-rounded/LicenseIcon";
+import Key02SolidIcon from "@hugeicons-pro/core-solid-rounded/Key02Icon";
 import LockPasswordSolidIcon from "@hugeicons-pro/core-solid-rounded/LockPasswordIcon";
 import Pulse02SolidIcon from "@hugeicons-pro/core-solid-rounded/Pulse02Icon";
 import HeartPulseSolidIcon from "@hugeicons-pro/core-solid-rounded/HeartPulseIcon";
@@ -97,7 +97,7 @@ export function Sidebar({
         label: "Products",
         items: [
           {
-            to: "/$orgSlug",
+            to: "/$orgSlug/tunnel",
             label: "Tunnels",
             icon: Cone01Icon,
             activeIcon: Cone01SolidIcon,
@@ -134,8 +134,8 @@ export function Sidebar({
           {
             to: "/$orgSlug/tokens",
             label: "API tokens",
-            icon: LicenseIcon,
-            activeIcon: LicenseSolidIcon,
+            icon: Key02Icon,
+            activeIcon: Key02SolidIcon,
           },
           ...(canManageBilling
             ? [
@@ -196,23 +196,6 @@ export function Sidebar({
     unified && filterSidebarProducts(navQuery, !!canManageShares).length > 0;
 
   const isNavItemActive = (item: SidebarNavItem) => {
-    if (item.to === "/$orgSlug") {
-      const tunnelPaths = [
-        basePath,
-        `${basePath}/tunnels`,
-        `${basePath}/requests`,
-        `${basePath}/subdomains`,
-        `${basePath}/domains`,
-      ];
-
-      return tunnelPaths.some((path) =>
-        path === basePath
-          ? location.pathname === path
-          : location.pathname === path ||
-            location.pathname.startsWith(`${path}/`),
-      );
-    }
-
     const targetPath = item.to.replace("/$orgSlug", basePath);
     return (
       location.pathname === targetPath ||
