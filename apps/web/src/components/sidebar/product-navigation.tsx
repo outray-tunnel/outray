@@ -1,4 +1,4 @@
-import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
+import ArrowDown01Icon from "@outray/icons/stroke/ArrowDown01Icon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useId, useRef, useState } from "react";
