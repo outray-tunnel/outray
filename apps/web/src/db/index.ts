@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
 import { dashboardPoolOptions } from "../lib/dashboard-pool-options";
+import { postgresSsl } from "../../../../shared/postgres-ssl";
 
 const { Pool } = pg;
 
@@ -20,9 +21,5 @@ export const pool = new Pool({
 export const db = drizzle(pool, { schema });
 
 function databaseSsl(value: string) {
-  if (/localhost|127\.0\.0\.1/.test(value)) return false;
-  return {
-    rejectUnauthorized:
-      process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false",
-  };
+  return postgresSsl(value, process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false");
 }
