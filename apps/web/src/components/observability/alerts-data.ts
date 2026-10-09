@@ -1,7 +1,7 @@
-import Activity03Icon from "@hugeicons-pro/core-stroke-rounded/Activity03Icon";
-import Clock01Icon from "@hugeicons-pro/core-stroke-rounded/Clock01Icon";
-import LogsIcon from "@hugeicons-pro/core-stroke-rounded/LogsIcon";
-import Route03Icon from "@hugeicons-pro/core-stroke-rounded/Route03Icon";
+import Activity03Icon from "@outray/icons/stroke/Activity03Icon";
+import Clock01Icon from "@outray/icons/stroke/Clock01Icon";
+import LogsIcon from "@outray/icons/stroke/LogsIcon";
+import Route03Icon from "@outray/icons/stroke/Route03Icon";
 
 export type AlertSignal =
   | "request_error_rate"
