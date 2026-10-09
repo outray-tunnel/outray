@@ -11,6 +11,8 @@ import appCss from "../index.css?url";
 import { RootProvider } from "fumadocs-ui/provider/tanstack";
 import { PostHogProvider } from "posthog-js/react";
 import { authClient } from "@/lib/auth-client";
+import { getPublicInstanceConfig } from "@/lib/instance";
+import { InstanceContext } from "@/lib/instance-context";
 import {
   bindQueryClientToSession,
   getQueryClientSnapshot,
@@ -18,6 +20,7 @@ import {
 } from "@/lib/query-client";
 
 export const Route = createRootRoute({
+  beforeLoad: async () => ({ instance: await getPublicInstanceConfig() }),
   head: () => ({
     meta: [
       {
@@ -85,6 +88,7 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  const { instance } = Route.useRouteContext();
   const [initialQueryClient] = useState(getQueryClientSnapshot);
   const queryClient = useSyncExternalStore(
     subscribeQueryClient,
@@ -97,8 +101,9 @@ function RootComponent() {
   );
   return (
     <RootDocument>
+      <InstanceContext.Provider value={instance}>
       <PostHogProvider
-        apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+        apiKey={instance.selfHosted ? "" : import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
         options={{
           api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
           defaults: "2025-05-24",
@@ -123,6 +128,7 @@ function RootComponent() {
           <Outlet />
         </QueryClientProvider>
       </PostHogProvider>
+      </InstanceContext.Provider>
     </RootDocument>
   );
 }
