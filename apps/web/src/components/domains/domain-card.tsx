@@ -6,6 +6,9 @@ import { Button } from "@/components/arc/button/button";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import { ResourceDeleteDialog } from "../resource-delete-dialog";
 import "../outray-arc-theme.css";
+import publicHosts from "../../../../../shared/public-hosts";
+
+const cnameTarget = publicHosts.tunnelDnsHostname(import.meta.env?.VITE_TUNNEL_URL);
 
 interface Domain {
   id: string;
@@ -49,7 +52,7 @@ export function DomainCard({
   const hasDate = Number.isFinite(createdAt.getTime());
   // Full owner names match the verifier without guessing the provider's DNS zone.
   const records = [
-    { type: "CNAME", name: domain.domain, value: "edge.outray.app" },
+    { type: "CNAME", name: domain.domain, value: cnameTarget },
     { type: "TXT", name: `_outray-challenge.${domain.domain}`, value: domain.id },
   ];
 
