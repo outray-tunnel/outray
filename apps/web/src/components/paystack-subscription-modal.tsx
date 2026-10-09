@@ -1,232 +1,73 @@
-import {
-  X,
-  CreditCard,
-  Calendar,
-  AlertTriangle,
-  RefreshCw,
-} from "lucide-react";
-import { Modal, Button, IconButton } from "@/components/ui";
-import { useState } from "react";
-import {
-  SUBSCRIPTION_PLANS,
-  calculatePlanCostNGN,
-  type BillingInterval,
-} from "@/lib/subscription-plans";
+import { useEffect, useRef, useState } from "react";
+import { Button as ArcButton } from "@/components/arc/button/button";
+import { WorkspaceDialog, WorkspaceNotice } from "@/components/workspace/workspace-ui";
+import { formatBillingDate, formatBillingPrice, knownBillingPlan, type BillingSubscription } from "@/components/workspace/billing-state";
+import { SUBSCRIPTION_PLANS } from "@/lib/subscription-plans";
 
 interface PaystackSubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  subscription: {
-    plan: string;
-    status?: string;
-    currentPeriodEnd?: string | Date | null;
-    cancelAtPeriodEnd?: boolean;
-    paystackEmail?: string | null;
-    paymentProvider?: string;
-    billingInterval?: string;
-  } | null;
+  subscription: BillingSubscription | null;
   orgSlug: string;
   onSubscriptionUpdated: () => void;
 }
 
-export function PaystackSubscriptionModal({
-  isOpen,
-  onClose,
-  subscription,
-  orgSlug,
-  onSubscriptionUpdated,
-}: PaystackSubscriptionModalProps) {
+export function PaystackSubscriptionDetails({ subscription }: { subscription: BillingSubscription }) {
+  const plan = knownBillingPlan(subscription.plan);
+  const interval = subscription.billingInterval === "year" ? "year" : "month";
+  const periodEnd = formatBillingDate(subscription.currentPeriodEnd);
+  return <div className="space-y-5">
+    <div className="flex items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
+      <div><p className="text-[11px] text-zinc-500">Current plan</p><h3 className="mt-1 text-[16px] font-medium text-zinc-200">{plan ? SUBSCRIPTION_PLANS[plan].name : subscription.plan}</h3></div>
+      <p className="text-[20px] font-medium tracking-tight text-zinc-200">{plan ? formatBillingPrice(plan, interval, "NGN") : "—"}<span className="ml-1 text-[11px] font-normal text-zinc-500">/{interval === "year" ? "year" : "month"}</span></p>
+    </div>
+    <dl className="space-y-3 text-[12px]">
+      <div className="flex justify-between gap-5"><dt className="text-zinc-500">Billing cycle</dt><dd className="text-zinc-300">{interval === "year" ? "Yearly" : "Monthly"}</dd></div>
+      <div className="flex justify-between gap-5"><dt className="text-zinc-500">Payment provider</dt><dd className="text-zinc-300">Paystack</dd></div>
+      <div className="flex justify-between gap-5"><dt className="text-zinc-500">{subscription.cancelAtPeriodEnd ? "Access until" : "Next renewal"}</dt><dd className="text-zinc-300">{periodEnd}</dd></div>
+      {subscription.paystackEmail ? <div className="flex justify-between gap-5"><dt className="shrink-0 text-zinc-500">Billing email</dt><dd className="min-w-0 break-all text-right text-zinc-300">{subscription.paystackEmail}</dd></div> : null}
+    </dl>
+    {subscription.cancelAtPeriodEnd ? <WorkspaceNotice tone="info" message={`Your subscription is set to cancel on ${periodEnd}. You'll move to the Free plan after this date.`} /> : null}
+  </div>;
+}
+
+export function PaystackSubscriptionModal({ isOpen, onClose, subscription, orgSlug, onSubscriptionUpdated }: PaystackSubscriptionModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (!subscription) return null;
-
-  const planConfig =
-    SUBSCRIPTION_PLANS[subscription.plan as keyof typeof SUBSCRIPTION_PLANS];
-  const billingInterval =
-    (subscription.billingInterval as BillingInterval) || "month";
-  const periodEnd = subscription.currentPeriodEnd
-    ? new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    : "N/A";
-
-  const subscriptionCost = calculatePlanCostNGN(
-    subscription.plan as any,
-    billingInterval,
-  );
-  const intervalLabel = billingInterval === "year" ? "/year" : "/month";
-  const billingCycleLabel = billingInterval === "year" ? "Yearly" : "Monthly";
-
+  const busy = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const close = () => {
+    if (busy.current) return;
+    setShowCancelConfirm(false);
+    setError(null);
+    onClose();
+  };
   const handleCancelSubscription = async () => {
+    if (busy.current || !subscription || subscription.cancelAtPeriodEnd) return;
+    busy.current = true;
     setIsLoading(true);
     setError(null);
-
     try {
-      const response = await fetch(`/api/subscriptions/${orgSlug}/cancel`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to cancel subscription");
+      const response = await fetch(`/api/subscriptions/${orgSlug}/cancel`, { method: "POST", headers: { "Content-Type": "application/json" } });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to cancel subscription");
+      if (mounted.current) {
+        onSubscriptionUpdated();
+        setShowCancelConfirm(false);
+        onClose();
       }
-
-      onSubscriptionUpdated();
-      setShowCancelConfirm(false);
-      onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      if (mounted.current) setError(err instanceof Error ? err.message : "Couldn't cancel your subscription. Please try again.");
     } finally {
-      setIsLoading(false);
+      busy.current = false;
+      if (mounted.current) setIsLoading(false);
     }
   };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-white">
-            Manage Subscription
-          </h2>
-          <IconButton
-            onClick={onClose}
-            icon={<X className="w-5 h-5" />}
-            aria-label="Close"
-          />
-        </div>
-
-        {showCancelConfirm ? (
-          <div className="space-y-4">
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-medium text-red-500 mb-1">
-                    Cancel Subscription?
-                  </h3>
-                  <p className="text-sm text-gray-400">
-                    Your subscription will remain active until {periodEnd}.
-                    After that, you'll be downgraded to the Free plan and lose
-                    access to premium features.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {error && <p className="text-sm text-red-500">{error}</p>}
-
-            <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                onClick={() => setShowCancelConfirm(false)}
-                fullWidth
-                disabled={isLoading}
-              >
-                Keep Subscription
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleCancelSubscription}
-                fullWidth
-                disabled={isLoading}
-              >
-                {isLoading ? "Cancelling..." : "Yes, Cancel"}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Current Plan */}
-            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-400">Current Plan</p>
-                  <p className="text-xl font-bold text-white">
-                    {planConfig?.name || subscription.plan}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-white">
-                    ₦{subscriptionCost.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-gray-400">{intervalLabel}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Billing Details */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
-                <RefreshCw className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-400">Billing Cycle</p>
-                  <p className="text-white">{billingCycleLabel}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
-                <CreditCard className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-400">Payment Method</p>
-                  <p className="text-white">Card ending in ****</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
-                <Calendar className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-400">
-                    {subscription.cancelAtPeriodEnd
-                      ? "Access Until"
-                      : "Next Billing Date"}
-                  </p>
-                  <p className="text-white">{periodEnd}</p>
-                </div>
-              </div>
-
-              {subscription.paystackEmail && (
-                <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
-                  <div className="w-5 h-5 flex items-center justify-center text-gray-400">
-                    @
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Billing Email</p>
-                    <p className="text-white">{subscription.paystackEmail}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Status */}
-            {subscription.cancelAtPeriodEnd && (
-              <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-                <p className="text-sm text-yellow-500">
-                  Your subscription is set to cancel on {periodEnd}. You'll be
-                  downgraded to the Free plan after this date.
-                </p>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="pt-4 border-t border-white/10">
-              {!subscription.cancelAtPeriodEnd && (
-                <button
-                  onClick={() => setShowCancelConfirm(true)}
-                  className="text-sm text-red-400 hover:text-red-300 transition-colors"
-                >
-                  Cancel Subscription
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </Modal>
-  );
+  if (!subscription) return null;
+  const periodEnd = formatBillingDate(subscription.currentPeriodEnd);
+  return <WorkspaceDialog open={isOpen} onClose={close} title={showCancelConfirm ? "Cancel subscription" : "Manage subscription"} description={showCancelConfirm ? "Review what changes when this billing period ends." : "Your subscription is billed in NGN through Paystack."} busy={isLoading} size="sm" footer={showCancelConfirm ? <><ArcButton type="button" variant="secondary" size="sm" disabled={isLoading} onClick={() => { setShowCancelConfirm(false); setError(null); }}>Keep subscription</ArcButton><ArcButton type="button" variant="danger" size="sm" loading={isLoading} onClick={() => { void handleCancelSubscription(); }}>{isLoading ? "Cancelling…" : "Cancel subscription"}</ArcButton></> : <><ArcButton type="button" variant="ghost" size="sm" onClick={close}>Done</ArcButton>{!subscription.cancelAtPeriodEnd ? <ArcButton type="button" variant="danger" size="sm" onClick={() => setShowCancelConfirm(true)}>Cancel subscription</ArcButton> : null}</>}>
+    {showCancelConfirm ? <div className="space-y-4"><p className="text-[13px] leading-6 text-zinc-400">Your subscription remains active until <span className="text-zinc-200">{periodEnd}</span>. After that, you'll move to the Free plan and lose access to premium features.</p>{error ? <WorkspaceNotice tone="error" message={error} /> : null}</div> : <PaystackSubscriptionDetails subscription={subscription} />}
+  </WorkspaceDialog>;
 }
