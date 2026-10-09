@@ -1,0 +1,38 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Retained HTTP/protocol usage by organization for authenticated administrators.
+
+NODE usage
+SQL >
+    %
+    SELECT organization_id, count() AS http_requests, 0 AS protocol_events,
+           sum(bytes_in + bytes_out) AS http_bytes, 0 AS protocol_bytes
+    FROM tunnel_events FINAL
+    WHERE timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')
+      AND timestamp < parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+      AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
+    GROUP BY organization_id
+    UNION ALL
+    SELECT organization_id, 0 AS http_requests, count() AS protocol_events,
+           0 AS http_bytes, sum(bytes_in + bytes_out) AS protocol_bytes
+    FROM tunnel_protocol_events FINAL
+    WHERE timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')
+      AND timestamp < parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+      AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
+    GROUP BY organization_id
+
+NODE totals
+SQL >
+    %
+    SELECT organization_id, sum(http_requests) AS http_requests,
+           sum(protocol_events) AS protocol_events,
+           sum(http_bytes) AS http_bytes, sum(protocol_bytes) AS protocol_bytes,
+           http_bytes + protocol_bytes AS total_bytes
+    FROM usage
+    GROUP BY organization_id
+    ORDER BY total_bytes DESC, organization_id ASC
+    LIMIT least(greatest({{UInt32(limit, 1000)}}, 1), 10000)
+
+TYPE endpoint
+
