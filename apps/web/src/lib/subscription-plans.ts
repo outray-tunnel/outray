@@ -152,8 +152,37 @@ export function installationPlan(plan: string | null | undefined): SubscriptionP
 export function isUnlimitedPlanLimit(
   plan: string | null | undefined,
   limit: number,
+  instanceOwned = instanceConfig().selfHosted,
 ): boolean {
-  return limit === -1 || plan === "unlimited";
+  return limit === -1 || (!instanceOwned && plan === "unlimited");
+}
+
+/** Server-provided installation quotas take precedence in the browser, where
+ * process.env intentionally does not contain the installation configuration. */
+export function getSubscriptionLimits(response: {
+  subscription?: { plan?: string } | null;
+  instanceLimits?: Partial<ReturnType<typeof getPlanLimits>> | null;
+} | null | undefined) {
+  return {
+    ...getPlanLimits(installationPlan(response?.subscription?.plan)),
+    ...response?.instanceLimits,
+  };
+}
+
+export function getUptimeMonitorLimit() {
+  const instance = instanceConfig();
+  return instance.selfHosted ? instance.limits.maxUptimeMonitors : 10;
+}
+
+export function getObservabilityAlertLimit() {
+  const instance = instanceConfig();
+  return instance.selfHosted ? instance.limits.maxObservabilityAlerts : 200;
+}
+
+export function capacityDescription(plan: string, limit: number, resource: string) {
+  return instanceConfig().selfHosted
+    ? `This installation allows ${limit} ${resource}. Contact your administrator to increase capacity.`
+    : `The ${plan} plan allows ${limit} ${resource}.`;
 }
 
 export function getYearlySavingsPercent(): number {
