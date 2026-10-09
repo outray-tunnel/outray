@@ -1,32 +1,52 @@
 ---
 title: CI/CD Integration
-description: Automate tunnels in your CI/CD pipelines
+description: Authenticate a temporary tunnel in a non-interactive runner.
 icon: Workflow
 ---
 
-OutRay is perfect for preview environments in CI/CD pipelines. By using API keys, you can automate tunnel creation without interactive login.
+A CI tunnel exposes a service running inside a job. The job must start that service, wait for it to be ready, keep the tunnel process alive during the test, and close it afterward.
 
-## Setup
+## Prepare a token
 
-1.  **Generate API Key**: Go to your organization settings in the dashboard and generate a new API Key.
-2.  **Store Secret**: Store the API key as a secret in your CI provider (e.g., `OUTRAY_API_KEY`).
+Create an organization API token with **Connect tunnels** permission (`tunnel:connect`). Store it in your CI provider's secret store, not in the repository.
 
-## Usage
+Use the token with an explicit CLI flag:
 
-Use the `--key` flag to authenticate the tunnel:
+~~~bash
+outray 3000 --key "$OUTRAY_API_KEY"
+~~~
 
-```bash
-outray 3000 --key $OUTRAY_API_KEY
-```
+The single-tunnel CLI does not automatically authenticate from the environment variable alone. `outray start` uses a saved browser login, so use a direct HTTP, TCP, or UDP command in an API-token-only runner.
 
-## Example: GitHub Actions
+## GitHub Actions example
 
-Here is a simple example of how to use OutRay in a GitHub Action:
+This step assumes a service is already listening on port 3000. Reserve `ci-preview` for the organization and set the repository variable `OUTRAY_PREVIEW_URL` to its public HTTPS URL. Supply your own integration test script:
 
-```yaml
-steps:
-  - name: Start Tunnel
-    run: |
-      npm install -g outray
-      outray 3000 --key ${{ secrets.OUTRAY_API_KEY }} &
-```
+~~~yaml
+- name: Test through a tunnel
+  env:
+    OUTRAY_API_KEY: ${{ secrets.OUTRAY_API_KEY }}
+    PREVIEW_URL: ${{ vars.OUTRAY_PREVIEW_URL }}
+  run: |
+    npm install -g outray
+    curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://localhost:3000/health
+    outray 3000 --subdomain ci-preview --key "$OUTRAY_API_KEY" > "$RUNNER_TEMP/outray.log" 2>&1 &
+    tunnel_pid=$!
+    trap 'kill "$tunnel_pid" 2>/dev/null || true' EXIT
+    curl --fail --retry 10 --retry-all-errors --retry-delay 2 "$PREVIEW_URL/health"
+    npm run test:integration
+~~~
+
+Read the CLI output when troubleshooting readiness. Starting a background process is not proof that the public endpoint is ready.
+
+## Concurrent jobs
+
+Only one active tunnel can use an address at a time. Serialize jobs using the same reserved subdomain, or give each job a distinct address.
+
+Do not expose privileged CI services, deployment credentials, or runners for untrusted pull requests. Review who can trigger the workflow and access its logs. Use application authentication or [HTTP password protection](/docs/password-protection) when appropriate.
+
+## Application configuration
+
+Use [Secrets](/docs/secrets) when the application needs remote configuration. `outray secrets run -- npm run dev` injects values into the child process; it does not open a tunnel automatically.
+
+To collect application telemetry from CI or a preview deployment, configure an [Observability SDK](/docs/observability/sdk-setup) with a separate `observability:write` token.
