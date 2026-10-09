@@ -7,6 +7,14 @@ Agent button opens private chat history; **Ask agent** on a captured observabili
 request starts a separate chat using its ID. The server retrieves and sanitizes
 evidence itself. Progress describes actual tool calls, not simulated reasoning.
 
+Replies use a streaming Markdown renderer for headings, emphasis, lists, code,
+and tables. Evidence-backed request summaries, trace timing, traffic comparisons,
+and correlated-log metadata are streamed separately from the model's narrative
+and saved in the existing evidence JSON. Those cards appear on new investigations;
+older chats without evidence snapshots still render their formatted text and
+source links. No additional migration is needed for the presentation refresh.
+Raw HTML, media, embeds, and external model-generated links are disabled.
+
 ### Enable locally or on your application host
 
 Use **Node.js 22+** (required by AI SDK 7 and the xAI provider). Add these to the
@@ -18,7 +26,7 @@ web application's server environment, never a public/Vite-prefixed variable:
 | `AGENT_GROK_MODEL` | Optional model override. Default: `grok-4.7`; use an xAI model that supports function calling. |
 | `AGENT_ENABLED` | Set to `false` to disable new investigations. Existing private history remains readable. |
 
-The Agent uses the web app's existing `DATABASE_URL` and Tinybird query
+The Agent uses the web app's existing `DATABASE_URL`, `REDIS_URL`, and Tinybird query
 configuration. No separate database, VPS service, or Vercel account is needed.
 `XAI_API_KEY` stays on the server; the browser receives neither it nor provider
 configuration objects.
@@ -88,8 +96,56 @@ loads the most recent 30 chats and up to 100 messages per chat.
 No configured key or missing migration produces an actionable error instead of
 falling back to fake answers. Offline tests use SDK mock models, mocked telemetry,
 and fake database clients; a real Grok response still needs a configured key and
-a separate live smoke test. None of those tests touch a database or spend model
+a separate live smoke test. None of those tests touch an application database or spend model
 credits.
+
+### Monthly organization token usage
+
+Saved Agent run usage is also accumulated in the console's existing Redis database.
+Every member's runs contribute to their organization, across all private threads.
+Months are **UTC calendar months**, assigned by the run's `started_at`, including
+runs that finish after midnight or after a month boundary. Failed/cancelled runs
+count any usage the provider reported for completed steps, not just successful replies.
+
+The Redis hash `agent:usage:{<encoded-organization-id>}:YYYY-MM` contains
+`input_tokens`, `output_tokens`, and `total_tokens` (input + output), plus per-run
+watermarks used for idempotency. It contains no prompts, replies, evidence, or user
+IDs. Hashes have **no TTL**. Configure Redis persistence and a non-evicting policy
+if retaining these totals; no Redis server settings are changed by the application.
+Internal readers can use `agentMonthlyUsage.get(organizationId, month)`: missing
+hashes return zero, while outages/corrupted counters throw rather than claiming
+zero usage.
+
+PostgreSQL commits before accounting. An atomic Redis operation applies only new
+usage, so checkpoints, concurrent retries, and replaying saved runs do not count
+twice. The first terminal snapshot reconciles the final counts, including downward
+corrections, and ignores late callbacks. Redis failures leave the Agent usable and
+the database counts intact; accounting commands have a one-second timeout and a
+30-second write cooldown after failure. Redis totals can be incomplete until
+reconciliation after an outage, eviction, or enabling this feature on existing data.
+
+Backfill or repair **one explicitly selected organization ID and UTC month** from
+saved PostgreSQL runs, from the repository root after verifying the `.env` database
+and Redis destinations:
+
+```sh
+npx dotenv -e .env -- npm run agent:usage:reconcile --workspace=outray-web -- --organization <organization-id> --month 2026-10
+```
+
+This reads PostgreSQL in bounded pages and writes only that org/month's Redis hash.
+It does not reset totals or delete data; retries after partial failures are safe.
+Use the application's server environment instead of `.env` on a host. Backfills
+are not run automatically, and none have been run as part of this implementation.
+Retain the PostgreSQL runs for recovery; deleting their threads/users cascades to
+run history, so future invoicing needs a separate retained billing ledger before
+history deletion can be supported. These are reported token totals, **not a charge**
+or a guarantee of exact provider invoicing: interrupted steps can lack usage, and
+cache/reasoning breakdowns, model pricing, and monetary costs are not yet tracked.
+
+Monthly accounting tests execute the real Lua scripts on a private, temporary
+Unix-socket Redis when `redis-server` is installed. They never connect to the
+console's development or production Redis; the integration test is marked skipped
+when the binary is unavailable.
 
 From `apps/web`, run the focused Agent suite with:
 
