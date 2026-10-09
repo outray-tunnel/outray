@@ -1,67 +1,30 @@
-import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { authClient } from "@/lib/auth-client";
-import { HugeiconsIcon } from "@hugeicons/react";
-import Building06Icon from "@hugeicons-pro/core-stroke-rounded/Building06Icon";
-import UserIcon from "@hugeicons-pro/core-stroke-rounded/UserIcon";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
+import { Building2, UserRound } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/arc/tabs/tabs";
 import { WorkspacePageHeader } from "@/components/workspace-page-header";
+import "@/components/outray-arc-theme.css";
 
 export const Route = createFileRoute("/$orgSlug/settings")({
-  head: () => ({
-    meta: [
-      { title: "Settings - OutRay" },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "Settings - OutRay" }] }),
   component: SettingsLayout,
 });
 
 function SettingsLayout() {
   const { orgSlug } = Route.useParams();
-  const { data: session } = authClient.useSession();
-  const user = session?.user;
+  const navigate = Route.useNavigate();
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const tab = pathname.endsWith("/organization") ? "organization" : "profile";
 
-  if (!user) {
-    return null;
-  }
-
-  const tabs = [
-    {
-      to: `/${orgSlug}/settings/profile`,
-      label: "Profile",
-      icon: UserIcon,
-    },
-    {
-      to: `/${orgSlug}/settings/organization`,
-      label: "Organization",
-      icon: Building06Icon,
-    },
-  ];
-
-  return (
-    <div className="mx-auto max-w-6xl space-y-7">
-      <WorkspacePageHeader
-        title="Settings"
-        description="Manage your identity and organization preferences."
-      />
-
-      <div className="overflow-x-auto border-b border-white/[0.07]">
-        <div className="flex items-center gap-6">
-          {tabs.map((tab) => (
-            <Link
-              key={tab.to}
-              to={tab.to}
-              className="flex items-center gap-2 border-b pb-3 text-[11px] font-medium text-zinc-700 transition-colors hover:text-zinc-300 border-transparent"
-              activeProps={{
-                className: "!border-white !text-zinc-200",
-              }}
-            >
-              <HugeiconsIcon icon={tab.icon} size={14} strokeWidth={1.7} />
-              {tab.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <Outlet />
-    </div>
-  );
+  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+    <WorkspacePageHeader appearance="compact" title="Settings" description="Your account and workspace identity." />
+    <Tabs value={tab} className="outray-arc-tunnel-tabs" onValueChange={(value) => {
+      void navigate({ to: value === "organization" ? "/$orgSlug/settings/organization" : "/$orgSlug/settings/profile", params: { orgSlug } });
+    }}>
+      <TabsList data-outray-tabs-list aria-label="Settings sections">
+        <TabsTrigger data-outray-tabs-trigger value="profile"><span className="inline-flex items-center gap-2"><UserRound size={14} aria-hidden="true" />Profile</span></TabsTrigger>
+        <TabsTrigger data-outray-tabs-trigger value="organization"><span className="inline-flex items-center gap-2"><Building2 size={14} aria-hidden="true" />Organization</span></TabsTrigger>
+      </TabsList>
+      <TabsContent value={tab} forceMount><Outlet /></TabsContent>
+    </Tabs>
+  </div>;
 }
