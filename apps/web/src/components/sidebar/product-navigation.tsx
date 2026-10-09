@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useId, useRef, useState } from "react";
 import { mobileItemIsActive, mobileProductForPath } from "../mobile-navigation";
 import { ActiveTunnelBadge } from "./active-tunnel-badge";
+import { useInstance } from "@/lib/instance-context";
 import {
   filterSidebarProducts,
   initialProductOpenState,
@@ -37,7 +38,8 @@ export function ProductNavigation({
   const [openChoices, setOpenChoices] = useState(() =>
     initialProductOpenState(pathname, orgSlug),
   );
-  const products = filterSidebarProducts(searchQuery, canManageShares);
+  const instance = useInstance();
+  const products = filterSidebarProducts(searchQuery, canManageShares, instance.products);
   const normalizedPathname = normalizeProductNavigationPath(pathname);
   const currentProduct = mobileProductForPath(normalizedPathname, orgSlug);
   const isSearching = searchQuery.trim().length > 0;
