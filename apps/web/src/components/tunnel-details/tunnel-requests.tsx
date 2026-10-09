@@ -10,7 +10,7 @@ interface TunnelRequestsProps {
 }
 
 export function TunnelRequests({ tunnelId }: TunnelRequestsProps) {
-  const { orgSlug } = useParams({ from: "/$orgSlug/tunnels/$tunnelId" });
+  const { orgSlug } = useParams({ from: "/$orgSlug/tunnel/tunnels/$tunnelId" });
   const { data: organizations = [] } = authClient.useListOrganizations();
   const activeOrgId = organizations?.find((org) => org.slug === orgSlug)?.id;
   const inspectorEnabled = useFeatureFlag("request_inspector");
