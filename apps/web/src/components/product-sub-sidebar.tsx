@@ -39,18 +39,8 @@ export function ProductSubSidebar() {
   const location = useLocation();
   const basePath = `/${orgSlug}`;
 
-  const tunnelPaths = [
-    basePath,
-    `${basePath}/tunnels`,
-    `${basePath}/requests`,
-    `${basePath}/subdomains`,
-    `${basePath}/domains`,
-  ];
-  const isTunnelRoute = tunnelPaths.some((path) =>
-    path === basePath
-      ? location.pathname === path
-      : location.pathname === path || location.pathname.startsWith(`${path}/`),
-  );
+  const tunnelPath = `${basePath}/tunnel`;
+  const isTunnelRoute = location.pathname === tunnelPath || location.pathname.startsWith(`${tunnelPath}/`);
 
   const { data: tunnelsData, isError: tunnelsError } = useQuery({
     queryKey: ["tunnels", orgSlug],
@@ -73,25 +63,25 @@ export function ProductSubSidebar() {
     product = {
       name: "Tunnels",
       items: [
-        { label: "Overview", to: "/$orgSlug", icon: Home01Icon },
+        { label: "Overview", to: "/$orgSlug/tunnel", icon: Home01Icon, exact: true },
         {
           label: "Active tunnels",
-          to: "/$orgSlug/tunnels",
+          to: "/$orgSlug/tunnel/tunnels",
           icon: Route03Icon,
         },
         {
           label: "Requests",
-          to: "/$orgSlug/requests",
+          to: "/$orgSlug/tunnel/requests",
           icon: HistoryIcon,
         },
         {
           label: "Subdomains",
-          to: "/$orgSlug/subdomains",
+          to: "/$orgSlug/tunnel/subdomains",
           icon: Globe02Icon,
         },
         {
           label: "Domains",
-          to: "/$orgSlug/domains",
+          to: "/$orgSlug/tunnel/domains",
           icon: LinkSquare01Icon,
         },
       ],
@@ -180,7 +170,6 @@ export function ProductSubSidebar() {
   const isItemActive = (item: SubNavItem) => {
     const target = item.to.replace("/$orgSlug", basePath);
     if (item.exact) return location.pathname === target;
-    if (item.to === "/$orgSlug") return location.pathname === basePath;
     return (
       location.pathname === target || location.pathname.startsWith(`${target}/`)
     );
@@ -209,7 +198,7 @@ export function ProductSubSidebar() {
               params={{ orgSlug }}
               isActive={isItemActive(item)}
               badge={
-                item.to === "/$orgSlug/tunnels" ? (
+                item.to === "/$orgSlug/tunnel/tunnels" ? (
                   <ActiveTunnelBadge count={activeTunnelsCount} />
                 ) : undefined
               }
