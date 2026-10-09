@@ -1,0 +1,39 @@
+---
+title: Team and subscriber notifications
+description: Configure team destinations and distinguish them from public status-page subscriber delivery.
+icon: Bell
+---
+
+## Notify the team
+
+Select organization-member email recipients in each monitor's editor. The team can receive confirmed Down and recovery notifications even when the incident remains private. Arbitrary external email addresses are not valid team recipients.
+
+Open **Uptime → Notifications** to connect Slack or Discord through the provider's authorization screen. Choose the channel there; OutRay stores the delivery credential encrypted and does not reveal it in the dashboard. Owners and admins can change the selected destination or remove it. There is one Uptime connection per provider in the organization.
+
+Provider availability depends on the deployment's OAuth configuration. Uptime destinations are separate from [Observability alert destinations](/docs/observability/alerts); connecting a provider in one product does not configure the other.
+
+## Notify public subscribers
+
+Visitors can subscribe from a published status page. They must confirm their email before receiving incident-update notifications, and they can unsubscribe using the supplied link.
+
+Subscriber email is queued when a team member **publishes a written incident update**. Saving a draft does not notify them. Automatic public incident publication after a monitor threshold or confirmation delay also does not itself email subscribers.
+
+This distinction lets the team review and write the customer-facing message while still allowing measured incident publication. It is not a promise that an email is delivered at the exact moment a page changes.
+
+## Check the trigger before checking delivery
+
+| Event | Team notifications | Public subscriber email |
+| --- | --- | --- |
+| Down reaches the failure threshold | Eligible configured team destinations | No |
+| Monitor confirms recovery | Eligible configured team destinations | No |
+| Detection becomes public automatically | Not an additional subscriber-message trigger | No |
+| Written update saved as draft | No subscriber-message trigger | No |
+| Written update published | Separate from monitor team transition alerts | Confirmed subscribers are queued |
+
+Delivery depends on the notification worker and configured providers. Queued work may be retried; it is not guaranteed instant delivery. Subscriber confirmation is checked before sending, so a person who unsubscribes should not be treated as an active recipient merely because an older update was queued.
+
+## Troubleshooting
+
+For team email, check monitor recipient selection and current organization membership. For Slack/Discord, inspect the Uptime-specific connection and chosen channel. For subscriber email, confirm the page is published, the update was published rather than saved as a draft, and the recipient confirmed the subscription and has not unsubscribed.
+
+If those settings are correct but delivery remains absent, ask the deployment operator to verify notification-worker availability and provider configuration. Do not expose webhook credentials, monitor authorization headers, or subscriber lists in public incident notes.
