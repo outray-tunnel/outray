@@ -9,6 +9,7 @@ import { createMemoryHistory, createRootRoute, createRoute, createRouter, Router
 import ts from "typescript";
 import { ProductSetup } from "../src/components/onboarding/product-setup";
 import { parseSetupProduct, type SetupProduct } from "../src/components/onboarding/setup-products";
+import { observabilitySetupCode, setupCliCommand } from "../src/components/onboarding/setup-endpoints";
 
 Object.assign(globalThis, { React });
 
@@ -35,7 +36,7 @@ test("all four setup pages server-render the compact branded workspace layout wi
   globalThis.fetch = async () => { requests++; throw new Error("SSR must not make a setup request"); };
   try {
     for (const [product, title, consolePath] of [
-      ["tunnels", "Connect your first tunnel", "/acme"],
+      ["tunnels", "Connect your first tunnel", "/acme/tunnel"],
       ["observability", "Instrument your first service", "/acme/observability"],
       ["secrets", "Store your first secret", "/acme/secrets"],
       ["uptime", "Watch your first endpoint", "/acme/uptime"],
@@ -168,6 +169,7 @@ async function loadSetup(initialState: any[] = [], clients: Record<string, any> 
       if (specifier === "@/lib/app-client") return { appClient: clients.app ?? { tunnels: { list: async () => ({ tunnels: [] }) } } };
       if (specifier === "./setup-products") return { parseSetupProduct };
       if (specifier === "./observability-setup") return guideModule.exports;
+      if (specifier === "./setup-endpoints") return { observabilitySetupCode, setupCliCommand };
       if (specifier.endsWith("ui/workspace-input")) return { WorkspaceInput: "input", WorkspaceTextarea: "textarea" };
       if (specifier.startsWith("@/components/") || specifier === "./setup-ui" || specifier === "./onboarding-shell" || specifier === "./uptime-monitor-form") return stubs;
       throw new Error(`Unexpected setup dependency: ${specifier}`);
