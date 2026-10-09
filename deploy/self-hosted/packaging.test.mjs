@@ -11,6 +11,7 @@ const caddyPath = fileURLToPath(new URL("./Caddyfile", import.meta.url));
 const dockerfile = readFileSync(new URL("./Dockerfile", import.meta.url), "utf8");
 const composeText = readFileSync(composePath, "utf8");
 const compose = parse(composeText, { merge: true });
+const proCompose = parse(readFileSync(new URL("./compose.pro-icons.yaml", import.meta.url), "utf8"), { merge: true });
 const services = compose.services;
 const appNames = ["web", "tunnel", "internal-check", "ingest", "cron", "status", "secrets-share", "uptime-probe"];
 const fixtureEnvironment = {
@@ -36,6 +37,9 @@ const fixtureEnvironment = {
   TINYBIRD_QUERY_TOKEN: "fixture-read-token",
   TINYBIRD_INGEST_TOKEN: "fixture-append-token",
   HUGEICONS_LICENSE_KEY: "fixture-build-key",
+  BUILD_NODE_MAX_OLD_SPACE_SIZE: "1536",
+  DASHBOARD_DB_POOL_MAX: "10",
+  REDIS_MAX_MEMORY: "128mb",
 };
 
 test("one Node 22 artifact builds all eight services without baking credentials", () => {
@@ -50,9 +54,16 @@ test("one Node 22 artifact builds all eight services without baking credentials"
     assert.equal(services[app].read_only, true);
     assert.deepEqual(services[app].cap_drop, ["ALL"]);
   }
-  assert.match(dockerfile, /--mount=type=secret,id=hugeicons_license_key,required=true/);
+  assert.match(dockerfile, /--mount=type=secret,id=hugeicons_license_key/);
+  assert.doesNotMatch(dockerfile, /id=hugeicons_license_key,required=true/);
   assert.doesNotMatch(dockerfile, /^(?:ARG|ENV).*HUGEICONS_LICENSE_KEY/m);
-  assert.equal(compose.secrets.hugeicons_license_key.environment, "HUGEICONS_LICENSE_KEY");
+  assert.equal(compose.secrets, undefined);
+  assert.equal(services.web.build.secrets, undefined);
+  assert.equal(proCompose.secrets.hugeicons_license_key.environment, "HUGEICONS_LICENSE_KEY");
+  for (const name of [...appNames, "migrate"]) {
+    assert.deepEqual(proCompose.services[name].build.secrets, ["hugeicons_license_key"]);
+    assert.equal(proCompose.services[name].build.args.OUTRAY_ICON_MODE, "pro");
+  }
   const ignored = readFileSync(new URL("../../.dockerignore", import.meta.url), "utf8");
   for (const pattern of ["**/.env*", "**/node_modules", ".git", "deploy/woodpecker/secrets"]) {
     assert.ok(ignored.includes(pattern));
@@ -80,6 +91,61 @@ test("database and durable Redis are private, persistent, and not evicting queue
   for (const name of ["postgres-data", "redis-data", "caddy-data", "caddy-config"]) {
     assert.ok(name in compose.volumes);
   }
+});
+
+test("optional small-host controls preserve normal defaults and build heap validation", () => {
+  assert.match(dockerfile, /^ARG BUILD_NODE_MAX_OLD_SPACE_SIZE$/m);
+  assert.equal(services.web.build.args.BUILD_NODE_MAX_OLD_SPACE_SIZE, "${BUILD_NODE_MAX_OLD_SPACE_SIZE:-}");
+  assert.equal(services.web.environment.DASHBOARD_DB_POOL_MAX, "${DASHBOARD_DB_POOL_MAX:-50}");
+  assert.ok(services.redis.command.includes("${REDIS_MAX_MEMORY:-512mb}"));
+  for (const name of appNames) assert.equal(services[name].environment.NODE_OPTIONS, undefined, name);
+  const runtime = dockerfile.split("FROM node:22-bookworm-slim AS runtime")[1];
+  assert.doesNotMatch(runtime, /BUILD_NODE_MAX_OLD_SPACE_SIZE|NODE_OPTIONS/);
+
+  // Exercise the actual Dockerfile shell guard without building or installing anything.
+  const buildRun = dockerfile.match(/^RUN --mount=type=secret,id=hugeicons_license_key [\s\S]*?BUILD_NODE_MAX_OLD_SPACE_SIZE[\s\S]*?(?=\n\nFROM )/m)?.[0];
+  assert.ok(buildRun, "build RUN instruction exists");
+  const command = buildRun.slice(buildRun.indexOf("    if [ -n \"$BUILD_NODE_MAX_OLD_SPACE_SIZE\""))
+    .replace(/npm run build --[\s\S]*$/, "node -e 'console.log(process.env.NODE_OPTIONS || \"\")'");
+  const run = (heap, options = "") => spawnSync("sh", ["-ec", command], {
+    env: { PATH: process.env.PATH, BUILD_NODE_MAX_OLD_SPACE_SIZE: heap, NODE_OPTIONS: options },
+    encoding: "utf8",
+  });
+  const unset = run("");
+  assert.equal(unset.status, 0, unset.stderr);
+  assert.equal(unset.stdout.trim(), "");
+  const preserved = run("", "--stack-trace-limit=25");
+  assert.equal(preserved.status, 0, preserved.stderr);
+  assert.equal(preserved.stdout.trim(), "--stack-trace-limit=25");
+  const capped = run("1536", "--stack-trace-limit=25");
+  assert.equal(capped.status, 0, capped.stderr);
+  assert.equal(capped.stdout.trim(), "--stack-trace-limit=25 --max-old-space-size=1536");
+  for (const invalid of ["0", "00", "-1", "1.5", "1e3", "not-a-number"]) {
+    const result = run(invalid);
+    assert.notEqual(result.status, 0, invalid);
+    assert.match(result.stderr, /BUILD_NODE_MAX_OLD_SPACE_SIZE must be a positive integer/);
+    assert.equal(result.stdout, "");
+  }
+
+  const template = readFileSync(new URL("./.env.example", import.meta.url), "utf8");
+  assert.match(template, /^BUILD_NODE_MAX_OLD_SPACE_SIZE=$/m);
+  assert.match(template, /^DASHBOARD_DB_POOL_MAX=50$/m);
+  assert.match(template, /^REDIS_MAX_MEMORY=512mb$/m);
+});
+
+test("default icon packaging is free and private geometry is never committed", () => {
+  assert.equal(services.web.build.args.OUTRAY_ICON_MODE, "free");
+  assert.match(dockerfile, /^ARG OUTRAY_ICON_MODE=free$/m);
+  assert.match(dockerfile, /Docker OUTRAY_ICON_MODE must be free or pro/);
+  assert.match(dockerfile, /if \[ "\$OUTRAY_ICON_MODE" = pro \] && \[ -f \/run\/secrets\/hugeicons_license_key \]/);
+  const pkg = JSON.parse(readFileSync(new URL("../../packages/icons/package.json", import.meta.url), "utf8"));
+  assert.ok(pkg.dependencies["@hugeicons/core-free-icons"]);
+  for (const style of ["solid", "stroke"]) assert.ok(pkg.optionalDependencies[`@hugeicons-pro/core-${style}-rounded`]);
+  const ignored = readFileSync(new URL("../../.gitignore", import.meta.url), "utf8");
+  assert.ok(ignored.includes("packages/icons/generated/"));
+  assert.ok(readFileSync(new URL("../../.dockerignore", import.meta.url), "utf8").includes("packages/icons/generated"));
+  const turbo = JSON.parse(readFileSync(new URL("../../turbo.json", import.meta.url), "utf8"));
+  assert.ok(turbo.globalDependencies.includes("packages/icons/generated/mode.json"));
 });
 
 test("committed migrations and restricted share role run before any readers", () => {
@@ -192,4 +258,7 @@ test("Docker Compose resolves the configuration without reading local secrets", 
   assert.ok(config.services.web.environment.DATABASE_URL.includes("fixture-owner-password"));
   assert.equal(config.services["secrets-share"].environment.DATABASE_URL, undefined);
   assert.deepEqual(config.services.migrate.depends_on.postgres.condition, "service_healthy");
+  assert.equal(config.services.web.build.args.BUILD_NODE_MAX_OLD_SPACE_SIZE, "1536");
+  assert.equal(config.services.web.environment.DASHBOARD_DB_POOL_MAX, "10");
+  assert.ok(config.services.redis.command.includes("128mb"));
 });
