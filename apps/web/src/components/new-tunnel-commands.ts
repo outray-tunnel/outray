@@ -1,4 +1,5 @@
 export type TunnelAddressMode = "random" | "subdomain" | "domain";
+import { setupCliCommand } from "./onboarding/setup-endpoints";
 
 const subdomainPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i;
 const domainPattern = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
@@ -41,7 +42,7 @@ export function buildNewTunnelCommand({
   if (!isValidTunnelAddress(addressMode, address)) return null;
 
   const command = `outray ${Number(port)} --org ${shellArgument(orgSlug)}`;
-  if (addressMode === "random") return command;
+  if (addressMode === "random") return setupCliCommand(command);
   const flag = addressMode === "subdomain" ? "--subdomain" : "--domain";
-  return `${command} ${flag} ${shellArgument(address.trim())}`;
+  return setupCliCommand(`${command} ${flag} ${shellArgument(address.trim())}`);
 }
