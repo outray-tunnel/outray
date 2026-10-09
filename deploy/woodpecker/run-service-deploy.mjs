@@ -18,7 +18,7 @@ const names = [
   "REDIS_URL",
   "REDIS_TUNNEL_TTL_SECONDS",
   "REDIS_HEARTBEAT_INTERVAL_MS",
-  "TIMESCALE_URL",
+  "TINYBIRD_INGEST_TOKEN",
   "DATABASE_URL",
   "DATABASE_SSL_REJECT_UNAUTHORIZED",
   "INTERNAL_API_SECRET",
@@ -49,7 +49,7 @@ const names = [
 
 const managedSecrets = [
   "REDIS_URL",
-  "TIMESCALE_URL",
+  "TINYBIRD_INGEST_TOKEN",
   "DATABASE_URL",
   "INTERNAL_API_SECRET",
   "TINYBIRD_API_HOST",
@@ -180,12 +180,10 @@ runtime.WEB_API_URL = `${dashboardOrigin}/api`;
 
 // Cron runs separately on Aeroplane. Do not start a second evaluator here.
 runtime.DEPLOY_CRON = "false";
-// Brimble owns database migrations; service deploys must not run them.
-runtime.DEPLOY_TIMESCALE_MIGRATIONS = "false";
-
 const required = [
   "REDIS_URL",
-  "TIMESCALE_URL",
+  "TINYBIRD_API_HOST",
+  "TINYBIRD_INGEST_TOKEN",
   "DATABASE_URL",
   "INTERNAL_API_SECRET",
   "OUTRAY_DASHBOARD_URL",
