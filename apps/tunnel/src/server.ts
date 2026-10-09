@@ -10,9 +10,9 @@ import { WSProxy } from "./core/WSProxy";
 import { LogManager } from "./core/LogManager";
 import { config } from "./config";
 import {
-  checkTimescaleDBConnection,
+  startTinybirdLoggers,
   shutdownLoggers,
-} from "./lib/timescale";
+} from "./lib/tinybird";
 import {
   closeStatusRouting,
   isActiveStatusCustomDomain,
@@ -262,18 +262,22 @@ httpServer.on("request", async (req, res) => {
 httpServer.listen(config.port, config.bindHost, () => {
   console.log(`OutRay Server running on ${config.bindHost}:${config.port}`);
   console.log(`Base domain: ${config.baseDomain}`);
-  void checkTimescaleDBConnection();
+  startTinybirdLoggers();
 });
 
 const shutdown = async () => {
   console.log("Shutting down tunnel server...");
   wsHandler.shutdown();
   await router.shutdown();
-  await redis.quit();
   await closeStatusRouting();
   
-  // Flush buffered logs and close database connection
-  await shutdownLoggers();
+  // Persist buffered analytics before stopping; Redis owns queued deliveries.
+  try {
+    await shutdownLoggers();
+  } catch {
+    console.error("Tunnel analytics shutdown failed; some buffered records were not persisted");
+  }
+  await redis.quit();
   
   httpServer.close(() => process.exit(0));
 };
