@@ -191,7 +191,7 @@ export function ProductNavigation({
                         }`}
                       >
                         <span className="min-w-0 flex-1 truncate">{page.label}</span>
-                        {page.to === "/$orgSlug/tunnels" && (
+                        {page.to === "/$orgSlug/tunnel/tunnels" && (
                           <ActiveTunnelBadge count={activeTunnelsCount} />
                         )}
                       </Link>
