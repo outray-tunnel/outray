@@ -1,42 +1,56 @@
 ---
 title: Architecture
-description: Understanding how OutRay works under the hood
+description: How tunnel forwarding and application telemetry travel through OutRay.
 icon: Cpu
 ---
 
-OutRay is designed to be simple yet robust.
+OutRay has separate paths for tunnel traffic and application telemetry. They can be used together, but neither requires the other.
 
-## High-Level Overview
+## Tunnel forwarding
 
-The OutRay system consists of three main components:
+The CLI or a tunnel plugin opens an outbound WebSocket connection to the tunnel server. After authentication and address allocation, requests arriving at the public endpoint are routed to that connected client.
 
-1.  **The Client (CLI)**: Runs on your local machine.
-2.  **The Tunnel Server**: Runs in the cloud (or your server) and acts as the bridge.
-3.  **The Web Dashboard**: Manages users, organizations, and configurations.
+~~~mermaid
+flowchart LR
+  Visitor[Visitor or integration] -->|HTTPS| Edge[Public tunnel endpoint]
+  Edge <-->|TLS WebSocket| Client[CLI or tunnel plugin]
+  Client <-->|Local HTTP| App[Local application]
+  Edge --> Records[Tunnel traffic records]
+~~~
 
-```mermaid
-graph LR
-    A[Visitor] -->|HTTPS| B[Tunnel Server]
-    B -->|WebSocket| C[OutRay CLI]
-    C -->|HTTP| D[Localhost:3000]
-```
+For HTTP, the server sends the request method, path, headers, and body through the WebSocket connection. The local client makes an HTTP request to `localhost` and returns the response through the same connection.
 
-## Connection Flow
+WebSocket upgrades are relayed separately through the HTTP tunnel. TCP and UDP clients forward bytes or datagrams to a local socket service instead.
 
-1.  **Initialization**: When you run `outray 3000`, the CLI initiates a WebSocket connection to the Tunnel Server.
-2.  **Authentication**: The server verifies your identity using the token provided during login or via the `--key` flag.
-3.  **Tunnel Establishment**: Once authenticated, the server assigns a public URL (e.g., `https://random.tunnel.outray.app`) to your connection.
-4.  **Request Handling**:
-    - A visitor accesses the public URL.
-    - The Tunnel Server receives the request.
-    - The server forwards the request payload over the WebSocket connection to the CLI.
-    - The CLI proxies the request to your local server (e.g., `localhost:3000`).
-    - Your local server responds.
-    - The CLI sends the response back through the WebSocket to the Tunnel Server.
-    - The Tunnel Server sends the response to the visitor.
+The process must stay connected for the public endpoint to reach the local service. Reserving an address does not turn a local application into a hosted deployment.
 
-## Security
+## Observability ingestion
 
-- **Encryption**: All traffic between the CLI and the Tunnel Server is encrypted using TLS (WSS).
-- **Isolation**: Each tunnel is isolated. Traffic meant for one tunnel cannot be routed to another.
-- **Authentication**: Tunnels are tied to user accounts or API keys, preventing unauthorized usage of your resources.
+An observability SDK runs inside the application and exports traces, logs, and metrics over OTLP/HTTP to `https://ingest.outray.dev`.
+
+~~~mermaid
+flowchart LR
+  Application[Application and SDK] -->|OTLP over HTTPS| Ingest[Telemetry ingestion]
+  Ingest --> Store[Telemetry storage]
+  Store --> Console[Observability console]
+~~~
+
+This path uses a token with `observability:write`. It does not need a public tunnel URL. Framework instrumentation can describe requests served locally, through a tunnel, or by an independently deployed application.
+
+Tunnel request capture records data from the public proxy path. SDK payload capture adds bounded, redacted attributes to application spans. They are separate capture systems with different controls and privacy characteristics.
+
+## Control plane
+
+The web console manages organizations, member roles, tokens, subscriptions, tunnel addresses, observability views, Secrets vaults, and Uptime monitors.
+
+The CLI's browser login uses `https://outray.dev`; the tunnel connection uses `wss://api.outray.dev/`. The console's Tunnels workspace is under `/<org-slug>/tunnel`.
+
+## Security boundaries
+
+Hosted HTTP visitors use HTTPS and hosted clients use a TLS-protected WebSocket, but TLS terminates at the platform. This is not end-to-end encryption that hides proxied HTTP payloads from OutRay.
+
+The local HTTP hop is unencrypted loopback HTTP. TCP/UDP visitors need service-level encryption if their protocol requires it. Self-hosted `ws://` endpoints are not TLS-protected.
+
+Authentication of the tunnel client determines resource ownership and permissions. It does not add application authorization for visitors. Use [HTTP password protection](/docs/password-protection) where appropriate and keep service-level authentication enabled.
+
+Continue with [Tunnels](/docs/tunnels), [Observability](/docs/observability), or the [CLI reference](/docs/cli-reference).
