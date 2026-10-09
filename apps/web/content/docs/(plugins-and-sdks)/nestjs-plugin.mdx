@@ -1,357 +1,97 @@
 ---
 title: NestJS Plugin
-description: Automatically expose your NestJS dev server via OutRay tunnel
+description: Configure NestJS telemetry before initialization and tunnels after listening.
 icon: SiNestjs
 ---
 
-The `@outray/nest` plugin automatically creates an OutRay tunnel when your NestJS application starts, giving you a public URL to share your local development environment.
+`@outray/nest` offers request telemetry for Nest's Express adapter and an optional development tunnel. Register request instrumentation before the app initializes; start the tunnel after the server is listening.
 
-## Installation
+## Install
 
-```bash
+~~~bash
 npm install @outray/nest
-```
+~~~
 
-```bash
-pnpm add @outray/nest
-```
+The package declares NestJS 8–11 compatibility. Its observability dependency requires Node.js 20 or later.
 
-```bash
-yarn add @outray/nest
-```
+## Register telemetry
 
-## Quick Start
-
-Add the plugin to your NestJS application's `main.ts`:
-
-```ts
+~~~ts
 // main.ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { outray } from '@outray/nest';
+import { NestFactory } from "@nestjs/core";
+import { registerOutrayObservability } from "@outray/nest";
+import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Start the server
-  await app.listen(3000);
-
-  // Start the tunnel in development
-  if (process.env.NODE_ENV !== 'production') {
-    await outray(app);
-  }
-}
-bootstrap();
-```
-
-When you run your NestJS server in development mode, you'll see your tunnel URL:
-
-```bash
-[Nest] Application is running on: http://localhost:3000
-  ➜  Tunnel:  https://abc123.outray.dev
-```
-
-## Configuration
-
-The plugin accepts an options object to customize its behavior:
-
-```ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { outray } from '@outray/nest';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
-
-  await outray(app, {
-    subdomain: 'my-api',
-    apiKey: process.env.OUTRAY_API_KEY,
-  });
-}
-bootstrap();
-```
-
-### Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `port` | `number \| string` | Auto-detected | The local port your NestJS app is running on. Automatically detected from the app instance. |
-| `subdomain` | `string` | — | Request a specific subdomain for your tunnel URL. Requires authentication. |
-| `customDomain` | `string` | — | Use a custom domain. Must be configured in the OutRay dashboard first. |
-| `apiKey` | `string` | `process.env.OUTRAY_API_KEY` | API key for authentication. |
-| `serverUrl` | `string` | `wss://api.outray.dev/` | OutRay server WebSocket URL. Only change this for self-hosted instances. |
-| `enabled` | `boolean` | `process.env.NODE_ENV !== 'production'` | Enable or disable the tunnel. Disabled by default in production. |
-| `silent` | `boolean` | `false` | Suppress tunnel status logs. |
-| `onTunnelReady` | `(url: string) => void` | — | Callback fired when tunnel is successfully established. |
-| `onError` | `(error: Error) => void` | — | Callback fired when tunnel encounters an error. |
-| `onClose` | `() => void` | — | Callback fired when tunnel connection is closed. |
-| `onReconnecting` | `() => void` | — | Callback fired when tunnel is attempting to reconnect. |
-
-## Environment Variables
-
-The plugin respects the following environment variables:
-
-| Variable | Description |
-|----------|-------------|
-| `NODE_ENV` | Set to `production` to disable the tunnel automatically |
-| `OUTRAY_API_KEY` | API key for authentication (fallback for `apiKey` option) |
-| `OUTRAY_SUBDOMAIN` | Subdomain to use (fallback for `subdomain` option) |
-| `OUTRAY_SERVER_URL` | Server URL (fallback for `serverUrl` option) |
-
-## Examples
-
-### Custom Subdomain
-
-Reserve a consistent subdomain for your API:
-
-```ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { outray } from '@outray/nest';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
-
-  await outray(app, {
-    subdomain: 'my-api',
-    apiKey: process.env.OUTRAY_API_KEY,
-  });
-}
-bootstrap();
-```
-
-### Custom Domain
-
-Use your own domain for the tunnel:
-
-```ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { outray } from '@outray/nest';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
-
-  await outray(app, {
-    customDomain: 'api.example.com',
-    apiKey: process.env.OUTRAY_API_KEY,
-  });
-}
-bootstrap();
-```
-
-### Conditional Enabling
-
-Only enable the tunnel in certain environments:
-
-```ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { outray } from '@outray/nest';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
-
-  await outray(app, {
-    enabled: process.env.EXPOSE_TUNNEL === 'true',
-  });
-}
-bootstrap();
-```
-
-### With Callbacks
-
-React to tunnel events in your application:
-
-```ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { outray } from '@outray/nest';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
-
-  await outray(app, {
-    onTunnelReady: (url) => {
-      console.log(`API accessible at: ${url}`);
-      // Send to Slack, update config, etc.
-    },
-    onError: (error) => {
-      console.error('Tunnel error:', error.message);
-    },
-    onReconnecting: () => {
-      console.log('Connection lost, reconnecting...');
+  const telemetry = registerOutrayObservability(app, {
+    apiKey: process.env.OBSERVABILITY_TOKEN,
+    serviceName: "orders-api",
+    environment: process.env.NODE_ENV,
+    captureConsole: true,
+    capturePayloads: {
+      maxBodyBytes: 16 * 1024,
+      redactedFields: ["accountPin"],
     },
   });
-}
-bootstrap();
-```
 
-### Silent Mode
-
-Disable all tunnel logs:
-
-```ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { outray } from '@outray/nest';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  if (telemetry) telemetry.info("request instrumentation registered");
   await app.listen(3000);
-
-  await outray(app, {
-    silent: true,
-    onTunnelReady: (url) => {
-      // Handle the URL silently
-    },
-  });
 }
-bootstrap();
-```
 
-### Explicit Port
+void bootstrap();
+~~~
 
-If automatic port detection doesn't work, you can specify the port explicitly:
+Provide a token with `observability:write`. This setup collects route-aware request spans and HTTP request count, duration, and active-request metrics without opening a tunnel.
 
-```ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { outray } from '@outray/nest';
+Register before `app.init()` or `app.listen()`. Late registration and non-Express adapters are skipped with a warning; `registerOutrayObservability` returns `false` when request middleware could not be registered.
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
+For automatic instrumentation of imported databases, HTTP clients, and loggers, start the [Node.js SDK](/docs/node-sdk) in a bootstrap before importing your application. Request middleware itself does not require a preloader.
 
-  await outray(app, {
-    port: port,
-  });
-}
-bootstrap();
-```
+## Add a development tunnel
 
-## GraphQL API Integration
+After the server has started:
 
-Perfect for exposing your GraphQL API for testing:
+~~~ts
+import { outray } from "@outray/nest";
 
-```ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { outray } from '@outray/nest';
+await app.listen(3000);
+await outray(app, {
+  apiKey: process.env.TUNNEL_TOKEN,
+  subdomain: "my-api",
+});
+~~~
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
+The tunnel defaults to enabled whenever `NODE_ENV !== "production"`. Use `enabled: false` to turn it off explicitly. Unlike the Vite, Next.js, and Express plugins, the Nest plugin does not read `OUTRAY_ENABLED`.
 
-  await outray(app, {
-    subdomain: 'graphql-dev',
-    onTunnelReady: (url) => {
-      console.log(`GraphQL Playground: ${url}/graphql`);
-    },
-  });
-}
-bootstrap();
-```
+The plugin detects the listening port, or you can pass `port`. Use a token with `tunnel:connect`; a saved CLI login is not used.
 
-## Webhook Testing
+## Options
 
-Perfect for testing webhooks from external services:
+| Tunnel option | Default | Behavior |
+| --- | --- | --- |
+| `port` | Detected from server | Local target port, number or numeric string |
+| `apiKey` | `OUTRAY_API_KEY` | Tunnel credential |
+| `subdomain` | `OUTRAY_SUBDOMAIN` | Requested subdomain |
+| `customDomain` | Unset | Verified tunnel domain |
+| `serverUrl` | `OUTRAY_SERVER_URL` or `wss://api.outray.dev/` | Tunnel server |
+| `enabled` | `NODE_ENV !== "production"` | Enable tunnel |
+| `silent` | `false` | Suppress tunnel status output |
+| `local` | `false` | Also advertise mDNS LAN access |
 
-```ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { outray } from '@outray/nest';
+Callbacks include `onTunnelReady(url)`, `onError(error)`, `onClose()`, `onReconnecting()`, and `onLocalReady(info)`.
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
+`outray(app, { observability: ... })` can register telemetry before initialization, but it does not defer registration until after listening. For clarity, use the separate registration function before initialization and the tunnel function after listening.
 
-  await outray(app, {
-    subdomain: 'webhook-test',
-    onTunnelReady: (url) => {
-      console.log(`Webhook endpoint: ${url}/webhooks/stripe`);
-    },
-  });
-}
-bootstrap();
-```
+## Logs, spans, and capture
 
-## TypeScript Support
+Successful registration returns structured `debug`, `info`, `warn`, and `error` methods plus `forceFlush()` and `shutdown()`. `captureConsole: true` also forwards console calls while preserving their local output.
 
-The plugin includes full TypeScript definitions:
+Use `withOutraySpan` from `@outray/nest` for an operation that needs an application child span.
 
-```ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { outray, OutrayPluginOptions } from '@outray/nest';
+Payload capture is off unless explicitly configured. It requires the Express adapter and a recording span; request bodies must be exposed by Nest's parser. JSON and URL-encoded payloads are bounded and common sensitive fields and headers are redacted.
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
+If another OpenTelemetry provider is already configured, `registerOutrayPayloadCapture(app, options)` installs capture independently, before app initialization. It does not create a telemetry exporter.
 
-  const options: OutrayPluginOptions = {
-    subdomain: 'my-api',
-    apiKey: process.env.OUTRAY_API_KEY,
-    onTunnelReady: (url: string) => {
-      console.log(`Tunnel ready: ${url}`);
-    },
-  };
-
-  await outray(app, options);
-}
-bootstrap();
-```
-
-## NestJS Compatibility
-
-The plugin supports NestJS versions 8.x, 9.x, 10.x, and 11.x.
-
-## How It Works
-
-The plugin:
-
-1. Detects the port from the NestJS application's HTTP server
-2. Establishes a WebSocket tunnel to OutRay servers
-3. Proxies all incoming HTTP requests to your local server
-4. Handles cleanup on process exit (SIGINT, SIGTERM)
-
-## Troubleshooting
-
-### Tunnel not starting
-
-- Ensure `NODE_ENV` is not set to `production`
-- Check that you've called `await app.listen()` before `await outray(app)`
-- Verify your server is listening on a TCP port
-
-### Port detection issues
-
-If the plugin can't detect the port automatically:
-- Make sure you `await app.listen(port)` before calling `outray(app)`
-- Or pass the port explicitly: `outray(app, { port: 3000 })`
-
-### Authentication errors
-
-- Run `outray login` in your terminal to authenticate
-- Or set the `OUTRAY_API_KEY` environment variable
-
-### Connection issues
-
-- Check your internet connection
-- Verify the server URL is correct (default: `wss://api.outray.dev/`)
-- The plugin will automatically attempt to reconnect on connection loss
-
-### Not seeing tunnel URL
-
-Make sure you're running in development mode:
-
-```bash
-NODE_ENV=development npm run start:dev
-```
-
-Or ensure `enabled` is not set to `false`.
+Add application-specific redaction rules and see [request and trace inspection](/docs/observability/requests-and-traces) before using capture on real traffic. Flush telemetry through your application's existing shutdown path.
