@@ -3,6 +3,7 @@ import pg from "pg";
 import { renderIncidentHtml } from "@outray/incident-content";
 import { config } from "./config";
 import { decryptIntegrationWebhook, type EncryptedPayload } from "./crypto";
+import emailConfig from "../../../shared/email-sender";
 
 type Channel = "email" | "slack" | "discord";
 type TeamPayload = {
@@ -263,7 +264,7 @@ async function sendSubscriberEmail(recipient: string, payload: SubscriberPayload
     headers: { Accept: "application/json", "Content-Type": "application/json",
       Authorization: `Zoho-enczapikey ${config.zeptoApiKey}` },
     body: JSON.stringify({
-      from: { address: "no-reply@outray.dev", name: "OutRay Status" },
+      from: emailConfig.emailSender("OutRay Status"),
       to: [{ email_address: { address: recipient, name: recipient.split("@")[0] } }],
       subject,
       htmlbody: subscriberEmailHtml(payload, body, storedNote, pageUrl, unsubscribe.toString()),
@@ -319,7 +320,7 @@ async function sendEmail(recipient: string, payload: TeamPayload) {
     headers: { Accept: "application/json", "Content-Type": "application/json",
       Authorization: `Zoho-enczapikey ${config.zeptoApiKey}` },
     body: JSON.stringify({
-      from: { address: "no-reply@outray.dev", name: "OutRay Uptime" },
+      from: emailConfig.emailSender("OutRay Uptime"),
       to: [{ email_address: { address: recipient, name: recipient.split("@")[0] } }],
       subject,
       htmlbody: `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#090909;color:#fff;padding:32px"><h1>${escapeHtml(subject)}</h1><p>${escapeHtml(text).replace(/\n/g, "<br>")}</p><a href="${escapeHtml(url)}" style="color:#a78bfa">Review issue</a></body></html>`,
