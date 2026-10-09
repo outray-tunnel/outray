@@ -13,10 +13,12 @@ export function normalizeProductNavigationPath(pathname: string): string {
 export function filterSidebarProducts(
   searchQuery: string,
   canManageShares: boolean,
+  enabledProducts: readonly MobileProduct["key"][] = mobileProducts.map((item) => item.key),
 ): MobileProduct[] {
   const query = searchQuery.trim().toLowerCase();
 
   return mobileProducts.flatMap((product) => {
+    if (!enabledProducts.includes(product.key)) return [];
     const permittedPages = product.pages.filter(
       (page) => canManageShares || page.to !== "/$orgSlug/secrets/shares",
     );
