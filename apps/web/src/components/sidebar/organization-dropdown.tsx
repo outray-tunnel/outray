@@ -2,7 +2,7 @@ import { useLocation, useParams } from "@tanstack/react-router";
 import { useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { HugeiconsIcon } from "@hugeicons/react";
-import UnfoldMoreIcon from "@hugeicons-pro/core-stroke-rounded/UnfoldMoreIcon";
+import UnfoldMoreIcon from "@outray/icons/stroke/UnfoldMoreIcon";
 import { OrganizationAvatar, OrganizationSwitcherContent } from "./organization-switcher-content";
 import type { SwitcherOrganization } from "./organization-switcher-state";
 import styles from "./organization-switcher.module.css";
