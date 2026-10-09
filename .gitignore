@@ -6,6 +6,7 @@ dist/
 .env
 .env.local
 .env.prod
+.env.self-hosted
 .tinyb
 .output
 .vscode
