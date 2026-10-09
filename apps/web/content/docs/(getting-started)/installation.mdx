@@ -1,46 +1,55 @@
 ---
 title: Installation
-description: How to install the OutRay CLI
+description: Install the OutRay CLI and prepare your first local tunnel.
 icon: Terminal
 ---
 
-You can install the OutRay CLI globally using npm. This is the recommended way to install OutRay as it allows you to run the `outray` command from anywhere in your terminal.
+The `outray` CLI connects a running local service to a public HTTP, TCP, or UDP endpoint. It does not start your application for you.
 
-## Prerequisites
+## Install the CLI
 
-- [Node.js](https://nodejs.org/) (version 18 or higher)
-- npm (comes with Node.js)
+Use a supported Node.js release and npm:
 
-## Install via npm
-
-Run the following command in your terminal:
-
-```bash
+~~~bash
 npm install -g outray
-```
-
-## Verify Installation
-
-To verify that OutRay has been installed successfully, run:
-
-```bash
 outray --version
-```
+~~~
 
-You should see the version number of the installed CLI.
+The CLI package declares Node.js 16 or later, but authentication uses the built-in `fetch` API. Use Node.js 18 or later for the complete CLI workflow.
 
-## Updating
+For a one-off session, you can run the package without a global installation:
 
-To update OutRay to the latest version, simply run the install command again:
+~~~bash
+npx outray --help
+~~~
 
-```bash
+## Authenticate and connect
+
+Start your application in one terminal. In another, authenticate and forward its port:
+
+~~~bash
+outray login
+outray 3000
+~~~
+
+Keep both processes running while the tunnel is in use. The CLI prints the public endpoint once the connection is ready.
+
+Read [Authentication](/docs/authentication) for API tokens and organization selection, then [Opening a tunnel](/docs/opening-a-tunnel) for traffic inspection and multiple services.
+
+## Update or uninstall
+
+~~~bash
 npm install -g outray@latest
-```
+~~~
 
-## Uninstalling
+To remove the globally installed CLI:
 
-If you need to remove OutRay from your system:
-
-```bash
+~~~bash
 npm uninstall -g outray
-```
+~~~
+
+Uninstalling the package does not revoke API tokens or delete resources in your OutRay organization. Use `outray logout` to remove the CLI's saved local login.
+
+## Looking for an SDK?
+
+The CLI is a tunnel client. To send application traces, logs, and metrics, install the [Node.js SDK](/docs/node-sdk) or a [framework adapter](/docs/observability/sdk-setup). Observability does not require a tunnel.
