@@ -1,44 +1,63 @@
 ---
 title: TCP & UDP Tunnels
-description: Open non-HTTP services over TCP or UDP with the OutRay CLI.
+description: Forward raw socket services and understand the public endpoint's security boundary.
 icon: TbBuildingTunnel
 ---
 
-OutRay can tunnel raw TCP and UDP traffic so you can share things like SSH, databases, syslog, or game servers.
+Use HTTP tunnels for websites and HTTP APIs. Use TCP or UDP when the client needs to connect to a raw socket service rather than a URL.
 
-## TCP: expose any TCP service (SSH, DB, etc.)
+| Protocol | Typical local service | Public endpoint |
+| --- | --- | --- |
+| HTTP | Development website, webhook receiver, HTTP API | URL |
+| TCP | SSH, PostgreSQL, other stream-based services | Host and assigned port |
+| UDP | Datagram-based game or diagnostic service | Host and assigned port |
 
-```bash
-outray tcp 22 --remote-port 2222
-```
+## TCP
 
-**What happens**
+Authenticate, start the local service, then forward its port:
 
-- We try to bind the requested remote port; if it’s taken, you’ll see the assigned port in the output.
-- External TCP clients connect to the assigned port; traffic is piped to your local port.
+~~~bash
+outray login
+outray tcp 5432
+~~~
 
-**Flags that matter**
+Connect your database client to the host and port printed by OutRay, not to your local port number.
 
-- `<port>`: local TCP service to forward to.
-- `--remote-port <port>` (optional): ask for a specific public port in the TCP pool (defaults 20000-30000). If it’s busy, we assign another.
+To request a public port:
 
-## UDP: expose UDP services (DNS, syslog, game servers, etc.)
+~~~bash
+outray tcp 5432 --remote-port 25432
+~~~
 
-```bash
-outray udp 514 --remote-port 1514
-```
+The requested port must be in the tunnel server's configured range and available. A busy or invalid requested port produces an error; it is not silently replaced with a different port. Omit `--remote-port` for automatic allocation.
 
-**What happens**
+## UDP
 
-- We try to bind the requested UDP port; if busy, you’ll get the assigned port (UDP pool defaults 30001-40000).
-- External UDP packets to the assigned port are forwarded to your local UDP service; your responses are relayed back.
+~~~bash
+outray udp 5000
+outray udp 5000 --remote-port 35000
+~~~
 
-**Flags that matter**
+Clients send datagrams to the printed public endpoint. OutRay forwards them to the local UDP service and relays its responses. UDP does not provide TCP's connection or delivery guarantees.
 
-- `<port>` (positional): local UDP service to forward to.
-- `--remote-port <port>` (optional): ask for a specific public port in the UDP pool.
+As with TCP, an explicit public port must be available and within the server's configured range. The local and public port numbers do not have to match.
 
-## Quick troubleshooting
+## Port ranges
 
-- **Port already in use**: retry without `--remote-port` to let OutRay pick one, or choose another.
-- **No responses (UDP)**: ensure your local service replies; the CLI relays responses automatically once it receives them.
+The server's default allocation pools are 20000–30000 for TCP and 30001–40000 for UDP. Self-hosted operators can configure different pools. Use the assigned endpoint from the CLI instead of assuming a particular public host or port.
+
+## Security
+
+The hosted CLI-to-OutRay connection uses TLS-protected WebSockets. That does not automatically encrypt a visitor's raw TCP or UDP connection to the public endpoint.
+
+Use your service's own authentication and encryption: for example, SSH authentication or database TLS. An API token authorizes the tunnel connection, not external clients connecting to it.
+
+HTTP subdomains, custom domains, and `--password` are not access controls for TCP or UDP. Do not expose an unauthenticated database, remote shell, or internal control service.
+
+## Troubleshooting
+
+If a requested remote port fails, choose another valid port or omit the flag.
+
+If the endpoint connects but the service does not respond, verify the local service on the same machine, confirm its protocol, and check service authentication or firewall rules. UDP services must respond to the forwarded datagram for the CLI to relay a reply.
+
+For multiple services or a TCP/UDP target on another local hostname, use a [TOML configuration](/docs/cli-reference#configuration-files).
