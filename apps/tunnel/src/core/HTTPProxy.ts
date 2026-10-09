@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { TunnelRouter } from "./TunnelRouter";
 import { getBandwidthKey } from "../../../../shared/utils";
-import { logger, requestCaptureLogger } from "../lib/timescale";
+import { logger, requestCaptureLogger } from "../lib/tinybird";
 import { LogManager } from "./LogManager";
 
 export class HTTPProxy {
