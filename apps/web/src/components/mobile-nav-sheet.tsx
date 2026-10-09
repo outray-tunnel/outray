@@ -7,9 +7,11 @@ import { authClient, usePermission } from "@/lib/auth-client";
 import { useAppStore } from "@/lib/store";
 import { mobileItemIsActive, mobileProductForPath, mobileProducts } from "./mobile-navigation";
 import { ReportBugModal } from "./report-bug-modal";
+import { useInstance } from "@/lib/instance-context";
 
 export function MobileNavSheet({ isOpen, onClose, orgSlug }: { isOpen: boolean; onClose: () => void; orgSlug: string }) {
   const location = useLocation();
+  const instance = useInstance();
   const navigate = useNavigate();
   const headingId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -59,7 +61,7 @@ export function MobileNavSheet({ isOpen, onClose, orgSlug }: { isOpen: boolean; 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
           <section aria-labelledby="mobile-products-heading" className="pt-6">
             <h3 id="mobile-products-heading" className="mb-3 text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">Products</h3>
-            <div className="grid grid-cols-2 gap-2">{mobileProducts.map((item) => {
+            <div className="grid grid-cols-2 gap-2">{mobileProducts.filter((item) => instance.products.includes(item.key)).map((item) => {
               const active = product?.key === item.key;
               return <Link key={item.key} to={item.to} params={{ orgSlug }} onClick={onClose} aria-current={active ? "page" : undefined}
                 className={`flex min-h-14 items-center gap-3 rounded-xl border px-3 text-[13px] transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-violet-400 ${active ? "border-white/[0.15] bg-white/[0.07] text-zinc-100" : "border-white/[0.08] text-zinc-400 hover:border-white/[0.14] hover:bg-white/[0.035] hover:text-zinc-200"}`}>
@@ -85,7 +87,7 @@ export function MobileNavSheet({ isOpen, onClose, orgSlug }: { isOpen: boolean; 
               {[
                 { to: "/$orgSlug/members", label: "Members", icon: Users },
                 { to: "/$orgSlug/tokens", label: "API tokens", icon: KeyRound },
-                ...(canManageBilling ? [{ to: "/$orgSlug/billing", label: "Billing", icon: CreditCard }] : []),
+                ...(canManageBilling && instance.billingEnabled ? [{ to: "/$orgSlug/billing", label: "Billing", icon: CreditCard }] : []),
                 { to: "/$orgSlug/settings", label: "Settings", icon: Settings2 },
               ].map((item) => {
                 const target = item.to.replace("/$orgSlug", `/${orgSlug}`);
