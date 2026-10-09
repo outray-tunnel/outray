@@ -131,7 +131,7 @@ export function TunnelHeader({
     >
       <header className="outray-arc min-w-0">
         <Link
-          to="/$orgSlug/tunnels"
+          to="/$orgSlug/tunnel/tunnels"
           params={{ orgSlug }}
           className="mb-3 inline-flex items-center gap-1.5 rounded text-[11px] text-zinc-500 transition-colors hover:text-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none"
         >
