@@ -1,0 +1,65 @@
+---
+title: Connect your first service
+description: Send traces, logs, and metrics from a Node.js application and verify the connection.
+icon: Plug
+---
+
+## 1. Create a telemetry token
+
+Select your organization in the dashboard, open **API tokens**, and create a token with **Send telemetry** (`observability:write`). Owners and admins manage tokens. Copy the full credential when it is shown; the token list only keeps a masked prefix.
+
+Store it in a server-only secret named `OBSERVABILITY_TOKEN` in your deployment configuration or [OutRay Secrets](/docs/secrets/getting-started). That variable name is an example, not an SDK requirement: pass its value through `apiKey`.
+
+## 2. Install the SDK
+
+The Node telemetry distribution requires Node.js 20 or newer.
+
+```bash
+npm install @outray/observability
+```
+
+Create a bootstrap that starts telemetry before loading your server, database clients, and loggers:
+
+```ts
+// bootstrap.ts
+import { startOutrayObservability } from "@outray/observability";
+
+export const telemetry = startOutrayObservability({
+  apiKey: process.env.OBSERVABILITY_TOKEN,
+  serviceName: "orders-api",
+  serviceVersion: "1.0.0",
+  environment: "development",
+});
+
+await import("./server.js");
+```
+
+Compile this bootstrap as an ES module (for example in a package with `"type": "module"`) so top-level `await` is supported. Run the compiled bootstrap as your server entry, for example `node dist/bootstrap.js`. Early loading is important: libraries imported before OpenTelemetry starts may not be automatically instrumented. For framework-specific request instrumentation, use [SDK setup](/docs/observability/sdk-setup).
+
+The default ingest endpoint is `https://ingest.outray.dev`. An `endpoint` override is available for another OutRay deployment. `serviceName` is required and should be stable across releases; put release identity in `serviceVersion`, not the service name.
+
+## 3. Generate and inspect evidence
+
+Send a request to the application, then open **Observability → Services** in the same organization. Select the service and range containing your request. Follow its links to Requests, Traces, Logs, or Metrics.
+
+To generate a structured log explicitly:
+
+```ts
+telemetry.info("orders API started", { component: "http" });
+```
+
+Logs are attached to an active trace when one exists. Console capture is off by default; add `captureConsole: true` if you also want existing console calls exported. Metrics export periodically—60 seconds by default—so a first request need not appear in all views at the same instant.
+
+## 4. Flush on shutdown
+
+Add `await telemetry.shutdown()` to your application's existing shutdown path. The SDK does not install signal handlers or call `process.exit`; your application still owns its lifecycle.
+
+## If data does not appear
+
+- Check that the token belongs to the selected organization, has **Send telemetry**, and is not expired or revoked.
+- Confirm `apiKey` and `serviceName` are supplied in the server process. Browser variables are not appropriate.
+- Confirm the application can reach the configured HTTP(S) ingest endpoint and that telemetry is not disabled through `enabled: false` or `OUTRAY_OBSERVABILITY_ENABLED`.
+- Start the SDK before importing automatically instrumented libraries. Generate new traffic after changing bootstrap order.
+- Expand the dashboard range and allow time for export and ingestion. `diagnostics: "error"` can help troubleshoot exporter failures; avoid publishing diagnostic output containing private configuration.
+
+When running through `outray secrets run`, the CLI removes `OUTRAY_TOKEN` and `OUTRAY_API_KEY` from the child environment. Use a distinct secret such as `OBSERVABILITY_TOKEN` and pass it explicitly as above.
