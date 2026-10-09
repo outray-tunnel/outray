@@ -7,6 +7,27 @@ import pg from "pg";
 const TARGET_ORG_SLUG = process.env.OUTRAY_SEED_ORG?.trim() || "outray-tunnel";
 const EXPECTED_TINYBIRD_BRANCH = "development";
 const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
+const MAX_REQUEST_COUNT = 250_000;
+const MAX_PROTOCOL_COUNT = 64_000;
+const MAX_TINYBIRD_TOTAL = 2_000_000;
+
+function boundedInteger(value, fallback, name, maximum, minimum = 0) {
+  const count = value ?? fallback;
+  if (!Number.isSafeInteger(count) || count < minimum || count > maximum) {
+    throw new Error(`${name} must be an integer between ${minimum} and ${maximum}`);
+  }
+  return count;
+}
+
+function seedNow(options) {
+  const wallNow = Date.now();
+  const now = options.now ?? wallNow;
+  if (!Number.isSafeInteger(now) || Math.abs(now) > 8_640_000_000_000_000 || now > wallNow) {
+    throw new Error("now must be a valid epoch-millisecond timestamp at or before the current time");
+  }
+  return now;
+}
 
 export const TUNNELS = [
   {
@@ -202,11 +223,11 @@ async function retryDeadlocks(action, attempts = 4) {
   }
 }
 
-async function insertJson(client, table, columns, records) {
+async function insertJson(client, table, columns, records, batchSize = 500) {
   if (!records.length) return;
   const definitions = columns.map(([name, type]) => `${name} ${type}`).join(", ");
   const names = columns.map(([name]) => name).join(", ");
-  for (const batch of chunked(records, 500)) {
+  for (const batch of chunked(records, batchSize)) {
     await client.query(
       `INSERT INTO ${table} (${names}) SELECT ${names} FROM jsonb_to_recordset($1::jsonb) AS row(${definitions})`,
       [JSON.stringify(batch)],
@@ -214,7 +235,7 @@ async function insertJson(client, table, columns, records) {
   }
 }
 
-async function seedPrimaryDatabase(client, organization, user) {
+export async function seedPrimaryDatabase(client, organization, user) {
   await client.query("BEGIN");
   try {
     await assertFixtureOwnership(client, organization.id);
@@ -483,10 +504,11 @@ async function seedPrimaryDatabase(client, organization, user) {
   }
 }
 
-export function buildTunnelEvents(organizationId) {
+export function buildTunnelEvents(organizationId, options = {}) {
   const events = [];
   const captures = [];
-  const now = Date.now();
+  const count = boundedInteger(options.count, 14_400, "request count", MAX_REQUEST_COUNT);
+  const now = seedNow(options);
   const httpTunnels = TUNNELS.filter((tunnel) => tunnel.protocol === "http");
   const methods = ["GET", "GET", "GET", "POST", "POST", "PATCH", "DELETE"];
   const routes = [
@@ -499,9 +521,9 @@ export function buildTunnelEvents(organizationId) {
     "/api/customers/cus_17",
   ];
 
-  for (let index = 0; index < 14_400; index += 1) {
+  for (let index = 0; index < count; index += 1) {
     const tunnel = httpTunnels[index % httpTunnels.length];
-    const ageRatio = index / 14_399;
+    const ageRatio = index / Math.max(1, count - 1);
     const age = Math.pow(ageRatio, 2.4) * 29.5 * DAY_MS;
     const timestamp = new Date(now - age);
     const requestId = `20000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
@@ -574,15 +596,17 @@ export function buildTunnelEvents(organizationId) {
   return { events, captures };
 }
 
-export function buildProtocolEvents(organizationId) {
+export function buildProtocolEvents(organizationId, options = {}) {
   const records = [];
-  const now = Date.now();
+  const count = boundedInteger(options.count, 3_200, "protocol count", MAX_PROTOCOL_COUNT);
+  const now = seedNow(options);
+  const connectionTotal = Math.ceil(count / 4);
   const protocolTunnels = TUNNELS.filter((tunnel) => tunnel.protocol !== "http");
-  for (let index = 0; index < 3_200; index += 1) {
+  for (let index = 0; index < count; index += 1) {
     const tunnel = protocolTunnels[Math.floor(index / 4) % protocolTunnels.length];
     const protocol = tunnel.protocol;
     const connectionIndex = Math.floor(index / 4);
-    const timestamp = new Date(now - 1_000 - Math.pow(connectionIndex / 799, 2.4) * 29.5 * DAY_MS + (index % 4) * 100);
+    const timestamp = new Date(now - 1_000 - Math.pow(connectionIndex / Math.max(1, connectionTotal - 1), 2.4) * 29.5 * DAY_MS + (index % 4) * 100);
     records.push({
       timestamp,
       tunnel_id: tunnel.id,
@@ -601,7 +625,12 @@ export function buildProtocolEvents(organizationId) {
   return records;
 }
 
-async function seedTimescale(client, organizationId) {
+export async function seedTimescale(client, organizationId, options = {}) {
+  // Generate/validate before BEGIN so invalid counts never delete existing fixtures.
+  const now = seedNow(options);
+  const batchSize = boundedInteger(options.batchSize, 500, "batchSize", 10_000, 1);
+  const { events, captures } = buildTunnelEvents(organizationId, { count: options.requestCount, now });
+  const protocolEvents = buildProtocolEvents(organizationId, { count: options.protocolCount, now });
   const tunnelIds = TUNNELS.map((tunnel) => tunnel.id);
   await client.query("BEGIN");
   try {
@@ -609,8 +638,6 @@ async function seedTimescale(client, organizationId) {
       await client.query(`DELETE FROM ${table} WHERE tunnel_id = ANY($1::text[]) AND organization_id = $2`, [tunnelIds, organizationId]);
     }
 
-    const { events, captures } = buildTunnelEvents(organizationId);
-    const protocolEvents = buildProtocolEvents(organizationId);
     await insertJson(
       client,
       "tunnel_events",
@@ -621,6 +648,7 @@ async function seedTimescale(client, organizationId) {
         ["bytes_out", "integer"], ["client_ip", "text"], ["user_agent", "text"], ["request_id", "text"],
       ],
       events,
+      batchSize,
     );
     await insertJson(
       client,
@@ -632,6 +660,7 @@ async function seedTimescale(client, organizationId) {
         ["response_body", "text"], ["response_body_size", "integer"],
       ],
       captures,
+      batchSize,
     );
     await insertJson(
       client,
@@ -643,6 +672,7 @@ async function seedTimescale(client, organizationId) {
         ["bytes_in", "integer"], ["bytes_out", "integer"], ["duration_ms", "integer"],
       ],
       protocolEvents,
+      batchSize,
     );
     await client.query("COMMIT");
     return { requests: events.length, captures: captures.length, protocolEvents: protocolEvents.length };
@@ -652,7 +682,7 @@ async function seedTimescale(client, organizationId) {
   }
 }
 
-async function seedRedis(redis, organization, user) {
+export async function seedRedis(redis, organization, user) {
   const onlineSet = `org:${organization.id}:online_tunnels`;
   const pipeline = redis.pipeline();
   for (const tunnel of TUNNELS) {
@@ -700,14 +730,21 @@ function baseResource(service, version) {
 }
 
 export function buildTinybirdRecords(organizationId, options = {}) {
-  const spanStart = options.spanStart ?? 0;
-  const spanCount = options.spanCount ?? 1_440;
-  const spanTotal = options.spanTotal ?? 1_440;
-  const metricStart = options.metricStart ?? 0;
-  const metricPoints = options.metricPoints ?? 192;
-  const metricTotal = options.metricTotal ?? 192;
-  const anchor = Math.floor(Date.now() / 3_600_000) * 3_600_000;
-  const ingestedAt = iso(Date.now());
+  const spanStart = boundedInteger(options.spanStart, 0, "spanStart", MAX_TINYBIRD_TOTAL);
+  const spanCount = boundedInteger(options.spanCount, 1_440, "spanCount", 100_000);
+  const spanTotal = boundedInteger(options.spanTotal, 1_440, "spanTotal", MAX_TINYBIRD_TOTAL, 1);
+  const metricStart = boundedInteger(options.metricStart, 0, "metricStart", MAX_TINYBIRD_TOTAL);
+  const metricPoints = boundedInteger(options.metricPoints, 192, "metricPoints", 10_000);
+  const metricTotal = boundedInteger(options.metricTotal, 192, "metricTotal", MAX_TINYBIRD_TOTAL, 1);
+  if (spanStart + spanCount > spanTotal || metricStart + metricPoints > metricTotal) {
+    throw new Error("Batch start plus count must not exceed its total");
+  }
+  const now = seedNow(options);
+  const anchor = options.anchor ?? Math.floor(now / HOUR_MS) * HOUR_MS;
+  if (!Number.isSafeInteger(anchor) || Math.abs(anchor) > 8_640_000_000_000_000 || anchor > now) {
+    throw new Error("anchor must be a valid epoch-millisecond timestamp at or before now");
+  }
+  const ingestedAt = iso(now);
   const services = [
     { name: "storefront-web", version: "1.8.0", baseMs: 180, errorEvery: 200 },
     { name: "checkout-api", version: "2.4.1", baseMs: 680, errorEvery: 29 },
@@ -725,7 +762,6 @@ export function buildTinybirdRecords(organizationId, options = {}) {
   for (let offset = 0; offset < spanCount; offset += 1) {
     const index = spanStart + offset;
     const service = services[index % services.length];
-    const startMs = anchor - Math.pow((spanTotal - 1 - index) / (spanTotal - 1), 2.4) * 29.5 * DAY_MS;
     const traceId = hex(`dev-trace:${organizationId}:${anchor}:${index}`, 32);
     const rootSpanId = hex(`dev-root:${organizationId}:${anchor}:${index}`, 16);
     const isError = index % service.errorEvery === 0;
@@ -733,6 +769,9 @@ export function buildTinybirdRecords(organizationId, options = {}) {
     const route = routes[routeIndex];
     const method = methods[routeIndex];
     const durationMs = Math.round(service.baseMs + seededNumber(`trace-duration:${anchor}:${index}`, 20, service.baseMs * 0.75));
+    const ageRatio = (spanTotal - 1 - index) / Math.max(1, spanTotal - 1);
+    // The newest trace must finish before the snapshot, even when anchor === now.
+    const startMs = Math.min(anchor - Math.pow(ageRatio, 2.4) * 29.5 * DAY_MS, now - durationMs);
     const status = isError ? 503 : index % 17 === 0 ? 201 : 200;
     const requestId = `req_${hex(`${anchor}:${index}`, 18)}`;
     const requestBody = method === "POST" ? JSON.stringify({ cartId: `cart_${index}`, items: 3 }) : "";
@@ -867,7 +906,7 @@ export function buildTinybirdRecords(organizationId, options = {}) {
   ];
   for (let offset = 0; offset < metricPoints; offset += 1) {
     const point = metricStart + offset;
-    const timestamp = anchor - Math.pow((metricTotal - 1 - point) / (metricTotal - 1), 2.4) * 29.5 * DAY_MS;
+    const timestamp = anchor - Math.pow((metricTotal - 1 - point) / Math.max(1, metricTotal - 1), 2.4) * 29.5 * DAY_MS;
     for (const service of services) {
       for (const [name, description, unit, type] of metricDefinitions) {
         const identity = `${anchor}:${point}:${service.name}:${name}`;
