@@ -1,5 +1,6 @@
 import axios from "axios";
 import type { TunnelStatsRange } from "./tunnel-stats-range";
+import type { getPlanLimits } from "./subscription-plans";
 
 const apiClient = axios.create({
   baseURL: typeof window !== "undefined" ? window.location.origin : "",
@@ -698,7 +699,7 @@ export const appClient = {
 
   subscriptions: {
     get: async (orgSlug: string) =>
-      apiCall<{ subscription: Subscription; usage?: Subscription["usage"] }>(
+      apiCall<{ subscription: Subscription; usage?: Subscription["usage"]; instanceLimits?: Partial<ReturnType<typeof getPlanLimits>> | null }>(
         "get",
         `/api/${orgSlug}/subscriptions`,
       ),
