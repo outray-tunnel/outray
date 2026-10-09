@@ -1,6 +1,6 @@
 import { HugeiconsIcon } from "@hugeicons/react";
-import SidebarLeft01Icon from "@hugeicons-pro/core-stroke-rounded/SidebarLeft01Icon";
-import SidebarRight01Icon from "@hugeicons-pro/core-stroke-rounded/SidebarRight01Icon";
+import SidebarLeft01Icon from "@outray/icons/stroke/SidebarLeft01Icon";
+import SidebarRight01Icon from "@outray/icons/stroke/SidebarRight01Icon";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { motionTokens } from "../arc/motion-tokens";
 
