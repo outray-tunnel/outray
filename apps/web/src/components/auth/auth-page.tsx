@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Cone01Icon from "@hugeicons-pro/core-stroke-rounded/Cone01Icon";
-import Pulse02Icon from "@hugeicons-pro/core-stroke-rounded/Pulse02Icon";
-import LockPasswordIcon from "@hugeicons-pro/core-stroke-rounded/LockPasswordIcon";
-import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
+import Cone01Icon from "@outray/icons/stroke/Cone01Icon";
+import Pulse02Icon from "@outray/icons/stroke/Pulse02Icon";
+import LockPasswordIcon from "@outray/icons/stroke/LockPasswordIcon";
+import HeartPulseIcon from "@outray/icons/stroke/HeartPulseIcon";
 import { ArrowLeft, CircleAlert } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
