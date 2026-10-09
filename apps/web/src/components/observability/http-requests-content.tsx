@@ -1,8 +1,8 @@
 import { useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CircleAlert, Radio, Search } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import PauseIcon from "@hugeicons-pro/core-solid-rounded/PauseIcon";
-import PlayIcon from "@hugeicons-pro/core-solid-rounded/PlayIcon";
+import PauseIcon from "@outray/icons/solid/PauseIcon";
+import PlayIcon from "@outray/icons/solid/PlayIcon";
 import { Button } from "../arc/button/button";
 import { SearchField } from "../arc/search-field/search-field";
 import { Select } from "../arc/select/select";
