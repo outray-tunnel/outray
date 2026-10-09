@@ -1,0 +1,81 @@
+.evidence {
+  margin-top: 24px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.sectionHeading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.sectionHeading h3 { margin: 0; color: #d4d4d8; font-size: 12px; font-weight: 500; }
+.sectionHeading > span { color: #71717a; font-size: 10px; }
+.cards { display: grid; gap: 12px; }
+.card { min-width: 0; overflow: hidden; border: 1px solid rgb(255 255 255 / 7%); border-radius: 12px; background: rgb(255 255 255 / 1.5%); padding: 13px 14px; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.heading { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 7px; color: #d4d4d8; font-size: 12px; font-weight: 500; }
+.heading > svg { color: #a1a1aa; }
+.count { color: #71717a; font-size: 10px; font-weight: 400; }
+.inspect { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 3px; border-radius: 5px; padding: 3px 4px; color: #a1a1aa; font-size: 10px; text-decoration: none; transition: background 120ms ease, color 120ms ease; }
+.inspect:hover { background: rgb(255 255 255 / 4%); color: #f4f4f5; }
+.inspect:focus-visible, .more > summary:focus-visible { outline: 2px solid #a1a1aa; outline-offset: 3px; }
+.requestIdentity { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 2px 0 15px; }
+.requestIdentity > code { min-width: 0; flex: 1; overflow-wrap: anywhere; color: #e4e4e7; font-size: 12px; }
+.method { color: #a1a1aa; font-size: 11px; }
+.status { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 5px; border-radius: 6px; background: rgb(255 255 255 / 4%); padding: 2px 6px; color: #a1a1aa; font-size: 10px; white-space: nowrap; }
+.status[data-tone="ok"] { background: rgb(110 231 183 / 6%); color: #6ee7b7; }
+.status[data-tone="error"] { background: rgb(251 113 133 / 6%); color: #fda4af; }
+.status[data-tone="redirect"] { background: rgb(252 211 77 / 6%); color: #fcd34d; }
+.facts, .comparisonFacts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 20px; margin: 0 0 12px; }
+.fact { min-width: 0; }
+.fact dt { color: #71717a; font-size: 10px; }
+.fact dd { margin: 3px 0 0; overflow-wrap: anywhere; color: #d4d4d8; font-size: 12px; font-variant-numeric: tabular-nums; }
+.note { display: flex; align-items: flex-start; gap: 6px; margin: 7px 0 0; color: #71717a; font-size: 10px; line-height: 1.6; }
+.note > svg { flex: 0 0 auto; margin-top: 2px; }
+.traceScale { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 6px; color: #71717a; font-size: 10px; font-variant-numeric: tabular-nums; }
+.spans { margin: 0; padding: 0; list-style: none; }
+.span { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(80px, 0.9fr) 70px; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid rgb(255 255 255 / 4%); }
+.spanIdentity { display: flex; min-width: 0; align-items: flex-start; gap: 6px; }
+.spanIdentity > div { min-width: 0; }
+.spanStatus { flex: 0 0 auto; margin-top: 3px; color: #71717a; }
+.spanStatus[data-tone="ok"] { color: #6ee7b7; }
+.spanStatus[data-tone="error"] { color: #fda4af; }
+.spanName { display: block; overflow-wrap: anywhere; color: #d4d4d8; font-size: 11px; }
+.spanKind { display: block; overflow-wrap: anywhere; color: #71717a; font-size: 9px; }
+.timing { position: relative; height: 14px; min-width: 0; border-radius: 3px; background: rgb(255 255 255 / 2%); }
+.timingBar { position: absolute; top: 3px; height: 8px; border-radius: 2px; background: #71717a; }
+.timingBar[data-tone="ok"] { background: #a1a1aa; }
+.timingBar[data-tone="error"] { background: #fb7185; }
+.unknownTiming { display: block; color: #71717a; font-size: 9px; line-height: 14px; text-align: center; }
+.spanDuration { color: #a1a1aa; font-size: 10px; font-variant-numeric: tabular-nums; text-align: right; }
+.more { border-top: 1px solid rgb(255 255 255 / 5%); }
+.more > summary { display: flex; cursor: pointer; list-style: none; align-items: center; justify-content: space-between; gap: 8px; margin-top: 5px; border-radius: 5px; padding: 6px 0; color: #a1a1aa; font-size: 10px; transition: color 120ms ease; }
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary:hover { color: #e4e4e7; }
+.more > summary > svg { transition: transform 120ms ease; }
+.more[open] > summary > svg { transform: rotate(180deg); }
+.comparisons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.comparison .header { margin-bottom: 4px; }
+.scope { margin: 0 0 12px; overflow-wrap: anywhere; color: #71717a; font-size: 10px; }
+.comparisonFacts { gap: 14px 8px; }
+.comparisonFacts .fact dd { font-size: 13px; }
+.logs { margin: 0; padding: 0; list-style: none; }
+.logRow { display: flex; gap: 9px; padding: 8px 0; border-top: 1px solid rgb(255 255 255 / 4%); }
+.logDot { flex: 0 0 5px; width: 5px; height: 5px; margin-top: 6px; border-radius: 50%; background: #71717a; }
+.logDot[data-tone="error"] { background: #fb7185; }
+.logDot[data-tone="redirect"] { background: #fcd34d; }
+.logRow > div { min-width: 0; flex: 1; }
+.logMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: #71717a; font-size: 10px; }
+.logMeta > time { margin-left: auto; font-variant-numeric: tabular-nums; }
+.logLevel { color: #a1a1aa; font-size: 9px; text-transform: uppercase; }
+.logRow p { margin: 4px 0 0; overflow-wrap: anywhere; color: #a1a1aa; font-size: 11px; }
+.freshness { margin: 10px 0 0; color: #71717a; font-size: 10px; line-height: 1.7; }
+@media (max-width: 540px) {
+  .comparisons { grid-template-columns: minmax(0, 1fr); }
+  .span { grid-template-columns: minmax(0, 1fr) 70px; gap: 7px; }
+  .timing { grid-column: 1 / -1; grid-row: 2; }
+  .spanDuration { grid-column: 2; grid-row: 1; }
+  .logMeta > time { width: 100%; margin-left: 0; }
+  .card { padding: 12px; }
+  .inspect { min-height: 32px; }
+  .more > summary { min-height: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inspect, .more > summary, .more > summary > svg { transition: none; }
+}
