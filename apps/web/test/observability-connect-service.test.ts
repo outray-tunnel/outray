@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { ConnectServiceSheet } from "../src/components/observability/connect-service-sheet";
 import * as overviewData from "../src/components/observability/overview-data";
+import * as tokenData from "../src/components/workspace/tokens-data";
 
 Object.assign(globalThis, { React });
 
@@ -33,7 +34,7 @@ class FocusTarget {
 /** Exercise the real component handlers without rendering portals or starting requests. */
 async function loadComponent(path: string, initialState: any[] = []) {
   const source = await readFile(new URL(path, import.meta.url), "utf8");
-  const compiled = ts.transpileModule(source, {
+  const compiled = ts.transpileModule(source + (path.endsWith("/create-token-modal.tsx") ? "\nexport { TokenCreationSession };" : ""), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true },
   }).outputText;
   const values = initialState.slice();
@@ -41,7 +42,7 @@ async function loadComponent(path: string, initialState: any[] = []) {
   const effects: Array<() => void> = [];
   let stateIndex = 0;
   let refIndex = 0;
-  const names = ["Button", "SideSheet", "ObservabilitySetup", "ConnectServiceSheet", "Select", "CreateTokenModal", "SetupFlow", "SetupStep", "SetupCodeBlock", "Root", "Portal", "Overlay", "Content", "Title", "Description", "Close", "AnimatePresence", "MotionDiv", "Input", "Label", "Modal", "ModalContent", "ModalFooter", "ModalHeader"];
+  const names = ["Button", "SideSheet", "ObservabilitySetup", "ConnectServiceSheet", "Select", "CreateTokenModal", "SetupFlow", "SetupStep", "SetupCodeBlock", "Root", "Portal", "Overlay", "Content", "Title", "Description", "Close", "AnimatePresence", "MotionDiv", "Input", "Label", "Modal", "ModalContent", "ModalFooter", "ModalHeader", "WorkspaceDialog", "WorkspaceNotice", "WorkspaceInput", "CopyButton"];
   const stubs = Object.fromEntries(names.map((name) => [name, (props: any) => React.createElement("div", { "data-component": name }, props.children)]));
   const activeElement = new FocusTarget();
   const module = { exports: {} as Record<string, (props: any) => React.ReactNode> };
@@ -49,6 +50,7 @@ async function loadComponent(path: string, initialState: any[] = []) {
     React, document: { activeElement }, Element: FocusTarget, HTMLElement: FocusTarget, module, exports: module.exports,
     require: (specifier: string) => {
       if (specifier === "react") return {
+        useId: () => "synthetic-token-form",
         useState: (initial: any) => {
           const slot = stateIndex++;
           if (!(slot in values)) values[slot] = typeof initial === "function" ? initial() : initial;
@@ -62,9 +64,11 @@ async function loadComponent(path: string, initialState: any[] = []) {
       if (specifier === "@tanstack/react-router") return { Link: (props: any) => React.createElement("a", { href: props.to }, props.children) };
       if (specifier === "@tanstack/react-query") return { useQuery: () => ({}), useQueryClient: () => ({ invalidateQueries: () => {} }) };
       if (specifier === "@/lib/app-client") return { appClient: {} };
+      if (specifier === "@/lib/auth-client") return { usePermission: () => ({ data: true, isPending: false }) };
+      if (specifier === "@/components/workspace/tokens-data") return tokenData;
       if (specifier === "@radix-ui/react-dialog") return stubs;
       if (specifier === "motion/react") return { AnimatePresence: stubs.AnimatePresence, motion: { div: stubs.MotionDiv }, useReducedMotion: () => false };
-      if (specifier === "lucide-react") return { X: () => null, ArrowRight: () => null, RefreshCw: () => null, Server: () => null };
+      if (specifier === "lucide-react") return { X: () => null, ArrowRight: () => null, RefreshCw: () => null, Server: () => null, Check: () => null, KeyRound: () => null };
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
       if (specifier.startsWith("@hugeicons-pro/")) return { __esModule: true, default: [] };
       if (specifier.endsWith(".css")) return {};
@@ -237,15 +241,17 @@ test("the embedded connection guide uses small actions without shrinking standal
   }
 });
 
-test("token dialog footer actions opt into small sizing without changing unrelated token pages", async () => {
+test("refreshed token dialog footer actions stay small in standalone and embedded setup", async () => {
   for (const actionSize of [undefined, "sm"] as const) {
     for (const createdToken of [null, "synthetic-test-token"] as const) {
-      const ui = await loadComponent("../src/components/create-token-modal.tsx", ["Ingest", "organization", "", "", "90d", ["observability:write"], createdToken]);
-      const tree = elements(ui.render("CreateTokenModal", { isOpen: true, orgSlug: "acme", onClose: () => {}, actionSize }));
-      const actions = tree.filter((element) => element.type === ui.stubs.Button);
+      const ui = await loadComponent("../src/components/create-token-modal.tsx", ["Ingest", "organization", "", "", "90d", ["observability:write"], !!createdToken, createdToken]);
+      const tree = elements(ui.render("TokenCreationSession", { isOpen: true, orgSlug: "acme", onClose: () => {}, actionSize, canCreate: true, permissionPending: false }));
+      const dialog = tree.find((element) => element.type === ui.stubs.WorkspaceDialog);
+      assert.ok(dialog);
+      const actions = elements(dialog.props.footer).filter((element) => element.type === ui.stubs.Button);
       assert.equal(actions.length, createdToken ? 1 : 2);
-      for (const action of actions) assert.equal(action.props.size, actionSize ?? "md");
-      if (!createdToken) assert.equal(actions[1].props.disabled, false);
+      for (const action of actions) assert.equal(action.props.size, "sm");
+      if (!createdToken) { assert.equal(actions[1].props.disabled, false); assert.equal(actions[1].props.form, "synthetic-token-form"); }
     }
   }
 });
