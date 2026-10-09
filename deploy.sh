@@ -9,10 +9,9 @@ REDIS_URL="${REDIS_URL:-redis://127.0.0.1:6379}"
 REDIS_TUNNEL_TTL_SECONDS="${REDIS_TUNNEL_TTL_SECONDS:-120}"
 REDIS_HEARTBEAT_INTERVAL_MS="${REDIS_HEARTBEAT_INTERVAL_MS:-20000}"
 
-TIMESCALE_URL="${TIMESCALE_URL}"
-
 # Alerts runtime config
 TINYBIRD_API_HOST="${TINYBIRD_API_HOST:-}"
+TINYBIRD_INGEST_TOKEN="${TINYBIRD_INGEST_TOKEN:-}"
 TINYBIRD_QUERY_TOKEN="${TINYBIRD_QUERY_TOKEN:-}"
 ZEPTO_API_KEY="${ZEPTO_API_KEY:-}"
 APP_URL="${APP_URL:-https://outray.dev}"
@@ -28,7 +27,6 @@ DATABASE_SSL_REJECT_UNAUTHORIZED="${DATABASE_SSL_REJECT_UNAUTHORIZED:-true}"
 # this script owns only the tunnel edge, internal check, and Caddy route.
 UPTIME_ENABLED="${UPTIME_ENABLED:-false}"
 DEPLOY_CRON="${DEPLOY_CRON:-true}"
-DEPLOY_TIMESCALE_MIGRATIONS="${DEPLOY_TIMESCALE_MIGRATIONS:-true}"
 OUTRAY_DASHBOARD_URL="${OUTRAY_DASHBOARD_URL:-}"
 OUTRAY_STATUS_URL="${OUTRAY_STATUS_URL:-}"
 STATUS_EDGE_SECRET="${STATUS_EDGE_SECRET:-}"
@@ -54,22 +52,10 @@ GREEN_PORT=3548
 BLUE_NAME="outray-blue"
 GREEN_NAME="outray-green"
 
-# Run Tiger Data (TimescaleDB) migrations
-echo "🐯 Running Tiger Data migrations..."
-cd /root/outray
-if [ -n "$TIMESCALE_URL" ] && [ "$DEPLOY_TIMESCALE_MIGRATIONS" = "true" ]; then
-  # Run migration files (not the full setup script which drops tables)
-  for migration in deploy/migrations/*.sql; do
-    if [ -f "$migration" ]; then
-      echo "  Running $migration..."
-      if ! psql "$TIMESCALE_URL" -f "$migration"; then
-        echo "❌ Failed to run migration: $migration" >&2
-      fi
-    fi
-  done
-  echo "✅ Tiger Data migrations complete."
-else
-  echo "⚠️ TIMESCALE_URL not set, skipping migrations."
+# Tinybird resources must be deployed before promoting the tunnel runtime.
+if [ -z "$TINYBIRD_API_HOST" ] || [ -z "$TINYBIRD_INGEST_TOKEN" ]; then
+  echo "❌ TINYBIRD_API_HOST and TINYBIRD_INGEST_TOKEN are required for tunnel analytics." >&2
+  exit 1
 fi
 
 cd $APP_DIR
@@ -117,7 +103,8 @@ TUNNEL_BIND_HOST="127.0.0.1" \
 REDIS_URL="$REDIS_URL" \
 REDIS_TUNNEL_TTL_SECONDS="$REDIS_TUNNEL_TTL_SECONDS" \
 REDIS_HEARTBEAT_INTERVAL_MS="$REDIS_HEARTBEAT_INTERVAL_MS" \
-TIMESCALE_URL="$TIMESCALE_URL" \
+TINYBIRD_API_HOST="$TINYBIRD_API_HOST" \
+TINYBIRD_INGEST_TOKEN="$TINYBIRD_INGEST_TOKEN" \
 DATABASE_URL="$DATABASE_URL" \
 DATABASE_SSL_REJECT_UNAUTHORIZED="$DATABASE_SSL_REJECT_UNAUTHORIZED" \
 UPTIME_ENABLED="$UPTIME_ENABLED" \
@@ -158,7 +145,7 @@ fi
 # Restart if exists, otherwise start new (prevents duplicates without downtime)
 if pm2 list | grep -q "outray-cron"; then
   REDIS_URL="$REDIS_URL" \
-  TIMESCALE_URL="$TIMESCALE_URL" \
+  TINYBIRD_INGEST_TOKEN="$TINYBIRD_INGEST_TOKEN" \
   DATABASE_URL="$DATABASE_URL" \
   DATABASE_SSL_REJECT_UNAUTHORIZED="$DATABASE_SSL_REJECT_UNAUTHORIZED" \
   PAYSTACK_SECRET_KEY="$PAYSTACK_SECRET_KEY" \
@@ -175,7 +162,7 @@ if pm2 list | grep -q "outray-cron"; then
   pm2 restart "outray-cron" --update-env
 else
   REDIS_URL="$REDIS_URL" \
-  TIMESCALE_URL="$TIMESCALE_URL" \
+  TINYBIRD_INGEST_TOKEN="$TINYBIRD_INGEST_TOKEN" \
   DATABASE_URL="$DATABASE_URL" \
   DATABASE_SSL_REJECT_UNAUTHORIZED="$DATABASE_SSL_REJECT_UNAUTHORIZED" \
   PAYSTACK_SECRET_KEY="$PAYSTACK_SECRET_KEY" \
