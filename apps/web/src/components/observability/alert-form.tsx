@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import CheckmarkCircle02Icon from "@hugeicons-pro/core-stroke-rounded/CheckmarkCircle02Icon";
+import ArrowLeft01Icon from "@outray/icons/stroke/ArrowLeft01Icon";
+import ArrowRight01Icon from "@outray/icons/stroke/ArrowRight01Icon";
+import CheckmarkCircle02Icon from "@outray/icons/stroke/CheckmarkCircle02Icon";
 import { Button } from "../arc/button/button";
 import { Dialog, DialogContent } from "../arc/dialog/dialog";
 import { Select } from "../arc/select/select";
