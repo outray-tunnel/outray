@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Key01Icon from "@hugeicons-pro/core-stroke-rounded/Key01Icon";
+import Key01Icon from "@outray/icons/stroke/Key01Icon";
 import { CreateTokenModal } from "@/components/create-token-modal";
 import { Button } from "@/components/arc/button/button";
 import { Select } from "@/components/ui/select";
