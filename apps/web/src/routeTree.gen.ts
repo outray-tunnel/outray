@@ -14,6 +14,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SelectRouteImport } from './routes/select'
 import { Route as ReportBugRouteImport } from './routes/report-bug'
+import { Route as ProductsRouteImport } from './routes/products'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PluginsRouteImport } from './routes/plugins'
@@ -28,7 +29,12 @@ import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as OrgSlugRouteImport } from './routes/$orgSlug'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProductsIndexRouteImport } from './routes/products.index'
 import { Route as OrgSlugIndexRouteImport } from './routes/$orgSlug/index'
+import { Route as ProductsUptimeRouteImport } from './routes/products.uptime'
+import { Route as ProductsTunnelsRouteImport } from './routes/products.tunnels'
+import { Route as ProductsSecretsRouteImport } from './routes/products.secrets'
+import { Route as ProductsObservabilityRouteImport } from './routes/products.observability'
 import { Route as InvitationsAcceptRouteImport } from './routes/invitations.accept'
 import { Route as InternalDomainCheckRouteImport } from './routes/internal/domain-check'
 import { Route as DocsSplatRouteImport } from './routes/docs/$'
@@ -248,6 +254,11 @@ const ReportBugRoute = ReportBugRouteImport.update({
   path: '/report-bug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductsRoute = ProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -318,10 +329,35 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductsIndexRoute = ProductsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProductsRoute,
+} as any)
 const OrgSlugIndexRoute = OrgSlugIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => OrgSlugRoute,
+} as any)
+const ProductsUptimeRoute = ProductsUptimeRouteImport.update({
+  id: '/uptime',
+  path: '/uptime',
+  getParentRoute: () => ProductsRoute,
+} as any)
+const ProductsTunnelsRoute = ProductsTunnelsRouteImport.update({
+  id: '/tunnels',
+  path: '/tunnels',
+  getParentRoute: () => ProductsRoute,
+} as any)
+const ProductsSecretsRoute = ProductsSecretsRouteImport.update({
+  id: '/secrets',
+  path: '/secrets',
+  getParentRoute: () => ProductsRoute,
+} as any)
+const ProductsObservabilityRoute = ProductsObservabilityRouteImport.update({
+  id: '/observability',
+  path: '/observability',
+  getParentRoute: () => ProductsRoute,
 } as any)
 const InvitationsAcceptRoute = InvitationsAcceptRouteImport.update({
   id: '/invitations/accept',
@@ -1442,6 +1478,7 @@ export interface FileRoutesByFullPath {
   '/plugins': typeof PluginsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/products': typeof ProductsRouteWithChildren
   '/report-bug': typeof ReportBugRoute
   '/select': typeof SelectRoute
   '/signup': typeof SignupRoute
@@ -1470,7 +1507,12 @@ export interface FileRoutesByFullPath {
   '/docs/$': typeof DocsSplatRoute
   '/internal/domain-check': typeof InternalDomainCheckRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
+  '/products/observability': typeof ProductsObservabilityRoute
+  '/products/secrets': typeof ProductsSecretsRoute
+  '/products/tunnels': typeof ProductsTunnelsRoute
+  '/products/uptime': typeof ProductsUptimeRoute
   '/$orgSlug/': typeof OrgSlugIndexRoute
+  '/products/': typeof ProductsIndexRoute
   '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
@@ -1679,7 +1721,12 @@ export interface FileRoutesByTo {
   '/docs/$': typeof DocsSplatRoute
   '/internal/domain-check': typeof InternalDomainCheckRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
+  '/products/observability': typeof ProductsObservabilityRoute
+  '/products/secrets': typeof ProductsSecretsRoute
+  '/products/tunnels': typeof ProductsTunnelsRoute
+  '/products/uptime': typeof ProductsUptimeRoute
   '/$orgSlug': typeof OrgSlugIndexRoute
+  '/products': typeof ProductsIndexRoute
   '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
@@ -1865,6 +1912,7 @@ export interface FileRoutesById {
   '/plugins': typeof PluginsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/products': typeof ProductsRouteWithChildren
   '/report-bug': typeof ReportBugRoute
   '/select': typeof SelectRoute
   '/signup': typeof SignupRoute
@@ -1893,7 +1941,12 @@ export interface FileRoutesById {
   '/docs/$': typeof DocsSplatRoute
   '/internal/domain-check': typeof InternalDomainCheckRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
+  '/products/observability': typeof ProductsObservabilityRoute
+  '/products/secrets': typeof ProductsSecretsRoute
+  '/products/tunnels': typeof ProductsTunnelsRoute
+  '/products/uptime': typeof ProductsUptimeRoute
   '/$orgSlug/': typeof OrgSlugIndexRoute
+  '/products/': typeof ProductsIndexRoute
   '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
@@ -2082,6 +2135,7 @@ export interface FileRouteTypes {
     | '/plugins'
     | '/pricing'
     | '/privacy'
+    | '/products'
     | '/report-bug'
     | '/select'
     | '/signup'
@@ -2110,7 +2164,12 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/internal/domain-check'
     | '/invitations/accept'
+    | '/products/observability'
+    | '/products/secrets'
+    | '/products/tunnels'
+    | '/products/uptime'
     | '/$orgSlug/'
+    | '/products/'
     | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
@@ -2319,7 +2378,12 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/internal/domain-check'
     | '/invitations/accept'
+    | '/products/observability'
+    | '/products/secrets'
+    | '/products/tunnels'
+    | '/products/uptime'
     | '/$orgSlug'
+    | '/products'
     | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
@@ -2504,6 +2568,7 @@ export interface FileRouteTypes {
     | '/plugins'
     | '/pricing'
     | '/privacy'
+    | '/products'
     | '/report-bug'
     | '/select'
     | '/signup'
@@ -2532,7 +2597,12 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/internal/domain-check'
     | '/invitations/accept'
+    | '/products/observability'
+    | '/products/secrets'
+    | '/products/tunnels'
+    | '/products/uptime'
     | '/$orgSlug/'
+    | '/products/'
     | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
@@ -2720,6 +2790,7 @@ export interface RootRouteChildren {
   PluginsRoute: typeof PluginsRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
+  ProductsRoute: typeof ProductsRouteWithChildren
   ReportBugRoute: typeof ReportBugRoute
   SelectRoute: typeof SelectRoute
   SignupRoute: typeof SignupRoute
@@ -2853,6 +2924,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportBugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/products': {
+      id: '/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof ProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -2951,12 +3029,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/products/': {
+      id: '/products/'
+      path: '/'
+      fullPath: '/products/'
+      preLoaderRoute: typeof ProductsIndexRouteImport
+      parentRoute: typeof ProductsRoute
+    }
     '/$orgSlug/': {
       id: '/$orgSlug/'
       path: '/'
       fullPath: '/$orgSlug/'
       preLoaderRoute: typeof OrgSlugIndexRouteImport
       parentRoute: typeof OrgSlugRoute
+    }
+    '/products/uptime': {
+      id: '/products/uptime'
+      path: '/uptime'
+      fullPath: '/products/uptime'
+      preLoaderRoute: typeof ProductsUptimeRouteImport
+      parentRoute: typeof ProductsRoute
+    }
+    '/products/tunnels': {
+      id: '/products/tunnels'
+      path: '/tunnels'
+      fullPath: '/products/tunnels'
+      preLoaderRoute: typeof ProductsTunnelsRouteImport
+      parentRoute: typeof ProductsRoute
+    }
+    '/products/secrets': {
+      id: '/products/secrets'
+      path: '/secrets'
+      fullPath: '/products/secrets'
+      preLoaderRoute: typeof ProductsSecretsRouteImport
+      parentRoute: typeof ProductsRoute
+    }
+    '/products/observability': {
+      id: '/products/observability'
+      path: '/observability'
+      fullPath: '/products/observability'
+      preLoaderRoute: typeof ProductsObservabilityRouteImport
+      parentRoute: typeof ProductsRoute
     }
     '/invitations/accept': {
       id: '/invitations/accept'
@@ -4570,6 +4683,26 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface ProductsRouteChildren {
+  ProductsObservabilityRoute: typeof ProductsObservabilityRoute
+  ProductsSecretsRoute: typeof ProductsSecretsRoute
+  ProductsTunnelsRoute: typeof ProductsTunnelsRoute
+  ProductsUptimeRoute: typeof ProductsUptimeRoute
+  ProductsIndexRoute: typeof ProductsIndexRoute
+}
+
+const ProductsRouteChildren: ProductsRouteChildren = {
+  ProductsObservabilityRoute: ProductsObservabilityRoute,
+  ProductsSecretsRoute: ProductsSecretsRoute,
+  ProductsTunnelsRoute: ProductsTunnelsRoute,
+  ProductsUptimeRoute: ProductsUptimeRoute,
+  ProductsIndexRoute: ProductsIndexRoute,
+}
+
+const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
+  ProductsRouteChildren,
+)
+
 interface ApiOrgSlugRequestsRouteChildren {
   ApiOrgSlugRequestsCaptureRoute: typeof ApiOrgSlugRequestsCaptureRoute
   ApiOrgSlugRequestsReplayRoute: typeof ApiOrgSlugRequestsReplayRoute
@@ -4900,6 +5033,7 @@ const rootRouteChildren: RootRouteChildren = {
   PluginsRoute: PluginsRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
+  ProductsRoute: ProductsRouteWithChildren,
   ReportBugRoute: ReportBugRoute,
   SelectRoute: SelectRoute,
   SignupRoute: SignupRoute,
