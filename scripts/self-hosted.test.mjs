@@ -46,6 +46,19 @@ test("preflight passes configured OAuth/Tinybird installation without connecting
   assert.ok(result.warnings.some((warning) => warning.includes("disabled")));
 });
 
+test("free and auto preflight need no Hugeicons license; Pro is explicit", () => {
+  const env = configured(); env.HUGEICONS_LICENSE_KEY = "";
+  assert.deepEqual(checkEnvironment(env).errors, []);
+  env.OUTRAY_ICON_MODE = "free";
+  assert.deepEqual(checkEnvironment(env).errors, []);
+  env.OUTRAY_ICON_MODE = "pro";
+  assert.ok(checkEnvironment(env).errors.some((error) => error.includes("HUGEICONS_LICENSE_KEY")));
+  env.HUGEICONS_LICENSE_KEY = "test-build-secret";
+  assert.deepEqual(checkEnvironment(env).errors, []);
+  env.OUTRAY_ICON_MODE = "typo";
+  assert.ok(checkEnvironment(env).errors.some((error) => error.includes("OUTRAY_ICON_MODE")));
+});
+
 test("preflight fails closed on empty signup/OAuth configuration and reused credentials", () => {
   const env = configured();
   env.OUTRAY_SIGNUP_ALLOWED_EMAILS = "";
