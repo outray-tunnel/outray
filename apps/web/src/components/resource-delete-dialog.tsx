@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
+import Delete02Icon from "@outray/icons/stroke/Delete02Icon";
 import { Button } from "@/components/arc/button/button";
 import {
   Dialog,
