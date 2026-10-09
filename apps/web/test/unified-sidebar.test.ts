@@ -392,7 +392,7 @@ test("the legacy tunnel sidebar uses canonical links, exact overviews and segmen
       if (specifier === "@/lib/app-client") return { appClient: { tunnels: { list: () => {} } } };
       if (specifier === "./sidebar/nav-item") return { NavItem: Item };
       if (specifier === "./sidebar/active-tunnel-badge") return { ActiveTunnelBadge };
-      if (specifier.startsWith("@hugeicons-pro/")) return { __esModule: true, default: [] };
+      if (specifier.startsWith("@outray/icons/")) return { __esModule: true, default: [] };
       throw new Error(`Unexpected legacy sidebar dependency: ${specifier}`);
     },
   });
