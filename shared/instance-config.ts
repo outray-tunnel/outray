@@ -30,11 +30,15 @@ export function instanceConfig(env: Environment = runtimeEnvironment()) {
       ["maxTunnels", "OUTRAY_MAX_TUNNELS"], ["maxDomains", "OUTRAY_MAX_DOMAINS"],
       ["maxSubdomains", "OUTRAY_MAX_SUBDOMAINS"], ["maxMembers", "OUTRAY_MAX_MEMBERS"],
       ["bandwidthPerMonth", "OUTRAY_BANDWIDTH_BYTES_PER_MONTH"],
+      ["maxUptimeMonitors", "OUTRAY_MAX_UPTIME_MONITORS"],
+      ["maxObservabilityAlerts", "OUTRAY_MAX_OBSERVABILITY_ALERTS"],
     ].map(([key, variable]) => {
-      const value = Number(env[variable] || (key === "bandwidthPerMonth" ? 1024 ** 5 : 999_999_999));
+      const fallback = key === "bandwidthPerMonth" ? 1024 ** 5
+        : key === "maxUptimeMonitors" || key === "maxObservabilityAlerts" ? 1_000 : 999_999_999;
+      const value = Number(env[variable] || fallback);
       if (!Number.isSafeInteger(value) || value < 1) throw new Error(`${variable} must be a positive safe integer`);
       return [key, value];
-    })) as Record<"maxTunnels" | "maxDomains" | "maxSubdomains" | "maxMembers" | "bandwidthPerMonth", number>,
+    })) as Record<"maxTunnels" | "maxDomains" | "maxSubdomains" | "maxMembers" | "bandwidthPerMonth" | "maxUptimeMonitors" | "maxObservabilityAlerts", number>,
   };
 }
 
@@ -44,7 +48,7 @@ export function instanceSignupAllowed(
 ) {
   if (!instanceConfig(env).selfHosted) return true;
   // Fail closed, including OAuth identities without a verified email address.
-  if (!user.emailVerified) return false;
+  if (user.emailVerified !== true) return false;
   const email = user.email.trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return false;
   const addresses = (env.OUTRAY_SIGNUP_ALLOWED_EMAILS || "")
@@ -74,10 +78,11 @@ export function instancePathAvailable(pathname: string, env: Environment = runti
   if (product && !config.products.includes(product)) return false;
   if (!config.billingEnabled && (
     /^\/api\/(?:checkout|webhooks\/(?:polar|paystack)|subscriptions)(?:\/|$)/.test(pathname) ||
+    /^\/api\/admin\/(?:subscriptions|revenue-history)(?:\/|$)/.test(pathname) ||
     /^\/[^/]+\/billing(?:\/|$)/.test(pathname)
   )) return false;
   return true;
 }
 
 // Dual ESM/CommonJS consumers (tsx development and bundled Node workers).
-export default { instanceConfig };
+export default { instanceConfig, instanceSignupAllowed, instanceProductForPath, instancePathAvailable };
