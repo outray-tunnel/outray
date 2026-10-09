@@ -95,6 +95,9 @@ export async function authenticateApiToken(
   pool: Queryable,
   apiKey: string,
 ): Promise<IngestAuthContext | null> {
+  // Enforce the installation flag here as well as in dashboard navigation;
+  // callers can reach the standalone OTLP endpoint directly.
+  if (!instanceConfig().products.includes("observability")) return null;
   if (!apiKey.startsWith("outray_")) return null;
 
   // Look up the hashed credential first. A matching revoked or expired token
