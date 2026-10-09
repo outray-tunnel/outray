@@ -72,16 +72,23 @@ and instance-owned limits instead of paid plans, see the
 Docker Compose stack, configuration initializer, and deployment checks;
 it does not use the hosted edge VPS or production credentials.
 
-Create the single local environment file, add your Hugeicons Pro license key,
-then export it while installing the workspaces:
+Create the single local environment file, then install the workspaces. Icons
+use the public MIT-licensed Hugeicons pack by default; no icon license is needed:
 
 ```bash
 cp .env.example .env
 set -a
 source .env
 set +a
-npm install
+npm ci
 ```
+
+Hugeicons Pro is optional. If you hold your own license, export
+`HUGEICONS_LICENSE_KEY` before installing; `auto` mode uses the original Pro
+styles when both licensed packs install successfully. `OUTRAY_ICON_MODE=free`
+forces public icons even on a licensed checkout, and `OUTRAY_ICON_MODE=pro`
+requires the Pro packs. Re-run `npm run icons:prepare` after changing modes.
+See the [icon licensing notes](deploy/self-hosted/README.md#icon-licensing).
 
 Ensure PostgreSQL and Redis are running and the Tinybird project is deployed, then start all runtime
 apps together:
