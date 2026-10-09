@@ -1,0 +1,39 @@
+---
+title: Organizations and membership
+description: Select a workspace, manage invitations, and apply the current owner, admin, and member roles.
+icon: Users
+---
+
+## Select the organization
+
+Use the organization switcher to choose a workspace you belong to. Product pages and the Members/API tokens controls operate on that organization. Confirm the selected name and slug before creating a public resource, sharing secrets, or issuing an automation credential.
+
+Your personal profile is an account identity; organization membership is a separate relationship. A colleague having an OutRay account does not automatically give them access to your workspace.
+
+**Settings → Organization** displays the organization's name, slug, and ID. The current settings view is read-only; do not expect these docs to imply a rename, slug-change, or ownership-transfer control that is not present.
+
+## Invite a collaborator
+
+Open **Members**, choose **Invite member**, enter their email, and choose the intended role. Member is the default; grant Admin or Owner only deliberately. An invitation is pending until the recipient accepts it. Use the Invitations tab to inspect pending invitations and cancel an invitation when it is no longer wanted.
+
+Pending invitations count toward the displayed membership capacity. If an invitation cannot be created or accepted, review existing members and pending invitations and follow the dashboard's current capacity message. There is no fixed seat-count promise in this guide.
+
+## Understand roles
+
+| Role | Product responsibilities |
+| --- | --- |
+| Owner | Administrative workspace access; protected from role changes/removal in the Members interface |
+| Admin | Manage members/invitations, API tokens, Secrets containers/shares/recovery, Observability alerts, and Uptime configuration |
+| Member | Use tunnel resources, work with existing secret values, and inspect workspace observability/Uptime evidence; administrative controls remain restricted |
+
+These are built-in roles, not a promise of arbitrary custom per-service roles. [Secrets access](/docs/secrets/access-and-tokens) and [API tokens](/docs/platform/api-tokens) explain their separate machine scope checks.
+
+## Change a role or remove access
+
+Authorized administrators can use a non-owner member's action menu to change their role or remove the person, with confirmation. Role selection can promote a person to Owner, but existing Owner rows are protected from subsequent changes/removal in this interface. Refresh if an action reports that the person or permission changed while the dialog was open.
+
+Removing a person from membership and revoking a machine token are different actions. Review [machine credentials](/docs/platform/api-tokens) separately when offboarding: a token authenticates automation, not an interactive session. Also review alert/monitor recipients and shared-secret links as appropriate.
+
+## Troubleshooting
+
+If a workspace is absent from the switcher, check the signed-in account and invitation acceptance. If a resource appears missing, verify the selected organization before creating a replacement. If a privileged control is absent, check your role rather than assuming the product is unavailable.
