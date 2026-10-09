@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
 import pg from "pg";
+import instancePolicy from "../../../shared/instance-config.js";
+import postgresPolicy from "../../../shared/postgres-ssl.js";
+
+const { instanceConfig } = instancePolicy;
+const { postgresSsl } = postgresPolicy;
 
 const { Pool } = pg;
 
@@ -36,10 +41,11 @@ function tokenHash(token: string): string {
 }
 
 function authContext(token: TokenRow): IngestAuthContext {
+  const instance = instanceConfig();
   return {
     organizationId: token.organization_id,
-    retentionDays:
-      RETENTION_DAYS[token.plan || "free"] || RETENTION_DAYS.free,
+    retentionDays: instance.selfHosted ? instance.retentionDays
+      : RETENTION_DAYS[token.plan || "free"] || RETENTION_DAYS.free,
     tokenId: token.id,
   };
 }
@@ -153,8 +159,7 @@ function databaseSsl(
   connectionString: string,
   rejectUnauthorized: boolean,
 ): false | { rejectUnauthorized: boolean } {
-  if (/localhost|127\.0\.0\.1/.test(connectionString)) return false;
-  return { rejectUnauthorized };
+  return postgresSsl(connectionString, rejectUnauthorized);
 }
 
 export function apiKeyFromHeaders(headers: Headers): string | null {
