@@ -1,0 +1,103 @@
+---
+title: Hono SDK
+description: Register Hono request spans, logs, metrics, and opt-in payload capture.
+icon: Code
+---
+
+`@outray/hono` initializes observability and provides middleware for Hono requests. It does not create a public tunnel.
+
+## Install
+
+~~~bash
+npm install @outray/hono
+~~~
+
+The package declares Hono 4 compatibility and Node.js 20.6 or later. This integration uses the Node.js observability SDK; do not assume it can be imported into browser or edge runtimes.
+
+Create a token with `observability:write` and provide it through server-only configuration.
+
+## Register before routes
+
+~~~ts
+import { Hono } from "hono";
+import outray from "@outray/hono";
+
+const app = new Hono();
+export const telemetry = outray({
+  apiKey: process.env.OBSERVABILITY_TOKEN,
+  serviceName: "orders-api",
+  environment: process.env.NODE_ENV,
+  captureConsole: false,
+});
+
+app.use("*", telemetry.middleware);
+
+app.get("/orders/:orderId", (context) => {
+  telemetry.info("order requested");
+  return context.json({ id: context.req.param("orderId") });
+});
+
+export default app;
+~~~
+
+Use your normal Hono server entry to serve this app. No tunnel or Node preloader is needed for the adapter's request middleware.
+
+The middleware records request spans, status codes, failures, and the metrics `http.server.request.count`, `http.server.request.duration`, and `http.server.active_requests`.
+
+It uses Hono's matched route template for the final operation name. If an existing recording server span is present, it is reused. Otherwise, the middleware creates a server span with the configured provider.
+
+## Filtering and route naming
+
+`OPTIONS` requests and `/health` are ignored by default. An `ignore` callback can skip additional requests:
+
+~~~ts
+const telemetry = outray({
+  apiKey: process.env.OBSERVABILITY_TOKEN,
+  serviceName: "orders-api",
+  ignore: ({ pathname }) => pathname.startsWith("/internal/"),
+});
+~~~
+
+`routeResolver` can supply a stable template before a route is matched. The default fallback replaces common identifier segments with `:id`.
+
+Keep route labels stable and avoid embedding IDs, credentials, or query values in telemetry attributes.
+
+## Opt in to payload capture
+
+~~~ts
+const telemetry = outray({
+  apiKey: process.env.OBSERVABILITY_TOKEN,
+  serviceName: "orders-api",
+  capturePayloads: {
+    maxBodyBytes: 16 * 1024,
+    redactedHeaders: ["x-workspace-secret"],
+    redactedFields: ["accountPin"],
+  },
+});
+~~~
+
+Capture is disabled unless configured. Eligible JSON and URL-encoded request/response bodies are inspected through bounded clones; the original Request and Response used by the application are not replaced.
+
+Common sensitive fields and headers are redacted. See the [shared capture limits and privacy guidance](/docs/node-sdk#http-payload-capture) before enabling capture on real traffic.
+
+## Logs and application spans
+
+The registration provides `debug`, `info`, `warn`, and `error` methods. `captureConsole: true` also exports existing console calls while retaining local output.
+
+~~~ts
+import { withOutraySpan } from "@outray/hono";
+
+await withOutraySpan("load order", async () => {
+  // Perform a database or application operation.
+});
+~~~
+
+For automatic database/client instrumentation, initialize the [Node.js SDK](/docs/node-sdk) before importing those libraries. The adapter shares its process-wide SDK instance.
+
+## Shutdown and existing providers
+
+Use `telemetry.observability.forceFlush()` and `telemetry.observability.shutdown()` in your server's existing shutdown path.
+
+If another provider already initializes OpenTelemetry, `createOutrayHonoMiddleware(options)` registers request instrumentation without starting OutRay's exporter. Configure your provider separately to send data to OutRay.
+
+After sending a test request, open [Observability services](/docs/observability/services) in the organization that issued the token.
