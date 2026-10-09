@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Mail, Plus, RefreshCw, Search, Users } from "lucide-react";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import ShieldUserIcon from "@hugeicons-pro/core-stroke-rounded/ShieldUserIcon";
+import Cancel01Icon from "@outray/icons/stroke/Cancel01Icon";
+import ShieldUserIcon from "@outray/icons/stroke/ShieldUserIcon";
 import { Button } from "../arc/button/button";
 import { SearchField } from "../arc/search-field/search-field";
 import { ActionMenu } from "../secrets/secrets-ui";
