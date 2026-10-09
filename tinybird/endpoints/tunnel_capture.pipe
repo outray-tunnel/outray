@@ -1,0 +1,26 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    A retained capture owned by the requesting organization and tunnel.
+
+NODE capture
+SQL >
+    %
+    SELECT id, timestamp, tunnel_id, organization_id,
+           request_headers, request_body, request_body_size,
+           response_headers, response_body, response_body_size
+    FROM tunnel_request_captures FINAL
+    WHERE organization_id = {{String(organization_id)}}
+      AND has(JSONExtract({{String(tunnel_ids)}}, 'Array(String)'), tunnel_id)
+      AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
+    {% if defined(request_id) %}
+      AND id = {{String(request_id)}}
+    {% else %}
+      AND timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')
+      AND timestamp <= parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+    {% end %}
+    ORDER BY abs(dateDiff('millisecond', timestamp, parseDateTime64BestEffort({{String(timestamp)}}, 3, 'UTC'))) ASC, id ASC
+    LIMIT 1
+
+TYPE endpoint
+
