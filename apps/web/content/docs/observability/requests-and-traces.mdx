@@ -1,0 +1,53 @@
+---
+title: Investigate requests and traces
+description: Follow an HTTP operation through request details, trace timing, and correlated logs.
+icon: Workflow
+---
+
+## Locate the operation
+
+Open **Observability → Requests** and select a range containing the event. Narrow the list using service, method, status, capture state, or search. Select a request to inspect its request, response, and context tabs.
+
+Compare its HTTP status and measured duration with the request statistics for that selection. A successful HTTP response does not prove all downstream operations succeeded; inspect the trace and logs before concluding that a dependency was healthy.
+
+## Understand captured details
+
+Request spans can provide method, route, status, duration, service, and trace context without recording bodies. Payload capture is [explicitly opt-in](/docs/observability/sdk-setup#optional-request-capture).
+
+- **Metadata** means the operation is visible without a full eligible payload capture.
+- **Full** identifies captured request/response data; capture limits still apply.
+- **Redacted** identifies evidence containing redacted capture content.
+
+Check whether individual headers or bodies were captured and whether they were truncated. A missing body is not an empty body: capture may be disabled, content may be ineligible, or there may be no recording span. Redacted fields are not recoverable from the inspector.
+
+## Follow the trace
+
+Open the linked trace, or find it in **Observability → Traces** using the event range, search, and errors-only filter. Select a trace to load its spans and inspect the waterfall.
+
+Use parent/child relationships and offsets to see where time was spent. Spans can overlap, so summing every duration does not calculate total request time. Select a span to inspect its reported attributes, resource attributes, events, and links.
+
+Trace-list summary statistics cover the selected period, not necessarily the filtered rows. Changing search or errors-only narrows the list; it does not redefine every aggregate shown above it.
+
+## Correlate logs and add missing work
+
+Request details can show correlated logs. For deeper inspection, open [Logs](/docs/observability/logs-and-metrics) and follow reported trace context. Logs emitted outside an active span may have no request association.
+
+Add an application span when a meaningful operation is not already instrumented:
+
+```ts
+import { withOutraySpan } from "@outray/observability";
+
+const order = await withOutraySpan(
+  "load order",
+  () => database.orders.findOne({ id: orderId }),
+  { attributes: { "db.system.name": "postgresql" } },
+);
+```
+
+`database` and `orderId` above are your application objects. The helper joins the active trace, records thrown errors, and closes the span. Keep span names stable; put only safe, bounded context in attributes.
+
+## Ask Agent about the request
+
+Use **Explain request** to open an [Agent investigation](/docs/platform/agent) attached to the operation. Agent can inspect safe request and trace metadata, correlated log hints, and comparisons. It does not replay the request, read secret values, or change configuration.
+
+If a trace or log is absent, check instrumentation order and context propagation, then consider export delay and the selected range. Missing evidence and a failed data query are different conditions; neither justifies inventing the omitted work.
