@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, type KeyboardEvent, type Ref } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUp, Clock3, ExternalLink, MessageSquare, MessageSquarePlus, Sparkles, Square, X } from "lucide-react";
 import { Button } from "../arc/button/button";
@@ -7,37 +6,13 @@ import { CopyButton } from "../arc/copy-button/copy-button";
 import { WorkspaceTextarea } from "../ui/workspace-input";
 import { AGENT_MAX_PROMPT_LENGTH, createAgentThread, isAgentThreadPreparing, safeAgentEvidenceHref, type AgentMessage, type AgentThread } from "./agent-chat-data";
 import { AgentPreparation } from "./agent-preparation";
+import { AgentMessageResponse } from "./agent-message-response";
+import { AgentEvidenceCards } from "./agent-evidence-cards";
 import { newAgentId, useAgentChat, useAgentChatState } from "./agent-chat-context";
 import "../outray-arc-theme.css";
 import styles from "./agent-chat-panel.module.css";
 
 const iconButton = "flex size-9 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 motion-reduce:transition-none";
-
-export default function AgentChatPanel() {
-  const { state, dispatch, panelId, returnFocusRef } = useAgentChatState();
-  const restoreFocus = () => {
-    const target = returnFocusRef.current?.isConnected && !document.getElementById(panelId)?.contains(returnFocusRef.current)
-      ? returnFocusRef.current : document.querySelector<HTMLElement>("[data-agent-trigger]");
-    target?.focus();
-  };
-  const close = () => {
-    dispatch({ type: "close" });
-  };
-
-  // A viewport overlay on every screen: opening chat never resizes the workspace.
-  return <Dialog.Root open={state.panelOpen} onOpenChange={(open) => { if (!open) close(); }}>
-    <Dialog.Portal>
-      <Dialog.Overlay className={`${styles.overlay} fixed inset-0 z-[80] bg-black/40`} />
-      <Dialog.Content id={panelId} aria-describedby={undefined} onCloseAutoFocus={(event) => {
-        event.preventDefault();
-        restoreFocus();
-      }} className={`${styles.panel} workspace-ui outray-arc ph-no-capture fixed inset-y-0 right-0 z-[81] flex h-dvh w-full max-w-[720px] flex-col border-l border-white/[0.08] bg-[#111112] text-zinc-200 shadow-[-24px_0_80px_rgba(0,0,0,0.3)] outline-none`}>
-        <Dialog.Title className="sr-only">Agent chat</Dialog.Title>
-        <AgentPanelContent onClose={close} />
-      </Dialog.Content>
-    </Dialog.Portal>
-  </Dialog.Root>;
-}
 
 export function AgentPanelContent({ onClose }: { onClose: () => void }) {
   const { state, dispatch, orgSlug, sendMessage, stopResponse, loadHistory } = useAgentChatState();
@@ -50,6 +25,7 @@ export function AgentPanelContent({ onClose }: { onClose: () => void }) {
   const activeId = thread?.id;
   const preparing = isAgentThreadPreparing(thread);
   const awaitingServer = thread?.messages.some((message) => message.role === "assistant" && message.status === "running" && !message.localStreaming) ?? false;
+  const working = preparing || awaitingServer;
   const responseCount = thread?.messages.filter((message) => message.role === "assistant" && message.status === "complete").length ?? 0;
   const lastTextLength = thread?.messages.at(-1)?.text.length ?? 0;
   const followStream = useRef(true);
@@ -79,9 +55,8 @@ export function AgentPanelContent({ onClose }: { onClose: () => void }) {
 
   return <>
     <header className="flex h-14 shrink-0 items-center gap-2 border-b border-white/[0.08] px-4 lg:h-11">
-      <Sparkles size={15} className="text-zinc-300" aria-hidden="true" />
-      <h2 className="text-[13px] font-medium text-zinc-100">Agent</h2>
-      {state.model && <span className="truncate text-[10px] text-zinc-600" title={state.model}>{state.model}</span>}
+      <span className={working ? styles.workingIcon : "text-zinc-300"} aria-hidden="true"><Sparkles size={15} /></span>
+      <h2 className={`text-[13px] font-medium text-zinc-100 ${working ? styles.workingLabel : ""}`}>{working ? "Agent working…" : "Agent"}</h2>
       <div className="ml-auto flex items-center gap-0.5">
         <button type="button" className={iconButton} aria-label="New chat" title="New chat" onClick={() => startThread()}><MessageSquarePlus size={16} aria-hidden="true" /></button>
         <button type="button" className={iconButton} aria-label="Chat history" title="Chat history" aria-pressed={state.historyOpen} onClick={() => dispatch({ type: "history", open: !state.historyOpen })}><Clock3 size={16} aria-hidden="true" /></button>
@@ -99,11 +74,13 @@ export function AgentPanelContent({ onClose }: { onClose: () => void }) {
       <div ref={scrollArea} onScroll={(event) => { const area = event.currentTarget; followStream.current = area.scrollHeight - area.scrollTop - area.clientHeight < 80; }} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6 sm:px-8">
         {thread?.messages.length ? <AgentConversation thread={thread} orgSlug={orgSlug} onFollowUp={send} /> : <AgentWelcome onSuggestion={send} />}
       </div>
-      <AgentComposer value={draft} onChange={changeDraft} onSend={() => send()} onStop={() => { if (thread) stopResponse(thread.id); }} inputRef={composer} preparing={preparing} />
-      <p role="status" aria-live="polite" className="sr-only">{preparing ? "Agent is responding." : responseCount ? `${responseCount} responses in this chat.` : "New chat ready."}</p>
+      <AgentComposer value={draft} onChange={changeDraft} onSend={() => send()} onStop={() => { if (thread) stopResponse(thread.id); }} inputRef={composer} preparing={preparing} awaitingServer={awaitingServer} />
+      <p role="status" aria-live="polite" className="sr-only">{working ? "Agent is responding." : responseCount ? `${responseCount} responses in this chat.` : "New chat ready."}</p>
     </>}
   </>;
 }
+
+export default AgentPanelContent;
 
 export function AgentWelcome({ onSuggestion }: { onSuggestion: (text: string) => void }) {
   return <section aria-label="Start a chat" className="flex min-h-full flex-col justify-center pb-8">
@@ -128,15 +105,22 @@ export function AgentConversation({ thread, orgSlug = "", onFollowUp }: { thread
 export function AgentMessageView({ message, orgSlug = "" }: { message: AgentMessage; orgSlug?: string }) {
   if (message.role === "user") return <article aria-label="Your message" className="ml-8 rounded-xl border border-white/[0.04] bg-white/[0.05] px-3.5 py-3"><p className="whitespace-pre-wrap break-words text-[13px] leading-6 text-zinc-200">{message.text}</p></article>;
   const preparing = message.status === "running" && message.localStreaming === true;
-  const evidence = message.evidence.flatMap((item) => { const href = safeAgentEvidenceHref(item.href, orgSlug); return href ? [{ ...item, href }] : []; });
-  return <article aria-label="Agent response" aria-busy={preparing} className="min-w-0">
-    <div className="mb-2.5 flex items-center gap-2 text-[11px] text-zinc-500"><Sparkles size={12} className="text-zinc-400" aria-hidden="true" /><span>Agent</span></div>
-    {(message.steps.length > 0 || preparing && !message.text) && <div className="mb-4"><AgentPreparation steps={message.steps} complete={!preparing} /></div>}
-    {message.text && <p className="whitespace-pre-wrap break-words text-[13px] leading-6 text-zinc-300">{message.text}</p>}
+  const working = message.status === "running";
+  const hasAnswer = message.text.trim().length > 0;
+  // Tools can return evidence before the answer starts. Keep it out of the
+  // conversation until the written response has settled, including saved runs.
+  const showDetails = hasAnswer && !working;
+  const evidence = showDetails ? message.evidence.flatMap((item) => { if (item.presentation) return []; const href = safeAgentEvidenceHref(item.href, orgSlug); return href ? [{ ...item, href }] : []; }) : [];
+  return <article aria-label="Agent response" aria-busy={working} className="min-w-0">
+    <div className="mb-2.5 flex items-center gap-2 text-[11px] text-zinc-500" data-agent-status={working ? "working" : "idle"}><span className={working ? styles.workingIcon : "text-zinc-400"} aria-hidden="true"><Sparkles size={12} /></span><span className={working ? styles.workingLabel : undefined}>{working ? "Agent working…" : "Agent"}</span></div>
+    {working && (message.steps.length > 0 || preparing && !hasAnswer) && <div className="mb-4"><AgentPreparation steps={message.steps} complete={!preparing} /></div>}
+    {hasAnswer && <AgentMessageResponse text={message.text} orgSlug={orgSlug} streaming={preparing} />}
+    {!working && message.steps.length > 0 && <div className={hasAnswer ? "mt-4" : "mb-4"}><AgentPreparation steps={message.steps} complete /></div>}
+    {showDetails && <AgentEvidenceCards evidence={message.evidence} orgSlug={orgSlug} />}
     {evidence.length > 0 && <nav aria-label="Observed evidence" className="mt-4 flex flex-wrap gap-2">{evidence.map((item) => <a key={item.id} href={item.href} title={item.observedAt ? `Observed ${item.observedAt}` : undefined} className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-2.5 py-2 text-[11px] text-zinc-400 hover:bg-white/[0.035] hover:text-zinc-200 focus-visible:outline-2 focus-visible:outline-zinc-400"><span>{item.label}</span><ExternalLink size={11} aria-hidden="true" /></a>)}</nav>}
     {message.status === "failed" || message.status === "cancelled" ? <p role="alert" className="mt-3 text-[12px] leading-5 text-amber-200/70">{message.error ?? (message.status === "cancelled" ? "Response stopped." : "This response could not be completed. Please try again.")}</p> : null}
     {message.status === "running" && !message.localStreaming && <p className="mt-3 text-[12px] leading-5 text-zinc-500">This saved response has not finished yet.</p>}
-    {!preparing && message.text && <div className="mt-2"><CopyButton iconOnly variant="plain" label="Copy response" value={message.text} className="!size-7" /></div>}
+    {showDetails && <div className="mt-2"><CopyButton iconOnly variant="plain" label="Copy response" value={message.text} className="!size-7" /></div>}
   </article>;
 }
 
@@ -148,18 +132,19 @@ export function AgentHistory({ threads, activeId, loading = false, onSelect, onN
   </div>;
 }
 
-export function AgentComposer({ value, onChange, onSend, onStop, inputRef, preparing = false }: { value: string; onChange: (value: string) => void; onSend: () => void; onStop?: () => void; inputRef?: Ref<HTMLTextAreaElement>; preparing?: boolean }) {
+export function AgentComposer({ value, onChange, onSend, onStop, inputRef, preparing = false, awaitingServer = false }: { value: string; onChange: (value: string) => void; onSend: () => void; onStop?: () => void; inputRef?: Ref<HTMLTextAreaElement>; preparing?: boolean; awaitingServer?: boolean }) {
+  const blocked = preparing || awaitingServer;
   function keyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
-      if (value.trim() && !preparing) onSend();
+      if (value.trim() && !blocked) onSend();
     }
   }
   return <div className="shrink-0 border-t border-white/[0.07] px-4 pt-4" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
-    <form aria-label="Message Agent" onSubmit={(event) => { event.preventDefault(); if (value.trim() && !preparing) onSend(); }}>
+    <form aria-label="Message Agent" onSubmit={(event) => { event.preventDefault(); if (value.trim() && !blocked) onSend(); }}>
       <div className="relative">
         <WorkspaceTextarea ref={inputRef} aria-label="Message Agent" placeholder="Ask a question…" value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={keyDown} maxLength={AGENT_MAX_PROMPT_LENGTH} rows={3} autoComplete="off" className="!min-h-[92px] !resize-none !rounded-xl !pr-12 !text-[13px]" />
-        {preparing ? <Button type="button" size="sm" aria-label="Stop response" title="Stop response" onClick={onStop} className="!absolute bottom-2.5 right-2.5 !size-8 !min-w-0 !px-0"><Square size={11} fill="currentColor" aria-hidden="true" /></Button> : <Button type="submit" size="sm" aria-label="Send message" disabled={!value.trim()} className="!absolute bottom-2.5 right-2.5 !size-8 !min-w-0 !px-0"><ArrowUp size={15} aria-hidden="true" /></Button>}
+        {preparing ? <Button type="button" size="sm" aria-label="Stop response" title="Stop response" onClick={onStop} className="!absolute bottom-2.5 right-2.5 !size-8 !min-w-0 !px-0"><Square size={11} fill="currentColor" aria-hidden="true" /></Button> : <Button type="submit" size="sm" aria-label="Send message" title={awaitingServer ? "Refresh chats to check the saved response" : undefined} disabled={!value.trim() || awaitingServer} className="!absolute bottom-2.5 right-2.5 !size-8 !min-w-0 !px-0"><ArrowUp size={15} aria-hidden="true" /></Button>}
       </div>
     </form>
     <p className="mt-2.5 text-center text-[10px] leading-4 text-zinc-600">AI can make mistakes. Verify conclusions against the evidence.</p>
