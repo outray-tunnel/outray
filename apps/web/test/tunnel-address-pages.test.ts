@@ -292,7 +292,7 @@ async function loadPage(resource: "domains" | "subdomains") {
       if (specifier === "@/lib/app-client") return { appClient: client };
       if (specifier === "@/lib/subscription-plans")
         return {
-          getPlanLimits: () => ({ maxDomains: 5, maxSubdomains: 5 }),
+          getSubscriptionLimits: () => ({ maxDomains: 5, maxSubdomains: 5 }),
           isUnlimitedPlanLimit: () => false,
         };
       if (specifier.endsWith("address-list-state"))
