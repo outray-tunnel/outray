@@ -15,6 +15,11 @@
     "unifont": "0.7.4"
   },
   "scripts": {
+    "postinstall": "node packages/icons/prepare.mjs",
+    "icons:prepare": "node packages/icons/prepare.mjs",
+    "icons:test": "node --test packages/icons/*.test.mjs",
+    "prebuild": "node packages/icons/prepare.mjs",
+    "pretest": "node packages/icons/prepare.mjs",
     "start": "npm run start --workspace=outray-web",
     "self-host:init": "node scripts/self-hosted.mjs init",
     "self-host:check": "node scripts/self-hosted.mjs check",
