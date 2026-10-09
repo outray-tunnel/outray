@@ -3,7 +3,7 @@ import { eq, count } from "drizzle-orm";
 import { db } from "../../../db";
 import { subdomains } from "../../../db/app-schema";
 import { subscriptions } from "../../../db/subscription-schema";
-import { SUBSCRIPTION_PLANS } from "../../../lib/subscription-plans";
+import { installationPlan, getPlanLimits } from "../../../lib/subscription-plans";
 
 export const Route = createFileRoute("/api/tunnel/check-subdomain")({
   server: {
@@ -46,10 +46,7 @@ export const Route = createFileRoute("/api/tunnel/check-subdomain")({
               .where(eq(subscriptions.organizationId, organizationId))
               .limit(1);
 
-            const planId = (subscription?.plan ||
-              "free") as keyof typeof SUBSCRIPTION_PLANS;
-            const plan = SUBSCRIPTION_PLANS[planId];
-            const maxSubdomains = plan.features.maxSubdomains;
+            const maxSubdomains = getPlanLimits(installationPlan(subscription?.plan)).maxSubdomains;
 
             const [subdomainCount] = await db
               .select({ count: count() })
@@ -59,7 +56,7 @@ export const Route = createFileRoute("/api/tunnel/check-subdomain")({
             if (subdomainCount.count >= maxSubdomains) {
               return Response.json({
                 allowed: false,
-                error: `Subdomain limit reached for ${plan.name} plan. Upgrade to add more.`,
+                error: "Subdomain limit reached for this organization.",
               });
             }
           }
