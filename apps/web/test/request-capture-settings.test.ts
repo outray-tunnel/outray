@@ -76,7 +76,7 @@ test("opening capture settings does not write and unchanged Save is disabled", (
 });
 
 test("the requests page opens capture settings with a medium launcher", async () => {
-  const source = await readFile(new URL("../src/routes/$orgSlug/requests.tsx", import.meta.url), "utf8");
+  const source = await readFile(new URL("../src/routes/$orgSlug/tunnel/requests.tsx", import.meta.url), "utf8");
   const trigger = source.match(/<DialogTrigger asChild>[\s\S]*?<\/DialogTrigger>/)?.[0];
   assert.ok(trigger);
   assert.match(trigger, /<Button type="button" variant="secondary" size="md"/);
