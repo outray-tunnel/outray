@@ -1,0 +1,37 @@
+---
+title: API tokens
+description: Create scoped machine credentials for tunnels, observability ingestion, and Secrets automation.
+icon: KeyRound
+---
+
+Owners and admins manage tokens from **API tokens** in the workspace sidebar. A token belongs to one organization and has explicit product permissions; it is not a browser session or a universal administrator credential.
+
+## Create the narrowest useful token
+
+Choose a descriptive name, select permissions, select the Secrets resource boundary if applicable, and choose expiry. Supported expiry choices are 30 days, 90 days, one year, and never; the default is 90 days.
+
+| Dashboard permission | Scope | Intended use |
+| --- | --- | --- |
+| Connect tunnels | `tunnel:connect` | Authenticate a tunnel client |
+| Send telemetry | `observability:write` | Ingest traces, logs, and metrics |
+| Secrets Read | `secrets:read` | List/reveal/export values and inject them into a process |
+| Secrets Write | `secrets:write` | Create/update/import/roll back secret values |
+| Secrets Delete | `secrets:delete` | Delete individual secret values |
+
+Secrets permissions can be limited to one vault or one environment. That resource boundary applies only to Secrets: combining Send telemetry or Connect tunnels on the same token does not constrain those permissions to the selected vault. Prefer separate credentials for unrelated workloads.
+
+Copy the full token when the creation flow reveals it. Later views show a masked prefix, permissions, resource scope, expiry, and last-used metadata, not the recoverable credential. A prefix copied from the catalog is not a usable token.
+
+## Supply credentials server-side
+
+For [Secrets CLI automation](/docs/secrets/cli), use `OUTRAY_TOKEN` in the runner's private environment settings. For [observability SDKs](/docs/observability/sdk-setup), pass a server-only secret to `apiKey`. [Tunnel authentication](/docs/authentication) documents the tunnel client's credential options.
+
+Do not put tokens in browser bundles, public environment variables, URLs, log messages, or committed config. Production confirmation for Secrets is an additional intent check, not a substitute for token permission.
+
+## Rotate or revoke
+
+Create a replacement with the required scopes, update consumers using the secret provider, verify they authenticate, and revoke the old token. Revoke promptly if a credential is exposed. Expired or revoked tokens are not valid even if a local application retains an older copy.
+
+Token permissions do not grant Uptime management, Agent access, workspace membership management, or Secrets container/share/Trash administration. Those dashboard workflows use human organization access.
+
+If authentication fails, check organization, scope, Secrets resource boundary, expiry, and revocation. An ingestion token permits telemetry sending, not arbitrary dashboard query access.
