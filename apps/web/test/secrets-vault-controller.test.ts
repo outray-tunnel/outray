@@ -124,7 +124,7 @@ async function controller(orgSlug = "acme", projectSlug = "api") {
     if (specifier === "./environment-dialog") return environmentController;
     if (specifier === "../arc/button/button") return { Button };
     if (specifier === "./secrets-ui") return { SecretsDialog: Dialog, DialogForm: Form, Field, SecretsButton: Button, ProductionConfirmation: Production, SecretsNotice: Notice, SecretsBadge: Placeholder, fieldClassName: "field", textareaClassName: "textarea" };
-    if (specifier.startsWith("@hugeicons")) return { HugeiconsIcon: Placeholder };
+    if (specifier.startsWith("@hugeicons") || specifier.startsWith("@outray/icons/")) return { HugeiconsIcon: Placeholder };
     throw new Error(`Unexpected vault dialog dependency: ${specifier}`);
   });
   const navigate = (next: { to: string; params: Record<string, string> }) => { navigations.push(next); return Promise.resolve(); };
