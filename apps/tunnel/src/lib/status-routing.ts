@@ -1,12 +1,22 @@
 import { request as httpRequest, type IncomingMessage, type ServerResponse } from "node:http";
 import { isIP } from "node:net";
 import pg from "pg";
+import publicHosts from "../../../../shared/public-hosts";
+import postgresConfig from "../../../../shared/postgres-ssl";
+import instancePolicy from "../../../../shared/instance-config";
 
 const { Pool } = pg;
 
-const canonicalStatusHost = "status.outray.app";
-const statusPort = Number.parseInt(process.env.STATUS_PORT || "4323", 10);
-const statusEnabled = process.env.UPTIME_ENABLED === "true";
+const canonicalStatusHost = publicHosts.canonicalStatusHostname();
+const statusUpstream = new URL(process.env.STATUS_UPSTREAM_URL || `http://127.0.0.1:${process.env.STATUS_PORT || "4323"}`);
+if (statusUpstream.protocol !== "http:" || statusUpstream.username || statusUpstream.password ||
+    statusUpstream.pathname !== "/" || statusUpstream.search || statusUpstream.hash) {
+  throw new Error("STATUS_UPSTREAM_URL must be an internal HTTP origin");
+}
+const statusEnabled = instancePolicy.instanceConfig().products.includes("uptime") && (
+  process.env.UPTIME_ENABLED === "true" ||
+  (process.env.OUTRAY_DEPLOYMENT_MODE === "self-hosted" && process.env.UPTIME_ENABLED !== "false")
+);
 const edgeSecret = process.env.STATUS_EDGE_SECRET || "";
 const databaseUrl = process.env.DATABASE_URL || "";
 
@@ -15,15 +25,13 @@ let pool: pg.Pool | undefined;
 function statusDomainPool(): pg.Pool {
   if (!databaseUrl) throw new Error("DATABASE_URL is required for status host routing");
   if (!pool) {
-    const databaseHost = new URL(databaseUrl).hostname.toLowerCase();
-    const local = databaseHost === "localhost" || databaseHost === "127.0.0.1" || databaseHost === "[::1]";
     pool = new Pool({
       connectionString: databaseUrl,
       max: 4,
       connectionTimeoutMillis: 2_000,
       idleTimeoutMillis: 30_000,
       query_timeout: 2_000,
-      ssl: local ? false : { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false" },
+      ssl: postgresConfig.postgresSsl(databaseUrl, process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false"),
     });
   }
   return pool;
@@ -51,6 +59,7 @@ export async function isActiveStatusCustomDomain(host: string, baseDomain: strin
   const result = await statusDomainPool().query(
     `SELECT 1 FROM domains d
      JOIN uptime_status_pages p ON p.domain_id = d.id
+       AND p.organization_id = d.organization_id
      WHERE d.domain = $1 AND d.purpose = 'status' AND d.status = 'active'
        AND p.published = true
      LIMIT 1`,
@@ -59,13 +68,21 @@ export async function isActiveStatusCustomDomain(host: string, baseDomain: strin
   return result.rowCount === 1;
 }
 
+export function isTrustedStatusProxyPeer(peer: string, configured = process.env.STATUS_TRUSTED_PROXY_IPS || ""): boolean {
+  const normalized = peer.startsWith("::ffff:") && isIP(peer.slice(7)) === 4 ? peer.slice(7) : peer;
+  if (["127.0.0.1", "::1"].includes(normalized)) return true;
+  return configured.split(",").some((entry) => {
+    const address = entry.trim();
+    return isIP(address) !== 0 && address === normalized;
+  });
+}
+
 function trustedClientIp(req: IncomingMessage): string {
-  // Only Caddy on the same host is allowed to supply this header. Its config
-  // overwrites the client value using the directly connected remote address.
+  // Only loopback or explicitly configured Caddy container IPs may supply this
+  // header. Caddy overwrites client values with the directly connected address.
   const peer = req.socket.remoteAddress || "";
-  const fromLoopback = peer === "127.0.0.1" || peer === "::1" || peer === "::ffff:127.0.0.1";
   const forwarded = req.headers["x-outray-client-ip"];
-  const candidate = fromLoopback && typeof forwarded === "string" ? forwarded.trim() : peer;
+  const candidate = isTrustedStatusProxyPeer(peer) && typeof forwarded === "string" ? forwarded.trim() : peer;
   return isIP(candidate) ? candidate : "127.0.0.1";
 }
 
@@ -75,7 +92,7 @@ const hopHeaders = new Set([
 ]);
 
 export function proxyToStatus(req: IncomingMessage, res: ServerResponse): void {
-  if (!statusEnabled || !edgeSecret || !Number.isInteger(statusPort) || statusPort < 1 || statusPort > 65535) {
+  if (!statusEnabled || !edgeSecret) {
     res.writeHead(503, { "Content-Type": "text/plain", "Cache-Control": "no-store" });
     res.end("Status pages are unavailable");
     return;
@@ -90,8 +107,8 @@ export function proxyToStatus(req: IncomingMessage, res: ServerResponse): void {
   headers["x-outray-client-ip"] = trustedClientIp(req);
 
   const upstream = httpRequest({
-    hostname: "127.0.0.1",
-    port: statusPort,
+    hostname: statusUpstream.hostname,
+    port: statusUpstream.port || 80,
     method: req.method,
     path: req.url || "/",
     headers,
