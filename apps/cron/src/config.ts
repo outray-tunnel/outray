@@ -4,8 +4,6 @@ dotenv.config();
 
 export const config = {
   redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
-  tigerDataUrl:
-    process.env.TIMESCALE_URL || "postgresql://localhost:5432/outray",
   // PostgreSQL for web app (subscriptions)
   databaseUrl: process.env.DATABASE_URL || "postgresql://localhost:5432/outray",
   databaseSslRejectUnauthorized: booleanValue(
@@ -16,6 +14,7 @@ export const config = {
   paystackSecretKey: process.env.PAYSTACK_SECRET_KEY || "",
   tinybirdApiHost: (process.env.TINYBIRD_API_HOST || "").replace(/\/$/, ""),
   tinybirdQueryToken: process.env.TINYBIRD_QUERY_TOKEN || "",
+  tinybirdIngestToken: process.env.TINYBIRD_TUNNEL_INGEST_TOKEN || process.env.TINYBIRD_INGEST_TOKEN || "",
   zeptoApiKey: process.env.ZEPTO_API_KEY || "",
   appUrl: (process.env.APP_URL || "http://localhost:6767").replace(/\/$/, ""),
   alertPollIntervalMs: boundedInteger(
