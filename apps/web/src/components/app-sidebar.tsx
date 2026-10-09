@@ -27,6 +27,8 @@ import { OrganizationDropdown } from "./sidebar/organization-dropdown";
 import { ProductNavigation } from "./sidebar/product-navigation";
 import { filterSidebarProducts } from "./sidebar/product-navigation-state";
 import { SidebarCollapseControl } from "./sidebar/sidebar-collapse-control";
+import { useInstance } from "@/lib/instance-context";
+import { instanceProductForPath } from "../../../../shared/instance-config";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -53,6 +55,7 @@ export function Sidebar({
   unified = false,
 }: SidebarProps) {
   const sidebarId = useId();
+  const instance = useInstance();
   const { setSelectedOrganization } = useAppStore();
   const { data: orgData, isPending: isOrganizationsPending } = authClient.useListOrganizations();
   const organizations = orgData ?? [];
@@ -74,7 +77,7 @@ export function Sidebar({
       if ("error" in response) throw new Error(response.error);
       return response;
     },
-    enabled: !!orgSlug && unified,
+    enabled: !!orgSlug && unified && instance.products.includes("tunnels"),
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
@@ -137,7 +140,7 @@ export function Sidebar({
             icon: Key02Icon,
             activeIcon: Key02SolidIcon,
           },
-          ...(canManageBilling
+          ...(canManageBilling && instance.billingEnabled
             ? [
                 {
                   to: "/$orgSlug/billing",
@@ -160,14 +163,18 @@ export function Sidebar({
         ],
       },
     ],
-    [canManageBilling, unified],
+    [canManageBilling, unified, instance.billingEnabled],
   );
 
   const visibleGroups = useMemo(() => {
     const query = navQuery.trim().toLowerCase();
-    const groups = unified
+    const allGroups = unified
       ? navGroups.filter((group) => group.label !== "Products")
       : navGroups;
+    const groups = allGroups.map((group) => ({ ...group, items: group.items.filter((item) => {
+      const product = instanceProductForPath(item.to);
+      return !product || instance.products.includes(product);
+    }) }));
     if (!query) return groups;
 
     return groups
@@ -178,7 +185,7 @@ export function Sidebar({
         ),
       }))
       .filter((group) => group.items.length > 0);
-  }, [navGroups, navQuery, unified]);
+  }, [navGroups, navQuery, unified, instance.products]);
 
   const toggleSearch = () => {
     if (isCollapsed) {
@@ -193,7 +200,7 @@ export function Sidebar({
   const params = { orgSlug: selectedOrg?.slug ?? orgSlug ?? "" };
   const basePath = `/${params.orgSlug}`;
   const hasProductResults =
-    unified && filterSidebarProducts(navQuery, !!canManageShares).length > 0;
+    unified && filterSidebarProducts(navQuery, !!canManageShares, instance.products).length > 0;
 
   const isNavItemActive = (item: SidebarNavItem) => {
     const targetPath = item.to.replace("/$orgSlug", basePath);
