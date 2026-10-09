@@ -34,7 +34,7 @@ test("onboarding has one compact branded header, workspace context, and an immed
   assert.match(html, /h-14/);
   assert.match(html, /size-6 object-contain/);
   assert.match(html, /max-w-\[1180px\]/);
-  assert.match(html, /href="\/acme"[^>]*>Open console/);
+  assert.match(html, /href="\/acme\/tunnel"[^>]*>Open console/);
   assert.match(html, /href="\/acme\/get-started"/);
   assert.match(html, /title="acme"/);
   assert.equal((html.match(/<main\b/g) ?? []).length, 1);
