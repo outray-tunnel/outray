@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import ArrowUpRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowUpRight01Icon";
+import ArrowUpRight01Icon from "@outray/icons/stroke/ArrowUpRight01Icon";
 import { RefreshCw } from "lucide-react";
 import { type Tunnel } from "@/lib/app-client";
 
