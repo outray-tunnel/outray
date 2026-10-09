@@ -1,0 +1,17 @@
+TOKEN OUTRAY_INGEST_TOKEN APPEND
+
+DESCRIPTION >
+    Global active-tunnel counts for authenticated administrator charts.
+
+SCHEMA >
+    `ts` DateTime64(3, 'UTC') `json:$.ts` CODEC(Delta(8), ZSTD(1)),
+    `ingested_at` DateTime64(3, 'UTC') `json:$.ingested_at` CODEC(Delta(8), ZSTD(1)),
+    `active_tunnels` UInt32 `json:$.active_tunnels` CODEC(ZSTD(1))
+
+ENGINE "ReplacingMergeTree"
+ENGINE_PARTITION_KEY "toDate(ts)"
+ENGINE_SORTING_KEY "ts"
+ENGINE_VER ingested_at
+ENGINE_TTL "toDateTime(ts) + toIntervalDay(90)"
+ENGINE_SETTINGS index_granularity=8192
+
