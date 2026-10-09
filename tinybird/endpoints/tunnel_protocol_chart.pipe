@@ -1,0 +1,29 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Sparse TCP/UDP metric buckets with exact connection and client counts.
+
+NODE chart
+SQL >
+    %
+    SELECT toDateTime64(intDiv(toUnixTimestamp(timestamp), least(greatest({{UInt32(bucket_seconds)}}, 1), 86400)) * least(greatest({{UInt32(bucket_seconds)}}, 1), 86400), 3, 'UTC') AS time,
+           countIf(event_type = 'connection') AS connections,
+           uniqExact(connection_id) AS unique_connections,
+           uniqExact(tuple(client_ip, client_port)) AS unique_clients,
+           countIf(event_type IN ('data', 'packet')) AS packets,
+           countIf(event_type = 'close') AS closes,
+           sum(bytes_in) AS bytes_in,
+           sum(bytes_out) AS bytes_out,
+           if(countIf(event_type = 'close' AND duration_ms > 0) = 0, 0,
+              avgIf(duration_ms, event_type = 'close' AND duration_ms > 0)) AS avg_duration_ms
+    FROM tunnel_protocol_events FINAL
+    WHERE organization_id = {{String(organization_id)}}
+      AND timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')
+      AND timestamp < parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+      AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
+      AND has(JSONExtract({{String(tunnel_ids)}}, 'Array(String)'), tunnel_id)
+    GROUP BY time
+    ORDER BY time ASC
+
+TYPE endpoint
+
