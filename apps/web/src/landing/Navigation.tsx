@@ -2,10 +2,10 @@ import { ProductIcon } from "./ProductIcon";
 import { authClient } from "@/lib/auth-client";
 
 const productLinks = [
-  { id: "tunnels", label: "Tunnels", href: "#tunnels", description: "Put a local service on a public URL." },
-  { id: "observability", label: "Observability", href: "#observability", description: "Follow requests through traces, logs, and metrics." },
-  { id: "secrets", label: "Secrets", href: "#secrets", description: "Deliver encrypted values to every environment." },
-  { id: "uptime", label: "Uptime", href: "#uptime", description: "Check endpoints and share service status." },
+  { id: "tunnels", label: "Tunnels", href: "/products/tunnels", description: "Put a local service on a public URL." },
+  { id: "observability", label: "Observability", href: "/products/observability", description: "Follow requests through traces, logs, and metrics." },
+  { id: "secrets", label: "Secrets", href: "/products/secrets", description: "Deliver encrypted values to every environment." },
+  { id: "uptime", label: "Uptime", href: "/products/uptime", description: "Check endpoints and share service status." },
 ] as const;
 
 export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginUrl: string; signupUrl: string; docsUrl: string; githubUrl: string }) {
@@ -18,7 +18,7 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
   return (
 <header className="site-header" data-site-header>
   <div className="nav-shell page-shell">
-    <a className="brand-link" href="#top" aria-label="OutRay home" data-track="navigation" data-track-label="logo">
+    <a className="brand-link" href="/" aria-label="OutRay home" data-track="navigation" data-track-label="logo">
       <img src="/brand/outray-mark.svg" width="34" height="34" alt="" />
       <span>OutRay</span>
     </a>
@@ -32,7 +32,7 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
         <div className="products-menu__popover">
           <div className="products-menu__panel">
             <div className="products-menu__links">
-              <p className="products-menu__label">Products</p>
+              <a className="products-menu__label" href="/products" data-track="navigation" data-track-label="all-products">All products →</a>
               {productLinks.map(({ id, label, href, description }) => (
                 <a
                   key={id}
@@ -40,8 +40,6 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
                   href={href}
                   aria-label={label}
                   data-menu-product={id}
-                  data-select-product={id}
-                  data-target-tabs="showcase"
                   data-track="navigation"
                   data-track-label={id}
                 >
@@ -134,7 +132,7 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
           <p className="mobile-menu__label">Products</p>
           <ul className="mobile-menu__products">
             {productLinks.map(({ id, label, href }) => (
-              <li key={id}><a href={href} data-select-product={id} data-target-tabs="showcase" data-track="navigation" data-track-label={`mobile-${id}`}>
+              <li key={id}><a href={href} data-track="navigation" data-track-label={`mobile-${id}`}>
                 <span>{label}</span>
                 <svg className="mobile-menu__arrow" aria-hidden="true" viewBox="0 0 20 20"><path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"></path></svg>
               </a></li>
@@ -142,6 +140,7 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
           </ul>
           <p className="mobile-menu__label">Explore</p>
           <ul className="mobile-menu__resources">
+            <li><a href="/products" data-track="navigation" data-track-label="mobile-all-products">All products</a></li>
             <li><a href={docsUrl} data-track="navigation" data-track-label="mobile-docs">Docs</a></li>
             <li><a href={githubUrl} target="_blank" rel="noreferrer" data-track="github" data-track-label="mobile-navigation">GitHub</a></li>
           </ul>
