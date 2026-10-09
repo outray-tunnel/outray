@@ -108,7 +108,7 @@ export function CreateDomainModal({ isOpen, onClose, onCreate, isPending, error,
       return;
     }
     if (isReservedStatusDomain(normalized)) {
-      setError("status.outray.app and its subdomains are reserved for Uptime status pages.");
+      setError("The status-page address and its subdomains are reserved for Uptime.");
       return;
     }
     if (normalized.split(".").length < 3) {
