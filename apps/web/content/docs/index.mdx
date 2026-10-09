@@ -1,31 +1,41 @@
 ---
-title: Introduction
-description: Welcome to the OutRay documentation
+title: OutRay documentation
+description: Connect local services, understand application behavior, manage secrets, and communicate availability.
 icon: House
 ---
 
-OutRay is a fast, secure, and open-source tunnel application that allows you to share your local sites and applications with others on the internet. It serves as a modern alternative to tools like ngrok, designed specifically for developers who value performance and control.
-
-## Why OutRay?
-
-- **Open Source**: The core of OutRay is open source, giving you the freedom to inspect, modify, and self-host the entire stack.
-- **Fast & Secure**: Built with performance in mind, OutRay ensures your tunnels are stable and secure.
-- **Developer Friendly**: A powerful CLI and intuitive dashboard make managing your tunnels a breeze.
-
-## How it works
-
-OutRay creates a secure tunnel between your local machine and the OutRay edge network. When someone visits your public URL, the request is forwarded through the tunnel to your local server, and the response is sent back to the visitor.
-
-## Next Steps
+OutRay has four products in one organization workspace. Start with the product that matches your task; you do not need a tunnel to use Observability, Secrets, or Uptime.
 
 <Cards>
-  <Card title="Installation" href="/docs/installation">
-    Get up and running with the OutRay CLI in seconds.
+  <Card title="Tunnels" href="/docs/tunnels">
+    Give a local HTTP, TCP, or UDP service a public address for development, demos, and integrations.
   </Card>
-  <Card title="Getting Started" href="/docs/authentication">
-    Learn how to authenticate and start your first tunnel.
+  <Card title="Observability" href="/docs/observability">
+    Send application traces, logs, and metrics; investigate requests and configure alerts.
   </Card>
-  <Card title="CLI Reference" href="/docs/reference/cli-reference">
-    Explore the full power of the OutRay command-line interface.
+  <Card title="Secrets" href="/docs/secrets">
+    Organize encrypted environment values in vaults and inject them into application processes.
+  </Card>
+  <Card title="Uptime" href="/docs/uptime">
+    Check public endpoints, review detected issues, and publish customer-facing status updates.
   </Card>
 </Cards>
+
+## Start with a task
+
+- [Share a local server](/docs/opening-a-tunnel): install the CLI and run `outray http 3000`.
+- [Connect application telemetry](/docs/observability/getting-started): create a **Send telemetry** token and initialize a server SDK.
+- [Run an app with managed secrets](/docs/secrets/getting-started): create a vault, select an environment, and run `outray secrets run -- npm run dev`.
+- [Monitor a public endpoint](/docs/uptime/getting-started): create an HTTP check before choosing what becomes public.
+
+## Shared workspace
+
+[Organizations and membership](/docs/platform/organizations) determine who can see and manage workspace resources. [API tokens](/docs/platform/api-tokens) give machine clients explicit permissions. [Agent](/docs/platform/agent) can investigate observability evidence without changing your application or workspace.
+
+Keep machine credentials and exported secret values out of browser bundles, source control, and screenshots. The guides use placeholders and server-side configuration; replace them in your own secret provider.
+
+## How the products fit together
+
+A development workflow can use a tunnel for incoming webhooks, Observability to inspect the handler, and Secrets to supply its credentials. Uptime separately probes a public endpoint and can feed a status-page component. Telemetry health, monitor state, and public incident publication are different kinds of evidence—not interchangeable claims that a service is healthy.
+
+The existing [tunnel CLI reference](/docs/cli-reference), [protocol guide](/docs/protocols), SDKs, and framework integrations remain available in the navigation.
