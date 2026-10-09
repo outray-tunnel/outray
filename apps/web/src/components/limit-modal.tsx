@@ -2,6 +2,7 @@ import { X, AlertTriangle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useAppStore } from "@/lib/store";
 import { Modal, Button, IconButton } from "@/components/ui";
+import { useInstance } from "@/lib/instance-context";
 
 interface LimitModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export function LimitModal({
   resourceName,
 }: LimitModalProps) {
   const { selectedOrganization } = useAppStore();
+  const { selfHosted } = useInstance();
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-6">
@@ -41,13 +43,13 @@ export function LimitModal({
         </div>
 
         <div className="space-y-4">
-          <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
+          <p className="text-gray-400 text-sm leading-relaxed">{selfHosted ? "This installation's capacity has been reached. Contact your administrator to change the limit." : description}</p>
 
           <div className="bg-white/5 rounded-xl p-4 border border-white/5">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-400">Current Plan</span>
+              <span className="text-sm text-gray-400">{selfHosted ? "Managed by" : "Current Plan"}</span>
               <span className="text-sm font-medium text-white capitalize">
-                {currentPlan}
+                {selfHosted ? "Your installation" : currentPlan}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -58,17 +60,17 @@ export function LimitModal({
 
           <div className="flex gap-3 mt-6">
             <Button variant="secondary" onClick={onClose} className="flex-1">
-              Cancel
+              {selfHosted ? "Close" : "Cancel"}
             </Button>
-            <Link
+            {!selfHosted && selectedOrganization?.slug && <Link
               to="/$orgSlug/billing"
-              params={{ orgSlug: selectedOrganization?.slug! }}
+              params={{ orgSlug: selectedOrganization.slug }}
               className="flex-1"
             >
               <Button variant="primary" fullWidth>
                 Upgrade Plan
               </Button>
-            </Link>
+            </Link>}
           </div>
         </div>
       </div>
