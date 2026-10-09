@@ -14,7 +14,7 @@ import { NewTunnelModal } from "@/components/new-tunnel-modal";
 import { NewTunnelButton } from "@/components/new-tunnel-button";
 import { LimitModal } from "@/components/limit-modal";
 import { appClient, type Tunnel } from "@/lib/app-client";
-import { getPlanLimits } from "@/lib/subscription-plans";
+import { getSubscriptionLimits } from "@/lib/subscription-plans";
 import "@/components/outray-arc-theme.css";
 
 export const Route = createFileRoute("/$orgSlug/tunnel/tunnels/")({
@@ -84,7 +84,8 @@ function TunnelsView() {
 
   const tunnels = data?.tunnels ?? [];
   const currentPlan = subscriptionData?.subscription?.plan || "free";
-  const tunnelLimit = getPlanLimits(currentPlan as any).maxTunnels;
+  const instanceOwned = !!subscriptionData?.instanceLimits;
+  const tunnelLimit = getSubscriptionLimits(subscriptionData).maxTunnels;
   const isAtLimit = Boolean(subscriptionData) && tunnelLimit >= 0 && tunnels.length >= tunnelLimit;
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const filteredTunnels = tunnels
@@ -141,9 +142,9 @@ function TunnelsView() {
           <HugeiconsIcon icon={Alert02Icon} size={16} strokeWidth={1.7} className="mt-0.5 shrink-0" aria-hidden="true" />
           <div className="min-w-0 flex-1">
             <p className="text-[12px] font-medium">Tunnel limit reached</p>
-            <p className="mt-0.5 text-[11px] text-amber-200/70">The {currentPlan} plan includes {tunnelLimit} tunnels.</p>
+            <p className="mt-0.5 text-[11px] text-amber-200/70">{instanceOwned ? `This installation allows ${tunnelLimit} active tunnels. Contact your administrator to increase capacity.` : `The ${currentPlan} plan includes ${tunnelLimit} tunnels.`}</p>
           </div>
-          <Link to="/$orgSlug/billing" params={{ orgSlug }} className="shrink-0 text-[11px] font-medium text-amber-200 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300">Upgrade plan</Link>
+          {!instanceOwned && <Link to="/$orgSlug/billing" params={{ orgSlug }} className="shrink-0 text-[11px] font-medium text-amber-200 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300">Upgrade plan</Link>}
         </div>
       )}
 
