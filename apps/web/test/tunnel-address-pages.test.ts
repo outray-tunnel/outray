@@ -42,7 +42,7 @@ const domain: Domain = {
 
 test("refreshed address and active tunnel search fields opt into the shared compact input", async () => {
   for (const page of ["domains.tsx", "subdomains.tsx", "tunnels/index.tsx"]) {
-    const source = await readFile(new URL(`../src/routes/$orgSlug/${page}`, import.meta.url), "utf8");
+    const source = await readFile(new URL(`../src/routes/$orgSlug/tunnel/${page}`, import.meta.url), "utf8");
     const searches = [...source.matchAll(/<SearchField\b[\s\S]*?\/>/g)];
     assert.equal(searches.length, 1);
     assert.match(searches[0][0], /appearance="workspace"/);
@@ -214,7 +214,7 @@ type Mutation = {
 /** Execute the real page's query/mutation wiring with no network, auth, or database dependencies. */
 async function loadPage(resource: "domains" | "subdomains") {
   const source = await readFile(
-    new URL(`../src/routes/$orgSlug/${resource}.tsx`, import.meta.url),
+    new URL(`../src/routes/$orgSlug/tunnel/${resource}.tsx`, import.meta.url),
     "utf8",
   );
   const compiled = ts.transpileModule(source, {
