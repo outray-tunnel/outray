@@ -105,8 +105,8 @@ test("new settings use existing quiet Arc tabs, scoped routes and content-preser
 
 test("API token navigation uses the same key icon in outlined and solid variants", async () => {
   const source = await readFile(new URL("../src/components/app-sidebar.tsx", import.meta.url), "utf8");
-  assert.match(source, /core-stroke-rounded\/Key02Icon/);
-  assert.match(source, /core-solid-rounded\/Key02Icon/);
+  assert.match(source, /@outray\/icons\/stroke\/Key02Icon/);
+  assert.match(source, /@outray\/icons\/solid\/Key02Icon/);
   assert.match(source, /label: "API tokens",\s+icon: Key02Icon,\s+activeIcon: Key02SolidIcon/);
   assert.doesNotMatch(source, /LicenseIcon/);
 });
