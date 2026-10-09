@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Minus, Plus, Search } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import CheckmarkCircle02Icon from "@hugeicons-pro/core-stroke-rounded/CheckmarkCircle02Icon";
-import Copy01Icon from "@hugeicons-pro/core-stroke-rounded/Copy01Icon";
-import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
-import Edit02Icon from "@hugeicons-pro/core-stroke-rounded/Edit02Icon";
-import HistoryIcon from "@hugeicons-pro/core-stroke-rounded/HistoryIcon";
-import Key01Icon from "@hugeicons-pro/core-stroke-rounded/Key01Icon";
-import ViewIcon from "@hugeicons-pro/core-stroke-rounded/ViewIcon";
-import ViewOffIcon from "@hugeicons-pro/core-stroke-rounded/ViewOffIcon";
+import CheckmarkCircle02Icon from "@outray/icons/stroke/CheckmarkCircle02Icon";
+import Copy01Icon from "@outray/icons/stroke/Copy01Icon";
+import Delete02Icon from "@outray/icons/stroke/Delete02Icon";
+import Edit02Icon from "@outray/icons/stroke/Edit02Icon";
+import HistoryIcon from "@outray/icons/stroke/HistoryIcon";
+import Key01Icon from "@outray/icons/stroke/Key01Icon";
+import ViewIcon from "@outray/icons/stroke/ViewIcon";
+import ViewOffIcon from "@outray/icons/stroke/ViewOffIcon";
 import {
   secretsClient,
   type SecretEnvironment,
