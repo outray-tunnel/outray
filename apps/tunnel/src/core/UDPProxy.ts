@@ -3,7 +3,7 @@ import WebSocket from "ws";
 import Redis from "ioredis";
 import { Protocol, UDPDataMessage, UDPResponseMessage } from "./Protocol";
 import { generateId, getBandwidthKey } from "../../../../shared/utils";
-import { protocolLogger } from "../lib/timescale";
+import { protocolLogger } from "../lib/tinybird";
 import { PortAllocator } from "./PortAllocator";
 
 interface UDPClient {
