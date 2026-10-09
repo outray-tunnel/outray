@@ -1,0 +1,26 @@
+TOKEN OUTRAY_INGEST_TOKEN APPEND
+
+DESCRIPTION >
+    Captured HTTP payloads, with serialized JSON headers and optional base64 bodies.
+
+SCHEMA >
+    `timestamp` DateTime64(3, 'UTC') `json:$.timestamp` CODEC(Delta(8), ZSTD(1)),
+    `ingested_at` DateTime64(3, 'UTC') `json:$.ingested_at` CODEC(Delta(8), ZSTD(1)),
+    `tunnel_id` String `json:$.tunnel_id` CODEC(ZSTD(1)),
+    `organization_id` LowCardinality(String) `json:$.organization_id` CODEC(ZSTD(1)),
+    `retention_days` UInt16 `json:$.retention_days` DEFAULT 3 CODEC(Delta, ZSTD(1)),
+    `id` String `json:$.id` CODEC(ZSTD(1)),
+    `request_headers` String `json:$.request_headers` DEFAULT '{}' CODEC(ZSTD(1)),
+    `request_body` Nullable(String) `json:$.request_body` CODEC(ZSTD(1)),
+    `request_body_size` UInt64 `json:$.request_body_size` DEFAULT 0 CODEC(ZSTD(1)),
+    `response_headers` String `json:$.response_headers` DEFAULT '{}' CODEC(ZSTD(1)),
+    `response_body` Nullable(String) `json:$.response_body` CODEC(ZSTD(1)),
+    `response_body_size` UInt64 `json:$.response_body_size` DEFAULT 0 CODEC(ZSTD(1))
+
+ENGINE "ReplacingMergeTree"
+ENGINE_PARTITION_KEY "toDate(timestamp)"
+ENGINE_SORTING_KEY "organization_id, tunnel_id, timestamp, id"
+ENGINE_VER ingested_at
+ENGINE_TTL "toDateTime(timestamp) + toIntervalDay(least(greatest(retention_days, 1), 90))"
+ENGINE_SETTINGS index_granularity=8192
+
