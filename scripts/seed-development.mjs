@@ -625,6 +625,23 @@ export function buildProtocolEvents(organizationId, options = {}) {
   return records;
 }
 
+/** Pure Tinybird fixture mapping. Repeated delivery of a batch uses identical keys. */
+export function buildTunnelTinybirdRecords(organizationId, options = {}) {
+  const now = seedNow(options);
+  const timestamp = (value) => new Date(value).toISOString().replace("T", " ").replace("Z", "");
+  const version = timestamp(now);
+  const { events, captures } = buildTunnelEvents(organizationId, { count: options.requestCount, now });
+  const protocols = buildProtocolEvents(organizationId, { count: options.protocolCount, now });
+  const map = (row) => ({ ...row, timestamp: timestamp(row.timestamp), ingested_at: version, retention_days: 90 });
+  return {
+    tunnel_events: events.map((row, index) => ({ ...map(row), event_id: `seed:${organizationId}:http:${index}`, request_id: row.request_id || "" })),
+    tunnel_request_captures: captures.map((row) => ({ ...map(row), request_headers: JSON.stringify(row.request_headers), response_headers: JSON.stringify(row.response_headers),
+      request_body: row.request_body === null ? null : Buffer.from(row.request_body).toString("base64"),
+      response_body: row.response_body === null ? null : Buffer.from(row.response_body).toString("base64") })),
+    tunnel_protocol_events: protocols.map((row, index) => ({ ...map(row), event_id: `seed:${organizationId}:protocol:${index}` })),
+  };
+}
+
 export async function seedTimescale(client, organizationId, options = {}) {
   // Generate/validate before BEGIN so invalid counts never delete existing fixtures.
   const now = seedNow(options);
@@ -994,10 +1011,16 @@ async function seedTinybird(organizationId) {
   const apiHost = required("TINYBIRD_API_HOST").replace(/\/$/, "");
   const ingestToken = required("TINYBIRD_INGEST_TOKEN");
   const { spans, logs, metrics } = buildTinybirdRecords(organizationId);
+  const tunnelRecords = buildTunnelTinybirdRecords(organizationId);
   await tinybirdAppend(apiHost, ingestToken, "otel_spans", spans);
   await tinybirdAppend(apiHost, ingestToken, "otel_logs", logs);
   await tinybirdAppend(apiHost, ingestToken, "otel_metrics", metrics);
-  return { spans: spans.length, logs: logs.length, metrics: metrics.length };
+  for (const [source, records] of Object.entries(tunnelRecords)) {
+    await tinybirdAppend(apiHost, ingestToken, source, records);
+  }
+  return { spans: spans.length, logs: logs.length, metrics: metrics.length,
+    requests: tunnelRecords.tunnel_events.length, captures: tunnelRecords.tunnel_request_captures.length,
+    protocolEvents: tunnelRecords.tunnel_protocol_events.length };
 }
 
 async function verifyTinybird(organizationId) {
@@ -1015,12 +1038,11 @@ async function verifyTinybird(organizationId) {
 async function main() {
   assertDevelopmentConfiguration();
   const database = new pg.Client(pgOptions("DATABASE_URL"));
-  const timescale = new pg.Client(pgOptions("TIMESCALE_URL"));
   const redisUrl = parsedUrl("REDIS_URL");
   assertDevelopmentTarget("REDIS_URL", redisUrl);
   const redis = new Redis(redisUrl.toString(), { lazyConnect: true, maxRetriesPerRequest: 2 });
 
-  await Promise.all([database.connect(), timescale.connect(), redis.connect()]);
+  await Promise.all([database.connect(), redis.connect()]);
   try {
     const organizationResult = await database.query(
       `SELECT id, slug, name FROM organizations WHERE slug = $1 LIMIT 1`,
@@ -1043,7 +1065,6 @@ async function main() {
     await verifyTinybird(organization.id);
     console.log(`Seeding development data for ${organization.name} (${organization.slug})...`);
     await retryDeadlocks(() => seedPrimaryDatabase(database, organization, user));
-    const timescaleResult = await seedTimescale(timescale, organization.id);
     const onlineTunnels = await seedRedis(redis, organization, user);
     const tinybirdResult = await seedTinybird(organization.id);
     const services = await verifyTinybird(organization.id);
@@ -1051,11 +1072,11 @@ async function main() {
     console.log("Development seed complete:");
     console.log(`  PostgreSQL: ${TUNNELS.length} tunnels, ${SUBDOMAINS.length} subdomains, ${DOMAINS.length} domains, 3 disabled demo alerts, 2 incidents`);
     console.log(`  Redis: ${onlineTunnels} demo tunnels marked online (not real connections)`);
-    console.log(`  Timescale: ${timescaleResult.requests} requests, ${timescaleResult.captures} captures, ${timescaleResult.protocolEvents} protocol events`);
+    console.log(`  Tunnel analytics (Tinybird): ${tinybirdResult.requests} requests, ${tinybirdResult.captures} captures, ${tinybirdResult.protocolEvents} protocol events`);
     console.log(`  Tinybird (${EXPECTED_TINYBIRD_BRANCH}): ${tinybirdResult.spans} spans, ${tinybirdResult.logs} logs, ${tinybirdResult.metrics} metric points`);
     console.log(`  Verified services: ${services.map((service) => service.name).join(", ")}`);
   } finally {
-    await Promise.allSettled([database.end(), timescale.end(), redis.quit()]);
+    await Promise.allSettled([database.end(), redis.quit()]);
   }
 }
 
