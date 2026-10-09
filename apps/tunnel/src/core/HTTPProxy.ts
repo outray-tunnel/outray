@@ -6,6 +6,7 @@ import { TunnelRouter } from "./TunnelRouter";
 import { getBandwidthKey } from "../../../../shared/utils";
 import { logger, requestCaptureLogger } from "../lib/tinybird";
 import { LogManager } from "./LogManager";
+import publicHosts from "../../../../shared/public-hosts";
 
 export class HTTPProxy {
   private router: TunnelRouter;
@@ -32,10 +33,9 @@ export class HTTPProxy {
     const cleanHost = host.split(":")[0].toLowerCase();
     const tunnelId = cleanHost;
 
-    // Redirect outray.app to outray.dev
-    if (cleanHost === "outray.app" || cleanHost === "www.outray.app") {
-      const newUrl = `https://outray.dev${req.url || ""}`;
-      res.writeHead(301, { Location: newUrl });
+    const rootRedirect = publicHosts.tunnelRootRedirect(cleanHost, this.baseDomain, req.url || "/");
+    if (rootRedirect) {
+      res.writeHead(301, { Location: rootRedirect });
       res.end();
       return;
     }
