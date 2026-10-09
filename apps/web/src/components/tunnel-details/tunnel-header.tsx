@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
-import ArrowUpRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowUpRight01Icon";
-import StopIcon from "@hugeicons-pro/core-solid-rounded/StopIcon";
+import ArrowLeft01Icon from "@outray/icons/stroke/ArrowLeft01Icon";
+import ArrowUpRight01Icon from "@outray/icons/stroke/ArrowUpRight01Icon";
+import StopIcon from "@outray/icons/solid/StopIcon";
 import { Button } from "@/components/arc/button/button";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import {
