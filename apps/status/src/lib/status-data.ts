@@ -161,7 +161,7 @@ export function normalizeRequestHost(request: Request): string | null {
   try {
     if (!/^[a-z0-9.-]+(?::[0-9]{1,5})?$/i.test(header)) return null;
     const parsed = new URL(`http://${header}`);
-    const host = parsed.hostname.toLowerCase();
+    const host = parsed.hostname.toLowerCase().replace(/\.$/, "");
     if (host.length > 253 || !/^[a-z0-9.-]+$/.test(host) || host.includes("..")) return null;
     return host;
   } catch {
@@ -184,7 +184,9 @@ export async function findPageForRequest(
   if (!config.enabled) return null;
   const host = normalizeRequestHost(request);
   if (!host) return null;
-  if (host === "status.outray.dev") return null;
+  // The hosted OutRay ops page is external to tenant status pages. A
+  // self-hosted installation has no hard-coded OutRay domain reservation.
+  if (process.env.OUTRAY_DEPLOYMENT_MODE !== "self-hosted" && host === "status.outray.dev" && host !== config.canonicalHost) return null;
   const local = host === "localhost" || host === "127.0.0.1";
   const canonicalSubdomainSlug = slugFromStatusHost(host, config.canonicalHost);
   if (host === config.canonicalHost || canonicalSubdomainSlug ||
