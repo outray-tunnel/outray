@@ -1,0 +1,108 @@
+---
+title: TanStack Start SDK
+description: Instrument the TanStack Start Node server entry with traces, logs, and metrics.
+icon: Code
+---
+
+`@outray/tanstack-start` instruments incoming TanStack Start server requests. It is an observability integration, not a Vite tunnel plugin.
+
+## Install
+
+~~~bash
+npm install @outray/tanstack-start
+~~~
+
+The package declares Node.js 20.6 or later and `@tanstack/react-start >=1.141.0 <2.0.0`. It targets the Node/Nitro server runtime, not edge runtimes.
+
+Create an organization token with `observability:write` and keep it in server-only configuration.
+
+## Configure the server entry
+
+Create `src/server.ts`:
+
+~~~ts
+import { createOutrayTanStackServerEntry } from "@outray/tanstack-start/server";
+
+export const telemetry = createOutrayTanStackServerEntry({
+  apiKey: process.env.OBSERVABILITY_TOKEN,
+  serviceName: "my-tanstack-app",
+  serviceVersion: process.env.GIT_COMMIT_SHA,
+  environment: process.env.NODE_ENV,
+  captureConsole: false,
+});
+
+export default telemetry;
+~~~
+
+The server entry starts observability and wraps TanStack's default request handler. It exposes `fetch`, the underlying `observability` object, and structured `debug`, `info`, `warn`, and `error` methods.
+
+Use your existing development and production scripts. This setup does not require `NODE_OPTIONS`, a preloader, or a public tunnel.
+
+## Route-aware requests
+
+Each instrumented request records a server span, response status, failures, and HTTP request count, duration, and active-request metrics.
+
+The default normalizer replaces UUIDs, numeric IDs, long hexadecimal IDs, and ULIDs with `:id`. For application-specific slugs or exact route templates, add a resolver:
+
+~~~ts
+export default createOutrayTanStackServerEntry({
+  apiKey: process.env.OBSERVABILITY_TOKEN,
+  serviceName: "my-tanstack-app",
+  routeResolver: ({ pathname }) => {
+    if (pathname.startsWith("/api/orders/")) return "/api/orders/:orderId";
+    return null;
+  },
+  ignore: ({ pathname }) => pathname === "/internal/health",
+});
+~~~
+
+Vite internals and common static asset paths are ignored by default. Do not place raw IDs or query values into operation names.
+
+## Opt in to payload capture
+
+~~~ts
+export default createOutrayTanStackServerEntry({
+  apiKey: process.env.OBSERVABILITY_TOKEN,
+  serviceName: "my-tanstack-app",
+  capturePayloads: {
+    maxBodyBytes: 16 * 1024,
+    redactedHeaders: ["x-workspace-secret"],
+    redactedFields: ["accountPin"],
+  },
+});
+~~~
+
+Capture is off by default. Eligible JSON and URL-encoded request/response bodies are bounded and common sensitive fields and headers are redacted. The handler's original Request and Response are not consumed or replaced.
+
+Review the [shared capture limits and privacy guidance](/docs/node-sdk#http-payload-capture). Do not rely on generic redaction to discover every sensitive application value.
+
+## Logs and application spans
+
+Use the returned logging methods in server-side code:
+
+~~~ts
+telemetry.info("server initialized");
+telemetry.warn("upstream response delayed", { upstream: "inventory" });
+~~~
+
+`captureConsole: true` forwards existing console calls while keeping local output.
+
+For an application operation that needs a child span:
+
+~~~ts
+import { withOutraySpan } from "@outray/tanstack-start";
+
+await withOutraySpan("load inventory", async () => {
+  // Perform the operation here.
+});
+~~~
+
+Keep server-entry credentials and imports out of client route bundles. The SDK does not install shutdown handlers; use `telemetry.observability.shutdown()` in your server lifecycle.
+
+## Keep an existing server entry
+
+Advanced integrations can use `instrumentTanStackRequest` or `createOutrayTanStackMiddleware` from `@outray/tanstack-start` to instrument an existing request path. Those helpers do not initialize an exporter themselves; start an OpenTelemetry provider first.
+
+Avoid wrapping the same request more than once, which can duplicate metric records.
+
+For a public development URL, configure [`@outray/vite`](/docs/vite-plugin) independently. For shared observability settings and exporter troubleshooting, see the [Node.js SDK](/docs/node-sdk).
