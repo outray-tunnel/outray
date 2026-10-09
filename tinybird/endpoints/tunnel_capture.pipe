@@ -16,11 +16,10 @@ SQL >
     {% if defined(request_id) %}
       AND id = {{String(request_id)}}
     {% else %}
-      AND timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')
-      AND timestamp <= parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+      AND timestamp >= toDateTime64({{DateTime64(start)}}, 3, 'UTC')
+      AND timestamp <= toDateTime64({{DateTime64(end)}}, 3, 'UTC')
     {% end %}
-    ORDER BY abs(dateDiff('millisecond', timestamp, parseDateTime64BestEffort({{String(timestamp)}}, 3, 'UTC'))) ASC, id ASC
+    ORDER BY abs(dateDiff('millisecond', timestamp, toDateTime64({{DateTime64(timestamp)}}, 3, 'UTC'))) ASC, id ASC
     LIMIT 1
 
 TYPE endpoint
-
