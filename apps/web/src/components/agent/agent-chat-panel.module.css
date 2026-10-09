@@ -1,13 +1,46 @@
-.panel { animation: enter-panel 180ms cubic-bezier(0.22, 1, 0.36, 1); }
-.overlay { animation: enter-overlay 150ms ease-out; }
+.panel[data-state="open"] { animation: enter-panel 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.panel[data-state="closed"] { animation: exit-panel 190ms cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+.overlay[data-state="open"] { animation: enter-overlay 260ms ease-out both; }
+.overlay[data-state="closed"] { animation: exit-overlay 190ms ease-in both; pointer-events: none; }
+.workingLabel { color: #beb7cc; }
+.workingIcon { display: inline-flex; color: #c4b5fd; animation: working-glow 2.6s ease-in-out infinite; }
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .workingLabel {
+    background-image: linear-gradient(110deg, #a3a1b0 25%, #eee9ff 43%, #ffffff 50%, #eee9ff 57%, #a3a1b0 75%);
+    background-size: 250% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    animation: working-shimmer 2.6s linear infinite;
+  }
+}
+@keyframes working-shimmer {
+  from { background-position: 125% 0; }
+  to { background-position: -125% 0; }
+}
+@keyframes working-glow {
+  0%, 100% { opacity: 0.68; }
+  50% { opacity: 1; }
+}
 @keyframes enter-panel {
-  from { opacity: 0; transform: translateX(24px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { transform: translate3d(100%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+@keyframes exit-panel {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(100%, 0, 0); }
 }
 @keyframes enter-overlay {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+@keyframes exit-overlay {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .panel, .overlay { animation: none; }
+  .panel[data-state], .overlay[data-state], .workingLabel, .workingIcon { animation: none; }
+  .workingLabel { background: none; color: #d4d4d8; -webkit-text-fill-color: currentColor; }
+  .workingIcon { opacity: 1; }
 }
