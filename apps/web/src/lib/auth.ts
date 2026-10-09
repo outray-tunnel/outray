@@ -79,7 +79,7 @@ export const auth = betterAuth({
           role,
           invitationLink,
         });
-        sendViaZepto({
+        await sendViaZepto({
           recipientEmail: email,
           subject,
           htmlString: html,
