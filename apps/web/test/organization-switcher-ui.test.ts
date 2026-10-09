@@ -46,10 +46,10 @@ function elements(node: React.ReactNode): React.ReactElement<any>[] {
 
 test("the complete organization inventory uses native labeled links with a single current organization and a separate create destination", () => {
   const inventory = Array.from({ length: 12 }, (_, index) => ({ id: `organization-${index}`, name: `Workspace ${index}`, slug: `workspace-${index}` }));
-  const html = render({ organizations: inventory, orgSlug: "workspace-0", pathname: "/workspace-0/tunnels" });
+  const html = render({ organizations: inventory, orgSlug: "workspace-0", pathname: "/workspace-0/tunnel/tunnels" });
   assert.match(html, /<nav aria-label="Organizations"/);
   assert.equal(options(html).length, 12);
-  assert.deepEqual(options(html).map(href), inventory.map(({ slug }) => `/${slug}/tunnels`));
+  assert.deepEqual(options(html).map(href), inventory.map(({ slug }) => `/${slug}/tunnel/tunnels`));
   assert.equal(options(html).filter((link) => /aria-current="(?:true|page)"/.test(link)).length, 1);
   assert.match(options(html)[0], /aria-label="Current organization"/);
   for (const [index, link] of options(html).entries()) {
