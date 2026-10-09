@@ -1,0 +1,42 @@
+---
+title: Configure a status page
+description: Choose public components, appearance, publishing, and a verified custom subdomain.
+icon: PanelsTopLeft
+---
+
+## Create the page as a draft
+
+Open **Uptime → Status page**, enter the page name, optional description, and public slug. There is one page per organization. It starts unpublished; review customer-facing information before using the publishing controls.
+
+The hosted address is `https://your-slug.status.outray.app`. A self-hosted deployment may use its configured status-service origin instead. Do not use the private dashboard URL as the public status address.
+
+## Add components and groups
+
+A component represents something customers recognize, such as API, Dashboard, or Checkout. Add standalone components or arrange them inside groups, then set ordering and visibility. Groups can be hidden independently of their components.
+
+Link one or more monitors when health should be derived from measured checks. A monitor can belong to more than one component. With no linked monitors, the component is manual-only and uses its manually managed state.
+
+For a monitor-backed component, all fresh linked monitors Up means Operational; all Down means Outage; a mix containing Down means Degraded; otherwise missing, stale, or paused evidence can leave Unknown. Manual-only components do not gain measured uptime history merely because you set them Operational.
+
+Public history shows observed evidence and published incident impact, not invented zero-downtime periods where no checks exist. Component health can remain visible without a published incident. Hiding an incident is not a way to hide the linked component's health.
+
+## Set appearance and publish
+
+Use Appearance to set the name, description, accent color, and optional PNG/WebP logo (up to 256 KB). Review changes and save them. Use Publishing to publish or unpublish the page.
+
+Publishing makes visible components and eligible published incidents available publicly. Unpublished pages and private draft updates do not become public merely because the team can preview them. Public subscriber emails require a published written incident update; see [notifications](/docs/uptime/notifications).
+
+## Connect a custom subdomain
+
+Use the Domains section to add a subdomain you own, such as `status.example.com`. The current workflow supports one custom status subdomain per page, not an apex-domain setup. It is separate from [tunnel custom domains](/docs/custom-domains).
+
+Add the exact records supplied by the dashboard:
+
+| Record | Name | Value |
+| --- | --- | --- |
+| TXT | `_outray-challenge.status.example.com` | The ownership token shown for this domain |
+| CNAME | `status.example.com` | `status.outray.app` |
+
+Use **DNS only** rather than a DNS-provider proxy. After both records are visible, verify the domain in the dashboard. TXT ownership and the CNAME target must both match. A verified domain does not publish a draft page; publishing remains a separate action.
+
+If verification fails, check record names, token value, the CNAME target, proxy settings, and DNS propagation. If the page shows Unknown, review linked-monitor freshness instead of changing branding or domain records to mask missing evidence.
