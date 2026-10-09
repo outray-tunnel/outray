@@ -3,9 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { appClient, type Domain } from "@/lib/app-client";
 import {
-  getPlanLimits,
+  getSubscriptionLimits,
   isUnlimitedPlanLimit,
-  type SubscriptionPlan,
 } from "@/lib/subscription-plans";
 import { SearchField } from "@/components/arc/search-field/search-field";
 import { Select } from "@/components/arc/select/select";
@@ -126,8 +125,8 @@ function DomainsPage({ orgSlug }: { orgSlug: string }) {
   const domains = listQuery.data?.domains ?? [];
   const filtered = filterDomains(domains, search, status);
   const currentPlan = subscriptionQuery.data?.subscription?.plan || "free";
-  const limit = getPlanLimits(currentPlan as SubscriptionPlan).maxDomains;
-  const isUnlimited = isUnlimitedPlanLimit(currentPlan, limit);
+  const limit = getSubscriptionLimits(subscriptionQuery.data).maxDomains;
+  const isUnlimited = isUnlimitedPlanLimit(currentPlan, limit, !!subscriptionQuery.data?.instanceLimits);
   const isAtLimit = !isUnlimited && domains.length >= limit;
   const isReady = Boolean(listQuery.data && subscriptionQuery.data);
 
@@ -168,6 +167,7 @@ function DomainsPage({ orgSlug }: { orgSlug: string }) {
       )}
       {isReady && (
         <DomainLimitWarning
+          instanceOwned={!!subscriptionQuery.data?.instanceLimits}
           isAtLimit={isAtLimit}
           domainLimit={limit}
           currentPlan={currentPlan}
