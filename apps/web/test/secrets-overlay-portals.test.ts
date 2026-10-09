@@ -120,7 +120,7 @@ async function controller(name: OverlayName, initiallyOpen = true) {
       if (specifier === "@/components/ui/select") return { Select: () => null };
       if (specifier === "@/components/arc/button/button") return { Button: () => null };
       if (specifier.endsWith(".css")) return {};
-      if (specifier.startsWith("@hugeicons")) return requireModule(specifier);
+      if (specifier.startsWith("@hugeicons") || specifier.startsWith("@outray/icons/")) return requireModule(specifier);
       throw new Error(`Unexpected secrets overlay import: ${specifier}`);
     },
   });
