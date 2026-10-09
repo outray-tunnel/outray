@@ -22,6 +22,7 @@ import { OnboardingShell } from "./onboarding-shell";
 import { SetupFlow, SetupStep, SetupCodeBlock as CodeBlock } from "./setup-ui";
 import { UptimeMonitorForm } from "./uptime-monitor-form";
 import { ObservabilitySetup } from "./observability-setup";
+import { setupCliCommand } from "./setup-endpoints";
 import { parseSetupProduct, type SetupProduct } from "./setup-products";
 import type { UptimeMonitor } from "@/components/uptime/uptime-client";
 import { appClient } from "@/lib/app-client";
@@ -154,14 +155,14 @@ function TunnelSetup({ orgSlug, onRecheck }: { orgSlug: string; onRecheck: () =>
         <p className="mb-4 text-[12px] leading-5 text-zinc-400">
           Authenticate the CLI with the account that owns this workspace.
         </p>
-        <CodeBlock>outray login</CodeBlock>
+        <CodeBlock>{setupCliCommand("outray login")}</CodeBlock>
       </SetupStep>
       <SetupStep number="03" title="Start a tunnel">
         <p className="mb-4 text-[12px] leading-5 text-zinc-400">
           Replace 3000 with the port your local service uses. This page will
           detect the connection automatically.
         </p>
-        <CodeBlock>{`outray 3000 --org ${orgSlug}`}</CodeBlock>
+        <CodeBlock>{setupCliCommand(`outray 3000 --org ${orgSlug}`)}</CodeBlock>
       </SetupStep>
     </SetupFlow>
   );
@@ -456,9 +457,9 @@ function SecretsSetup({
       <SetupStep number="03" title="Use Secrets from your terminal">
         <p className="mb-4 text-[12px] leading-5 text-zinc-400">Choose this destination in the CLI, then add values without putting them in shell history.</p>
         <div className="space-y-2.5">
-          <CodeBlock>outray login</CodeBlock>
-          <CodeBlock>{`outray secrets use --org ${orgSlug} --vault ${selectedProject?.slug || "my-app"} --env ${selectedEnvironment?.slug || "development"}`}</CodeBlock>
-          <CodeBlock>outray secrets set API_KEY</CodeBlock>
+          <CodeBlock>{setupCliCommand("outray login")}</CodeBlock>
+          <CodeBlock>{setupCliCommand(`outray secrets use --org ${orgSlug} --vault ${selectedProject?.slug || "my-app"} --env ${selectedEnvironment?.slug || "development"}`)}</CodeBlock>
+          <CodeBlock>{setupCliCommand("outray secrets set API_KEY")}</CodeBlock>
         </div>
         <p className="mt-3 text-[11px] text-zinc-400">The final command prompts for the secret value privately.</p>
       </SetupStep>
