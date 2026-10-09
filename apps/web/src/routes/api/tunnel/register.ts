@@ -4,7 +4,8 @@ import { randomUUID } from "crypto";
 import { db } from "../../../db";
 import { tunnels } from "../../../db/app-schema";
 import { subscriptions } from "../../../db/subscription-schema";
-import { getPlanLimits } from "../../../lib/subscription-plans";
+import { organizations } from "../../../db/auth-schema";
+import { capacityDescription, getPlanLimits } from "../../../lib/subscription-plans";
 import { redis } from "../../../lib/redis";
 import {rateLimiters, getClientIdentifier, createRateLimitResponse,} from "../../../lib/rate-limiter";
 
@@ -69,7 +70,9 @@ export const Route = createFileRoute("/api/tunnel/register")({
           try {
             // Use a transaction with row-level locking to prevent race conditions
             const result = await db.transaction(async (tx) => {
-              // Lock the organization's subscription row to serialize concurrent requests
+              // The installation may not have subscription rows at all.
+              await tx.select({ id: organizations.id }).from(organizations)
+                .where(eq(organizations.id, organizationId)).for("update");
               const [subscription] = await tx
                 .select()
                 .from(subscriptions)
@@ -155,7 +158,7 @@ export const Route = createFileRoute("/api/tunnel/register")({
                   `[TUNNEL LIMIT CHECK] REJECTED - Limit ${tunnelLimit} reached`,
                 );
                 return {
-                  error: `Tunnel limit reached. The ${currentPlan} plan allows ${tunnelLimit} active tunnel${tunnelLimit > 1 ? "s" : ""}.`,
+                  error: `Tunnel limit reached. ${capacityDescription(currentPlan, tunnelLimit, `active tunnel${tunnelLimit > 1 ? "s" : ""}`)}`,
                   status: 403,
                 };
               }
