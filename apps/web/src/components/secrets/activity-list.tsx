@@ -1,11 +1,11 @@
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import Add01Icon from "@hugeicons-pro/core-stroke-rounded/Add01Icon";
-import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
-import Edit02Icon from "@hugeicons-pro/core-stroke-rounded/Edit02Icon";
-import Key01Icon from "@hugeicons-pro/core-stroke-rounded/Key01Icon";
-import RefreshIcon from "@hugeicons-pro/core-stroke-rounded/RefreshIcon";
-import SecurityLockIcon from "@hugeicons-pro/core-stroke-rounded/SecurityLockIcon";
-import ViewIcon from "@hugeicons-pro/core-stroke-rounded/ViewIcon";
+import Add01Icon from "@outray/icons/stroke/Add01Icon";
+import Delete02Icon from "@outray/icons/stroke/Delete02Icon";
+import Edit02Icon from "@outray/icons/stroke/Edit02Icon";
+import Key01Icon from "@outray/icons/stroke/Key01Icon";
+import RefreshIcon from "@outray/icons/stroke/RefreshIcon";
+import SecurityLockIcon from "@outray/icons/stroke/SecurityLockIcon";
+import ViewIcon from "@outray/icons/stroke/ViewIcon";
 import type { SecretAuditEvent } from "@/lib/secrets-client";
 import { avatarLabel, formatAuditActor, formatRelativeDate } from "./utils";
 
