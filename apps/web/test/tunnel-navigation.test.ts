@@ -69,12 +69,13 @@ test("Requests and protocol Events retain the controlled activity tab", () => {
 test("tunnel header back navigation uses the route organization slug", () => {
   const root = createRootRoute();
   const org = createRoute({ getParentRoute: () => root, path: "$orgSlug" });
-  const tunnels = createRoute({ getParentRoute: () => org, path: "tunnels" });
+  const tunnel = createRoute({ getParentRoute: () => org, path: "tunnel" });
+  const tunnels = createRoute({ getParentRoute: () => tunnel, path: "tunnels" });
   const detail = createRoute({ getParentRoute: () => tunnels, path: "$tunnelId" });
   const router = createRouter({
-    routeTree: root.addChildren([org.addChildren([tunnels.addChildren([detail])])]),
+    routeTree: root.addChildren([org.addChildren([tunnel.addChildren([tunnels.addChildren([detail])])])]),
     history: createMemoryHistory({
-      initialEntries: ["/stale-org/tunnels/tunnel-1"],
+      initialEntries: ["/stale-org/tunnel/tunnels/tunnel-1"],
     }),
   });
   const html = renderToStaticMarkup(
@@ -95,8 +96,9 @@ test("tunnel header back navigation uses the route organization slug", () => {
     }),
   );
 
-  assert.match(html, /href="\/current-org\/tunnels"[^>]*>[^<]*<svg[^>]*>[\s\S]*?All tunnels/);
-  assert.doesNotMatch(html, /href="\/stale-org\/tunnels"/);
+  assert.match(html, /href="\/current-org\/tunnel\/tunnels"[^>]*>[^<]*<svg[^>]*>[\s\S]*?All tunnels/);
+  assert.doesNotMatch(html, /href="\/stale-org\/tunnel\/tunnels"/);
+  assert.doesNotMatch(html, /href="\/current-org\/tunnels"/);
   assert.match(html, /<button\b[^>]*class="[^"]*\bmd\b[^>]*>[\s\S]*?Stop tunnel/);
 });
 
