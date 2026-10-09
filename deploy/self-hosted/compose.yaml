@@ -9,8 +9,9 @@ x-build: &build
     SHARE_PUBLIC_URL: https://${OUTRAY_SHARE_HOST:?Set OUTRAY_SHARE_HOST}
     EDGE_PUBLIC_URL: wss://${OUTRAY_EDGE_HOST:?Set OUTRAY_EDGE_HOST}
     INGEST_PUBLIC_URL: https://${OUTRAY_INGEST_HOST:?Set OUTRAY_INGEST_HOST}
-  secrets:
-    - hugeicons_license_key
+    BUILD_NODE_MAX_OLD_SPACE_SIZE: ${BUILD_NODE_MAX_OLD_SPACE_SIZE:-}
+    # A public build's cache identity must not depend on secret mount presence.
+    OUTRAY_ICON_MODE: free
 
 x-app: &app
   image: ${OUTRAY_IMAGE:-outray-self-hosted:local}
@@ -145,6 +146,7 @@ services:
     environment:
       <<: [*policy, *database-environment, *redis-environment, *tinybird-read-environment, *crypto-environment, *uptime-environment]
       PORT: "6767"
+      DASHBOARD_DB_POOL_MAX: ${DASHBOARD_DB_POOL_MAX:-50}
       APP_URL: https://${OUTRAY_APP_HOST}
       CONSOLE_PUBLIC_URL: https://${OUTRAY_APP_HOST}
       TUNNEL_PUBLIC_URL: https://${OUTRAY_EDGE_HOST}
@@ -372,7 +374,3 @@ volumes:
   redis-data:
   caddy-data:
   caddy-config:
-
-secrets:
-  hugeicons_license_key:
-    environment: HUGEICONS_LICENSE_KEY
