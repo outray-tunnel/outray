@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import Folder01Icon from "@hugeicons-pro/core-stroke-rounded/Folder01Icon";
-import Key01Icon from "@hugeicons-pro/core-stroke-rounded/Key01Icon";
-import Layers01Icon from "@hugeicons-pro/core-stroke-rounded/Layers01Icon";
+import ArrowRight01Icon from "@outray/icons/stroke/ArrowRight01Icon";
+import Folder01Icon from "@outray/icons/stroke/Folder01Icon";
+import Key01Icon from "@outray/icons/stroke/Key01Icon";
+import Layers01Icon from "@outray/icons/stroke/Layers01Icon";
 import type { SecretProject } from "@/lib/secrets-client";
 import { SecretsBadge } from "./secrets-ui";
 import { formatRelativeDate } from "./utils";
