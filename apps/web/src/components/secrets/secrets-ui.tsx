@@ -9,10 +9,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import Loading03Icon from "@hugeicons-pro/core-stroke-rounded/Loading03Icon";
-import MoreVerticalIcon from "@hugeicons-pro/core-stroke-rounded/MoreVerticalIcon";
+import Alert02Icon from "@outray/icons/stroke/Alert02Icon";
+import Cancel01Icon from "@outray/icons/stroke/Cancel01Icon";
+import Loading03Icon from "@outray/icons/stroke/Loading03Icon";
+import MoreVerticalIcon from "@outray/icons/stroke/MoreVerticalIcon";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/arc/button/button";
 import { Select, type SelectOption } from "@/components/ui/select";
