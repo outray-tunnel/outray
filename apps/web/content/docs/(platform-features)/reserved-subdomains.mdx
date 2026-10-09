@@ -1,21 +1,40 @@
 ---
 title: Reserved Subdomains
-description: How to use persistent subdomains for your tunnels
+description: Keep a stable address for previews, webhooks, and callbacks.
 icon: Bookmark
 ---
 
-By default, OutRay assigns a random subdomain to your tunnel each time you start it. However, for many use cases (like webhooks or OAuth callbacks), you need a consistent URL.
+A reserved subdomain belongs to your organization and can be reused across tunnel sessions. Reservation keeps an address available to you; it does not keep your application running.
 
-## Usage
+## Reserve the name
 
-You can request a specific subdomain using the `--subdomain` flag:
+Select your organization in the console, then open **Tunnels → Subdomains** at `/<org-slug>/tunnel/subdomains`. Add an available name using lowercase letters, numbers, and hyphens.
 
-```bash
+Reservations count toward your organization's plan limit. An address reserved by another organization cannot be used by yours.
+
+## Open the tunnel
+
+~~~bash
 outray 3000 --subdomain my-app
-```
+~~~
 
-If the subdomain is available, your public URL will be `https://my-app.tunnel.outray.app`.
+Use the public URL printed by the CLI. Restart with the same subdomain to reuse the address.
 
-## Reservation
+`--subdomain` requests a name; it does not permanently reserve every name you happen to use. Reserve important webhook or OAuth callback names in the console first.
 
-Subdomains are reserved for your organization. Once you successfully use a subdomain, it is linked to your organization, and no other user can claim it.
+## Share it with your team
+
+Members opening tunnels for the same organization can use its reserved names. Only one active tunnel can occupy an address at a time. If it is already in use, stop the other session or choose another name.
+
+To select the organization for a browser-authenticated CLI session:
+
+~~~bash
+outray switch my-team
+outray 3000 --subdomain my-app
+~~~
+
+## Release an address
+
+Remove the reservation from **Subdomains** when you no longer need it. Update any webhook destinations, callback allowlists, or saved links before releasing a name.
+
+For a hostname you own, see [Custom domains](/docs/custom-domains).
