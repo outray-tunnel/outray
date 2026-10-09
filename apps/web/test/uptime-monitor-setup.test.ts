@@ -128,7 +128,7 @@ async function loadForm({ draft = validDraft(), request = async () => ({ monitor
       if (specifier === "lucide-react") return new Proxy({}, { get: () => () => null });
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
       if (specifier.endsWith("ui/workspace-input")) return { WorkspaceInput: "input", WorkspaceTextarea: "textarea" };
-      if (specifier.startsWith("@hugeicons-pro/")) return { __esModule: true, default: [] };
+      if (specifier.startsWith("@outray/icons/")) return { __esModule: true, default: [] };
       if (specifier.startsWith("@/components/") || specifier.startsWith("../")) return stubs;
       if (specifier.endsWith(".css")) return {};
       throw new Error(`Unexpected monitor form dependency: ${specifier}`);
