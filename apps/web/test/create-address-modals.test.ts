@@ -67,7 +67,7 @@ async function controller(resource: Resource) {
     module, exports: module.exports, React, Error,
     require: (specifier: string) => {
       if (Object.hasOwn(modules, specifier)) return modules[specifier];
-      if (specifier.startsWith("@hugeicons")) return requireModule(specifier);
+      if (specifier.startsWith("@hugeicons") || specifier.startsWith("@outray/icons/")) return requireModule(specifier);
       throw new Error(`Unexpected modal import: ${specifier}`);
     },
   });
