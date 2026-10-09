@@ -1,7 +1,14 @@
 import "dotenv/config";
+import instancePolicy from "../../../shared/instance-config";
+
+/** Pure policy check, independent of database connectivity or probe startup. */
+export function uptimeEnabled(env: Record<string, string | undefined> = process.env) {
+  return env.UPTIME_ENABLED !== "false" && env.OUTRAY_UPTIME_DISABLED !== "true"
+    && instancePolicy.instanceConfig(env).products.includes("uptime");
+}
 
 export const config = {
-  enabled: process.env.UPTIME_ENABLED !== "false" && process.env.OUTRAY_UPTIME_DISABLED !== "true",
+  enabled: uptimeEnabled(),
   probesEnabled: process.env.UPTIME_PROBES_ENABLED === "true",
   notificationsEnabled: process.env.UPTIME_NOTIFICATIONS_ENABLED === "true",
   production: process.env.NODE_ENV === "production",
