@@ -5,7 +5,8 @@ import { runInNewContext } from "node:vm";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
-import { AgentComposer, AgentConversation, AgentHistory, AgentMessageView, AgentWelcome } from "../src/components/agent/agent-chat-panel";
+import { AgentComposer, AgentConversation, AgentHistory, AgentMessageView, AgentPanelContent, AgentWelcome } from "../src/components/agent/agent-chat-panel";
+import { AgentActionsContext, AgentStateContext } from "../src/components/agent/agent-chat-context";
 import { agentChatReducer, createAgentRequestContext, createAgentThread, initialAgentChatState, type AgentChatAction, type AgentMessage, type AgentChatState } from "../src/components/agent/agent-chat-data";
 import { requestExplanationDemoScenarios } from "../src/components/observability/request-explanation-data";
 import * as transport from "../src/components/agent/agent-chat-transport";
@@ -21,9 +22,9 @@ const answer: AgentMessage = { id: "reply", role: "assistant", text: "Observed H
   { id: "evil", label: "External", href: "https://evil.example", observedAt: "2026-10-08" },
 ] };
 
-test("live answers use escaped plain text and server evidence only, with collapsed real steps", () => {
+test("live answers render safe Markdown and server evidence only, with collapsed real steps", () => {
   const output = html(AgentMessageView, { message: answer, orgSlug: "acme" });
-  assert.match(output, /&lt;script&gt;/);
+  assert.match(output, /data-agent-message-response/);
   assert.doesNotMatch(output, /<script|href="https:|Scripted|Prototype/);
   assert.match(output, /href="\/acme\/observability\/requests/);
   assert.match(output, /1 investigation step/);
@@ -34,6 +35,7 @@ test("live partial text and dynamic progress are visible while pending without c
   const pending = { ...answer, status: "running", localStreaming: true, steps: [{ id: "logs", label: "Read correlated logs", status: "running" }] };
   const output = html(AgentMessageView, { message: pending, orgSlug: "acme" });
   assert.match(output, /aria-busy="true"/);
+  assert.match(output, /Agent working…/);
   assert.match(output, /Observed HTTP 503/);
   assert.match(output, /Read correlated logs/);
   assert.doesNotMatch(output, /Copy response|<details/);
@@ -42,8 +44,31 @@ test("live partial text and dynamic progress are visible while pending without c
 test("restored unfinished responses stay truthful without fake local progress or inert Stop", () => {
   const output = html(AgentMessageView, { message: { ...answer, status: "running" }, orgSlug: "acme" });
   assert.match(output, /has not finished yet/);
-  assert.match(output, /aria-busy="false"/);
+  assert.match(output, /aria-busy="true"/);
+  assert.match(output, /Agent working…/);
   assert.doesNotMatch(output, /animate-pulse/);
+});
+test("assistant history renders emphasis, lists and inline code while user messages stay literal", () => {
+  const text = "### Findings\n\nA **successful** request.\n\n- Route: `/api/orders`\n- No observed errors.";
+  const output = html(AgentMessageView, { message: { ...answer, text }, orgSlug: "acme" });
+  assert.match(output, /<h4[^>]*>Findings<\/h4>/);
+  assert.match(output, /<strong[^>]*>successful<\/strong>/);
+  assert.match(output, /<ul/);
+  assert.match(output, /<code[^>]*>\/api\/orders<\/code>/);
+  assert.doesNotMatch(output, /\*\*successful\*\*|`\/api\/orders`/);
+  const user = html(AgentMessageView, { message: { ...answer, role: "user", text }, orgSlug: "acme" });
+  assert.match(user, /\*\*successful\*\*/);
+  assert.doesNotMatch(user, /<strong|data-agent-message-response/);
+});
+test("restored server runs block duplicate sends without exposing a fake local Stop action", () => {
+  let sends = 0;
+  const tree = AgentComposer({ value: "next question", onSend: () => sends++, onChange() {}, awaitingServer: true });
+  const textarea = find(tree, "Message Agent");
+  textarea.props.onKeyDown({ key: "Enter", shiftKey: false, nativeEvent: { isComposing: false }, preventDefault() {} });
+  elements(tree).find((element) => element.type === "form")!.props.onSubmit({ preventDefault() {} });
+  assert.equal(sends, 0);
+  assert.equal(find(tree, "Send message").props.disabled, true);
+  assert.doesNotMatch(html(AgentComposer, { value: "next", onSend() {}, onChange() {}, awaitingServer: true }), /Stop response/);
 });
 test("welcome, saved history and contextual provenance no longer call live chat a prototype", () => {
   const context = createAgentRequestContext("acme", requestExplanationDemoScenarios[0].request);
@@ -76,6 +101,23 @@ test("Enter sends once while Shift+Enter and composition do not send", () => {
   const textarea = find(tree, "Message Agent");
   for (const [shiftKey, isComposing] of [[true, false], [false, true], [false, false]]) textarea.props.onKeyDown({ key: "Enter", shiftKey, nativeEvent: { isComposing }, preventDefault() {} });
   assert.equal(sends, 1);
+});
+
+test("Agent header hides the configured model without removing server metadata or chat controls", () => {
+  const state = { ...initialAgentChatState, panelOpen: true, configured: true, model: "private-grok-model-name" };
+  const chat: ReturnType<typeof import("../src/components/agent/agent-chat-context").useAgentChatState> = {
+    state, dispatch() {}, orgSlug: "acme", panelId: "agent-panel", returnFocusRef: { current: null },
+    sendMessage() {}, stopResponse() {}, async loadHistory() {},
+  };
+  const actions: ReturnType<typeof import("../src/components/agent/agent-chat-context").useAgentChat> = {
+    openAgent() {}, startThread() {}, isOpen: true, panelId: "agent-panel",
+  };
+  const output = renderToStaticMarkup(React.createElement(AgentActionsContext.Provider, { value: actions },
+    React.createElement(AgentStateContext.Provider, { value: chat }, React.createElement(AgentPanelContent, { onClose() {} }))));
+  assert.match(output, /<h2[^>]*>Agent<\/h2>/);
+  assert.doesNotMatch(output, /private-grok-model-name|title="private-grok|Agent is not configured/);
+  for (const label of ["New chat", "Chat history", "Close Agent", "Message Agent"]) assert.match(output, new RegExp(`aria-label="${label}"`));
+  assert.equal(state.model, "private-grok-model-name");
 });
 
 /** Real provider/reducer/transport with deterministic React scheduling and mocked network. */
@@ -195,17 +237,17 @@ test("generic suggestions double-click before rerender produce only one live POS
 });
 
 test("overlay keeps workspace capture protection and restores opener focus on close", async () => {
-  const source = await readFile(new URL("../src/components/agent/agent-chat-panel.tsx", import.meta.url), "utf8");
+  const source = await readFile(new URL("../src/components/agent/agent-chat-host.tsx", import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true } }).outputText;
   let focused = 0, fallbackFocused = 0, inside = false;
   const opener = { isConnected: true, focus() { focused++; } };
   const returnFocusRef: { current: typeof opener | null } = { current: opener };
   const events: AgentChatAction[] = [];
   const dialog = Object.fromEntries(["Root", "Portal", "Overlay", "Content", "Title"].map((name) => [name, (props: any) => props.children]));
-  const module = { exports: {} as typeof import("../src/components/agent/agent-chat-panel") };
+  const module = { exports: {} as typeof import("../src/components/agent/agent-chat-host") };
   runInNewContext(compiled, { React, module, exports: module.exports, document: { getElementById: () => ({ contains: () => inside }), querySelector: () => ({ focus() { fallbackFocused++; } }) },
     require(specifier: string) {
-      if (specifier === "react") return React;
+      if (specifier === "react") return { ...React, lazy: () => () => null };
       if (specifier === "@radix-ui/react-dialog") return dialog;
       if (specifier === "@tanstack/react-router") return { Link: () => null };
       if (specifier === "lucide-react") return new Proxy({}, { get: () => () => null });
@@ -216,11 +258,17 @@ test("overlay keeps workspace capture protection and restores opener focus on cl
       return new Proxy({}, { get: () => () => null });
     },
   });
-  const tree = module.exports.default();
+  const tree = module.exports.AgentChatHost();
   const content = elements(tree).find((element) => element.type === dialog.Content)!;
   const overlay = elements(tree).find((element) => element.type === dialog.Overlay)!;
   assert.match(content.props.className, /ph-no-capture.*fixed inset-y-0 right-0.*h-dvh w-full max-w-\[720px\]/);
   assert.match(overlay.props.className, /fixed inset-0/);
+  assert.equal(tree.type, dialog.Root);
+  assert.equal(tree.props.open, true);
+  assert.equal(tree.props.modal, undefined, "Radix keeps its modal focus trap enabled");
+  assert.equal(content.props.onEscapeKeyDown, undefined, "native Escape dismissal stays enabled");
+  assert.equal(content.props.onPointerDownOutside, undefined, "native outside dismissal stays enabled");
+  assert.equal(content.props.onOpenAutoFocus, undefined, "native opening focus stays enabled");
   let prevented = false;
   content.props.onCloseAutoFocus({ preventDefault() { prevented = true; } });
   assert.equal(prevented, true);
@@ -228,6 +276,15 @@ test("overlay keeps workspace capture protection and restores opener focus on cl
   inside = true;
   content.props.onCloseAutoFocus({ preventDefault() {} });
   assert.equal(fallbackFocused, 1);
+  inside = false;
+  opener.isConnected = false;
+  content.props.onCloseAutoFocus({ preventDefault() {} });
+  assert.equal(fallbackFocused, 2);
+  returnFocusRef.current = null;
+  content.props.onCloseAutoFocus({ preventDefault() {} });
+  assert.equal(fallbackFocused, 3);
+  tree.props.onOpenChange(true);
+  assert.equal(events.length, 0);
   tree.props.onOpenChange(false);
   assert.equal(JSON.stringify(events), JSON.stringify([{ type: "close" }]));
 });
