@@ -4,7 +4,7 @@ This package runs all four products—Tunnels, Observability, Secrets, and Uptim
 
 The deployment includes web/API, tunnel edge, domain authorization, telemetry ingestion, cron, public status pages, and anonymous Secrets Share. PostgreSQL 16, Redis 7, and Caddy run alongside them with persistent volumes. The Uptime worker is opt-in after its outbound network policy has been verified.
 
-This is not an offline distribution. Analytics still use your own Tinybird workspace; sign-in uses your GitHub/Google OAuth apps. The current icon dependency requires a Hugeicons Pro license to build. Email uses your own ZeptoMail configuration. The optional console agent uses your own xAI key.
+This is not an offline distribution. Analytics still use your own Tinybird workspace; sign-in uses your GitHub/Google OAuth apps. Icons build with the public MIT-licensed Hugeicons pack without a license. Email uses your own ZeptoMail configuration. The optional console agent uses your own xAI key.
 
 ## 1. Prepare an independent installation
 
@@ -24,7 +24,7 @@ You can supply `-- --file /absolute/path/private.env` to each `self-host:*` setu
 
 ### Required external configuration
 
-- `HUGEICONS_LICENSE_KEY`: build-only private registry credential. Docker receives it through a BuildKit secret mount, not a build argument or runtime environment. This follows [Docker's build-secret guidance](https://docs.docker.com/build/building/secrets/).
+- `HUGEICONS_LICENSE_KEY`: optional, only for operators with their own Pro license. Leave blank for a license-free build. If supplied, `self-host:up` adds the licensed build overlay and Docker receives it through a BuildKit secret mount, never a build argument or runtime environment. This follows [Docker's build-secret guidance](https://docs.docker.com/build/building/secrets/).
 - At least one complete GitHub or Google OAuth app: `*_CLIENT_ID` and `*_CLIENT_SECRET`.
 - `OUTRAY_SIGNUP_ALLOWED_EMAILS`: comma-separated exact verified addresses. Initialization allows only the supplied owner email.
 - `OUTRAY_SIGNUP_ALLOWED_DOMAINS`: optional exact email domains; this does not implicitly allow subdomains. A domain-only list is supported, but broader than individual addresses. Both lists empty means new users are rejected.
@@ -91,7 +91,52 @@ npm run self-host:check
 npm run self-host:up
 ```
 
+### Icon licensing
+
+The default build needs no Hugeicons registry credentials. `@hugeicons/core-free-icons`
+is [MIT-licensed](https://github.com/hugeicons/hugeicons/blob/main/README.md), with
+Stroke Rounded alternatives for the app's solid and stroke icons. Its package
+retains the MIT notice; no Pro SVG source is copied into this repository.
+
+For local npm builds, `OUTRAY_ICON_MODE=auto` uses the original Pro styles only
+when your build key is present and both optional Pro packs are available. A
+missing key or unavailable Pro pack falls back to the free pack.
+`OUTRAY_ICON_MODE=free` always selects free icons; `OUTRAY_ICON_MODE=pro`
+explicitly requires your licensed packs (and a key to install them).
+Changes require rebuilding the image. Plain `npm ci` and web builds work without
+a key; do not use `--omit=optional`, because native build tools are optional too.
+
+The normal Compose file has no icon secret. `npm run self-host:up` selects
+`compose.pro-icons.yaml` only when a non-placeholder key is supplied and free
+mode is not forced. The base Docker/Compose build is deterministically `free`;
+the overlay explicitly sets `pro` and requires the packs to install. This
+separates BuildKit cache keys without relying on secret contents or presence.
+For manual licensed Compose builds, append
+`-f deploy/self-hosted/compose.pro-icons.yaml` after the base Compose file and
+export your key in the build environment. Licensed images contain Pro packages:
+do not publish or redistribute them as open-source distributions, templates, or
+kits. Public images must be built without the Pro overlay or credentials and in
+free mode. See [Hugeicons' Free/Pro terms](https://github.com/hugeicons/hugeicons/blob/main/README.md).
+For bare `docker build` with licensed icons, supply both
+`--build-arg OUTRAY_ICON_MODE=pro` and
+`--secret id=hugeicons_license_key,env=HUGEICONS_LICENSE_KEY`; never put the key in
+a build argument. Docker rejects `auto` to keep free/Pro cache identity explicit.
+
 The check validates only local configuration; it does not authenticate to OAuth/Tinybird or test DNS/firewalls. It prints variable names and fixed messages, not credential values. `up` repeats preflight, builds the shared image, and starts Compose with that private env file.
+
+### Small-host rehearsal
+
+For an empty, disposable 1-vCPU/2-GB host, these optional settings in the private installation file are a starting point for a smoke test, not a benchmarked capacity recommendation:
+
+```dotenv
+BUILD_NODE_MAX_OLD_SPACE_SIZE=1536
+DASHBOARD_DB_POOL_MAX=10
+REDIS_MAX_MEMORY=128mb
+```
+
+Provision swap and build before starting the application services; avoid installing a second copy of npm dependencies on the host. The Docker build already runs workspace builds one at a time. Leave the Uptime worker disabled until its separate egress policy is verified. Watch available memory, swap, disk, Redis backlog and container restarts throughout the rehearsal.
+
+The build setting accepts a positive decimal integer in MiB and caps V8 old-space only, not total build memory. Leave it empty to preserve Node's default; a heap-exhaustion failure may require more build memory. It is not passed to application runtimes. The dashboard pool defaults to 50 connections and has a minimum of 10; other services have their own pools. Redis defaults to 512 MB and retains `noeviction`, so a reduced ceiling can reject queued ingestion rather than discard it. These controls are not container memory limits, and a successful empty-host startup does not establish production sizing.
 
 At startup, a one-shot job applies committed Drizzle migrations, then creates/configures `outray_share_app`. It never runs migration generation or schema push. Application readers wait for migration success.
 
