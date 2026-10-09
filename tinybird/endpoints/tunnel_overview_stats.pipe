@@ -6,29 +6,29 @@ DESCRIPTION >
 NODE http
 SQL >
     %
-    SELECT countIf(timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')) AS http_requests,
-           countIf(timestamp < parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')) AS previous_http_requests,
-           countIf(timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC') AND status_code >= 400) AS http_errors,
-           countIf(timestamp < parseDateTime64BestEffort({{String(start)}}, 3, 'UTC') AND status_code >= 400) AS previous_http_errors,
-           sumIf(bytes_in + bytes_out, timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')) AS http_bytes,
-           sumIf(bytes_in + bytes_out, timestamp < parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')) AS previous_http_bytes
+    SELECT countIf(timestamp >= toDateTime64({{DateTime64(start)}}, 3, 'UTC')) AS http_requests,
+           countIf(timestamp < toDateTime64({{DateTime64(start)}}, 3, 'UTC')) AS previous_http_requests,
+           countIf(timestamp >= toDateTime64({{DateTime64(start)}}, 3, 'UTC') AND status_code >= 400) AS http_errors,
+           countIf(timestamp < toDateTime64({{DateTime64(start)}}, 3, 'UTC') AND status_code >= 400) AS previous_http_errors,
+           sumIf(bytes_in + bytes_out, timestamp >= toDateTime64({{DateTime64(start)}}, 3, 'UTC')) AS http_bytes,
+           sumIf(bytes_in + bytes_out, timestamp < toDateTime64({{DateTime64(start)}}, 3, 'UTC')) AS previous_http_bytes
     FROM tunnel_events FINAL
     WHERE organization_id = {{String(organization_id)}}
-      AND timestamp >= parseDateTime64BestEffort({{String(previous_start)}}, 3, 'UTC')
-      AND timestamp < parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+      AND timestamp >= toDateTime64({{DateTime64(previous_start)}}, 3, 'UTC')
+      AND timestamp < toDateTime64({{DateTime64(end)}}, 3, 'UTC')
       AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
 
 NODE protocol
 SQL >
     %
-    SELECT countIf(timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')) AS protocol_events,
-           countIf(timestamp < parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')) AS previous_protocol_events,
-           sumIf(bytes_in + bytes_out, timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')) AS protocol_bytes,
-           sumIf(bytes_in + bytes_out, timestamp < parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')) AS previous_protocol_bytes
+    SELECT countIf(timestamp >= toDateTime64({{DateTime64(start)}}, 3, 'UTC')) AS protocol_events,
+           countIf(timestamp < toDateTime64({{DateTime64(start)}}, 3, 'UTC')) AS previous_protocol_events,
+           sumIf(bytes_in + bytes_out, timestamp >= toDateTime64({{DateTime64(start)}}, 3, 'UTC')) AS protocol_bytes,
+           sumIf(bytes_in + bytes_out, timestamp < toDateTime64({{DateTime64(start)}}, 3, 'UTC')) AS previous_protocol_bytes
     FROM tunnel_protocol_events FINAL
     WHERE organization_id = {{String(organization_id)}}
-      AND timestamp >= parseDateTime64BestEffort({{String(previous_start)}}, 3, 'UTC')
-      AND timestamp < parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+      AND timestamp >= toDateTime64({{DateTime64(previous_start)}}, 3, 'UTC')
+      AND timestamp < toDateTime64({{DateTime64(end)}}, 3, 'UTC')
       AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
 
 NODE totals
@@ -37,4 +37,3 @@ SQL >
     SELECT * FROM http CROSS JOIN protocol
 
 TYPE endpoint
-
