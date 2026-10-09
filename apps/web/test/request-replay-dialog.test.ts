@@ -109,7 +109,7 @@ async function controller({ reducedMotion = false, response = async () => ({ ok:
       if (specifier === "./request-inspector-data") return { requestInspectorUrl };
       if (specifier.endsWith(".module.css")) return { default: { content: "replay-content", overlay: "replay-overlay" }, __esModule: true };
       if (specifier.endsWith(".css")) return {};
-      if (specifier.startsWith("@hugeicons")) return requireModule(specifier);
+      if (specifier.startsWith("@hugeicons") || specifier.startsWith("@outray/icons/")) return requireModule(specifier);
       throw new Error(`Unexpected replay import: ${specifier}`);
     },
   });
