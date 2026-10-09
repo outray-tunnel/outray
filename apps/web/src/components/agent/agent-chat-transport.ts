@@ -1,5 +1,6 @@
 import type { AgentSavedMessage, AgentStep, AgentStreamEvent, AgentThreadListResponse } from "../../lib/agent/protocol";
 import { safeAgentEvidenceHref } from "./agent-chat-data";
+import { readAgentEvidencePresentation } from "../../lib/agent/presentation";
 
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 const string = (value: unknown, maximum: number): value is string => typeof value === "string" && value.length <= maximum;
@@ -19,8 +20,9 @@ function readEvidence(value: unknown, orgSlug: string) {
   return value.flatMap((item) => {
     if (!object(item) || !evidenceId(item.id) || !string(item.label, 400) || !string(item.observedAt, 80)) throw new Error("Agent returned invalid evidence.");
     const href = safeAgentEvidenceHref(item.href, orgSlug);
+    const presentation = readAgentEvidencePresentation(item.presentation);
     // Even a malformed model-supplied URL must never become an external link.
-    return href ? [{ id: item.id, label: item.label, href, observedAt: item.observedAt }] : [];
+    return href ? [{ id: item.id, label: item.label, href, observedAt: item.observedAt, ...(presentation ? { presentation } : {}) }] : [];
   });
 }
 
