@@ -71,7 +71,7 @@ export function ActiveTunnelsPanel({
           <div className="flex min-h-32 flex-col items-start justify-center py-5">
             <p className="text-[12px] text-zinc-300">No tunnels online</p>
             <Link
-              to="/$orgSlug/tunnels"
+              to="/$orgSlug/tunnel/tunnels"
               className="mt-1 text-[11px] text-zinc-500 hover:text-white"
               params={{ orgSlug }}
             >
@@ -82,7 +82,7 @@ export function ActiveTunnelsPanel({
           activeTunnels.slice(0, 5).map((tunnel) => (
             <Link
               key={tunnel.id}
-              to="/$orgSlug/tunnels/$tunnelId"
+              to="/$orgSlug/tunnel/tunnels/$tunnelId"
               params={{ orgSlug, tunnelId: tunnel.id }}
               className="group flex min-h-12 items-center gap-3 py-3 text-xs transition-colors hover:text-white"
               search={{ tab: "overview" }}
@@ -112,7 +112,7 @@ export function ActiveTunnelsPanel({
 
       {hasTunnels && !error && !isLoading && (
         <Link
-          to="/$orgSlug/tunnels"
+          to="/$orgSlug/tunnel/tunnels"
           className="flex min-h-11 items-center gap-1.5 border-t border-white/[0.07] px-5 text-[11px] text-zinc-500 transition-colors hover:text-zinc-200"
           params={{ orgSlug }}
         >
