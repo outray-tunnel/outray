@@ -1,10 +1,10 @@
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import Cone01Icon from "@hugeicons-pro/core-stroke-rounded/Cone01Icon";
-import LockPasswordIcon from "@hugeicons-pro/core-stroke-rounded/LockPasswordIcon";
-import Pulse02Icon from "@hugeicons-pro/core-stroke-rounded/Pulse02Icon";
-import HeartPulseIcon from "@hugeicons-pro/core-stroke-rounded/HeartPulseIcon";
-import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
+import ArrowRight01Icon from "@outray/icons/stroke/ArrowRight01Icon";
+import Cone01Icon from "@outray/icons/stroke/Cone01Icon";
+import LockPasswordIcon from "@outray/icons/stroke/LockPasswordIcon";
+import Pulse02Icon from "@outray/icons/stroke/Pulse02Icon";
+import HeartPulseIcon from "@outray/icons/stroke/HeartPulseIcon";
+import Tick02Icon from "@outray/icons/stroke/Tick02Icon";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/$orgSlug/get-started")({
