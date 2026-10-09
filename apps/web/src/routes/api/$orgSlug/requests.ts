@@ -3,9 +3,13 @@ import { eq } from "drizzle-orm";
 import { db } from "../../../db";
 import { tunnels } from "../../../db/app-schema";
 import { requireOrgFromSlug } from "../../../lib/org";
-import { tigerData } from "../../../lib/timescale";
+import { queryTinybird } from "../../../lib/tinybird";
 import { getTunnelEventIdentifiers } from "../../../lib/tunnel-event-identifiers";
 import { cachedDashboardRead, dashboardCacheKey } from "../../../lib/dashboard-cache";
+import { parseTunnelStatsRange, tunnelStatsWindow } from "../../../lib/tunnel-stats-range";
+import { normalizeTunnelRequest } from "../../../lib/tunnel-tinybird";
+
+type RequestRow = { timestamp: string } & Record<string, unknown>;
 
 export const Route = createFileRoute("/api/$orgSlug/requests")({
   server: {
@@ -13,113 +17,39 @@ export const Route = createFileRoute("/api/$orgSlug/requests")({
       GET: async ({ request, params }) => {
         const orgResult = await requireOrgFromSlug(request, params.orgSlug);
         if ("error" in orgResult) return orgResult.error;
-        const { organization } = orgResult;
-
+        const organizationId = orgResult.organization.id;
         const url = new URL(request.url);
         const tunnelId = url.searchParams.get("tunnelId");
-        const timeRange = url.searchParams.get("range") || "1h";
-        const limit = parseInt(url.searchParams.get("limit") || "100");
-        const search = url.searchParams.get("search");
-
-        let intervalValue = "1 hour";
-        if (timeRange === "24h") {
-          intervalValue = "24 hours";
-        } else if (timeRange === "7d") {
-          intervalValue = "7 days";
-        } else if (timeRange === "30d") {
-          intervalValue = "30 days";
-        }
-
-        const organizationId = organization.id;
+        const timeRange = parseTunnelStatsRange(url.searchParams.get("range") || "1h");
+        const limit = Number(url.searchParams.get("limit") ?? "100");
+        const search = url.searchParams.get("search") || undefined;
+        if (!timeRange) return Response.json({ error: "Invalid time range" }, { status: 400 });
+        if (!Number.isInteger(limit) || limit < 1 || limit > 500) return Response.json({ error: "Limit must be between 1 and 500" }, { status: 400 });
+        if (search && search.length > 1_000) return Response.json({ error: "Search is too long" }, { status: 400 });
 
         try {
-          const queryParams: any[] = [organizationId, intervalValue];
-          let paramIndex = 3;
-          let tunnelIdentifiers: string[] | null = null;
-
+          let tunnelIdentifiers: string[] | undefined;
           if (tunnelId) {
-            const [tunnel] = await db
-              .select()
-              .from(tunnels)
-              .where(eq(tunnels.id, tunnelId));
-
-            if (!tunnel || tunnel.organizationId !== organizationId) {
-              return Response.json(
-                { error: "Tunnel not found" },
-                { status: 404 },
-              );
-            }
-
+            const [tunnel] = await db.select().from(tunnels).where(eq(tunnels.id, tunnelId));
+            if (!tunnel || tunnel.organizationId !== organizationId) return Response.json({ error: "Tunnel not found" }, { status: 404 });
             tunnelIdentifiers = getTunnelEventIdentifiers(tunnel);
           }
-
-          let query = `
-              SELECT 
-                request_id,
-                timestamp,
-                tunnel_id,
-                organization_id,
-                host,
-                method,
-                path,
-                status_code,
-                request_duration_ms,
-                bytes_in,
-                bytes_out,
-                client_ip,
-                user_agent
-              FROM tunnel_events
-              WHERE organization_id = $1
-                AND timestamp >= NOW() - $2::interval
-          `;
-
-          if (tunnelIdentifiers) {
-            query += ` AND tunnel_id = ANY($${paramIndex}::text[])`;
-            queryParams.push(tunnelIdentifiers);
-            paramIndex++;
-          }
-
-          if (search) {
-            query += ` AND (path ILIKE $${paramIndex} OR method ILIKE $${paramIndex} OR host ILIKE $${paramIndex})`;
-            queryParams.push(`%${search}%`);
-            paramIndex++;
-          }
-
-          query += ` ORDER BY timestamp DESC LIMIT $${paramIndex}`;
-          queryParams.push(limit);
-
           const responseBody = await cachedDashboardRead(
-            dashboardCacheKey("requests", {
-              organizationId,
-              tunnelId: tunnelId || undefined,
-              range: timeRange,
-              limit,
-              search: search || undefined,
-            }),
+            dashboardCacheKey("requests", { organizationId, tunnelId: tunnelId || undefined, range: timeRange, limit, search }),
             async () => {
-              const requestsResult = await tigerData.query(query, queryParams);
-              const requests = requestsResult.rows;
+              const { start, end } = tunnelStatsWindow(timeRange);
+              const result = await queryTinybird<RequestRow>("tunnel_requests", {
+                organization_id: organizationId, start: start.toISOString(), end: end.toISOString(),
+                tunnel_ids: tunnelIdentifiers ? JSON.stringify(tunnelIdentifiers) : undefined, search, limit,
+              });
+              const requests = result.map(normalizeTunnelRequest);
               return { requests, timeRange, count: requests.length };
             },
           );
-
           return Response.json(responseBody);
         } catch (error) {
           console.error("Failed to fetch requests:", error);
-          
-          // Provide more specific error messages
-          let errorMessage = "Failed to fetch requests";
-          if (error instanceof Error) {
-            if (error.message.includes('SSL') || error.message.includes('ssl')) {
-              errorMessage = "Database SSL connection error. Please check TimescaleDB configuration.";
-            } else if (error.message.includes('connect') || error.message.includes('connection')) {
-              errorMessage = "Unable to connect to TimescaleDB. Please check database URL and network connectivity.";
-            } else if (error.message.includes('authentication') || error.message.includes('password')) {
-              errorMessage = "Database authentication failed. Please check credentials.";
-            }
-          }
-          
-          return Response.json({ error: errorMessage }, { status: 500 });
+          return Response.json({ error: "Failed to fetch requests" }, { status: 500 });
         }
       },
     },
