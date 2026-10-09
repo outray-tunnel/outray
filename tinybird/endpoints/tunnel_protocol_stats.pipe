@@ -17,10 +17,9 @@ SQL >
               avgIf(duration_ms, event_type = 'close' AND duration_ms > 0)) AS avg_duration_ms
     FROM tunnel_protocol_events FINAL
     WHERE organization_id = {{String(organization_id)}}
-      AND timestamp >= parseDateTime64BestEffort({{String(start)}}, 3, 'UTC')
-      AND timestamp < parseDateTime64BestEffort({{String(end)}}, 3, 'UTC')
+      AND timestamp >= toDateTime64({{DateTime64(start)}}, 3, 'UTC')
+      AND timestamp < toDateTime64({{DateTime64(end)}}, 3, 'UTC')
       AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
       AND has(JSONExtract({{String(tunnel_ids)}}, 'Array(String)'), tunnel_id)
 
 TYPE endpoint
-
