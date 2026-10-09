@@ -1,0 +1,84 @@
+.response {
+  min-width: 0;
+  color: #d4d4d8;
+  font-size: 13px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.response :where(p, ul, ol, blockquote, pre, .tableScroll) { margin: 0.75rem 0; }
+.response :where(h3, h4, h5, h6) {
+  margin: 1.25rem 0 0.5rem;
+  color: #f4f4f5;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.55;
+  letter-spacing: -0.012em;
+}
+.response h3 { font-size: 14px; }
+.response :where(strong) { color: #f4f4f5; font-weight: 600; }
+.response :where(em) { font-style: italic; }
+.response :where(del) { color: #a1a1aa; }
+.response :where(ul, ol) { padding-left: 1.35rem; }
+.response ul { list-style-type: disc; }
+.response ol { list-style-type: decimal; }
+.response li { margin: 0.3rem 0; padding-left: 0.15rem; }
+.response li::marker { color: #71717a; }
+.response li :where(p) { margin: 0.35rem 0; }
+.response :where(ul, ol) :where(ul, ol) { margin: 0.4rem 0; }
+.response blockquote {
+  border-left: 2px solid #52525b;
+  padding-left: 0.9rem;
+  color: #a1a1aa;
+}
+.response hr { margin: 1.1rem 0; border: 0; border-top: 1px solid rgb(255 255 255 / 0.08); }
+.response a {
+  color: #c4b5fd;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgb(196 181 253 / 0.4);
+}
+.response a:hover { color: #ddd6fe; text-decoration-color: currentColor; }
+.response :where(a, pre, .tableScroll):focus-visible { outline: 2px solid #a1a1aa; outline-offset: 3px; }
+.inertLink { color: inherit; }
+.response :where(code) {
+  border: 1px solid rgb(255 255 255 / 0.075);
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.045);
+  padding: 0.1rem 0.3rem;
+  color: #e4e4e7;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88em;
+  overflow-wrap: anywhere;
+}
+.response pre {
+  max-width: 100%;
+  max-height: 360px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgb(255 255 255 / 0.075);
+  border-radius: 9px;
+  background: rgb(0 0 0 / 0.22);
+  padding: 0.8rem 0.9rem;
+  line-height: 1.65;
+  white-space: pre;
+}
+.response pre code { border: 0; background: transparent; padding: 0; font-size: 11px; overflow-wrap: normal; }
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgb(255 255 255 / 0.075);
+  border-radius: 9px;
+}
+.response table { width: 100%; min-width: 280px; border-collapse: collapse; font-size: 12px; line-height: 1.6; }
+.response :where(th, td) { padding: 0.6rem 0.8rem; text-align: left; vertical-align: top; border-bottom: 1px solid rgb(255 255 255 / 0.065); }
+.response th { color: #e4e4e7; font-weight: 500; background: rgb(255 255 255 / 0.025); }
+.response tr:last-child td { border-bottom: 0; }
+.response > div > :first-child { margin-top: 0; }
+.response > div > :last-child { margin-bottom: 0; }
+
+@media (max-width: 480px) {
+  .response :where(th, td) { padding: 0.5rem 0.6rem; }
+  .response pre { padding: 0.7rem; }
+}
