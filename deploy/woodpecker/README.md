@@ -59,6 +59,17 @@ If Unbe or the token is unavailable, the pre-deploy check fails and the
 running services stay up. Rotate CI and edge tokens independently. The helper
 deliberately sets `DEPLOY_CRON=false`; cron runs on Aeroplane.
 
+All three service deploys pin `OUTRAY_DASHBOARD_URL=https://outray.dev` and
+`WEB_API_URL=https://outray.dev/api`. These override stale origins inherited
+from PM2 or the deploy shell without changing credentials or feature flags.
+`outray.co` is not the public dashboard yet. When it launches, deliberately
+update the helper's `dashboardOrigin` and verify CLI API compatibility before
+changing these endpoints; do not infer the public origin from an old process.
+
+Run the helper's isolated deployment-environment tests with
+`node --test deploy/woodpecker/run-service-deploy.test.mjs`. They mock PM2,
+Unbe, and the deployment scripts; no service is deployed or restarted.
+
 The CI VPS has 4 GB of swap to supplement its 2 GB RAM. A systemd timer backs up
 the Woodpecker SQLite database locally each day and keeps 14 days of copies at
 `/opt/woodpecker/backups`. These are not offsite backups; include that directory
