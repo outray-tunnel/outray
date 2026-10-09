@@ -2311,6 +2311,24 @@ html:not(.js) [data-reveal],
   font-weight: 620;
 }
 
+.product-story-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-top: 29px;
+}
+
+.product-story-actions > .inline-link {
+  margin-top: 0;
+}
+
+.product-story-actions > .inline-link:last-child {
+  color: #9993a4;
+  font-size: 0.82rem;
+  font-weight: 450;
+}
+
 .text-link {
   display: inline-flex;
   min-height: 40px;
