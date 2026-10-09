@@ -58,7 +58,7 @@ async function loadContent() {
       if (specifier === "./traces-data") return tracesData;
       if (specifier === "lucide-react") return new Proxy({}, { get: () => () => null });
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
-      if (specifier.startsWith("@hugeicons-pro/")) return {};
+      if (specifier.startsWith("@outray/icons/")) return {};
       if (specifier.startsWith("../") || specifier.startsWith("./")) return stubs;
       throw new Error(`Unexpected Traces view dependency: ${specifier}`);
     },
@@ -92,8 +92,8 @@ test("Traces uses the compact heading and solid Pause left of the shared animate
     assert.ok(selected?.includes(`>${range}</span>`));
   }
   const source = await readFile(new URL("../src/components/observability/traces-content.tsx", import.meta.url), "utf8");
-  assert.match(source, /@hugeicons-pro\/core-solid-rounded\/PauseIcon/);
-  assert.match(source, /@hugeicons-pro\/core-solid-rounded\/PlayIcon/);
+  assert.match(source, /@outray\/icons\/solid\/PauseIcon/);
+  assert.match(source, /@outray\/icons\/solid\/PlayIcon/);
   const paused = render({ isLive: false });
   assert.match(paused, /Resume automatic refresh/); assert.match(paused, /Refresh paused/);
   assert.doesNotMatch(paused, /Export|Download|⌘ K|text-\[9px\]|uppercase tracking|bg-violet/);
