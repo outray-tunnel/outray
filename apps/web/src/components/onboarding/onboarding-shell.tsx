@@ -37,7 +37,7 @@ export function OnboardingShell({
             </span>
           </div>
           <Link
-            to="/$orgSlug"
+            to="/$orgSlug/tunnel"
             params={{ orgSlug }}
             className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12px] text-zinc-400 transition-colors hover:bg-white/[0.04] hover:text-zinc-100 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
