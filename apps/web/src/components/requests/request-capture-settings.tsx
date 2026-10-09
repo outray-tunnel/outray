@@ -1,10 +1,10 @@
 import { useId, useState, type FormEvent } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Alert02Icon from "@hugeicons-pro/core-stroke-rounded/Alert02Icon";
-import Building03Icon from "@hugeicons-pro/core-stroke-rounded/Building03Icon";
-import DatabaseIcon from "@hugeicons-pro/core-stroke-rounded/DatabaseIcon";
-import InformationCircleIcon from "@hugeicons-pro/core-stroke-rounded/InformationCircleIcon";
-import ListViewIcon from "@hugeicons-pro/core-stroke-rounded/ListViewIcon";
+import Alert02Icon from "@outray/icons/stroke/Alert02Icon";
+import Building03Icon from "@outray/icons/stroke/Building03Icon";
+import DatabaseIcon from "@outray/icons/stroke/DatabaseIcon";
+import InformationCircleIcon from "@outray/icons/stroke/InformationCircleIcon";
+import ListViewIcon from "@outray/icons/stroke/ListViewIcon";
 import { Button } from "@/components/arc/button/button";
 import { DialogContent } from "@/components/arc/dialog/dialog";
 import "../outray-arc-theme.css";
