@@ -1,0 +1,181 @@
+---
+title: Framework SDK setup
+description: Initialize server-side telemetry in Node.js, Express, NestJS, Next.js, Hono, and TanStack Start.
+icon: Code
+---
+
+All examples use a server-only `OBSERVABILITY_TOKEN` containing a token with **Send telemetry**. Supply it from your secret provider; never commit a real token or expose it through public browser configuration. These integrations do not require a tunnel or a `NODE_OPTIONS` preloader.
+
+The telemetry distribution requires Node.js 20 or newer. The Hono and TanStack Start packages require Node.js 20.6 or newer; also satisfy your framework's own runtime requirements.
+
+## Node.js
+
+Install `@outray/observability` and use the [bootstrap quickstart](/docs/observability/getting-started). Start OpenTelemetry before importing HTTP servers, clients, database drivers, and loggers to enable automatic instrumentation. The distribution includes instrumentation for common Node libraries such as HTTP, Fetch/Undici, PostgreSQL, Redis, Pino, and Winston.
+
+## Express
+
+```bash
+npm install @outray/express
+```
+
+Register request instrumentation before application routes:
+
+```ts
+import express from "express";
+import { registerOutrayObservability } from "@outray/express";
+
+const app = express();
+const telemetry = registerOutrayObservability(app, {
+  apiKey: process.env.OBSERVABILITY_TOKEN,
+  serviceName: "orders-api",
+  environment: "production",
+});
+
+app.use(express.json());
+app.get("/orders/:orderId", (request, response) => {
+  telemetry.info("order requested");
+  response.json({ id: request.params.orderId });
+});
+app.listen(3000);
+```
+
+The adapter creates request spans and metrics. Optional payload capture reads a parsed body after a body parser such as `express.json()` supplies it; it does not consume the incoming stream. The package's default tunnel function is a separate development feature.
+
+## NestJS
+
+```bash
+npm install @outray/nest
+```
+
+In your existing application bootstrap, register before `app.listen()`:
+
+```ts
+import { NestFactory } from "@nestjs/core";
+import { registerOutrayObservability } from "@outray/nest";
+import { AppModule } from "./app.module";
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  const telemetry = registerOutrayObservability(app, {
+    apiKey: process.env.OBSERVABILITY_TOKEN,
+    serviceName: "orders-api",
+    environment: "production",
+  });
+  if (telemetry) telemetry.info("orders API started");
+  await app.listen(3000);
+}
+void bootstrap();
+```
+
+Request instrumentation currently supports Nest's Express adapter. Late registration and non-Express adapters are skipped with a warning instead of changing application behavior. Telemetry can remain enabled in production while the development tunnel is disabled.
+
+## Next.js
+
+```bash
+npm install @outray/next
+```
+
+Use the server instrumentation hook:
+
+```ts
+// instrumentation.ts
+export async function register() {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  const { registerOutrayObservability } = await import(
+    "@outray/next/observability"
+  );
+  registerOutrayObservability({
+    apiKey: process.env.OBSERVABILITY_TOKEN,
+    serviceName: "storefront",
+    environment: "production",
+  });
+}
+```
+
+Wrap an App Router route handler to record a route-aware request span and request metrics:
+
+```ts
+// app/api/orders/route.ts
+import { withOutrayRequest } from "@outray/next";
+
+export const runtime = "nodejs";
+export const GET = withOutrayRequest(
+  async () => Response.json({ status: "ready" }),
+  { routeResolver: () => "/api/orders" },
+);
+```
+
+The wrapper does not currently support Pages Router handlers. Import telemetry dynamically after the runtime guard so the instrumentation hook does not load Node-only dependencies for the edge runtime. Keep request handlers in the Node.js runtime; these examples are not browser or edge instrumentation.
+
+## Hono
+
+```bash
+npm install @outray/hono
+```
+
+Register middleware before application routes:
+
+```ts
+import { Hono } from "hono";
+import outray from "@outray/hono";
+
+const app = new Hono();
+const telemetry = outray({
+  apiKey: process.env.OBSERVABILITY_TOKEN,
+  serviceName: "orders-api",
+  environment: "production",
+});
+app.use("*", telemetry.middleware);
+app.get("/orders/:orderId", (context) =>
+  context.json({ id: context.req.param("orderId") }),
+);
+export default app;
+```
+
+Matched Hono route templates keep dynamic identifiers out of operation names. `OPTIONS` and `/health` requests are ignored by default. The OutRay telemetry distribution uses Node.js; do not assume this middleware is an edge-runtime exporter.
+
+## TanStack Start
+
+```bash
+npm install @outray/tanstack-start
+```
+
+Configure a server entry:
+
+```ts
+// src/server.ts
+import { createOutrayTanStackServerEntry } from "@outray/tanstack-start/server";
+
+export const telemetry = createOutrayTanStackServerEntry({
+  apiKey: process.env.OBSERVABILITY_TOKEN,
+  serviceName: "storefront",
+  environment: "production",
+  routeResolver: ({ pathname }) =>
+    pathname.startsWith("/api/orders/") ? "/api/orders/:orderId" : null,
+});
+export default telemetry;
+```
+
+Keep your ordinary `vite dev` and `node .output/server/index.mjs` scripts. The package supports the Node/Nitro runtime, not edge runtimes. Vite internals and common static asset paths are ignored by default.
+
+## Optional request capture
+
+Merge these options into a framework request adapter's configuration—or pass them to Next.js `withOutrayRequest`—only when you want payload capture:
+
+```ts
+const requestOptions = {
+  capturePayloads: {
+    maxBodyBytes: 16 * 1024,
+    redactedHeaders: ["x-workspace-secret"],
+    redactedFields: ["accountPin"],
+  },
+};
+```
+
+Capture is disabled by default. Eligible bodies are JSON, `application/*+json`, and URL-encoded forms. Multipart, text, XML, binary, server-sent events, and compressed bodies are not eligible. Default body and serialized-header limits are 16 KiB and 8 KiB; hard limits are 64 KiB and 32 KiB. Sensitive authorization, cookie, token, password, secret, and API/private-key fields are redacted.
+
+Next.js, Hono, and TanStack Start capture clones without consuming handler streams. Capture errors must not change the response or handler error. Use explicit route templates for application slugs; automatic normalization cannot know every application's routing scheme.
+
+See [requests and traces](/docs/observability/requests-and-traces) to interpret metadata-only, redacted, and truncated captures, and [logs and metrics](/docs/observability/logs-and-metrics) for application spans and custom signals.
+
+For package-specific lifecycle and configuration details, see the [Node.js](/docs/node-sdk), [Express](/docs/express-plugin), [NestJS](/docs/nestjs-plugin), [Next.js](/docs/nextjs-plugin), [Hono](/docs/hono-sdk), and [TanStack Start](/docs/tanstack-start-sdk) guides.
