@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { appClient } from "@/lib/app-client";
-import { getPlanLimits } from "@/lib/subscription-plans";
+import { getSubscriptionLimits } from "@/lib/subscription-plans";
 import { NewTunnelModal } from "@/components/new-tunnel-modal";
 import { LimitModal } from "@/components/limit-modal";
 import { OverviewHeader } from "@/components/overview/overview-header";
@@ -79,7 +79,7 @@ function OverviewView() {
 
   const subscription = subscriptionData?.subscription;
   const currentPlan = subscription?.plan || "free";
-  const planLimits = getPlanLimits(currentPlan as any);
+  const planLimits = getSubscriptionLimits(subscriptionData);
   const tunnelLimit = planLimits.maxTunnels as number;
   const isAtLimit = tunnelLimit !== -1 && activeTunnelCount >= tunnelLimit;
 
