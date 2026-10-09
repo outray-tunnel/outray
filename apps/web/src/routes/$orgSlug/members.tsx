@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState, type FormEvent } from "react";
 import { authClient, usePermission } from "@/lib/auth-client";
 import { appClient } from "@/lib/app-client";
-import { getPlanLimits, isUnlimitedPlanLimit, type SubscriptionPlan } from "@/lib/subscription-plans";
+import { getSubscriptionLimits, isUnlimitedPlanLimit, type SubscriptionPlan } from "@/lib/subscription-plans";
 import { Button } from "@/components/arc/button/button";
 import { ChangeRoleModal } from "@/components/change-role-modal";
 import InviteMemberModal from "@/components/invite-member-modal";
@@ -157,8 +157,9 @@ function MembersWorkspace({ orgSlug }: { orgSlug: string }) {
   const members = membersQuery.data ?? [];
   const invitations = invitationsQuery.data ?? [];
   const currentPlan = (subscriptionQuery.data?.subscription?.plan || "free") as SubscriptionPlan;
-  const memberLimit = getPlanLimits(currentPlan).maxMembers;
-  const unlimitedSeats = isUnlimitedPlanLimit(currentPlan, memberLimit);
+  const instanceOwned = !!subscriptionQuery.data?.instanceLimits;
+  const memberLimit = getSubscriptionLimits(subscriptionQuery.data).maxMembers;
+  const unlimitedSeats = isUnlimitedPlanLimit(currentPlan, memberLimit, !!subscriptionQuery.data?.instanceLimits);
   const hasData = !!selectedOrganizationId && membersQuery.data !== undefined && invitationsQuery.data !== undefined && subscriptionQuery.data !== undefined;
   const loading = isLoadingOrganizations || membersQuery.isLoading || invitationsQuery.isLoading || subscriptionQuery.isLoading;
   const loadError = membersQuery.error?.message || invitationsQuery.error?.message || subscriptionQuery.error?.message || organizationsError?.message || (!isLoadingOrganizations && !selectedOrganizationId ? "This workspace could not be found." : null);
@@ -236,7 +237,7 @@ function MembersWorkspace({ orgSlug }: { orgSlug: string }) {
     void subscriptionQuery.refetch();
   }
 
-  const viewPlans = <Link to="/$orgSlug/billing" params={{ orgSlug }} className="inline-flex min-h-7 items-center text-[12px] text-zinc-300 hover:text-white focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">View plans</Link>;
+  const viewPlans = instanceOwned ? null : <Link to="/$orgSlug/billing" params={{ orgSlug }} className="inline-flex min-h-7 items-center text-[12px] text-zinc-300 hover:text-white focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">View plans</Link>;
   const confirmationPending = removeMemberMutation.isPending || cancelInvitationMutation.isPending;
 
   return <>
@@ -254,7 +255,7 @@ function MembersWorkspace({ orgSlug }: { orgSlug: string }) {
     </WorkspaceDialog>
 
     <WorkspaceDialog open={isLimitModalOpen} onClose={() => setIsLimitModalOpen(false)} title="Member seats are full" description="Pending invitations also reserve a member seat." size="sm" footer={<><Button type="button" size="sm" variant="secondary" onClick={() => setIsLimitModalOpen(false)}>Close</Button>{viewPlans}</>}>
-      <p className="text-[13px] leading-6 text-zinc-400">Your <span className="capitalize text-zinc-200">{currentPlan}</span> plan includes {memberLimit} {memberLimit === 1 ? "member seat" : "member seats"}. Cancel a pending invitation or upgrade your plan to invite more people.</p>
+      <p className="text-[13px] leading-6 text-zinc-400">{instanceOwned ? `This installation allows ${memberLimit} member seats per organization. Cancel a pending invitation or contact your administrator to increase capacity.` : <>Your <span className="capitalize text-zinc-200">{currentPlan}</span> plan includes {memberLimit} {memberLimit === 1 ? "member seat" : "member seats"}. Cancel a pending invitation or upgrade your plan to invite more people.</>}</p>
     </WorkspaceDialog>
   </>;
 }
