@@ -1603,10 +1603,14 @@ pre {
 .final-cta h2 {
   max-width: 900px;
   margin-inline: auto;
-  font-size: clamp(3.15rem, 8vw, 7.75rem);
+  font-size: clamp(2rem, 4.5vw, 4rem);
   font-weight: 570;
   letter-spacing: -0.072em;
-  line-height: 0.88;
+  line-height: 1.15;
+}
+
+.final-cta h2 > span {
+  display: block;
 }
 
 .final-cta p {
@@ -2157,7 +2161,7 @@ html:not(.js) [data-reveal],
   }
 
   .final-cta h2 {
-    font-size: clamp(3.5rem, 17vw, 5.3rem);
+    font-size: clamp(1.5rem, 6.5vw, 2.75rem);
   }
 
   .footer-links {
