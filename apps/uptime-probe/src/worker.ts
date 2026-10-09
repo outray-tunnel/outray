@@ -6,15 +6,14 @@ import { decryptMonitorHeaders, type EncryptedPayload } from "./crypto";
 import { probeHttp, type ProbeMethod, type ProbeResult } from "./probe";
 import { transitionMonitor, type MonitorState } from "./state";
 import { pollUptimeNotifications } from "./notifications";
+import { postgresSsl } from "../../../shared/postgres-ssl";
 
 const workerId = `uptime-probe-${randomUUID()}`;
 const { Pool } = pg;
 
 export const databasePool = new Pool({
   connectionString: config.databaseUrl || undefined,
-  ssl: config.databaseUrl && !["localhost", "127.0.0.1", "[::1]"].includes(
-    new URL(config.databaseUrl).hostname.toLowerCase(),
-  ) ? { rejectUnauthorized: config.sslRejectUnauthorized } : false,
+  ssl: config.databaseUrl ? postgresSsl(config.databaseUrl, config.sslRejectUnauthorized) : false,
   max: Math.max(3, config.concurrency + 2),
 });
 
