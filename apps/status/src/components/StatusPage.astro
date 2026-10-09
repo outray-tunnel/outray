@@ -8,7 +8,8 @@ import { renderIncidentHtml } from "@outray/incident-content";
 
 interface Props { page: PublicStatusPage; subscribed?: boolean; }
 const { page, subscribed = false } = Astro.props;
-const subscriptionsEnabled = Boolean(getStatusConfig().zeptoApiKey);
+const subscriptionConfig = getStatusConfig();
+const subscriptionsEnabled = Boolean(subscriptionConfig.zeptoApiKey && subscriptionConfig.fromEmail);
 const stateCopy: Record<PublicState, string> = {
   operational: "All systems operational",
   degraded: "Some services degraded",
