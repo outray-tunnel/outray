@@ -9,7 +9,7 @@ import {
   ActionMenu,
   type ActionMenuItem,
 } from "../src/components/secrets/secrets-ui";
-import MoreVerticalIcon from "@hugeicons-pro/core-stroke-rounded/MoreVerticalIcon";
+import MoreVerticalIcon from "@outray/icons/stroke/MoreVerticalIcon";
 
 Object.assign(globalThis, { React });
 
@@ -174,7 +174,7 @@ async function menuController(compact = false, allDisabled = false) {
       if (specifier === "react-dom") return { createPortal: () => null };
       if (specifier === "@hugeicons/react")
         return { HugeiconsIcon: () => null };
-      if (specifier.startsWith("@hugeicons-pro/")) return [];
+      if (specifier.startsWith("@outray/icons/")) return [];
       if (specifier === "motion/react")
         return { AnimatePresence: () => null, motion: {} };
       if (specifier === "@/components/ui/select") return { Select: () => null };
