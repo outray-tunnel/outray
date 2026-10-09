@@ -33,7 +33,7 @@ export function LandingPage() {
         <Hero signupUrl={links.signup} githubUrl={links.github} />
         <ProductStories docsUrl={links.docs} />
         <OpenSource githubUrl={links.github} />
-        <FinalCta signupUrl={links.signup} githubUrl={links.github} />
+        <FinalCta signupUrl={links.signup} />
       </main>
       <Footer
         docsUrl={links.docs}
