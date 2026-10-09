@@ -1,0 +1,148 @@
+---
+title: Node.js SDK
+description: Send traces, structured logs, and metrics from a Node.js application.
+icon: Terminal
+---
+
+`@outray/observability` is OutRay's Node.js OpenTelemetry distribution. It exports application telemetry over OTLP/HTTP; it does not expose your application through a tunnel.
+
+## Install and authorize
+
+~~~bash
+npm install @outray/observability
+~~~
+
+Use Node.js 20 or later. Create an organization API token with **Send telemetry** permission (`observability:write`), and supply it from a server-only secret store.
+
+## Initialize before the application
+
+Start the SDK before importing HTTP servers, frameworks, database clients, or logging libraries so automatic instrumentation can attach to them:
+
+~~~ts
+// bootstrap.ts
+import { startOutrayObservability } from "@outray/observability";
+
+export const telemetry = startOutrayObservability({
+  apiKey: process.env.OBSERVABILITY_TOKEN,
+  serviceName: "checkout-api",
+  serviceVersion: process.env.GIT_COMMIT_SHA,
+  environment: process.env.NODE_ENV,
+  captureConsole: false,
+});
+
+await import("./server.js");
+~~~
+
+Compile and run this bootstrap as your application entry point. Starting the SDK after a library has been imported can miss that library's automatic instrumentation.
+
+The distribution configures HTTP, Fetch/Undici, Express, NestJS, PostgreSQL, Redis/ioredis, Pino, and Winston instrumentation. Supported library behavior depends on the corresponding OpenTelemetry instrumentation and import timing.
+
+Use one process-wide initialization with a stable `serviceName`. Repeated `startOutrayObservability` calls return the active instance rather than applying a new configuration.
+
+## Log application events
+
+~~~ts
+telemetry.info("payment accepted", { orderId: "order_123" });
+telemetry.warn("payment retry scheduled", { attempt: 2 });
+telemetry.error("payment failed", new Error("provider unavailable"), {
+  orderId: "order_123",
+});
+~~~
+
+The returned `debug`, `info`, `warn`, and `error` methods preserve local output and emit structured telemetry logs. OpenTelemetry associates logs with active trace context when available.
+
+When passing the instance around is inconvenient, use the singleton after initialization:
+
+~~~ts
+import outray from "@outray/observability";
+
+outray.info("background job started", { jobId: "job_123" });
+~~~
+
+`captureConsole: true` additionally exports existing `console.debug`, `console.info`, `console.log`, `console.warn`, and `console.error` calls. It is off by default and is restored on SDK shutdown. Logging redaction is a safety layer, not permission to log credentials or personal data.
+
+## Add a span or metric
+
+~~~ts
+import { getOutrayMeter, withOutraySpan } from "@outray/observability";
+
+await withOutraySpan("process payment", async () => {
+  // Perform the operation here.
+});
+
+getOutrayMeter().createCounter("payments.accepted").add(1);
+~~~
+
+`withOutraySpan` creates a child of the current trace, records thrown errors, rethrows them, and ends the span. Use stable operation names, not names containing customer IDs.
+
+`getOutrayTracer()`, `getOutrayMeter()`, and `getOutrayLogger()` expose the lower-level OpenTelemetry APIs for custom instrumentation.
+
+## Configuration
+
+| Option | Default or fallback | Purpose |
+| --- | --- | --- |
+| `apiKey` | `OUTRAY_API_KEY` | Required when enabled |
+| `serviceName` | `OTEL_SERVICE_NAME` | Required stable service identity |
+| `serviceVersion` | `OTEL_SERVICE_VERSION` | Release or build identifier |
+| `serviceNamespace` | `OTEL_SERVICE_NAMESPACE` | Optional service grouping |
+| `environment` | `OTEL_DEPLOYMENT_ENVIRONMENT`, then `NODE_ENV` | Deployment environment |
+| `endpoint` | `OUTRAY_OTLP_ENDPOINT`, then `OTEL_EXPORTER_OTLP_ENDPOINT`, then `https://ingest.outray.dev` | Base OTLP/HTTP endpoint |
+| `enabled` | `OUTRAY_OBSERVABILITY_ENABLED`, default true | Enable telemetry |
+| `captureConsole` | `OUTRAY_CAPTURE_CONSOLE`, default false | Forward console calls |
+| `metricExportIntervalMillis` | `60000` | Metric interval; minimum 1000 ms |
+| `diagnostics` | `"none"` | `none`, `error`, `warn`, `info`, or `debug` |
+| `attributes` | Empty object | Additional non-secret resource attributes |
+| `headers` | Empty object | Additional exporter headers |
+
+The endpoint is a base URL; exporters append `/v1/traces`, `/v1/logs`, and `/v1/metrics`. Authorization is always `Bearer <apiKey>`; a supplied `headers.Authorization` cannot override it.
+
+Boolean environment options treat `0`, `false`, `off`, and `no` as false. Explicit code options take precedence.
+
+## Optional preloader
+
+If environment-based configuration suits your application:
+
+~~~bash
+OTEL_SERVICE_NAME=checkout-api node --import @outray/observability/register dist/server.js
+~~~
+
+Supply `OUTRAY_API_KEY` through the process's private environment. The preload entry calls the same initializer using environment defaults.
+
+When using `outray secrets run`, choose a different injected credential key, such as `OBSERVABILITY_TOKEN`, and pass it as `apiKey` in code. The Secrets runner removes `OUTRAY_API_KEY` and `OUTRAY_TOKEN` from the child environment.
+
+## HTTP payload capture
+
+The base SDK does not automatically record HTTP request and response bodies. Use the [Express](/docs/express-plugin), [NestJS](/docs/nestjs-plugin), [Next.js](/docs/nextjs-plugin), [Hono](/docs/hono-sdk), or [TanStack Start](/docs/tanstack-start-sdk) adapter for explicit request instrumentation and opt-in capture.
+
+Capture is disabled by default. Adapter options can include:
+
+~~~ts
+const capturePayloads = {
+  maxBodyBytes: 16 * 1024,
+  maxHeaderBytes: 8 * 1024,
+  redactedHeaders: ["x-workspace-secret"],
+  redactedFields: ["accountPin"],
+  responseBody: false,
+};
+~~~
+
+Eligible bodies are JSON (including `application/*+json`) and URL-encoded forms. Authorization, cookies, and common sensitive fields are redacted; additional redaction rules extend rather than replace the defaults.
+
+Bodies default to 16 KiB with a 64 KiB hard cap. Serialized headers default to 8 KiB with a 32 KiB hard cap. Text, XML, multipart, binary, and compressed bodies are not eligible; capture does not replace the handler's original streams.
+
+Redaction is field-based and cannot recognize every application secret or sensitive value. Review the payload schema, keep capture disabled where inappropriate, and use application-specific redaction rules.
+
+## Flush and shut down
+
+Exports are batched. A started SDK is not proof that telemetry has reached the console. Allow export time, send a test request, and check the organization's [services](/docs/observability/services).
+
+Use the application's existing shutdown path:
+
+~~~ts
+await telemetry.forceFlush();
+await telemetry.shutdown();
+~~~
+
+The SDK does not install process signal handlers or call `process.exit()`. Ensure your application waits for shutdown before exiting.
+
+For missing data, verify the token scope, organization, endpoint reachability, initialization order, and selected time range. Enable diagnostics temporarily if you need exporter errors.
