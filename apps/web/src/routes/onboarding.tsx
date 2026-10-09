@@ -1,8 +1,8 @@
 import { HugeiconsIcon } from "@hugeicons/react";
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import Building06Icon from "@hugeicons-pro/core-stroke-rounded/Building06Icon";
-import CancelCircleIcon from "@hugeicons-pro/core-stroke-rounded/CancelCircleIcon";
-import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
+import ArrowRight01Icon from "@outray/icons/stroke/ArrowRight01Icon";
+import Building06Icon from "@outray/icons/stroke/Building06Icon";
+import CancelCircleIcon from "@outray/icons/stroke/CancelCircleIcon";
+import Tick02Icon from "@outray/icons/stroke/Tick02Icon";
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { appClient } from "@/lib/app-client";
