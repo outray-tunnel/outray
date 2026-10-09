@@ -2,13 +2,19 @@
   "title": "Documentation",
   "pages": [
     "index",
-    "---Getting Started---",
+    "---Products---",
+    "tunnels",
+    "observability",
+    "secrets",
+    "uptime",
+    "platform",
+    "---Tunnel quickstart---",
     "...(getting-started)",
-    "---Platform Features---",
+    "---Tunnel features---",
     "...(platform-features)",
-    "---Plugins & SDKs---",
+    "---SDKs & integrations---",
     "...(plugins-and-sdks)",
-    "---Reference---",
+    "---Tunnel reference---",
     "...(reference)"
   ]
 }
