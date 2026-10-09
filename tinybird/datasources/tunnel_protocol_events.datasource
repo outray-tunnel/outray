@@ -1,0 +1,28 @@
+TOKEN OUTRAY_INGEST_TOKEN APPEND
+
+DESCRIPTION >
+    TCP connection/data/close and UDP packet metadata.
+
+SCHEMA >
+    `timestamp` DateTime64(3, 'UTC') `json:$.timestamp` CODEC(Delta(8), ZSTD(1)),
+    `ingested_at` DateTime64(3, 'UTC') `json:$.ingested_at` CODEC(Delta(8), ZSTD(1)),
+    `event_id` String `json:$.event_id` CODEC(ZSTD(1)),
+    `tunnel_id` String `json:$.tunnel_id` CODEC(ZSTD(1)),
+    `organization_id` LowCardinality(String) `json:$.organization_id` CODEC(ZSTD(1)),
+    `retention_days` UInt16 `json:$.retention_days` DEFAULT 3 CODEC(Delta, ZSTD(1)),
+    `protocol` LowCardinality(String) `json:$.protocol` CODEC(ZSTD(1)),
+    `event_type` LowCardinality(String) `json:$.event_type` CODEC(ZSTD(1)),
+    `connection_id` String `json:$.connection_id` DEFAULT '' CODEC(ZSTD(1)),
+    `client_ip` String `json:$.client_ip` CODEC(ZSTD(1)),
+    `client_port` UInt16 `json:$.client_port` CODEC(ZSTD(1)),
+    `bytes_in` UInt64 `json:$.bytes_in` CODEC(ZSTD(1)),
+    `bytes_out` UInt64 `json:$.bytes_out` CODEC(ZSTD(1)),
+    `duration_ms` UInt32 `json:$.duration_ms` DEFAULT 0 CODEC(ZSTD(1))
+
+ENGINE "ReplacingMergeTree"
+ENGINE_PARTITION_KEY "toDate(timestamp)"
+ENGINE_SORTING_KEY "organization_id, tunnel_id, timestamp, event_id"
+ENGINE_VER ingested_at
+ENGINE_TTL "toDateTime(timestamp) + toIntervalDay(least(greatest(retention_days, 1), 90))"
+ENGINE_SETTINGS index_granularity=8192
+
