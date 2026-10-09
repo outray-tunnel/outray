@@ -1,0 +1,39 @@
+---
+title: Detections, drafts, and incidents
+description: Review private monitor detections and publish clear, immutable customer updates.
+icon: TriangleAlert
+---
+
+## Review a private detection
+
+When a monitor reaches its failure threshold, Uptime opens a private detected issue and can notify the team. Open **Uptime → Incidents** to review it. The incident's source, status, affected components, and monitor evidence distinguish a measured detection from a manual report.
+
+With Manual publishing, choose to write and publish an update or ignore the active unpublished detection. Ignoring is a publication decision: it does not make the monitor Up, change check evidence, or hide linked component health. Only active unpublished detections can be ignored; ignored detections cannot later be published.
+
+After-confirmation and Automatic modes can make eligible detections public according to the [monitor rules](/docs/uptime/monitors#choose-public-incident-timing). The status page and linked component must meet their publication requirements.
+
+## Create a manual incident
+
+Use the create-incident action, give it a customer-readable title, choose at least one affected status-page component, and write the first update. A status page must already exist. Manual incidents are useful when customer impact is known but not represented by an HTTP monitor.
+
+Only owners and admins create incidents or updates. Members can inspect them.
+
+## Write an update or save a draft
+
+Choose **Investigating**, **Identified**, **Monitoring**, or **Resolved** and describe what customers need to know. The rich-text editor supports paragraphs, level-two/three headings, bold, italic, lists, blockquotes, and safe links. It is not an arbitrary HTML editor or attachment system. Updates need meaningful text and support up to 4,000 plain-text characters.
+
+Save a draft to keep the text private and editable. A draft does not apply its planned component changes, resolve a manual incident, or notify subscribers. Review the affected components and text before publishing.
+
+Published updates are immutable. Correct or expand the message with a new update instead of expecting to edit the published history. A published status page is required, and publication is limited to 20 written updates per organization over a rolling 24-hour period.
+
+## Apply status changes correctly
+
+A published manual-incident update can change affected **manual-only** component states. It cannot override a component whose health is derived from monitors. Publishing a Resolved update closes the manual incident; resolved manual incidents are read-only.
+
+Monitor incidents follow probe-confirmed recovery. You cannot mark one Resolved while its monitor has not confirmed recovery, and its updates cannot override component state. Once recovery is confirmed, write a customer-facing recovery update as appropriate.
+
+## Know what becomes public
+
+Publishing a written update for an active private detection can also publish the incident, provided it has an eligible visible linked component. A recovered private detection cannot be retroactively published as an active incident. Draft updates stay private even when another update or automatic rule makes the incident public.
+
+Publishing a written update enqueues emails for confirmed public subscribers. Automatic incident publication does not itself email them. See [notifications](/docs/uptime/notifications) for delivery and subscription behavior.
