@@ -35,12 +35,12 @@ export interface MobileProduct {
 }
 
 export const mobileProducts: MobileProduct[] = [
-  { key: "tunnels", label: "Tunnels", to: "/$orgSlug", icon: Cone01Icon, pages: [
-    { label: "Overview", to: "/$orgSlug", icon: Home01Icon, exact: true },
-    { label: "Active tunnels", shortLabel: "Tunnels", to: "/$orgSlug/tunnels", icon: Route03Icon },
-    { label: "Requests", to: "/$orgSlug/requests", icon: HistoryIcon },
-    { label: "Subdomains", to: "/$orgSlug/subdomains", icon: Globe02Icon },
-    { label: "Domains", to: "/$orgSlug/domains", icon: LinkSquare01Icon },
+  { key: "tunnels", label: "Tunnels", to: "/$orgSlug/tunnel", icon: Cone01Icon, pages: [
+    { label: "Overview", to: "/$orgSlug/tunnel", icon: Home01Icon, exact: true },
+    { label: "Active tunnels", shortLabel: "Tunnels", to: "/$orgSlug/tunnel/tunnels", icon: Route03Icon },
+    { label: "Requests", to: "/$orgSlug/tunnel/requests", icon: HistoryIcon },
+    { label: "Subdomains", to: "/$orgSlug/tunnel/subdomains", icon: Globe02Icon },
+    { label: "Domains", to: "/$orgSlug/tunnel/domains", icon: LinkSquare01Icon },
   ] },
   { key: "observability", label: "Observability", to: "/$orgSlug/observability", icon: Pulse02Icon, pages: [
     { label: "Overview", to: "/$orgSlug/observability", icon: Home01Icon, exact: true },
@@ -69,12 +69,11 @@ export const mobileProducts: MobileProduct[] = [
 
 export function mobileProductForPath(pathname: string, orgSlug: string): MobileProduct | null {
   const base = `/${orgSlug}`;
-  if (pathname === base) return mobileProducts[0];
   const relative = pathname.startsWith(`${base}/`) ? pathname.slice(base.length + 1) : "";
+  if (relative === "tunnel" || relative.startsWith("tunnel/")) return mobileProducts[0];
   if (relative === "observability" || relative.startsWith("observability/")) return mobileProducts[1];
   if (relative === "secrets" || relative.startsWith("secrets/")) return mobileProducts[2];
   if (relative === "uptime" || relative.startsWith("uptime/")) return mobileProducts[3];
-  if (["tunnels", "requests", "subdomains", "domains"].some((section) => relative === section || relative.startsWith(`${section}/`))) return mobileProducts[0];
   return null;
 }
 
