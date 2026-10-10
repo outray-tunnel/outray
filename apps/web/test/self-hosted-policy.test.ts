@@ -4,6 +4,7 @@ import { runInNewContext } from "node:vm";
 import test from "node:test";
 import ts from "typescript";
 import instancePolicy from "../../../shared/instance-config";
+import workspaceSlugPolicy from "../../../shared/workspace-slugs";
 import { capacityDescription, getPlanLimits, getSubscriptionLimits, getUptimeMonitorLimit, getObservabilityAlertLimit, isUnlimitedPlanLimit, installationPlan } from "../src/lib/subscription-plans";
 import { getMemberLimitMessage, hasAvailableMemberSeat } from "../src/lib/member-limit-policy";
 import { loadRouteHandlers } from "./helpers/load-route";
@@ -113,7 +114,8 @@ test("the actual authentication creation hook rejects before persisting user/acc
       if (specifier === "../db") return { db: new Proxy({}, { get() { sideEffects++; throw new Error("User hook must run before persistence"); } }) };
       if (specifier === "./send-email") return { sendViaZepto: () => { sideEffects++; } };
       if (specifier === "../../../../shared/instance-config") return { instanceConfig, instanceSignupAllowed };
-      if (specifier === "./permissions" || specifier === "./member-limits.server" || specifier === "./member-limit-policy" || specifier === "../../../../shared/reserved-slugs" || specifier === "@/email/templates") return {};
+      if (specifier === "../../../../shared/workspace-slugs") return workspaceSlugPolicy;
+      if (specifier === "./permissions" || specifier === "./member-limits.server" || specifier === "./member-limit-policy" || specifier === "@/email/templates") return {};
       throw new Error(`Unexpected authentication dependency: ${specifier}`);
     },
   });
