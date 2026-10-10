@@ -1,4 +1,4 @@
-export const DEFAULT_OUTRAY_OTLP_ENDPOINT = "https://ingest.outray.dev";
+export const DEFAULT_OUTRAY_OTLP_ENDPOINT = "https://ingest.outray.co";
 
 export type OutrayResourceAttributes = Record<
   string,
@@ -14,7 +14,7 @@ export interface OutrayObservabilityOptions {
   serviceNamespace?: string;
   /** Deployment environment, such as development, staging, or production. */
   environment?: string;
-  /** Base OTLP/HTTP endpoint. Defaults to https://ingest.outray.dev. */
+  /** Base OTLP/HTTP endpoint. Defaults to https://ingest.outray.co. */
   endpoint?: string;
   /** Additional non-secret resource attributes attached to every signal. */
   attributes?: OutrayResourceAttributes;
