@@ -18,6 +18,14 @@ test("infrastructure certificates use configured public hosts without database a
   assert.equal(await certificateDomainAllowed("tunnels.example.net", unexpected, env), true);
 });
 
+test("hosted tunnel connection host and legacy API aliases receive certificates without a database lookup", async () => {
+  const unexpected = async () => { throw new Error("Unexpected database access"); };
+  for (const domain of ["connect.outray.co", "api.outray.co", "api.outray.dev"]) {
+    assert.equal(await certificateDomainAllowed(domain, unexpected, {}), true);
+    assert.equal(await certificateDomainAllowed(domain, async () => ({ rowCount: 0 }), env), false);
+  }
+});
+
 test("status namespace authorization requires exact published page and never falls through", async () => {
   const queries: Array<[string, string[]]> = [];
   const lookup = async (sql: string, values: string[]) => {
