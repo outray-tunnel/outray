@@ -20,6 +20,10 @@ variables are required.
 
 ## Configure the server
 
+Use ES module `import` statements in TanStack Start's Vite/Nitro server build,
+as shown below. The bundler resolves the ESM entrypoints; loading this adapter
+directly with `require()` can fail because its TanStack dependencies are ESM-only.
+
 Create `src/server.ts`:
 
 ```ts
