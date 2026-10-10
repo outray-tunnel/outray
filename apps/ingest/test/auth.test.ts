@@ -12,10 +12,7 @@ interface FakeToken {
   expires_at?: Date | null;
 }
 
-function fakeDatabase(input: {
-  machine?: FakeToken;
-  legacy?: FakeToken;
-}) {
+function fakeDatabase(input: { machine?: FakeToken; legacy?: FakeToken }) {
   const calls: Array<{ sql: string; values: unknown[] }> = [];
   const database = {
     async query(sql: string, values: unknown[] = []) {
@@ -31,8 +28,7 @@ function fakeDatabase(input: {
   };
   return {
     calls,
-    database:
-      database as unknown as Parameters<typeof authenticateApiToken>[0],
+    database: database as unknown as Parameters<typeof authenticateApiToken>[0],
   };
 }
 
@@ -69,7 +65,10 @@ test("disabled Observability rejects standalone ingestion credentials before any
   process.env.OUTRAY_PRODUCTS = "tunnels,secrets,uptime";
   try {
     const { database, calls } = fakeDatabase({ machine: activeMachine });
-    assert.equal(await authenticateApiToken(database, "outray_machine_token"), null);
+    assert.equal(
+      await authenticateApiToken(database, "outray_machine_token"),
+      null,
+    );
     assert.equal(calls.length, 0);
   } finally {
     if (previous === undefined) delete process.env.OUTRAY_PRODUCTS;
@@ -83,12 +82,19 @@ test("self-hosted ingestion uses installation retention instead of the stored ho
   process.env.OUTRAY_DEPLOYMENT_MODE = "self-hosted";
   process.env.OUTRAY_RETENTION_DAYS = "21";
   try {
-    const { database } = fakeDatabase({ machine: { ...activeMachine, plan: "free" } });
-    assert.equal((await authenticateApiToken(database, "outray_machine_token"))?.retentionDays, 21);
+    const { database } = fakeDatabase({
+      machine: { ...activeMachine, plan: "free" },
+    });
+    assert.equal(
+      (await authenticateApiToken(database, "outray_machine_token"))
+        ?.retentionDays,
+      21,
+    );
   } finally {
     if (previousMode === undefined) delete process.env.OUTRAY_DEPLOYMENT_MODE;
     else process.env.OUTRAY_DEPLOYMENT_MODE = previousMode;
-    if (previousRetention === undefined) delete process.env.OUTRAY_RETENTION_DAYS;
+    if (previousRetention === undefined)
+      delete process.env.OUTRAY_RETENTION_DAYS;
     else process.env.OUTRAY_RETENTION_DAYS = previousRetention;
   }
 });
@@ -150,6 +156,41 @@ test("keeps legacy ingest credentials working during migration", async () => {
 
 test("rejects malformed credentials without querying the database", async () => {
   const { database, calls } = fakeDatabase({});
-  assert.equal(await authenticateApiToken(database, "not-an-outray-token"), null);
+  assert.equal(
+    await authenticateApiToken(database, "not-an-outray-token"),
+    null,
+  );
   assert.equal(calls.length, 0);
+});
+
+test("explicit Worker policy is isolated from process environment and other requests", async () => {
+  const { database } = fakeDatabase({ machine: activeMachine });
+  const tasks: Promise<unknown>[] = [];
+  const hosted = await authenticateApiToken(database, "outray_worker_token", {
+    environment: { OUTRAY_DEPLOYMENT_MODE: "hosted" },
+    backgroundTask: (task) => tasks.push(task),
+  });
+  const selfHosted = await authenticateApiToken(
+    database,
+    "outray_worker_token",
+    {
+      environment: {
+        OUTRAY_DEPLOYMENT_MODE: "self-hosted",
+        OUTRAY_RETENTION_DAYS: "7",
+      },
+      backgroundTask: (task) => tasks.push(task),
+    },
+  );
+  assert.equal(hosted?.retentionDays, 30);
+  assert.equal(selfHosted?.retentionDays, 7);
+  assert.equal(tasks.length, 2);
+  await Promise.all(tasks);
+  const disabled = fakeDatabase({ machine: activeMachine });
+  assert.equal(
+    await authenticateApiToken(disabled.database, "outray_worker_token", {
+      environment: { OUTRAY_PRODUCTS: "tunnels,secrets,uptime" },
+    }),
+    null,
+  );
+  assert.equal(disabled.calls.length, 0);
 });
