@@ -26,7 +26,7 @@ The process must stay connected for the public endpoint to reach the local servi
 
 ## Observability ingestion
 
-An observability SDK runs inside the application and exports traces, logs, and metrics over OTLP/HTTP to `https://ingest.outray.dev`.
+An observability SDK runs inside the application and exports traces, logs, and metrics over OTLP/HTTP to `https://ingest.outray.co`.
 
 ~~~mermaid
 flowchart LR
@@ -43,7 +43,7 @@ Tunnel request capture records data from the public proxy path. SDK payload capt
 
 The web console manages organizations, member roles, tokens, subscriptions, tunnel addresses, observability views, Secrets vaults, and Uptime monitors.
 
-The CLI's browser login uses `https://outray.dev`; the tunnel connection uses `wss://api.outray.dev/`. The console's Tunnels workspace is under `/<org-slug>/tunnel`.
+The CLI's browser login uses `https://outray.dev`; the tunnel connection uses `wss://connect.outray.co/`. The console's Tunnels workspace is under `/<org-slug>/tunnel`.
 
 ## Security boundaries
 
