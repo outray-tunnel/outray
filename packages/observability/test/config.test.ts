@@ -5,6 +5,7 @@ import {
   resolveOutrayObservabilityOptions,
   signalEndpoint,
 } from "../src/config";
+import { legacyResolvedOptions } from "./fixtures/resolved-options-compatibility.js";
 
 test("hosted telemetry defaults to ingest.outray.co for every signal", () => {
   const resolved = resolveOutrayObservabilityOptions(
@@ -116,6 +117,20 @@ test("log capture context filters are preserved without being called at initiali
 test("automatic instrumentation remains the default and can be disabled explicitly", () => {
   assert.equal(resolveOutrayObservabilityOptions({ apiKey: "token", serviceName: "api" }, {}).autoInstrumentations, true);
   assert.equal(resolveOutrayObservabilityOptions({ apiKey: "token", serviceName: "api", autoInstrumentations: false }, {}).autoInstrumentations, false);
+});
+
+test("legacy resolved configs retain default-on instrumentation when reused", () => {
+  assert.equal(
+    resolveOutrayObservabilityOptions(legacyResolvedOptions, {}).autoInstrumentations,
+    true,
+  );
+  assert.equal(
+    resolveOutrayObservabilityOptions(
+      { ...legacyResolvedOptions, autoInstrumentations: false },
+      {},
+    ).autoInstrumentations,
+    false,
+  );
 });
 
 test("fails closed when enabled configuration is incomplete", () => {
