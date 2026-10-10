@@ -522,6 +522,124 @@ failure/incident flows remain separate acceptance work. See `preview/README.md`
 for the exact scoped operator recipe; never start an unguarded worker or reuse
 hosted stores.
 
+## Independent Ops public ingestion and prepared hosted instrumentation (October 10)
+
+The operator authorized configuring independent Ops ingestion for the hosted
+`outray.co` web application, then chose to push/deploy the hosted changes
+themselves. No hosted web release, Git commit/push, hosted migration, tunnel
+restart, or hosted PostgreSQL/Redis/Tinybird mutation was performed.
+
+Only the new DNS-only `ingest.ops.outray.dev` A record was added, pointing to
+`209.74.86.89` with TTL300. Public resolver checks and normal trusted HTTPS
+verification passed. The dedicated ingestion worker uses the audited Node22/free
+artifact source digest `b126ff141f3014de6b26b4ef562107d562965c1ef5fab0121672d14048728f79`.
+It is non-root/read-only, has no published ports, has a512MiB memory limit, and
+joins only the independent internal network and its own outbound bridge.
+PostgreSQL, Redis, HTTP health, and all three live queue consumers were verified
+before exposing it through the existing Caddy gateway. Caddy remains the only
+process publishing TCP80/443; console/status services and data/certificate
+volumes were retained. Maintenance requires retaining the explicit status and
+ingestion flags to avoid silently cutting either service off.
+
+One hashed machine token was created for the existing independent Ops `outray`
+organization and verified owner, with only `observability:write`, no Secrets
+scope and no expiry. Its raw value is private in the independent integration
+file and the local ignored mode0600 `.env.prod`; no provider/admin credential
+was added to the hosted integration. Tinybird READ and APPEND credentials retain
+their separate exact scopes in `internal_ops` only.
+
+Live acceptance passed:
+
+- Trusted public ingestion health returned200; unauthenticated OTLP returned401
+  and an unknown ingestion route returned404.
+- A synthetic OTLP trace, correlated log and integer gauge each returned200,
+  then the scoped READ endpoints returned exactly one trace, log, gauge(value7)
+  and request, matched by unique IDs/service name.
+- The actual prepared SDK/TanStack adapter exported a synthetic request without
+  starting a server. Independent queries verified one trace/request plus
+  `http.server.request.count`=1, a duration histogram, and active requests=0.
+  The query value and test cookie were absent from returned trace/request data.
+  Force-flush and shutdown exported two cumulative metric snapshots; the reader
+  correctly returned the cumulative count1, not a doubled request count.
+- All three queues had zero queued and pending records after the successful
+  checks. Two earlier failed synthetic metrics remain in the metric dead-letter
+  stream as diagnostic evidence; no new failures were added by the passing
+  checks. Trace/log dead-letter streams were empty.
+- Console PostgreSQL/Redis deep health and `https://status.outray.co/` remained200
+  after the gateway change and metric-schema repair. Probe/notification settings
+  were unchanged; notification delivery is still disabled.
+
+The first test caught a real Tinybird schema mismatch: normalized OTLP integers
+are exact decimal strings, but `ValueInt Nullable(Int64)` rejected them. The
+datasource now stores `Nullable(String)` with a null-preserving forward cast;
+existing three metric readers already convert either representation to Float64.
+Only `otel_metrics` was changed in `internal_ops`: a scoped deployment check
+verified one datasource change and zero token changes before staging/promotion.
+Hosted Tinybird and the project's original `.tinyb` profile remained unchanged.
+All ten quarantined rows were retries of the two synthetic gauges; there were
+zero committed metric rows before repair. Their redacted error/count evidence
+and Redis dead letters were retained. Tinybird recreates its quarantine table
+during datasource evolution; no customer telemetry was removed or copied.
+
+Verification: all 145 self-hosted script checks and all 20 ingest tests passed.
+The SDK/adapter/web focused suites passed 35 tests, focused TypeScript checks
+passed, and the full filtered web production build passed all six Turbo tasks.
+Browser output contained none of the dedicated server environment-variable
+names. Source diff hygiene passed. No development server was started.
+
+The hosted server integration is opt-in and metadata-only, excluding credential
+and Secrets routes, bodies, headers, query values, raw console capture, automatic
+HTTP/SQL/logger instrumentation, and exception text/stacks. The four dedicated
+variables are prepared privately in `.env.prod` for the user to add to Brimble
+project `outray` at runtime. That file is not committed or pushed. Real hosted
+`outray-web` traffic remains **unverified until the user releases the web app**.
+The existing Woodpecker workflow still deploys hosted DB/Tinybird/status/edge/
+probe on pushes to `main`/`next`; pause it before a web-only release that must not
+touch those services. See `apps/web/README.md` for the release handoff.
+
+## Payload and console-log capture preparation (October 10)
+
+The operator subsequently requested payload and log capture. This supersedes the
+metadata-only capture policy above in the prepared hosted web integration; it
+does not deploy that integration or change independent Ops runtime configuration.
+The same four dedicated server variables opt in, without additional credentials.
+
+The adapter now captures supported JSON/form payloads with a16KiB body limit and
+8KiB header limit, redacting credential fields and opaque nested customer capture
+fields. Original application request/response bodies remain intact. Unsupported
+binary/HTML/streaming/compressed bodies are skipped. Bounded cloned-body reads
+can still wait for slow streams; this is not latency-free capture.
+
+Console capture retains local output and exports bounded, redacted logs with
+active trace correlation. A request-scoped AsyncLocalStorage predicate suppresses
+logs from credential and Secrets routes, including their asynchronous work,
+without suppressing concurrent allowed requests. The SDK context predicate fails
+closed if it throws. Background logs are enabled. Automatic client/database/logger
+instrumentation and span exception text remain disabled. Console error messages
+and stacks can be exported after best-effort redaction; arbitrary secrets/PII
+must not be logged. Neither the predicate nor convenience-method redaction is a
+DLP guarantee, and direct low-level OpenTelemetry logger calls bypass them.
+
+The actual final SDK and TanStack adapter exported one synthetic allowed request
+and one correlated console log through trusted HTTPS to independent Ops, without
+starting a local server. Scoped `internal_ops` readers verified:
+
+- Exactly one trace, request and log for the unique verification service.
+- Request/response headers and JSON bodies captured; useful operation/result
+  fields retained and test passwords, API keys, cookies, authorization values,
+  opaque nested bodies and log access tokens redacted.
+- Query values absent, log trace/span IDs matched, and the ignored Secrets-route
+  diagnostic absent. Both handlers executed normally and preserved their bodies;
+  both console calls still reached the original local writer.
+
+All52 focused SDK/adapter/core/web tests passed (23+12+6+11), focused TypeScript
+checks passed, and the final source-matched filtered web production build passed
+all six Turbo tasks. Browser output contained none of the dedicated server
+environment-variable names; source diff hygiene passed. No Git commit/push,
+package publication, hosted release, migration or hosted store mutation occurred.
+Real hosted traffic remains unverified until the user releases the web app.
+The existing Woodpecker hosted-service deployment warning above still applies.
+
 ## Existing unrelated dashboard diagnostics
 
 The full `tsc --noEmit -p tsconfig.app.json` still reports existing errors in these groups, outside the changed self-hosted paths:
