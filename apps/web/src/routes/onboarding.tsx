@@ -7,6 +7,7 @@ import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-ro
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { appClient } from "@/lib/app-client";
 import { authClient } from "@/lib/auth-client";
+import { useInstance } from "@/lib/instance-context";
 import { useAppStore } from "@/lib/store";
 
 export const Route = createFileRoute("/onboarding")({
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/onboarding")({
 });
 
 function Onboarding() {
+  const { workspaceUrlPrefix } = useInstance();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +77,9 @@ function Onboarding() {
           setError(
             data.reason === "reserved"
               ? "This URL is reserved. Contact support@outray.dev to claim it."
-              : "This workspace URL is already in use.",
+              : data.reason === "route"
+                ? "This URL is used by the application. Choose a different workspace URL."
+                : "This workspace URL is already in use.",
           );
         }
       } catch (checkError) {
@@ -292,8 +296,8 @@ function Onboarding() {
                           : "border-white/10 hover:border-white/15 focus-within:border-white/25"
                     }`}
                   >
-                    <span className="shrink-0 border-r border-white/[0.075] px-4 font-mono text-[13px] text-zinc-600">
-                      outray.dev/
+                    <span className="max-w-[55%] shrink-0 truncate border-r border-white/[0.075] px-4 font-mono text-[13px] text-zinc-600" title={workspaceUrlPrefix}>
+                      {workspaceUrlPrefix}
                     </span>
                     <input
                       id="slug"
