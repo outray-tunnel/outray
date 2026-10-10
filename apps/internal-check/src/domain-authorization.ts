@@ -4,7 +4,7 @@ import type { PublicHostEnvironment } from "../../../shared/public-hosts";
 import instancePolicy from "../../../shared/instance-config";
 import { isStatusNamespaceHost, statusPageSlugFromHost } from "./status-host";
 
-type Lookup = (statement: string, parameters: string[]) => Promise<{ rowCount: number | null }>;
+export type CertificateLookup = (statement: string, parameters: string[]) => Promise<{ rowCount: number | null }>;
 
 export function normalizeCertificateDomain(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -16,7 +16,7 @@ export function normalizeCertificateDomain(value: unknown): string | null {
  * because it exists: its active binding must belong to the same tenant. */
 export async function certificateDomainAllowed(
   domain: string,
-  lookup: Lookup,
+  lookup: CertificateLookup,
   env: PublicHostEnvironment = process.env,
 ): Promise<boolean> {
   const instance = instancePolicy.instanceConfig(env);
@@ -53,5 +53,42 @@ export async function certificateDomainAllowed(
             )))
      LIMIT 1`,
     [domain, String(tunnelsEnabled), String(uptimeEnabled)],
+  )).rowCount === 1;
+}
+
+/** A status-only gateway must never reuse the combined edge authorization
+ * endpoint: that endpoint also approves tunnel and infrastructure hosts. */
+export async function statusCertificateDomainAllowed(
+  suppliedDomain: string,
+  lookup: CertificateLookup,
+  env: PublicHostEnvironment = process.env,
+): Promise<boolean> {
+  const domain = normalizeCertificateDomain(suppliedDomain);
+  if (!domain) return false;
+  const instance = instancePolicy.instanceConfig(env);
+  const uptimeEnabled = instance.products.includes("uptime") && (
+    env.UPTIME_ENABLED === "true" || (instance.selfHosted && env.UPTIME_ENABLED !== "false")
+  );
+  if (!uptimeEnabled) return false;
+  if (isStatusNamespaceHost(domain, env)) {
+    if (domain === publicHosts.canonicalStatusHostname(env)) return true;
+    const slug = statusPageSlugFromHost(domain, env);
+    if (!slug) return false;
+    return (await lookup(
+      "SELECT 1 FROM uptime_status_pages WHERE slug = $1 AND published = true LIMIT 1", [slug],
+    )).rowCount === 1;
+  }
+  // Infrastructure names and the tunnel namespace cannot become status
+  // routes, even if an invalid legacy/custom-domain row references them.
+  if (publicHosts.isReservedStatusCustomDomain(domain, env)) return false;
+  return (await lookup(
+    `SELECT 1 FROM domains d
+     WHERE d.domain = $1 AND d.purpose = 'status' AND d.status = 'active'
+       AND EXISTS (
+         SELECT 1 FROM uptime_status_pages p
+         WHERE p.domain_id = d.id AND p.organization_id = d.organization_id AND p.published = true
+       )
+     LIMIT 1`,
+    [domain],
   )).rowCount === 1;
 }
