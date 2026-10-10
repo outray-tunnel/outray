@@ -1,6 +1,6 @@
 {
   "name": "@outray/next",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Next.js tunnels and OpenTelemetry observability for OutRay",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -45,8 +45,8 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@outray/core": "^0.0.5",
-    "@outray/observability": "^0.1.4"
+    "@outray/core": "^0.0.6",
+    "@outray/observability": "^0.1.5"
   },
   "devDependencies": {
     "@opentelemetry/context-async-hooks": "^2.11.0",
