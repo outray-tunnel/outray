@@ -1,4 +1,5 @@
 node_modules/
+.self-hosted-artifacts/
 packages/icons/generated/
 dist/
 .turbo/
