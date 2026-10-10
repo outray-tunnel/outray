@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1.7
+# Reuse only the pure-JS runtime dependency closure from the already audited
+# Linux status image. Never install packages or receive build/runtime secrets.
+ARG PROBE_DEPENDENCY_IMAGE
+FROM ${PROBE_DEPENDENCY_IMAGE} AS dependencies
+USER root
+COPY scripts/self-hosted-probe-dependencies.mjs /tmp/probe-dependencies.mjs
+RUN node /tmp/probe-dependencies.mjs /app/node_modules /probe-node_modules
+
+FROM node:22-bookworm-slim AS artifacts
+WORKDIR /source
+COPY . .
+ARG APP_PUBLIC_URL
+ARG STATUS_PUBLIC_URL
+ARG SHARE_PUBLIC_URL
+ARG EDGE_PUBLIC_URL
+ARG INGEST_PUBLIC_URL
+RUN node scripts/self-hosted-artifacts.mjs verify --source /source --directory /source/.self-hosted-artifacts
+
+FROM node:22-bookworm-slim AS runtime
+WORKDIR /app
+LABEL com.outray.probe-preview="true"
+ENV NODE_ENV=production
+COPY --from=dependencies --chown=node:node /probe-node_modules ./node_modules
+COPY --from=artifacts --chown=node:node /source/apps/uptime-probe/package.json ./apps/uptime-probe/package.json
+COPY --from=artifacts --chown=node:node /source/.self-hosted-artifacts/apps/uptime-probe/dist ./apps/uptime-probe/dist
+COPY --from=artifacts --chown=node:node /source/.self-hosted-artifacts/manifest.json ./self-hosted-artifact-manifest.json
+COPY --from=artifacts --chown=node:node /source/deploy/self-hosted/probe-boot.mjs ./probe-boot.mjs
+USER node
+ENTRYPOINT []
+CMD ["node", "probe-boot.mjs"]
