@@ -1,0 +1,65 @@
+{
+	email {$CADDY_EMAIL}
+	admin localhost:2019
+	auto_https disable_redirects
+	on_demand_tls {
+		ask http://outray-ops-status-check:3344/internal/status-domain-check
+	}
+	servers {
+		protocols h1 h2
+		strict_sni_host on
+	}
+}
+
+(status_renderer) {
+	@private path /health /health/* /api/health /api/health/* /internal /internal/* /metrics /metrics/* /_image /_image/*
+	respond @private "Not found\n" 404
+	request_header -X-Outray-*
+	encode zstd gzip
+	reverse_proxy outray-ops-public-status:4323 {
+		header_up Host {http.request.hostport}
+		header_up -X-Forwarded-*
+		header_up -X-Real-IP
+		# Runtime placeholders keep credentials out of adapted/autosaved JSON.
+		header_up X-Outray-Edge-Secret {env.STATUS_EDGE_SECRET}
+		header_up X-Outray-Client-IP {remote_host}
+	}
+}
+
+# Console replacement does not interrupt independently served public status.
+ops.outray.dev {
+	header Cache-Control "no-store"
+	header Retry-After "120"
+	respond "Dashboard preview is temporarily unavailable.\n" 503
+}
+
+status.ops.outray.dev {
+	import status_renderer
+}
+
+:443 {
+	tls {
+		on_demand
+	}
+	import status_renderer
+}
+
+:80 {
+	@console host ops.outray.dev
+	handle @console {
+		redir https://ops.outray.dev{uri} 308
+	}
+	handle {
+		route {
+			forward_auth outray-ops-status-check:3344 {
+				uri /internal/status-domain-check?domain={host}
+				header_up -Authorization
+				header_up -Cookie
+				header_up -X-Forwarded-*
+				header_up -X-Real-IP
+				header_up -X-Outray-*
+			}
+			redir https://{host}{uri} 308
+		}
+	}
+}
