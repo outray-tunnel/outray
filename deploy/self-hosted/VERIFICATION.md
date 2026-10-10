@@ -264,6 +264,73 @@ approved signup policy, GitHub and Tinybird READ settings were preserved; APPEND
 credentials remain absent. Successful workspace creation in the user's signed-in
 browser is left for the operator, not claimed from the anonymous health checks.
 
+## Tunnel analytics timestamp repair (October 10)
+
+The Ops tunnel overview returned 500 because the thirteen tunnel query pipes
+declare required UTC `DateTime64` parameters, while dashboard callers sent zoned
+ISO strings. Live Tinybird responses rejected the trailing `Z`. The repeated
+browser requests were normal query retries and periodic refreshes, not a new
+frontend polling loop.
+
+The shared HTTP client now normalizes only those pipes' declared datetime fields
+to UTC SQL timestamps with millisecond precision, before constructing the wire
+URL and cache key. Public API timestamps, caller objects, tenant parameters,
+unrelated observability queries and no-store capture behavior remain unchanged.
+SQL definitions and provider resources were not modified.
+
+Verification: 114 focused tests passed, including twenty-one actual HTTP-client
+regression tests and exact coverage of all thirteen pipe definitions. Changed-file
+lint passed. The self-hosted suite passed 76 tests with one optional local
+Compose-plugin skip. Fresh Node22/free builds completed all 11 tasks without
+cache reuse. Source-matched artifacts passed the existing JS-only dependency and
+public-origin audits, then only the owned Ops console was replaced through the
+maintenance/proxy procedure. Previous source, artifacts and images were retained.
+No database, schema, credentials, Tinybird resources or hosted deployment changed.
+
+Inside the replacement console, the freshly compiled query helper received ISO
+inputs and made eight successful live READ requests: overview statistics and
+chart queries for 1h, 24h, 7d and 30d. Outgoing timestamps were checked at the HTTP
+boundary; all eight returned 200 with valid empty diagnostic-tenant evidence.
+Credentials and result contents were not printed, and no events were written.
+Public login and PostgreSQL/Redis deep health returned 200 with verified TLS;
+anonymous overview access remained 401. Runtime checks preserved the exact signup
+allowlist, GitHub and READ configuration, non-root/read-only policy, the two
+existing networks, no dashboard host ports and no APPEND credentials.
+
+Public ingestion and probes remain disabled. A signed-in browser refresh is
+still the operator's final UI check; these diagnostics did not impersonate a user
+or create an authentication session.
+
+## Approved metallic self-hosted favicon (October 10)
+
+The operator approved the local transparent polished-gold SVG preview. The root
+route now chooses it from the existing public instance context, including the
+first server-rendered login and console view; no extra configuration request was
+added. Nested landing/product heads cannot override it. Hosted console implicit
+favicon behavior and the hosted landing/product SVG remain unchanged. The mark
+preserves the original vector geometry and transparent gaps, with no background
+shape, external resources, script or animation.
+
+Verification: eight favicon regressions and four existing self-hosted-home tests
+passed, including actual router/SSR head aggregation, hosted icon preservation
+and failed-config metadata/style preservation. Changed-file lint and diff checks
+passed. The self-hosting suite passed 76 tests with one optional local
+Compose-plugin skip. Fresh Node22/free builds completed all 11 tasks without
+cache reuse; source-matched artifacts passed the existing audits. Only the owned
+Ops console was replaced through maintenance/proxy mode, retaining prior source,
+artifacts, images and persistent volumes. No database/schema, credentials,
+provider configuration or hosted deployment was changed.
+
+Live HTTPS checks confirmed exactly one gold icon in the login's server-rendered
+head, the SVG's correct content type and byte-for-byte equality with the approved
+local asset, and successful TLS verification. Login, SVG and PostgreSQL/Redis deep
+health returned 200; anonymous overview access remained 401 and `/` still
+redirected to login. Runtime checks preserved non-root/read-only operation, no
+dashboard/database host ports, the two existing networks, the exact signup
+allowlist, GitHub and Tinybird READ configuration, and no APPEND credentials.
+Public ingestion and probes remain disabled. Final browser appearance/cache
+refresh is left to the operator.
+
 ## Existing unrelated dashboard diagnostics
 
 The full `tsc --noEmit -p tsconfig.app.json` still reports existing errors in these groups, outside the changed self-hosted paths:
