@@ -16,7 +16,7 @@ import type {
   OutrayPluginOptions,
 } from "./types";
 
-const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
+const DEFAULT_SERVER_URL = "wss://connect.outray.co/";
 
 let localAccess: LocalAccessManager | null = null;
 const captureRegisteredApps = new WeakSet<INestApplication>();
