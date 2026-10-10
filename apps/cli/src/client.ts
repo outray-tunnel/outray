@@ -42,7 +42,7 @@ export class OutRayClient {
 
   constructor(
     localPort: number,
-    serverUrl: string = "wss://api.outray.dev/",
+    serverUrl: string = "wss://connect.outray.co/",
     apiKey?: string,
     subdomain?: string,
     customDomain?: string,
