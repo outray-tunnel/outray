@@ -28,6 +28,19 @@ export interface OutrayObservabilityOptions {
   diagnostics?: "none" | "error" | "warn" | "info" | "debug";
   /** Capture console.debug/info/log/warn/error while preserving local output. */
   captureConsole?: boolean;
+  /**
+   * Permit export of a captured console or OutRay logger call in the current
+   * application context. Returning false or throwing preserves local output
+   * but skips export. Defaults to allowing logs. Log redaction is best-effort,
+   * not a substitute for avoiding sensitive values in application logs.
+   */
+  shouldCaptureLog?: () => boolean;
+  /**
+   * Automatically instrument HTTP clients, database clients, and loggers.
+   * Disable this for framework-only telemetry on applications handling secrets.
+   * Framework adapters and explicitly created spans/metrics remain available.
+   */
+  autoInstrumentations?: boolean;
 }
 
 export interface ResolvedOutrayObservabilityOptions {
@@ -43,6 +56,8 @@ export interface ResolvedOutrayObservabilityOptions {
   metricExportIntervalMillis: number;
   diagnostics: NonNullable<OutrayObservabilityOptions["diagnostics"]>;
   captureConsole: boolean;
+  shouldCaptureLog?: () => boolean;
+  autoInstrumentations: boolean;
 }
 
 function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
@@ -154,5 +169,7 @@ export function resolveOutrayObservabilityOptions(
     diagnostics: options.diagnostics ?? "none",
     captureConsole:
       options.captureConsole ?? parseBoolean(env.OUTRAY_CAPTURE_CONSOLE, false),
+    shouldCaptureLog: options.shouldCaptureLog,
+    autoInstrumentations: options.autoInstrumentations ?? true,
   };
 }
