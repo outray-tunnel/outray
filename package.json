@@ -12,6 +12,7 @@
     "packages/*"
   ],
   "overrides": {
+    "seroval": "1.6.3",
     "unifont": "0.7.4"
   },
   "scripts": {
