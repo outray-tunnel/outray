@@ -112,8 +112,14 @@ const client = new pg.Client({ connectionString: process.env.SHARE_DATABASE_URL 
     try { await client.query('SELECT id FROM public.' + table + ' LIMIT 0'); }
     catch (error) { if (error.code !== '42501') throw new Error(); denied = true; }
     if (!denied) throw new Error();
+    const columnAccess = await client.query("SELECT has_any_column_privilege(current_user, $1, 'SELECT, INSERT, UPDATE, REFERENCES') AS allowed", ['public.' + table]);
+    if (columnAccess.rows[0]?.allowed !== false) throw new Error();
   }
-  console.log('Restricted Share CRUD, ownership SELECT and account/vault denial passed.');
+  const roleAccess = await client.query("SELECT rolsuper, rolcreaterole, rolcreatedb, rolreplication, rolbypassrls, rolinherit FROM pg_roles WHERE rolname = current_user");
+  if (roleAccess.rows.length !== 1 || Object.values(roleAccess.rows[0]).some(Boolean)) throw new Error();
+  const elevation = await client.query("SELECT has_schema_privilege(current_user, 'public', 'CREATE') AS schema_create, has_database_privilege(current_user, current_database(), 'CREATE') AS database_create, EXISTS (SELECT 1 FROM pg_auth_members WHERE member = (SELECT oid FROM pg_roles WHERE rolname = current_user)) AS membership, EXISTS (SELECT 1 FROM pg_shdepend WHERE refclassid = 'pg_authid'::regclass AND refobjid = (SELECT oid FROM pg_roles WHERE rolname = current_user) AND deptype = 'o') AS owns_objects");
+  if (Object.values(elevation.rows[0] || {}).some(Boolean)) throw new Error();
+  console.log('Restricted Share CRUD, ownership SELECT, account/vault column denial and elevation audit passed.');
 })().catch(() => { console.error('Restricted Share sanity check failed; credential details suppressed.'); process.exitCode = 1; }).finally(() => client.end());
 `;
 
@@ -123,6 +129,21 @@ export function labelsFor(config) {
 
 export function ownedResource(metadata, labels) {
   return Object.entries(labels).every(([key, value]) => metadata?.Labels?.[key] === value);
+}
+
+export function missingResource(stderr, kind, name) {
+  return /No such (?:network|volume|object|container)/i.test(stderr)
+    || (kind === "network" && stderr.trim() === `Error response from daemon: network ${name} not found`);
+}
+
+export function applicationHealthCommand(definition) {
+  if (definition.livenessOnly) return "process.kill(1,0)";
+  if (definition.healthHost) {
+    // Node's fetch can replace Host with the IP-based URL host. The edge must
+    // retain its hostname validation; use the HTTP client to send it explicitly.
+    return `const req=require('node:http').get(${JSON.stringify(definition.healthUrl)},{headers:{Host:${JSON.stringify(definition.healthHost)}},timeout:3000},r=>{r.resume();process.exit(r.statusCode>=200&&r.statusCode<300?0:1)});req.on('timeout',()=>req.destroy());req.on('error',()=>process.exit(1));`;
+  }
+  return `fetch(${JSON.stringify(definition.healthUrl)},{signal:AbortSignal.timeout(3000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))`;
 }
 
 export function containerArguments(name, definition, image, labels, temporary = false) {
@@ -181,7 +202,7 @@ export async function runRehearsal(argv = process.argv.slice(2)) {
   const inspect = async (kind, name, format = "{{json .}}") => {
     const result = await docker([kind, "inspect", "--format", format, name]);
     if (result.status !== 0) {
-      if (/No such (?:network|volume|object|container)/i.test(result.stderr)) return null;
+      if (missingResource(result.stderr, kind, name)) return null;
       fail("Could not inspect an existing Docker resource safely; no resources were replaced.");
     }
     try { return JSON.parse(result.stdout); } catch { fail("Could not read Docker resource metadata safely."); }
@@ -261,7 +282,7 @@ export async function runRehearsal(argv = process.argv.slice(2)) {
         }
         fail("An application exited unexpectedly; raw service logs were not printed and volumes are preserved.");
       }
-      const check = definition.livenessOnly ? "process.kill(1,0)" : `fetch(${JSON.stringify(definition.healthUrl)},{headers:${JSON.stringify(definition.healthHost ? { Host: definition.healthHost } : {})},signal:AbortSignal.timeout(3000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))`;
+      const check = applicationHealthCommand(definition);
       const health = await docker(["exec", container, "node", "-e", check], {}, 5000);
       if (health.status === 0) { outcome = definition.livenessOnly ? "process liveness only" : "private health passed"; running.push(container); break; }
       await delay(2000);
