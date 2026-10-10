@@ -155,4 +155,4 @@ interface OutrayPluginOptions {
 - `OUTRAY_API_KEY` - Your Outray API key
 - `OUTRAY_SUBDOMAIN` - Custom subdomain
 - `OUTRAY_ENABLED` - Set to `"false"` to disable
-- `OUTRAY_SERVER_URL` - Custom server URL (default: `wss://api.outray.dev/`)
+- `OUTRAY_SERVER_URL` - Custom server URL (default: `wss://connect.outray.co/`)
