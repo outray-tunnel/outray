@@ -77,7 +77,10 @@ function logMessage(body: AttributeValue): string {
   return JSON.stringify(body);
 }
 
-export function parseLogsPayload(payload: unknown): ParsedLogsPayload {
+export function parseLogsPayload(
+  payload: unknown,
+  maxRecords = Infinity,
+): ParsedLogsPayload {
   const root = record(payload);
   const resourceLogs = list(field(root, "resourceLogs", "resource_logs"));
   if (!root || !Array.isArray(field(root, "resourceLogs", "resource_logs"))) {
@@ -100,6 +103,10 @@ export function parseLogsPayload(payload: unknown): ParsedLogsPayload {
       const logRecords = list(field(scopeLog, "logRecords", "log_records"));
 
       for (const candidate of logRecords) {
+        if (records.length >= maxRecords) {
+          rejected++;
+          continue;
+        }
         const item = record(candidate);
         const timeNano =
           integerString(field(item, "timeUnixNano", "time_unix_nano")) || "0";
