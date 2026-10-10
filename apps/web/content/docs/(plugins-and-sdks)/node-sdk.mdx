@@ -86,7 +86,7 @@ getOutrayMeter().createCounter("payments.accepted").add(1);
 | `serviceVersion` | `OTEL_SERVICE_VERSION` | Release or build identifier |
 | `serviceNamespace` | `OTEL_SERVICE_NAMESPACE` | Optional service grouping |
 | `environment` | `OTEL_DEPLOYMENT_ENVIRONMENT`, then `NODE_ENV` | Deployment environment |
-| `endpoint` | `OUTRAY_OTLP_ENDPOINT`, then `OTEL_EXPORTER_OTLP_ENDPOINT`, then `https://ingest.outray.dev` | Base OTLP/HTTP endpoint |
+| `endpoint` | `OUTRAY_OTLP_ENDPOINT`, then `OTEL_EXPORTER_OTLP_ENDPOINT`, then `https://ingest.outray.co` | Base OTLP/HTTP endpoint |
 | `enabled` | `OUTRAY_OBSERVABILITY_ENABLED`, default true | Enable telemetry |
 | `captureConsole` | `OUTRAY_CAPTURE_CONSOLE`, default false | Forward console calls |
 | `metricExportIntervalMillis` | `60000` | Metric interval; minimum 1000 ms |
