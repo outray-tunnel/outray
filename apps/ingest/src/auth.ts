@@ -24,6 +24,13 @@ export interface IngestAuthContext {
 
 type Queryable = Pick<pg.Pool, "query">;
 
+export interface AuthenticationOptions {
+  /** Workers pass installation policy explicitly; never mutate process.env. */
+  environment?: Record<string, string | undefined>;
+  /** Keeps last-used writes alive until the per-request database client closes. */
+  backgroundTask?: (task: Promise<unknown>) => void;
+}
+
 interface TokenRow {
   id: string;
   organization_id: string;
@@ -40,11 +47,15 @@ function tokenHash(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
 }
 
-function authContext(token: TokenRow): IngestAuthContext {
-  const instance = instanceConfig();
+function authContext(
+  token: TokenRow,
+  options: AuthenticationOptions,
+): IngestAuthContext {
+  const instance = instanceConfig(options.environment);
   return {
     organizationId: token.organization_id,
-    retentionDays: instance.selfHosted ? instance.retentionDays
+    retentionDays: instance.selfHosted
+      ? instance.retentionDays
       : RETENTION_DAYS[token.plan || "free"] || RETENTION_DAYS.free,
     tokenId: token.id,
   };
@@ -64,6 +75,7 @@ function isExpired(value: Date | string | null): boolean {
 async function authenticateLegacyToken(
   pool: Queryable,
   apiKey: string,
+  options: AuthenticationOptions,
 ): Promise<IngestAuthContext | null> {
   const result = await pool.query<TokenRow>(
     `SELECT token.id, token.organization_id, subscription.plan
@@ -82,22 +94,25 @@ async function authenticateLegacyToken(
     tokenId: token.id,
     organizationId: token.organization_id,
   });
-  void pool
+  const usage = pool
     .query("UPDATE auth_tokens SET last_used_at = NOW() WHERE id = $1", [
       token.id,
     ])
-    .catch((error) => console.error("Could not update token usage", error));
+    .catch(() => console.error("Could not update token usage"));
+  options.backgroundTask?.(usage);
 
-  return authContext(token);
+  return authContext(token, options);
 }
 
 export async function authenticateApiToken(
   pool: Queryable,
   apiKey: string,
+  options: AuthenticationOptions = {},
 ): Promise<IngestAuthContext | null> {
   // Enforce the installation flag here as well as in dashboard navigation;
   // callers can reach the standalone OTLP endpoint directly.
-  if (!instanceConfig().products.includes("observability")) return null;
+  if (!instanceConfig(options.environment).products.includes("observability"))
+    return null;
   if (!apiKey.startsWith("outray_")) return null;
 
   // Look up the hashed credential first. A matching revoked or expired token
@@ -120,22 +135,23 @@ export async function authenticateApiToken(
     }
 
     if (hasObservabilityScope(machineToken.scopes)) {
-      void pool
+      const usage = pool
         .query(
           "UPDATE secrets_machine_tokens SET last_used_at = NOW() WHERE id = $1",
           [machineToken.id],
         )
-        .catch((error) => console.error("Could not update token usage", error));
-      return authContext(machineToken);
+        .catch(() => console.error("Could not update token usage"));
+      options.backgroundTask?.(usage);
+      return authContext(machineToken, options);
     }
 
     // During the two-release migration, a token may already have a hashed
     // tunnel-only row while its legacy row still carries its previous ingest
     // capability. Only that exact legacy credential receives compatibility.
-    return authenticateLegacyToken(pool, apiKey);
+    return authenticateLegacyToken(pool, apiKey, options);
   }
 
-  return authenticateLegacyToken(pool, apiKey);
+  return authenticateLegacyToken(pool, apiKey, options);
 }
 
 export class ApiTokenAuthenticator {
