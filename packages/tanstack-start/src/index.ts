@@ -53,6 +53,8 @@ export interface OutrayTanStackStartOptions {
    * default. Values use the same safety limits as the other OutRay adapters.
    */
   capturePayloads?: HttpPayloadCaptureSetting;
+  /** Record exception messages/stacks on failed requests. Defaults to true. */
+  recordExceptions?: boolean;
   /**
    * Resolve the low-cardinality route template used for the span name and
    * `http.route`. Return null to use OutRay's identifier normalization.
@@ -189,7 +191,9 @@ async function runInstrumentedRequest<TResult>(
     return result;
   } catch (error) {
     span.setStatus({ code: SpanStatusCode.ERROR });
-    if (error instanceof Error) span.recordException(error);
+    if (options.recordExceptions !== false && error instanceof Error) {
+      span.recordException(error);
+    }
     throw error;
   }
 }
