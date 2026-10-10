@@ -4,7 +4,8 @@ By default this explicit trial exposes only `https://ops.outray.dev`. The separa
 `--enable-status` opt-in below also serves published status pages through two
 private status-only services. Neither mode is normal full public
 self-hosted deployment or acceptance: by default OAuth, Tinybird, email and signup
-remain unconfigured/closed, other product endpoints remain private, and uptime
+remain unconfigured/closed, other product endpoints remain private unless the
+separate explicit ingestion procedure at the end is completed, and uptime
 workers remain disabled unless the separate probe-only procedure below is
 explicitly completed. The independent GitHub-only and Tinybird READ-only
 exceptions below each require an explicit operator opt-in; GitHub additionally
@@ -21,7 +22,9 @@ unknown TLS SNI has no certificate, and SNI/Host mismatches are rejected through
 [strict SNI/Host checking](https://caddyserver.com/docs/caddyfile/options#strict_sni_host).
 The default mode has no wildcard, on-demand TLS or custom-domain validator.
 Status mode adds narrowly authorized status-host certificates and redirects,
-not tunnel, ingestion or share routing. Access logging is not enabled, and setup
+not tunnel, ingestion or share routing. The separate `--enable-ingest` mode adds
+only the exact Ops telemetry hostname and paths described below. Access logging
+is not enabled, and setup
 suppresses Docker diagnostics.
 
 Only Caddy joins `outray-ops-preview-egress` for outbound DNS/ACME plus the existing
@@ -459,3 +462,190 @@ replace the owned web with `--enable-github --replace-owned` but no
 modes, omit both flags for the replacement and proxy commands. The unused
 labelled egress network is retained; the fully closed web has only the internal
 network.
+
+## Explicit independent Ops ingestion
+
+This is an operator opt-in for the independent Ops VPS, `209.74.86.89`, from
+`/opt/outray-ops/source`. It does not connect to the hosted database, hosted
+Redis or hosted Tinybird workspace, change the hosted tunnel runtime, or deploy
+the hosted web app. The existing Ops console keeps its GitHub signup policy and
+Tinybird READ-only configuration. Only a dedicated ingest worker receives the
+`internal_ops` workspace's scoped APPEND credential. Status hosting, the
+separately managed Uptime probe and disabled notification delivery are unchanged.
+This recipe describes the setup, not a claim of completed live acceptance; the
+measured record belongs in `../VERIFICATION.md`.
+
+### Build and verify the private ingestion worker
+
+Use the dedicated fresh file `/opt/outray-ops/config/instance.env`, mode0600,
+with its installation-owned PostgreSQL credentials, private Redis URL and the
+verified `internal_ops` Tinybird configuration from the preceding procedure.
+The APPEND credential must differ from the READ token; it must not grant
+administration, deployment, query or hosted-workspace access. No credentials
+belong in shell arguments, build arguments, source files or Docker diagnostics.
+
+Stage and verify all eight application outputs and three dependency outputs with
+the Node22/free-mode artifact workflow. Keep the build source and staged artifact
+source digest identical: do not combine freshly edited application sources with
+older outputs. On this Ops host, `outray-ops-status-preview:public` is the existing
+audited Linux dependency image. The ingestion build copies only its pure-JS
+`pg`, `ioredis` and `protobufjs` dependency closure, without installing packages,
+copying other applications, using a Hugeicons license or adding runtime secrets.
+Verify all five public origins:
+
+```sh
+docker build --file deploy/self-hosted/Dockerfile.ingest-preview \
+  --build-arg INGEST_DEPENDENCY_IMAGE=outray-ops-status-preview:public \
+  --build-arg APP_PUBLIC_URL=https://ops.outray.dev \
+  --build-arg STATUS_PUBLIC_URL=https://status.ops.outray.dev \
+  --build-arg SHARE_PUBLIC_URL=https://share.ops.outray.dev \
+  --build-arg EDGE_PUBLIC_URL=wss://edge.ops.outray.dev \
+  --build-arg INGEST_PUBLIC_URL=https://ingest.ops.outray.dev \
+  --tag outray-ops-ingest-preview:public .
+/usr/local/bin/node scripts/self-hosted-ingest.mjs \
+  --file /opt/outray-ops/config/instance.env \
+  --image outray-ops-ingest-preview:public
+```
+
+The runner audits the image and source-matched artifacts before starting
+`outray-ops-public-ingest`. It requires the existing owned, healthy private
+PostgreSQL and Redis containers. The worker runs as `node`, read-only, with
+dropped capabilities, no host ports, a temporary `/tmp`, a 512 MiB no-swap limit
+and a 128-process limit. It joins the internal network and its own unshared
+`outray-ops-ingest-egress` outbound bridge. Unlike the probe's filtered egress,
+this bridge supplies general outbound DNS/HTTPS for Tinybird; it is not a
+destination-filtering firewall. No OAuth, READ token, vault key, billing, email
+or DNS API credentials are supplied to ingestion.
+
+Private readiness checks establish PostgreSQL and Redis connections and verify
+all three live Redis stream consumers, not just HTTP liveness. Only after they
+pass is the exact owned worker's restart policy set to `unless-stopped`. Healthy
+reuse verifies its configuration and consumers without replacing it. If an
+exactly owned worker is inactive or unhealthy, inspect it first, then explicitly
+add `--recover` to the same command. Foreign resources, configuration drift,
+shared networks and unexpected isolation are refused; do not bypass the guard
+with a direct `docker start`, broadened credentials or volume deletion.
+
+### Expose only the approved OTLP endpoint
+
+Add a DNS-only A record `ingest.ops.outray.dev` → `209.74.86.89`. Leave existing
+console/status records unchanged, and do not point the endpoint at the hosted
+edge VPS. The gateway does not change Cloudflare DNS itself. Use the actual
+currently audited console image, `outray-console-preview:metal-favicon`, with
+both existing console opt-ins and both product-routing opt-ins retained:
+
+```sh
+/usr/local/bin/node scripts/self-hosted-preview.mjs \
+  --file /opt/outray-ops/config/instance.env --email akinkunmi@outray.co \
+  --enable-proxy --image outray-console-preview:metal-favicon \
+  --enable-github --enable-tinybird --enable-status --enable-ingest
+```
+
+Before replacing only the exact owned Caddy container, the gateway verifies the
+healthy private ingest worker and its consumers, the existing console/status
+services, the pinned Caddy image, configuration fingerprints and actual Caddy
+adaptation. The new fingerprint includes the imported
+`Caddyfile.status-ingest-common`; old non-ingestion fingerprints remain
+compatible. Certificate/configuration volumes are preserved. Only TCP80/443
+are published; PostgreSQL, Redis and ingestion port4318 remain private.
+
+On `https://ingest.ops.outray.dev`, only these six exact **POST** paths are proxied:
+
+- `/v1/traces`, `/v1/logs`, `/v1/metrics`
+- `/api/otlp/v1/traces`, `/api/otlp/v1/logs`, `/api/otlp/v1/metrics`
+
+The proxy preserves the bearer write credential, strips spoofed edge/client-IP
+and forwarding headers, and bounds request size. **GET `/health` is public
+liveness only**, not delivery or dependency acceptance. Other paths and methods
+return404. Unauthenticated OTLP must return401, not enqueue telemetry. The
+HTTP endpoint redirects to the fixed HTTPS host; verify trusted TLS without
+`curl -k`. Access logging is disabled and credential-bearing setup diagnostics
+are suppressed.
+
+Once ingestion is active, **retain both `--enable-status` and `--enable-ingest`
+on every maintenance and proxy command**. For console maintenance:
+
+```sh
+/usr/local/bin/node scripts/self-hosted-preview.mjs \
+  --file /opt/outray-ops/config/instance.env --email akinkunmi@outray.co \
+  --enable-status --enable-ingest
+```
+
+This returns503 only for the console while status pages and ingestion remain
+available. A maintenance command without `--enable-ingest` is refused rather
+than silently cutting telemetry off. After a separately audited console upgrade,
+restore the preceding proxy command with its actual new image and the retained
+GitHub, Tinybird, status and ingestion flags. Never edit mounted Caddyfiles in
+place or remove persistent volumes. Deliberately disabling ingestion requires a
+separately planned rollback, not omission of the flag.
+
+### Provision the scoped integration token and prove delivery
+
+Inspect the existing Ops workspace and its verified owner through a read-only
+database check. The workspace slug must be `outray`; neither a new organization
+nor a fabricated sign-in session is created. Substitute those existing IDs,
+not hosted-organization IDs:
+
+```sh
+/usr/local/bin/node scripts/self-hosted-observability-token.mjs \
+  --file /opt/outray-ops/config/instance.env \
+  --org EXISTING_OPS_ORG_ID --owner EXISTING_VERIFIED_OWNER_ID
+/usr/local/bin/node scripts/self-hosted-ops-telemetry-smoke.mjs \
+  --file /opt/outray-ops/config/instance.env
+```
+
+The bootstrap creates one non-expiring hashed machine token with exactly
+`observability:write`, no Secrets or tunnel permissions, and an audited system
+creation event associated with the verified owner. Only its SHA-256 hash and
+nonsecret prefix enter PostgreSQL. The raw credential is durably staged solely
+in the adjacent `/opt/outray-ops/config/outray-web-observability.env`, mode0600,
+before database insertion so an exact retry cannot lose or duplicate the token.
+The main instance configuration is unchanged. Repeated runs verify the same
+hash, scope, owner and unrevoked state; mismatched or revoked tokens are refused,
+never silently rotated. Operators can revoke the integration through the normal
+token management UI when retiring it.
+
+The smoke helper is deliberately bound to the approved Ops organization and
+`internal_ops`, not a generic arbitrary-tenant verifier. It first verifies
+unauthenticated401 and unknown-path404 boundaries, then sends one uniquely
+identified synthetic trace, log and gauge through public authenticated HTTPS.
+It polls the scoped READ query pipes for the matching trace, HTTP request, log
+and metric. Output contains proof counts and generated evidence IDs only, never
+tokens or production content. A200 receipt or public health response alone is
+not delivery proof. The synthetic verification records are normal independent
+Ops telemetry and follow that installation's retention policy.
+
+### Enable the prepared hosted web instrumentation separately
+
+The hosted `outray.co` integration is prepared in source but is **not deployed by
+this Ops procedure**. The user must push/build/deploy the updated web app through
+its normal hosted deployment, supplying only these dedicated **server-side**
+variables securely from the private integration file:
+
+- `OUTRAY_INTERNAL_OBSERVABILITY_API_KEY`
+- `OUTRAY_INTERNAL_OBSERVABILITY_ENDPOINT`
+- `OUTRAY_INTERNAL_OBSERVABILITY_SERVICE_NAME`
+- `OUTRAY_INTERNAL_OBSERVABILITY_ENVIRONMENT`
+
+Do not use `VITE_` or other client-exposed variables, print or paste the raw token,
+commit the file, or replace hosted database/Tinybird/tunnel credentials with Ops
+ones. The dedicated nonempty key explicitly opts in; absent it, the ordinary web
+handler remains unchanged and the SDK is not started. The endpoint is a validated
+bare HTTPS origin, service name `outray-web`, environment `production`.
+
+The prepared integration sends request traces, HTTP metrics, redacted payloads
+and application console logs. Payloads are limited to JSON/form bodies (16 KiB)
+and headers (8 KiB); opaque nested captured-body/header fields and `params` are
+redacted too. Local console output is preserved. Credential, Secrets, auth,
+token, invite, webhook, checkout and server-function requests bypass both
+payload/trace capture and log export, including asynchronous request work.
+Background logs are captured. Automatic HTTP/database/logger instrumentation
+and exception details on spans remain disabled; console error logs can include
+redacted error messages/stacks. Redaction is not a guarantee against arbitrary
+plaintext secrets or personal data, and slow JSON/form capture can add latency.
+See `apps/web/README.md` for the exact policy. After the hosted deployment, verify
+fresh `outray-web` request/trace, payload, log and metric records in Ops with
+signed-in routes and organization isolation. Do not claim live hosted telemetry
+until those records advance. Uptime probing and notification settings remain
+unchanged throughout. No extra environment variables are required to enable
+these capture options in the prepared integration.
