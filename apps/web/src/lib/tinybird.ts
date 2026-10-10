@@ -19,6 +19,53 @@ const queryCacheTtlMs = Math.max(
 );
 const queryCacheMaxEntries = 1_000;
 
+// These endpoints declare required Tinybird DateTime64 parameters. Their wire
+// format is a UTC SQL timestamp, not the ISO timestamp used by our public APIs.
+const tunnelDateTimeEndpoints = new Set([
+  "tunnel_http_stats", "tunnel_http_chart", "tunnel_requests",
+  "tunnel_protocol_stats", "tunnel_protocol_chart", "tunnel_protocol_recent",
+  "tunnel_capture", "tunnel_overview_stats", "tunnel_overview_chart",
+  "tunnel_admin_active_series", "tunnel_admin_http_chart",
+  "tunnel_admin_active_chart", "tunnel_admin_usage",
+]);
+
+function tinybirdDateTime(value: string): string {
+  // Already-canonical values and other legacy inputs remain unchanged. Only
+  // complete, zoned ISO timestamps are converted; never guess a local timezone.
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(value)) return value;
+  const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/.exec(value);
+  const invalid = () => new Error("Invalid Tinybird datetime parameter");
+  if (!match) throw invalid();
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) throw invalid();
+  const zone = match[4];
+  const offset = zone === "Z" ? 0
+    : (zone.startsWith("+") ? 1 : -1) * (Number(zone.slice(1, 3)) * 60 + Number(zone.slice(4, 6)));
+  // Date parsing can silently roll an impossible date (such as February 30)
+  // into another month. Verify the original wall-clock fields before converting.
+  const local = new Date(parsed.getTime() + offset * 60_000).toISOString();
+  const expected = `${match[1]}T${match[2]}.${(match[3] || "").padEnd(3, "0").slice(0, 3)}Z`;
+  if (local !== expected) throw invalid();
+  return parsed.toISOString().replace("T", " ").slice(0, -1);
+}
+
+function tinybirdWireParameters(
+  endpoint: string,
+  parameters: Record<string, string | number | boolean | undefined>,
+) {
+  if (!tunnelDateTimeEndpoints.has(endpoint)) return parameters;
+  const result = { ...parameters };
+  const keys = ["start", "end",
+    ...(endpoint === "tunnel_overview_stats" ? ["previous_start"] : []),
+    ...(endpoint === "tunnel_capture" ? ["timestamp"] : []),
+  ];
+  for (const key of keys) {
+    const value = result[key];
+    if (typeof value === "string" && value !== "") result[key] = tinybirdDateTime(value);
+  }
+  return result;
+}
+
 function queryCacheKey(
   endpoint: string,
   parameters: Record<string, string | number | boolean | undefined>,
@@ -53,10 +100,11 @@ export async function queryTinybird<T>(
   options: { cache?: "default" | "no-store"; signal?: AbortSignal; maximumResponseBytes?: number } = {},
 ): Promise<T[]> {
   const { apiHost, token } = tinybirdConfig();
-  const cacheKey = queryCacheKey(endpoint, parameters);
+  const wireParameters = tinybirdWireParameters(endpoint, parameters);
+  const cacheKey = queryCacheKey(endpoint, wireParameters);
 
   const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(parameters)) {
+  for (const [key, value] of Object.entries(wireParameters)) {
     if (value !== undefined && value !== "") search.set(key, String(value));
   }
 
