@@ -479,7 +479,7 @@ export const appClient = {
 
   organizations: {
     checkSlug: async (slug: string) =>
-      apiCall<{ available: boolean; reason?: "reserved" | "taken" }>(
+      apiCall<{ available: boolean; reason?: "reserved" | "route" | "taken" }>(
         "post",
         `/api/organizations/check-slug`,
         {
