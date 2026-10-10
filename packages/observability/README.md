@@ -51,7 +51,7 @@ skips export without changing local output. Redaction is best-effort: avoid
 putting arbitrary secrets or personal data in log messages. This filter does not
 apply to direct calls to the low-level OpenTelemetry logger.
 
-The endpoint defaults to `https://ingest.outray.dev`. The package still supports
+The endpoint defaults to `https://ingest.outray.co`. The package still supports
 environment-variable defaults and `@outray/observability/register` as an
 optional zero-code compatibility mode, but framework adapters do not require
 them.
