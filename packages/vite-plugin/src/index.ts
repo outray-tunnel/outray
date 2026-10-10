@@ -2,7 +2,7 @@ import type { Plugin, ViteDevServer } from "vite";
 import { OutrayClient, LocalAccessManager } from "@outray/core";
 import type { OutrayPluginOptions } from "./types";
 
-const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
+const DEFAULT_SERVER_URL = "wss://connect.outray.co/";
 
 /**
  * Vite plugin that automatically starts an Outray tunnel when the dev server starts.
