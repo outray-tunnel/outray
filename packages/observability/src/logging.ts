@@ -9,9 +9,11 @@ const MAX_ARRAY_ITEMS = 20;
 const REDACTED = "[REDACTED]";
 
 const SENSITIVE_KEY =
-  /(?:^|[._-])(authorization|cookie|password|passwd|secret|token|api[._-]?key|private[._-]?key|session)(?:$|[._-])/i;
+  /authorization|cookie|password|passwd|secret|token|apikey|authkey|privatekey|session/i;
 const SENSITIVE_ASSIGNMENT =
-  /\b(authorization|cookie|password|passwd|secret|token|api[_-]?key|private[_-]?key|session)\b\s*([:=])\s*(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi;
+  /\b(authorization|cookie|set[._-]?cookie|password|passwd|secret|token|access[._-]?token|refresh[._-]?token|auth[._-]?token|api[._-]?key|auth[._-]?key|private[._-]?key|client[._-]?secret|session(?:[._-]?id)?)\b(\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;]+)/gi;
+const FORMAT_PLACEHOLDER = /%[sdifjoOc]/;
+const FORMAT_SPECIFIER = /%[%sdifjoOc]/g;
 const BEARER_TOKEN = /\bBearer\s+[A-Za-z0-9._~+/=-]+/gi;
 const OUTRAY_TOKEN = /\boutray_[A-Za-z0-9_-]+\b/gi;
 
@@ -65,18 +67,56 @@ function truncateUtf8(value: string, maxBytes: number): string {
   return `${truncated}${suffix}`;
 }
 
-function redactString(value: string, state?: SanitizeState): string {
-  const redacted = value
+function sensitiveKey(key: string): boolean {
+  return SENSITIVE_KEY.test(key.toLowerCase().replace(/[^a-z0-9]/g, ""));
+}
+
+// Known credentials are redacted, but arbitrary free-form secret values cannot
+// be identified reliably. Applications must still avoid logging sensitive data.
+function redactText(value: string, preserveFormatPlaceholders = false): string {
+  return value
     .replace(BEARER_TOKEN, `Bearer ${REDACTED}`)
     .replace(OUTRAY_TOKEN, "outray_[REDACTED]")
     .replace(
       SENSITIVE_ASSIGNMENT,
-      (_match, name: string, separator: string) =>
-        `${name}${separator}${REDACTED}`,
+      (match, name: string, separator: string, assignedValue: string) =>
+        preserveFormatPlaceholders && FORMAT_PLACEHOLDER.test(assignedValue)
+          ? match
+          : `${name}${separator}${REDACTED}`,
     );
+}
+
+function redactString(
+  value: string,
+  state?: SanitizeState,
+  preserveFormatPlaceholders = false,
+): string {
+  const redacted = redactText(value, preserveFormatPlaceholders);
   const bounded = truncateUtf8(redacted, MAX_VALUE_BYTES);
   if (state && bounded !== redacted) state.truncated = true;
   return bounded;
+}
+
+function sensitiveFormatArguments(args: readonly unknown[]): Set<number> {
+  const result = new Set<number>();
+  const formatString = args[0];
+  if (typeof formatString !== "string" || args.length < 2) return result;
+
+  const sensitiveRanges: Array<{ start: number; end: number }> = [];
+  for (const match of formatString.matchAll(SENSITIVE_ASSIGNMENT)) {
+    const assignedValue = match[3]!;
+    const start = match.index + match[0].length - assignedValue.length;
+    sensitiveRanges.push({ start, end: start + assignedValue.length });
+  }
+  let argumentIndex = 1;
+  for (const match of formatString.matchAll(FORMAT_SPECIFIER)) {
+    if (match[0] === "%%") continue;
+    if (sensitiveRanges.some(({ start, end }) => match.index >= start && match.index < end)) {
+      result.add(argumentIndex);
+    }
+    argumentIndex += 1;
+  }
+  return result;
 }
 
 function sanitizeValue(
@@ -122,7 +162,7 @@ function sanitizeValue(
     const result: Record<string, SanitizedValue> = {};
     const entries = Object.entries(value).slice(0, MAX_ENTRIES);
     for (const [key, entryValue] of entries) {
-      result[key] = SENSITIVE_KEY.test(key)
+      result[key] = sensitiveKey(key)
         ? REDACTED
         : sanitizeValue(entryValue, state, depth + 1);
     }
@@ -140,12 +180,16 @@ function sanitizeValue(
 
 function attributesFromArguments(
   args: readonly unknown[],
+  redactedArguments: ReadonlySet<number>,
 ): Record<string, boolean | number | string> {
   const attributes: Record<string, boolean | number | string> = {
     "log.argument.count": args.length,
   };
 
-  for (const argument of args) {
+  for (const [index, argument] of args.entries()) {
+    // A value passed to `token=%o` is sensitive even when its internal field
+    // names look innocuous; do not re-export it through structured attributes.
+    if (redactedArguments.has(index)) continue;
     if (argument instanceof Error) {
       attributes["exception.type"] = argument.name;
       attributes["exception.message"] = redactString(argument.message);
@@ -159,7 +203,7 @@ function attributesFromArguments(
       continue;
     }
     for (const [key, value] of Object.entries(argument).slice(0, MAX_ENTRIES)) {
-      if (SENSITIVE_KEY.test(key)) {
+      if (sensitiveKey(key)) {
         attributes[key] = REDACTED;
       } else if (
         typeof value === "boolean" ||
@@ -182,13 +226,23 @@ export function emitOutrayLog(
 ): void {
   try {
     const state: SanitizeState = { seen: new WeakSet(), truncated: false };
-    const sanitized = args.map((argument) => sanitizeValue(argument, state));
+    const redactedArguments = sensitiveFormatArguments(args);
+    const sanitized = args.map((argument, index) =>
+      redactedArguments.has(index)
+        ? REDACTED
+        : index === 0 && typeof argument === "string" && args.length > 1
+          ? redactString(argument, state, true)
+          : sanitizeValue(argument, state),
+    );
     const unboundedBody = format(...sanitized);
-    const body = truncateUtf8(unboundedBody, MAX_LOG_BYTES);
+    // Redact once more AFTER printf interpolation, so `token=%s` cannot strip
+    // the placeholder and accidentally append the unredacted argument.
+    const redactedBody = redactText(unboundedBody);
+    const body = truncateUtf8(redactedBody, MAX_LOG_BYTES);
     logger.emit({
       attributes: {
-        ...attributesFromArguments(args),
-        ...(state.truncated || body !== unboundedBody
+        ...attributesFromArguments(args, redactedArguments),
+        ...(state.truncated || body !== redactedBody
           ? { "outray.log.truncated": true }
           : {}),
       },
@@ -211,13 +265,24 @@ function snapshotConsole(target: OutrayConsoleTarget): OutrayConsoleTarget {
   };
 }
 
+function logCaptureAllowed(shouldCaptureLog?: () => boolean): boolean {
+  try {
+    return shouldCaptureLog ? shouldCaptureLog() === true : true;
+  } catch {
+    // A failing context filter must neither leak a log nor affect local output.
+    return false;
+  }
+}
+
 export function createOutrayLogMethods(
   logger: Pick<Logger, "emit">,
   target: OutrayConsoleTarget = console,
+  shouldCaptureLog?: () => boolean,
 ): OutrayLogMethods {
   const original = snapshotConsole(target);
   const write = (level: Exclude<OutrayLogLevel, "log">, args: unknown[]) => {
     original[level].apply(target, args);
+    if (!logCaptureAllowed(shouldCaptureLog)) return;
     emitOutrayLog(logger, level, args);
   };
   return {
@@ -231,6 +296,7 @@ export function createOutrayLogMethods(
 export function captureConsoleLogs(
   logger: Pick<Logger, "emit">,
   target: OutrayConsoleTarget = console,
+  shouldCaptureLog?: () => boolean,
 ): () => void {
   const original = snapshotConsole(target);
   const patched = {} as Record<OutrayLogLevel, OutrayLogMethod>;
@@ -242,7 +308,9 @@ export function captureConsoleLogs(
       if (emitting) return;
       emitting = true;
       try {
-        emitOutrayLog(logger, level, args);
+        if (logCaptureAllowed(shouldCaptureLog)) {
+          emitOutrayLog(logger, level, args);
+        }
       } finally {
         emitting = false;
       }
