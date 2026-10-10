@@ -21,7 +21,7 @@ import {
 
 export const Route = createRootRoute({
   beforeLoad: async () => ({ instance: await getPublicInstanceConfig() }),
-  head: () => ({
+  head: ({ match }) => ({
     meta: [
       {
         charSet: "utf-8",
@@ -82,6 +82,9 @@ export const Route = createRootRoute({
         rel: "stylesheet",
         href: appCss,
       },
+      ...(match.context.instance?.selfHosted
+        ? [{ rel: "icon", type: "image/svg+xml", href: "/favicon-self-hosted.svg?v=metal-1" }]
+        : []),
     ],
   }),
   component: RootComponent,
