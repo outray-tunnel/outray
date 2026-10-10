@@ -208,7 +208,7 @@ export async function findPageForRequest(
     `SELECT p.id, p.organization_id, p.slug, p.name, p.description, p.logo_url,
             p.accent_color, p.published
      FROM uptime_status_pages p
-     JOIN domains d ON d.id = p.domain_id
+     JOIN domains d ON d.id = p.domain_id AND d.organization_id = p.organization_id
      WHERE d.domain = $1 AND d.purpose = 'status' AND d.status = 'active'
        AND p.published = true
      LIMIT 1`,
