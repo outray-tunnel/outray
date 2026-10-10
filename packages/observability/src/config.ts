@@ -57,7 +57,8 @@ export interface ResolvedOutrayObservabilityOptions {
   diagnostics: NonNullable<OutrayObservabilityOptions["diagnostics"]>;
   captureConsole: boolean;
   shouldCaptureLog?: () => boolean;
-  autoInstrumentations: boolean;
+  /** Always resolved by the SDK; optional for existing consumer config objects. */
+  autoInstrumentations?: boolean;
 }
 
 function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
