@@ -108,7 +108,7 @@ test("public status services must be healthy owned non-root read-only and privat
 test("gateway upgrade validates the prior mode and refuses silent status removal before mutation", () => {
   const source = readFileSync(new URL("./self-hosted-preview.mjs", import.meta.url), "utf8");
   assert.match(source, /previousStatus && !options\.enableStatus/);
-  assert.match(source, /gatewayLabels\(previousMode, previousStatus, previousValues\)/);
+  assert.match(source, /gatewayLabels\(previousMode, previousStatus, previousValues, previousIngest\)/);
   assert.ok(source.indexOf("previousStatus && !options.enableStatus") < source.indexOf('["stop", "--time", "10", existing.Id]'));
   assert.ok(source.indexOf("safePrivateStatusContainer(await inspect") < source.indexOf('["stop", "--time", "10", existing.Id]'));
   assert.match(source, /\["rm", existing\.Id\]/);
