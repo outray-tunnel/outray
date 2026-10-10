@@ -70,7 +70,7 @@ client.stop();
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `localPort` | `number` | **required** | Local port to proxy requests to |
-| `serverUrl` | `string` | `'wss://api.outray.dev/'` | Outray server WebSocket URL |
+| `serverUrl` | `string` | `'wss://connect.outray.co/'` | Outray server WebSocket URL |
 | `apiKey` | `string` | - | API key for authentication |
 | `subdomain` | `string` | - | Subdomain to use (requires auth) |
 | `customDomain` | `string` | - | Custom domain (must be configured in dashboard) |
