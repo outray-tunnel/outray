@@ -15,7 +15,7 @@ export const Route = createFileRoute("/")({
       throw redirect({ to: await getSelfHostedHomeDestination(), replace: true });
     }
   },
-  head: () => ({
+  head: ({ match }) => ({
     meta: [
       { title },
       { name: "description", content: description },
@@ -50,7 +50,9 @@ export const Route = createFileRoute("/")({
     ],
     links: [
       { rel: "stylesheet", href: landingCss },
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      ...(!match.context.instance?.selfHosted
+        ? [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }]
+        : []),
       { rel: "manifest", href: "/site.webmanifest" },
       { rel: "preload", href: "/fonts/geom-latin.woff2", as: "font", type: "font/woff2", crossOrigin: "anonymous" },
       ...(canonicalUrl ? [{ rel: "canonical", href: canonicalUrl }] : []),
