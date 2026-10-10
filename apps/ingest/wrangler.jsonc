@@ -1,0 +1,52 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "outray-ingest-worker",
+  "main": "src/worker/index.ts",
+  "account_id": "c24bce6c7c75dad3f96b41f09a1f00d5",
+  "compatibility_date": "2026-10-10",
+  "compatibility_flags": ["nodejs_compat"],
+  // Worker-managed DNS; hosted ingestion has no VPS origin.
+  "routes": [
+    {
+      "pattern": "ingest.outray.co",
+      "custom_domain": true,
+    },
+  ],
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "vars": {
+    "TINYBIRD_API_HOST": "https://api.europe-west2.gcp.tinybird.co",
+    "OUTRAY_DEPLOYMENT_MODE": "hosted",
+    "OUTRAY_PRODUCTS": "tunnels,observability,secrets,uptime",
+    "OUTRAY_RETENTION_DAYS": "30",
+  },
+  "hyperdrive": [
+    { "binding": "HYPERDRIVE", "id": "dbad19c888b34b9bbcad5da9e30b66a2" },
+  ],
+  "queues": {
+    "producers": [{ "binding": "OTLP_QUEUE", "queue": "outray-otel-ingest" }],
+    "consumers": [
+      {
+        "queue": "outray-otel-ingest",
+        "max_batch_size": 10,
+        "max_batch_timeout": 2,
+        "max_retries": 5,
+        "max_concurrency": 5,
+        "retry_delay": 5,
+        "dead_letter_queue": "outray-otel-ingest-dlq",
+      },
+    ],
+  },
+  "r2_buckets": [
+    { "binding": "OTLP_OVERFLOW", "bucket_name": "outray-ingest-overflow" },
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "ORG_RATE_LIMITER", "class_name": "OrganizationRateLimiter" },
+    ],
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["OrganizationRateLimiter"] },
+  ],
+}
