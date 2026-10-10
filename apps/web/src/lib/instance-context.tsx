@@ -6,5 +6,6 @@ export const InstanceContext = createContext<PublicInstanceConfig>({
   selfHosted: false, billingEnabled: true,
   products: ["tunnels", "observability", "secrets", "uptime"],
   authProviders: ["github", "google"],
+  workspaceUrlPrefix: "outray.dev/",
 });
 export const useInstance = () => useContext(InstanceContext);
