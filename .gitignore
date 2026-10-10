@@ -12,6 +12,9 @@ dist/
 .tinyb
 .output
 .vscode
+.wrangler/
+.dev.vars*
+dist-worker/
 
 # Local database files
 data/
