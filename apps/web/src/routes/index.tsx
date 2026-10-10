@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { LandingPage } from "@/landing/LandingPage";
+import { getSelfHostedHomeDestination } from "@/lib/self-hosted-home";
 import landingCss from "@/landing/landing.css?url";
 
 const title = "OutRay — Everything between localhost and production.";
@@ -9,6 +10,11 @@ const canonicalUrl = configuredSiteUrl ? new URL("/", configuredSiteUrl).toStrin
 const ogImageUrl = configuredSiteUrl ? new URL("/og-image.png", configuredSiteUrl).toString() : "/og-image.png";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: async ({ context }) => {
+    if (context.instance.selfHosted) {
+      throw redirect({ to: await getSelfHostedHomeDestination(), replace: true });
+    }
+  },
   head: () => ({
     meta: [
       { title },
