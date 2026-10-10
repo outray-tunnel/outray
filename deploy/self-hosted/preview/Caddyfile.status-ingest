@@ -1,0 +1,6 @@
+import Caddyfile.status-ingest-common
+
+ops.outray.dev {
+	encode zstd gzip
+	reverse_proxy outray-ops-public-web:6767
+}
