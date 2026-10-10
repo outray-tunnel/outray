@@ -3,6 +3,7 @@ import pg from "pg";
 import dotenv from "dotenv";
 import postgresConfig from "../../../shared/postgres-ssl";
 import { certificateDomainAllowed, normalizeCertificateDomain } from "./domain-authorization";
+import { statusDomainCheckHandler } from "./status-domain-check";
 
 dotenv.config();
 
@@ -33,6 +34,8 @@ connectDb();
 const app = express();
 const port = process.env.INTERNAL_CHECK_PORT || process.env.PORT || 3344;
 app.get("/health", (_req, res) => res.status(200).send("ok"));
+
+app.get("/internal/status-domain-check", statusDomainCheckHandler((sql, parameters) => pool.query(sql, parameters)));
 
 app.get("/internal/domain-check", async (req, res) => {
   const domain = normalizeCertificateDomain(req.query.domain);
