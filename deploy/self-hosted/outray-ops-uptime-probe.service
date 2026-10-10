@@ -1,0 +1,21 @@
+[Unit]
+Description=OutRay Ops Uptime probe with verified namespace egress
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/outray-ops/source
+ExecStart=/usr/local/bin/node scripts/self-hosted-probe.mjs --file /opt/outray-ops/config/instance.env --image outray-ops-probe-preview:public --recover --supervise
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=45
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
