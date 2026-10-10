@@ -467,7 +467,7 @@ async function main() {
     process.env.NODE_ENV === "development" || args.includes("--dev");
   const serverUrl =
     process.env.OUTRAY_SERVER_URL ||
-    (isDev ? "ws://localhost:3547" : "wss://api.outray.dev/");
+    (isDev ? "ws://localhost:3547" : "wss://connect.outray.co/");
   const webUrl = canonicalConsoleOrigin(
     process.env.OUTRAY_WEB_URL ||
     (isDev ? "http://localhost:6767" : "https://outray.dev"));
