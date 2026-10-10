@@ -37,7 +37,11 @@ export function tunnelBaseDomain(env: PublicHostEnvironment = environment(), fal
 export function infrastructureHostnames(env: PublicHostEnvironment = environment()): string[] {
   const base = tunnelBaseDomain(env);
   const hosts = new Set([base, `www.${base}`, `edge.${base}`, `api.${base}`, canonicalStatusHostname(env)]);
-  if (env.OUTRAY_DEPLOYMENT_MODE !== "self-hosted") hosts.add("api.outray.dev");
+  if (env.OUTRAY_DEPLOYMENT_MODE !== "self-hosted") {
+    hosts.add("connect.outray.co");
+    hosts.add("api.outray.co");
+    hosts.add("api.outray.dev");
+  }
   for (const variable of ["CONSOLE_PUBLIC_URL", "APP_URL", "BETTER_AUTH_URL", "TUNNEL_PUBLIC_URL", "INGEST_PUBLIC_URL", "OUTRAY_INGEST_URL", "OUTRAY_SHARE_URL", "SHARE_PUBLIC_URL"]) {
     if (env[variable]) hosts.add(publicOrigin(env[variable]!, variable).hostname.toLowerCase());
   }
@@ -66,9 +70,11 @@ export function tunnelDnsHostname(value?: string): string {
 export function isTunnelControlHost(host: string, base: string, env: PublicHostEnvironment = environment()): boolean {
   if (host === base.toLowerCase() || host === "localhost") return true;
   if (env.TUNNEL_PUBLIC_URL && host === publicOrigin(env.TUNNEL_PUBLIC_URL, "TUNNEL_PUBLIC_URL").hostname.toLowerCase()) return true;
-  // Hosted installations retain the existing API aliases. Self-hosted routing
+  // Hosted installations use connect and retain the existing API aliases. Self-hosted routing
   // must not capture arbitrary customer api.* hosts as the CLI control plane.
-  return env.OUTRAY_DEPLOYMENT_MODE === "self-hosted" ? host === `api.${base.toLowerCase()}` : host.startsWith("api.");
+  return env.OUTRAY_DEPLOYMENT_MODE === "self-hosted"
+    ? host === `api.${base.toLowerCase()}`
+    : host === "connect.outray.co" || host.startsWith("api.");
 }
 
 export function tunnelRootRedirect(host: string, base: string, path: string, env: PublicHostEnvironment = environment()): string | null {
