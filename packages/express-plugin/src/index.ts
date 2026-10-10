@@ -16,7 +16,7 @@ import type {
 } from "./types";
 import type { Server } from "http";
 
-const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
+const DEFAULT_SERVER_URL = "wss://connect.outray.co/";
 
 let client: OutrayClient | null = null;
 let localAccess: LocalAccessManager | null = null;
