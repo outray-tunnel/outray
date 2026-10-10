@@ -25,7 +25,7 @@ export class TCPTunnelClient {
 
   constructor(
     localPort: number,
-    serverUrl: string = "wss://api.outray.dev/",
+    serverUrl: string = "wss://connect.outray.co/",
     apiKey?: string,
     localHost: string = "localhost",
     remotePort?: number,
