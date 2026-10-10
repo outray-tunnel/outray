@@ -10,11 +10,7 @@ import {
 } from "./otlp.js";
 
 export type MetricType =
-  | "gauge"
-  | "sum"
-  | "histogram"
-  | "exponential_histogram"
-  | "summary";
+  "gauge" | "sum" | "histogram" | "exponential_histogram" | "summary";
 
 export interface ParsedMetricPoint {
   timestamp: string;
@@ -449,7 +445,10 @@ function summaryPoint(
   };
 }
 
-export function parseMetricsPayload(payload: unknown): ParsedMetricsPayload {
+export function parseMetricsPayload(
+  payload: unknown,
+  maxRecords = Infinity,
+): ParsedMetricsPayload {
   const root = record(payload);
   const resourceMetrics = list(
     field(root, "resourceMetrics", "resource_metrics"),
@@ -565,6 +564,10 @@ export function parseMetricsPayload(payload: unknown): ParsedMetricsPayload {
           container.value?.is_monotonic === true;
 
         for (const dataPoint of candidates) {
+          if (points.length >= maxRecords) {
+            rejected++;
+            continue;
+          }
           let parsed: ParsedMetricPoint | null = null;
           if (context.metricName && hasValidTemporality) {
             if (container.type === "gauge" || container.type === "sum") {
