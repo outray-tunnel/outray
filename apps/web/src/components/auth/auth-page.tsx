@@ -47,10 +47,10 @@ export function AuthPageView({ mode = "login", loading, sessionPending, error, r
   return <div className={`${styles.page} outray-arc`}>
     <header className={styles.header}>
       <Link to="/" className={styles.brand} aria-label="OutRay home"><img src="/logo.png" width={28} height={28} alt="" /><span>OutRay</span></Link>
-      <Link to="/" className={styles.home}><ArrowLeft size={14} aria-hidden="true" /><span>Back to home</span></Link>
+      {!instance.selfHosted && <Link to="/" className={styles.home}><ArrowLeft size={14} aria-hidden="true" /><span>Back to home</span></Link>}
     </header>
 
-    <main className={styles.main}>
+    <main className={`${styles.main}${instance.selfHosted ? ` ${styles.installation}` : ""}`}>
       <section className={styles.signIn} aria-labelledby={titleId}>
         <div className={styles.heading}>
           <h1 id={titleId}>{isSignup ? "Create your account" : "Welcome back"}</h1>
@@ -71,13 +71,13 @@ export function AuthPageView({ mode = "login", loading, sessionPending, error, r
         <p className={styles.status} role="status" aria-live="polite" aria-atomic="true">{status}</p>
         {error && <div className={styles.error} role="alert"><CircleAlert size={15} aria-hidden="true" /><p>{error}</p></div>}
 
-        <p className={styles.signUp}>{isSignup
+        {!instance.selfHosted && <p className={styles.signUp}>{isSignup
           ? <>Already have an account? <Link to="/login" search={{ redirect }}>Log in</Link></>
-          : <>New to OutRay? <Link to="/signup" search={{ redirect }}>Get started</Link></>}</p>
-        <p className={styles.legal}>By continuing, you agree to our <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>.</p>
+          : <>New to OutRay? <Link to="/signup" search={{ redirect }}>Get started</Link></>}</p>}
+        {!instance.selfHosted && <p className={styles.legal}>By continuing, you agree to our <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>.</p>}
       </section>
 
-      <aside className={styles.productIntro} aria-labelledby={productsTitleId}>
+      {!instance.selfHosted && <aside className={styles.productIntro} aria-labelledby={productsTitleId}>
         <div className={styles.introHeading}>
           <span className={styles.eyebrow}>Your developer workspace</span>
           <h2 id={productsTitleId}>Everything behind your app.<br />Together in OutRay.</h2>
@@ -88,9 +88,11 @@ export function AuthPageView({ mode = "login", loading, sessionPending, error, r
             <div><h3>{product.name}</h3><p>{product.description}</p></div>
           </li>)}
         </ul>
-      </aside>
+      </aside>}
     </main>
 
-    <footer className={styles.footer}><span>{isSignup ? "Need a hand getting started?" : "Need a hand signing in?"}</span><a href="mailto:support@outray.dev">Contact support</a></footer>
+    <footer className={styles.footer}>{instance.selfHosted
+      ? <span>For access or sign-in help, contact your installation administrator.</span>
+      : <><span>{isSignup ? "Need a hand getting started?" : "Need a hand signing in?"}</span><a href="mailto:support@outray.dev">Contact support</a></>}</footer>
   </div>;
 }
