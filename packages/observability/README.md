@@ -45,6 +45,12 @@ environment-variable name is required.
 local output. Capture is off by default. Values are bounded and common secret,
 credential, cookie, and authorization fields are redacted before export.
 
+Use `shouldCaptureLog: () => boolean` to suppress console capture and OutRay
+logging methods in sensitive application contexts. Returning `false` or throwing
+skips export without changing local output. Redaction is best-effort: avoid
+putting arbitrary secrets or personal data in log messages. This filter does not
+apply to direct calls to the low-level OpenTelemetry logger.
+
 The endpoint defaults to `https://ingest.outray.dev`. The package still supports
 environment-variable defaults and `@outray/observability/register` as an
 optional zero-code compatibility mode, but framework adapters do not require
