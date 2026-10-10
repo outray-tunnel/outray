@@ -18,7 +18,7 @@ export interface OutrayClientOptions {
 
   /**
    * Outray server WebSocket URL
-   * @default 'wss://api.outray.dev/'
+   * @default 'wss://connect.outray.co/'
    */
   serverUrl?: string;
 
