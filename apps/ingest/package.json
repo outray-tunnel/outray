@@ -6,6 +6,12 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsup src/server.ts --format esm --target node20 --sourcemap",
+    "generate:protobuf": "node scripts/generate-protobuf.mjs",
+    "types:worker": "wrangler types worker-configuration.d.ts --strict-vars=false",
+    "check:worker": "tsc -p tsconfig.worker.json",
+    "build:worker": "wrangler deploy --dry-run --outdir dist-worker",
+    "dev:worker": "wrangler dev --port 4319",
+    "deploy:worker": "wrangler deploy",
     "test": "tsx --test test/**/*.test.ts",
     "start": "node dist/server.js"
   },
@@ -26,8 +32,12 @@
     "@opentelemetry/sdk-trace-base": "^2.10.0",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.16.0",
+    "esbuild": "^0.25.12",
+    "miniflare": "^5.20261006.1-alpha",
+    "protobufjs-cli": "^2.7.0",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "wrangler": "^4.149.0"
   }
 }
