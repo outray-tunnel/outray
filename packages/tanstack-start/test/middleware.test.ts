@@ -212,6 +212,28 @@ test("records failures without swallowing them", async () => {
   );
 });
 
+test("metadata-only requests omit query values, credentials, bodies, and exception details", async () => {
+  const failure = new Error("private-database-query-parameter");
+  await assert.rejects(instrumentTanStackRequest({
+    request: new Request("https://app.test/api/orders?token=private-query-value", {
+      method: "POST",
+      headers: { authorization: "Bearer private-header-value", "content-type": "application/json" },
+      body: JSON.stringify({ password: "private-body-value" }),
+    }),
+    next: () => Promise.reject(failure),
+  }, { capturePayloads: false, recordExceptions: false }), failure);
+
+  const [span] = exporter.getFinishedSpans();
+  assert.ok(span);
+  assert.equal(span.status.code, 2);
+  assert.equal(span.attributes["http.route"], "/api/orders");
+  assert.equal(span.events.length, 0);
+  const serialized = JSON.stringify({ name: span.name, attributes: span.attributes, events: span.events });
+  for (const value of ["private-query-value", "private-header-value", "private-body-value", failure.message]) {
+    assert.equal(serialized.includes(value), false);
+  }
+});
+
 test("capture failures never change the handler result", async () => {
   const request = new Request("https://app.test/api/consumed", {
     method: "POST",
