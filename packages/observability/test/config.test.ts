@@ -48,6 +48,32 @@ test("captureConsole stays off by default and an in-code option takes precedence
   assert.equal(overridden.captureConsole, false);
 });
 
+test("log capture context filters are preserved without being called at initialization", () => {
+  let calls = 0;
+  const shouldCaptureLog = () => {
+    calls += 1;
+    return false;
+  };
+  const defaults = resolveOutrayObservabilityOptions(
+    { apiKey: "token", serviceName: "api" },
+    {},
+  );
+  assert.equal(defaults.shouldCaptureLog, undefined);
+  const configured = resolveOutrayObservabilityOptions(
+    { apiKey: "token", serviceName: "api", shouldCaptureLog },
+    {},
+  );
+  assert.equal(configured.shouldCaptureLog, shouldCaptureLog);
+  assert.equal(calls, 0);
+  assert.equal(configured.shouldCaptureLog?.(), false);
+  assert.equal(calls, 1);
+});
+
+test("automatic instrumentation remains the default and can be disabled explicitly", () => {
+  assert.equal(resolveOutrayObservabilityOptions({ apiKey: "token", serviceName: "api" }, {}).autoInstrumentations, true);
+  assert.equal(resolveOutrayObservabilityOptions({ apiKey: "token", serviceName: "api", autoInstrumentations: false }, {}).autoInstrumentations, false);
+});
+
 test("fails closed when enabled configuration is incomplete", () => {
   assert.throws(
     () => resolveOutrayObservabilityOptions({}, {}),
