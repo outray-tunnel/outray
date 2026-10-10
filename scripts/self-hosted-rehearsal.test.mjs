@@ -1,10 +1,40 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { parseEnv } from "node:util";
+import { promisify } from "node:util";
+import { execFile } from "node:child_process";
+import { createServer } from "node:http";
 import { initialEnvironment } from "./self-hosted.mjs";
-import { argumentsFor, configurationFrom, containerArguments, hostEnvironment, labelsFor, localDockerEndpoint, ownedResource, project, serviceDefinitions } from "./self-hosted-rehearsal.mjs";
+import { applicationHealthCommand, argumentsFor, configurationFrom, containerArguments, hostEnvironment, labelsFor, localDockerEndpoint, missingResource, ownedResource, project, serviceDefinitions } from "./self-hosted-rehearsal.mjs";
 
 const source = () => parseEnv(initialEnvironment("private.example.net", "owner@example.net"));
+
+test("edge health sends the required Host header without weakening hostname checks", async () => {
+  const seen = [];
+  const server = createServer((request, response) => {
+    seen.push(request.headers.host);
+    response.writeHead(request.headers.host === "tunnels.example.net" ? 200 : 400).end();
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const definition = { healthUrl: `http://127.0.0.1:${server.address().port}/health`, healthHost: "tunnels.example.net" };
+    await promisify(execFile)(process.execPath, ["-e", applicationHealthCommand(definition)], { timeout: 5000 });
+    await assert.rejects(promisify(execFile)(process.execPath, ["-e", applicationHealthCommand({ ...definition, healthHost: "wrong.example.net" })], { timeout: 5000 }));
+    assert.deepEqual(seen, ["tunnels.example.net", "wrong.example.net"]);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("missing-resource detection supports Docker 29 without swallowing daemon failures", () => {
+  assert.equal(missingResource(`Error response from daemon: network ${project} not found\n`, "network", project), true);
+  assert.equal(missingResource("Error response from daemon: get fresh-data: no such volume\n", "volume", "fresh-data"), true);
+  assert.equal(missingResource("Error: No such object: fresh-container", "container", "fresh-container"), true);
+  assert.equal(missingResource("permission denied while trying to connect to the Docker daemon socket", "network", project), false);
+  assert.equal(missingResource("Cannot connect to the Docker daemon", "network", project), false);
+  assert.equal(missingResource("Error response from daemon: network unrelated not found", "network", project), false);
+  assert.equal(missingResource(`Error response from daemon: network ${project} not found`, "volume", project), false);
+});
 
 test("private rehearsal requires an explicit fresh file/image and a local Docker endpoint", () => {
   assert.equal(argumentsFor(["--file", "private-rehearsal.env", "--image", "outray-rehearsal:local"]).image, "outray-rehearsal:local");
@@ -65,6 +95,12 @@ test("Docker args have no published ports, credential values or destructive data
   assert.match(sanity, /secret_share_rate_limits/);
   assert.match(sanity, /'users', 'accounts', 'secret_entries'/);
   assert.match(sanity, /42501/);
+  assert.match(sanity, /has_any_column_privilege/);
+  assert.match(sanity, /rolbypassrls, rolinherit/);
+  assert.match(sanity, /has_schema_privilege/);
+  assert.match(sanity, /has_database_privilege/);
+  assert.match(sanity, /pg_auth_members/);
+  assert.match(sanity, /pg_shdepend/);
   assert.match(sanity, /ROLLBACK/);
   assert.doesNotMatch(services.migrate.command.join(" "), /generate|push/);
 });
