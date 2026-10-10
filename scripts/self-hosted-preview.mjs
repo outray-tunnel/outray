@@ -6,7 +6,8 @@ import { parseEnv } from "node:util";
 import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { applicationHealthCommand, configurationFrom, hostEnvironment, labelsFor, localDockerEndpoint, missingResource, ownedResource, project } from "./self-hosted-rehearsal.mjs";
-import { assertConsoleEnvironment, consoleDefinition, consoleLabels, safeConsoleContainer, webEgressNetwork, previewRuntimeAudit, containerEnvironment, gatewayStatusLabel, gatewayTemplate, gatewayConfigurationFingerprint } from "./self-hosted-preview-web.mjs";
+import { assertConsoleEnvironment, consoleDefinition, consoleLabels, safeConsoleContainer, webEgressNetwork, previewRuntimeAudit, containerEnvironment, gatewayStatusLabel, gatewayIngestLabel, gatewayTemplate, gatewayConfigurationFingerprint } from "./self-hosted-preview-web.mjs";
+import { ingestContainer, ingestDefinition, ingestLabels, safeIngestContainer, ingestHealthScript } from "./self-hosted-ingest.mjs";
 
 export const gateway = "outray-ops-preview-caddy";
 export const publicWeb = "outray-ops-public-web";
@@ -25,19 +26,21 @@ const configDirectory = resolve(root, "deploy/self-hosted/preview");
 const fail = (message) => { throw new Error(message); };
 
 export function previewOptions(argv) {
-  const result = { enableProxy: false, enableGithub: false, enableTinybird: false, enableStatus: false };
+  const result = { enableProxy: false, enableGithub: false, enableTinybird: false, enableStatus: false, enableIngest: false };
   for (let index = 0; index < argv.length; index++) {
     const key = argv[index];
     if (key === "--enable-proxy" && !result.enableProxy) { result.enableProxy = true; continue; }
     if (key === "--enable-github" && !result.enableGithub) { result.enableGithub = true; continue; }
     if (key === "--enable-tinybird" && !result.enableTinybird) { result.enableTinybird = true; continue; }
     if (key === "--enable-status" && !result.enableStatus) { result.enableStatus = true; continue; }
+    if (key === "--enable-ingest" && !result.enableIngest) { result.enableIngest = true; continue; }
     const name = { "--file": "file", "--email": "email", "--image": "image" }[key];
     if (!name || result[name] || !argv[index + 1] || argv[index + 1].startsWith("--")) fail("Use --file PRIVATE_FRESH_CONFIG --email ACME_CONTACT; add --enable-proxy --image PATCHED_PREVIEW_IMAGE only after the private trial.");
     result[name] = argv[++index];
   }
   if (!result.file || !/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(result.email || "") || /[\r\n\0]/.test(result.file + (result.image || "")) || (result.enableProxy !== Boolean(result.image)) || ((result.enableGithub || result.enableTinybird) && !result.enableProxy)) fail("A private configuration, valid ACME email and explicit patched image for proxy mode are required; --enable-github and --enable-tinybird are independent explicit proxy-only opt-ins.");
   result.file = resolve(result.file);
+  if (result.enableIngest && !result.enableStatus) fail("Retain --enable-status when explicitly enabling Ops ingestion.");
   return result;
 }
 
@@ -50,9 +53,10 @@ export function gatewayArguments(mode, labels, directory = configDirectory) {
     "--publish", "80:80/tcp", "--publish", "443:443/tcp", "--log-driver", "json-file", "--log-opt", "max-size=5m", "--log-opt", "max-file=2",
     "--mount", `type=bind,source=${directory},target=/etc/caddy,readonly`, "--mount", `type=volume,source=${dataVolume},target=/data`, "--mount", `type=volume,source=${configVolume},target=/config`, "-e", "CADDY_EMAIL"];
   const enableStatus = labels[gatewayStatusLabel] === "true";
+  const enableIngest = labels[gatewayIngestLabel] === "true";
   if (enableStatus) args.push("-e", "STATUS_EDGE_SECRET");
   for (const [key, value] of Object.entries(labels)) args.push("--label", `${key}=${value}`);
-  return [...args, caddyImage, "caddy", "run", "--config", `/etc/caddy/${gatewayTemplate(mode, enableStatus)}`, "--adapter", "caddyfile"];
+  return [...args, caddyImage, "caddy", "run", "--config", `/etc/caddy/${gatewayTemplate(mode, enableStatus, enableIngest)}`, "--adapter", "caddyfile"];
 }
 
 export function safeWebContainer(metadata, expectedImage, labels, expectedEnvironment, options) { return safeConsoleContainer(metadata, expectedImage, labels, expectedEnvironment, options); }
@@ -64,11 +68,13 @@ export function safeGatewayContainer(metadata, expectedImage, labels, directory 
   const allowedPorts = ["80/tcp", "443/tcp"];
   const mode = labels[modeLabel];
   const enableStatus = labels[gatewayStatusLabel] === "true", values = containerEnvironment(metadata);
+  const enableIngest = labels[gatewayIngestLabel] === "true";
   if (!["maintenance", "proxy"].includes(mode) || metadata.Config?.Labels?.[gatewayStatusLabel] !== (enableStatus ? "true" : undefined)) return false;
+  if (metadata.Config?.Labels?.[gatewayIngestLabel] !== (enableIngest ? "true" : undefined) || (enableIngest && !enableStatus)) return false;
   if (enableStatus) {
-    try { if (gatewayConfigurationFingerprint(mode, expectedImage, values.CADDY_EMAIL, true, values.STATUS_EDGE_SECRET, directory) !== labels[configLabel]) return false; } catch { return false; }
+    try { if (gatewayConfigurationFingerprint(mode, expectedImage, values.CADDY_EMAIL, true, values.STATUS_EDGE_SECRET, directory, enableIngest) !== labels[configLabel]) return false; } catch { return false; }
   }
-  const command = ["caddy", "run", "--config", `/etc/caddy/${gatewayTemplate(mode, enableStatus)}`, "--adapter", "caddyfile"];
+  const command = ["caddy", "run", "--config", `/etc/caddy/${gatewayTemplate(mode, enableStatus, enableIngest)}`, "--adapter", "caddyfile"];
   return ownedResource({ Labels: metadata.Config?.Labels }, labels) && metadata.Image === expectedImage && host.ReadonlyRootfs && !host.Privileged && !host.PublishAllPorts
     && ["maintenance", "proxy"].includes(mode) && JSON.stringify(metadata.Config?.Cmd) === JSON.stringify(command)
     && host.CapDrop?.includes("ALL") && host.CapAdd?.length === 1 && ["NET_BIND_SERVICE", "CAP_NET_BIND_SERVICE"].includes(host.CapAdd[0]) && host.SecurityOpt?.includes("no-new-privileges:true")
@@ -146,6 +152,13 @@ export async function runPreview(argv = process.argv.slice(2)) {
       if (!safePrivateStatusContainer(await inspect("container", name), name, rehearsalLabels, config.STATUS_EDGE_SECRET)) fail("Status mode requires matching healthy owned private status renderer and status-only certificate checker; the gateway remains unchanged.");
     }
   }
+  if (options.enableIngest) {
+    const existingIngest = await inspect("container", ingestContainer);
+    const ingest = ingestDefinition(config, raw);
+    if (!existingIngest || existingIngest.State?.Status !== "running" || existingIngest.State.Health?.Status !== "healthy"
+      || !safeIngestContainer(existingIngest, existingIngest.Image, ingestLabels(config, existingIngest.Image, ingest), ingest)) fail("Public ingestion requires the matching healthy owned private worker; gateway remains unchanged.");
+    await required(["exec", ingestContainer, "node", "-e", ingestHealthScript]);
+  }
   if (options.enableProxy) {
     const imageMetadata = await inspect("image", options.image);
     if (!imageMetadata || imageMetadata.Config?.User !== "node" || imageMetadata.Config?.Labels?.["com.outray.console-preview"] !== "true") fail("Use the audited standalone console-preview image.");
@@ -167,25 +180,27 @@ export async function runPreview(argv = process.argv.slice(2)) {
     }
     if (!healthy) fail("Patched standalone dashboard failed private PostgreSQL/Redis deep health; gateway remains unchanged.");
     if (!safeWebContainer(await inspect("container", publicWeb), expectedImage, webLabels, definition.env, options)) fail("Patched dashboard isolation changed; gateway remains unchanged.");
-    console.log(`Patched free dashboard passed Node22/Seroval and PostgreSQL/Redis deep health. ${options.enableGithub ? "GitHub-only signup is restricted to two verified approved emails." : "Signup and OAuth remain closed."} ${options.enableTinybird ? "Tinybird query configuration is enabled; READ-only permissions and live queries remain separate verifications." : "Tinybird remains disabled."} Telemetry ingestion, other integrations and public probes remain disabled.`);
+    console.log(`Patched free dashboard passed Node22/Seroval and PostgreSQL/Redis deep health. ${options.enableGithub ? "GitHub-only signup is restricted to two verified approved emails." : "Signup and OAuth remain closed."} ${options.enableTinybird ? "Tinybird query configuration is enabled; READ-only permissions and live queries remain separate verifications." : "Tinybird remains disabled."} ${options.enableIngest ? "Independent ingestion dependency and consumer health passed." : "Telemetry ingestion is not enabled by this gateway."} Other integrations remain disabled; the independent uptime worker is managed separately.`);
   }
   const mode = options.enableProxy ? "proxy" : "maintenance";
-  const gatewayLabels = (selectedMode, enableStatus = options.enableStatus, values = { CADDY_EMAIL: options.email, STATUS_EDGE_SECRET: config.STATUS_EDGE_SECRET }) => ({ ...labels,
-    [modeLabel]: selectedMode, ...(enableStatus ? { [gatewayStatusLabel]: "true" } : {}),
-    [configLabel]: gatewayConfigurationFingerprint(selectedMode, caddyId, values.CADDY_EMAIL, enableStatus, values.STATUS_EDGE_SECRET) });
+  const gatewayLabels = (selectedMode, enableStatus = options.enableStatus, values = { CADDY_EMAIL: options.email, STATUS_EDGE_SECRET: config.STATUS_EDGE_SECRET }, enableIngest = options.enableIngest) => ({ ...labels,
+    [modeLabel]: selectedMode, ...(enableStatus ? { [gatewayStatusLabel]: "true" } : {}), ...(enableIngest ? { [gatewayIngestLabel]: "true" } : {}),
+    [configLabel]: gatewayConfigurationFingerprint(selectedMode, caddyId, values.CADDY_EMAIL, enableStatus, values.STATUS_EDGE_SECRET, configDirectory, enableIngest) });
   const gatewayEnvironment = { CADDY_EMAIL: options.email, ...(options.enableStatus ? { STATUS_EDGE_SECRET: config.STATUS_EDGE_SECRET } : {}) };
   // Syntax validation uses the exact pinned image, without network or credentials,
   // before any currently running gateway can be stopped.
   // The official binary has a NET_BIND_SERVICE file capability; retaining that
   // one capability is required even for its network-none adaptation command.
-  await required(["run", "--rm", "--name", `${gateway}-validate-${randomUUID()}`, "--network", "none", "--read-only", "--cap-drop", "ALL", "--cap-add", "NET_BIND_SERVICE", "--security-opt", "no-new-privileges:true", "--mount", `type=bind,source=${configDirectory},target=/etc/caddy,readonly`, "-e", "CADDY_EMAIL", caddyImage, "caddy", "adapt", "--config", `/etc/caddy/${gatewayTemplate(mode, options.enableStatus)}`, "--adapter", "caddyfile"], { CADDY_EMAIL: options.email });
+  await required(["run", "--rm", "--name", `${gateway}-validate-${randomUUID()}`, "--network", "none", "--read-only", "--cap-drop", "ALL", "--cap-add", "NET_BIND_SERVICE", "--security-opt", "no-new-privileges:true", "--mount", `type=bind,source=${configDirectory},target=/etc/caddy,readonly`, "-e", "CADDY_EMAIL", caddyImage, "caddy", "adapt", "--config", `/etc/caddy/${gatewayTemplate(mode, options.enableStatus, options.enableIngest)}`, "--adapter", "caddyfile"], { CADDY_EMAIL: options.email });
   let existing = await inspect("container", gateway);
   if (existing) {
     const previousMode = existing.Config?.Labels?.[modeLabel], previousStatus = existing.Config?.Labels?.[gatewayStatusLabel] === "true";
+    const previousIngest = existing.Config?.Labels?.[gatewayIngestLabel] === "true";
     const previousValues = containerEnvironment(existing);
     if (previousStatus && !options.enableStatus) fail("The existing gateway also serves status pages. Retain --enable-status during console maintenance and upgrades; disabling public status requires a separate explicit rollback.");
-    if (!["maintenance", "proxy"].includes(previousMode) || !safeGatewayContainer(existing, caddyId, gatewayLabels(previousMode, previousStatus, previousValues))) fail("Existing gateway is unlabelled, mismatched or unsafe; refusing to overwrite it.");
-    if (previousMode !== mode || previousStatus !== options.enableStatus || existing.Config.Labels[configLabel] !== gatewayLabels(mode)[configLabel]) {
+    if (previousIngest && !options.enableIngest) fail("Retain --enable-ingest during console maintenance and upgrades; disabling active ingestion requires a separate explicit rollback.");
+    if (!["maintenance", "proxy"].includes(previousMode) || !safeGatewayContainer(existing, caddyId, gatewayLabels(previousMode, previousStatus, previousValues, previousIngest))) fail("Existing gateway is unlabelled, mismatched or unsafe; refusing to overwrite it.");
+    if (previousMode !== mode || previousStatus !== options.enableStatus || previousIngest !== options.enableIngest || existing.Config.Labels[configLabel] !== gatewayLabels(mode)[configLabel]) {
       await required(["stop", "--time", "10", existing.Id]);
       await required(["rm", existing.Id]); // No --volumes; exact owned gateway only.
       existing = null;
@@ -203,7 +218,7 @@ export async function runPreview(argv = process.argv.slice(2)) {
     if (!["created", "exited"].includes(existing.State?.Status)) fail("Existing gateway is not reusable.");
     await required(["start", existing.Id]);
   }
-  console.log(`${options.enableStatus ? "Dashboard and status-only" : "Dashboard-only"} ${mode} gateway started. Only TCP80/443 are published. Verify public TLS and unknown-host rejection separately; this is not a full public self-hosted acceptance.`);
+  console.log(`${options.enableIngest ? "Dashboard, status and ingestion" : options.enableStatus ? "Dashboard and status-only" : "Dashboard-only"} ${mode} gateway started. Only TCP80/443 are published. Verify public TLS and unknown-host rejection separately; this is not a full public self-hosted acceptance.`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
