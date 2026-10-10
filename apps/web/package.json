@@ -32,6 +32,7 @@
     "@outray/incident-content": "file:../../packages/incident-content",
     "@outray/icons": "file:../../packages/icons",
     "@outray/share-crypto": "file:../../packages/share-crypto",
+    "@outray/tanstack-start": "file:../../packages/tanstack-start",
     "@outray/vite": "^0.0.5",
     "@paystack/inline-js": "^2.22.7",
     "@polar-sh/sdk": "^0.42.1",
