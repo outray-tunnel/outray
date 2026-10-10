@@ -20,7 +20,7 @@ import type {
 import packageMetadata from "../package.json" with { type: "json" };
 export { withOutraySpan } from "@outray/observability";
 
-const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
+const DEFAULT_SERVER_URL = "wss://connect.outray.co/";
 const OUTRAY_NEXT_VERSION = packageMetadata.version;
 let nextRequestMetrics:
   | ReturnType<typeof createOutrayHttpServerMetrics>
