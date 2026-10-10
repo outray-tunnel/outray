@@ -1,6 +1,6 @@
-# Self-hosted verification — 2026-10-09
+# Self-hosted verification — 2026-10-10
 
-The initial source-only checks below used synthetic configuration, temporary CLI files, mocked database/provider clients, and source builds; no application server or container was started during that phase. The later independent-host rehearsal and authorized dashboard-only public preview are recorded separately. Hosted production databases, Redis, Tinybird, existing DNS records and services were not changed; only a new independent Ops DNS record was added in the public-preview phase.
+The initial source-only checks below used synthetic configuration, temporary CLI files, mocked database/provider clients, and source builds; no application server or container was started during that phase. The later independent-host rehearsal and authorized restricted public previews are recorded separately. Hosted production databases, Redis, Tinybird, existing DNS records and services were not changed; only new independent Ops DNS records were added in the documented public-preview phases.
 
 ## Passing checks
 
@@ -330,6 +330,197 @@ dashboard/database host ports, the two existing networks, the exact signup
 allowlist, GitHub and Tinybird READ configuration, and no APPEND credentials.
 Public ingestion and probes remain disabled. Final browser appearance/cache
 refresh is left to the operator.
+
+## Authorized public status hosting (October 10)
+
+Only the independent Ops VPS (`209.74.86.89`) was changed. Cloudflare received
+two new DNS-only A records, `status.ops.outray.dev` and
+`*.status.ops.outray.dev`, pointing to that host with TTL300. Existing console
+and hosted DNS records and zone-wide settings were left unchanged. The canonical
+hostname is also the custom-domain CNAME target; a customer-selected hostname
+still requires the console-generated TXT challenge and verification. No custom
+domain, status page, component or incident was created or published by this work.
+
+The new private `/internal/status-domain-check` endpoint authorizes only the
+canonical status host, published one-label page hosts, and active custom status
+domains bound to a published page in the same organization. Infrastructure,
+tunnel namespaces, malformed names and failed database lookups fail closed. The
+existing combined edge checker was not changed into a public status authorizer.
+The public renderer now also checks organization equality on its custom-domain
+join, including requests made after a certificate has already been issued.
+
+Verification: 85 self-hosted tests, 14 internal-check tests and 21 status tests
+passed (120 total, no skips). This includes real isolated Caddy routing/header
+tests, malformed and denied certificates, cross-tenant/unpublished/revoked
+bindings, private service ownership, unsafe-image/isolation refusal, startup
+failure and idempotent reuse. Focused internal-check TypeScript and status Astro
+checks passed. Fresh Node22/free-mode builds completed all 11 tasks with zero
+cache hits (1m9.817s); all eight application outputs and three dependency outputs
+passed the source, JS-only traced-dependency and public-origin audits. Source
+digest: `b126ff141f3014de6b26b4ef562107d562965c1ef5fab0121672d14048728f79`.
+
+The status-only Linux image passed artifact and license-free dependency checks.
+Its runtime contains the new status renderer/checker, not a dashboard or tunnel
+runtime, and its network-free audit verifies Node22, patched Seroval, expected
+source, the new ask endpoint and required Linux dependencies. Dependency
+installation still reports the previously recorded 63 audit findings (including
+four Critical groups); this restricted routing and parser guard are not a blanket
+dependency security clearance. The unused Astro image endpoint is blocked at the
+public gateway.
+
+During final image unpacking, the operator resized the VPS and it rebooted.
+After reconnecting, the host reported approximately 4 GB RAM, a 58-GB root
+filesystem and no swap in use. The fresh image unpacked and passed its runtime
+audit after the interruption. Only the abandoned network-free audit container
+was removed; prior source/artifact backups, images, application containers and
+data/certificate volumes were retained. No database migration or credential
+change was performed.
+
+Image: `outray-ops-status-preview:public`, ID
+`sha256:86bbbf89cbedcf00d257feab0df63a916c6170c42fc93ea574b57aa984a68a4e`.
+`outray-ops-public-status` and `outray-ops-status-check` both passed real Docker
+health checks, run as `node` with read-only filesystems and dropped capabilities,
+have no host ports or data mounts, and join only the owned internal network.
+They receive the independent database/signing configuration, not OAuth, Tinybird,
+vault, email, billing or license credentials. Restart policy is `unless-stopped`.
+The public console image remained byte-for-byte unchanged.
+
+The pinned Caddy2.11.7 image adapted the status configuration before replacing
+only the exact owned gateway. It retains TCP80/443, strict SNI/Host checks, the
+existing two gateway networks and persistent certificate/config volumes. It
+proxies directly to the new private status renderer, strips spoofable headers
+before injecting its trusted edge secret/client IP, and uses only the new
+status-specific ask endpoint. The runtime credential is absent from adapted
+JSON, labels and command arguments. Status remains independently routed during
+console maintenance; future maintenance/proxy commands must retain
+`--enable-status` and refuse accidental removal.
+
+Live checks passed:
+
+- Authoritative and public recursive DNS resolve canonical and wildcard names
+  to the independent VPS.
+- Normal HTTPS certificate verification passes for the canonical status host.
+  Its root redirects302 to `/not-found` (404), because a read-only database check
+  confirmed zero configured pages. This is hosting acceptance, not a published
+  page or incident-flow acceptance.
+- Canonical status and console HTTP redirect308 to HTTPS; unpublished page,
+  tunnel/ingest/share infrastructure and unknown custom HTTP hosts return403.
+- Unpublished page and edge TLS handshakes are denied; mismatched SNI/Host
+  returns421. No certificate was issued to those denied names.
+- Status `/health`, `/api/health`, `/internal/status-domain-check`, `/metrics`
+  and `/_image` return404 without exposing private handlers.
+- Console login and PostgreSQL/Redis deep health return200, anonymous `/`
+  still redirects307 to login, and anonymous Uptime settings remain401.
+- Live private authorization checks allow canonical status only; unpublished,
+  nested, infrastructure, tunnel, unverified and malformed names are denied.
+  Renderer database health, exact runtime isolation and gateway ownership pass.
+
+The post-start snapshot measured about 49 MiB for the status renderer, 24 MiB
+for its checker, 272 MiB for the console and 16 MiB for Caddy. These idle figures
+are not workload sizing evidence. No authentication session was manufactured,
+page was published, subscriber signed up, email sent, or monitor probed. A real
+published page, organization-owned custom-domain TLS and incident updates remain
+operator acceptance steps. Public probes, telemetry ingestion and subscriber
+delivery remain disabled and require their separate setup/verification.
+
+## Organization-owned status hostname (October 10)
+
+The operator created and published the `outray` status page in the independent
+Ops console. On the operator's request, Cloudflare received only two new
+DNS-only records in the `outray.co` zone: the page's exact TXT ownership
+challenge at `_outray-challenge.status.outray.co` and
+`status.outray.co` CNAME to `status.ops.outray.dev`, both TTL300. The challenge
+was checked against the independent database before writing DNS; existing
+records, hosted services and zone-wide settings were left unchanged.
+
+The operator completed **Verify DNS** in the authenticated Ops console. A
+read-only database check then confirmed the custom domain was active and bound
+to the published page in the same organization. Authoritative and public
+recursive DNS returned the expected challenge and target. External HTTPS at
+`https://status.outray.co/` returned200 with normal trusted certificate
+verification, without `-k`; HTTP returned308. Console deep health remained200.
+No authentication session, page, component or incident was manufactured by the
+diagnostic checks. This completes this page's DNS/TLS acceptance, not incident
+publishing, subscriber delivery or monitoring acceptance.
+
+## Independent Ops probe-only startup (October 10)
+
+The existing restricted preview intentionally had no running public Uptime
+worker. A read-only check found one enabled monitor configured for manual
+incident publishing, no prior check timestamp and no stored check evidence.
+The operator requested that monitoring run. This authorizes the separate
+probe-only runtime, not notifications, public ingestion or hosted changes.
+
+The dedicated image and guarded runner use the fresh audited Node22/free-mode
+source, a minimal pure-JS database dependency closure, an inert boot wrapper,
+and host plus actual-container-namespace isolation. Docker automatic restart is
+disabled. The separate systemd supervisor gates initial activation and every
+recovery on policy/connectivity checks, then checks for policy drift every
+15 seconds. Console/status configuration and their existing flags remain
+unchanged. Public IPv4 HTTP/S and the selected resolver are allowed, with only
+the inspected independent PostgreSQL address on TCP 5432 exempted from private
+range denial. IPv6, host/private/metadata/loopback, Redis, alternate resolvers and
+other ports are denied. Notification delivery is explicitly disabled.
+
+Image assembly passed for `outray-ops-probe-preview:public`, ID
+`sha256:6478c48bb803cb045b949f1b01be47e5a1cb8bdaf5575b3e06340325ccce9aae`.
+The host's verified Node22 runtime is `/usr/local/bin/node`; the policy and
+worker units use that path, rather than an absent `/usr/bin/node`.
+
+Verification: all 98 `scripts/self-hosted-*.test.mjs` checks passed, including
+24 new probe runner/network checks. The Uptime worker's 19 tests and TypeScript
+check also passed. The existing audited application-source digest remained
+`b126ff141f3014de6b26b4ef562107d562965c1ef5fab0121672d14048728f79`;
+no application rebuild or hosted configuration change was needed. A real-host
+serialization mismatch was corrected by placing the embedded-DNS conntrack
+reply-direction option after its original destination/port options. The exact
+query/reply restriction was retained; no broad loopback or established-traffic
+exception was introduced.
+
+Live checks passed on the actual worker namespace before activation:
+
+- Both the Docker embedded resolver and direct `1.1.1.1` DNS resolved a public
+  name. `https://example.com/` passed normal trusted TLS verification, and the
+  inspected private PostgreSQL address accepted TCP 5432.
+- All 12 denied connection attempts increased the namespace's DROP counters:
+  ordinary and embedded-resolver loopback non-DNS traffic, metadata, private
+  space, Redis, the Ops public host, the probe itself and bridge gateway,
+  an alternate resolver, another public port, IPv6 `::1`, and PostgreSQL's
+  non-database port. Socket refusal alone was not counted as firewall acceptance.
+- The host and namespace policies matched the exact intended owned rules.
+  Only the dedicated probe bridge was attached; core services retained their
+  existing networking and published ports.
+
+Both `outray-ops-probe-policy.service` and
+`outray-ops-uptime-probe.service` are enabled and active. Starting the supervisor
+after manual activation safely reused the same healthy container after repeating
+ownership, firewall and connectivity verification. A controlled
+`systemctl restart outray-ops-uptime-probe.service` then cleanly stopped the
+worker, replaced only its exact owned container, and changed its host PID from
+96822 to 105821. The full activation gate passed again; worker readiness was
+recorded at 07:47:48 UTC. The supervisor remained active with no failure restart
+(`NRestarts=0`) and a successful preceding stop (`ExecMainStatus=0`). A full VPS
+reboot was not performed during this acceptance check.
+
+Actual independent-database evidence advanced from zero checks to two by
+07:46:23 UTC, three by 07:47:23 UTC, and four by 07:48:24 UTC, including a successful
+check after the supervised restart. The one enabled monitor was Up, its failure
+streak was zero, its lease was cleared and its next check was scheduled 60 seconds
+later. Daily aggregation contained four checks and four successes. The
+notification queue remained empty. This demonstrates real monitoring and
+continued scheduling, not just process readiness.
+
+Final runtime inspection confirmed healthy, non-root/read-only operation, no
+published worker ports, Docker restart policy `no`, and approximately 21.86 MiB
+usage against the 256 MiB limit. These short-run figures are not load/sizing
+evidence. After probe startup/restart, `https://status.outray.co/` still returned
+200 with trusted HTTPS, HTTP redirected 308, and console PostgreSQL/Redis deep
+health returned 200. No hosted store, database migration, synthetic monitor,
+authentication session, email or webhook was created or sent. Notification
+delivery, public telemetry ingestion, private/IPv6 target support and longer-run
+failure/incident flows remain separate acceptance work. See `preview/README.md`
+for the exact scoped operator recipe; never start an unguarded worker or reuse
+hosted stores.
 
 ## Existing unrelated dashboard diagnostics
 
