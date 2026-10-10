@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.7
+# Explicit private-trial fallback; normal Docker/Compose builds do not use this.
+# Artifacts must be freshly built from this source with the expected public origins.
+FROM node:22-bookworm-slim AS dependencies
+WORKDIR /app
+COPY . .
+ARG APP_PUBLIC_URL
+ARG STATUS_PUBLIC_URL
+ARG SHARE_PUBLIC_URL
+ARG EDGE_PUBLIC_URL
+ARG INGEST_PUBLIC_URL
+RUN node scripts/self-hosted-artifacts.mjs verify --source /app --directory /app/.self-hosted-artifacts
+# Never run copied host npm lifecycle scripts; install target-platform dependencies.
+# Optional private packs cannot authenticate, and the completed tree is asserted free.
+RUN HUGEICONS_LICENSE_KEY= OUTRAY_ICON_MODE=free npm ci --ignore-scripts \
+    && node scripts/self-hosted-artifacts.mjs assert-free-deps --source /app \
+    && OUTRAY_ICON_MODE=free node packages/icons/prepare.mjs
+
+FROM node:22-bookworm-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production HOST=0.0.0.0
+COPY --from=dependencies --chown=node:node /app/node_modules ./node_modules
+COPY --from=dependencies --chown=node:node /app/package.json /app/package-lock.json ./
+COPY --from=dependencies --chown=node:node /app/apps ./apps
+COPY --from=dependencies --chown=node:node /app/packages ./packages
+COPY --from=dependencies --chown=node:node /app/shared ./shared
+COPY --from=dependencies --chown=node:node /app/scripts/self-hosted-share-role.mjs ./scripts/self-hosted-share-role.mjs
+# Preserve Nitro's exact audited JS-only nested trace, not host workspace dependencies.
+COPY --from=dependencies --chown=node:node /app/.self-hosted-artifacts/apps ./apps
+COPY --from=dependencies --chown=node:node /app/.self-hosted-artifacts/packages ./packages
+COPY --from=dependencies --chown=node:node /app/.self-hosted-artifacts/manifest.json ./self-hosted-artifact-manifest.json
+USER node
+CMD ["node", "apps/web/.output/server/index.mjs"]
