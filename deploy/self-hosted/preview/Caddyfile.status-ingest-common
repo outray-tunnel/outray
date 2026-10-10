@@ -1,0 +1,91 @@
+{
+	email {$CADDY_EMAIL}
+	admin localhost:2019
+	auto_https disable_redirects
+	on_demand_tls {
+		ask http://outray-ops-status-check:3344/internal/status-domain-check
+	}
+	servers {
+		protocols h1 h2
+		strict_sni_host on
+	}
+}
+
+(status_renderer) {
+	@private path /health /health/* /api/health /api/health/* /internal /internal/* /metrics /metrics/* /_image /_image/*
+	respond @private "Not found\n" 404
+	request_header -X-Outray-*
+	encode zstd gzip
+	reverse_proxy outray-ops-public-status:4323 {
+		header_up Host {http.request.hostport}
+		header_up -X-Forwarded-*
+		header_up -X-Real-IP
+		header_up X-Outray-Edge-Secret {env.STATUS_EDGE_SECRET}
+		header_up X-Outray-Client-IP {remote_host}
+	}
+}
+
+ingest.ops.outray.dev {
+	@otlp {
+		method POST
+		path /v1/traces /v1/logs /v1/metrics /api/otlp/v1/traces /api/otlp/v1/logs /api/otlp/v1/metrics
+	}
+	handle @otlp {
+		request_body {
+			max_size 8MiB
+		}
+		reverse_proxy outray-ops-public-ingest:4318 {
+			# Preserve the write credential, but discard client-supplied edge headers.
+			header_up -X-Outray-Edge-Secret
+			header_up -X-Outray-Client-IP
+			header_up -X-Forwarded-*
+			header_up -X-Real-IP
+		}
+	}
+	@health {
+		method GET
+		path /health
+	}
+	handle @health {
+		reverse_proxy outray-ops-public-ingest:4318
+	}
+	handle {
+		respond "Not found\n" 404
+	}
+}
+
+status.ops.outray.dev {
+	import status_renderer
+}
+
+# Unknown custom hostnames still require a published verified status page.
+:443 {
+	tls {
+		on_demand
+	}
+	import status_renderer
+}
+
+:80 {
+	@console host ops.outray.dev
+	handle @console {
+		redir https://ops.outray.dev{uri} 308
+	}
+	@ingest host ingest.ops.outray.dev
+	handle @ingest {
+		redir https://ingest.ops.outray.dev{uri} 308
+	}
+	handle {
+		route {
+			forward_auth outray-ops-status-check:3344 {
+				uri /internal/status-domain-check?domain={host}
+				header_up -Authorization
+				header_up -Cookie
+				header_up -X-Forwarded-*
+				header_up -X-Real-IP
+				header_up -X-Outray-*
+			}
+			redir https://{host}{uri} 308
+		}
+	}
+}
