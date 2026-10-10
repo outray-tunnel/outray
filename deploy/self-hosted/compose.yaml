@@ -228,7 +228,7 @@ services:
       web:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3547/health',{headers:{Host:process.env.BASE_DOMAIN}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "const req=require('node:http').get('http://127.0.0.1:3547/health',{headers:{Host:process.env.BASE_DOMAIN},timeout:3000},r=>{r.resume();process.exit(r.statusCode>=200&&r.statusCode<300?0:1)});req.on('timeout',()=>req.destroy());req.on('error',()=>process.exit(1));"]
       interval: 20s
       timeout: 5s
       retries: 6
