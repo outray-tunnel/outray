@@ -11,7 +11,7 @@ import type {
   ErrorCodes,
 } from "./types";
 
-const DEFAULT_SERVER_URL = "wss://api.outray.dev/";
+const DEFAULT_SERVER_URL = "wss://connect.outray.co/";
 const PING_INTERVAL_MS = 25000;
 const PONG_TIMEOUT_MS = 10000;
 
