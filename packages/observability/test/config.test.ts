@@ -1,9 +1,53 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  DEFAULT_OUTRAY_OTLP_ENDPOINT,
   resolveOutrayObservabilityOptions,
   signalEndpoint,
 } from "../src/config";
+
+test("hosted telemetry defaults to ingest.outray.co for every signal", () => {
+  const resolved = resolveOutrayObservabilityOptions(
+    { apiKey: "token", serviceName: "api" },
+    {},
+  );
+
+  assert.equal(DEFAULT_OUTRAY_OTLP_ENDPOINT, "https://ingest.outray.co");
+  assert.equal(resolved.endpoint, "https://ingest.outray.co");
+  for (const signal of ["traces", "logs", "metrics"] as const) {
+    assert.equal(
+      signalEndpoint(resolved.endpoint, signal),
+      `https://ingest.outray.co/v1/${signal}`,
+    );
+  }
+});
+
+test("explicit telemetry endpoints retain legacy aliases and override environment defaults", () => {
+  const options = { apiKey: "token", serviceName: "api" };
+  const legacyEndpoint = "https://ingest.outray.dev";
+  const env = {
+    OUTRAY_OTLP_ENDPOINT: "https://outrelay.example.test",
+    OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.example.test",
+  };
+
+  assert.equal(
+    resolveOutrayObservabilityOptions(
+      { ...options, endpoint: legacyEndpoint },
+      env,
+    ).endpoint,
+    legacyEndpoint,
+  );
+  assert.equal(
+    resolveOutrayObservabilityOptions(options, env).endpoint,
+    env.OUTRAY_OTLP_ENDPOINT,
+  );
+  assert.equal(
+    resolveOutrayObservabilityOptions(options, {
+      OTEL_EXPORTER_OTLP_ENDPOINT: legacyEndpoint,
+    }).endpoint,
+    legacyEndpoint,
+  );
+});
 
 test("resolves the OutRay environment contract without exposing credentials", () => {
   const resolved = resolveOutrayObservabilityOptions(
