@@ -1,5 +1,71 @@
 # OutRay web
 
+## Internal Ops observability
+
+The server entry sends request traces, HTTP metrics, bounded request/response
+payloads, and application console logs to a separate Ops installation. It is off
+unless a dedicated server credential is configured.
+Existing tunnel credentials and generic SDK variables do not enable it.
+
+Set these on the **web application host at runtime**, not in a browser/Vite
+variable or build argument:
+
+| Variable | Value |
+| --- | --- |
+| `OUTRAY_INTERNAL_OBSERVABILITY_API_KEY` | A token from the Ops workspace with only **Send observability data**. |
+| `OUTRAY_INTERNAL_OBSERVABILITY_ENDPOINT` | The HTTPS ingestion origin, such as `https://ingest.ops.outray.dev`. Required when the token is set. |
+| `OUTRAY_INTERNAL_OBSERVABILITY_SERVICE_NAME` | Optional; defaults to `outray-web`. |
+| `OUTRAY_INTERNAL_OBSERVABILITY_ENVIRONMENT` | Optional; defaults to `production`. |
+
+Payload capture is enabled for JSON (including `+json`) and URL-encoded forms:
+16 KiB per body and 8 KiB per header collection, with the SDK's default credential
+redaction. Binary, HTML, SSE and compressed bodies are not captured. Opaque nested
+`body`, `requestBody`, `responseBody`, `requestHeaders`, `responseHeaders` and
+`params` fields are additionally redacted so another customer's already-captured
+payload is not forwarded as an unparsed string. Normal fields remain useful;
+capture does not consume or modify the application's request/response body.
+
+`console.debug/info/log/warn/error` are exported with severity and active trace
+correlation, while preserving local console output. Auth, Secrets, token, CLI,
+webhook, checkout and server-function requests bypass traces, payloads **and log
+export**, including their async work. Background console logs outside a request
+are captured. Automatic HTTP/database/logger instrumentation remains disabled;
+the adapter does not record exception messages/stacks on spans. Console error
+logs can contain redacted error messages/stacks. Query values are not collected.
+
+Redaction is best-effort, **not a DLP guarantee**: do not log arbitrary plaintext
+secrets or personal data. Body capture waits for a bounded clone to be read, so
+slow JSON/form streams can add latency. Explicit SDK spans and structured log
+methods remain available. Exporter requests are not traced.
+
+`src/server.ts` is the custom entry discovered by TanStack Start; `src/start.ts`
+continues to enforce the existing instance middleware. No browser SDK, database
+migration, or remote deployment is performed by adding this integration. Remove
+the dedicated key to restore the ordinary, uninstrumented handler. The usual
+monorepo build includes the local adapter and SDK before building the web app:
+
+```sh
+npm run build -- --filter=outray-web --concurrency=1
+```
+
+### Prepared Brimble release
+
+For the `outray` project serving `outray.co`, copy the four dedicated variables
+above from the private root `.env.prod` into Brimble's **runtime server
+environment**. That ignored file is not uploaded by a Git push. The endpoint is
+`https://ingest.ops.outray.dev`, service is `outray-web`, and environment is
+`production`; keep the API key private. Use Node 22+ and the root Turbo build
+command above, then `npm run start --workspace=outray-web`. This integration
+requires no database migration, npm package publication, or changes to hosted
+database, Redis, Tinybird, or tunnel credentials. Removing the dedicated key
+disables it.
+
+**Before pushing:** the existing `.woodpecker/ci.yaml` runs on every push to
+`main` and `next`, independently of Brimble, and deploys hosted migrations,
+Tinybird, status, the tunnel edge, and probes. A filtered web build does not
+disable that pipeline. Pause that pipeline for a web-only release if those
+services must remain unchanged. Its configuration was not changed by this work.
+
 ## Agent (AI SDK + Grok)
 
 The console Agent is a server-backed, read-only observability investigator. The
