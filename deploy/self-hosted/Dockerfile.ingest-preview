@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1.7
+# Reuse only the pure-JS dependency closure from the audited Linux status image.
+# Build with the unchanged source/artifacts on the independent Ops installation.
+ARG INGEST_DEPENDENCY_IMAGE
+FROM ${INGEST_DEPENDENCY_IMAGE} AS dependencies
+USER root
+COPY scripts/self-hosted-ingest-dependencies.mjs /tmp/ingest-dependencies.mjs
+RUN node /tmp/ingest-dependencies.mjs /app/node_modules /ingest-node_modules
+
+FROM node:22-bookworm-slim AS artifacts
+WORKDIR /source
+COPY . .
+ARG APP_PUBLIC_URL
+ARG STATUS_PUBLIC_URL
+ARG SHARE_PUBLIC_URL
+ARG EDGE_PUBLIC_URL
+ARG INGEST_PUBLIC_URL
+RUN node scripts/self-hosted-artifacts.mjs verify --source /source --directory /source/.self-hosted-artifacts
+
+FROM node:22-bookworm-slim AS runtime
+WORKDIR /app
+LABEL com.outray.ingest-preview="true"
+ENV NODE_ENV=production
+COPY --from=dependencies --chown=node:node /ingest-node_modules ./node_modules
+COPY --from=artifacts --chown=node:node /source/apps/ingest/package.json ./apps/ingest/package.json
+COPY --from=artifacts --chown=node:node /source/.self-hosted-artifacts/apps/ingest/dist ./apps/ingest/dist
+COPY --from=artifacts --chown=node:node /source/.self-hosted-artifacts/manifest.json ./self-hosted-artifact-manifest.json
+USER node
+ENTRYPOINT []
+CMD ["node", "apps/ingest/dist/server.js"]
