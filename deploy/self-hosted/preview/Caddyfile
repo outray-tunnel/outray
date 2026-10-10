@@ -1,0 +1,27 @@
+{
+	email {$CADDY_EMAIL}
+	admin localhost:2019
+	auto_https disable_redirects
+	servers {
+		protocols h1 h2
+		strict_sni_host on
+	}
+}
+
+# Only this name is eligible for an automatically managed certificate.
+ops.outray.dev {
+	header Cache-Control "no-store"
+	header Retry-After "120"
+	respond "Dashboard preview is temporarily unavailable.\n" 503
+}
+
+:80 {
+	@preview host ops.outray.dev
+	redir @preview https://ops.outray.dev{uri} 308
+	respond "Unknown host\n" 421
+}
+
+# No on-demand TLS, wildcard name, fallback certificate or public admin port.
+:443 {
+	respond "Unknown host\n" 421
+}
