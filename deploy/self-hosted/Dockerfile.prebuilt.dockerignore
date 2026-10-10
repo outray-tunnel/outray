@@ -1,0 +1,34 @@
+.git
+**/node_modules
+packages/icons/generated
+**/dist
+**/.output
+**/.astro
+**/.turbo
+**/.cache
+# Only the dedicated audited artifact input may retain outputs/traced dependencies.
+!.self-hosted-artifacts/**
+# Never permit configuration/private-key files, including inside staged input.
+**/.env*
+**/*.log
+**/*.pem
+**/*.key
+.tinyb
+.tinybird
+.DS_Store
+.vscode
+.idea
+data
+tmp
+test-apps
+video
+store
+metadata
+metadata_dropped
+user_files
+preprocessed_configs
+format_schemas
+flags
+uuid
+deploy/woodpecker/data
+deploy/woodpecker/secrets
