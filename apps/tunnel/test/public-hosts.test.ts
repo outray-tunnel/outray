@@ -15,6 +15,8 @@ test("self-hosted public hosts and root redirects never send users to OutRay", (
   assert.equal(publicHosts.tunnelRootRedirect("tunnels.example.net", env.BASE_DOMAIN, "//attacker.test/path", env), "https://console.example.net//attacker.test/path");
   assert.equal(publicHosts.tunnelRootRedirect("www.tunnels.example.net", env.BASE_DOMAIN, "/", env), "https://console.example.net/");
   assert.equal(publicHosts.infrastructureHostnames(env).includes("api.outray.dev"), false);
+  assert.equal(publicHosts.infrastructureHostnames(env).includes("api.outray.co"), false);
+  assert.equal(publicHosts.infrastructureHostnames(env).includes("connect.outray.co"), false);
   assert.equal(publicHosts.tunnelRootRedirect("outray.app", "outray.app", "/", { OUTRAY_DEPLOYMENT_MODE: "self-hosted" }), null);
 });
 
@@ -34,5 +36,14 @@ test("configured edge host receives CLI control WebSockets without capturing oth
   assert.equal(publicHosts.isTunnelControlHost("api.customer.test", env.BASE_DOMAIN, env), false);
   assert.equal(publicHosts.isTunnelControlHost("edge.example.net.attacker.test", env.BASE_DOMAIN, env), false);
   assert.equal(publicHosts.isTunnelControlHost("api.outray.dev", "outray.app", {}), true);
+  assert.equal(publicHosts.isTunnelControlHost("api.outray.co", "outray.app", {}), true);
+  assert.equal(publicHosts.isTunnelControlHost("connect.outray.co", "outray.app", {}), true);
+  assert.equal(publicHosts.isTunnelControlHost("connect.customer.test", "outray.app", {}), false);
+  assert.equal(publicHosts.isTunnelControlHost("connect.outray.co.attacker.test", "outray.app", {}), false);
+  assert.equal(publicHosts.isTunnelControlHost("connect.outray.co", env.BASE_DOMAIN, env), false);
+  assert.equal(publicHosts.infrastructureHostnames({}).includes("connect.outray.co"), true);
+  assert.equal(publicHosts.tunnelRootRedirect("connect.outray.co", "outray.app", "/", {}), null);
+  assert.equal(publicHosts.infrastructureHostnames({}).includes("api.outray.co"), true);
+  assert.equal(publicHosts.tunnelRootRedirect("api.outray.co", "outray.app", "/", {}), null);
   assert.equal(publicHosts.infrastructureHostnames(env).includes("edge.example.net"), true);
 });
