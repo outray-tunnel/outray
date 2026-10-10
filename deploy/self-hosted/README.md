@@ -6,6 +6,8 @@ The deployment includes web/API, tunnel edge, domain authorization, telemetry in
 
 This is not an offline distribution. Analytics still use your own Tinybird workspace; sign-in uses your GitHub/Google OAuth apps. Icons build with the public MIT-licensed Hugeicons pack without a license. Email uses your own ZeptoMail configuration. The optional console agent uses your own xAI key.
 
+Public-launch gate: the current checkout's production Seroval dependency needs a security update before exposing this stack. See the [verification/security record](VERIFICATION.md#public-launch-security-blocker). The private infrastructure rehearsal does not clear that gate.
+
 ## 1. Prepare an independent installation
 
 Use a fresh checkout on a different host from the hosted OutRay edge for an internal Ops instance. Install Node.js 22+, Docker Engine with BuildKit, and the Docker Compose plugin. Reserve a public domain and enough disk/memory for your expected telemetry, Redis backlog, PostgreSQL data, and application builds. This package has not been load-tested to establish hardware sizing guarantees.
@@ -129,12 +131,13 @@ The check validates only local configuration; it does not authenticate to OAuth/
 For an empty, disposable 1-vCPU/2-GB host, these optional settings in the private installation file are a starting point for a smoke test, not a benchmarked capacity recommendation:
 
 ```dotenv
-BUILD_NODE_MAX_OLD_SPACE_SIZE=1536
 DASHBOARD_DB_POOL_MAX=10
 REDIS_MAX_MEMORY=128mb
 ```
 
-Provision swap and build before starting the application services; avoid installing a second copy of npm dependencies on the host. The Docker build already runs workspace builds one at a time. Leave the Uptime worker disabled until its separate egress policy is verified. Watch available memory, swap, disk, Redis backlog and container restarts throughout the rehearsal.
+Build the image separately from the running services; avoid installing a second copy of npm dependencies on the host. The Docker build already runs workspace builds one at a time. On the initial 2-GB trial, a 1,536-MiB V8 ceiling exhausted the heap; a 3,072-MiB retry with 4 GiB swap caused heavy swap thrashing during final dashboard packaging and was cancelled. Prefer an off-host build for this class of machine. The [explicit free prebuilt trial](PREBUILT.md) validates source/origin hashes and rejects native host dependencies before installing Linux dependencies. Build memory and runtime memory are different requirements.
+
+For a private infrastructure-only smoke test before OAuth/Tinybird are ready, use the [explicit rehearsal runner](REHEARSAL.md). It never publishes ports or bypasses the normal deployment preflight. Leave the Uptime worker disabled until its separate egress policy is verified. Watch available memory, swap, disk, Redis backlog and container restarts throughout the rehearsal.
 
 The build setting accepts a positive decimal integer in MiB and caps V8 old-space only, not total build memory. Leave it empty to preserve Node's default; a heap-exhaustion failure may require more build memory. It is not passed to application runtimes. The dashboard pool defaults to 50 connections and has a minimum of 10; other services have their own pools. Redis defaults to 512 MB and retains `noeviction`, so a reduced ceiling can reject queued ingestion rather than discard it. These controls are not container memory limits, and a successful empty-host startup does not establish production sizing.
 
@@ -217,11 +220,11 @@ This isolates Ops from routine hosted edge/database deployments; it does not eli
 
 Policy, routing, CLI isolation, public setup endpoints, email configuration, and packaging/initializer tests pass; focused service builds/checks also pass. The packaging suite adapts the real Caddy configuration without starting it. Share-role tests use mocked database clients and cover transaction rollback/security checks.
 
-The development machine does not have a working Docker Compose plugin/daemon. Image build, fresh PostgreSQL migration/bootstrap, and container-level end-to-end verification remain required on an isolated test host before release. No installation, production database operation, or deployment was performed while writing this package. Existing unrelated dashboard type-check failures are separate from the focused self-host checks.
+The development machine does not have a working Docker Compose plugin/daemon. An independent Ubuntu host has been provisioned for a private rehearsal; its exact image, migration/bootstrap and runtime results are recorded separately. No hosted production database, DNS or deployment was changed. Existing unrelated dashboard type-check and test failures are separate from the focused self-host checks.
 
 See [the verification record](VERIFICATION.md) for exact results and the remaining acceptance checklist.
 
-Run source tests after installing development dependencies with your build-only icon credential:
+Run source tests after installing development dependencies (no icon license is required):
 
 ```bash
 npm run self-host:test
