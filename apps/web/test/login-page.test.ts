@@ -114,6 +114,26 @@ test("home, signup, legal and support links remain real navigable destinations",
   for (const product of ["Tunnels", "Observability", "Secrets", "Uptime"]) assert.match(html, new RegExp(`<h3>${product}<\\/h3>`));
 });
 
+test("self-hosted auth keeps configured providers and administrator guidance without hosted marketing", () => {
+  const root = createRootRoute();
+  const login = createRoute({ getParentRoute: () => root, path: "login" });
+  const router = createRouter({ routeTree: root.addChildren([login]), history: createMemoryHistory({ initialEntries: ["/login"] }) });
+  for (const mode of ["login", "signup"] as const) {
+    const html = renderToStaticMarkup(React.createElement(RouterContextProvider, {
+      router, children: React.createElement(AuthPageView, {
+        ...defaults, mode, instance: { selfHosted: true, authProviders: ["github"] },
+      }),
+    }));
+    assert.match(html, /Continue with GitHub/);
+    assert.doesNotMatch(html, /Continue with Google/);
+    assert.match(html, /Use an approved account to access this installation/);
+    assert.match(html, /contact your installation administrator/);
+    assert.doesNotMatch(html, /Back to home|New to OutRay|Get started|href="\/signup"|href="\/terms"|href="\/privacy"|mailto:support|Everything behind your app|<aside/);
+    assert.match(html, /class="main installation"/);
+    assert.equal(buttons(html).length, 1);
+  }
+});
+
 test("the sign-up link retains the full CLI or invitation destination including its query", () => {
   for (const redirect of ["/cli/login?code=one-time-code", "/invitations/accept?token=invite-id"]) {
     const html = renderLogin({ redirect });
