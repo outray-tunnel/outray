@@ -216,6 +216,11 @@ test("every service has a bounded health check and trusted IP forwarding stays p
     assert.ok(service.healthcheck.retries > 0, name);
   }
   assert.equal(services.tunnel.environment.STATUS_UPSTREAM_URL, "http://status:4323");
+  const edgeProbe = services.tunnel.healthcheck.test.at(-1);
+  assert.match(edgeProbe, /require\('node:http'\)/);
+  assert.match(edgeProbe, /Host:process\.env\.BASE_DOMAIN/);
+  assert.match(edgeProbe, /timeout:3000/);
+  assert.doesNotMatch(edgeProbe, /fetch\(/);
   assert.ok(services.tunnel.environment.DATABASE_URL, "custom status-domain routing requires PostgreSQL");
   assert.equal(services.tunnel.environment.TUNNEL_PUBLIC_URL, "https://${OUTRAY_EDGE_HOST}");
   assert.equal(services.tunnel.environment.STATUS_TRUSTED_PROXY_IPS, services.caddy.networks.services.ipv4_address);
