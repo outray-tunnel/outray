@@ -3,12 +3,7 @@ export interface AttributeObject {
   [key: string]: AttributeValue;
 }
 export type AttributeValue =
-  | string
-  | number
-  | boolean
-  | null
-  | AttributeValue[]
-  | AttributeObject;
+  string | number | boolean | null | AttributeValue[] | AttributeObject;
 
 export interface ParsedSpan {
   timestamp: Date;
@@ -47,12 +42,17 @@ export const record = (value: unknown): UnknownRecord | null =>
     ? (value as UnknownRecord)
     : null;
 
-export const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+export const list = (value: unknown): unknown[] =>
+  Array.isArray(value) ? value : [];
 
 export const stringValue = (value: unknown): string =>
   typeof value === "string" ? value : "";
 
-export function field(source: UnknownRecord | null, camel: string, snake: string) {
+export function field(
+  source: UnknownRecord | null,
+  camel: string,
+  snake: string,
+) {
   return source?.[camel] ?? source?.[snake];
 }
 
@@ -113,7 +113,9 @@ export function decodeAnyValue(value: unknown): AttributeValue {
   return null;
 }
 
-export function decodeAttributes(value: unknown): Record<string, AttributeValue> {
+export function decodeAttributes(
+  value: unknown,
+): Record<string, AttributeValue> {
   const result: Record<string, AttributeValue> = {};
   for (const candidate of list(value)) {
     const item = record(candidate);
@@ -133,7 +135,10 @@ export function attributeString(
   return "";
 }
 
-export function parseTracePayload(payload: unknown): ParsedTracePayload {
+export function parseTracePayload(
+  payload: unknown,
+  maxRecords = Infinity,
+): ParsedTracePayload {
   const root = record(payload);
   const resourceSpans = list(field(root, "resourceSpans", "resource_spans"));
   if (!root || !Array.isArray(field(root, "resourceSpans", "resource_spans"))) {
@@ -149,26 +154,50 @@ export function parseTracePayload(payload: unknown): ParsedTracePayload {
     const resourceAttributes = decodeAttributes(resource?.attributes);
     const scopeSpans = list(
       field(resourceSpan, "scopeSpans", "scope_spans") ??
-        field(resourceSpan, "instrumentationLibrarySpans", "instrumentation_library_spans"),
+        field(
+          resourceSpan,
+          "instrumentationLibrarySpans",
+          "instrumentation_library_spans",
+        ),
     );
 
     for (const scopeSpanCandidate of scopeSpans) {
       const scopeSpan = record(scopeSpanCandidate);
-      const scope = record(scopeSpan?.scope ?? scopeSpan?.instrumentationLibrary);
+      const scope = record(
+        scopeSpan?.scope ?? scopeSpan?.instrumentationLibrary,
+      );
       const scopeAttributes = decodeAttributes(scope?.attributes);
 
       for (const spanCandidate of list(scopeSpan?.spans)) {
+        if (spans.length >= maxRecords) {
+          rejected++;
+          continue;
+        }
         const span = record(spanCandidate);
         const traceId = identifier(field(span, "traceId", "trace_id"), 32);
         const spanId = identifier(field(span, "spanId", "span_id"), 16);
-        const parentSpanId = identifier(field(span, "parentSpanId", "parent_span_id"), 16) || "";
-        const startNano = integerString(field(span, "startTimeUnixNano", "start_time_unix_nano"));
-        const endNano = integerString(field(span, "endTimeUnixNano", "end_time_unix_nano"));
+        const parentSpanId =
+          identifier(field(span, "parentSpanId", "parent_span_id"), 16) || "";
+        const startNano = integerString(
+          field(span, "startTimeUnixNano", "start_time_unix_nano"),
+        );
+        const endNano = integerString(
+          field(span, "endTimeUnixNano", "end_time_unix_nano"),
+        );
         const timestamp = startNano ? nanoDate(startNano) : null;
         const endTimestamp = endNano ? nanoDate(endNano) : null;
         const name = stringValue(span?.name);
 
-        if (!span || !traceId || !spanId || !startNano || !endNano || !timestamp || !endTimestamp || !name) {
+        if (
+          !span ||
+          !traceId ||
+          !spanId ||
+          !startNano ||
+          !endNano ||
+          !timestamp ||
+          !endTimestamp ||
+          !name
+        ) {
           rejected++;
           continue;
         }
@@ -202,14 +231,35 @@ export function parseTracePayload(payload: unknown): ParsedTracePayload {
           durationNano,
           statusCode: Number.isFinite(statusValue) ? statusValue : 0,
           statusMessage: stringValue(status?.message),
-          serviceName: attributeString(resourceAttributes, "service.name") || "unknown_service",
-          serviceNamespace: attributeString(resourceAttributes, "service.namespace"),
-          serviceVersion: attributeString(resourceAttributes, "service.version"),
-          environment: attributeString(resourceAttributes, "deployment.environment.name", "deployment.environment"),
-          region: attributeString(resourceAttributes, "cloud.region", "host.region"),
+          serviceName:
+            attributeString(resourceAttributes, "service.name") ||
+            "unknown_service",
+          serviceNamespace: attributeString(
+            resourceAttributes,
+            "service.namespace",
+          ),
+          serviceVersion: attributeString(
+            resourceAttributes,
+            "service.version",
+          ),
+          environment: attributeString(
+            resourceAttributes,
+            "deployment.environment.name",
+            "deployment.environment",
+          ),
+          region: attributeString(
+            resourceAttributes,
+            "cloud.region",
+            "host.region",
+          ),
           scopeName: stringValue(scope?.name),
           scopeVersion: stringValue(scope?.version),
-          httpMethod: attributeString(spanAttributes, "http.request.method", "http.method") || "EVENT",
+          httpMethod:
+            attributeString(
+              spanAttributes,
+              "http.request.method",
+              "http.method",
+            ) || "EVENT",
           resourceAttributes,
           spanAttributes,
           scopeAttributes,
