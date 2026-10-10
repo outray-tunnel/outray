@@ -1,0 +1,24 @@
+{
+	email {$CADDY_EMAIL}
+	admin localhost:2019
+	auto_https disable_redirects
+	servers {
+		protocols h1 h2
+		strict_sni_host on
+	}
+}
+
+ops.outray.dev {
+	encode zstd gzip
+	reverse_proxy outray-ops-public-web:6767
+}
+
+:80 {
+	@preview host ops.outray.dev
+	redir @preview https://ops.outray.dev{uri} 308
+	respond "Unknown host\n" 421
+}
+
+:443 {
+	respond "Unknown host\n" 421
+}
