@@ -1,6 +1,6 @@
 [global]
 org = "my-team"
-# server_url = "wss://api.outray.dev/"  # Optional: custom server URL
+# server_url = "wss://connect.outray.co/"  # Optional: custom server URL
 
 [secrets]
 org = "my-team"
