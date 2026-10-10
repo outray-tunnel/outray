@@ -14,6 +14,15 @@ export default defineConfig(({ mode, command }) => {
 
   return {
     envPrefix: ["VITE_", "PUBLIC_"],
+    environments: {
+      nitro: {
+        resolve: {
+          // Nitro rebundles the SSR output, including CommonJS interop imports.
+          // Resolve Node's entry, not OpenTelemetry's incompatible ESM module field.
+          mainFields: ["main"],
+        },
+      },
+    },
     plugins: [
       tanstackStart(),
       // Nitro's alpha dev proxy can leak rejected request promises during reloads.
