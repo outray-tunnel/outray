@@ -36,7 +36,7 @@ await import("./server.js");
 
 Compile this bootstrap as an ES module (for example in a package with `"type": "module"`) so top-level `await` is supported. Run the compiled bootstrap as your server entry, for example `node dist/bootstrap.js`. Early loading is important: libraries imported before OpenTelemetry starts may not be automatically instrumented. For framework-specific request instrumentation, use [SDK setup](/docs/observability/sdk-setup).
 
-The default ingest endpoint is `https://ingest.outray.dev`. An `endpoint` override is available for another OutRay deployment. `serviceName` is required and should be stable across releases; put release identity in `serviceVersion`, not the service name.
+The default ingest endpoint is `https://ingest.outray.co`. An `endpoint` override is available for another OutRay deployment. `serviceName` is required and should be stable across releases; put release identity in `serviceVersion`, not the service name.
 
 ## 3. Generate and inspect evidence
 
