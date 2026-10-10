@@ -5,7 +5,7 @@ import { createAuthMiddleware, organization } from "better-auth/plugins";
 import { sendViaZepto } from "./send-email";
 import { ac, admin, member, owner } from "./permissions";
 import { generateEmail } from "@/email/templates";
-import { isReservedSlug } from "../../../../shared/reserved-slugs";
+import { workspaceSlugErrorMessage, workspaceSlugRejection } from "../../../../shared/workspace-slugs";
 import {
   assertOrganizationMemberCapacity,
   getBetterAuthInvitationLimit,
@@ -149,9 +149,10 @@ export const auth = betterAuth({
     }),
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path === "/organization/create") {
-        const body = ctx.body as { slug?: string } | undefined;
-        if (body?.slug && isReservedSlug(body.slug)) {
-          throw new Error("This slug is reserved");
+        const body = ctx.body as { slug?: unknown } | undefined;
+        const reason = workspaceSlugRejection(body?.slug, instanceConfig());
+        if (reason) {
+          throw new APIError("BAD_REQUEST", { message: workspaceSlugErrorMessage(reason) });
         }
       }
     }),
