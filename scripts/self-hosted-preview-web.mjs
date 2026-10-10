@@ -14,6 +14,7 @@ export const githubLabel = "com.outray.console-preview.github";
 export const tinybirdLabel = "com.outray.console-preview.tinybird-read";
 export const previewConfigurationLabel = "com.outray.preview.configuration";
 export const previewImageLabel = "com.outray.console-preview";
+export const gatewayStatusLabel = "com.outray.preview.status";
 export const pinnedCaddyImage = "caddy:2.11.7-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f";
 const gateway = "outray-ops-preview-caddy", gatewayEgress = "outray-ops-preview-egress";
 const configDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../deploy/self-hosted/preview");
@@ -110,13 +111,30 @@ export function consoleContainerArguments(definition, image, labels) {
 
 export function consoleEgressArguments(container) { return ["network", "connect", "--gw-priority", "1", webEgressNetwork, container]; }
 
+export function gatewayTemplate(mode, enableStatus = false) {
+  if (!["maintenance", "proxy"].includes(mode)) fail("Invalid gateway mode.");
+  return enableStatus ? (mode === "proxy" ? "Caddyfile.status" : "Caddyfile.status-maintenance") : (mode === "proxy" ? "Caddyfile.proxy" : "Caddyfile");
+}
+
+export function gatewayConfigurationFingerprint(mode, image, email, enableStatus = false, edgeSecret, directory = configDirectory) {
+  if (enableStatus && !/^[a-f0-9]{64}$/.test(edgeSecret || "")) fail("Status gateway requires its independent generated edge credential.");
+  // Keep the historical fingerprint shape byte-for-byte compatible. New modes
+  // hash the credential; labels, adaptation output and arguments never contain it.
+  return fingerprint({ mode, image, email, config: readFileSync(resolve(directory, gatewayTemplate(mode, enableStatus)), "utf8"),
+    ...(enableStatus ? { statusEdgeSecretDigest: createHash("sha256").update(edgeSecret).digest("hex") } : {}) });
+}
+
 export function safeMaintenanceGateway(metadata, caddyId, rehearsalLabels, directory = configDirectory) {
   const values = containerEnvironment(metadata), host = metadata?.HostConfig || {}, mode = "maintenance";
+  const enableStatus = metadata?.Config?.Labels?.[gatewayStatusLabel] === "true";
+  if (metadata?.Config?.Labels?.[gatewayStatusLabel] !== (enableStatus ? "true" : undefined)) return false;
+  let configuration;
+  try { configuration = gatewayConfigurationFingerprint(mode, caddyId, values.CADDY_EMAIL, enableStatus, values.STATUS_EDGE_SECRET, directory); } catch { return false; }
   const labels = { ...rehearsalLabels, "com.outray.preview.managed": "true", "com.outray.preview.mode": mode,
-    [previewConfigurationLabel]: fingerprint({ mode, image: caddyId, email: values.CADDY_EMAIL, config: readFileSync(resolve(directory, "Caddyfile"), "utf8") }) };
+    ...(enableStatus ? { [gatewayStatusLabel]: "true" } : {}), [previewConfigurationLabel]: configuration };
   const ports = host.PortBindings || {}, mounts = metadata?.Mounts || [];
   return metadata?.State?.Status === "running" && metadata.Image === caddyId && ownedResource({ Labels: metadata.Config?.Labels }, labels)
-    && JSON.stringify(metadata.Config.Cmd) === JSON.stringify(["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"])
+    && JSON.stringify(metadata.Config.Cmd) === JSON.stringify(["caddy", "run", "--config", `/etc/caddy/${gatewayTemplate(mode, enableStatus)}`, "--adapter", "caddyfile"])
     && host.ReadonlyRootfs && !host.Privileged && !host.PublishAllPorts && host.CapDrop?.includes("ALL")
     && host.CapAdd?.length === 1 && ["NET_BIND_SERVICE", "CAP_NET_BIND_SERVICE"].includes(host.CapAdd[0]) && host.SecurityOpt?.includes("no-new-privileges:true")
     && host.NetworkMode === gatewayEgress && JSON.stringify(Object.keys(metadata.NetworkSettings?.Networks || {}).sort()) === JSON.stringify([project, gatewayEgress].sort())
