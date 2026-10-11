@@ -1,5 +1,5 @@
 import { apiKeyFromHeaders, type IngestAuthContext } from "../auth.js";
-import { Buffer } from "node:buffer";
+import { normalizeWithinBudget } from "../normalize.js";
 import { parseLogsPayload } from "../logs.js";
 import { parseMetricsPayload } from "../metrics.js";
 import { parseTracePayload } from "../otlp.js";
@@ -17,11 +17,16 @@ import {
   toTinybirdSpan,
 } from "../tinybird.js";
 import type { IngestRecord, IngestSignal } from "./delivery.js";
+import { TelemetryQuotaExceeded } from "../telemetry-usage.js";
 
 export interface HttpDependencies {
   authenticate(apiKey: string): Promise<IngestAuthContext | null>;
   allowRequest(organizationId: string): Promise<boolean>;
-  enqueue(signal: IngestSignal, records: IngestRecord[]): Promise<void>;
+  enqueue(
+    signal: IngestSignal,
+    records: IngestRecord[],
+    auth: IngestAuthContext,
+  ): Promise<void>;
   maxPayloadBytes?: number;
   maxRecords?: number;
   maxNormalizedBytes?: number;
@@ -48,25 +53,6 @@ function json(status: number, body: unknown) {
           : {}),
     },
   });
-}
-
-function normalizeWithinBudget<T>(
-  items: T[],
-  convert: (item: T) => IngestRecord,
-  budget: number,
-) {
-  const rows: IngestRecord[] = [];
-  let bytes = 0;
-  for (const item of items) {
-    const row = convert(item);
-    const size = Buffer.byteLength(JSON.stringify(row), "utf8");
-    // Resource/scope attributes are shared in OTLP but repeated per Tinybird
-    // row. Bound that amplification before retaining the normalized records.
-    if (bytes + size > budget) break;
-    bytes += size;
-    rows.push(row);
-  }
-  return { rows, rejected: items.length - rows.length };
 }
 
 async function readBody(request: Request, limit: number) {
@@ -242,7 +228,7 @@ export async function handleIngestRequest(
       );
     }
     // Do not use waitUntil here: an accepted export must already be durable.
-    await dependencies.enqueue(signal, rows);
+    await dependencies.enqueue(signal, rows, auth);
     const errorMessage = rejected
       ? `${rejected} invalid or over-limit ${noun} were rejected`
       : "";
@@ -272,6 +258,9 @@ export async function handleIngestRequest(
         : {},
     );
   } catch (error) {
+    if (error instanceof TelemetryQuotaExceeded) {
+      return json(429, { message: error.message, resetsAt: error.resetsAt });
+    }
     if (error instanceof HttpError)
       return json(error.status, { message: error.message });
     // Credentials and captured payloads must never appear in Worker logs.
