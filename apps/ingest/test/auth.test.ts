@@ -48,6 +48,7 @@ test("authenticates active hashed machine tokens with observability scope", asyn
   assert.deepEqual(result, {
     organizationId: "org_1",
     retentionDays: 30,
+    telemetryBytesPerMonth: 20 * 1024 ** 3,
     tokenId: "machine_1",
   });
   assert.equal(
@@ -145,6 +146,7 @@ test("keeps legacy ingest credentials working during migration", async () => {
     {
       organizationId: "org_legacy",
       retentionDays: 14,
+      telemetryBytesPerMonth: 5 * 1024 ** 3,
       tokenId: "legacy_1",
     },
   );
@@ -161,6 +163,47 @@ test("rejects malformed credentials without querying the database", async () => 
     null,
   );
   assert.equal(calls.length, 0);
+});
+
+test("ingest authentication derives monthly telemetry and retention from the shared hosted plan", async () => {
+  const cases = [
+    ["free", 1, 3],
+    ["ray", 5, 14],
+    ["beam", 20, 30],
+    ["pulse", 100, 90],
+    ["unlimited", -1, 90],
+    ["unknown", 1, 3],
+  ] as const;
+  for (const [plan, gib, retentionDays] of cases) {
+    const { database } = fakeDatabase({ machine: { ...activeMachine, plan } });
+    const context = await authenticateApiToken(database, "outray_test", {
+      environment: { OUTRAY_DEPLOYMENT_MODE: "hosted" },
+    });
+    assert.equal(
+      context?.telemetryBytesPerMonth,
+      gib === -1 ? -1 : gib * 1024 ** 3,
+    );
+    assert.equal(context?.retentionDays, retentionDays);
+  }
+});
+
+test("self-hosted ingest honors instance-owned monthly bytes instead of hosted plans", async () => {
+  const { database } = fakeDatabase({
+    machine: { ...activeMachine, plan: "free" },
+  });
+  const context = await authenticateApiToken(database, "outray_test", {
+    environment: {
+      OUTRAY_DEPLOYMENT_MODE: "self-hosted",
+      OUTRAY_TELEMETRY_BYTES_PER_MONTH: "123456",
+      OUTRAY_RETENTION_DAYS: "60",
+    },
+  });
+  assert.equal(context?.telemetryBytesPerMonth, 123456);
+  assert.equal(context?.retentionDays, 60);
+  const defaultContext = await authenticateApiToken(database, "outray_test", {
+    environment: { OUTRAY_DEPLOYMENT_MODE: "self-hosted" },
+  });
+  assert.equal(defaultContext?.telemetryBytesPerMonth, 1024 ** 5);
 });
 
 test("explicit Worker policy is isolated from process environment and other requests", async () => {
