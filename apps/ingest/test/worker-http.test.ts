@@ -12,6 +12,7 @@ import type { IngestRecord, IngestSignal } from "../src/worker/delivery.js";
 const auth: IngestAuthContext = {
   organizationId: "org_authenticated",
   retentionDays: 30,
+  telemetryBytesPerMonth: 20 * 1024 ** 3,
   tokenId: "token_authenticated",
 };
 const timestamp = "1788080400123456789";
