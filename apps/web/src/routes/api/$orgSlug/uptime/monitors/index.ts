@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { organizations } from "@/db/auth-schema";
 import { uptimeMonitors } from "@/db/uptime-schema";
 import { notificationEmailsBelongToOrganization } from "@/lib/observability/alert-access";
 import { activeOrganizationKey } from "@/lib/secrets/database";
@@ -9,7 +8,7 @@ import { encryptUptimeHeaders } from "@/lib/secrets/crypto";
 import { badInput, jsonBody, requireUptimeManager, requireUptimeRead, serializeMonitor } from "@/lib/uptime/api";
 import { validateMonitorInput } from "@/lib/uptime/validation";
 import { isAlertManagerRole } from "@/lib/observability/alert-validation";
-import { getUptimeMonitorLimit } from "@/lib/subscription-plans";
+import { getOrganizationLimits, withOrganizationQuotaLock } from "@/lib/organization-entitlements.server";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/")({
   server: {
@@ -17,10 +16,13 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/")({
       GET: async ({ request, params }) => {
         const access = await requireUptimeRead(request, params.orgSlug);
         if ("error" in access) return access.error;
-        const monitors = await db.select().from(uptimeMonitors)
-          .where(and(eq(uptimeMonitors.organizationId, access.organization.id), isNull(uptimeMonitors.deletedAt)))
-          .orderBy(desc(uptimeMonitors.createdAt));
-        return Response.json({ monitors: monitors.map(serializeMonitor), limit: getUptimeMonitorLimit(), canManage: isAlertManagerRole(access.membership.role) });
+        const [monitors, limits] = await Promise.all([
+          db.select().from(uptimeMonitors)
+            .where(and(eq(uptimeMonitors.organizationId, access.organization.id), isNull(uptimeMonitors.deletedAt)))
+            .orderBy(desc(uptimeMonitors.createdAt)),
+          getOrganizationLimits(access.organization.id),
+        ]);
+        return Response.json({ monitors: monitors.map(serializeMonitor), limit: limits.maxUptimeMonitors, canManage: isAlertManagerRole(access.membership.role) });
       },
       POST: async ({ request, params }) => {
         const access = await requireUptimeManager(request, params.orgSlug);
@@ -33,14 +35,14 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/")({
           return badInput("Email recipients must be current organization members", "notificationEmails");
         }
         try {
-          const monitorLimit = getUptimeMonitorLimit();
           const result = await db.transaction(async (tx) => {
-            await tx.select({ id: organizations.id }).from(organizations)
-              .where(eq(organizations.id, access.organization.id)).for("update");
-            const existing = await tx.select({ id: uptimeMonitors.id }).from(uptimeMonitors)
-              .where(and(eq(uptimeMonitors.organizationId, access.organization.id), isNull(uptimeMonitors.deletedAt)))
-              .limit(monitorLimit);
-            if (existing.length >= monitorLimit) return null;
+            await withOrganizationQuotaLock(tx, access.organization.id);
+            const { maxUptimeMonitors: limit } = await getOrganizationLimits(access.organization.id, tx);
+            if (limit !== -1) {
+              const [existing] = await tx.select({ count: sql<number>`count(*)::int` }).from(uptimeMonitors)
+                .where(and(eq(uptimeMonitors.organizationId, access.organization.id), isNull(uptimeMonitors.deletedAt)));
+              if (existing.count >= limit) return { limitReached: true, limit } as const;
+            }
             const id = crypto.randomUUID();
             let headersCiphertext = null;
             if (Object.keys(input.data.headers).length) {
@@ -65,10 +67,10 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/monitors/")({
               publishAfterMinutes: input.data.publishAfterMinutes,
               enabled: input.data.enabled,
             }).returning();
-            return monitor;
+            return { monitor } as const;
           });
-          if (!result) return Response.json({ error: `Monitor limit reached: ${monitorLimit} monitors per organization` }, { status: 403 });
-          return Response.json({ monitor: serializeMonitor(result) }, { status: 201 });
+          if ("limitReached" in result) return Response.json({ error: `Monitor limit reached: ${result.limit} monitors per organization`, limit: result.limit }, { status: 403 });
+          return Response.json({ monitor: serializeMonitor(result.monitor) }, { status: 201 });
         } catch (error) {
           // Configuration errors are not exposed with key material or header values.
           console.error("Unable to create uptime monitor", error instanceof Error ? error.name : "error");
