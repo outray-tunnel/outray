@@ -2,6 +2,11 @@ import { redis } from "./lib/redis";
 import { activeTunnelSnapshot, createSnapshotLogger } from "./lib/tinybird-tunnels";
 import { chargePaystackSubscriptions } from "./lib/paystack";
 import { startAlertWorkers } from "./lib/alerts";
+import { databasePool } from "./lib/database";
+import {
+  createTelemetryReceiptCleanup,
+  TELEMETRY_RECEIPT_CLEANUP_INTERVAL_MS,
+} from "./lib/telemetry-receipts";
 import { instanceConfig } from "../../../shared/instance-config";
 
 async function connectRedis() {
@@ -11,6 +16,7 @@ async function connectRedis() {
 
 const { logger: snapshots, configured: tinybirdConfigured } = createSnapshotLogger();
 const timers: NodeJS.Timeout[] = [];
+const telemetryReceiptCleanup = createTelemetryReceiptCleanup(databasePool);
 
 let isSampling = false;
 let isCleaning = false;
@@ -191,7 +197,14 @@ async function rebuildGlobalOrgIndex() {
 
 async function start() {
   const instance = instanceConfig();
-  if (instance.products.includes("observability")) startAlertWorkers();
+  if (instance.products.includes("observability")) {
+    startAlertWorkers();
+    void telemetryReceiptCleanup.run();
+    timers.push(setInterval(
+      () => void telemetryReceiptCleanup.run(),
+      TELEMETRY_RECEIPT_CLEANUP_INTERVAL_MS,
+    ));
+  }
 
   if (instance.products.includes("tunnels")) {
     try {
@@ -225,6 +238,7 @@ start();
 
 async function shutdown() {
   timers.forEach(clearInterval);
+  await telemetryReceiptCleanup.shutdown();
   try { await snapshots.shutdown(); }
   catch { console.error("Could not persist buffered tunnel snapshots before shutdown"); }
   await redis.quit().catch(() => undefined);
