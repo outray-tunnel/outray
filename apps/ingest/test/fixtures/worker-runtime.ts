@@ -34,6 +34,7 @@ export default {
           ? {
               organizationId: "org_runtime",
               retentionDays: 3,
+              telemetryBytesPerMonth: 1024 ** 3,
               tokenId: "test-runtime",
             }
           : null;
