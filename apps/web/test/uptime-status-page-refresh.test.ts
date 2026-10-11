@@ -230,7 +230,8 @@ test("status tab and domain actions retain route, ownership, DNS and pending-con
   assert.match(provider, /busy=\{appearanceSaving\}/);
   assert.match(provider, /!next\.pathname\.startsWith\(editorPath \+ "\/"\)/);
   assert.match(domains, /_outray-challenge\./);
-  assert.match(domains, /const cnameTarget = "status\.outray\.app"/);
+  assert.match(domains, /VITE_OUTRAY_STATUS_URL \|\| "https:\/\/status\.outray\.app"/);
+  assert.match(domains, /const cnameTarget = publicHosts\.canonicalStatusHostname\(\{ OUTRAY_STATUS_URL: statusOrigin \}\)/);
   assert.match(domains, /DNS only/);
   assert.match(domains, /reload: reloadPage/);
   assert.equal(domains.match(/reload\(\); reloadPage\(\);/g)?.length, 3);
