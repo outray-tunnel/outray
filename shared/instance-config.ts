@@ -32,13 +32,17 @@ export function instanceConfig(env: Environment = runtimeEnvironment()) {
       ["bandwidthPerMonth", "OUTRAY_BANDWIDTH_BYTES_PER_MONTH"],
       ["maxUptimeMonitors", "OUTRAY_MAX_UPTIME_MONITORS"],
       ["maxObservabilityAlerts", "OUTRAY_MAX_OBSERVABILITY_ALERTS"],
+      ["telemetryBytesPerMonth", "OUTRAY_TELEMETRY_BYTES_PER_MONTH"],
+      ["maxSecretVaults", "OUTRAY_MAX_SECRET_VAULTS"],
+      ["maxSecretEnvironments", "OUTRAY_MAX_SECRET_ENVIRONMENTS"],
+      ["maxSecretEntries", "OUTRAY_MAX_SECRET_ENTRIES"],
     ].map(([key, variable]) => {
-      const fallback = key === "bandwidthPerMonth" ? 1024 ** 5
+      const fallback = key === "bandwidthPerMonth" || key === "telemetryBytesPerMonth" ? 1024 ** 5
         : key === "maxUptimeMonitors" || key === "maxObservabilityAlerts" ? 1_000 : 999_999_999;
       const value = Number(env[variable] || fallback);
       if (!Number.isSafeInteger(value) || value < 1) throw new Error(`${variable} must be a positive safe integer`);
       return [key, value];
-    })) as Record<"maxTunnels" | "maxDomains" | "maxSubdomains" | "maxMembers" | "bandwidthPerMonth" | "maxUptimeMonitors" | "maxObservabilityAlerts", number>,
+    })) as Record<"maxTunnels" | "maxDomains" | "maxSubdomains" | "maxMembers" | "bandwidthPerMonth" | "maxUptimeMonitors" | "maxObservabilityAlerts" | "telemetryBytesPerMonth" | "maxSecretVaults" | "maxSecretEnvironments" | "maxSecretEntries", number>,
   };
 }
 
