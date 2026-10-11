@@ -123,6 +123,9 @@ export async function moveSecretsBulk(access: SecretsAccess, projectSlug: string
   if (conflictMode !== "skip" && conflictMode !== "overwrite") throw new SecretsError("Choose Skip or Overwrite", { code: "VALIDATION_ERROR", status: 400 });
   requireProductionConfirmation({ isProduction: source.isProduction || target.isProduction }, input.confirmProduction);
   return db.transaction(async (tx) => {
+    // Moving creates a destination entry only while deleting its source; an
+    // overwrite reduces the total. This never grows the organization's quota,
+    // so allow moves at/over capacity while keeping the shared organization lock.
     const activeKey = await activeOrganizationKey(tx, access.organization.id);
     const oldKeys = new Map<number, Buffer>();
     try {
