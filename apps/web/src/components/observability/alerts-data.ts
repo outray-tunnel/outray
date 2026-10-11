@@ -78,6 +78,8 @@ export interface AlertsResponse {
   summary: AlertSummary;
   services: Array<string | { name: string }>;
   integrationAvailability: { slack: boolean; discord: boolean };
+  /** Organization-specific capacity; -1 means unlimited. */
+  limit?: number;
 }
 
 export interface AlertsSnapshot extends AlertsResponse {
