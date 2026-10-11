@@ -1,6 +1,5 @@
 import { GitHubIcon } from "./GitHubIcon";
 import { HeroBeam } from "./HeroBeam";
-import { ProductIcon } from "./ProductIcon";
 import styles from "./hero-beam.module.css";
 
 export function Hero({ signupUrl, githubUrl }: { signupUrl: string; githubUrl: string }) {
@@ -22,14 +21,6 @@ export function Hero({ signupUrl, githubUrl }: { signupUrl: string; githubUrl: s
         GitHub
       </a>
     </div>
-    <nav className={styles.products} aria-label="Explore OutRay products">
-      {(["tunnels", "observability", "secrets", "uptime"] as const).map((product) => (
-        <a key={product} href={`/products/${product}`}>
-          <ProductIcon product={product} />
-          {product === "observability" ? "Observability" : `${product[0].toUpperCase()}${product.slice(1)}`}
-        </a>
-      ))}
-    </nav>
   </div>
 
 </section>
