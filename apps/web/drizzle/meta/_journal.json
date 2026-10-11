@@ -204,6 +204,13 @@
       "when": 1791458620716,
       "tag": "0028_agent_conversations",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791639605076,
+      "tag": "0029_organization_quotas",
+      "breakpoints": true
     }
   ]
 }
