@@ -1,0 +1,43 @@
+.page { --accent: #888; --accent-light: #d4d4d4; --accent-deep: #444; --accent-rgb: 160 160 160; --surface-muted: #242424; --text-secondary: #a0a0a0; --foreground: #f2f2f2; }
+:global(body):has(.page) { --accent-rgb: 150 150 150; }
+.page :global(.pd-text-link) { color: #bebebe; }
+.page :global(.pd-text-link):hover { color: #f2f2f2; }
+.section { padding-block: 100px; border-top: 1px solid #202020; }
+.section .title, .cta .title { color: #eee; font-size: clamp(32px, 3.5vw, 48px); font-weight: 500; letter-spacing: -.045em; line-height: 1.13; }
+.title > span { color: #eee; }
+.description { max-width: 560px; margin-top: 22px; color: #b3b3b6; font-size: 15px; line-height: 1.8; text-wrap: pretty; }
+.openSource { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 100px; }
+.sourceIntro .description { max-width: 460px; }
+.sourceLinks { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; margin-top: 30px; }
+.sourceLinks :global(.button) { min-height: 44px; gap: 10px; padding: 10px 16px; border-radius: 9px; font-size: 12px; }
+.sourceLinks svg { width: 16px; height: 16px; flex: 0 0 auto; }
+.sourceLinks :global(.pd-text-link) { font-size: 12px; }
+.license { margin-top: 20px; color: #929292; font-family: var(--font-mono); font-size: 10px; line-height: 1.7; }
+.sourceDetails { display: grid; gap: 31px; padding: 4px 0 0; margin: 0; list-style: none; }
+.sourceDetails li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 15px; padding-bottom: 31px; border-bottom: 1px solid #252525; }
+.sourceDetails li:last-child { padding-bottom: 0; border: 0; }
+.sourceDetails li > span { padding-top: 2px; color: #929292; font-family: var(--font-mono); font-size: 11px; }
+.sourceDetails h3 { color: #f2f2f2; font-size: 18px; font-weight: 500; letter-spacing: -.025em; }
+.sourceDetails p { max-width: 405px; margin-top: 10px; color: #b3b3b6; font-size: 13px; line-height: 1.8; }
+.cta { position: relative; isolation: isolate; overflow: hidden; padding: 110px 24px 90px; border-top: 1px solid #252525; text-align: center; }
+.cta::before { position: absolute; z-index: -1; inset: 0; background: radial-gradient(ellipse at 50% 70%, rgb(255 255 255 / .035), transparent 65%); content: ""; }
+.cta .title { font-size: clamp(36px, 4.3vw, 60px); }
+.cta .description { margin-inline: auto; }
+.ctaActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 24px; margin-top: 32px; }
+.ctaActions :global(.button) { min-height: 44px; padding: 11px 20px; border-radius: 9px; font-size: 13px; }
+@media (max-width: 900px) {
+  .section { padding-block: 78px; }
+  .openSource { gap: 45px; }
+  .sourceLinks { gap: 8px 14px; }
+}
+@media (max-width: 620px) {
+  .section { padding-block: 62px; }
+  .section .title { font-size: 32px; }
+  .description { font-size: 14px; }
+  .openSource { grid-template-columns: 1fr; gap: 40px; }
+  .sourceDetails { gap: 24px; }
+  .sourceDetails li { padding-bottom: 24px; }
+  .sourceDetails h3 { font-size: 17px; }
+  .cta { padding: 74px 0 44px; }
+  .cta .title { font-size: clamp(32px, 8vw, 44px); }
+}
