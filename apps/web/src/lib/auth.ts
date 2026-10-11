@@ -1,24 +1,17 @@
 import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "../db";
+import { memberQuotaAdapter } from "./member-quota-adapter.server";
 import { createAuthMiddleware, organization } from "better-auth/plugins";
 import { sendViaZepto } from "./send-email";
 import { ac, admin, member, owner } from "./permissions";
 import { generateEmail } from "@/email/templates";
 import { workspaceSlugErrorMessage, workspaceSlugRejection } from "../../../../shared/workspace-slugs";
-import {
-  assertOrganizationMemberCapacity,
-  getBetterAuthInvitationLimit,
-} from "./member-limits.server";
+import { assertOrganizationMemberCapacity } from "./member-limits.server";
 import { BETTER_AUTH_MEMBERSHIP_CEILING } from "./member-limit-policy";
 import { APIError } from "better-auth/api";
 import { instanceConfig, instanceSignupAllowed } from "../../../../shared/instance-config";
 
 export const auth = betterAuth({
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    usePlural: true,
-  }),
+  database: memberQuotaAdapter(),
   socialProviders: {
     ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET ? { github: {
       clientId: process.env.GITHUB_CLIENT_ID as string,
@@ -40,11 +33,10 @@ export const auth = betterAuth({
   plugins: [
     organization({
       ac,
-      // Better Auth only supports a static membership ceiling. Plan-aware
-      // enforcement happens in the hooks below for every member write path.
+      // Plan-aware capacity is enforced atomically by the database adapter.
+      // Hooks are an early check; Better Auth's static ceilings are safeguards.
       membershipLimit: BETTER_AUTH_MEMBERSHIP_CEILING,
-      invitationLimit: ({ organization }) =>
-        getBetterAuthInvitationLimit(organization.id),
+      invitationLimit: BETTER_AUTH_MEMBERSHIP_CEILING,
       roles: {
         owner,
         admin,
@@ -57,11 +49,15 @@ export const auth = betterAuth({
           });
         },
         beforeAcceptInvitation: async ({ invitation }) => {
-          await assertOrganizationMemberCapacity(invitation.organizationId);
+          await assertOrganizationMemberCapacity(invitation.organizationId, {
+            includePendingInvitations: true,
+            excludeInvitationEmail: invitation.email,
+          });
         },
-        beforeAddMember: async ({ member }) => {
+        beforeAddMember: async ({ member, user }) => {
           await assertOrganizationMemberCapacity(member.organizationId, {
             includePendingInvitations: true,
+            excludeInvitationEmail: user.email,
           });
         },
       },
