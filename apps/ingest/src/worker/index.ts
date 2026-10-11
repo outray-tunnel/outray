@@ -8,6 +8,7 @@ import {
 } from "./delivery.js";
 import { handleIngestRequest } from "./http.js";
 import { nextRateWindow, type RateWindow } from "./rate-limit.js";
+import { enqueueWithTelemetryQuota } from "../telemetry-usage.js";
 
 export class OrganizationRateLimiter extends DurableObject<Env> {
   async allow(): Promise<boolean> {
@@ -55,6 +56,8 @@ export default {
               OUTRAY_DEPLOYMENT_MODE: env.OUTRAY_DEPLOYMENT_MODE,
               OUTRAY_PRODUCTS: env.OUTRAY_PRODUCTS,
               OUTRAY_RETENTION_DAYS: env.OUTRAY_RETENTION_DAYS,
+              OUTRAY_TELEMETRY_BYTES_PER_MONTH:
+                env.OUTRAY_TELEMETRY_BYTES_PER_MONTH,
             },
             backgroundTask: (task) => background.push(task),
           });
@@ -65,7 +68,16 @@ export default {
           );
           return limiter.allow();
         },
-        enqueue: (signal, records) => enqueueRecords(env, signal, records),
+        async enqueue(signal, records, auth) {
+          if (!client) throw new Error("Ingestion database unavailable");
+          await enqueueWithTelemetryQuota(
+            client,
+            auth,
+            signal,
+            records,
+            (chunk) => enqueueRecords(env, signal, chunk),
+          );
+        },
       });
     } finally {
       const connection = client;
