@@ -1,0 +1,91 @@
+.hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  align-items: center;
+  row-gap: 16px;
+  min-height: min(850px, calc(100svh - var(--header-height)));
+  padding-block: 84px 72px;
+  isolation: isolate;
+  --surface-muted: #242424;
+  --text-secondary: #b1adb8;
+  --foreground: #f3f3f3;
+  --accent: #9747ff;
+  --accent-light: #b66dff;
+  --accent-deep: #5b21b6;
+}
+
+.copy { position: relative; z-index: 2; padding-block: 24px; }
+.hero .headline { max-width: none; color: #f1f1f1; font-size: clamp(54px, 5.5vw, 80px); font-weight: 530; letter-spacing: -0.055em; line-height: 1.04; text-wrap: initial; }
+.headline span { display: block; white-space: nowrap; }
+.headline span:last-child { color: #f1f1f1; }
+.lead { max-width: 455px; margin-top: 28px; color: #b2afb8; font-size: 17px; line-height: 1.8; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; margin-top: 31px; }
+.actions .primary { min-height: 49px; padding: 13px 21px; border-radius: 11px; font-size: 14px; }
+.docsLink { display: inline-flex; min-height: 44px; align-items: center; gap: 10px; border-radius: 5px; color: #ccc; font-size: 14px; transition: color 160ms ease; }
+.docsLink:hover { color: #fff; }
+.docsLink svg { transition: transform 160ms ease; }
+.docsLink:hover svg { transform: translateX(3px); }
+.actions a:focus-visible, .docsLink:focus-visible, .copyButton:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 5px; }
+.quickStart { position: relative; z-index: 2; grid-column: 1 / -1; justify-self: center; display: grid; justify-items: center; gap: 8px; width: min(360px, 100%); }
+.command { display: flex; width: 100%; min-height: 52px; align-items: center; gap: 13px; padding: 5px 6px 5px 17px; border: 1px solid #3b393f; border-radius: 11px; background: linear-gradient(160deg, #1e1d20, #111113); box-shadow: 0 1px 0 rgb(255 255 255 / .06) inset, 0 8px 28px rgb(0 0 0 / .25); }
+.command > span { color: #b66dff; font-family: var(--font-mono); font-size: 14px; }
+.command code { flex: 1; min-width: 0; color: #f0edf5; font-family: var(--font-mono); font-size: 13px; }
+.copyButton.copyButton { width: 38px; height: 38px; min-height: 38px; flex: 0 0 38px; padding: 0; border-radius: 7px; color: #aaa; }
+
+.connection { position: relative; z-index: 1; width: calc(100% + 95px); height: 540px; margin: 0 0 0 -35px; overflow: clip; }
+.portal { position: absolute; inset: -10px -40px auto auto; width: 820px; max-width: none; height: 650px; pointer-events: none; }
+.packet { stroke-dasharray: 12 900; stroke-dashoffset: 912; animation: transit 3.8s ease-out forwards; }
+@keyframes transit { 0% { stroke-dashoffset: 912; opacity: 0; } 8% { opacity: 1; } 90% { opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+.endpoint { position: absolute; z-index: 2; display: grid; gap: 10px; }
+.endpointLabel { color: #afa7bf; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; }
+.endpoint > code { color: #e6e6e6; font-family: var(--font-mono); font-size: 16px; }
+.endpoint > code span { color: #aaa; }
+.localEndpoint { top: 270px; left: 20px; }
+.publicEndpoint { top: 117px; right: 15px; }
+.secureLabel { display: flex; align-items: center; gap: 5px; color: #b7afc5; font-size: 10px; }
+
+@media (min-width: 1600px) { .hero { min-height: 860px; } }
+@media (max-width: 1100px) {
+  .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 740px; padding-block: 60px; }
+  .hero .headline { font-size: clamp(50px, 5.45vw, 67px); }
+  .lead { max-width: 390px; font-size: 15px; }
+  .connection { width: calc(100% + 40px); height: 480px; margin-left: 0; }
+  .portal { top: -12px; right: -115px; width: 700px; height: 555px; }
+  .publicEndpoint { top: 94px; right: 0; }
+  .localEndpoint { top: 260px; left: 10px; }
+  .endpoint > code { font-size: 13px; }
+}
+@media (max-width: 820px) {
+  .hero { grid-template-columns: minmax(0, 1fr); row-gap: 0; min-height: auto; padding-block: 65px 55px; }
+  .copy { text-align: center; padding-block: 0; }
+  .actions { justify-content: center; }
+  .hero .headline { font-size: clamp(48px, 8.8vw, 72px); }
+  .lead { max-width: 470px; margin: 24px auto 0; font-size: 16px; }
+  .quickStart { grid-row: 2; margin-top: 32px; }
+  .connection { grid-row: 3; width: min(660px, 100%); height: 570px; margin: 24px auto 0; }
+  .portal { top: 0; right: -25px; width: 730px; height: 578px; }
+  .localEndpoint { top: 251px; left: 0; }
+  .publicEndpoint { top: 108px; right: 14px; }
+}
+@media (max-width: 540px) {
+  .hero { padding-top: 49px; padding-bottom: 38px; }
+  .hero .headline { font-size: clamp(39px, 9.2vw, 50px); letter-spacing: -0.055em; line-height: 1.08; }
+  .lead { max-width: 350px; font-size: 14px; line-height: 1.8; }
+  .actions { gap: 19px; margin-top: 25px; }
+  .actions .primary { min-height: 46px; padding: 12px 17px; font-size: 13px; }
+  .docsLink { font-size: 13px; }
+  .quickStart { width: min(330px, 100%); }
+  .connection { height: 415px; margin-top: 18px; }
+  .portal { top: -24px; right: -45px; width: 510px; height: 404px; }
+  .localEndpoint { top: 153px; left: 0; }
+  .publicEndpoint { top: 56px; right: 0; }
+  .endpointLabel { font-size: 7px; }
+  .endpoint > code { font-size: 11px; }
+  .secureLabel { font-size: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .packet { animation: none; opacity: 0; }
+  .docsLink, .docsLink svg, .actions .primary, .primary svg { transition: none; }
+  .docsLink:hover svg, .actions .primary:hover svg { transform: none; }
+}
