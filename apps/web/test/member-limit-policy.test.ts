@@ -13,7 +13,7 @@ test("member limits match every subscription plan", () => {
   assert.equal(getMemberLimitForPlan("free"), 1);
   assert.equal(getMemberLimitForPlan("ray"), 3);
   assert.equal(getMemberLimitForPlan("beam"), 5);
-  assert.equal(getMemberLimitForPlan("pulse"), -1);
+  assert.equal(getMemberLimitForPlan("pulse"), 25);
 });
 
 test("unknown and missing plans fail closed to the free plan", () => {
@@ -27,7 +27,9 @@ test("a finite plan rejects usage at its limit while unlimited plans remain open
   assert.equal(hasAvailableMemberSeat("free", 1), false);
   assert.equal(hasAvailableMemberSeat("ray", 2), true);
   assert.equal(hasAvailableMemberSeat("ray", 3), false);
-  assert.equal(hasAvailableMemberSeat("pulse", 10_000), true);
+  assert.equal(hasAvailableMemberSeat("pulse", 24), true);
+  assert.equal(hasAvailableMemberSeat("pulse", 25), false);
+  assert.equal(hasAvailableMemberSeat("unlimited", 10_000), true);
 });
 
 test("member limit errors identify the effective plan and limit", () => {
