@@ -90,11 +90,15 @@ async function handleSubscriptionCreated(subscription: any) {
 }
 
 async function handleSubscriptionActive(subscription: any) {
+  const { plan, interval } = mapPolarProductToPlan(subscription.productId);
+
   try {
     await db
       .update(subscriptions)
       .set({
+        plan,
         status: "active",
+        billingInterval: interval,
         currentPeriodEnd: subscription.currentPeriodEnd
           ? new Date(subscription.currentPeriodEnd)
           : null,
@@ -111,12 +115,19 @@ async function handleSubscriptionActive(subscription: any) {
 
 async function handleSubscriptionUpdated(subscription: any) {
   const { plan, interval } = mapPolarProductToPlan(subscription.productId);
+  // Polar also emits updated for revocation. Neither its delivery order nor a
+  // later terminal-state update should restore the subscribed product's quota.
+  // Scheduled cancellation and recoverable past_due keep their existing policy.
+  const accessEnded =
+    subscription.endedAt != null ||
+    subscription.status === "unpaid" ||
+    (subscription.status === "canceled" && !subscription.cancelAtPeriodEnd);
 
   try {
     await db
       .update(subscriptions)
       .set({
-        plan,
+        plan: accessEnded ? "free" : plan,
         status: subscription.status,
         billingInterval: interval,
         currentPeriodEnd: subscription.currentPeriodEnd
@@ -173,10 +184,14 @@ async function handleSubscriptionUncanceled(subscription: any) {
 }
 
 async function handleSubscriptionRevoked(subscription: any) {
+  // Revocation ends paid capacity; cancel-at-period-end keeps it until then.
+  // This handles new events only: historical revoked rows need explicit
+  // reconciliation and are not automatically repaired by deploying this code.
   try {
     await db
       .update(subscriptions)
       .set({
+        plan: "free",
         status: "cancelled",
         cancelAtPeriodEnd: false,
         updatedAt: new Date(),
