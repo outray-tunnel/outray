@@ -28,6 +28,8 @@
 .meter > span { display: block; height: 100%; border-radius: inherit; background: #9f8ac5; transition: width .3s ease; }
 .meter > span[data-full] { background: #fbbf24; }
 .metricHint { margin: 7px 0 0; color: #71717a; font-size: 10px; line-height: 1; }
+.allowanceNote { margin: 0; padding: 0 20px 16px; color: #a1a1aa; font-size: 11px; line-height: 1.6; }
+.quotaWarning { margin: 0 20px 16px; padding: 12px; border: 1px solid rgb(251 191 36 / 18%); border-radius: 10px; background: rgb(251 191 36 / 5%); color: #fcd34d; font-size: 12px; line-height: 1.6; }
 .sectionHeader { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 15px; }
 .sectionHeader h2 { margin: 0; font-size: 14px; color: #e4e4e7; font-weight: 500; }
 .sectionHeader p { margin: 5px 0 0; font-size: 12px; color: #71717a; }
