@@ -130,6 +130,9 @@ async function harness(options: HarnessOptions = {}) {
       } };
       if (specifier === "../../db/secrets-schema") return tables;
       if (specifier === "./database") return database;
+      if (specifier === "./quotas") return {
+        assertSecretCapacity: () => { throw new Error("Reveals must not check creation quotas"); },
+      };
       if (specifier === "./access-policy") return { assertActorScope };
       if (specifier === "./types") return { SecretsError, serializeSecretMetadata };
       if (specifier === "./validation") return validation;
