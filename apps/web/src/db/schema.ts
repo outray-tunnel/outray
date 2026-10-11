@@ -30,6 +30,7 @@ import {
 } from "./app-schema";
 
 import { subscriptions, subscriptionsRelations } from "./subscription-schema";
+export { organizationMonthlyUsage, organizationTelemetryReceipts } from "./usage-schema";
 
 import {
   observabilityAlerts,
