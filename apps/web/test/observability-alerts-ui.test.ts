@@ -74,6 +74,18 @@ test("background refresh keeps rules visible and failures retain readable stale 
   assert.match(stale, /Refresh failed/); assert.doesNotMatch(stale, /Alerts unavailable/);
 });
 
+test("organization quota blocks only creation and counts all rules rather than the filtered list", () => {
+  const atLimit = render({ data: { ...alertsSnapshot, limit: 2 }, filters: { service: "queue" } });
+  assert.match(atLimit, /limit of 2 alert rules/);
+  assert.match(atLimit, /Existing rules can still be edited, paused, or deleted/);
+  assert.match(atLimit, /<button[^>]*disabled=""[^>]*>[\s\S]*?New alert/);
+  assert.match(atLimit, /alerts\/rule-b/);
+  const available = render({ data: { ...alertsSnapshot, limit: 3 } });
+  assert.doesNotMatch(available, /reached its limit/);
+  const unlimited = render({ data: { ...alertsSnapshot, limit: -1 } });
+  assert.doesNotMatch(unlimited, /reached its limit/);
+});
+
 test("missing evaluation values stay unknown rather than implying a healthy zero", () => {
   const data = { ...alertsSnapshot, alerts: [alertFixture({ currentValue: null, lastEvaluatedAt: null, state: "no_data" })] };
   const html = render({ data }); assert.match(html, /Never/); assert.match(html, /No data/); assert.match(html, /—/); assert.match(html, /Not evaluated yet/);
