@@ -91,8 +91,8 @@ test("server-provided limits win in a browser-style hosted environment; hosted s
     assert.equal(isUnlimitedPlanLimit("unlimited", 999_999_999), true);
     assert.equal(getSubscriptionLimits({ subscription: { plan: "ray" } }).maxTunnels, 3);
     assert.equal(getSubscriptionLimits(null).maxMembers, 1);
-    assert.equal(getUptimeMonitorLimit(), 10);
-    assert.equal(getObservabilityAlertLimit(), 200);
+    assert.equal(getUptimeMonitorLimit(), 5);
+    assert.equal(getObservabilityAlertLimit(), 3);
     assert.equal(capacityDescription("ray", 3, "active tunnels"), "The ray plan allows 3 active tunnels.");
   });
 });
@@ -109,6 +109,7 @@ test("the actual authentication creation hook rejects before persisting user/acc
     require: (specifier: string) => {
       if (specifier === "better-auth") return { betterAuth: (options: unknown) => options };
       if (specifier === "better-auth/adapters/drizzle") return { drizzleAdapter: () => ({}) };
+      if (specifier === "./member-quota-adapter.server") return { memberQuotaAdapter: () => ({}) };
       if (specifier === "better-auth/plugins") return { createAuthMiddleware: (handler: unknown) => handler, organization: (options: unknown) => options };
       if (specifier === "better-auth/api") return { APIError };
       if (specifier === "../db") return { db: new Proxy({}, { get() { sideEffects++; throw new Error("User hook must run before persistence"); } }) };
@@ -146,7 +147,7 @@ test("monitor and alert creation enforce the effective installation limit inside
             where() { return builder; },
             for(value: string) { current.locked = value === "update"; return builder; },
             limit(value: number) { current.limit = value; return builder; },
-            then(resolve: (rows: unknown[]) => unknown, reject: (cause: unknown) => unknown) { queries.push(current); return Promise.resolve(current.table === "organizations" ? [organization] : [{ id: "a" }, { id: "b" }]).then(resolve, reject); },
+            then(resolve: (rows: unknown[]) => unknown, reject: (cause: unknown) => unknown) { queries.push(current); return Promise.resolve(current.table === "organizations" ? [organization] : [{ count: 2 }]).then(resolve, reject); },
           };
           return builder;
         },
@@ -157,12 +158,15 @@ test("monitor and alert creation enforce the effective installation limit inside
       const { POST } = await loadRouteHandlers<{ POST: Handler }>({
         path: new URL(`../src/routes/api/$orgSlug/${kind === "monitors" ? "uptime/monitors" : "observability/alerts"}/index.ts`, import.meta.url),
         modules: {
-          "drizzle-orm": { and: (...values: unknown[]) => values, eq: (...values: unknown[]) => values, isNull: () => null },
+          "drizzle-orm": { and: (...values: unknown[]) => values, eq: (...values: unknown[]) => values, isNull: () => null, sql: () => ({}) },
           "@/db": { db: { transaction: (run: (tx: unknown) => unknown) => run(tx) } },
           "@/db/auth-schema": { organizations: orgs },
           "@/db/uptime-schema": { uptimeMonitors: records },
           "@/db/alerts-schema": { observabilityAlerts: records },
-          "@/lib/subscription-plans": { getUptimeMonitorLimit, getObservabilityAlertLimit },
+          "@/lib/organization-entitlements.server": {
+            getOrganizationLimits: async (id: string, database: unknown) => { assert.equal(id, organization.id); assert.equal(database, tx); return getPlanLimits("unlimited"); },
+            withOrganizationQuotaLock: async (database: typeof tx, id: string) => { assert.equal(database, tx); assert.equal(id, organization.id); await database.select().from(orgs).for("update"); },
+          },
           "@/lib/uptime/api": { requireUptimeManager: access, jsonBody: () => ({}), serializeMonitor: (row: unknown) => row },
           "@/lib/uptime/validation": { validateMonitorInput: () => input },
           "@/lib/observability/alert-access": { requireAlertManager: access, notificationEmailsBelongToOrganization: () => true },
@@ -174,7 +178,7 @@ test("monitor and alert creation enforce the effective installation limit inside
       const response = await POST({ request: new Request(`https://instance.test/api/acme/${kind}`, { method: "POST", body: "{}" }), params: { orgSlug: "acme" } });
       assert.equal(response.status, 403);
       assert.match((await response.json()).error, /(?:2 monitors|\(2\))/);
-      assert.deepEqual(queries, [{ table: "organizations", locked: true, limit: undefined }, { table: kind, locked: false, limit: 2 }]);
+      assert.deepEqual(queries, [{ table: "organizations", locked: true, limit: undefined }, { table: kind, locked: false, limit: undefined }]);
     }
   });
 });
