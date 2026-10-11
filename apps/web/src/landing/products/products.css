@@ -6,42 +6,6 @@
   padding-bottom: 84px;
 }
 
-.pd-product-nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 7px 20px;
-  padding-block: 24px;
-  border-bottom: 1px solid var(--line);
-}
-
-.pd-product-nav a {
-  display: inline-flex;
-  min-height: 36px;
-  align-items: center;
-  gap: 7px;
-  border-radius: 5px;
-  color: #91919b;
-  font-size: 0.8rem;
-  transition: color 160ms ease;
-}
-
-.pd-product-nav a:hover,
-.pd-product-nav a[aria-current="page"] {
-  color: #e5dcfa;
-}
-
-.pd-product-nav .product-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.pd-product-nav > span {
-  width: 1px;
-  height: 15px;
-  background: var(--line-strong);
-}
-
 .pd-hero,
 .pd-index-product {
   display: grid;
@@ -930,15 +894,6 @@
     padding-block: 49px;
   }
 
-  .pd-product-nav {
-    gap: 2px 16px;
-    padding-block: 15px;
-  }
-
-  .pd-product-nav a {
-    font-size: 0.73rem;
-  }
-
   .pd-use-cases h2 {
     max-width: none;
   }
@@ -955,22 +910,6 @@
 @media (max-width: 540px) {
   .pd-page {
     padding-bottom: 58px;
-  }
-
-  .pd-product-nav {
-    gap: 0 15px;
-  }
-
-  .pd-product-nav > span {
-    display: none;
-  }
-
-  .pd-product-nav a:first-child {
-    width: 100%;
-  }
-
-  .pd-product-nav .product-icon {
-    display: none;
   }
 
   .pd-page h1 {
