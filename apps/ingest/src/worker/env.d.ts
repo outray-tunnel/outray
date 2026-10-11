@@ -2,4 +2,5 @@
 // Secrets are provisioned separately and never committed to Wrangler vars.
 interface Env {
   TINYBIRD_INGEST_TOKEN: string;
+  OUTRAY_TELEMETRY_BYTES_PER_MONTH?: string;
 }
