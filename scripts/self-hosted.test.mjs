@@ -46,6 +46,19 @@ test("preflight passes configured OAuth/Tinybird installation without connecting
   assert.ok(result.warnings.some((warning) => warning.includes("disabled")));
 });
 
+test("quota preflight accepts legacy installations and validates new administrator overrides", () => {
+  const env = configured();
+  const quotaKeys = ["OUTRAY_TELEMETRY_BYTES_PER_MONTH", "OUTRAY_MAX_SECRET_VAULTS", "OUTRAY_MAX_SECRET_ENVIRONMENTS", "OUTRAY_MAX_SECRET_ENTRIES"];
+  for (const key of quotaKeys) delete env[key];
+  assert.deepEqual(checkEnvironment(env).errors, []);
+  for (const key of quotaKeys) {
+    env[key] = "0";
+    assert.ok(checkEnvironment(env).errors.some(error => error.includes(key)));
+    env[key] = "500";
+    assert.deepEqual(checkEnvironment(env).errors, []);
+  }
+});
+
 test("free and auto preflight need no Hugeicons license; Pro is explicit", () => {
   const env = configured(); env.HUGEICONS_LICENSE_KEY = "";
   assert.deepEqual(checkEnvironment(env).errors, []);
