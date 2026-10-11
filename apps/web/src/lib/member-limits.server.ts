@@ -1,74 +1,49 @@
 import { APIError } from "better-auth/api";
-import { and, count, eq, gt } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 import { db } from "../db";
-import { invitations, members } from "../db/auth-schema";
-import { subscriptions } from "../db/subscription-schema";
+import { getOrganizationPlan } from "./organization-entitlements.server";
 import {
-  BETTER_AUTH_MEMBERSHIP_CEILING,
-  getMemberLimitForPlan,
   getMemberLimitMessage,
   hasAvailableMemberSeat,
-  resolveSubscriptionPlan,
 } from "./member-limit-policy";
 
 type MemberCapacityOptions = {
   includePendingInvitations?: boolean;
+  /** Accepting an invitation transfers its reservation to this member. */
+  excludeInvitationEmail?: string;
 };
-
-export async function getOrganizationMemberLimit(
-  organizationId: string,
-): Promise<number> {
-  const [subscription] = await db
-    .select({ plan: subscriptions.plan })
-    .from(subscriptions)
-    .where(eq(subscriptions.organizationId, organizationId))
-    .limit(1);
-
-  return getMemberLimitForPlan(subscription?.plan);
-}
-
-export async function getBetterAuthInvitationLimit(
-  organizationId: string,
-): Promise<number> {
-  const limit = await getOrganizationMemberLimit(organizationId);
-  return limit === -1 ? BETTER_AUTH_MEMBERSHIP_CEILING : limit;
-}
+type MemberCapacityDatabase = Pick<typeof db, "select" | "execute">;
 
 export async function assertOrganizationMemberCapacity(
   organizationId: string,
   options: MemberCapacityOptions = {},
+  database: MemberCapacityDatabase = db,
 ): Promise<void> {
   const includePendingInvitations =
     options.includePendingInvitations ?? false;
 
-  const [subscriptionRows, memberRows, invitationRows] = await Promise.all([
-    db
-      .select({ plan: subscriptions.plan })
-      .from(subscriptions)
-      .where(eq(subscriptions.organizationId, organizationId))
-      .limit(1),
-    db
-      .select({ value: count() })
-      .from(members)
-      .where(eq(members.organizationId, organizationId)),
-    includePendingInvitations
-      ? db
-          .select({ value: count() })
-          .from(invitations)
-          .where(
-            and(
-              eq(invitations.organizationId, organizationId),
-              eq(invitations.status, "pending"),
-              gt(invitations.expiresAt, new Date()),
-            ),
-          )
-      : Promise.resolve([{ value: 0 }]),
+  const excludedEmail = options.excludeInvitationEmail ?? null;
+  const [plan, usage] = await Promise.all([
+    getOrganizationPlan(organizationId, database),
+    database.execute(sql`SELECT
+      (SELECT count(*) FROM members WHERE organization_id = ${organizationId}) AS members,
+      (SELECT count(*) FROM invitations i
+        WHERE i.organization_id = ${organizationId}
+          AND ${includePendingInvitations}
+          AND i.status IN ('pending', 'accepted') AND i.expires_at > ${new Date().toISOString()}::timestamp
+          AND (${excludedEmail}::text IS NULL OR lower(i.email) <> lower(${excludedEmail}::text))
+          AND NOT EXISTS (
+            SELECT 1 FROM members m JOIN users u ON u.id = m.user_id
+            WHERE m.organization_id = i.organization_id AND lower(u.email) = lower(i.email)
+          )) AS invitations`),
   ]);
 
-  const plan = resolveSubscriptionPlan(subscriptionRows[0]?.plan);
-  const memberCount = Number(memberRows[0]?.value ?? 0);
-  const pendingInvitationCount = Number(invitationRows[0]?.value ?? 0);
+  // Better Auth marks an invitation accepted before inserting its member.
+  // Keep that short-lived reservation until the member exists (or the original
+  // invitation expires), so another request cannot claim the same seat.
+  const memberCount = Number(usage.rows[0]?.members ?? 0);
+  const pendingInvitationCount = Number(usage.rows[0]?.invitations ?? 0);
   const seatsInUse = memberCount + pendingInvitationCount;
 
   if (!hasAvailableMemberSeat(plan, seatsInUse)) {
