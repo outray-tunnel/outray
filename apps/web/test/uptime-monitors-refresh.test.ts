@@ -229,6 +229,14 @@ test("catalog management respects server capability, blocks duplicate creation a
   assert.equal(nodes.some((node) => node.type === Button && node.props["aria-haspopup"] === "dialog"), false);
   resource.data.canManage = true;
   nodes = elements(renderCatalog());
+  resource.data.limit = 0;
+  nodes = elements(renderCatalog());
+  assert.equal(nodes.find((node) => node.type === UptimePageHeading)?.props.action.props.disabled, true, "at-capacity workspace cannot add monitors");
+  resource.data.limit = -1;
+  nodes = elements(renderCatalog());
+  assert.equal(nodes.find((node) => node.type === UptimePageHeading)?.props.action.props.disabled, false, "unlimited is never treated as an exceeded negative limit");
+  resource.data.limit = 10;
+  nodes = elements(renderCatalog());
   nodes.find((node) => node.type === UptimePageHeading)?.props.action.props.onClick();
   nodes = elements(renderCatalog());
   const form = nodes.find((node) => node.type === MonitorForm); assert.ok(form);
