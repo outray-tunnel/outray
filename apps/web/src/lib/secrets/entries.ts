@@ -21,6 +21,7 @@ import {
   transactionSecretVersionForReveal,
 } from "./database";
 import { decryptSecretValue, encryptSecretValue } from "./crypto";
+import { assertSecretCapacity } from "./quotas";
 import type { SecretsAccess } from "./types";
 import { serializeSecretMetadata, SecretsError } from "./types";
 import {
@@ -403,6 +404,8 @@ export async function createSecret(
           },
         });
       }
+
+      await assertSecretCapacity(tx, access.organization.id, { entries: environments.length });
 
       const created: EntryRow[] = [];
       const revisions: Record<string, number> = {};
@@ -1409,6 +1412,7 @@ export async function importSecretValues(
       );
       // A concurrent write may have changed the preview. The revision precondition is
       // the canonical guard; without one we intentionally apply last-writer-wins.
+      await assertSecretCapacity(tx, access.organization.id, { entries: createdKeys.length });
       for (const key of createdKeys) {
         if (lockedByKey.has(key)) {
           throw new SecretsError("Secret key already exists", {
