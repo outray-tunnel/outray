@@ -5,7 +5,7 @@ import { db } from "../../../db";
 import { tunnels } from "../../../db/app-schema";
 import { subscriptions } from "../../../db/subscription-schema";
 import { organizations } from "../../../db/auth-schema";
-import { capacityDescription, getPlanLimits } from "../../../lib/subscription-plans";
+import { capacityDescription, getPlanLimits, installationPlan } from "../../../lib/subscription-plans";
 import { redis } from "../../../lib/redis";
 import {rateLimiters, getClientIdentifier, createRateLimitResponse,} from "../../../lib/rate-limiter";
 
@@ -79,8 +79,8 @@ export const Route = createFileRoute("/api/tunnel/register")({
                 .where(eq(subscriptions.organizationId, organizationId))
                 .for("update");
 
-              const currentPlan = subscription?.plan || "free";
-              const planLimits = getPlanLimits(currentPlan as any);
+              const currentPlan = installationPlan(subscription?.plan);
+              const planLimits = getPlanLimits(currentPlan);
               const tunnelLimit = planLimits.maxTunnels;
 
               // Check if tunnel already exists in database (with lock)
@@ -90,32 +90,13 @@ export const Route = createFileRoute("/api/tunnel/register")({
                 .where(eq(tunnels.url, tunnelUrl))
                 .for("update");
 
-              const isReconnection = !!existingTunnel;
-
-              console.log(
-                `[TUNNEL LIMIT CHECK] Org: ${organizationId}, URL: ${tunnelUrl}`,
-              );
-              console.log(
-                `[TUNNEL LIMIT CHECK] Is Reconnection: ${isReconnection}`,
-              );
-              console.log(
-                `[TUNNEL LIMIT CHECK] Plan: ${currentPlan}, Limit: ${tunnelLimit}`,
-              );
-
-              if (existingTunnel) {
-                // Tunnel with this URL already exists, update lastSeenAt
-                // No need to check limits - this is a reconnection to existing tunnel
-                await tx
-                  .update(tunnels)
-                  .set({ lastSeenAt: new Date() })
-                  .where(eq(tunnels.id, existingTunnel.id));
-
-                console.log(`[TUNNEL LIMIT CHECK] SKIPPED - Reconnection detected, dbTunnelId: ${existingTunnel.id}`);
-                return { success: true, tunnelId: existingTunnel.id, isReconnection: true };
+              if (existingTunnel && existingTunnel.organizationId !== organizationId) {
+                return { error: "Tunnel address belongs to another organization", status: 409 };
               }
 
-              // Generate UUID upfront so we can use it for both limit check and DB insert
-              const dbTunnelId = randomUUID();
+              // Offline historical tunnels consume a slot when reconnecting too.
+              // An already-online tunnel remains idempotent even after downgrade.
+              const dbTunnelId = existingTunnel?.id ?? randomUUID();
 
               // Use Lua script for atomic check-and-add to prevent race conditions
               // IMPORTANT: Use the database record ID (UUID), not the hostname
@@ -127,7 +108,7 @@ export const Route = createFileRoute("/api/tunnel/register")({
                 
                 -- Check if already in set (idempotent)
                 if redis.call('SISMEMBER', setKey, dbTunnelId) == 1 then
-                  return 1  -- Already exists, allow
+                  return 2  -- Already online; do not remove on a database failure
                 end
                 
                 -- Check current count
@@ -149,14 +130,7 @@ export const Route = createFileRoute("/api/tunnel/register")({
                 tunnelLimit.toString()
               );
 
-              console.log(
-                `[TUNNEL LIMIT CHECK] Lua script result: ${allowed}, dbTunnelId: ${dbTunnelId}`,
-              );
-
               if (allowed === 0) {
-                console.log(
-                  `[TUNNEL LIMIT CHECK] REJECTED - Limit ${tunnelLimit} reached`,
-                );
                 return {
                   error: `Tunnel limit reached. ${capacityDescription(currentPlan, tunnelLimit, `active tunnel${tunnelLimit > 1 ? "s" : ""}`)}`,
                   status: 403,
@@ -164,10 +138,13 @@ export const Route = createFileRoute("/api/tunnel/register")({
               }
 
               // Mark the dbTunnelId we added so we can rollback on error
-              addedDbTunnelId = dbTunnelId;
-              console.log(
-                `[TUNNEL LIMIT CHECK] ALLOWED - Added dbTunnelId: ${dbTunnelId}`,
-              );
+              if (allowed === 1) addedDbTunnelId = dbTunnelId;
+
+              if (existingTunnel) {
+                await tx.update(tunnels).set({ lastSeenAt: new Date() })
+                  .where(eq(tunnels.id, existingTunnel.id));
+                return { success: true, tunnelId: existingTunnel.id, isReconnection: true };
+              }
 
               // Now insert the tunnel record (limit check passed)
               const tunnelRecord = {
