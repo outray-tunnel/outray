@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { domains } from "@/db/app-schema";
-import { organizations } from "@/db/auth-schema";
 import { uptimeStatusPages } from "@/db/uptime-schema";
 import { badInput, jsonBody, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
 import { isReservedStatusCustomDomain, statusDnsTarget } from "@/lib/uptime/domain-config";
+import { getOrganizationLimits, withOrganizationQuotaLock } from "@/lib/organization-entitlements.server";
 
 const domainPattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/;
 
@@ -32,8 +32,10 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/domains/")({
       }
       try {
         const result = await db.transaction(async (tx) => {
-          await tx.select({ id: organizations.id }).from(organizations)
-            .where(eq(organizations.id, access.organization.id)).for("update");
+          await withOrganizationQuotaLock(tx, access.organization.id);
+          const limits = await getOrganizationLimits(access.organization.id, tx);
+          // Status-page domains are independent of paid tunnel custom domains.
+          if (!limits.statusCustomDomains) return { error: "Custom status domains are not available for this workspace", status: 403 } as const;
           const [page] = await tx.select().from(uptimeStatusPages)
             .where(eq(uptimeStatusPages.organizationId, access.organization.id)).for("update").limit(1);
           if (!page) return { error: "Create a status page first", status: 404 } as const;
