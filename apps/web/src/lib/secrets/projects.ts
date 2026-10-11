@@ -24,6 +24,7 @@ import {
   lockOrganization,
   resolveProject,
 } from "./database";
+import { assertSecretCapacity } from "./quotas";
 
 const dbTimingEnabled = process.env.NODE_ENV !== "production";
 
@@ -234,6 +235,9 @@ export async function createProject(
         field: "slug",
       });
     }
+    await assertSecretCapacity(tx, access.organization.id, {
+      vaults: 1, environments: [{ projectId: null, added: 3 }],
+    });
     const [created] = await tx
       .insert(secretProjects)
       .values({
@@ -635,6 +639,9 @@ export async function createEnvironment(
         field: "slug",
       });
     }
+    await assertSecretCapacity(tx, access.organization.id, {
+      environments: [{ projectId: project.id, added: 1 }],
+    });
     const [created] = await tx
       .insert(secretEnvironments)
       .values({
