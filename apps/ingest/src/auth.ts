@@ -2,23 +2,18 @@ import { createHash } from "node:crypto";
 import pg from "pg";
 import instancePolicy from "../../../shared/instance-config.js";
 import postgresPolicy from "../../../shared/postgres-ssl.js";
+import hostedPolicy from "../../../shared/hosted-plan-limits.js";
 
 const { instanceConfig } = instancePolicy;
 const { postgresSsl } = postgresPolicy;
+const { HOSTED_PLAN_LIMITS, resolveHostedPlan } = hostedPolicy;
 
 const { Pool } = pg;
-
-const RETENTION_DAYS: Record<string, number> = {
-  free: 3,
-  ray: 14,
-  beam: 30,
-  pulse: 90,
-  unlimited: 90,
-};
 
 export interface IngestAuthContext {
   organizationId: string;
   retentionDays: number;
+  telemetryBytesPerMonth: number;
   tokenId: string;
 }
 
@@ -52,11 +47,15 @@ function authContext(
   options: AuthenticationOptions,
 ): IngestAuthContext {
   const instance = instanceConfig(options.environment);
+  const plan = HOSTED_PLAN_LIMITS[resolveHostedPlan(token.plan)];
   return {
     organizationId: token.organization_id,
     retentionDays: instance.selfHosted
       ? instance.retentionDays
-      : RETENTION_DAYS[token.plan || "free"] || RETENTION_DAYS.free,
+      : Math.min(90, plan.retentionDays),
+    telemetryBytesPerMonth: instance.selfHosted
+      ? instance.limits.telemetryBytesPerMonth
+      : plan.telemetryBytesPerMonth,
     tokenId: token.id,
   };
 }
@@ -167,6 +166,18 @@ export class ApiTokenAuthenticator {
 
   async authenticate(apiKey: string): Promise<IngestAuthContext | null> {
     return authenticateApiToken(this.pool, apiKey);
+  }
+
+  /** Transactions must use one exclusive connection, not interleaved pool queries. */
+  async withDatabaseConnection<T>(
+    work: (connection: pg.PoolClient) => Promise<T>,
+  ): Promise<T> {
+    const connection = await this.pool.connect();
+    try {
+      return await work(connection);
+    } finally {
+      connection.release();
+    }
   }
 
   async close() {
