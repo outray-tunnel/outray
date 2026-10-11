@@ -86,6 +86,36 @@ quarantined rows. Failures retry individually and ultimately reach the DLQ.
 At-least-once delivery reuses stable span/log/metric identities already used by
 the Tinybird ReplacingMergeTree data sources.
 
+### Monthly telemetry admission
+
+Hosted subscriptions share one organization allowance across traces, logs and
+metrics: Free 1 GiB, Ray 5 GiB, Beam 20 GiB, and Pulse 100 GiB. Allowances reset at
+the start of each **UTC calendar month**, including annually billed subscriptions.
+Self-hosted installations instead use `OUTRAY_TELEMETRY_BYTES_PER_MONTH` (a
+positive safe integer; default 1 PiB), independently of hosted subscriptions.
+
+Both Node and Workers count the UTF-8 bytes of accepted, sanitized normalized
+rows, not compressed request bytes. Derived HTTP request rows and queue-consumer
+redelivery are not charged again. Initial parser/normalization rejections never
+reserve usage. The authentication PostgreSQL database owns the shared
+`organization_monthly_usage` counter and payload-free
+`organization_telemetry_receipts`. Apply the web database migration **before**
+deploying either ingestion runtime; missing quota storage fails closed with 503.
+
+Admission locks the monthly counter, preflights the complete new export before
+queueing, and returns 429 with `resetsAt` if insufficient allowance remains.
+Deterministic bounded chunks allow a failed queue send to release unsent bytes
+while retaining usage/receipts for chunks whose durable storage was confirmed.
+Exact normalized SDK retries reuse these receipts without charging or queueing
+accepted chunks again. Receipts ignore ingestion timestamps, retention metadata
+and object-key order; they contain no captured data or credentials.
+
+PostgreSQL and Redis/Cloudflare Queues do not share a distributed transaction.
+A crash or ambiguous database commit after queue acceptance can still produce
+at-least-once delivery on an SDK retry; stable Tinybird identities deduplicate
+those rows. Usage is committed when admission completes, not a guarantee of
+exactly-once distributed billing under an interrupted cross-store commit.
+
 `/health` is liveness only. Before production cutover, check authenticated exports,
 queue delivery, DLQ/backlog health, and Tinybird arrival. The hosted endpoint is
 the Worker Custom Domain `ingest.outray.co`; Cloudflare manages its DNS and TLS,
