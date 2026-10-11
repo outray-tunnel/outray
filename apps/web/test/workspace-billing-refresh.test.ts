@@ -6,7 +6,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { BillingContent, BillingOverview, BillingPlanComparison, BillingSkeleton, BillingUsageMetric } from "../src/components/workspace/billing-content";
-import { billingUsageSummary, formatBillingDate, formatBillingPrice, knownBillingPlan } from "../src/components/workspace/billing-state";
+import { billingUsageSummary, formatBillingBytes, formatBillingDate, formatBillingPrice, knownBillingPlan } from "../src/components/workspace/billing-state";
 import { PaystackSubscriptionDetails } from "../src/components/paystack-subscription-modal";
 import { SUBSCRIPTION_PLANS } from "../src/lib/subscription-plans";
 
@@ -70,12 +70,41 @@ test("plan comparison is grouped, includes every actual public plan limit, and h
   assert.equal(row("Active tunnels")?.replace(/<[^>]+>/g, " ").trim().replace(/\s+/g, " "), "2 3 5 20");
   assert.equal(row("Custom domains")?.replace(/<[^>]+>/g, " ").trim().replace(/\s+/g, " "), "Not included 1 5 25");
   assert.equal(row("Subdomains")?.replace(/<[^>]+>/g, " ").trim().replace(/\s+/g, " "), "1 5 20 200");
-  assert.equal(row("Team members")?.replace(/<[^>]+>/g, " ").trim().replace(/\s+/g, " "), "1 3 5 Unlimited");
+  assert.equal(row("Team members")?.replace(/<[^>]+>/g, " ").trim().replace(/\s+/g, " "), "1 3 5 25");
   assert.equal(row("Monthly bandwidth")?.replace(/<[^>]+>/g, " ").trim().replace(/\s+/g, " "), "2 GB 25 GB 100 GB 1 TB");
   assert.equal(row("Request retention")?.replace(/<[^>]+>/g, " ").trim().replace(/\s+/g, " "), "3 days 14 days 30 days 90 days");
   assert.equal(row("Priority support")?.replace(/<[^>]+>/g, " ").trim().replace(/\s+/g, " "), "Not included Not included Included Included");
+  for (const [label, expected] of Object.entries({
+    "Monthly telemetry": "1 GB 5 GB 20 GB 100 GB", "Alert rules": "3 10 30 100",
+    Vaults: "1 3 10 50", "Environments per vault": "3 5 10 20", "Active secret entries": "100 1,000 5,000 25,000",
+    Monitors: "5 10 25 100", "Status pages": "1 1 1 1", "Status custom domain": "Included Included Included Included",
+  })) assert.equal(row(label)?.replace(/<[^>]+>/g, " ").trim().replace(/\s+/g, " "), expected);
   assert.match(html, /Downgrade to Ray/); assert.match(html, /Current plan/); assert.match(html, /Choose Pulse/);
   assert.doesNotMatch(html, /Choose Unlimited|999999999/);
+});
+
+test("monthly quota usage uses readable bytes and warns only at the correct thresholds", () => {
+  const GiB = 1024 ** 3;
+  assert.equal(formatBillingBytes(0), "0 B");
+  assert.equal(formatBillingBytes(1.5 * GiB), "1.5 GB");
+  const render = (telemetryBytes?: number, bandwidthBytes?: number) => markup(BillingOverview, {
+    subscription: { plan: "free", billingInterval: "year" }, usage: { telemetryBytes, bandwidthBytes }, onManage: noop,
+  });
+  assert.doesNotMatch(render(), /at least 80%|allowance reached/);
+  assert.doesNotMatch(render(.79 * GiB, 1.5 * GiB), /at least 80%|allowance reached/);
+  assert.match(render(.8 * GiB), /at least 80% of this month’s telemetry/);
+  assert.match(render(GiB), /Telemetry allowance reached/);
+  assert.match(render(undefined, 2 * GiB), /Tunnel bandwidth allowance reached/);
+  assert.match(render(GiB), /Existing data remains available/);
+  assert.match(render(0, 0), /aria-valuetext="0 B of 1 GB"/);
+  assert.match(render(0, 0), /UTC.*including yearly subscriptions/);
+});
+
+test("member usage includes invitation reservations without misreporting actual members", () => {
+  const html = markup(BillingOverview, { subscription: { plan: "beam" }, usage: { members: 3, reservedMemberSeats: 2 }, onManage: noop });
+  assert.match(html, /aria-label="Member seats usage"/);
+  assert.match(html, /aria-valuetext="5 of 5"/);
+  assert.match(html, /2 member seats are.*reserved by invitations/);
 });
 
 test("Beam downgrades are enabled secondary actions without recommendation or highlight", () => {
