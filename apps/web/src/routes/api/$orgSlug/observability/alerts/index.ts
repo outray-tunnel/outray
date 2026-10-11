@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { incidents, observabilityAlerts } from "@/db/alerts-schema";
-import { organizations } from "@/db/auth-schema";
 import {
   alertConfigValues,
   serializeAlert,
@@ -15,7 +14,7 @@ import { metricIdentityExists } from "@/lib/observability/alert-metric";
 import { alertOAuthCredentials } from "@/lib/observability/alert-oauth";
 import { validateAlertCreateInput } from "@/lib/observability/alert-validation";
 import { requireOrgFromSlug } from "@/lib/org";
-import { getObservabilityAlertLimit } from "@/lib/subscription-plans";
+import { getOrganizationLimits, withOrganizationQuotaLock } from "@/lib/organization-entitlements.server";
 
 export const Route = createFileRoute(
   "/api/$orgSlug/observability/alerts/",
@@ -26,7 +25,8 @@ export const Route = createFileRoute(
         const orgResult = await requireOrgFromSlug(request, params.orgSlug);
         if ("error" in orgResult) return orgResult.error;
 
-        const rows = await db
+        const [rows, limits] = await Promise.all([
+          db
           .select()
           .from(observabilityAlerts)
           .where(
@@ -38,7 +38,9 @@ export const Route = createFileRoute(
               isNull(observabilityAlerts.deletedAt),
             ),
           )
-          .orderBy(desc(observabilityAlerts.createdAt));
+          .orderBy(desc(observabilityAlerts.createdAt)),
+          getOrganizationLimits(orgResult.organization.id),
+        ]);
 
         const openIncidentRows = rows.length
           ? await db
@@ -106,6 +108,7 @@ export const Route = createFileRoute(
           alerts,
           services,
           summary,
+          limit: limits.maxObservabilityAlerts,
           integrationAvailability: {
             slack: Boolean(alertOAuthCredentials("slack")),
             discord: Boolean(alertOAuthCredentials("discord")),
@@ -164,25 +167,16 @@ export const Route = createFileRoute(
         }
 
         const now = new Date();
-        const alertLimit = getObservabilityAlertLimit();
         const result = await db.transaction(async (tx) => {
-          await tx
-            .select({ id: organizations.id })
-            .from(organizations)
-            .where(eq(organizations.id, organizationId))
-            .for("update");
-
-          const existing = await tx
-            .select({ id: observabilityAlerts.id })
-            .from(observabilityAlerts)
-            .where(
-              and(
-                eq(observabilityAlerts.organizationId, organizationId),
-                isNull(observabilityAlerts.deletedAt),
-              ),
-            )
-            .limit(alertLimit);
-          if (existing.length >= alertLimit) return { limitReached: true } as const;
+          await withOrganizationQuotaLock(tx, organizationId);
+          const { maxObservabilityAlerts: limit } = await getOrganizationLimits(organizationId, tx);
+          if (limit !== -1) {
+            const [existing] = await tx
+              .select({ count: sql<number>`count(*)::int` })
+              .from(observabilityAlerts)
+              .where(and(eq(observabilityAlerts.organizationId, organizationId), isNull(observabilityAlerts.deletedAt)));
+            if (existing.count >= limit) return { limitReached: true, limit } as const;
+          }
 
           const alertId = crypto.randomUUID();
           const [created] = await tx
@@ -202,7 +196,7 @@ export const Route = createFileRoute(
 
         if ("limitReached" in result) {
           return Response.json(
-            { error: `Organization alert limit reached (${alertLimit})` },
+            { error: `Organization alert limit reached (${result.limit})`, limit: result.limit },
             { status: 403 },
           );
         }
