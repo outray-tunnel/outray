@@ -5,11 +5,21 @@ import {
 } from "node:http";
 import { gunzipSync } from "node:zlib";
 import { Redis } from "ioredis";
-import { ApiTokenAuthenticator, apiKeyFromHeaders } from "./auth.js";
+import {
+  ApiTokenAuthenticator,
+  apiKeyFromHeaders,
+  type IngestAuthContext,
+} from "./auth.js";
+import {
+  enqueueWithTelemetryQuota,
+  TelemetryQuotaExceeded,
+  type TelemetrySignal,
+} from "./telemetry-usage.js";
 import { config } from "./config.js";
 import { parseLogsPayload } from "./logs.js";
 import { parseMetricsPayload } from "./metrics.js";
 import { parseTracePayload } from "./otlp.js";
+import { normalizeWithinBudget } from "./normalize.js";
 import {
   decodeLogsRequest,
   decodeMetricsRequest,
@@ -93,6 +103,11 @@ function sendJson(response: ServerResponse, status: number, body: unknown) {
     "Content-Type": "application/json",
     "Content-Length": Buffer.byteLength(encoded),
     "Cache-Control": "no-store",
+    ...(status === 429
+      ? { "Retry-After": "60" }
+      : status === 503
+        ? { "Retry-After": "2" }
+        : {}),
   });
   response.end(encoded);
 }
@@ -200,6 +215,18 @@ async function authenticateRequest(request: IncomingMessage) {
   return auth;
 }
 
+async function enqueueAccepted<T extends { organization_id: string }>(
+  auth: IngestAuthContext,
+  signal: TelemetrySignal,
+  records: T[],
+  enqueue: (records: T[]) => Promise<void>,
+) {
+  if (!records.length) return;
+  await authenticator.withDatabaseConnection((database) =>
+    enqueueWithTelemetryQuota(database, auth, signal, records, enqueue),
+  );
+}
+
 async function handleTraces(
   request: IncomingMessage,
   response: ServerResponse,
@@ -223,7 +250,7 @@ async function handleTraces(
 
   let parsed: ReturnType<typeof parseTracePayload>;
   try {
-    parsed = parseTracePayload(payload);
+    parsed = parseTracePayload(payload, config.maxRecordsPerRequest);
   } catch (error) {
     throw new HttpError(
       400,
@@ -231,13 +258,12 @@ async function handleTraces(
     );
   }
 
-  const accepted = parsed.spans.slice(0, config.maxRecordsPerRequest);
-  const rejected =
-    parsed.rejected + Math.max(0, parsed.spans.length - accepted.length);
-  await traceQueue.enqueue(
-    accepted.map((span) =>
-      toTinybirdSpan(auth.organizationId, auth.retentionDays, span),
-    ),
+  const normalized = normalizeWithinBudget(parsed.spans, (span) =>
+    toTinybirdSpan(auth.organizationId, auth.retentionDays, span),
+  );
+  const rejected = parsed.rejected + normalized.rejected;
+  await enqueueAccepted(auth, "traces", normalized.rows, (records) =>
+    traceQueue.enqueue(records),
   );
 
   const errorMessage = rejected
@@ -281,7 +307,7 @@ async function handleLogs(request: IncomingMessage, response: ServerResponse) {
 
   let parsed: ReturnType<typeof parseLogsPayload>;
   try {
-    parsed = parseLogsPayload(payload);
+    parsed = parseLogsPayload(payload, config.maxRecordsPerRequest);
   } catch (error) {
     throw new HttpError(
       400,
@@ -289,13 +315,12 @@ async function handleLogs(request: IncomingMessage, response: ServerResponse) {
     );
   }
 
-  const accepted = parsed.records.slice(0, config.maxRecordsPerRequest);
-  const rejected =
-    parsed.rejected + Math.max(0, parsed.records.length - accepted.length);
-  await logsQueue.enqueue(
-    accepted.map((record) =>
-      toTinybirdLog(auth.organizationId, auth.retentionDays, record),
-    ),
+  const normalized = normalizeWithinBudget(parsed.records, (record) =>
+    toTinybirdLog(auth.organizationId, auth.retentionDays, record),
+  );
+  const rejected = parsed.rejected + normalized.rejected;
+  await enqueueAccepted(auth, "logs", normalized.rows, (records) =>
+    logsQueue.enqueue(records),
   );
 
   const errorMessage = rejected
@@ -342,7 +367,7 @@ async function handleMetrics(
 
   let parsed: ReturnType<typeof parseMetricsPayload>;
   try {
-    parsed = parseMetricsPayload(payload);
+    parsed = parseMetricsPayload(payload, config.maxRecordsPerRequest);
   } catch (error) {
     throw new HttpError(
       400,
@@ -350,13 +375,12 @@ async function handleMetrics(
     );
   }
 
-  const accepted = parsed.points.slice(0, config.maxRecordsPerRequest);
-  const rejected =
-    parsed.rejected + Math.max(0, parsed.points.length - accepted.length);
-  await metricsQueue.enqueue(
-    accepted.map((point) =>
-      toTinybirdMetric(auth.organizationId, auth.retentionDays, point),
-    ),
+  const normalized = normalizeWithinBudget(parsed.points, (point) =>
+    toTinybirdMetric(auth.organizationId, auth.retentionDays, point),
+  );
+  const rejected = parsed.rejected + normalized.rejected;
+  await enqueueAccepted(auth, "metrics", normalized.rows, (records) =>
+    metricsQueue.enqueue(records),
   );
 
   const errorMessage = rejected
@@ -418,6 +442,13 @@ const server = createServer(async (request, response) => {
 
     sendJson(response, 404, { message: "Not found" });
   } catch (error) {
+    if (error instanceof TelemetryQuotaExceeded) {
+      sendJson(response, 429, {
+        message: error.message,
+        resetsAt: error.resetsAt,
+      });
+      return;
+    }
     if (error instanceof HttpError) {
       sendJson(response, error.status, { message: error.message });
       return;
