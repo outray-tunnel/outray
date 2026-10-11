@@ -68,6 +68,16 @@ export interface Subscription {
     domains?: number;
     subdomains?: number;
     members?: number;
+    reservedMemberSeats?: number;
+    uptimeMonitors?: number;
+    observabilityAlerts?: number;
+    secretVaults?: number;
+    secretEntries?: number;
+    statusPages?: number;
+    bandwidthBytes?: number;
+    telemetryBytes?: number;
+    telemetryMonth?: string;
+    telemetryResetsAt?: string;
   };
   [key: string]: any;
 }
