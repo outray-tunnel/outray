@@ -34,13 +34,16 @@ async function documents(directory: URL, segments: string[] = []): Promise<{ pat
   return result;
 }
 
-test("hero has an SSR-safe decorative beam and real product destinations", () => {
+test("hero has an SSR-safe decorative beam and its two primary destinations", () => {
   const html = renderToStaticMarkup(React.createElement(Hero, { signupUrl: "/signup", githubUrl: "https://github.com/outray-tunnel/outray" }));
   assert.match(html, /aria-labelledby="hero-title"/);
   assert.match(html, /aria-hidden="true"><svg/);
   assert.match(html, /Everything between/);
   assert.doesNotMatch(html, /<canvas|Loading\.\.\./);
-  for (const product of products) assert.match(html, new RegExp(`href="/products/${product}"`));
+  assert.match(html, /href="\/signup"/);
+  assert.match(html, /href="https:\/\/github\.com\/outray-tunnel\/outray"/);
+  assert.equal((html.match(/<a /g) ?? []).length, 2);
+  assert.doesNotMatch(html, /Explore OutRay products|href="\/products\//);
 });
 
 test("final CTA retains the requested simplified copy and two-line heading", () => {
@@ -51,10 +54,12 @@ test("final CTA retains the requested simplified copy and two-line heading", () 
   assert.doesNotMatch(html, /Start where your service is|Open a tunnel|View on GitHub/);
 });
 
-test("hero beam respects reduced motion and uses only opacity/transform animation", async () => {
+test("hero beam crossfades only opacity and disables transitions for reduced motion", async () => {
   const css = await readFile(new URL("../src/landing/hero-beam.module.css", import.meta.url), "utf8");
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(css, /\.light \{ animation: none; \}/);
+  assert.match(css, /\.fallback,\s*\.canvasLayer,\s*\.auroraFallback \{ transition: none; \}/);
+  assert.match(css, /\.fallback \{\s*opacity: 1;\s*transition: opacity/);
+  assert.match(css, /\.canvasLayer \{\s*opacity: 0;\s*transition: opacity/);
   assert.match(css, /pointer-events: none/);
   assert.doesNotMatch(css, /animation:.*(?:blur|width|height)/);
 });
