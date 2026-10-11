@@ -8,92 +8,66 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 60%, transparent 100%);
 }
 
-.beam svg {
+.fallback,
+.canvasLayer {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
 
-.source {
+.fallback {
+  opacity: 1;
+  transition: opacity 500ms ease;
+}
+
+.auroraFallback {
   position: absolute;
-  top: 27%;
-  left: -180px;
-  width: 340px;
-  height: 190px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, #f3edff25, #a28bc30a 44%, transparent 70%);
+  top: 0;
+  right: -30%;
+  width: min(1100px, 90vw);
+  height: 100%;
+  opacity: 0.85;
+  transition: opacity 500ms ease;
 }
 
-.light {
-  animation: light-breathe 12s ease-in-out infinite alternate;
+.canvasLayer {
+  opacity: 0;
+  transition: opacity 500ms ease;
 }
 
-.dust {
-  opacity: 0.28;
+.canvasLayer canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.hero .products {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px;
-  width: fit-content;
-  max-width: 100%;
-  margin: 58px auto 0;
-  padding: 5px;
-  border: 1px solid rgb(255 255 255 / 0.08);
-  border-radius: 14px;
-  background: rgb(12 12 14 / 0.55);
+.beam[data-ready="true"] .fallback {
+  opacity: 0;
 }
 
-.products a {
-  display: inline-flex;
-  min-height: 42px;
-  align-items: center;
-  gap: 9px;
-  padding: 9px 15px;
-  border-radius: 9px;
-  color: #aaa6b3;
-  font-size: 13px;
-  transition: background 160ms ease, color 160ms ease;
+.beam[data-ready="true"] .auroraFallback {
+  opacity: 0;
 }
 
-.products a:hover,
-.products a:focus-visible {
-  background: rgb(255 255 255 / 0.07);
-  color: #fafafa;
+.beam[data-ready="true"] .canvasLayer {
+  opacity: 1;
 }
 
-.products a:focus-visible {
-  outline: 2px solid #b6a2e3;
-  outline-offset: 2px;
-}
-
-.products svg {
-  width: 17px;
-  height: 17px;
-}
-
-@keyframes light-breathe {
-  from { opacity: 0.6; }
-  to { opacity: 1; }
-}
-
-@media (max-width: 620px) {
-  .hero .products {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    margin-top: 38px;
+@media (min-width: 768px) {
+  .fallback {
+    transform: translateX(-10%);
   }
+}
 
-  .products a { padding-inline: 12px; }
+@media (max-width: 767px) {
+  .auroraFallback { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .light { animation: none; }
-  .products a { transition: none; }
+  .fallback,
+  .canvasLayer,
+  .auroraFallback { transition: none; }
 }
