@@ -1,6 +1,8 @@
 import instancePolicy from "../../../../shared/instance-config";
+import hostedPlanPolicy from "../../../../shared/hosted-plan-limits";
 
 const { instanceConfig } = instancePolicy;
+const { HOSTED_PLAN_LIMITS } = hostedPlanPolicy;
 // Subscription plan definitions for Polar and Paystack
 export const SUBSCRIPTION_PLANS = {
   free: {
@@ -9,16 +11,7 @@ export const SUBSCRIPTION_PLANS = {
     priceYearly: 0,
     priceNGN: 0,
     priceNGNYearly: 0,
-    features: {
-      maxTunnels: 2,
-      maxDomains: 0,
-      maxSubdomains: 1,
-      maxMembers: 1,
-      bandwidthPerMonth: 1024 * 1024 * 1024 * 2, // 2GB
-      retentionDays: 3,
-      customDomains: false,
-      prioritySupport: false,
-    },
+    features: HOSTED_PLAN_LIMITS.free,
   },
   ray: {
     name: "Ray",
@@ -27,16 +20,7 @@ export const SUBSCRIPTION_PLANS = {
     priceNGN: 10000, // ₦10,000
     priceNGNYearly: 100000, // ₦100,000 (2 months free)
     polarProductId: process.env.POLAR_PRODUCT_RAY,
-    features: {
-      maxTunnels: 3,
-      maxDomains: 1,
-      maxSubdomains: 5,
-      maxMembers: 3,
-      bandwidthPerMonth: 1024 * 1024 * 1024 * 25, // 25GB
-      retentionDays: 14,
-      customDomains: true,
-      prioritySupport: false,
-    },
+    features: HOSTED_PLAN_LIMITS.ray,
   },
   beam: {
     name: "Beam",
@@ -45,16 +29,7 @@ export const SUBSCRIPTION_PLANS = {
     priceNGN: 21000, // ₦21,000
     priceNGNYearly: 210000, // ₦210,000 (2 months free)
     polarProductId: process.env.POLAR_PRODUCT_BEAM,
-    features: {
-      maxTunnels: 5,
-      maxDomains: 5,
-      maxSubdomains: 20,
-      maxMembers: 5,
-      bandwidthPerMonth: 1024 * 1024 * 1024 * 100, // 100GB
-      retentionDays: 30,
-      customDomains: true,
-      prioritySupport: true,
-    },
+    features: HOSTED_PLAN_LIMITS.beam,
   },
   pulse: {
     name: "Pulse",
@@ -63,16 +38,7 @@ export const SUBSCRIPTION_PLANS = {
     priceNGN: 170000, // ₦170,000
     priceNGNYearly: 1700000, // ₦1,700,000 (2 months free)
     polarProductId: process.env.POLAR_PRODUCT_PULSE,
-    features: {
-      maxTunnels: 20,
-      maxDomains: 25,
-      maxSubdomains: 200,
-      maxMembers: -1, // Unlimited
-      bandwidthPerMonth: 1024 * 1024 * 1024 * 1024, // 1TB
-      retentionDays: 90,
-      customDomains: true,
-      prioritySupport: true,
-    },
+    features: HOSTED_PLAN_LIMITS.pulse,
   },
   // Internal plan - not shown in UI, manually assigned via database
   unlimited: {
@@ -82,17 +48,7 @@ export const SUBSCRIPTION_PLANS = {
     priceNGN: 0,
     priceNGNYearly: 0,
     hidden: true,
-    features: {
-      maxTunnels: 999999999,
-      maxDomains: 999999999,
-      maxSubdomains: 999999999,
-      maxMembers: 999999999,
-      bandwidthPerMonth: 1024 * 1024 * 1024 * 1024 * 1024, // 1PB
-      // Internal sentinel; telemetry storage still enforces its maximum TTL.
-      retentionDays: 32_767,
-      customDomains: true,
-      prioritySupport: true,
-    },
+    features: HOSTED_PLAN_LIMITS.unlimited,
   },
 } as const;
 
@@ -141,7 +97,7 @@ export function getPlanLimits(plan: SubscriptionPlan) {
     ...SUBSCRIPTION_PLANS.unlimited.features, ...instance.limits,
     retentionDays: instance.retentionDays,
   };
-  return SUBSCRIPTION_PLANS[plan].features;
+  return SUBSCRIPTION_PLANS[installationPlan(plan)].features;
 }
 
 export function installationPlan(plan: string | null | undefined): SubscriptionPlan {
@@ -169,14 +125,12 @@ export function getSubscriptionLimits(response: {
   };
 }
 
-export function getUptimeMonitorLimit() {
-  const instance = instanceConfig();
-  return instance.selfHosted ? instance.limits.maxUptimeMonitors : 10;
+export function getUptimeMonitorLimit(plan: SubscriptionPlan = "free") {
+  return getPlanLimits(plan).maxUptimeMonitors;
 }
 
-export function getObservabilityAlertLimit() {
-  const instance = instanceConfig();
-  return instance.selfHosted ? instance.limits.maxObservabilityAlerts : 200;
+export function getObservabilityAlertLimit(plan: SubscriptionPlan = "free") {
+  return getPlanLimits(plan).maxObservabilityAlerts;
 }
 
 export function capacityDescription(plan: string, limit: number, resource: string) {
