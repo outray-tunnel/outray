@@ -3,7 +3,7 @@ import { ArrowUpRight, CreditCard, LockKeyhole } from "lucide-react";
 import { Button as ArcButton } from "@/components/arc/button/button";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
 import { SUBSCRIPTION_PLANS, type BillingInterval, type SubscriptionPlan } from "@/lib/subscription-plans";
-import { billingUsageSummary, formatBillingDate, formatBillingPrice, knownBillingPlan, type BillingCurrency, type BillingSubscription, type BillingUsage, type PaidBillingPlan } from "./billing-state";
+import { billingUsageSummary, formatBillingBytes, formatBillingDate, formatBillingPrice, knownBillingPlan, type BillingCurrency, type BillingSubscription, type BillingUsage, type PaidBillingPlan } from "./billing-state";
 import styles from "./billing-content.module.css";
 
 const PUBLIC_PLANS = ["free", "ray", "beam", "pulse"] as const;
@@ -12,11 +12,11 @@ const PLAN_DESCRIPTIONS = { free: "Testing & experimenting", ray: "Solo develope
 const INTERVAL_OPTIONS = [{ value: "month", label: "Monthly" }, { value: "year", label: "Yearly", accessory: <span className={styles.savings}>2 months free</span> }];
 const CURRENCY_OPTIONS = [{ value: "USD", label: "USD" }, { value: "NGN", label: "NGN" }];
 
-export function BillingUsageMetric({ label, value, limit, plan }: { label: string; value?: number; limit?: number; plan: string }) {
+export function BillingUsageMetric({ label, value, limit, plan, formatValue = (n: number) => n.toLocaleString("en-US") }: { label: string; value?: number; limit?: number; plan: string; formatValue?: (n: number) => string }) {
   const { actual, unlimited, percentage } = billingUsageSummary(value, limit, plan);
   return <div className={styles.metric}>
-    <div className={styles.metricTop}><span>{label}</span><span className={styles.metricValue}>{actual === undefined ? "—" : actual.toLocaleString("en-US")}<span className={styles.metricLimit}>{unlimited ? " / Unlimited" : limit === undefined ? "" : ` / ${limit}`}</span></span></div>
-    {percentage === undefined ? <p className={styles.metricHint}>{unlimited ? "No plan limit" : limit === 0 ? "Not included in this plan" : "Usage unavailable"}</p> : <div className={styles.meter} role="meter" aria-label={`${label} usage`} aria-valuenow={Math.min(actual!, limit!)} aria-valuemin={0} aria-valuemax={limit} aria-valuetext={`${actual} of ${limit}`}><span style={{ width: `${percentage}%` }} data-full={percentage >= 100 || undefined} /></div>}
+    <div className={styles.metricTop}><span>{label}</span><span className={styles.metricValue}>{actual === undefined ? "—" : formatValue(actual)}<span className={styles.metricLimit}>{unlimited ? " / Unlimited" : limit === undefined ? "" : ` / ${formatValue(limit)}`}</span></span></div>
+    {percentage === undefined ? <p className={styles.metricHint}>{unlimited ? "No plan limit" : limit === 0 ? "Not included in this plan" : "Usage unavailable"}</p> : <div className={styles.meter} role="meter" aria-label={`${label} usage`} aria-valuenow={Math.min(actual!, limit!)} aria-valuemin={0} aria-valuemax={limit} aria-valuetext={`${formatValue(actual!)} of ${formatValue(limit!)}`}><span style={{ width: `${percentage}%` }} data-full={percentage >= 100 || undefined} /></div>}
   </div>;
 }
 export function BillingOverview({ subscription, usage, onManage, busy = false }: { subscription: BillingSubscription | null; usage?: BillingUsage; onManage: () => void; busy?: boolean }) {
@@ -34,13 +34,24 @@ export function BillingOverview({ subscription, usage, onManage, busy = false }:
       {paid ? <ArcButton type="button" variant="secondary" size="md" disabled={busy} onClick={onManage}>Manage subscription<ArrowUpRight size={14} aria-hidden="true" /></ArcButton> : <span className={styles.noPayment}>No payment method required</span>}
     </div>
     {paid ? <dl className={styles.billingDetails}><div><dt>{subscription?.cancelAtPeriodEnd ? "Access until" : "Next renewal"}</dt><dd>{formatBillingDate(subscription?.currentPeriodEnd)}</dd></div><div><dt>Billing cycle</dt><dd>{interval === "year" ? "Yearly" : "Monthly"}</dd></div><div><dt>Payment provider</dt><dd>{subscription?.paymentProvider === "paystack" ? "Paystack · NGN" : "Polar · USD"}</dd></div></dl> : null}
-    <div className={styles.usageHeader}><h3>Current usage</h3><span>Active resources in this organization</span></div>
+    <div className={styles.usageHeader}><h3>Current usage</h3><span>Resources and monthly usage in this organization</span></div>
     <div className={styles.usageGrid}>
       <BillingUsageMetric label="Active tunnels" value={usage?.tunnels} limit={config?.features.maxTunnels} plan={plan} />
       <BillingUsageMetric label="Custom domains" value={usage?.domains} limit={config?.features.maxDomains} plan={plan} />
       <BillingUsageMetric label="Subdomains" value={usage?.subdomains} limit={config?.features.maxSubdomains} plan={plan} />
-      <BillingUsageMetric label="Members" value={usage?.members} limit={config?.features.maxMembers} plan={plan} />
+      <BillingUsageMetric label="Member seats" value={usage?.members === undefined ? undefined : usage.members + (usage.reservedMemberSeats ?? 0)} limit={config?.features.maxMembers} plan={plan} />
+      <BillingUsageMetric label="Uptime monitors" value={usage?.uptimeMonitors} limit={config?.features.maxUptimeMonitors} plan={plan} />
+      <BillingUsageMetric label="Status pages" value={usage?.statusPages} limit={config?.features.maxStatusPages} plan={plan} />
+      <BillingUsageMetric label="Alert rules" value={usage?.observabilityAlerts} limit={config?.features.maxObservabilityAlerts} plan={plan} />
+      <BillingUsageMetric label="Secret vaults" value={usage?.secretVaults} limit={config?.features.maxSecretVaults} plan={plan} />
+      <BillingUsageMetric label="Active secret entries" value={usage?.secretEntries} limit={config?.features.maxSecretEntries} plan={plan} />
+      <BillingUsageMetric label="Tunnel bandwidth" value={usage?.bandwidthBytes} limit={config?.features.bandwidthPerMonth} plan={plan} formatValue={formatBillingBytes} />
+      <BillingUsageMetric label="Telemetry this month" value={usage?.telemetryBytes} limit={config?.features.telemetryBytesPerMonth} plan={plan} formatValue={formatBillingBytes} />
     </div>
+    {(usage?.reservedMemberSeats ?? 0) > 0 ? <p className={styles.allowanceNote}>{usage!.reservedMemberSeats} member {usage!.reservedMemberSeats === 1 ? "seat is" : "seats are"} reserved by invitations. Cancelling or expiring an invitation releases its seat.</p> : null}
+    <p className={styles.allowanceNote}>Monthly allowances reset on the first day of each month (UTC), including yearly subscriptions.</p>
+    {config && (usage?.telemetryBytes ?? 0) >= config.features.telemetryBytesPerMonth * .8 && config.features.telemetryBytesPerMonth > 0 ? <p className={styles.quotaWarning} role="status">{(usage?.telemetryBytes ?? 0) >= config.features.telemetryBytesPerMonth ? "Telemetry allowance reached. New ingestion is paused until the monthly reset or a plan upgrade. Existing data remains available within its retention period." : "You have used at least 80% of this month’s telemetry allowance. Upgrade before it runs out to keep ingestion uninterrupted."}</p> : null}
+    {config && (usage?.bandwidthBytes ?? 0) >= config.features.bandwidthPerMonth * .8 ? <p className={styles.quotaWarning} role="status">{(usage?.bandwidthBytes ?? 0) >= config.features.bandwidthPerMonth ? "Tunnel bandwidth allowance reached. Traffic is restricted until the monthly reset or a plan upgrade." : "You have used at least 80% of this month’s tunnel bandwidth allowance."}</p> : null}
   </section>;
 }
 type PlanFeatures = (typeof SUBSCRIPTION_PLANS)[SubscriptionPlan]["features"];
@@ -49,6 +60,9 @@ const limitText = (value: number) => value === -1 ? "Unlimited" : value.toLocale
 const COMPARISON_GROUPS: { name: string; rows: { label: string; value: (features: PlanFeatures) => ReactNode }[] }[] = [
   { name: "Capacity", rows: [{ label: "Active tunnels", value: f => limitText(f.maxTunnels) }, { label: "Custom domains", value: f => f.customDomains ? limitText(f.maxDomains) : "Not included" }, { label: "Subdomains", value: f => limitText(f.maxSubdomains) }, { label: "Team members", value: f => limitText(f.maxMembers) }, { label: "Monthly bandwidth", value: f => bandwidth(f.bandwidthPerMonth) }] },
   { name: "Included", rows: [{ label: "Request retention", value: f => `${f.retentionDays} days` }, { label: "Priority support", value: f => f.prioritySupport ? "Included" : "Not included" }] },
+  { name: "Observability", rows: [{ label: "Monthly telemetry", value: f => bandwidth(f.telemetryBytesPerMonth) }, { label: "Alert rules", value: f => limitText(f.maxObservabilityAlerts) }] },
+  { name: "Secrets", rows: [{ label: "Vaults", value: f => limitText(f.maxSecretVaults) }, { label: "Environments per vault", value: f => limitText(f.maxSecretEnvironments) }, { label: "Active secret entries", value: f => limitText(f.maxSecretEntries) }] },
+  { name: "Uptime", rows: [{ label: "Monitors", value: f => limitText(f.maxUptimeMonitors) }, { label: "Check frequency", value: () => "60 seconds" }, { label: "Status pages", value: f => limitText(f.maxStatusPages) }, { label: "Status custom domain", value: f => f.statusCustomDomains ? "Included" : "Not included" }] },
 ];
 export function BillingPlanComparison({ currentPlan, currentInterval, currency, interval, checkoutPlan, checkoutDisabled, onCheckout }: { currentPlan: string; currentInterval: BillingInterval; currency: BillingCurrency; interval: BillingInterval; checkoutPlan?: PaidBillingPlan | null; checkoutDisabled?: boolean; onCheckout: (plan: PaidBillingPlan) => void }) {
   return <div className={styles.panel}>
