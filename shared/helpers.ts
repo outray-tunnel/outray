@@ -27,9 +27,8 @@ export function extractSubdomain(
   return sub || null;
 }
 
-export function getBandwidthKey(organizationId: string): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
+export function getBandwidthKey(organizationId: string, date = new Date()): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
   return `bw:${organizationId}:${year}-${month}`;
 }
