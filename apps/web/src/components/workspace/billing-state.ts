@@ -23,6 +23,16 @@ export interface BillingUsage {
   domains?: number;
   subdomains?: number;
   members?: number;
+  reservedMemberSeats?: number;
+  uptimeMonitors?: number;
+  observabilityAlerts?: number;
+  secretVaults?: number;
+  secretEntries?: number;
+  statusPages?: number;
+  bandwidthBytes?: number;
+  telemetryBytes?: number;
+  telemetryMonth?: string;
+  telemetryResetsAt?: string;
 }
 
 export function knownBillingPlan(plan: string): SubscriptionPlan | undefined {
@@ -51,4 +61,10 @@ export function billingUsageSummary(value: number | undefined, limit: number | u
     ? undefined
     : Math.min(100, actual / limit * 100);
   return { actual, unlimited, percentage };
+}
+
+export function formatBillingBytes(bytes: number) {
+  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const index = bytes > 0 ? Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024))) : 0;
+  return `${(bytes / 1024 ** index).toLocaleString("en-US", { maximumFractionDigits: 2 })} ${units[index]}`;
 }
