@@ -51,7 +51,7 @@ export function UptimeOverviewContent({ orgSlug, monitors, incidents, page, onRe
         {summary.paused > 0 && <span className="text-zinc-500">{summary.paused} paused</span>}
       </div>
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Metric label="Monitors" value={summary.total} detail={`${summary.enabled} checking · limit ${monitors.data.limit}`} icon={Activity} />
+        <Metric label="Monitors" value={summary.total} detail={`${summary.enabled} checking · ${monitors.data.limit === -1 ? "Unlimited monitors" : `limit ${monitors.data.limit}`}`} icon={Activity} />
         <Metric label="Up" value={summary.up} detail={summary.unknown ? `${summary.unknown} awaiting fresh checks` : "From the latest monitor checks"} icon={CircleCheck} color="text-emerald-400" />
         <Metric label="Down" value={summary.down} detail="Confirmed monitor failures" icon={CircleAlert} color={summary.down ? "text-rose-400" : "text-zinc-500"} />
         {!incidents.data ? <UptimePanel className="p-4 sm:p-5"><p className="text-[12px] text-zinc-500">Recent incidents</p>{incidents.loading ? <UptimeSkeleton label="Loading incidents"><div className="mt-4 h-7 w-16 rounded bg-white/[0.07]" /></UptimeSkeleton> : <p className="mt-3 text-[12px] leading-5 text-zinc-500">Could not load incidents</p>}</UptimePanel> :
