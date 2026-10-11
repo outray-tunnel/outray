@@ -85,6 +85,19 @@ test("status-domain creation returns the configured CNAME and blocks reserved ho
       "drizzle-orm": { and: (...conditions: unknown[]) => conditions, eq: (field: unknown, value: unknown) => ({ field, value }) },
       "@/db": { db }, "@/db/app-schema": { domains: table("domains") }, "@/db/auth-schema": { organizations: table("organizations") },
       "@/db/uptime-schema": { uptimeStatusPages: table("pages") },
+      "@/lib/organization-entitlements.server": {
+        async withOrganizationQuotaLock(database: typeof tx, organizationId: string) {
+          assert.equal(database, tx);
+          assert.equal(organizationId, "org-acme");
+          const [organization] = await database.select();
+          assert.deepEqual(organization, { id: "org-acme" });
+        },
+        async getOrganizationLimits(organizationId: string, database: typeof tx) {
+          assert.equal(database, tx);
+          assert.equal(organizationId, "org-acme");
+          return { statusCustomDomains: true };
+        },
+      },
       "@/lib/uptime/domain-config": { statusDnsTarget: () => statusDnsTarget(env), isReservedStatusCustomDomain: (host: string) => isReservedStatusCustomDomain(host, env) },
       "@/lib/uptime/api": {
         requireUptimeManager: async () => ({ organization: { id: "org-acme" }, session: { user: { id: "user-acme" } } }),
