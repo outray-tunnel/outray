@@ -1,6 +1,7 @@
 import {
   and,
   asc,
+  count,
   desc,
   eq,
   inArray,
@@ -28,6 +29,7 @@ import {
 } from "../machine-tokens";
 import { assertActorScope } from "./access-policy";
 import { auditEvent, lockOrganization } from "./database";
+import { assertSecretCapacity } from "./quotas";
 import {
   createOrganizationKey,
   nextOrganizationKeyVersion,
@@ -419,6 +421,12 @@ export async function restoreTrash(
           code: "RESTORE_CONFLICT",
           status: 409,
         });
+      const [restoredEntries] = await tx.select({ count: count() }).from(secretEntries)
+        .where(eq(secretEntries.deletionBatchId, lockedBatch.id));
+      await assertSecretCapacity(tx, access.organization.id, {
+        vaults: 1, entries: restoredEntries.count,
+        environments: [{ projectId: project.id, added: projectEnvironments.length }],
+      });
       await tx
         .update(secretProjects)
         .set({ deletedAt: null, deletionBatchId: null, updatedAt: new Date() })
@@ -481,6 +489,12 @@ export async function restoreTrash(
           code: "RESTORE_CONFLICT",
           status: 409,
         });
+      const [restoredEntries] = await tx.select({ count: count() }).from(secretEntries)
+        .where(eq(secretEntries.deletionBatchId, lockedBatch.id));
+      await assertSecretCapacity(tx, access.organization.id, {
+        entries: restoredEntries.count,
+        environments: [{ projectId: environment.projectId, added: 1 }],
+      });
       await tx
         .update(secretEnvironments)
         .set({
@@ -520,6 +534,7 @@ export async function restoreTrash(
           code: "RESTORE_CONFLICT", status: 409, details: { keys: duplicates.map((row) => row.key) },
         });
       }
+      await assertSecretCapacity(tx, access.organization.id, { entries: entries.length });
       await tx.update(secretEntries).set({ deletedAt: null, deletionBatchId: null, updatedAt: new Date() })
         .where(eq(secretEntries.deletionBatchId, lockedBatch.id));
       await tx.update(secretEnvironments).set({
@@ -588,6 +603,7 @@ export async function restoreTrash(
           code: "RESTORE_CONFLICT",
           status: 409,
         });
+      await assertSecretCapacity(tx, access.organization.id, { entries: 1 });
       await tx
         .update(secretEntries)
         .set({ deletedAt: null, deletionBatchId: null, updatedAt: new Date() })
