@@ -11,6 +11,8 @@ const template = resolve(root, "deploy/self-hosted/.env.example");
 const hostKeys = ["OUTRAY_APP_HOST", "OUTRAY_TUNNEL_DOMAIN", "OUTRAY_EDGE_HOST", "OUTRAY_INGEST_HOST", "OUTRAY_STATUS_HOST", "OUTRAY_SHARE_HOST"];
 const secretKeys = ["POSTGRES_PASSWORD", "SHARE_DATABASE_PASSWORD", "BETTER_AUTH_SECRET", "ADMIN_PASSPHRASE", "INTERNAL_API_SECRET", "STATUS_EDGE_SECRET", "UPTIME_RATE_LIMIT_SECRET", "UPTIME_UNSUBSCRIBE_SECRET", "SHARE_RATE_LIMIT_SECRET"];
 const integerKeys = ["OUTRAY_MAX_TUNNELS", "OUTRAY_MAX_DOMAINS", "OUTRAY_MAX_SUBDOMAINS", "OUTRAY_MAX_MEMBERS", "OUTRAY_BANDWIDTH_BYTES_PER_MONTH", "OUTRAY_MAX_UPTIME_MONITORS", "OUTRAY_MAX_OBSERVABILITY_ALERTS"];
+// Older installations can keep their .env; Compose supplies defaults for these.
+const optionalQuotaKeys = ["OUTRAY_TELEMETRY_BYTES_PER_MONTH", "OUTRAY_MAX_SECRET_VAULTS", "OUTRAY_MAX_SECRET_ENVIRONMENTS", "OUTRAY_MAX_SECRET_ENTRIES"];
 
 export function validHostname(value) {
   return typeof value === "string" && value.length <= 253 && isIP(value) === 0 &&
@@ -74,6 +76,7 @@ export function checkEnvironment(env) {
   if (env.OUTRAY_ICON_MODE === "pro" && (!env.HUGEICONS_LICENSE_KEY?.trim() || /^(?:your_|replace_|CHANGE_ME)/i.test(env.HUGEICONS_LICENSE_KEY))) errors.push("OUTRAY_ICON_MODE=pro needs your own HUGEICONS_LICENSE_KEY; free mode needs no license");
   if (env.TINYBIRD_INGEST_TOKEN && env.TINYBIRD_INGEST_TOKEN === env.TINYBIRD_QUERY_TOKEN) errors.push("Use separate APPEND-only and READ-only Tinybird tokens");
   for (const key of integerKeys) if (!Number.isSafeInteger(Number(env[key])) || Number(env[key]) < 1) errors.push(`${key} must be a positive safe integer`);
+  for (const key of optionalQuotaKeys) if (env[key] !== undefined && (!Number.isSafeInteger(Number(env[key])) || Number(env[key]) < 1)) errors.push(`${key} must be a positive safe integer`);
   if (!Number.isInteger(Number(env.OUTRAY_RETENTION_DAYS)) || Number(env.OUTRAY_RETENTION_DAYS) < 1 || Number(env.OUTRAY_RETENTION_DAYS) > 90) errors.push("OUTRAY_RETENTION_DAYS must be between 1 and 90");
   for (const protocol of ["TCP", "UDP"]) {
     const min = Number(env[`${protocol}_PORT_RANGE_MIN`]), max = Number(env[`${protocol}_PORT_RANGE_MAX`]);
