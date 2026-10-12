@@ -4,6 +4,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import React from "react";
 import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
+import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterContextProvider } from "@tanstack/react-router";
 import { compile } from "@mdx-js/mdx";
 import { parse as parseYaml } from "yaml";
 import { FrameworkProvider } from "fumadocs-core/framework";
@@ -17,6 +18,13 @@ import { FinalCta } from "../src/landing/FinalCta";
 Object.assign(globalThis, { React });
 const products = ["tunnels", "observability", "secrets", "uptime"];
 const docsDirectory = new URL("../content/docs/", import.meta.url);
+
+function renderLanding(component: React.ReactNode) {
+  const root = createRootRoute();
+  const signup = createRoute({ getParentRoute: () => root, path: "signup" });
+  const router = createRouter({ routeTree: root.addChildren([signup]), history: createMemoryHistory({ initialEntries: ["/"] }), isServer: true });
+  return renderToStaticMarkup(React.createElement(RouterContextProvider, { router, children: component }));
+}
 
 async function documents(directory: URL, segments: string[] = []): Promise<{ path: URL; url: string; content: string }[]> {
   const result: { path: URL; url: string; content: string }[] = [];
@@ -35,7 +43,7 @@ async function documents(directory: URL, segments: string[] = []): Promise<{ pat
 }
 
 test("hero has an SSR-safe decorative beam and its two primary destinations", () => {
-  const html = renderToStaticMarkup(React.createElement(Hero, { signupUrl: "/signup", githubUrl: "https://github.com/outray-tunnel/outray" }));
+  const html = renderLanding(React.createElement(Hero, { signupUrl: "/signup", githubUrl: "https://github.com/outray-tunnel/outray" }));
   assert.match(html, /aria-labelledby="hero-title"/);
   assert.match(html, /aria-hidden="true"><svg/);
   assert.match(html, /Everything between/);
@@ -47,7 +55,7 @@ test("hero has an SSR-safe decorative beam and its two primary destinations", ()
 });
 
 test("final CTA retains the requested simplified copy and two-line heading", () => {
-  const html = renderToStaticMarkup(React.createElement(FinalCta, { signupUrl: "/signup" }));
+  const html = renderLanding(React.createElement(FinalCta, { signupUrl: "/signup" }));
   assert.match(html, /<span>Everything behind your app\.<\/span> <span>Together in OutRay\.<\/span>/);
   assert.match(html, /href="\/signup"[^>]*>Get started<\/a>/);
   assert.equal((html.match(/<a /g) ?? []).length, 1);
