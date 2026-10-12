@@ -3,7 +3,8 @@ import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
 import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
+import { createMemoryHistory, createRootRoute, createRoute, createRouter, Link, RouterContextProvider } from "@tanstack/react-router";
 import ts from "typescript";
 import { ProductPage, ProductsIndex } from "../src/landing/products/ProductPage";
 import { TunnelHero } from "../src/landing/products/TunnelHero";
@@ -17,6 +18,15 @@ import { productIds, products, type ProductId } from "../src/landing/products/co
 import { productPageHead } from "../src/landing/products/meta";
 
 Object.assign(globalThis, { React });
+
+function renderToStaticMarkup(component: React.ReactNode) {
+  const root = createRootRoute();
+  const signup = createRoute({ getParentRoute: () => root, path: "signup" });
+  const docs = createRoute({ getParentRoute: () => root, path: "docs/$" });
+  const product = createRoute({ getParentRoute: () => root, path: "products/$" });
+  const router = createRouter({ routeTree: root.addChildren([signup, docs, product]), history: createMemoryHistory({ initialEntries: ["/"] }), isServer: true });
+  return renderMarkup(React.createElement(RouterContextProvider, { router, children: component }));
+}
 
 /** Match route composition without importing TanStack's route registration runtime. */
 function productPage(product: ProductId) {
@@ -111,6 +121,7 @@ async function terminalHarness({ component = "TunnelTerminalSection", reduced = 
     },
     require(specifier: string) {
       if (specifier === "react") return react;
+      if (specifier === "@tanstack/react-router") return { Link };
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
       if (specifier.startsWith("@outray/icons/")) return { __esModule: true, default: [] };
       if (specifier.endsWith(".css")) return { default: new Proxy({}, { get: (_target, name) => String(name) }), __esModule: true };
@@ -168,6 +179,7 @@ async function developerHarness(component: "PluginTabs" | "RequestInspection") {
     React: react, module, exports: module.exports,
     require(specifier: string) {
       if (specifier === "react") return react;
+      if (specifier === "@tanstack/react-router") return { Link };
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: Icon };
       if (specifier.startsWith("@outray/icons/")) return { __esModule: true, default: [] };
       if (specifier === "react-icons/si") return { SiVite: Icon, SiNextdotjs: Icon, SiExpress: Icon };
@@ -855,18 +867,20 @@ test("shared navigation and footer use real product destinations while retaining
   const stories = await readFile(new URL("../src/landing/ProductStories.tsx", import.meta.url), "utf8");
   assert.match(navigation, /session\?\.user/);
   assert.match(navigation, /dashboardOrganization/);
-  assert.match(navigation, /encodeURIComponent\(dashboardOrganization.slug\)/);
+  assert.match(navigation, /to: "\/\$orgSlug\/tunnel"/);
+  assert.match(navigation, /params: \{ orgSlug: dashboardOrganization.slug \}/);
   assert.match(navigation, /Dashboard/);
   for (const source of [navigation, footer]) {
-    assert.ok(source.includes('href="/"'));
+    assert.ok(source.includes('to="/"'));
     assert.match(source, /aria-label="OutRay home"/);
-    assert.ok(source.includes('href="/products"'));
+    assert.ok(source.includes('to="/products"'));
     for (const product of productIds) assert.ok(source.includes(`/products/${product}`));
   }
   for (const product of productIds) {
-    assert.ok(stories.includes(`href="/products/${product}"`));
-    assert.ok(stories.includes(`href={\`${"${docsUrl}"}/${product}\`}`));
+    assert.ok(stories.includes(`to="/products/${product}"`));
+    assert.match(stories, new RegExp(`params=\\{\\{\\s*_splat: "${product}"\\s*\\}\\}`));
   }
+  assert.match(stories, /to="\/docs\/\$"/);
 });
 
 test("all product routes use the Tailwind layout and declare their own metadata", async () => {
