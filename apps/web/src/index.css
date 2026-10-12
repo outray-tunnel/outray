@@ -124,7 +124,7 @@
 }
 
 @keyframes hero-route {
-  to { transform: scaleX(1); }
+  to { scale: 1; }
 }
 
 @keyframes hero-live {
