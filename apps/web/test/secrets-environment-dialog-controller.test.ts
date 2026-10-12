@@ -79,6 +79,7 @@ async function controller(initial: Partial<DialogProps> = {}, globals: Props = {
       if (specifier === "react") return hooks;
       if (specifier === "../arc/dialog/dialog") return { Dialog, DialogContent };
       if (specifier === "./environment-form-content") return { EnvironmentFormContent: Content };
+      if (specifier === "../ui/workspace-scope") return { workspaceScopeClassName: "workspace-scope" };
       if (specifier === "@/lib/secrets-client") return { secretsClient: client };
       if (specifier.endsWith(".css")) return { dialog: "environment-dialog" };
       throw new Error(`Unexpected environment dialog dependency: ${specifier}`);
@@ -251,7 +252,7 @@ test("close/reopen and unmount suppress both late successes and failures, includ
   }
 });
 
-test("the Arc portaled content retains theme/privacy scope and focuses only its own name field, restoring a connected opener", async () => {
+test("the Arc portaled content retains workspace density/privacy scope and focuses only its own name field, restoring a connected opener", async () => {
   const document = { activeElement: null as FakeElement | null, body: null as FakeElement | null };
   class FakeElement {
     isConnected = true;
@@ -267,7 +268,7 @@ test("the Arc portaled content retains theme/privacy scope and focuses only its 
   const trigger = new FakeElement(), panel = new FakeElement(), name = new FakeElement(); panel.input = name;
   document.activeElement = trigger;
   const view = await controller({}, { document, HTMLElement: FakeElement }); let shell = view.render().shell;
-  assert.match(shell.className, /workspace-ui outray-arc ph-no-capture/); assert.match(shell.className, /environment-dialog/);
+  assert.match(shell.className, /workspace-scope ph-no-capture/); assert.match(shell.className, /max-h-\[calc\(100dvh-24px\)\]/);
   assert.equal(shell["data-private-product"], "secrets"); assert.equal(shell.title, "Add environment");
   assert.equal(shell.description, "Keep a separate set of secret values in this vault.");
   const opened = Object.assign(event(), { target: panel }); shell.onOpenAutoFocus(opened);

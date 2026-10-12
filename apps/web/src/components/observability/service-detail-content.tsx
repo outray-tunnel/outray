@@ -14,7 +14,6 @@ import {
   formatServiceDetailThroughput, getServiceDetailNumberConfig, normalizeServiceDetailRange,
   type ServiceDetailMetricKey, type ServiceDetailRange, type ServiceDetailSnapshot,
 } from "./service-detail-data";
-import "../outray-arc-theme.css";
 
 export interface ServiceDetailContentProps {
   orgSlug: string;
@@ -85,7 +84,7 @@ export function ServiceDetailContent({
   ];
 
   return (
-    <div className="outray-arc outray-arc-list mx-auto max-w-[1440px] space-y-5">
+    <div className="mx-auto max-w-[1440px] space-y-5">
       <header className="space-y-3 pb-1">
         <Link to="/$orgSlug/observability/services" params={{ orgSlug }}
           className="inline-flex min-h-8 items-center gap-1.5 rounded-md text-[12px] text-zinc-400 transition-colors hover:text-zinc-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">

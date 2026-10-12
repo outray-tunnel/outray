@@ -105,8 +105,6 @@ async function detail(overrides: Partial<client.UptimeIncidentDetailResponse> = 
     "lucide-react": Lucide,
     "@outray/incident-content": incidentContent,
     "@/components/arc/button/button": { Button },
-    "@/components/arc/button/button.module.css": { default: { button: "button", secondary: "secondary", md: "md" }, __esModule: true },
-    "@/components/outray-arc-theme.css": {},
     "@/components/uptime/incident-ui": { IncidentBadge, IncidentStatusSelect, StagePill },
     "@/components/uptime/incident-stages": { incidentStageDescriptions },
     "@/components/uptime/incident-rich-editor": { IncidentRichContent, IncidentRichEditor: bare },

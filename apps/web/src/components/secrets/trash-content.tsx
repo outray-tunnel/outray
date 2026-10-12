@@ -6,7 +6,6 @@ import SegmentedControl from "../arc/segmented-control/segmented-control";
 import type { SecretTrashItem } from "@/lib/secrets-client";
 import { filterTrash, trashCountLabel, trashKind, trashLocation, type TrashView } from "./trash-data";
 import { formatRelativeDate, formatSecretDate } from "./utils";
-import "../outray-arc-theme.css";
 
 export interface SecretsTrashContentProps {
   items?: SecretTrashItem[];
@@ -38,7 +37,7 @@ export function SecretsTrashContent({ items, loading, refreshing, error, permiss
   const vaultsCount = records.filter((item) => item.type === "project").length;
   const readOnly = !canRestore && !permissionPending;
 
-  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+  return <div className="mx-auto w-full max-w-[1440px] space-y-5">
     <header className="flex flex-wrap items-end justify-between gap-3 pb-1">
       <div className="min-w-0"><div className="flex items-center gap-2.5">
         <h1 data-trash-heading tabIndex={-1} className="text-[20px] font-normal tracking-[-0.035em] text-white">Trash</h1>
@@ -67,7 +66,7 @@ export function SecretsTrashContent({ items, loading, refreshing, error, permiss
             { value: "vaults", label: "Vaults", accessory: <Count value={vaultsCount} /> },
           ]} /></div>
           <div className="flex min-w-0 flex-1 basis-[220px] items-center gap-2 sm:max-w-[330px]">
-            <div className="outray-arc-requests-search min-w-0 flex-1"><SearchField appearance="workspace" label="Search Trash" value={search} onValueChange={onSearchChange} placeholder="Search deleted items…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
+            <div className="min-w-0 flex-1 [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" label="Search Trash" value={search} onValueChange={onSearchChange} placeholder="Search deleted items…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
             <Button variant="ghost" size="sm" aria-label="Refresh Trash" title="Refresh Trash" disabled={refreshing} onClick={onRetry}><RefreshCw size={14} aria-hidden="true" /></Button>
           </div>
         </div>

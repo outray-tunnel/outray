@@ -94,7 +94,6 @@ async function controller(update: Partial<TableProps> = {}, canShare: boolean | 
       if (specifier === "./secrets-ui") return { SecretsNotice: Notice };
       if (specifier === "./utils") return { formatRelativeDate, formatSecretDate };
       if (specifier === "@/lib/auth-client") return { usePermission: (input: unknown) => { permissionCalls.push(input); return { data: canShare ?? undefined }; } };
-      if (specifier.endsWith(".css")) return {};
       if (specifier === "@/lib/secrets-client") return { secretsClient: {
         revealSecret: async (orgSlug: string, projectSlug: string, environmentSlug: string, secretId: string, input: any) => {
           calls.push({ action: "reveal", orgSlug, projectSlug, environmentSlug, secretId, input: JSON.parse(JSON.stringify(input)) }); return revealResponse();
@@ -183,7 +182,7 @@ test("compact single responsive table stays masked, uses content-width breakpoin
   assert.match(html, /type="search"/);
   assert.match(html, /••••••••••••••••/);
   assert.match(html, /v4/);
-  assert.doesNotMatch(html, /plaintext-test-value|rounded-2xl|uppercase|tracking-\[0.09em\]|border-violet/);
+  assert.doesNotMatch(html, /plaintext-test-value|uppercase|tracking-\[0.09em\]|border-violet/);
   for (const key of secrets.map((item) => item.key)) {
     for (const action of [`Reveal ${key} for 30 seconds`, `Copy value for ${key}`, `Edit secret ${key}`, `Version history ${key}`, `Delete secret ${key}`]) {
       assert.equal(view.action(action).type, "button");

@@ -21,15 +21,15 @@ export function LandingPage() {
   useEffect(() => initLandingInteractions(), []);
 
   return (
-    <div className="landing-page">
-      <a className="skip-link" href="#main-content">Skip to content</a>
+    <div className="relative isolate min-h-screen min-w-[320px] overflow-x-clip bg-[radial-gradient(circle_at_50%_-10%,rgb(131_103_199_/.17),transparent_34rem),#050505] text-ink selection:bg-[rgb(131_103_199_/.55)] selection:text-white before:pointer-events-none before:fixed before:inset-0 before:z-0 before:bg-[linear-gradient(rgb(255_255_255_/.025)_1px,transparent_1px),linear-gradient(90deg,rgb(255_255_255_/.025)_1px,transparent_1px)] before:bg-[size:64px_64px] before:[mask-image:linear-gradient(to_bottom,black,transparent_62%)] before:content-[''] after:pointer-events-none after:fixed after:inset-0 after:z-0 after:bg-[radial-gradient(circle_at_2%_32%,rgb(131_103_199_/.08),transparent_22rem),radial-gradient(circle_at_98%_68%,rgb(131_103_199_/.07),transparent_25rem)] after:content-['']">
+      <a className="fixed top-3 left-3 z-[1000] -translate-y-[140%] rounded-xl border border-line-strong bg-white px-4 py-[11px] font-bold text-page transition-transform duration-200 ease-snappy focus:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-light" href="#main-content">Skip to content</a>
       <Navigation
         loginUrl={links.login}
         signupUrl={links.signup}
         docsUrl={links.docs}
         githubUrl={links.github}
       />
-      <main className="site-main" id="main-content">
+      <main className="relative z-[1]" id="main-content">
         <Hero signupUrl={links.signup} githubUrl={links.github} />
         <ProductStories docsUrl={links.docs} />
         <OpenSource githubUrl={links.github} />

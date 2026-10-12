@@ -43,7 +43,10 @@ test("unknown status, invalid units and unsafe-looking long URLs are shown witho
     request: { ...request, status_code: 0, timestamp: NaN, request_duration_ms: NaN, bytes_in: -1, path: "/<script>alert(1)</script>" + "x".repeat(500) },
   }));
   assert.match(html, /Unknown status|Unknown time/);
-  assert.doesNotMatch(html, /text-emerald-300|<script>|NaN ms/);
+  assert.match(html, /<span class="[^"]*\btext-zinc-400\b" aria-label="HTTP status Unknown status">Unknown status<\/span>/);
+  assert.match(html, /data-copy-state="idle"/);
+  assert.match(html, /data-state="idle"/);
+  assert.doesNotMatch(html, /data-copy-state="copied"|data-state="copied"|<script>|NaN ms/);
   assert.match(html, /&lt;script&gt;/);
   assert.match(html, /break-all/);
 });

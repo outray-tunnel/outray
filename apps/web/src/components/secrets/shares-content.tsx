@@ -6,7 +6,6 @@ import SegmentedControl from "../arc/segmented-control/segmented-control";
 import type { SecretShareRecord } from "@/lib/secrets-client";
 import { filterShares, remainingReveals, shareStatus, type SharesView } from "./shares-data";
 import { formatRelativeDate, formatSecretDate } from "./utils";
-import "../outray-arc-theme.css";
 
 export interface SecretsSharesContentProps {
   shares?: SecretShareRecord[];
@@ -41,7 +40,7 @@ export function SecretsSharesContent({ shares, loading, refreshing, error, permi
   const records = shares ?? [];
   const matches = filterShares(records, search, view, now);
   const activeCount = records.filter((share) => shareStatus(share, now) === "active").length;
-  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+  return <div className="mx-auto w-full max-w-[1440px] space-y-5">
     <header className="flex flex-wrap items-end justify-between gap-3 pb-1">
       <div className="min-w-0"><h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Shares</h1>
         <p className="mt-1 text-[12px] leading-5 text-zinc-500">Temporary access to selected secrets, without a workspace invitation.</p></div>
@@ -67,7 +66,7 @@ export function SecretsSharesContent({ shares, loading, refreshing, error, permi
             { value: "ended", label: "Ended", accessory: <Count value={records.length - activeCount} /> },
           ]} />
           <div className="flex min-w-0 flex-1 basis-[220px] items-center gap-2 sm:max-w-[340px]">
-            <div className="outray-arc-requests-search min-w-0 flex-1"><SearchField appearance="workspace" label="Search shares" value={search} onValueChange={onSearchChange} placeholder="Search secret keys or share ID…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
+            <div className="min-w-0 flex-1 [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" label="Search shares" value={search} onValueChange={onSearchChange} placeholder="Search secret keys or share ID…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
             <Button variant="ghost" size="sm" aria-label="Refresh shares" title="Refresh shares" disabled={refreshing} onClick={onRetry}><RefreshCw size={14} aria-hidden="true" /></Button>
           </div>
         </div>

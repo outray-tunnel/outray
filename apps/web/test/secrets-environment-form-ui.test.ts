@@ -6,6 +6,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { EnvironmentFormContent, type EnvironmentFormContentProps } from "../src/components/secrets/environment-form-content";
+import { workspaceInputClassName, workspaceTextareaClassName } from "../src/components/ui/workspace-input-styles";
 import type { SecretEnvironment } from "../src/lib/secrets-client";
 
 Object.assign(globalThis, { React });
@@ -31,12 +32,6 @@ function field(html: string, label: string) {
   assert.ok(control); return control;
 }
 function descriptions(control: string) { return control.match(/aria-describedby="([^"]+)"/)?.[1].split(" ") ?? []; }
-function cssRule(css: string, selector: string) {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const body = css.match(new RegExp(`${escaped}\\s*\\{([^}]+)\\}`))?.[1];
-  assert.ok(body, `stylesheet contains the ${selector} rule`); return body;
-}
-
 test("create form uses one native form with labeled bounded fields, an optional description, and explicit footer action types", () => {
   const html = render();
   assert.equal((html.match(/<form\b/g) ?? []).length, 1);
@@ -50,11 +45,11 @@ test("create form uses one native form with labeled bounded fields, an optional 
   assert.ok(html.includes(`id="${descriptions(slug)[0]}"`));
   assert.match(description, /^<textarea\b/); assert.match(description, /maxLength="500"/); assert.match(description, /rows="3"/);
   assert.doesNotMatch(description, /required/); assert.match(html, /Description <span[^>]*>Optional<\/span>/);
-  assert.doesNotMatch(html, /aria-invalid|autofocus|Confirm environment name|type="checkbox"/);
+  assert.doesNotMatch(html, /\saria-invalid=|\sautofocus(?:=|\s|>)|Confirm environment name|type="checkbox"/);
   const cancel = buttons(html).find((button) => textContent(button) === "Cancel") ?? "";
   const create = buttons(html).find((button) => textContent(button) === "Create environment") ?? "";
   assert.match(cancel, /type="button"/); assert.match(create, /type="submit"/);
-  assert.doesNotMatch(cancel, /disabled/); assert.doesNotMatch(create, /disabled/);
+  assert.doesNotMatch(cancel, /\sdisabled=""/); assert.doesNotMatch(create, /\sdisabled=""/);
   assert.match(html, /<footer\b/);
   assert.doesNotMatch(html, /class="footerHint"|Add secrets after creating it/, "the create footer contains actions without helper text");
   assert.match(html, /payments-api/);
@@ -70,7 +65,7 @@ test("every field error is associated with its invalid native control while exis
     assert.equal(ids.length, key === "slug" || key === "confirmation" ? 2 : 1);
     const errorId = ids.find((id) => id.endsWith(`${key}-error`));
     assert.ok(errorId);
-    assert.ok(html.includes(`id="${errorId}" class="fieldError">${errors[key]}</p>`));
+    assert.match(html, new RegExp(`id="${errorId}" class="[^"]*text-rose-300[^"]*">${errors[key]}</p>`));
     for (const id of ids) assert.ok(html.includes(`id="${id}"`));
   }
   assert.match(html, /role="alert">Could not save this environment<\/div>/);
@@ -98,9 +93,9 @@ test("production uses a visible associated label with a required semantic native
     assert.match(checkbox, /required=""/); assert.match(checkbox, /aria-describedby="[^"]+-production-hint"/);
     assert.doesNotMatch(checkbox, /aria-hidden|tabindex="-1"|role="checkbox"/);
     assert.equal(checkbox.includes('checked=""'), checked);
-    const label = html.match(/<label class="productionChoice">[\s\S]*?<\/label>/)?.[0] ?? "";
+    const label = html.match(/<label class="group flex min-h-8[^"]*">[\s\S]*?<\/label>/)?.[0] ?? "";
     assert.ok(label.includes(checkbox)); assert.match(label, /I understand this is a production environment/);
-    assert.match(label, /class="checkboxMark" aria-hidden="true"/);
+    assert.match(label, /peer-focus-visible:outline-2[^"]*" aria-hidden="true"/);
     const section = html.match(/<section\b[^>]*aria-labelledby="([^"]+)"[^>]*>/)?.[1];
     assert.ok(section); assert.ok(html.includes(`id="${section}"`));
   }
@@ -138,7 +133,6 @@ test("actual native field handlers and footer props forward exact values/events 
       if (specifier === "lucide-react") return { Check: Placeholder, Layers: Placeholder, LockKeyhole: Placeholder };
       if (specifier === "../arc/button/button") return { Button };
       if (specifier === "../ui/workspace-input") return { WorkspaceInput: "input", WorkspaceTextarea: "textarea" };
-      if (specifier.endsWith(".module.css")) return { default: new Proxy({}, { get: (_target, key) => key }), __esModule: true };
       throw new Error(`Unexpected environment form dependency: ${specifier}`);
     },
   });
@@ -169,48 +163,45 @@ test("actual native field handlers and footer props forward exact values/events 
   assert.ok(submit); assert.equal(submit.props.onClick, undefined, "submission flows through one form handler rather than a second button adapter");
 });
 
-test("short-view CSS keeps the Arc header/footer fixed in a bounded flex chain and scrolls only form fields", async () => {
-  const css = await readFile(new URL("../src/components/secrets/environment-form.module.css", import.meta.url), "utf8");
-  const dialog = cssRule(css, ".dialog.dialog");
-  assert.match(dialog, /width:\s*min\(calc\(100vw - 24px\), 520px\)/);
-  assert.match(dialog, /max-height:\s*calc\(100vh - 24px\)/); assert.match(dialog, /max-height:\s*calc\(100dvh - 24px\)/);
-  assert.match(dialog, /display:\s*flex/); assert.match(dialog, /flex-direction:\s*column/); assert.match(dialog, /overflow:\s*hidden/);
-  for (const selector of [".dialog > div:last-child", ".form", ".fields"]) {
-    const rule = cssRule(css, selector); assert.match(rule, /min-height:\s*0/); assert.match(rule, /flex:\s*1 1 auto/); assert.match(rule, /flex-direction:\s*column/);
-  }
-  assert.match(cssRule(css, ".dialog > div:last-child"), /padding:\s*0/);
-  assert.match(cssRule(css, ".dialog > div:first-child"), /flex:\s*0 0 auto/);
-  assert.match(cssRule(css, ".footer"), /flex:\s*0 0 auto/);
-  assert.match(cssRule(css, ".identity"), /grid-template-columns:\s*minmax\(0, 1fr\)\s*;/, "name and slug remain stacked at every viewport width");
-  assert.match(cssRule(css, ".fields"), /overflow-y:\s*auto/); assert.match(cssRule(css, ".fields"), /overscroll-behavior:\s*contain/);
-  assert.equal((css.match(/overflow-y:\s*auto/g) ?? []).length, 1);
-  assert.match(render(), /<form[^>]*><div class="fields">[\s\S]*?<\/div><footer class="footer">/);
+test("short-view utilities keep the Arc header/footer fixed in a bounded flex chain and scroll only form fields", async () => {
+  const [dialog, content] = await Promise.all([
+    readFile(new URL("../src/components/secrets/environment-dialog.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/secrets/environment-form-content.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(dialog, /w-\[min\(calc\(100vw-24px\),520px\)\]/);
+  assert.match(dialog, /max-h-\[calc\(100dvh-24px\)\]/);
+  assert.match(dialog, /flex[^"\n]*flex-col[^"\n]*overflow-hidden/);
+  assert.match(dialog, /\[&>div:last-child\]:min-h-0/);
+  assert.match(dialog, /\[&>div:last-child\]:flex-1/);
+  assert.match(dialog, /\[&>div:last-child\]:flex-col/);
+  assert.match(dialog, /\[&>div:last-child\]:p-0/);
+  assert.match(dialog, /\[&>div:first-child\]:shrink-0/);
+  assert.match(content, /<form className="flex min-h-0 flex-1 flex-col"/);
+  assert.match(content, /min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain/);
+  assert.equal((content.match(/overflow-y-auto/g) ?? []).length, 1);
+  assert.match(content, /grid grid-cols-1 items-start/);
+  assert.match(content, /<footer className="flex shrink-0/);
 });
 
-test("mobile, reduced-motion, native-checkbox and scoped input-focus CSS preserve accessible controls without the global double outline", async () => {
-  const [css, fields, theme, controller] = await Promise.all([
-    readFile(new URL("../src/components/secrets/environment-form.module.css", import.meta.url), "utf8"),
-    readFile(new URL("../src/components/ui/workspace-input.module.css", import.meta.url), "utf8"),
-    readFile(new URL("../src/components/outray-arc-theme.css", import.meta.url), "utf8"),
+test("mobile, reduced-motion, native-checkbox and scoped input-focus utilities preserve accessible controls without a double outline", async () => {
+  const [content, controller] = await Promise.all([
+    readFile(new URL("../src/components/secrets/environment-form-content.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/secrets/environment-dialog.tsx", import.meta.url), "utf8"),
   ]);
-  const mobile = css.slice(css.indexOf("@media (max-width: 540px)"));
-  assert.match(cssRule(mobile, ".identity"), /gap:/);
-  assert.doesNotMatch(cssRule(mobile, ".identity"), /grid-template-columns/, "mobile only adjusts spacing, not the always-stacked identity layout");
-  assert.match(css, /@media \(max-width:\s*540px\)[\s\S]*?\.footer\s*\{[^}]*flex-direction:\s*column/);
-  assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.checkboxMark\s*\{\s*transition:\s*none/);
-  assert.match(fields, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.control, \.shell\s*\{\s*transition:\s*none/);
-  const nativeCheckbox = cssRule(css, ".checkbox > input"); assert.match(nativeCheckbox, /opacity:\s*0/); assert.match(nativeCheckbox, /position:\s*absolute/);
-  assert.doesNotMatch(nativeCheckbox, /display:\s*none|visibility:\s*hidden/);
-  assert.match(cssRule(css, ".checkbox > input:focus-visible + .checkboxMark"), /outline:\s*2px solid/);
-  const focus = cssRule(fields, ".control.control:focus, .control.control:focus-visible, .shell.shell:focus-within");
-  assert.match(focus, /outline:\s*none/); assert.match(focus, /border-color:/); assert.match(focus, /box-shadow:/);
-  assert.match(theme, /\.outray-arc :is\(button, input, summary\):focus-visible/);
-  // Shared input focus (0,3,0) beats generic UIArc focus (0,2,1). The visible
-  // checkbox mark is a span, so the generic input outline cannot style it.
+  assert.match(content, /grid grid-cols-1 items-start gap-5 max-\[540px\]:gap-\[18px\]/);
+  assert.match(content, /max-\[540px\]:flex-col/);
+  assert.match(content, /motion-reduce:transition-none/);
+  assert.match(workspaceInputClassName, /motion-reduce:transition-none/);
+  assert.match(workspaceTextareaClassName, /motion-reduce:transition-none/);
+  assert.match(content, /peer absolute inset-0 z-1 m-0 size-full cursor-\[inherit\] opacity-0/);
+  assert.doesNotMatch(content, /display-none|visibility-hidden/);
+  assert.match(content, /peer-focus-visible:outline-2/);
+  for (const classes of [workspaceInputClassName, workspaceTextareaClassName]) {
+    assert.match(classes, /focus:outline-none/); assert.match(classes, /focus:border-white\/35/); assert.match(classes, /focus:shadow-/);
+  }
   assert.match(field(render(), "Environment name"), /data-workspace-input="default"/);
   assert.match(field(render(), "Description"), /data-workspace-input="textarea"/);
-  assert.match(controller, /className=\{`[^`]*ph-no-capture[^`]*styles\.dialog[^`]*`\} data-private-product="secrets"/);
+  assert.match(controller, /className=\{`\$\{workspaceScopeClassName\} ph-no-capture[^`]*`\} data-private-product="secrets"/);
   assert.match(controller, /onOpenAutoFocus=/); assert.match(controller, /onCloseAutoFocus=/);
   assert.match(controller, /querySelector<HTMLElement>\("\[data-environment-name\]"\)\?\.focus\(\)/);
   assert.doesNotMatch(render(), /autofocus/);

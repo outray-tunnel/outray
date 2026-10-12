@@ -11,7 +11,6 @@ import { ArrowLeft, ArrowRight, RefreshCw, Terminal } from "lucide-react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { Button } from "../arc/button/button";
 import { CopyButton } from "../arc/copy-button/copy-button";
-import "../outray-arc-theme.css";
 
 interface SetupFlowStep {
   id: string;
@@ -62,7 +61,7 @@ export function SetupFlow({
 
   return (
     <SetupFlowContext.Provider value={{ activeId, id }}>
-      <section className="outray-arc min-w-0 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0b0b0b]" aria-label="Setup guide">
+      <section className="min-w-0 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0b0b0b]" aria-label="Setup guide">
         <div role="tablist" aria-label="Setup steps" aria-orientation="horizontal" className="flex min-w-0 gap-1 overflow-x-auto border-b border-white/[0.07] p-2 [scrollbar-width:thin]">
           <LayoutGroup id={id}>
             {steps.map((step, index) => {
@@ -148,7 +147,7 @@ export function SetupCodeBlock({
   fileName?: string;
 }) {
   return (
-    <div className="outray-arc min-w-0 overflow-hidden rounded-lg border border-white/[0.08] bg-[#080808]">
+    <div className="min-w-0 overflow-hidden rounded-lg border border-white/[0.08] bg-[#080808]">
       {fileName && <div className="border-b border-white/[0.06] px-3.5 py-2 font-mono text-[11px] text-zinc-400">{fileName}</div>}
       <div className="flex min-w-0 items-start gap-2.5 p-3.5">
         {!multiline && <Terminal size={14} className="mt-2 shrink-0 text-zinc-600" aria-hidden="true" />}

@@ -16,7 +16,7 @@ import MoreVerticalIcon from "@outray/icons/stroke/MoreVerticalIcon";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/arc/button/button";
 import { Select, type SelectOption } from "@/components/ui/select";
-import "../outray-arc-theme.css";
+import { workspaceScopeClassName } from "@/components/ui/workspace-scope";
 
 export function SecretsPage({ children }: { children: ReactNode }) {
   return <div className="mx-auto w-full max-w-7xl space-y-8">{children}</div>;
@@ -84,7 +84,7 @@ export function SecretsButton({
       {...props}
       type={type}
       disabled={props.disabled || loading}
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl border px-4 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${buttonTones[tone]} ${className}`}
+      className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl border px-4 text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] disabled:cursor-not-allowed disabled:opacity-60 ${buttonTones[tone]} ${className}`}
     >
       {(loading || icon) && (
         <HugeiconsIcon
@@ -117,7 +117,7 @@ export function SecretsIconButton({
       type="button"
       aria-label={label}
       title={label}
-      className={`inline-flex size-10 items-center justify-center rounded-xl border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${buttonTones[tone]} ${className}`}
+      className={`inline-flex size-10 items-center justify-center rounded-xl border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] disabled:cursor-not-allowed disabled:opacity-50 ${buttonTones[tone]} ${className}`}
     >
       <HugeiconsIcon
         icon={icon}
@@ -178,7 +178,7 @@ export function SecretsNotice({
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss message"
-          className="rounded-lg p-1 opacity-70 transition-opacity hover:opacity-100"
+          className="rounded-lg p-1 opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
         >
           <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={1.8} />
         </button>
@@ -379,7 +379,7 @@ export function SecretsDialog({
   return portalTarget ? createPortal(
     <AnimatePresence>
       {open && (
-        <div data-private-product="secrets" className="workspace-ui outray-arc ph-no-capture fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
+        <div data-private-product="secrets" className={`${workspaceScopeClassName} ph-no-capture fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4`}>
           <motion.button
             type="button"
             aria-label="Close dialog"
@@ -474,7 +474,7 @@ export function SecretsSheet({
   return portalTarget ? createPortal(
     <AnimatePresence>
       {open && (
-        <div data-private-product="secrets" className="workspace-ui outray-arc ph-no-capture fixed inset-0 z-[100]">
+        <div data-private-product="secrets" className={`${workspaceScopeClassName} ph-no-capture fixed inset-0 z-[100]`}>
           <motion.button
             type="button"
             aria-label="Close panel"
@@ -666,7 +666,7 @@ export function ActionMenu({
                 closeMenu(true);
                 item.onSelect();
               }}
-              className={`flex min-h-9 w-full min-w-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none ${
+              className={`flex min-h-9 w-full min-w-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] outline-none transition-colors focus-visible:shadow-[inset_0_0_0_1px_rgb(255_255_255/.18)] disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none ${
                 item.danger
                   ? "text-rose-400 hover:bg-rose-400/[0.08] focus:bg-rose-400/[0.08]"
                   : "text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200 focus:bg-white/[0.06] focus:text-zinc-200"
@@ -697,7 +697,7 @@ export function ProductionConfirmation({
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-0.5 size-4 rounded border-white/20 bg-black accent-[#b7ff78]"
+        className="mt-0.5 size-4 rounded border-white/20 bg-black accent-[#b7ff78] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
       />
       <span>
         <span className="block text-[13px] font-medium text-amber-300">

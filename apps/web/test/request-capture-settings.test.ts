@@ -72,7 +72,10 @@ test("opening capture settings does not write and unchanged Save is disabled", (
   assert.match(html, /Save changes/);
   assert.match(html, /Cancel/);
   assert.doesNotMatch(html, /role="switch"/);
-  for (const [button] of html.matchAll(/<button\b[^>]*>/g)) assert.match(button, /class="[^"]*\bsm\b/);
+  for (const [button] of html.matchAll(/<button\b[^>]*>/g)) {
+    assert.match(button, /class="[^"]*\bmin-h-8\b/);
+    assert.match(button, /class="[^"]*\bpx-3\b/);
+  }
 });
 
 test("the requests page opens capture settings with a medium launcher", async () => {

@@ -3,7 +3,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { motionTokens } from "../lib/motion-tokens";
-import styles from "./segmented-control.module.css";
 
 export interface Segment { value: string; label: string; /** Optional content after the label, such as a badge. */ accessory?: ReactNode; }
 export interface SegmentedControlProps {
@@ -62,11 +61,11 @@ export default function SegmentedControl({ options, value, onValueChange, label,
     track.current?.querySelector<HTMLElement>(`[data-value="${CSS.escape(options[target].value)}"]`)?.focus({ preventScroll: true });
   };
 
-  return <div className={`${styles.root} ${className ?? ""}`} role="group" aria-label={label}>
-    <LayoutGroup id={id}><motion.div ref={track} layoutScroll className={styles.track}>
-      {options.map((option, index) => <button key={option.value} id={`${id}-${option.value}`} className={styles.button} type="button" data-value={option.value} aria-pressed={value === option.value} tabIndex={index === selectedIndex ? 0 : -1} onClick={() => onValueChange(option.value)} onKeyDown={onKeyDown} onPointerEnter={onOptionIntent ? () => onOptionIntent(option.value) : undefined} onFocus={onOptionIntent ? () => onOptionIntent(option.value) : undefined}>
-        {value === option.value && <motion.span className={styles.selection} layoutId="selection" layoutDependency={value} transition={reduced ? { duration: 0 } : motionTokens.spring.morph} aria-hidden="true" />}
-        <span className={styles.label}>{option.label}{option.accessory}</span>
+  return <div className={`inline-flex min-w-0 max-w-full shrink rounded-xl border border-white/12 bg-[#202023] ${className ?? ""}`} role="group" aria-label={label}>
+    <LayoutGroup id={id}><motion.div ref={track} layoutScroll className="isolate flex min-w-0 gap-0.5 overflow-x-auto overscroll-x-contain rounded-[inherit] p-[3px] [--fade-start:0px] [--fade-end:0px] [mask-image:linear-gradient(to_right,transparent,#000_var(--fade-start),#000_calc(100%_-_var(--fade-end)),transparent)] data-[fade-start]:[--fade-start:20px] data-[fade-end]:[--fade-end:20px] [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+      {options.map((option, index) => <button key={option.value} id={`${id}-${option.value}`} className="relative min-h-8 shrink-0 rounded-lg border-0 bg-transparent px-3 text-[13px] font-medium whitespace-nowrap text-zinc-500 transition-colors duration-160 hover:text-zinc-50 active:text-zinc-50 aria-pressed:text-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] max-[380px]:px-2.5 motion-reduce:transition-none" type="button" data-value={option.value} aria-pressed={value === option.value} tabIndex={index === selectedIndex ? 0 : -1} onClick={() => onValueChange(option.value)} onKeyDown={onKeyDown} onPointerEnter={onOptionIntent ? () => onOptionIntent(option.value) : undefined} onFocus={onOptionIntent ? () => onOptionIntent(option.value) : undefined}>
+        {value === option.value && <motion.span className="absolute inset-0 -z-1 rounded-[inherit] border border-white/12 bg-zinc-900 shadow-[0_1px_2px_rgb(0_0_0/.25)]" layoutId="selection" layoutDependency={value} transition={reduced ? { duration: 0 } : motionTokens.spring.morph} aria-hidden="true" />}
+        <span className="relative z-1 inline-flex items-center gap-1.5">{option.label}{option.accessory}</span>
       </button>)}
     </motion.div></LayoutGroup>
   </div>;

@@ -141,7 +141,7 @@ test("monitor and alert creation enforce the effective installation limit inside
       const queries: Array<{ table: string; locked: boolean; limit?: number }> = [];
       const tx = {
         select() {
-          let current = { table: "", locked: false, limit: undefined as number | undefined };
+          const current = { table: "", locked: false, limit: undefined as number | undefined };
           const builder = {
             from(value: { name: string }) { current.table = value.name; return builder; },
             where() { return builder; },

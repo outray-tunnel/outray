@@ -162,11 +162,7 @@ export function ProductNavigation({
               aria-labelledby={buttonId}
               aria-hidden={!isOpen}
               inert={!isOpen}
-              className="grid transition-[grid-template-rows,opacity] duration-150 ease-out motion-reduce:transition-none"
-              style={{
-                gridTemplateRows: isOpen ? "1fr" : "0fr",
-                opacity: isOpen ? 1 : 0,
-              }}
+              className={`grid transition-[grid-template-rows,opacity] duration-150 ease-out motion-reduce:transition-none ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
             >
               <div className="min-h-0 overflow-hidden">
                 <div className="space-y-0.5 pb-1 pt-0.5">

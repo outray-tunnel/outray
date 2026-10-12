@@ -6,7 +6,6 @@ import { SearchField } from "../arc/search-field/search-field";
 import { Select } from "../arc/select/select";
 import { ALERT_STATUS, AlertIcon, AlertStatePill } from "./alert-status-badge";
 import { ALERT_STATES, alertServiceOptions, conditionLabel, filterAlerts, formatAlertValue, formatClockTime, formatRelativeTime, signalLabel, signalOptions, type AlertRecord, type AlertsSearch, type AlertsSnapshot, type AlertState } from "./alerts-data";
-import "../outray-arc-theme.css";
 
 export interface AlertsListContentProps {
   orgSlug: string;
@@ -34,7 +33,7 @@ export function AlertsListContent({ orgSlug, data, filters, searchInput, onSearc
   const atLimit = data?.limit !== undefined && data.limit >= 0 && data.alerts.length >= data.limit;
   const stateCount = (state: AlertState) => data?.summary[state === "no_data" ? "noData" : state] ?? 0;
 
-  return <div className="outray-arc outray-arc-list mx-auto max-w-[1440px] space-y-5">
+  return <div className="mx-auto max-w-[1440px] space-y-5">
     <header className="flex flex-wrap items-center justify-between gap-3 pb-1">
       <div><h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Alerts</h1><p className="mt-1 text-[12px] text-zinc-400">Watch your services and get notified when a condition needs attention.</p></div>
       <Button ref={createRef} size="md" onClick={onCreate} disabled={atLimit} aria-haspopup="dialog"><Plus size={15} aria-hidden="true" /> New alert</Button>
@@ -58,7 +57,7 @@ export function AlertsListContent({ orgSlug, data, filters, searchInput, onSearc
       </div>
 
       <div className="flex flex-wrap items-end gap-3 border-b border-white/[0.07] p-4">
-        <div className="outray-arc-requests-search min-w-0 flex-1 basis-full sm:basis-[260px]"><SearchField appearance="workspace" label="Search alert rules" value={searchInput} onValueChange={onSearchInputChange} placeholder="Search rules, services or signals…" autoComplete="off" spellCheck={false} /></div>
+        <div className="min-w-0 flex-1 basis-full sm:basis-[260px] [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" label="Search alert rules" value={searchInput} onValueChange={onSearchInputChange} placeholder="Search rules, services or signals…" autoComplete="off" spellCheck={false} /></div>
         <div className="min-w-0 flex-1 basis-[160px] sm:max-w-[200px]"><Select label="Service" value={filters.service ? `service:${filters.service}` : "all"} onValueChange={(value) => onFiltersChange({ service: value === "all" ? undefined : value.slice(8) })} options={[{ value: "all", label: "All services" }, ...services.map((name) => ({ value: `service:${name}`, label: name }))]} /></div>
         <div className="min-w-0 flex-1 basis-[180px] sm:max-w-[210px]"><Select label="Signal" value={filters.signal ?? "all"} onValueChange={(value) => onFiltersChange({ signal: value === "all" ? undefined : value as AlertsSearch["signal"] })} options={[{ value: "all", label: "All signals" }, ...signalOptions.map(({ value, label }) => ({ value, label }))]} /></div>
         {hasFilters && <Button variant="ghost" size="sm" onClick={onClearFilters}>Clear filters</Button>}

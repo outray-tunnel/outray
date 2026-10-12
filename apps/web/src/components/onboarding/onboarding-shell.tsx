@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
-import "../outray-arc-theme.css";
+import { workspaceScopeClassName } from "../ui/workspace-scope";
 
 /** A focused workspace surface, without a second navigation system. */
 export function OnboardingShell({
@@ -12,7 +12,7 @@ export function OnboardingShell({
   children: ReactNode;
 }) {
   return (
-    <div className="workspace-ui outray-arc min-h-screen bg-[#070707] text-zinc-300 selection:bg-accent/30">
+    <div className={`${workspaceScopeClassName} min-h-screen bg-[#070707] text-zinc-300 selection:bg-accent/30`}>
       <a
         href="#onboarding-content"
         className="sr-only z-50 rounded-lg bg-white px-3 py-2 text-black focus:not-sr-only focus:absolute focus:left-6 focus:top-2"

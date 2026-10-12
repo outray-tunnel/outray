@@ -3,12 +3,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check, Mail, X } from "lucide-react";
 import { Button } from "@/components/arc/button/button";
-import buttonStyles from "@/components/arc/button/button.module.css";
-import "@/components/outray-arc-theme.css";
 import { formatTime, uptimeApiPath, uptimeRequest } from "@/components/uptime/uptime-client";
 import { UptimeDialog } from "@/components/uptime/uptime-dialog";
 import { UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
-import { UptimeError, UptimePageHeading } from "@/components/uptime/uptime-ui";
+import { primaryButtonSmall, secondaryButtonMedium, UptimeError, UptimePageHeading } from "@/components/uptime/uptime-ui";
 
 type Provider = "slack" | "discord";
 type IntegrationResult = "connected" | "cancelled" | "failed";
@@ -121,7 +119,7 @@ function NotificationsContent({ orgSlug, integration }: { orgSlug: string; integ
     }
   };
 
-  return <div className="outray-arc mx-auto w-full max-w-[1440px]">
+  return <div className="mx-auto w-full max-w-[1440px]">
     <UptimePageHeading title="Notifications" description="Manage the channels your team uses for Uptime alerts." />
     {notice && <div role={notice.kind === "error" ? "alert" : "status"} className={`mb-4 flex items-center justify-between gap-4 rounded-lg border px-4 py-2 text-[12px] leading-5 ${notice.kind === "error" ? "border-rose-400/15 bg-rose-400/[0.025] text-rose-300" : notice.kind === "success" ? "border-emerald-400/15 bg-emerald-400/[0.025] text-emerald-300" : "border-white/[0.08] bg-white/[0.025] text-zinc-300"}`}>
       <p>{notice.message}</p>
@@ -162,7 +160,7 @@ function NotificationsContent({ orgSlug, integration }: { orgSlug: string; integ
               </div>
             </div>
             {canManage && (connection ? <Button type="button" variant="secondary" size="md" aria-haspopup="dialog" aria-label={`${name} channel settings`} onClick={() => { setRemoveError(null); setDialog({ provider, mode: "settings" }); }}>Settings</Button>
-              : available ? <a className={`${buttonStyles.button} ${buttonStyles.secondary} ${buttonStyles.md}`} href={uptimeApiPath(orgSlug, `/integrations/${provider}/start`)}>Connect {name}</a>
+              : available ? <a className={secondaryButtonMedium} href={uptimeApiPath(orgSlug, `/integrations/${provider}/start`)}>Connect {name}</a>
                 : <Button type="button" variant="secondary" size="md" disabled>Connect {name}</Button>)}
           </div>;
         })}
@@ -184,7 +182,7 @@ function NotificationsContent({ orgSlug, integration }: { orgSlug: string; integ
         <Button ref={cancelButton} type="button" variant="secondary" size="sm" disabled={removing !== null} onClick={dialog?.mode === "remove" ? () => { setRemoveError(null); setDialog(dialog ? { ...dialog, mode: "settings" } : null); } : closeDialog}>{dialog?.mode === "remove" ? "Cancel" : "Close"}</Button>
         {dialog && selectedConnection && canManage && (dialog.mode === "remove"
           ? <Button type="button" variant="danger" size="sm" loading={removing !== null} onClick={() => void removeConnection(dialog.provider)}>Remove {selectedName}</Button>
-          : resource.data?.availability[dialog.provider] ? <a className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.sm}`} href={uptimeApiPath(orgSlug, `/integrations/${dialog.provider}/start`)}>Change channel</a> : <Button type="button" size="sm" disabled>Change channel</Button>)}
+          : resource.data?.availability[dialog.provider] ? <a className={primaryButtonSmall} href={uptimeApiPath(orgSlug, `/integrations/${dialog.provider}/start`)}>Change channel</a> : <Button type="button" size="sm" disabled>Change channel</Button>)}
       </>}>
       {selectedConnection ? <div className="space-y-5">
         <div className="flex items-center gap-3"><img src={`/logos/${selectedConnection.provider}.svg`} alt="" className="size-7 object-contain" /><div><p className="break-words text-sm text-zinc-200">{channelSummary(selectedConnection)}</p><p className="mt-1 text-xs text-zinc-500">Connected {formatTime(selectedConnection.target?.connectedAt || selectedConnection.connectedAt)}</p></div></div>

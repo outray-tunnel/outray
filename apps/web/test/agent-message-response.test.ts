@@ -42,7 +42,7 @@ test("fenced code remains escaped and code/table overflow containers are keyboar
   assert.match(html, /<pre[^>]*tabindex="0"[^>]*aria-label="Code example"/);
   assert.match(html, /&lt;script&gt;example\(\)&lt;\/script&gt;/);
   assert.doesNotMatch(html, /<script|CodeBlockCopyButton|Download|Copy code/);
-  assert.match(html, /class="tableScroll" tabindex="0" role="region" aria-label="Agent result table"/);
+  assert.match(html, /class="[^"]*max-w-full overflow-x-auto[^"]*" tabindex="0" role="region" aria-label="Agent result table"/);
   assert.match(html, /<table>[\s\S]*<thead>[\s\S]*<tbody>/);
   assert.match(html, /<strong[^>]*>503<\/strong>/);
 });
@@ -63,8 +63,8 @@ test("only same-workspace telemetry links become navigable and unsafe destinatio
   assert.match(html, /href="\/acme\/observability\/traces\?search=trace"/);
   assert.match(html, /href="\/acme\/observability\/logs\?search=trace"/);
   assert.equal((html.match(/<a\b/g) ?? []).length, 3);
-  assert.match(html, /<span class="inertLink">External<\/span>/);
-  assert.match(html, /<span class="inertLink">Other workspace<\/span>/);
+  assert.match(html, /<span class="text-inherit">External<\/span>/);
+  assert.match(html, /<span class="text-inherit">Other workspace<\/span>/);
   assert.doesNotMatch(html, /href="(?:https?:|javascript:|data:|\/\/|\/other|\/acme\/settings)/);
   assert.doesNotMatch(html, /target=|onclick=|onerror=/i);
 });
@@ -118,13 +118,14 @@ test("local and saved server runs keep the visible working label while only loca
     const html = renderMessage({ status: "running", localStreaming });
     assert.match(html, /aria-busy="true"/);
     assert.match(html, /data-agent-status="working"/);
-    assert.match(html, /class="workingIcon"/);
-    assert.match(html, /class="workingLabel">Agent working…<\/span>/);
+    assert.match(html, /animate-\[pulse_2\.6s_ease-in-out_infinite\] text-violet-300 motion-reduce:animate-none motion-reduce:opacity-100/);
+    assert.match(html, /animate-\[pulse_2\.6s_ease-in-out_infinite\] text-\[#beb7cc\] motion-reduce:animate-none motion-reduce:opacity-100">Agent working…<\/span>/);
+    assert.doesNotMatch(html, /(?:^|[\s"])animate-pulse(?:[\s"]|$)/);
     assert.match(html, new RegExp(`data-streaming="${localStreaming}"`));
     assert.doesNotMatch(html, /Copy response/);
     if (!localStreaming) {
       assert.match(html, /saved response has not finished yet/);
-      assert.doesNotMatch(html, /Connecting|animate-pulse|Stop response/);
+      assert.doesNotMatch(html, /Connecting|Stop response/);
     }
   }
 });
@@ -134,7 +135,7 @@ test("terminal replies stop shimmer, preserve copy/failure controls and user tex
     const html = renderMessage({ status, error: status === "complete" ? undefined : "A safe error." });
     assert.match(html, /aria-busy="false"/);
     assert.match(html, /data-agent-status="idle"/);
-    assert.doesNotMatch(html, /workingIcon|workingLabel|Agent working/);
+    assert.doesNotMatch(html, /data-agent-status="working"|Agent working/);
     assert.match(html, /aria-label="Copy response"/);
     if (status !== "complete") assert.match(html, /role="alert"[^>]*>A safe error\./);
   }
@@ -168,7 +169,7 @@ test("restored running replies keep evidence hidden before and during their save
     const html = renderMessage({ status: "running", localStreaming: false, text, steps: responseSteps, evidence: responseEvidence });
     assert.match(html, /Agent working…/);
     assert.match(html, /saved response has not finished yet/);
-    assert.doesNotMatch(html, /Connecting|animate-pulse|Copy response/);
+    assert.doesNotMatch(html, /Connecting|Copy response/);
     if (text) {
       assert.match(html, /data-streaming="false"/);
       assert.match(html, /<strong[^>]*>partial fact<\/strong>/);
@@ -230,18 +231,15 @@ test("remote runs disable Send without rendering a fake Stop, while local runs r
 });
 
 test("shimmer reduced-motion fallback preserves text and localized Markdown styles bound narrow layouts", async () => {
-  const panelCss = await readFile(new URL("../src/components/agent/agent-chat-panel.module.css", import.meta.url), "utf8");
-  assert.match(panelCss, /\.workingLabel\s*\{\s*color:/);
-  assert.match(panelCss, /animation: working-shimmer/);
-  assert.match(panelCss, /animation: working-glow/);
-  const reduced = panelCss.slice(panelCss.indexOf("@media (prefers-reduced-motion: reduce)"));
-  assert.match(reduced, /workingLabel, \.workingIcon\s*\{\s*animation: none/);
-  assert.match(reduced, /background: none; color: #[\da-f]+; -webkit-text-fill-color: currentColor/);
-  assert.doesNotMatch(reduced, /display: none|visibility: hidden|opacity: 0/);
-  const markdownCss = await readFile(new URL("../src/components/agent/agent-message-response.module.css", import.meta.url), "utf8");
-  assert.match(markdownCss, /\.response\s*\{[\s\S]*?min-width: 0/);
-  assert.match(markdownCss, /\.response pre\s*\{[\s\S]*?max-width: 100%;[\s\S]*?overflow: auto/);
-  assert.match(markdownCss, /\.tableScroll\s*\{[\s\S]*?max-width: 100%;[\s\S]*?overflow-x: auto/);
-  assert.match(markdownCss, /:focus-visible/);
-  assert.match(markdownCss, /@media \(max-width: 480px\)/);
+  const panel = await readFile(new URL("../src/components/agent/agent-chat-panel.tsx", import.meta.url), "utf8");
+  assert.match(panel, /animate-\[pulse_2\.6s_ease-in-out_infinite\] text-\[#beb7cc\] motion-reduce:animate-none motion-reduce:opacity-100/);
+  assert.doesNotMatch(panel, /(?:^|[\s"])animate-pulse(?:[\s"]|$)/);
+  assert.match(panel, />\{working \? "Agent working…" : "Agent"\}<\/h2>/);
+  assert.doesNotMatch(panel, /motion-reduce:(?:hidden|invisible|opacity-0)/);
+  const markdown = await readFile(new URL("../src/components/agent/agent-message-response.tsx", import.meta.url), "utf8");
+  assert.match(markdown, /const responseClassName = "min-w-0/);
+  assert.match(markdown, /\[&_pre\]:max-w-full \[&_pre\]:overflow-auto/);
+  assert.match(markdown, /my-3 max-w-full overflow-x-auto overscroll-contain/);
+  assert.match(markdown, /focus-visible:outline-2/);
+  assert.match(markdown, /max-\[480px\]:\[&_pre\]:p-\[\.7rem\]/);
 });

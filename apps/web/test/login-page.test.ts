@@ -46,12 +46,12 @@ test("login has one clear sign-in heading, two named OAuth options and genuine A
   assert.equal(options.length, 2);
   assert.match(options[0], /type="button"/);
   assert.match(options[0], /aria-label="Continue with GitHub"/);
-  assert.match(options[0], /class="[^"]*\bprimary\b[^"]*\blg\b/);
+  assert.match(options[0], /class="[^"]*bg-zinc-50[^"]*min-h-11/);
   assert.match(options[1], /aria-label="Continue with Google"/);
-  assert.match(options[1], /class="[^"]*\bsecondary\b[^"]*\blg\b/);
+  assert.match(options[1], /class="[^"]*bg-zinc-900[^"]*min-h-11/);
   for (const option of options) assert.doesNotMatch(option, /\bdisabled=|aria-disabled="true"/);
   assert.doesNotMatch(html, /<input|type="password"|<form/);
-  assert.match(html, /outray-arc/);
+  assert.match(html, /min-h-svh/);
   assert.doesNotMatch(html, /font-sans/);
 });
 
@@ -129,7 +129,7 @@ test("self-hosted auth keeps configured providers and administrator guidance wit
     assert.match(html, /Use an approved account to access this installation/);
     assert.match(html, /contact your installation administrator/);
     assert.doesNotMatch(html, /Back to home|New to OutRay|Get started|href="\/signup"|href="\/terms"|href="\/privacy"|mailto:support|Everything behind your app|<aside/);
-    assert.match(html, /class="main installation"/);
+    assert.match(html, /max-w-\[440px\] grid-cols-1/);
     assert.equal(buttons(html).length, 1);
   }
 });
@@ -145,17 +145,17 @@ test("the sign-up link retains the full CLI or invitation destination including 
   }
 });
 
-test("login CSS provides a bounded mobile column, visible focus states and reduced-motion fallback", async () => {
-  const css = await readFile(new URL("../src/components/auth/auth-page.module.css", import.meta.url), "utf8");
-  const buttonCss = await readFile(new URL("../src/components/arc/button/button.module.css", import.meta.url), "utf8");
-  assert.match(css, /min-height:\s*100svh/);
-  assert.match(css, /\.main\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) minmax\(0, 1fr\)/);
-  assert.match(css, /@media \(max-width:\s*800px\)[\s\S]*?\.main\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
-  assert.match(css, /@media \(max-width:\s*800px\)[\s\S]*?\.productIntro\s*\{[^}]*display:\s*none/);
-  assert.match(css, /@media \(max-width:\s*400px\)/);
-  assert.match(css, /\.provider:focus-visible\s*\{[^}]*outline:/);
-  assert.match(css, /\.page :where\(a\):focus-visible\s*\{[^}]*outline:/);
-  assert.match(css, /\.status\s*\{[^}]*min-height:\s*20px/);
-  assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*transition:\s*none/);
-  assert.match(buttonCss, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*\.spinner\s*\{[^}]*animation-iteration-count:\s*1/);
+test("login Tailwind utilities provide a bounded mobile column, visible focus states and reduced-motion fallback", async () => {
+  const source = await readFile(new URL("../src/components/auth/auth-page.tsx", import.meta.url), "utf8");
+  const button = await readFile(new URL("../src/components/arc/button/button.tsx", import.meta.url), "utf8");
+  assert.match(source, /min-h-svh/);
+  assert.match(source, /grid-cols-2/);
+  assert.match(source, /max-\[800px\]:max-w-\[440px\] max-\[800px\]:grid-cols-1/);
+  assert.match(source, /max-\[800px\]:hidden/);
+  assert.match(source, /max-\[400px\]:px-5/);
+  assert.match(source, /focus-visible:outline-2/);
+  assert.match(source, /\[&_a:focus-visible\]:outline-2/);
+  assert.match(source, /min-h-5/);
+  assert.match(source, /motion-reduce:transition-none/);
+  assert.match(button, /animate-spin[^"\n]*motion-reduce:animate-none/);
 });

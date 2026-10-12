@@ -1,6 +1,6 @@
-import styles from "./workspace-input.module.css";
+const shared = "w-full min-w-0 border border-white/10 bg-[#0b0b0b] text-zinc-200 outline-none transition-[border-color,box-shadow] duration-140 ease-out placeholder:text-zinc-500 hover:not-disabled:border-white/18 focus:border-white/35 focus:shadow-[0_0_0_1px_rgb(255_255_255/.08)] focus:outline-none focus-visible:border-white/35 focus-visible:shadow-[0_0_0_1px_rgb(255_255_255/.08)] focus-visible:outline-none aria-invalid:border-rose-400/60 aria-invalid:focus:border-rose-400 aria-invalid:focus:shadow-[0_0_0_1px_rgb(251_113_133/.14)] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none";
 
-export const workspaceInputClassName = styles.control;
-export const workspaceTextareaClassName = `${styles.control} ${styles.textarea}`;
-export const workspaceInputShellClassName = styles.shell;
-export const workspaceInputBareClassName = styles.bare;
+export const workspaceInputClassName = `${shared} block h-11 min-h-11 rounded-2xl px-[var(--workspace-input-padding-right,14px)] pl-[var(--workspace-input-padding-left,14px)] text-[15px] leading-normal data-[field-size=compact]:h-9 data-[field-size=compact]:min-h-9 data-[field-size=compact]:text-[13px] [&::-webkit-search-cancel-button]:hidden`;
+export const workspaceTextareaClassName = `${shared} min-h-28 resize-y rounded-2xl px-3.5 py-3 text-[15px] leading-[1.6] [&::-webkit-search-cancel-button]:hidden`;
+export const workspaceInputShellClassName = `${shared} flex min-h-11 items-center gap-2 rounded-2xl px-3.5 has-disabled:cursor-not-allowed has-disabled:opacity-50 has-[input[aria-invalid=true]]:border-rose-400/60 focus-within:border-white/35 focus-within:shadow-[0_0_0_1px_rgb(255_255_255/.08)] data-[field-size=compact]:h-9 data-[field-size=compact]:min-h-9 [&>input:disabled]:opacity-100 [&>:not(input)]:shrink-0`;
+export const workspaceInputBareClassName = "h-[42px] min-h-0 w-full min-w-0 rounded-none border-0 bg-transparent p-0 text-[15px] leading-normal text-zinc-200 shadow-none outline-none placeholder:text-zinc-500 focus:border-0 focus:shadow-none focus:outline-none focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[field-size=compact]:h-[34px] data-[field-size=compact]:text-[13px] [&::-webkit-search-cancel-button]:hidden";

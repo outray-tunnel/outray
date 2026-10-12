@@ -7,7 +7,6 @@ import { Button } from "@/components/arc/button/button";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
 import { SearchField } from "@/components/arc/search-field/search-field";
 import { Select } from "@/components/arc/select/select";
-import "@/components/outray-arc-theme.css";
 import { IncidentBadge } from "@/components/uptime/incident-ui";
 import { formatTime, type UptimeIncidentListResponse, type UptimePageResponse, uptimeRequest } from "@/components/uptime/uptime-client";
 import { UptimeRowsSkeleton, UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
@@ -84,13 +83,13 @@ function UptimeIncidents() {
     void navigate({ search: {}, replace: true, resetScroll: false });
   };
 
-  return <div className="outray-arc mx-auto w-full max-w-[1440px]">
+  return <div className="mx-auto w-full max-w-[1440px]">
     <UptimePageHeading title="Incidents" description="Track issues, share updates, and follow recovery." action={canManage ? <Button type="button" size="md" aria-haspopup="dialog" onClick={() => setCreating(true)}><Plus size={15} aria-hidden="true" />Create incident</Button> : undefined} />
     <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
       <SegmentedControl label="Filter incidents by status" options={Array.from(views)} value={search.view ?? "all"} onValueChange={(value) => changeFilter({ view: value as IncidentSearch["view"] })} />
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
-        <div className="outray-arc-requests-search min-w-0 sm:w-60"><SearchField appearance="workspace" label="Search incidents by title" value={searchText} onValueChange={changeSearch} placeholder="Search incidents…" autoComplete="off" /></div>
-        <div className="outray-arc-address-filter min-w-0 sm:w-40"><Select label="Incident source" value={search.source ?? "all"} onValueChange={(value) => changeFilter({ source: value as IncidentSearch["source"] })} options={[{ value: "all", label: "All sources" }, { value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }]} /></div>
+        <div className="min-w-0 sm:w-60 [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" label="Search incidents by title" value={searchText} onValueChange={changeSearch} placeholder="Search incidents…" autoComplete="off" /></div>
+        <div className="min-w-0 sm:w-40 [&>div]:relative [&>div]:gap-0 [&_label]:sr-only"><Select label="Incident source" value={search.source ?? "all"} onValueChange={(value) => changeFilter({ source: value as IncidentSearch["source"] })} options={[{ value: "all", label: "All sources" }, { value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }]} /></div>
       </div>
     </div>
     {incidents.error && <div className="mb-4 space-y-2"><UptimeError message={incidents.error instanceof Error ? incidents.error.message : "Could not load incidents."} /><Button type="button" variant="secondary" size="sm" loading={incidents.isFetching} onClick={() => void incidents.refetch()}>Try again</Button></div>}

@@ -3,7 +3,6 @@ import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "../arc/button/button";
 import { createHoldToDeleteController } from "./hold-to-delete-controller";
-import styles from "./hold-to-delete.module.css";
 
 interface HoldToDeleteProps {
   onConfirm: () => void;
@@ -96,9 +95,9 @@ export function HoldToDelete({ onConfirm, disabled = false, loading = false, lab
   }
 
   return (
-    <div className={[styles.control, className].filter(Boolean).join(" ")}>
+    <div className={["flex w-full min-w-0 flex-col items-stretch gap-2.5", className].filter(Boolean).join(" ")}>
       <Button
-        type="button" variant="danger" size="lg" className={styles.button}
+        type="button" variant="danger" size="lg" className="relative min-h-[52px] w-full touch-none select-none overflow-hidden border-[#d33b50] bg-[#bd3044] text-sm text-white transform-none! before:pointer-events-none before:absolute before:inset-0 before:z-0 before:origin-left before:scale-x-[var(--hold-progress,0)] before:rounded-[inherit] before:bg-white/18 before:content-[''] hover:not-disabled:not-aria-busy:border-[#ed5a70] hover:not-disabled:not-aria-busy:bg-[#c5364d] active:not-disabled:border-[#ed5a70] active:not-disabled:bg-[#a9273b] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-rose-300 motion-reduce:before:transition-none"
         style={{ "--hold-progress": progress } as CSSProperties}
         disabled={disabled && !loading} loading={loading}
         aria-label={label} aria-describedby={`${id}-instructions`}
@@ -109,13 +108,13 @@ export function HoldToDelete({ onConfirm, disabled = false, loading = false, lab
         onKeyDown={keyDown} onKeyUp={keyUp} onBlur={() => controller.current!.cancel()}
         onClick={(event) => event.preventDefault()} onContextMenu={(event) => event.preventDefault()}
       >
-        <span className={styles.label}><Trash2 size={16} aria-hidden="true" />{label}</span>
+        <span className="relative z-1 inline-flex items-center gap-[7px]"><Trash2 size={16} aria-hidden="true" />{label}</span>
       </Button>
-      <span id={`${id}-instructions`} className={styles.hint}>
+      <span id={`${id}-instructions`} className="text-center text-[11px] leading-normal font-normal text-zinc-400">
         <span aria-hidden="true">Hold for 5 seconds · Release to cancel</span>
-        <span className={styles.screenReader}>Hold this button for 5 seconds to confirm. With a keyboard, hold Space or Enter. Release, move away, or press Escape to cancel.</span>
+        <span className="sr-only">Hold this button for 5 seconds to confirm. With a keyboard, hold Space or Enter. Release, move away, or press Escape to cancel.</span>
       </span>
-      <span className={styles.screenReader} role="status" aria-live="polite" aria-atomic="true">
+      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {loading ? "Deleting selected secrets." : progress >= 1 ? "Deletion requested." : progress > 0 ? "Keep holding. Release to cancel." : ""}
       </span>
     </div>

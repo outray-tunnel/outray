@@ -28,7 +28,9 @@ function renderFlow() {
 
 test("onboarding has one compact branded header, workspace context, and an immediate console escape", () => {
   const html = renderShell();
-  assert.match(html, /workspace-ui outray-arc/);
+  assert.match(html, /min-h-screen bg-\[#070707\]/);
+  assert.match(html, /rounded-lg\]:rounded-\[\.75rem\]/);
+  assert.doesNotMatch(html, /workspace-ui|outray-arc/);
   // Inherit OutRay's Geom body font; Tailwind's default font-sans would override it.
   assert.doesNotMatch(html, /font-sans/);
   assert.match(html, /h-14/);
@@ -63,7 +65,7 @@ test("embedded setup can use small actions while standalone navigation remains m
     const actions = [...html.matchAll(/<button\b([^>]*)>[\s\S]*?<\/button>/g)]
       .filter(([button]) => button.includes("Back") || button.includes("Next step"));
     assert.equal(actions.length, 2);
-    for (const [, attributes] of actions) assert.match(attributes, new RegExp(`class="[^"]*\\b${buttonSize ?? "md"}\\b`));
+    for (const [, attributes] of actions) assert.match(attributes, new RegExp(`class="[^"]*${buttonSize === "sm" ? "min-h-8" : "min-h-9"}`));
   }
 });
 

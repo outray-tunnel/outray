@@ -9,7 +9,6 @@ import { ActionMenu } from "../secrets/secrets-ui";
 import { WorkspacePageHeader } from "../workspace-page-header";
 import { WorkspaceEmptyState, WorkspaceNotice } from "./workspace-ui";
 import { canManageWorkspaceMember, filterWorkspaceInvitations, filterWorkspaceMembers, type WorkspaceInvitation, type WorkspaceMember } from "./members-data";
-import "../outray-arc-theme.css";
 
 export type MembersTab = "members" | "invitations";
 
@@ -50,7 +49,7 @@ export function MembersContent({ members, invitations, currentUserId, loading, i
   const atLimit = hasData && !unlimitedSeats && usedSeats >= seatLimit;
   const inviteButton = canInvite ? <Button size="md" aria-haspopup="dialog" onClick={onInvite} disabled={!hasData || busy}><Plus size={14} aria-hidden="true" />Invite member</Button> : undefined;
 
-  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+  return <div className="mx-auto w-full max-w-[1440px] space-y-5">
     <WorkspacePageHeader appearance="compact" title="Members" description="The people with access to your workspace, and what they can do." action={inviteButton} />
 
     {error && hasData && <WorkspaceNotice message="Could not refresh members. Showing the last available data." action={<Button size="sm" variant="ghost" onClick={onRetry} loading={isFetching}>Retry</Button>} />}
@@ -68,7 +67,7 @@ export function MembersContent({ members, invitations, currentUserId, loading, i
       </div>
 
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="outray-arc-requests-search min-w-0 flex-1 sm:max-w-[360px]"><SearchField appearance="workspace" label={tab === "members" ? "Search members" : "Search invitations"} placeholder={tab === "members" ? "Find by name, email, or role…" : "Find by email or role…"} value={search} onValueChange={onSearchChange} maxLength={200} autoComplete="off" spellCheck={false} /></div>
+        <div className="min-w-0 flex-1 sm:max-w-[360px] [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" label={tab === "members" ? "Search members" : "Search invitations"} placeholder={tab === "members" ? "Find by name, email, or role…" : "Find by email or role…"} value={search} onValueChange={onSearchChange} maxLength={200} autoComplete="off" spellCheck={false} /></div>
         {isFetching && <span role="status" className="pb-2 text-[11px] text-zinc-500">Updating</span>}
       </div>
 

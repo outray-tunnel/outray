@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 import { Bar, BarChart, Cell, ResponsiveContainer, XAxis } from "recharts";
 import type { PublicComponentHistoryDay, PublicState } from "../lib/status-data";
 import { formatDuration } from "../lib/format-duration";
-import "./ComponentHistoryChart.css";
 
 interface Props {
   name: string;
@@ -25,14 +24,29 @@ const colors: Record<PublicState, string> = {
   unknown: "#3f3f46",
 };
 
+const iconColors: Record<PublicState, string> = {
+  operational: "text-[#10b981]",
+  degraded: "text-[#fbbf24]",
+  outage: "text-[#fb7185]",
+  unknown: "text-[#a1a5b3]",
+};
+
+const placeholderColors: Record<PublicState, string> = {
+  operational: "bg-[#10b981]",
+  degraded: "bg-[#fbbf24]",
+  outage: "bg-[#fb7185]",
+  unknown: "bg-[#3f3f46]",
+};
+
 const dateLabel = (date: string) => new Intl.DateTimeFormat("en-US", {
   month: "short", day: "2-digit", year: "numeric", timeZone: "UTC",
 }).format(new Date(`${date}T00:00:00Z`));
 
 function StatusIcon({ state }: { state: PublicState }) {
-  if (state === "operational") return <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="currentColor" /><path d="m6 10 2.6 2.6L14 7" fill="none" stroke="#101514" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-  if (state === "unknown") return <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M10 5.5v5m0 3v.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>;
-  return <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.3 2.8a2 2 0 0 1 3.4 0l7.6 13.1a2 2 0 0 1-1.7 3H2.4a2 2 0 0 1-1.7-3Z" fill="currentColor" /><path d="M10 7v5m0 3v.3" fill="none" stroke="#101514" strokeWidth="2" strokeLinecap="round" /></svg>;
+  const className = `mt-px size-[18px] flex-none ${iconColors[state]}`;
+  if (state === "operational") return <svg className={className} viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="currentColor" /><path d="m6 10 2.6 2.6L14 7" fill="none" stroke="#101514" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+  if (state === "unknown") return <svg className={className} viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M10 5.5v5m0 3v.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>;
+  return <svg className={className} viewBox="0 0 20 20" aria-hidden="true"><path d="M8.3 2.8a2 2 0 0 1 3.4 0l7.6 13.1a2 2 0 0 1-1.7 3H2.4a2 2 0 0 1-1.7-3Z" fill="currentColor" /><path d="M10 7v5m0 3v.3" fill="none" stroke="#101514" strokeWidth="2" strokeLinecap="round" /></svg>;
 }
 
 function HistoryTooltip({ day, incidentBasePath, position, tooltipRef }: {
@@ -44,24 +58,24 @@ function HistoryTooltip({ day, incidentBasePath, position, tooltipRef }: {
   const hasReport = day.incidents.length > 0;
   const detectedDowntime = day.detectedFailureMinutes > 0;
   const below = position.top !== undefined;
-  return <div className={`component-chart-tooltip-hit-area component-chart-tooltip-hit-area--${below ? "below" : "above"}`} ref={tooltipRef}
+  return <div className={`fixed z-[1000] box-border flex w-[min(400px,calc(100vw_-_32px))] flex-col ${below ? "pt-3" : "pb-3"}`} ref={tooltipRef}
     style={{ left: position.left, top: below ? position.top! - 12 : undefined,
       bottom: below ? undefined : position.bottom! - 12, maxHeight: position.maxHeight + 12 }}>
-    <div className="component-chart-tooltip" role="tooltip">
-      <div className="component-chart-tooltip-date">{dateLabel(day.date)}</div>
-      <div className={`component-chart-tooltip-body component-chart-tooltip-body--${day.state}`}>
+    <div className="box-border min-h-0 overflow-y-auto rounded-xl border border-[#343741] bg-[#22252d] text-base text-[#f4f4f5] shadow-[0_16px_40px_#000a]" role="tooltip">
+      <div className="border-b border-[#343741] px-[14px] py-[10px] text-sm text-[#a1a5b3]">{dateLabel(day.date)}</div>
+      <div className="flex min-h-[52px] items-start gap-3 px-[18px] py-4">
         <StatusIcon state={day.state} />
-        <div className="component-chart-tooltip-detail">
+        <div className="flex min-w-0 flex-col items-start gap-[6px] leading-tight">
           {hasReport ? <>
-            <span className="incident-duration">
+            <span className="font-semibold">
               {day.incidentKind === "downtime" ? "Downtime" : "Incident"} {formatDuration(day.incidentMinutes)}
             </span>
-            {day.incidents.map((incident) => <a key={incident.id} href={`${incidentBasePath}/${encodeURIComponent(incident.id)}`}>
+            {day.incidents.map((incident) => <a className="text-sm leading-[1.35] text-[#d5d8e2] underline underline-offset-[3px] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-white" key={incident.id} href={`${incidentBasePath}/${encodeURIComponent(incident.id)}`}>
               {incident.title} <span aria-hidden="true">↗</span>
             </a>)}
           </> : detectedDowntime ? <>
-            <span className="incident-duration">Downtime detected · about {formatDuration(day.detectedFailureMinutes)}</span>
-            <small>No incident report</small>
+            <span className="font-semibold">Downtime detected · about {formatDuration(day.detectedFailureMinutes)}</span>
+            <small className="text-[13px] text-[#a1a5b3]">No incident report</small>
           </> : <span>{day.state === "unknown" ? "No monitoring data" : "No incidents"}</span>}
         </div>
       </div>
@@ -146,8 +160,8 @@ export default function ComponentHistoryChart({ name, history, incidentBasePath 
   };
   const data: ChartDay[] = history.map((day) => ({ ...day, height: 1 }));
 
-  return <div className="component-chart" aria-label={`${name}: 90-day component status history`}>
-    <div className="component-chart-plot" ref={plotRef} onMouseMove={showTooltip}>
+  return <div className="mt-3" aria-label={`${name}: 90-day component status history`}>
+    <div className="h-8 w-full [&_.recharts-rectangle]:transition-opacity [&_.recharts-rectangle]:duration-[120ms] [&_.recharts-surface:focus:not(:focus-visible)]:outline-none motion-reduce:[&_.recharts-rectangle]:transition-none" ref={plotRef} onMouseMove={showTooltip}>
       {mounted ? <ResponsiveContainer width="100%" height={32}>
         <BarChart data={data} barCategoryGap={0.5} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
           <XAxis dataKey="date" hide />
@@ -155,8 +169,8 @@ export default function ComponentHistoryChart({ name, history, incidentBasePath 
             {data.map((day, index) => <Cell key={day.date} fill={colors[day.state]} opacity={tooltip?.index === index ? 0.62 : 1} />)}
           </Bar>
         </BarChart>
-      </ResponsiveContainer> : <div className="component-chart-placeholder" aria-hidden="true">
-        {data.map((day) => <span key={day.date} className={`component-chart-placeholder-day component-chart-placeholder-day--${day.state}`} />)}
+      </ResponsiveContainer> : <div className="flex h-8 w-full gap-px" aria-hidden="true">
+        {data.map((day) => <span key={day.date} className={`h-8 min-w-0 rounded-[1px] [flex:1_1_0] ${placeholderColors[day.state]}`} />)}
       </div>}
     </div>
     {mounted && tooltip && data[tooltip.index] && createPortal(

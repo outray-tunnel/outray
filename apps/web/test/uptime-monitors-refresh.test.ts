@@ -76,7 +76,7 @@ test("monitor form uses real Arc method/status menus, stacked shared inputs, rec
   assert.match(html, /Request method/); assert.match(html, /Expected status/); assert.match(html, /role="combobox"/);
   assert.match(html, /data-workspace-input="default"/); assert.match(html, /data-workspace-input="textarea"/);
   assert.match(html, /Email team members/); assert.match(html, /Incident publishing/);
-  assert.match(html, /Manual/); assert.match(html, /<details class="headers">/);
+  assert.match(html, /Manual/); assert.match(html, /<details class="[^"]*rounded-\[10px\][^"]*">/);
   assert.doesNotMatch(html, /<select(?![^>]*aria-hidden="true")/);
   assert.doesNotMatch(html, /Replace or clear existing headers/);
 });
@@ -114,7 +114,6 @@ async function stubbedForm() {
     if (specifier === "./incident-publishing-fields") return { IncidentPublishingFields: Placeholder };
     if (specifier === "./uptime-ui") return { UptimeError, UptimeCheckbox };
     if (specifier === "./monitor-data") return helpers;
-    if (specifier.endsWith(".module.css")) return { default: new Proxy({}, { get: (_target, key) => key }), __esModule: true };
     throw new Error(`Unexpected monitor form dependency: ${specifier}`);
   } });
   const renders = (props: Record<string, unknown>) => { index = 0; return module.exports.MonitorForm(props); };
@@ -177,10 +176,10 @@ test("busy forms cannot change controls or submit, and header validation errors 
 });
 
 test("monitor routes preserve data during refresh, gate management controls, and use compact overlay actions", async () => {
-  const [catalog, detail, css] = await Promise.all([
+  const [catalog, detail, form] = await Promise.all([
     readFile(new URL("../src/routes/$orgSlug/uptime/monitors.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/routes/$orgSlug/uptime/monitors_.$monitorId.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../src/components/uptime/monitors.module.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/uptime/monitor-form.tsx", import.meta.url), "utf8"),
   ]);
   for (const source of [catalog, detail]) {
     assert.match(source, /resource\.loading && !resource\.data/); assert.match(source, /canManage/);
@@ -191,8 +190,9 @@ test("monitor routes preserve data during refresh, gate management controls, and
   assert.match(catalog, /MonitorCatalog key=\{orgSlug\}/);
   assert.match(detail, /MonitorDetailSession key=\{JSON\.stringify/);
   assert.match(detail, /<SegmentedControl/); assert.match(detail, /<CopyButton/);
-  assert.match(css, /\.fields\s*\{[^}]*flex-direction:\s*column/);
-  assert.match(css, /summary:focus-visible/); assert.match(css, /prefers-reduced-motion/);
+  assert.match(form, /const monitorFieldsClassName = "[^"]*flex-col/);
+  assert.match(form, /\[&>summary:focus-visible\]:outline-2/);
+  assert.match(form, /motion-reduce:\[&>summary\]:transition-none/);
 });
 
 test("catalog management respects server capability, blocks duplicate creation and closing while pending, and keeps failed creation open", async () => {

@@ -7,7 +7,6 @@ import { Select } from "../arc/select/select";
 import { filterOverviewVaults, vaultUpdatedAt, type SecretsVaultSort } from "./overview-data";
 import { formatRelativeDate, formatSecretDate } from "./utils";
 import type { SecretProject } from "@/lib/secrets-client";
-import "../outray-arc-theme.css";
 
 export interface VaultsContentProps {
   orgSlug: string;
@@ -27,7 +26,7 @@ const columns = "@[820px]/vault-catalog:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)
 
 export function VaultsContent({ orgSlug, projects, loading, refreshing, error, search, sort, onSearchChange, onSortChange, onCreate, onRetry }: VaultsContentProps) {
   const vaults = useMemo(() => filterOverviewVaults(projects ?? [], search, sort), [projects, search, sort]);
-  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+  return <div className="mx-auto w-full max-w-[1440px] space-y-5">
     <header className="flex flex-wrap items-end justify-between gap-3 pb-1">
       <div className="min-w-0">
         <div className="flex items-center gap-2.5"><h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Vaults</h1>{projects && <span className="rounded-md bg-white/[0.04] px-1.5 py-0.5 text-[11px] tabular-nums text-zinc-500" aria-label={`${projects.length} ${projects.length === 1 ? "vault" : "vaults"}`}>{projects.length.toLocaleString()}</span>}</div>
@@ -38,8 +37,8 @@ export function VaultsContent({ orgSlug, projects, loading, refreshing, error, s
     {error && projects && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-400/15 bg-amber-400/[0.035] px-4 py-2.5 text-[12px] text-amber-100/75"><span>Could not refresh vaults. Showing the last available metadata.</span><Button variant="ghost" size="sm" onClick={onRetry}>Retry</Button></div>}
     {loading && !projects ? <VaultsSkeleton /> : !projects ? <section role="alert" className="rounded-xl border border-white/[0.08] bg-[#111112] px-5 py-12 text-center"><FolderKey size={24} className="mx-auto text-zinc-500" aria-hidden="true" /><h2 className="mt-3 text-[14px] font-medium text-zinc-200">Vaults could not be loaded</h2><p className="mx-auto mt-1 max-w-md text-[12px] leading-5 text-zinc-500">{error || "Try again to load your vaults."}</p><Button variant="secondary" size="sm" className="mt-4" onClick={onRetry}><RefreshCw size={13} aria-hidden="true" />Try again</Button></section> : projects.length === 0 ? <section className="rounded-xl border border-dashed border-white/[0.12] px-5 py-14 text-center"><FolderKey size={26} className="mx-auto text-zinc-500" aria-hidden="true" /><h2 className="mt-3 text-[14px] font-medium text-zinc-200">Create your first vault</h2><p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-zinc-500">Give an application a home for its secrets, then add separate environments for development and production.</p><Button variant="secondary" size="md" className="mt-4" aria-haspopup="dialog" onClick={onCreate}><Plus size={13} aria-hidden="true" />Create vault</Button></section> : <section aria-label="Vault catalog" className="@container/vault-catalog space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="outray-arc-requests-search min-w-0 flex-1 basis-[180px] sm:max-w-sm"><SearchField appearance="workspace" label="Search vaults" value={search} onValueChange={onSearchChange} placeholder="Find a vault or environment…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
-        <div className="outray-arc-address-filter w-[164px] shrink-0"><Select label="Sort vaults" value={sort} onValueChange={(value) => onSortChange(value === "name" ? "name" : "updated")} options={[{ value: "updated", label: "Recently updated" }, { value: "name", label: "Name" }]} /></div>
+        <div className="min-w-0 flex-1 basis-[180px] sm:max-w-sm [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" label="Search vaults" value={search} onValueChange={onSearchChange} placeholder="Find a vault or environment…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
+        <div className="w-[164px] shrink-0 [&>div]:relative [&>div]:gap-0 [&_label]:sr-only"><Select label="Sort vaults" value={sort} onValueChange={(value) => onSortChange(value === "name" ? "name" : "updated")} options={[{ value: "updated", label: "Recently updated" }, { value: "name", label: "Name" }]} /></div>
         <p role="status" aria-live="polite" className="ml-auto inline-flex min-h-9 items-center gap-1.5 text-[11px] tabular-nums text-zinc-500">{refreshing && <RefreshCw size={11} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}{refreshing ? "Updating" : search.trim() ? `${vaults.length.toLocaleString()} of ${projects.length.toLocaleString()} vaults` : "All vaults"}</p>
       </div>
       <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">

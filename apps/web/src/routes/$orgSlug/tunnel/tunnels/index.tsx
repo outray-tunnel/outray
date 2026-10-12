@@ -15,7 +15,6 @@ import { NewTunnelButton } from "@/components/new-tunnel-button";
 import { LimitModal } from "@/components/limit-modal";
 import { appClient, type Tunnel } from "@/lib/app-client";
 import { getSubscriptionLimits } from "@/lib/subscription-plans";
-import "@/components/outray-arc-theme.css";
 
 export const Route = createFileRoute("/$orgSlug/tunnel/tunnels/")({
   head: () => ({ meta: [{ title: "Tunnels - OutRay" }] }),
@@ -124,7 +123,7 @@ function TunnelsView() {
   };
 
   return (
-    <div className="outray-arc outray-arc-list mx-auto max-w-[1440px] space-y-5">
+    <div className="mx-auto max-w-[1440px] space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Active tunnels</h1>

@@ -46,66 +46,102 @@ const rootItems = [
   ...page.standaloneComponents.map((component) => ({ kind: "component" as const, component, sortOrder: component.sortOrder })),
   ...page.groups.map((group) => ({ kind: "group" as const, group, sortOrder: group.sortOrder })),
 ].sort((a, b) => a.sortOrder - b.sortOrder || a.kind.localeCompare(b.kind));
+const stateDotClasses: Record<PublicState, string> = {
+  operational: "bg-[#34d399]",
+  degraded: "bg-[#fbbf24]",
+  outage: "bg-[#fb7185]",
+  unknown: "bg-[#a1a1aa]",
+};
+const overallBorderClasses: Record<PublicState, string> = {
+  operational: "border-[#27664e]",
+  degraded: "border-[#9a711d]",
+  outage: "border-[#9d4355]",
+  unknown: "border-[#3f3f46]",
+};
+const overallHeadingClasses: Record<PublicState, string> = {
+  operational: "bg-[#10221b]",
+  degraded: "bg-[#30260f]",
+  outage: "bg-[#30191e]",
+  unknown: "bg-[#1b1b1f]",
+};
+const overallIconClasses: Record<PublicState, string> = {
+  operational: "text-[#34d399]",
+  degraded: "text-[#fbbf24]",
+  outage: "text-[#fb7185]",
+  unknown: "text-[#a1a1aa]",
+};
+const groupStateClasses: Record<PublicState, string> = {
+  operational: "text-[#6ee7b7]",
+  degraded: "text-[#fcd34d]",
+  outage: "text-[#fda4af]",
+  unknown: "text-[#b4b4bd]",
+};
 ---
 <BaseLayout title={showStatusSuffix ? `${page.name} status` : page.name} description={page.description || `Current status and incident history for ${page.name}.`} accent={page.accentColor} canonical={page.canonicalUrl}>
-  <main class="shell main">
-    <header class="header">
-      <div class="brand">
-        {page.logoUrl ? <img class="logo" src={page.logoUrl} alt="" width="40" height="40" /> : <div class="logo fallback" aria-hidden="true">{page.name.slice(0, 1).toUpperCase()}</div>}
-        <h1>{page.name}{showStatusSuffix && <span> Status</span>}</h1>
+  <main class="mx-auto w-[min(100%_-_48px,800px)] pt-[38px] pb-[88px] max-[600px]:w-[min(100%_-_32px,800px)] max-[600px]:pt-6 max-[600px]:pb-[62px]">
+    <header class="mb-16 flex items-center justify-between gap-5 max-[600px]:mb-[54px] max-[420px]:items-start">
+      <div class="flex min-w-0 items-center gap-3">
+        {page.logoUrl
+          ? <img class="size-10 flex-none rounded-[10px] bg-[#18181b] object-cover" src={page.logoUrl} alt="" width="40" height="40" />
+          : <div class="grid size-10 flex-none place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--accent)_28%,#18181b)] text-xl font-[750]" aria-hidden="true">{page.name.slice(0, 1).toUpperCase()}</div>}
+        <h1 class="m-0 text-[17px] font-semibold tracking-[-0.025em] [overflow-wrap:anywhere]">{page.name}{showStatusSuffix && <span class="font-[450] text-[#a1a1aa]"> Status</span>}</h1>
       </div>
-      {subscriptionsEnabled && <button class="subscribe-link" type="button" id="open-subscribe">Get updates</button>}
+      {subscriptionsEnabled && <button class="flex-none rounded-[9px] border border-[#3f3f46] bg-[#18181b] px-[13px] py-[9px] text-xs font-semibold text-[#f4f4f5] hover:bg-[#27272a] max-[420px]:p-2" type="button" id="open-subscribe">Get updates</button>}
     </header>
 
-    <section class:list={["overall", currentState]} aria-labelledby="overall-heading">
-      <div class="overall-heading">
-        <span class="overall-icon" aria-hidden="true">
+    <section class:list={["overflow-hidden rounded-[14px] border bg-[#101012]", overallBorderClasses[currentState]]} aria-labelledby="overall-heading">
+      <div class:list={["flex min-h-[74px] items-center gap-[14px] px-6 py-5 max-[600px]:min-h-16 max-[600px]:p-[17px]", overallHeadingClasses[currentState]]}>
+        <span class:list={["inline-flex size-6 flex-none [&_svg]:size-full", overallIconClasses[currentState]]} aria-hidden="true">
           {currentState === "operational"
             ? <svg viewBox="0 0 24 24" fill="none"><path d="m5 12 4.5 4.5L19 7" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
             : currentState === "unknown"
               ? <svg viewBox="0 0 24 24" fill="none"><path d="M12 16v.01M9.1 9a3 3 0 1 1 5.5 1.6c-.8 1-2.6 1.2-2.6 3.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
               : <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.4 21.1 19a1 1 0 0 1-.9 1.5H3.8a1 1 0 0 1-.9-1.5L12 3.4Z" fill="currentColor" /><path d="M12 9v5m0 3v.1" stroke="#17120a" stroke-width="2" stroke-linecap="round" /></svg>}
         </span>
-        <h2 id="overall-heading">{hasIssues ? "We’re currently experiencing issues" : stateCopy[currentState]}</h2>
+        <h2 class="m-0 text-[clamp(19px,3vw,23px)] leading-[1.3] font-medium tracking-[-0.03em]" id="overall-heading">{hasIssues ? "We’re currently experiencing issues" : stateCopy[currentState]}</h2>
       </div>
       {hasIssues ? <>
-        {affectedComponents.length > 0 && <ul class="affected-components" aria-label="Affected components">{affectedComponents.map((name) => <li>{name}</li>)}</ul>}
+        {affectedComponents.length > 0 && <ul class:list={["m-0 flex list-none flex-wrap gap-2 border-t px-6 py-[17px] max-[600px]:px-[17px] max-[600px]:py-[14px]", currentState === "outage" ? "border-[#473039]" : "border-[#3d3527]"]} aria-label="Affected components">{affectedComponents.map((name) => <li class:list={["rounded-[7px] border px-[9px] py-[5px] text-xs font-semibold", currentState === "outage" ? "border-[#754050] bg-[#321c23] text-[#fda4af]" : "border-[#6d5222] bg-[#302510] text-[#fcd984]"]}>{name}</li>)}</ul>}
         {activeIncidents.length > 0
-          ? <ol class="active-incidents">{activeIncidents.map((incident) => <li>
-              <span class="active-marker" aria-hidden="true"></span>
-              <div class="active-copy">
-                <h3><a href={`${incidentBasePath}/${encodeURIComponent(incident.id)}`}>{incident.title}</a></h3>
-                {incident.updates.length > 0 ? <div class="incident-rich" set:html={renderIncidentHtml(incident.updates.at(-1)?.body, incident.latestNote ?? "")} /> : incident.latestNote && <p>{incident.latestNote}</p>}
-                <div class="active-meta"><span>{incidentStage(incident)}</span><span aria-hidden="true">·</span><span>{ongoingFor(incident.startedAt)}</span>{incident.components.length > 0 && <><span aria-hidden="true">·</span><span>Affects {incident.components.join(", ")}</span></>}</div>
+          ? <ol class:list={["m-0 list-none border-t p-0", currentState === "outage" ? "border-[#473039]" : "border-[#3d3527]"]}>{activeIncidents.map((incident) => <li class="grid grid-cols-[14px_minmax(0,1fr)] gap-[13px] border-t border-[#303036] px-6 py-[19px] first:border-t-0 max-[600px]:p-[17px]">
+              <span class:list={["mt-[5px] block size-[9px] rounded-full", currentState === "outage" ? "bg-[#fb7185]" : "bg-[#fbbf24]"]} aria-hidden="true"></span>
+              <div>
+                <h3 class="m-0 text-[15px] leading-[1.45] font-[560]"><a class="text-[#f4f4f5] no-underline hover:underline hover:underline-offset-[3px]" href={`${incidentBasePath}/${encodeURIComponent(incident.id)}`}>{incident.title}</a></h3>
+                {incident.updates.length > 0
+                  ? <div class="text-[13px] leading-[1.55] text-[#d4d4d8] [overflow-wrap:anywhere] [&_a]:text-[#a78bfa] [&_a]:underline [&_blockquote]:mt-2 [&_blockquote]:border-l-2 [&_blockquote]:border-[#71717a] [&_blockquote]:pl-3 [&_blockquote]:text-[#a1a1aa] [&_h2]:mt-2 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h2]:text-[#f4f4f5] [&_h3]:mt-2 [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-[#f4f4f5] [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5" set:html={renderIncidentHtml(incident.updates.at(-1)?.body, incident.latestNote ?? "")} />
+                  : incident.latestNote && <p class="mt-2 whitespace-pre-wrap text-[13px] leading-[1.55] text-[#d4d4d8]">{incident.latestNote}</p>}
+                <div class="mt-[10px] flex flex-wrap gap-x-2 gap-y-[5px] text-[11px] leading-normal text-[#a1a1aa]"><span>{incidentStage(incident)}</span><span aria-hidden="true">·</span><span>{ongoingFor(incident.startedAt)}</span>{incident.components.length > 0 && <><span aria-hidden="true">·</span><span>Affects {incident.components.join(", ")}</span></>}</div>
               </div>
             </li>)}</ol>
-          : <p class="unreported-issue">Monitoring has detected an issue. No incident report has been published yet.</p>}
-      </> : <p class="overall-description">{page.description || "Current service health and incident updates."}</p>}
+          : <p class="m-0 border-t border-[#3d3527] px-6 py-[18px] text-[13px] leading-[1.55] text-[#a1a1aa] max-[600px]:p-[17px]">Monitoring has detected an issue. No incident report has been published yet.</p>}
+      </> : <p class="m-0 px-6 py-5 text-[13px] leading-[1.6] text-[#a1a1aa] max-[600px]:p-[17px]">{page.description || "Current service health and incident updates."}</p>}
     </section>
 
-    <section class="section" aria-labelledby="components-heading">
-      <div class="section-heading"><h2 id="components-heading">System status</h2><span>{page.standaloneComponents.length + page.groups.reduce((count, group) => count + group.components.length, 0)} components</span></div>
-      {page.groups.length === 0 && page.standaloneComponents.length === 0 ? <div class="empty">No components have been published yet.</div> : <div class="groups">
-        {rootItems.map((item) => item.kind === "component" ? <div class="component standalone-component">
-          <div class="component-heading">
-            <div class="component-copy"><span class="component-title"><span class:list={["component-indicator", item.component.state]} aria-label={stateLabel[item.component.state]}><span class="status-dot" aria-hidden="true"></span></span><strong>{item.component.name}</strong></span>{item.component.description && <p>{item.component.description}</p>}{item.component.manual && <small>{formatDate(item.component.updatedAt)}</small>}</div>
-            <span class:list={["component-uptime", { unavailable: item.component.observedUptime90d === null }]}>{item.component.observedUptime90d === null ? "No uptime data" : `${item.component.observedUptime90d.toFixed(3)}% uptime`}</span>
+    <section class="mt-[68px] max-[600px]:mt-14" aria-labelledby="components-heading">
+      <div class="mb-4 flex items-baseline justify-between gap-4"><h2 class="m-0 text-[19px] font-medium tracking-[-0.03em]" id="components-heading">System status</h2><span class="whitespace-nowrap text-xs text-[#85858f]">{page.standaloneComponents.length + page.groups.reduce((count, group) => count + group.components.length, 0)} components</span></div>
+      {page.groups.length === 0 && page.standaloneComponents.length === 0
+        ? <div class="overflow-hidden rounded-[13px] border border-[#303036] bg-[#101012] p-[22px] text-[13px] text-[#a1a1aa]">No components have been published yet.</div>
+        : <div class="overflow-hidden rounded-[13px] border border-[#303036] bg-[#101012]">
+        {rootItems.map((item) => item.kind === "component" ? <div class="border-t border-[#303036] p-5 first:border-t-0 max-[600px]:p-[15px]">
+          <div class="flex items-start justify-between gap-[18px] max-[420px]:items-start">
+            <div class="min-w-0"><span class="flex items-center gap-[9px]"><span class="inline-flex flex-none" aria-label={stateLabel[item.component.state]}><span class:list={["inline-block size-[13px] flex-none rounded-full", stateDotClasses[item.component.state]]} aria-hidden="true"></span></span><strong class="text-[13px] font-[580]">{item.component.name}</strong></span>{item.component.description && <p class="mt-[5px] ml-[22px] text-xs leading-[1.45] text-[#a1a1aa]">{item.component.description}</p>}{item.component.manual && <small class="mt-[5px] ml-[22px] block text-[11px] text-[#85858f]">{formatDate(item.component.updatedAt)}</small>}</div>
+            <span class:list={["mt-px flex-none whitespace-nowrap text-xs [font-variant-numeric:tabular-nums] max-[420px]:text-[11px]", item.component.observedUptime90d === null ? "text-[#85858f]" : "text-[#6ee7b7]"]}>{item.component.observedUptime90d === null ? "No uptime data" : `${item.component.observedUptime90d.toFixed(3)}% uptime`}</span>
           </div>
           <ComponentHistoryChart name={item.component.name} history={item.component.history} incidentBasePath={incidentBasePath} client:load />
         </div> : (
-        <details class="group">
-          <summary class="group-summary">
-            <span class="group-heading">
-              <span class="group-title"><strong>{item.group.name}</strong><span class:list={["state", item.group.state]}><span class="status-dot" aria-hidden="true"></span>{stateLabel[item.group.state]}</span></span>
-              <span class="group-meta"><span class="group-count">{item.group.components.length} {item.group.components.length === 1 ? "component" : "components"}</span><svg class="group-chevron" aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="m6 8 4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+        <details class="group border-t border-[#303036] first:border-t-0">
+          <summary class="block cursor-pointer list-none bg-[#18181b] hover:bg-[#1d1d21] [&::-webkit-details-marker]:hidden">
+            <span class="flex items-center justify-between gap-[18px] p-5 max-[600px]:items-start max-[600px]:p-[15px]">
+              <span class="flex flex-wrap items-center gap-3"><strong class="text-[13px] font-semibold">{item.group.name}</strong><span class:list={["inline-flex flex-none items-center gap-2 whitespace-nowrap text-xs max-[420px]:text-[11px]", groupStateClasses[item.group.state]]}><span class:list={["inline-block size-[7px] flex-none rounded-full", stateDotClasses[item.group.state]]} aria-hidden="true"></span>{stateLabel[item.group.state]}</span></span>
+              <span class="flex items-center gap-[17px] max-[600px]:gap-[9px]"><span class="flex-none text-xs text-[#a1a1aa] max-[600px]:text-[11px]">{item.group.components.length} {item.group.components.length === 1 ? "component" : "components"}</span><svg class="block flex-none text-[#a1a1aa] transition-transform duration-150 ease-in group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="m6 8 4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
             </span>
           </summary>
-          <div class="group-components">
-            {item.group.components.length === 0 ? <p class="empty group-empty">No visible components in this group.</p> : item.group.components.map((component) => (
-              <div class="component">
-                <div class="component-heading">
-                  <div class="component-copy"><span class="component-title"><span class:list={["component-indicator", component.state]} aria-label={stateLabel[component.state]}><span class="status-dot" aria-hidden="true"></span></span><strong>{component.name}</strong></span>{component.description && <p>{component.description}</p>}{component.manual && <small>{formatDate(component.updatedAt)}</small>}</div>
-                  <span class:list={["component-uptime", { unavailable: component.observedUptime90d === null }]}>{component.observedUptime90d === null ? "No uptime data" : `${component.observedUptime90d.toFixed(3)}% uptime`}</span>
+          <div class="border-t border-[#303036]">
+            {item.group.components.length === 0 ? <p class="m-0 p-[22px] text-[13px] text-[#a1a1aa]">No visible components in this group.</p> : item.group.components.map((component) => (
+              <div class="border-t border-[#28282d] p-5 first:border-t-0 max-[600px]:p-[15px]">
+                <div class="flex items-start justify-between gap-[18px] max-[420px]:items-start">
+                  <div class="min-w-0"><span class="flex items-center gap-[9px]"><span class="inline-flex flex-none" aria-label={stateLabel[component.state]}><span class:list={["inline-block size-[13px] flex-none rounded-full", stateDotClasses[component.state]]} aria-hidden="true"></span></span><strong class="text-[13px] font-[580]">{component.name}</strong></span>{component.description && <p class="mt-[5px] ml-[22px] text-xs leading-[1.45] text-[#a1a1aa]">{component.description}</p>}{component.manual && <small class="mt-[5px] ml-[22px] block text-[11px] text-[#85858f]">{formatDate(component.updatedAt)}</small>}</div>
+                  <span class:list={["mt-px flex-none whitespace-nowrap text-xs [font-variant-numeric:tabular-nums] max-[420px]:text-[11px]", component.observedUptime90d === null ? "text-[#85858f]" : "text-[#6ee7b7]"]}>{component.observedUptime90d === null ? "No uptime data" : `${component.observedUptime90d.toFixed(3)}% uptime`}</span>
                 </div>
                 <ComponentHistoryChart name={component.name} history={component.history} incidentBasePath={incidentBasePath} client:load />
               </div>
@@ -113,32 +149,34 @@ const rootItems = [
           </div>
         </details>
       ))}</div>}
-      {(page.groups.length > 0 || page.standaloneComponents.length > 0) && <p class="history-note">Component history covers the last 90 days. Gray days have no complete monitoring evidence; published manual incidents appear on affected components.</p>}
+      {(page.groups.length > 0 || page.standaloneComponents.length > 0) && <p class="mt-[10px] text-[11px] leading-normal text-[#85858f]">Component history covers the last 90 days. Gray days have no complete monitoring evidence; published manual incidents appear on affected components.</p>}
     </section>
 
-    <section class="section" aria-labelledby="incidents-heading">
-      <div class="section-heading"><h2 id="incidents-heading">Incident history</h2><span>{pastIncidents.length} resolved</span></div>
-      {pastIncidents.length === 0 ? <div class="empty">No past incidents to show.</div> : <ol class="incidents">{pastIncidents.map((incident) => (
-        <li class="incident">
-          <span class:list={["incident-marker", incident.status]} aria-hidden="true"></span>
-          <div><div class="incident-heading"><strong><a href={`${incidentBasePath}/${encodeURIComponent(incident.id)}`}>{incident.title}</a></strong><span class:list={["incident-state", incident.status]}>{incident.status === "resolved" ? "Resolved" : "Investigating"}</span></div>
-            {incident.components.length > 0 && <p class="incident-components">Affects {incident.components.join(", ")}</p>}
-            {incident.latestNote && <p class="incident-note">{incident.latestNote}</p>}
-            <time datetime={incident.startedAt.toISOString()}>{formatDate(incident.startedAt)}</time>
-            {incident.updates.length > 0 && <details class="updates"><summary>View {incident.updates.length} published {incident.updates.length === 1 ? "update" : "updates"}</summary><ol>{incident.updates.map((update) => <li><div><strong>{update.status}</strong><time datetime={update.publishedAt.toISOString()}>{formatDate(update.publishedAt)}</time></div><div class="incident-rich" set:html={renderIncidentHtml(update.body, update.note)} /></li>)}</ol></details>}
+    <section class="mt-[68px] max-[600px]:mt-14" aria-labelledby="incidents-heading">
+      <div class="mb-4 flex items-baseline justify-between gap-4"><h2 class="m-0 text-[19px] font-semibold tracking-[-0.03em]" id="incidents-heading">Incident history</h2><span class="whitespace-nowrap text-xs text-[#85858f]">{pastIncidents.length} resolved</span></div>
+      {pastIncidents.length === 0
+        ? <div class="overflow-hidden rounded-[13px] border border-[#303036] bg-[#101012] p-[22px] text-[13px] text-[#a1a1aa]">No past incidents to show.</div>
+        : <ol class="m-0 list-none overflow-hidden rounded-[13px] border border-[#303036] bg-[#101012] p-0">{pastIncidents.map((incident) => (
+        <li class="grid grid-cols-[8px_minmax(0,1fr)] gap-[15px] border-t border-[#303036] px-5 py-[18px] first:border-t-0">
+          <span class:list={["mt-[5px] size-2 rounded-full", incident.status === "resolved" ? "bg-[#34d399]" : "bg-[#fb7185]"]} aria-hidden="true"></span>
+          <div><div class="flex flex-wrap items-baseline justify-between gap-x-[14px] gap-y-2"><strong class="text-[13px] font-[580]"><a class="no-underline hover:underline hover:underline-offset-[3px]" href={`${incidentBasePath}/${encodeURIComponent(incident.id)}`}>{incident.title}</a></strong><span class:list={["text-[11px]", incident.status === "resolved" ? "text-[#6ee7b7]" : "text-[#fda4af]"]}>{incident.status === "resolved" ? "Resolved" : "Investigating"}</span></div>
+            {incident.components.length > 0 && <p class="mt-[7px] text-xs leading-[1.55] text-[#a1a1aa]">Affects {incident.components.join(", ")}</p>}
+            {incident.latestNote && <p class="mt-[7px] whitespace-pre-wrap text-xs leading-[1.55] text-[#d4d4d8]">{incident.latestNote}</p>}
+            <time class="mt-2 block text-[11px] text-[#85858f]" datetime={incident.startedAt.toISOString()}>{formatDate(incident.startedAt)}</time>
+            {incident.updates.length > 0 && <details class="mt-3"><summary class="w-max cursor-pointer text-xs text-[#c4b5fd]">View {incident.updates.length} published {incident.updates.length === 1 ? "update" : "updates"}</summary><ol class="mt-3 list-none border-l border-[#36303f] pl-4">{incident.updates.map((update) => <li class="mt-4 first:mt-0"><div class="flex flex-wrap items-baseline gap-3"><strong class="text-xs font-semibold text-[#d4d4d8] capitalize">{update.status}</strong><time class="m-0 inline text-[11px] text-[#85858f]" datetime={update.publishedAt.toISOString()}>{formatDate(update.publishedAt)}</time></div><div class="text-[13px] leading-[1.55] text-[#d4d4d8] [overflow-wrap:anywhere] [&_a]:text-[#a78bfa] [&_a]:underline [&_blockquote]:mt-2 [&_blockquote]:border-l-2 [&_blockquote]:border-[#71717a] [&_blockquote]:pl-3 [&_blockquote]:text-[#a1a1aa] [&_h2]:mt-2 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h2]:text-[#f4f4f5] [&_h3]:mt-2 [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-[#f4f4f5] [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-[6px] [&_p]:whitespace-pre-wrap [&_p]:text-xs [&_p]:leading-normal [&_p]:text-[#a1a1aa] [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5" set:html={renderIncidentHtml(update.body, update.note)} /></li>)}</ol></details>}
           </div>
         </li>
       ))}</ol>}
     </section>
 
-    {subscriptionsEnabled && <dialog class="subscribe-dialog" id="subscribe-dialog" aria-labelledby="subscribe-heading" data-subscribed={subscribed ? "true" : "false"}>
-      <div class="dialog-heading"><h2 id="subscribe-heading">Get incident updates</h2><button type="button" class="dialog-close" aria-label="Close" id="close-subscribe"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></button></div>
-      <p>Email is sent for team-published incident updates. Automatic health changes remain visible on this page.</p>
-      {subscribed ? <p class="subscription-result">If this address is not already subscribed, check your inbox to confirm it.</p> : <form method="post" action="/api/subscribe">
-        <label for="subscription-email">Email address</label>
-        <div class="form-row"><input id="subscription-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" maxlength="254" required /><button type="submit">Subscribe</button></div>
+    {subscriptionsEnabled && <dialog class="w-[min(100%_-_32px,440px)] max-h-[calc(100dvh_-_32px)] rounded-2xl border border-[#3f3f46] bg-[#18181b] p-6 text-[#f4f4f5] shadow-[0_24px_70px_#000b] backdrop:bg-[#000b]" id="subscribe-dialog" aria-labelledby="subscribe-heading" data-subscribed={subscribed ? "true" : "false"}>
+      <div class="flex items-center justify-between gap-3"><h2 class="m-0 text-xl font-semibold tracking-[-0.03em]" id="subscribe-heading">Get incident updates</h2><button type="button" class="grid size-9 flex-none place-items-center rounded-lg border-0 bg-transparent text-[#a1a1aa] hover:bg-[#27272a] hover:text-white" aria-label="Close" id="close-subscribe"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></button></div>
+      <p class="mt-3 text-[13px] leading-[1.55] text-[#a1a1aa]">Email is sent for team-published incident updates. Automatic health changes remain visible on this page.</p>
+      {subscribed ? <p class="mt-5 text-[13px] leading-[1.55] text-[#6ee7b7]">If this address is not already subscribed, check your inbox to confirm it.</p> : <form class="mt-6" method="post" action="/api/subscribe">
+        <label class="mb-2 block text-xs font-semibold" for="subscription-email">Email address</label>
+        <div class="flex gap-[9px] max-[420px]:flex-col"><input class="min-w-0 flex-1 rounded-lg border border-[#424149] bg-[#09090b] px-3 py-[11px] text-[13px] text-white" id="subscription-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" maxlength="254" required /><button class="min-h-[42px] flex-none rounded-lg border border-[#f4f4f5] bg-[#f4f4f5] px-4 py-[11px] text-xs font-bold text-[#09090b] hover:bg-[#d4d4d8]" type="submit">Subscribe</button></div>
         <input type="hidden" name="pageId" value={page.id} />
-        <small>Confirm your email before updates begin. Unsubscribe at any time.</small>
+        <small class="mt-[9px] block text-[11px] leading-normal text-[#a1a1aa]">Confirm your email before updates begin. Unsubscribe at any time.</small>
       </form>}
     </dialog>}
   </main>
@@ -149,164 +187,4 @@ const rootItems = [
     dialog?.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
     if (dialog?.dataset.subscribed === "true") dialog.showModal();
   </script>
-  <style>
-    :global(body) { background: #09090b; }
-    :global(.footer) { border-top: 1px solid #27272a; padding: 24px 0 40px; color: #a1a1aa; font-size: 13px; }
-    :global(.footer .shell) { display: flex; justify-content: center; align-items: center; width: min(100% - 48px, 800px); margin-inline: auto; }
-    :global(.footer a) { display: inline-flex; align-items: center; gap: 8px; color: #e4e4e7; text-decoration: none; }
-    :global(.footer a span) { color: #a1a1aa; }
-    :global(.footer a strong) { font-weight: 650; }
-    :global(.footer img) { display: block; width: 18px; height: 18px; }
-    .main { width: min(100% - 48px, 800px); margin-inline: auto; padding-top: 38px; padding-bottom: 88px; }
-    .header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 64px; }
-    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .logo { width: 40px; height: 40px; flex: none; object-fit: cover; border-radius: 10px; background: #18181b; }
-    .fallback { display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 28%, #18181b); font-size: 20px; font-weight: 750; }
-    h1, h2, h3, p { margin-top: 0; }
-    h1 { margin: 0; overflow-wrap: anywhere; font-size: 17px; font-weight: 600; letter-spacing: -.025em; }
-    h1 span { color: #a1a1aa; font-weight: 450; }
-    .subscribe-link { flex: none; padding: 9px 13px; border: 1px solid #3f3f46; border-radius: 9px; background: #18181b; color: #f4f4f5; font-size: 12px; font-weight: 600; }
-    .subscribe-link:hover { background: #27272a; }
-    .overall { overflow: hidden; border: 1px solid #3f3f46; border-radius: 14px; background: #101012; }
-    .overall.operational { border-color: #27664e; }
-    .overall.degraded { border-color: #9a711d; }
-    .overall.outage { border-color: #9d4355; }
-    .overall-heading { display: flex; align-items: center; gap: 14px; min-height: 74px; padding: 20px 24px; background: #1b1b1f; }
-    .operational .overall-heading { background: #10221b; }
-    .degraded .overall-heading { background: #30260f; }
-    .outage .overall-heading { background: #30191e; }
-    .overall-icon { display: inline-flex; flex: none; width: 24px; height: 24px; color: #a1a1aa; }
-    .overall-icon svg { width: 100%; height: 100%; }
-    .overall.operational .overall-icon { color: #34d399; }
-    .overall.degraded .overall-icon { color: #fbbf24; }
-    .overall.outage .overall-icon { color: #fb7185; }
-    .status-dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: #a1a1aa; }
-    .operational .status-dot { background: #34d399; }
-    .degraded .status-dot { background: #fbbf24; }
-    .outage .status-dot { background: #fb7185; }
-    .overall h2 { margin: 0; font-size: clamp(19px, 3vw, 23px); font-weight: 500; line-height: 1.3; letter-spacing: -.03em; }
-    .overall .overall-description { margin: 0; padding: 20px 24px; color: #a1a1aa; font-size: 13px; line-height: 1.6; }
-    .affected-components { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 17px 24px; border-top: 1px solid #3d3527; list-style: none; }
-    .affected-components li { padding: 5px 9px; border: 1px solid #6d5222; border-radius: 7px; background: #302510; color: #fcd984; font-size: 12px; font-weight: 600; }
-    .outage .affected-components { border-color: #473039; }
-    .outage .affected-components li { border-color: #754050; background: #321c23; color: #fda4af; }
-    .active-incidents { margin: 0; padding: 0; border-top: 1px solid #3d3527; list-style: none; }
-    .active-incidents li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 13px; padding: 19px 24px; }
-    .active-incidents li + li { border-top: 1px solid #303036; }
-    .active-marker { display: block; width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: #fbbf24; }
-    .outage .active-marker { background: #fb7185; }
-    .active-copy h3 { margin: 0; font-size: 15px; font-weight: 560; line-height: 1.45; }
-    .active-copy h3 a { color: #f4f4f5; text-decoration: none; }
-    .active-copy h3 a:hover { text-decoration: underline; text-underline-offset: 3px; }
-    .active-copy p { margin: 8px 0 0; color: #d4d4d8; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
-    .incident-rich { color: #d4d4d8; font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
-    .incident-rich :global(p), .incident-rich :global(h2), .incident-rich :global(h3), .incident-rich :global(ul), .incident-rich :global(ol), .incident-rich :global(blockquote) { margin: 8px 0 0; }
-    .incident-rich :global(h2), .incident-rich :global(h3) { color: #f4f4f5; font-size: 13px; font-weight: 600; }
-    .incident-rich :global(ul), .incident-rich :global(ol) { padding-left: 20px; }
-    .incident-rich :global(ul) { list-style: disc; }
-    .incident-rich :global(ol) { list-style: decimal; }
-    .incident-rich :global(blockquote) { border-left: 2px solid #71717a; padding-left: 12px; color: #a1a1aa; }
-    .incident-rich :global(a) { color: #a78bfa; text-decoration: underline; }
-    .active-meta { display: flex; flex-wrap: wrap; gap: 5px 8px; margin-top: 10px; color: #a1a1aa; font-size: 11px; line-height: 1.5; }
-    .unreported-issue { margin: 0; padding: 18px 24px; border-top: 1px solid #3d3527; color: #a1a1aa; font-size: 13px; line-height: 1.55; }
-    .section { margin-top: 68px; }
-    .section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 16px; }
-    .section-heading h2 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.03em; }
-    #components-heading { font-weight: 500; }
-    .section-heading > span { color: #85858f; font-size: 12px; white-space: nowrap; }
-    .groups, .incidents, .empty { border: 1px solid #303036; border-radius: 13px; background: #101012; overflow: hidden; }
-    .group + .group, .standalone-component + .group, .standalone-component + .standalone-component { border-top: 1px solid #303036; }
-    .group-summary { display: block; background: #18181b; cursor: pointer; list-style: none; }
-    .group-summary::-webkit-details-marker { display: none; }
-    .group-summary:hover { background: #1d1d21; }
-    .group-heading, .component-heading { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
-    .component-heading { align-items: flex-start; }
-    .group-heading { padding: 20px; }
-    .group-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .group-title strong { font-size: 13px; font-weight: 600; }
-    .group-meta { display: flex; align-items: center; gap: 17px; }
-    .group-count { flex: none; color: #a1a1aa; font-size: 12px; }
-    .group-chevron { display: block; flex: none; color: #a1a1aa; transition: transform .16s ease; }
-    .group[open] .group-chevron { transform: rotate(180deg); }
-    .history-note { margin: 10px 0 0; color: #85858f; font-size: 11px; line-height: 1.5; }
-    .group-components { border-top: 1px solid #303036; }
-    .component { padding: 20px; }
-    .component + .component { border-top: 1px solid #28282d; }
-    .component-copy { min-width: 0; }
-    .component-title { display: flex; align-items: center; gap: 9px; }
-    .component-indicator { display: inline-flex; flex: none; }
-    .component-indicator .status-dot { width: 13px; height: 13px; }
-    .component-copy strong { font-size: 13px; font-weight: 580; }
-    .component-copy p { margin: 5px 0 0 22px; color: #a1a1aa; font-size: 12px; line-height: 1.45; }
-    .component-copy small { display: block; margin: 5px 0 0 22px; color: #85858f; font-size: 11px; }
-    .component-uptime { flex: none; margin-top: 1px; color: #6ee7b7; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .component-uptime.unavailable { color: #85858f; }
-    .state { display: inline-flex; align-items: center; gap: 8px; flex: none; color: #b4b4bd; font-size: 12px; white-space: nowrap; }
-    .state.operational { color: #6ee7b7; }
-    .state.degraded { color: #fcd34d; }
-    .state.outage { color: #fda4af; }
-    .state .status-dot { width: 7px; height: 7px; }
-    .empty { padding: 22px; color: #a1a1aa; font-size: 13px; }
-    .group-empty { border: 0; border-radius: 0; margin: 0; background: transparent; }
-    .incidents { padding: 0; margin: 0; list-style: none; }
-    .incident { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 15px; padding: 18px 20px; }
-    .incident + .incident { border-top: 1px solid #303036; }
-    .incident-marker { width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: #fb7185; }
-    .incident-marker.resolved { background: #34d399; }
-    .incident-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; }
-    .incident-heading strong { font-size: 13px; font-weight: 580; }
-    .incident-heading a { text-decoration: none; }
-    .incident-heading a:hover { text-decoration: underline; text-underline-offset: 3px; }
-    .incident-state { color: #fda4af; font-size: 11px; }
-    .incident-state.resolved { color: #6ee7b7; }
-    .incident-components, .incident-note { margin: 7px 0 0; color: #a1a1aa; font-size: 12px; line-height: 1.55; }
-    .incident-note { color: #d4d4d8; white-space: pre-wrap; }
-    .incident time { display: block; margin-top: 8px; color: #85858f; font-size: 11px; }
-    .updates { margin-top: 12px; }
-    .updates summary { width: max-content; color: #c4b5fd; cursor: pointer; font-size: 12px; }
-    .updates ol { margin: 12px 0 0; padding: 0 0 0 16px; border-left: 1px solid #36303f; list-style: none; }
-    .updates li + li { margin-top: 16px; }
-    .updates li div { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-    .updates li strong { color: #d4d4d8; font-size: 12px; font-weight: 600; text-transform: capitalize; }
-    .updates li time { display: inline; margin: 0; }
-    .updates li p { margin: 6px 0 0; color: #a1a1aa; white-space: pre-wrap; font-size: 12px; line-height: 1.5; }
-    .subscribe-dialog { width: min(100% - 32px, 440px); max-height: calc(100dvh - 32px); padding: 24px; border: 1px solid #3f3f46; border-radius: 16px; background: #18181b; color: #f4f4f5; box-shadow: 0 24px 70px #000b; }
-    .subscribe-dialog::backdrop { background: #000b; }
-    .dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .dialog-heading h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.03em; }
-    .dialog-close { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border: 0; border-radius: 8px; background: transparent; color: #a1a1aa; }
-    .dialog-close:hover { background: #27272a; color: #fff; }
-    .subscribe-dialog p { margin: 12px 0 0; color: #a1a1aa; font-size: 13px; line-height: 1.55; }
-    .subscribe-dialog .subscription-result { margin-top: 20px; color: #6ee7b7; }
-    .subscribe-dialog form { margin-top: 24px; }
-    .subscribe-dialog label { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 600; }
-    .form-row { display: flex; gap: 9px; }
-    .subscribe-dialog input[type=email] { min-width: 0; flex: 1; padding: 11px 12px; border: 1px solid #424149; border-radius: 8px; background: #09090b; color: #fff; font-size: 13px; }
-    .subscribe-dialog button[type=submit] { flex: none; min-height: 42px; padding: 11px 16px; border: 1px solid #f4f4f5; border-radius: 8px; background: #f4f4f5; color: #09090b; font-size: 12px; font-weight: 700; }
-    .subscribe-dialog button[type=submit]:hover { background: #d4d4d8; }
-    .subscribe-dialog small { display: block; margin-top: 9px; color: #a1a1aa; font-size: 11px; line-height: 1.5; }
-    @media (max-width: 600px) {
-      :global(.footer .shell) { width: min(100% - 32px, 800px); }
-      .main { width: min(100% - 32px, 800px); padding-top: 24px; padding-bottom: 62px; }
-      .header { margin-bottom: 54px; }
-      .section { margin-top: 56px; }
-      .group-heading, .component { padding: 15px; }
-      .group-heading { align-items: flex-start; }
-      .group-count { font-size: 11px; }
-      .group-meta { gap: 9px; }
-      .overall-heading { min-height: 64px; padding: 17px; }
-      .affected-components { padding: 14px 17px; }
-      .active-incidents li { padding: 17px; }
-      .overall .overall-description, .unreported-issue { padding: 17px; }
-    }
-    @media (max-width: 420px) {
-      .header { align-items: flex-start; }
-      .subscribe-link { padding: 8px; }
-      .component-heading { align-items: flex-start; }
-      .component-uptime { font-size: 11px; }
-      .state { font-size: 11px; }
-      .form-row { flex-direction: column; }
-      .subscribe button { width: 100%; }
-    }
-  </style>
 </BaseLayout>

@@ -2,7 +2,6 @@ import { Activity, CircleAlert, CircleCheck, CircleHelp, FilePenLine, SearchChec
 import type { UptimeIncident, UptimeIncidentStatus, UptimeIncidentUpdate } from "./uptime-client";
 import { incidentLabel, publicIncidentStage } from "@/lib/uptime/incident-display";
 import { Select } from "@/components/arc/select/select";
-import "../outray-arc-theme.css";
 import { incidentStageDescriptions } from "./incident-stages";
 
 const incidentStages = ["investigating", "identified", "monitoring", "resolved"] as const;
@@ -41,7 +40,7 @@ export function IncidentStatusSelect({ value, onChange, disabled, allowResolved 
   invalid?: boolean;
   describedBy?: string;
 }) {
-  return <div className="outray-arc-address-filter min-w-0"><Select id={id} label={ariaLabel} value={value} onValueChange={(next) => onChange(next as UptimeIncidentStatus)} disabled={disabled} aria-invalid={invalid} aria-describedby={describedBy}
+  return <div className="min-w-0 [&>div]:relative [&>div]:gap-0 [&_label]:sr-only"><Select id={id} label={ariaLabel} value={value} onValueChange={(next) => onChange(next as UptimeIncidentStatus)} disabled={disabled} aria-invalid={invalid} aria-describedby={describedBy}
     options={incidentStages.filter((stage) => allowResolved || stage !== "resolved").map((stage) => {
       const item = presentation[stage]; const Icon = item.icon;
       return { value: stage, label: item.label, description: incidentStageDescriptions[stage], icon: <Icon size={14} className={item.className.split(" ")[0]} aria-hidden="true" /> };

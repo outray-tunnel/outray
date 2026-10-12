@@ -14,7 +14,6 @@ import {
   type MonitorField,
   type UptimeMonitorDraft,
 } from "./uptime-monitor-input";
-import "../outray-arc-theme.css";
 
 export interface UptimeMonitorFormProps {
   orgSlug: string;
@@ -104,7 +103,7 @@ export function UptimeMonitorForm({ orgSlug, onCreated }: UptimeMonitorFormProps
   }
 
   return (
-    <form onSubmit={(event) => void submit(event)} noValidate aria-busy={isSaving} className="outray-arc space-y-4">
+    <form onSubmit={(event) => void submit(event)} noValidate aria-busy={isSaving} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor={`${id}-name`} className="mb-1.5 block text-[13px] text-zinc-300">Monitor name</label>

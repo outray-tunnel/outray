@@ -5,7 +5,6 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import UnfoldMoreIcon from "@outray/icons/stroke/UnfoldMoreIcon";
 import { OrganizationAvatar, OrganizationSwitcherContent } from "./organization-switcher-content";
 import type { SwitcherOrganization } from "./organization-switcher-state";
-import styles from "./organization-switcher.module.css";
 
 export interface OrganizationDropdownProps {
   organizations: SwitcherOrganization[];
@@ -63,10 +62,10 @@ export function OrganizationDropdown({ organizations, setSelectedOrganization, i
     }
   };
 
-  return <div className={styles.root} data-collapsed={isCollapsed}>
+  return <div className="min-w-0 px-3 data-[collapsed=true]:px-2" data-collapsed={isCollapsed}>
     <Popover.Root open={isOrgDropdownOpen && !isLoading} onOpenChange={openChanged}>
       <Popover.Trigger asChild>
-        <button type="button" className={styles.trigger} disabled={isLoading} aria-label={isLoading ? "Loading organizations" : `Switch organization${selectedOrg ? `, ${selectedOrg.name}` : ""}`} aria-busy={isLoading || undefined} title={isCollapsed ? selectedOrg?.name || "Switch organization" : undefined}
+        <button type="button" className="flex min-h-9 w-full min-w-0 items-center gap-2 rounded-xl border border-transparent bg-transparent px-1.5 py-1.25 text-left text-zinc-300 transition-[background-color,border-color] duration-140 hover:not-disabled:border-white/[.045] hover:not-disabled:bg-white/[.05] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 disabled:cursor-default data-[state=open]:border-white/[.045] data-[state=open]:bg-white/[.05] [[data-collapsed=true]_&]:justify-center [[data-collapsed=true]_&]:p-1.25 motion-reduce:transition-none" disabled={isLoading} aria-label={isLoading ? "Loading organizations" : `Switch organization${selectedOrg ? `, ${selectedOrg.name}` : ""}`} aria-busy={isLoading || undefined} title={isCollapsed ? selectedOrg?.name || "Switch organization" : undefined}
           onClick={() => { initialFocus.current = "search"; }}
           onKeyDown={(event) => {
             if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -76,14 +75,14 @@ export function OrganizationDropdown({ organizations, setSelectedOrganization, i
               else openChanged(true);
             }
           }}>
-          {isLoading ? <><span className={styles.placeholderAvatar} aria-hidden="true" />{!isCollapsed && <span className={styles.placeholderName} aria-hidden="true" />}</> : <>
+          {isLoading ? <><span className="size-5 basis-5 animate-pulse rounded-md bg-white/[.06] motion-reduce:animate-none" aria-hidden="true" />{!isCollapsed && <span className="h-3 w-24 max-w-full animate-pulse rounded-md bg-white/[.06] motion-reduce:animate-none" aria-hidden="true" />}</> : <>
             <OrganizationAvatar organization={selectedOrg} />
-            {!isCollapsed && <><span className={styles.identity}><span className={styles.name}>{selectedOrg?.name || "Select organization"}</span></span><HugeiconsIcon icon={UnfoldMoreIcon} size={14} strokeWidth={1.7} className={styles.arrows} aria-hidden="true" /></>}
+            {!isCollapsed && <><span className="flex min-w-0 flex-1 flex-col gap-0.5"><span className="block truncate text-[13px] leading-[18px] font-normal text-zinc-300">{selectedOrg?.name || "Select organization"}</span></span><HugeiconsIcon icon={UnfoldMoreIcon} size={14} strokeWidth={1.7} className="shrink-0 text-zinc-500" aria-hidden="true" /></>}
           </>}
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content className={styles.panel} aria-label="Switch organization" side={isCollapsed ? "right" : "bottom"} align="start" sideOffset={8} collisionPadding={12} onOpenAutoFocus={(event) => {
+        <Popover.Content className="z-60 flex max-h-[min(320px,var(--radix-popover-content-available-height))] w-[max(220px,var(--radix-popover-trigger-width))] max-w-[calc(100vw-24px)] origin-[var(--radix-popover-content-transform-origin)] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#121212] font-sans text-zinc-200 shadow-[0_18px_55px_rgb(0_0_0/.6)] outline-none data-[state=closed]:opacity-0 transition-opacity duration-120 ease-out motion-reduce:transition-none" aria-label="Switch organization" side={isCollapsed ? "right" : "bottom"} align="start" sideOffset={8} collisionPadding={12} onOpenAutoFocus={(event) => {
           const target = initialFocus.current === "last" ? options().at(-1) || searchRef.current
             : initialFocus.current === "first" ? options()[0] || searchRef.current
             : searchRef.current || options()[0];

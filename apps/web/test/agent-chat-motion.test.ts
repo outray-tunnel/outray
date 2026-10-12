@@ -34,28 +34,16 @@ async function hostHarness() {
       if (specifier === "react") return { ...React, lazy: () => { lazyRegistrations++; return LazyPanel; } };
       if (specifier === "@radix-ui/react-dialog") return dialog;
       if (specifier === "lucide-react") return { X: () => null };
+      if (specifier === "../ui/workspace-scope") return { workspaceScopeClassName: "workspace-scope" };
       if (specifier === "./agent-chat-context") return { useAgentChatState: () => ({
         state: { ...initialAgentChatState, panelOpen: open }, panelId: "agent-panel", returnFocusRef: { current: null },
         dispatch: (event: AgentChatAction) => events.push(event),
       }) };
-      if (specifier === "./agent-chat-panel.module.css") return { panel: "agent-panel", overlay: "agent-overlay" };
       throw new Error(`Unexpected import ${specifier}`);
     },
   });
   return { dialog, LazyPanel, events, get lazyRegistrations() { return lazyRegistrations; },
     render(isOpen: boolean) { open = isOpen; return module.exports.AgentChatHost() as Element; } };
-}
-
-function cssBlock(css: string, selector: string) {
-  const start = css.indexOf(selector);
-  assert.ok(start >= 0, `Missing CSS ${selector}`);
-  const opening = css.indexOf("{", start);
-  let depth = 1;
-  for (let index = opening + 1; index < css.length; index++) {
-    if (css[index] === "{") depth++;
-    if (css[index] === "}" && --depth === 0) return css.slice(opening + 1, index);
-  }
-  assert.fail(`Unclosed CSS ${selector}`);
 }
 
 test("the same Radix shell remains available while closed so Presence can finish its exit", async () => {
@@ -68,10 +56,11 @@ test("the same Radix shell remains available while closed so Presence can finish
     assert.equal(nodes.filter((node) => node.type === harness.dialog.Content).length, 1);
     assert.equal(nodes.filter((node) => node.type === harness.dialog.Overlay).length, 1);
     assert.equal(nodes.filter((node) => node.type === harness.LazyPanel).length, 1);
-    for (const type of [harness.dialog.Content, harness.dialog.Overlay]) {
-      const surface = nodes.find((node) => node.type === type)!;
-      assert.equal(surface.props.style?.pointerEvents, index % 2 === 1 ? undefined : "none", "closed surfaces cannot intercept pointer events during exit");
-    }
+    for (const type of [harness.dialog.Content, harness.dialog.Overlay]) assert.match(
+      String(nodes.find((node) => node.type === type)!.props.className),
+      /data-\[state=closed\]:pointer-events-none/,
+      "closed surfaces cannot intercept pointer events during exit",
+    );
     for (const type of [harness.dialog.Portal, harness.dialog.Content, harness.dialog.Overlay]) {
       assert.equal(nodes.find((node) => node.type === type)!.props.forceMount, undefined, "Radix owns when portal content finally unmounts");
     }
@@ -102,34 +91,32 @@ test("lazy loading stays inside the sole animated dialog and matches the body la
 });
 
 test("Agent panel slides a full width both ways without fading, blurring, or bouncing", async () => {
-  const css = await readFile(new URL("../src/components/agent/agent-chat-panel.module.css", import.meta.url), "utf8");
-  const enter = cssBlock(css, '.panel[data-state="open"]');
-  const exit = cssBlock(css, '.panel[data-state="closed"]');
-  assert.match(enter, /animation:\s*enter-panel 260ms cubic-bezier\(0\.22, 1, 0\.36, 1\) both/);
-  assert.match(exit, /animation:\s*exit-panel 190ms cubic-bezier\(0\.4, 0, 1, 1\) both/);
-  assert.match(exit, /pointer-events:\s*none/);
-  const enterFrames = cssBlock(css, "@keyframes enter-panel");
-  const exitFrames = cssBlock(css, "@keyframes exit-panel");
-  assert.match(enterFrames, /from\s*\{\s*transform:\s*translate3d\(100%, 0, 0\)/);
-  assert.match(enterFrames, /to\s*\{\s*transform:\s*translate3d\(0, 0, 0\)/);
-  assert.match(exitFrames, /from\s*\{\s*transform:\s*translate3d\(0, 0, 0\)/);
-  assert.match(exitFrames, /to\s*\{\s*transform:\s*translate3d\(100%, 0, 0\)/);
-  assert.doesNotMatch([enter, exit, enterFrames, exitFrames].join("\n"), /opacity|filter|scale|rotate|spring|bounce/i);
-  assert.match(cssBlock(css, '.overlay[data-state="open"]'), /enter-overlay 260ms/);
-  const overlayExit = cssBlock(css, '.overlay[data-state="closed"]');
-  assert.match(overlayExit, /exit-overlay 190ms/);
-  assert.match(overlayExit, /pointer-events:\s*none/);
-  assert.match(cssBlock(css, "@keyframes enter-overlay"), /from\s*\{\s*opacity:\s*0;\s*\}\s*to\s*\{\s*opacity:\s*1/);
-  assert.match(cssBlock(css, "@keyframes exit-overlay"), /from\s*\{\s*opacity:\s*1;\s*\}\s*to\s*\{\s*opacity:\s*0/);
+  const harness = await hostHarness();
+  const nodes = elements(harness.render(true));
+  const panel = String(nodes.find((node) => node.type === harness.dialog.Content)!.props.className);
+  const overlay = String(nodes.find((node) => node.type === harness.dialog.Overlay)!.props.className);
+  assert.match(panel, /translate-x-0/);
+  assert.match(panel, /data-\[state=closed\]:translate-x-full/);
+  assert.match(panel, /data-\[state=open\]:duration-\[260ms\]/);
+  assert.match(panel, /data-\[state=open\]:ease-\[cubic-bezier\(\.22,1,\.36,1\)\]/);
+  assert.match(panel, /data-\[state=closed\]:duration-\[190ms\]/);
+  assert.match(panel, /data-\[state=closed\]:ease-\[cubic-bezier\(\.4,0,1,1\)\]/);
+  assert.doesNotMatch(panel, /opacity|blur|scale|rotate|spring|bounce/i);
+  assert.match(overlay, /opacity-100/);
+  assert.match(overlay, /data-\[state=closed\]:opacity-0/);
+  assert.match(overlay, /data-\[state=open\]:duration-\[260ms\]/);
+  assert.match(overlay, /data-\[state=closed\]:duration-\[190ms\]/);
 });
 
 test("reduced motion disables both enter/exit and working shimmer without hiding the label", async () => {
-  const css = await readFile(new URL("../src/components/agent/agent-chat-panel.module.css", import.meta.url), "utf8");
-  const reduced = cssBlock(css, "@media (prefers-reduced-motion: reduce)");
-  assert.match(reduced, /\.panel\[data-state\],\s*\.overlay\[data-state\],\s*\.workingLabel,\s*\.workingIcon\s*\{\s*animation:\s*none/);
-  const label = cssBlock(reduced, ".workingLabel {");
-  assert.match(label, /background:\s*none/);
-  assert.match(label, /color:\s*#d4d4d8/);
-  assert.match(label, /-webkit-text-fill-color:\s*currentColor/);
-  assert.match(reduced, /\.workingIcon\s*\{\s*opacity:\s*1/);
+  const harness = await hostHarness();
+  const nodes = elements(harness.render(true));
+  for (const type of [harness.dialog.Content, harness.dialog.Overlay]) assert.match(
+    String(nodes.find((node) => node.type === type)!.props.className), /motion-reduce:transition-none/,
+  );
+  const body = await readFile(new URL("../src/components/agent/agent-chat-panel.tsx", import.meta.url), "utf8");
+  assert.match(body, /animate-\[pulse_2\.6s_ease-in-out_infinite\] text-\[#beb7cc\] motion-reduce:animate-none motion-reduce:opacity-100/);
+  assert.doesNotMatch(body, /(?:^|[\s"])animate-pulse(?:[\s"]|$)/);
+  assert.match(body, />\{working \? "Agent working…" : "Agent"\}<\/h2>/);
+  assert.doesNotMatch(body, /motion-reduce:(?:hidden|invisible|opacity-0)/);
 });

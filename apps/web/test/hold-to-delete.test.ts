@@ -102,7 +102,8 @@ test("unconditional cancellation invalidates even a queued callback from a previ
 test("the rendered action uses Arc danger styling, an explicit non-submit button, and keyboard/screen-reader instructions", () => {
   const html = renderToStaticMarkup(React.createElement(HoldToDelete, { onConfirm: () => {}, label: "Hold to delete 24 secrets" }));
   assert.match(html, /<button[^>]*type="button"/);
-  assert.match(html, /class="[^"]*danger[^"]*button/);
+  assert.match(html, /class="[^"]*bg-\[#bd3044\]/);
+  assert.match(html, /class="[^"]*min-h-\[52px\]/);
   assert.match(html, /aria-label="Hold to delete 24 secrets"/);
   const describedBy = html.match(/aria-describedby="([^"]+)"/)?.[1];
   assert.ok(describedBy); assert.ok(html.includes(`id="${describedBy}"`));
@@ -125,20 +126,14 @@ test("disabled and pending actions remain inert and loading retains keyboard foc
 });
 
 test("the hold action is a prominent full-width control with a centered 5-second hint and reduced-motion-safe progress", async () => {
-  const css = await readFile(new URL("../src/components/secrets/hold-to-delete.module.css", import.meta.url), "utf8");
-  const control = css.match(/\.control\s*\{([^}]+)\}/)?.[1] ?? "";
-  const button = css.match(/\.button\.button\s*\{([^}]+)\}/)?.[1] ?? "";
-  const hint = css.match(/\.hint\s*\{([^}]+)\}/)?.[1] ?? "";
-  assert.match(control, /width:\s*100%/);
-  assert.match(control, /align-items:\s*stretch/);
-  assert.match(button, /width:\s*100%/);
-  assert.match(button, /min-height:\s*52px/);
-  assert.match(button, /background:\s*#bd3044/);
-  assert.match(hint, /text-align:\s*center/);
-  assert.match(hint, /font-size:\s*11px/);
-  assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*transition:\s*none/);
   const html = renderToStaticMarkup(React.createElement(HoldToDelete, { onConfirm: () => {} }));
-  assert.match(html, /<button[^>]*class="[^"]*\blg\b/);
+  assert.match(html, /class="flex w-full min-w-0 flex-col items-stretch/);
+  const button = html.match(/<button\b[^>]*>/)?.[0] ?? "";
+  assert.match(button, /w-full/);
+  assert.match(button, /min-h-\[52px\]/);
+  assert.match(button, /bg-\[#bd3044\]/);
+  assert.match(html, /text-center text-\[11px\]/);
+  assert.match(html, /motion-reduce:before:transition-none/);
   assert.match(html, /Hold for 5 seconds/);
 });
 
@@ -185,7 +180,6 @@ async function interactiveHarness(props: { disabled?: boolean; loading?: boolean
       if (specifier === "lucide-react") return { Trash2: () => null };
       if (specifier === "../arc/button/button") return { Button };
       if (specifier === "./hold-to-delete-controller") return { createHoldToDeleteController };
-      if (specifier.endsWith(".module.css")) return { default: new Proxy({}, { get: (_target, key) => key }), __esModule: true };
       throw new Error(`Unexpected hold-to-delete dependency: ${specifier}`);
     },
   });

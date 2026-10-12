@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "../arc/button/button";
 import { SearchField } from "../arc/search-field/search-field";
 import { AlertSelectionControl } from "./alert-selection-control";
-import "../outray-arc-theme.css";
 
 interface MemberOption {
   id: string;
@@ -84,7 +83,7 @@ function RecipientPicker({
   );
 
   return (
-    <div className="outray-arc space-y-3">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[13px] font-medium text-zinc-200">
           Email recipients
@@ -96,7 +95,7 @@ function RecipientPicker({
       <p className="!mt-1 text-xs leading-5 text-zinc-400">
         Notify team members when this alert fires or recovers.
       </p>
-      <div className="outray-arc-requests-search">
+      <div className="[&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only">
         <SearchField
           appearance="workspace"
           label="Find a team member"

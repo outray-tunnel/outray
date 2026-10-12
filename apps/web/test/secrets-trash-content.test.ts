@@ -57,6 +57,7 @@ function render(overrides: Partial<ContentProps> = {}) {
 
 const rows = (html: string) => [...html.matchAll(/<(?:article|li|div)\b[^>]*data-trash-batch="([^"]+)"[^>]*>/g)].map(([, id]) => id);
 const buttons = (html: string) => [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(([button]) => button);
+const buttonTag = (button: string) => button.match(/<button\b[^>]*>/)?.[0] ?? "";
 const visibleText = (html: string) => html.replace(/<[^>]*>/g, "");
 const restoreButtons = (html: string) => buttons(html).filter((button) => /^Restore(?: item| batch)?$/.test(visibleText(button).trim()));
 
@@ -119,9 +120,12 @@ test("rows distinguish record kinds, child counts, production scope, and move re
   const restores = restoreButtons(html);
   assert.equal(restores.length, inventory.length);
   for (const button of restores) {
-    assert.match(button, /class="button (?:primary|secondary|ghost) sm(?:\s|")/);
-    assert.match(button, /aria-haspopup="dialog"/);
-    assert.doesNotMatch(button, /class="button danger/);
+    const trigger = buttonTag(button);
+    assert.match(trigger, /\bmin-h-8\b[^"\n]*\bpx-3\b[^"\n]*text-\[13px\]/);
+    assert.match(trigger, /text-zinc-400 hover:bg-\[#202023\] hover:text-zinc-50/);
+    assert.match(trigger, /focus-visible:outline-2/);
+    assert.match(trigger, /aria-haspopup="dialog"/);
+    assert.doesNotMatch(trigger, /text-rose-300|border-rose-300/);
   }
 });
 

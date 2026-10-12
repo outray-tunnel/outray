@@ -6,7 +6,6 @@ import PlayIcon from "@outray/icons/solid/PlayIcon";
 import { Button } from "@/components/arc/button/button";
 import { SearchField } from "@/components/arc/search-field/search-field";
 import { SegmentedControl } from "../ui/segmented-control";
-import "../outray-arc-theme.css";
 import type { TimeRange, TunnelEvent } from "./types";
 import { formatBytes } from "./utils";
 import { RequestInspectorDrawer } from "./request-inspector-drawer";
@@ -56,11 +55,7 @@ export function RequestsExplorer({
       : null;
 
   return (
-    <section
-      aria-label="Request activity"
-      className="outray-arc outray-arc-requests min-w-0"
-      style={{ fontFamily: '"Geom", sans-serif' }}
-    >
+    <section aria-label="Request activity" className="min-w-0 font-[Geom,sans-serif]">
       <RequestsResults
         feed={feed}
         showHost={!tunnelId}
@@ -71,7 +66,7 @@ export function RequestsExplorer({
         }}
         toolbar={
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] p-4">
-            <div className="outray-arc-requests-search w-full min-w-0 sm:w-[320px]">
+            <div className="w-full min-w-0 sm:w-[320px] [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only">
               <SearchField
                 appearance="workspace"
                 label="Search requests"

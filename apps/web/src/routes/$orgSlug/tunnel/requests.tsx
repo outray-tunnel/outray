@@ -12,7 +12,6 @@ import { Button } from "@/components/arc/button/button";
 import { Dialog, DialogTrigger } from "@/components/arc/dialog/dialog";
 import { RequestsExplorer } from "@/components/requests/requests-explorer";
 import { RequestCaptureSettingsModal } from "@/components/requests/request-capture-settings";
-import "@/components/outray-arc-theme.css";
 
 export const Route = createFileRoute("/$orgSlug/tunnel/requests")({
   head: () => ({
@@ -120,7 +119,7 @@ function OrganizationRequestsView({ orgSlug }: { orgSlug: string }) {
         }
       }}
     >
-      <div className="outray-arc mx-auto max-w-[1440px] space-y-5">
+      <div className="mx-auto max-w-[1440px] space-y-5">
         <header className="flex flex-wrap items-end justify-between gap-3 pb-1">
           <div className="min-w-0">
             <h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">

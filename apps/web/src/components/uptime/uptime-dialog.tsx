@@ -1,9 +1,11 @@
 import { createContext, type ReactNode, useContext, useRef } from "react";
 import { Dialog, DialogContent } from "../arc/dialog/dialog";
-import styles from "./uptime-ui.module.css";
-import "../outray-arc-theme.css";
+import { workspaceScopeClassName } from "../ui/workspace-scope";
 
 const DialogDepth = createContext(0);
+const dialogClassName = "z-81! flex max-h-[calc(100dvh-32px)] w-[min(calc(100vw-32px),560px)] flex-col overflow-hidden bg-[#111112] [--text-lg:18px] [&>div:first-child]:shrink-0 [&>div:first-child]:px-6 [&>div:first-child]:py-5 max-sm:[&>div:first-child]:px-5 [&>div:first-child_h2]:font-normal [&>div:first-child_h2]:tracking-[-.025em] [&>div:last-child]:flex [&>div:last-child]:min-h-0 [&>div:last-child]:flex-col [&>div:last-child]:p-0";
+const dialogBodyClassName = "min-h-0 overflow-y-auto overscroll-contain px-6 py-5 max-sm:px-5";
+const dialogFooterClassName = "flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-white/[.08] px-6 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] max-sm:px-5";
 
 export function UptimeDialog({ open, onClose, title, description, children, footer, busy = false, layer = 0 }: {
   open: boolean;
@@ -22,7 +24,7 @@ export function UptimeDialog({ open, onClose, title, description, children, foot
   return <DialogDepth.Provider value={depth + 1}><Dialog open={open} onOpenChange={(next) => { if (!next && !busy) onClose(); }}>
     <DialogContent title={title} description={description} closeDisabled={busy} aria-busy={busy}
       {...(description ? {} : { "aria-describedby": undefined })}
-      className={`workspace-ui outray-arc outray-arc-dialog ${styles.dialog} ${depth > 0 ? styles.raisedDialog : ""}`} overlayClassName={`${styles.overlay} ${depth > 0 ? styles.raisedOverlay : ""}`}
+      className={`${workspaceScopeClassName} ${dialogClassName} ${depth > 0 ? "z-91!" : ""}`} overlayClassName={`z-80! backdrop-blur-none! ${depth > 0 ? "z-90!" : ""}`}
       onEscapeKeyDown={(event) => {
         if (typeof Element !== "undefined" && event.target instanceof Element && event.target.closest('[aria-haspopup="listbox"][aria-expanded="true"]')) event.preventDefault();
         preventBusyClose(event);
@@ -39,8 +41,8 @@ export function UptimeDialog({ open, onClose, title, description, children, foot
         if (opener.current?.isConnected) { event.preventDefault(); opener.current.focus(); }
         opener.current = null;
       }}>
-      <div className={styles.dialogBody}>{children}</div>
-      {footer && <footer className={styles.dialogFooter}>{footer}</footer>}
+      <div className={dialogBodyClassName}>{children}</div>
+      {footer && <footer className={dialogFooterClassName}>{footer}</footer>}
     </DialogContent>
   </Dialog></DialogDepth.Provider>;
 }

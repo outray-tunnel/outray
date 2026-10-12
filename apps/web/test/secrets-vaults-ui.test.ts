@@ -54,8 +54,16 @@ test("catalog vault launchers use the medium size including the empty state", ()
     const launchers = buttons(html).filter((button) => /New vault|Create vault/.test(button));
     assert.ok(launchers.length > 0);
     for (const button of launchers) {
-      assert.match(button, /class="button (?:primary|secondary) md(?:\s|")/);
-      assert.match(button, /aria-haspopup="dialog"/);
+      const trigger = button.match(/<button\b[^>]*>/)?.[0] ?? "";
+      assert.match(trigger, /class="[^"]*\bmin-h-9\b[^"]*\bpx-4\b/);
+      assert.doesNotMatch(trigger, /\bmin-h-(?:8|11)\b|\bpx-(?:3|5)\b/);
+      assert.match(trigger, /focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-\[#8367c7\]/);
+      if (button.includes("New vault")) {
+        assert.match(trigger, /border-zinc-50 bg-zinc-50 text-zinc-950/);
+      } else {
+        assert.match(trigger, /border-white\/12 bg-zinc-900 text-zinc-50/);
+      }
+      assert.match(trigger, /aria-haspopup="dialog"/);
     }
   }
 });
@@ -97,9 +105,10 @@ test("Arc controls retain a labeled native search field, accessible custom sort,
   assert.match(sort, /aria-hidden="true"[^>]*>[\s\S]*?Name/);
   assert.equal(buttons(html).filter((button) => button.includes('role="combobox"')).length, 1);
   const create = buttons(html).find((button) => button.includes("New vault")) ?? "";
-  assert.match(create, /aria-haspopup="dialog"/);
-  assert.match(create, /tabindex="0"/);
-  assert.doesNotMatch(create, /disabled/);
+  const createTrigger = create.match(/<button\b[^>]*>/)?.[0] ?? "";
+  assert.match(createTrigger, /aria-haspopup="dialog"/);
+  assert.match(createTrigger, /tabindex="0"/);
+  assert.doesNotMatch(createTrigger, /\s(?:disabled|aria-disabled)=/);
   assert.match(html, /aria-label="Clear search"/);
   assert.match(html, />8 of 8 vaults<\/p>/);
 });

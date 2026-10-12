@@ -10,6 +10,7 @@ import { LogInspectorContent, LogInspectorSummary } from "../src/components/obse
 import { LogLevelBadge } from "../src/components/observability/log-level-badge";
 import * as logData from "../src/components/observability/logs-data";
 import { formatBody } from "../src/components/requests/json-viewer";
+import { tunnelTabsClassName } from "../src/components/arc/tabs/tunnel-tabs-class";
 
 Object.assign(globalThis, { React });
 const event: logData.LogEvent = {
@@ -137,7 +138,7 @@ test("raw event JSON preserves the complete record, stays on demand and is safel
 test("shared sidesheet is controlled, restores the opener and keys all local state by org and event", async () => {
   const source = await readFile(new URL("../src/components/observability/log-inspector.tsx", import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true } }).outputText;
-  const components = { SideSheet: () => null, CopyButton: () => null, Tabs: () => null, TabsList: () => null, TabsTrigger: () => null, TabsContent: () => null, SegmentedControl: () => null, JsonViewer: () => null, LogLevelBadge: () => null };
+  const components = { SideSheet: () => null, CopyButton: () => null, Tabs: () => null, TabsList: () => null, TabsTrigger: () => null, TabsContent: () => null, SegmentedControl: () => null, JsonViewer: () => null, LogLevelBadge: () => null, tunnelTabsClassName };
   const states: unknown[] = [];
   const writes: unknown[] = [];
   let raw = false;
@@ -172,7 +173,7 @@ test("shared sidesheet is controlled, restores the opener and keys all local sta
   assert.deepEqual(writes, [true, false]);
   const tabs = sessionTree.props.children[2] as React.ReactElement<any>;
   assert.equal(tabs.type, components.Tabs);
-  assert.match(tabs.props.className, /outray-arc-tunnel-tabs/);
+  assert.match(tabs.props.className, /\[&>\[role=tabpanel\]\]:mt-7!/);
   const tabList = tabs.props.children[0] as React.ReactElement<any>;
   assert.equal(tabList.type, components.TabsList);
   assert.equal(tabList.props["data-outray-tabs-list"], true);

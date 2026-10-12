@@ -65,13 +65,13 @@ function MonitorDetailSession({ orgSlug, monitorId }: { orgSlug: string; monitor
   };
 
   const back = <Link to="/$orgSlug/uptime/monitors" params={{ orgSlug }} className="inline-flex min-h-8 items-center gap-1.5 text-[12px] text-zinc-500 transition-colors hover:text-zinc-200 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-zinc-400 motion-reduce:transition-none"><ArrowLeft size={13} aria-hidden="true" />Monitors</Link>;
-  if (resource.loading && !resource.data) return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">{back}<UptimeSkeleton label="Loading monitor details" className="space-y-5"><UptimeHeaderSkeleton action /><UptimeSummarySkeleton /><UptimePanel className="overflow-hidden"><UptimeRowsSkeleton rows={5} /></UptimePanel></UptimeSkeleton></div>;
-  if (!monitor) return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">{back}<UptimeError message={resource.error || "This monitor could not be loaded."} /><Button type="button" variant="secondary" size="sm" onClick={resource.reload}><RotateCcw size={13} aria-hidden="true" />Try again</Button></div>;
+  if (resource.loading && !resource.data) return <div className="mx-auto w-full max-w-[1440px] space-y-5">{back}<UptimeSkeleton label="Loading monitor details" className="space-y-5"><UptimeHeaderSkeleton action /><UptimeSummarySkeleton /><UptimePanel className="overflow-hidden"><UptimeRowsSkeleton rows={5} /></UptimePanel></UptimeSkeleton></div>;
+  if (!monitor) return <div className="mx-auto w-full max-w-[1440px] space-y-5">{back}<UptimeError message={resource.error || "This monitor could not be loaded."} /><Button type="button" variant="secondary" size="sm" onClick={resource.reload}><RotateCcw size={13} aria-hidden="true" />Try again</Button></div>;
 
   const summary = resource.data?.summary;
   const historyDays = summary?.historyDays ?? 30;
   const checks = resource.data?.checks ?? [], incidents = resource.data?.incidents ?? [];
-  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+  return <div className="mx-auto w-full max-w-[1440px] space-y-5">
     {back}
     <UptimePageHeading title={monitor.name} description={`${monitor.method} ${monitor.url}`}
       action={<div className="flex flex-wrap items-center gap-2"><CopyButton value={monitor.url} label="Copy endpoint URL" iconOnly variant="plain" />{resource.data?.canManage ? <><Button type="button" variant="secondary" size="md" aria-haspopup="dialog" disabled={Boolean(busy)} onClick={() => { setEditError(null); setEditing({ ...monitor, notificationEmails: [...(monitor.notificationEmails ?? [])] }); }}><FilePenLine size={14} aria-hidden="true" />Edit monitor</Button><Button type="button" variant="secondary" size="md" loading={busy === "toggle"} disabled={busy === "save"} onClick={() => void toggle()}>{monitor.enabled ? <Pause size={14} fill="currentColor" aria-hidden="true" /> : <Play size={14} fill="currentColor" aria-hidden="true" />}{monitor.enabled ? "Pause" : "Resume"}</Button></> : null}</div>} />

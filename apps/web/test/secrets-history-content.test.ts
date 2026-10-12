@@ -25,7 +25,7 @@ const buttons = (html: string) => [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/b
 test("history uses restrained timeline rows, correct current version, provenance, and no stored values", () => {
   const html = render();
   assert.match(html, /API_KEY/); assert.match(html, /Development/); assert.match(html, /4 versions/);
-  assert.match(html, /<ol class="timeline" aria-label="Secret versions"/);
+  assert.match(html, /<ol class="m-0 list-none p-0" aria-label="Secret versions"/);
   const items = rows(html); assert.equal(items.length, 4);
   assert.match(items[0], /data-current="true"/); assert.match(items[0], /Current/);
   assert.doesNotMatch(items[0], /aria-label="Restore version 4"/);
@@ -39,7 +39,7 @@ test("history uses restrained timeline rows, correct current version, provenance
 test("an explicit current marker overrides index position and stale secret metadata", () => {
   const html = render({ versions: [{ ...versions[0], isCurrent: false }, { ...versions[1], isCurrent: true }] });
   const items = rows(html);
-  assert.doesNotMatch(items[0], /data-current|>Current</);
+  assert.doesNotMatch(items[0], /\sdata-current=|>Current</);
   assert.match(items[0], /Restore version 4/);
   assert.match(items[1], /data-current="true"/);
   assert.doesNotMatch(items[1], /Restore version 3/);
@@ -72,7 +72,7 @@ test("revealed multiline content stays complete, selectable and escaped within t
   const items = rows(html);
   assert.doesNotMatch(items[0], /<pre|Value revealed/); assert.doesNotMatch(items[1], /<pre|Value revealed/);
   assert.match(items[2], /aria-label="Revealed value for version 2"/);
-  assert.match(items[2], /<pre class="value" tabindex="0" aria-label="Version 2 secret value"/);
+  assert.match(items[2], /<pre class="[^"]*whitespace-pre-wrap[^"]*select-text[^"]*" tabindex="0" aria-label="Version 2 secret value"/);
   assert.ok(items[2].includes(`first line\n&lt;do-not-render&gt;&amp;\n${"long-secret-value".repeat(80)}`));
   assert.doesNotMatch(items[2], /<do-not-render>|truncate/);
   assert.match(items[2], /aria-expanded="true"/); assert.match(items[2], /aria-label="Hide version 2"/);
@@ -82,7 +82,7 @@ test("revealed multiline content stays complete, selectable and escaped within t
 test("initial loading has layout-matched skeleton rows but refresh retains the existing history", () => {
   const initial = render({ loading: true, versions: [] });
   assert.match(initial, /aria-busy="true"/); assert.match(initial, /role="status" aria-label="Loading version history"/);
-  assert.equal([...initial.matchAll(/class="skeletonRow"/g)].length, 4);
+  assert.equal([...initial.matchAll(/class="flex gap-\[11px\] border-b/g)].length, 4);
   assert.doesNotMatch(initial, /No version history|Try again|<ol/);
   const refresh = render({ loading: true });
   assert.match(refresh, /aria-busy="true"/); assert.match(refresh, /<ol/);
@@ -120,8 +120,8 @@ async function stubbedModule() {
     if (specifier === "lucide-react") return new Proxy({}, { get: () => Placeholder });
     if (specifier === "../arc/button/button") return { Button };
     if (specifier === "../arc/dialog/dialog") return { Dialog, DialogContent };
+    if (specifier === "../ui/workspace-scope") return { workspaceScopeClassName: "workspace-scope" };
     if (specifier === "./utils") return { formatSecretDate: (value: string) => value };
-    if (specifier.endsWith(".module.css")) return { default: new Proxy({}, { get: (_target, key) => key }), __esModule: true };
     throw new Error(`Unexpected history content dependency: ${specifier}`);
   } });
   return { module, Button, Dialog, DialogContent };
@@ -150,7 +150,8 @@ test("restore uses Arc dialog, real designed production acknowledgement, no type
   const props: SecretHistoryRestoreDialogProps = { open: true, secretKey: "API_KEY", version: 2, currentVersion: 4, production: true, productionConfirmed: false, pending: false, error: null, onProductionChange: () => {}, onClose: () => {}, onConfirm: () => {} };
   const nodes = elements(module.exports.SecretHistoryRestoreDialog(props));
   const content = nodes.find((node) => node.type === DialogContent); assert.ok(content);
-  assert.equal(content.props.title, "Restore version 2?"); assert.match(content.props.className, /workspace-ui outray-arc ph-no-capture/);
+  assert.equal(content.props.title, "Restore version 2?");
+  assert.match(content.props.className, /workspace-scope ph-no-capture z-101!/);
   assert.equal(content.props["data-private-product"], "secrets");
   const checkbox = nodes.find((node) => node.props.type === "checkbox"); assert.ok(checkbox);
   assert.equal(checkbox.props.required, true); assert.equal(checkbox.props.checked, false); assert.equal(checkbox.props["aria-describedby"], "history-view-production-hint");
@@ -186,15 +187,16 @@ test("restore blocks submission and dismissal while pending and requires product
   assert.equal(closed, 1);
 });
 
-test("history CSS provides selectable untruncated multiline values, restrained focus, mobile targets, and reduced motion", async () => {
-  const css = await readFile(new URL("../src/components/secrets/secret-history.module.css", import.meta.url), "utf8");
-  assert.match(css, /\.value\s*\{[^}]*white-space:\s*pre-wrap[^}]*overflow-wrap:\s*anywhere[^}]*user-select:\s*text/);
-  assert.doesNotMatch(css, /text-overflow:\s*ellipsis|line-clamp/);
-  assert.match(css, /\.action\.action:focus-visible\s*\{[^}]*outline:/);
-  assert.match(css, /input:focus-visible \+ \.checkboxMark\s*\{[^}]*outline:/);
-  assert.match(css, /\.restoreOverlay\.restoreOverlay\s*\{[^}]*z-index:\s*100/);
-  assert.match(css, /\.restoreDialog\.restoreDialog\s*\{[^}]*z-index:\s*101[^}]*max-height:\s*calc\(100dvh - 24px\)/);
-  assert.match(css, /\.restoreFields\s*\{[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/);
-  assert.match(css, /@media \(max-width:\s*540px\)[\s\S]*\.action\.action\s*\{[^}]*min-height:\s*40px/);
-  assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*transition:\s*none[\s\S]*animation:\s*none/);
+test("history utilities provide selectable untruncated multiline values, restrained focus, mobile targets, and reduced motion", async () => {
+  const source = await readFile(new URL("../src/components/secrets/secret-history-content.tsx", import.meta.url), "utf8");
+  assert.match(source, /whitespace-pre-wrap[^"\n]*select-text[^"\n]*\[overflow-wrap:anywhere\]/);
+  assert.doesNotMatch(source, /text-ellipsis|line-clamp/);
+  assert.match(source, /focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400/);
+  assert.match(source, /peer-focus-visible:outline-2/);
+  assert.match(source, /overlayClassName="z-100!"/);
+  assert.match(source, /z-101![^"\n]*max-h-\[calc\(100dvh-24px\)\]/);
+  assert.match(source, /min-h-0 flex-1 flex-col gap-\[18px\] overflow-y-auto/);
+  assert.match(source, /max-\[540px\]:min-h-10/);
+  assert.match(source, /motion-reduce:transition-none/);
+  assert.match(source, /motion-reduce:animate-none/);
 });

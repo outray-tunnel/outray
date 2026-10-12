@@ -41,15 +41,15 @@ test("signup uses the shared auth layout with correct headings, accessible group
   assert.doesNotMatch(html, /Welcome back|Sign-in options|<input|type="password"|<form/);
   const options = buttons(html);
   assert.equal(options.length, 2);
-  assert.match(options[0], /class="[^"]*\bprimary\b[^"]*\blg\b/);
+  assert.match(options[0], /class="[^"]*bg-zinc-50[^"]*min-h-11/);
   assert.match(options[0], /aria-label="Continue with GitHub"/);
-  assert.match(options[1], /class="[^"]*\bsecondary\b[^"]*\blg\b/);
+  assert.match(options[1], /class="[^"]*bg-zinc-900[^"]*min-h-11/);
   assert.match(options[1], /aria-label="Continue with Google"/);
   for (const option of options) {
     assert.match(option, /type="button"/);
     assert.doesNotMatch(option, /(?:^|\s)disabled=|aria-disabled="true"/);
   }
-  assert.match(html, /class="page outray-arc"/);
+  assert.match(html, /min-h-svh/);
   assert.doesNotMatch(html, /font-sans/);
 });
 
@@ -117,15 +117,12 @@ test("signup failures use a single escaped alert region", () => {
   assert.doesNotMatch(html, /<script\b/);
 });
 
-test("signup shares the existing responsive and reduced-motion auth stylesheet instead of duplicating login controls", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../src/components/auth/auth-page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../src/components/auth/auth-page.module.css", import.meta.url), "utf8"),
-  ]);
-  assert.match(source, /import styles from "\.\/auth-page\.module\.css"/);
+test("signup shares the responsive and reduced-motion Tailwind auth view instead of duplicating login controls", async () => {
+  const source = await readFile(new URL("../src/components/auth/auth-page.tsx", import.meta.url), "utf8");
   assert.match(source, /mode = "login"/);
-  assert.match(css, /@media \(max-width:\s*800px\)[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\)/);
-  assert.match(css, /@media \(max-width:\s*400px\)/);
-  assert.match(css, /:focus-visible/);
-  assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*transition:\s*none/);
+  assert.match(source, /max-\[800px\]:grid-cols-1/);
+  assert.match(source, /max-\[400px\]:px-5/);
+  assert.match(source, /focus-visible:outline-2/);
+  assert.match(source, /motion-reduce:transition-none/);
+  assert.doesNotMatch(source, /\.module\.css/);
 });

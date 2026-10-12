@@ -2,7 +2,7 @@ import { useId } from "react";
 import { Bell, CircleCheck, Timer } from "lucide-react";
 import { Select } from "../arc/select/select";
 import { WorkspaceInput } from "../ui/workspace-input";
-import styles from "./uptime-ui.module.css";
+import { uptimeControlsClassName } from "./uptime-ui";
 
 export type IncidentPublishingMode = "manual" | "after_confirmation" | "automatic";
 
@@ -26,7 +26,7 @@ export function IncidentPublishingFields({ failureThreshold, onFailureThresholdC
   return <fieldset disabled={disabled} className="border-t border-white/[0.07] pt-4">
     <legend className="text-[13px] font-medium text-zinc-200">Incident publishing</legend>
     <p className="mt-1 text-[12px] leading-5 text-zinc-500">Monitor health and public incidents are separate. Choose when customers see an incident.</p>
-    <div className={`mt-4 grid gap-4 ${styles.controls}`}>
+    <div className={`mt-4 grid gap-4 ${uptimeControlsClassName}`}>
       <Select label="Confirm Down after" value={String(failureThreshold)} disabled={disabled} onValueChange={(value) => onFailureThresholdChange(Number(value))}
         options={[2, 3, 4, 5].map((count) => ({ value: String(count), label: `${count} failed checks` }))} />
       <Select label="Publish a public incident" value={mode} disabled={disabled} onValueChange={(value) => onModeChange(value as IncidentPublishingMode)} options={modes} />

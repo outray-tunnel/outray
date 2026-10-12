@@ -9,7 +9,6 @@ import { ActionMenu } from "./secrets-ui";
 import { vaultUpdatedAt } from "./overview-data";
 import { formatRelativeDate, formatSecretDate } from "./utils";
 import type { SecretEnvironment, SecretProject } from "@/lib/secrets-client";
-import "../outray-arc-theme.css";
 
 export interface VaultContentProps {
   orgSlug: string;
@@ -46,7 +45,7 @@ export function VaultContent({ orgSlug, project, loading, refreshing, error, sea
   }, [project, search]);
   const updatedAt = project ? vaultUpdatedAt(project) : null;
 
-  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+  return <div className="mx-auto w-full max-w-[1440px] space-y-5">
     <header>
       <Link to="/$orgSlug/secrets/vaults" params={{ orgSlug }} className="inline-flex min-h-8 items-center gap-1.5 text-[12px] text-zinc-500 transition-colors hover:text-zinc-200 motion-reduce:transition-none focus-visible:rounded focus-visible:outline-2 focus-visible:outline-accent">
         <ArrowLeft size={13} aria-hidden="true" />Vaults
@@ -86,7 +85,7 @@ export function VaultContent({ orgSlug, project, loading, refreshing, error, sea
         {project.environments.length === 0 ? <div className="rounded-xl border border-dashed border-white/[0.12] px-5 py-12 text-center">
           <Layers size={24} className="mx-auto text-zinc-500" aria-hidden="true" /><h3 className="mt-3 text-[14px] font-medium text-zinc-200">Add your first environment</h3><p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-zinc-500">Start with development, staging, or production. Each keeps its own set of values.</p><Button variant="secondary" size="md" className="mt-4" aria-haspopup="dialog" onClick={onCreateEnvironment}><Plus size={13} aria-hidden="true" />Add environment</Button>
         </div> : <>
-          <div className="outray-arc-requests-search max-w-sm"><SearchField appearance="workspace" label="Search environments" value={search} onValueChange={onSearchChange} placeholder="Find an environment…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
+          <div className="max-w-sm [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" label="Search environments" value={search} onValueChange={onSearchChange} placeholder="Find an environment…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
           {environments.length === 0 ? <div className="rounded-xl border border-white/[0.08] bg-[#111112] px-5 py-12 text-center"><Search size={22} className="mx-auto text-zinc-500" aria-hidden="true" /><h3 className="mt-3 text-[14px] font-medium text-zinc-200">No matching environments</h3><p className="mt-1 text-[12px] leading-5 text-zinc-500">Try another name or clear your search.</p><Button variant="ghost" size="sm" className="mt-3" onClick={() => onSearchChange("")}>Clear search</Button></div> : <div className="rounded-xl border border-white/[0.08] bg-[#111112]">
             <div aria-hidden="true" className={`hidden items-center gap-4 rounded-t-xl border-b border-white/[0.07] bg-white/[0.015] px-4 py-2.5 text-[11px] text-zinc-500 @[720px]/vault-environments:grid ${columns}`}><span>Environment</span><span className="text-right">Secrets</span><span className="text-right">Revision</span><span className="text-right">Updated</span><span /></div>
             <ul className="divide-y divide-white/[0.06]">{environments.map((environment) => <EnvironmentRow key={environment.id} orgSlug={orgSlug} projectSlug={project.slug} environment={environment} onEdit={() => onEditEnvironment(environment)} onDelete={() => onDeleteEnvironment(environment)} />)}</ul>

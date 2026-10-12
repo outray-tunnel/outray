@@ -122,10 +122,14 @@ test("both headers share small typography, full action labels, and clickable pla
     assert.match(html, /aria-haspopup="dialog"/);
     const button = html.match(/<button\b[^>]*>/)?.[0];
     assert.ok(button);
-    assert.match(button, /class="[^"]*\bmd\b/);
+    assert.match(button, /class="[^"]*\bmin-h-9\b[^"]*\bpx-4\b/);
+    assert.match(button, /border-zinc-50 bg-zinc-50 text-zinc-950/);
+    assert.match(button, /focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-\[#8367c7\]/);
+    assert.doesNotMatch(button, /\bmin-h-(?:8|11)\b|\bpx-(?:3|5)\b/);
     assert.ok(html.includes(`aria-label="${label} (plan limit reached)"`));
     assert.match(html, /5<\/span> of 5 used/);
-    assert.doesNotMatch(html, /disabled=""|text-2xl|rounded-full/);
+    assert.doesNotMatch(button, /\s(?:disabled|aria-disabled)=/);
+    assert.doesNotMatch(html, /text-2xl|rounded-full/);
   }
 });
 
@@ -196,13 +200,21 @@ test("failed requests and empty histories have distinct accessible actions", () 
   assert.match(empty, /No matching domains|Clear filters/);
 });
 
-test("empty address creation uses md while retry and clear actions stay compact", () => {
+test("empty address creation uses medium height while retry and clear actions stay compact", () => {
   for (const actionSize of ["md", "sm"] as const) {
     const html = renderToStaticMarkup(React.createElement(AddressEmptyState, {
       title: "No addresses", description: "Add an address", action: "Add domain",
       actionSize, onAction() {},
     }));
-    assert.ok(html.match(/<button\b[^>]*>/)?.[0].includes(` ${actionSize} `));
+    const button = html.match(/<button\b[^>]*>/)?.[0] ?? "";
+    assert.match(button, /focus-visible:outline-2/);
+    assert.match(button, /border-white\/12 bg-zinc-900 text-zinc-50/);
+    if (actionSize === "md") {
+      assert.match(button, /\bmin-h-9\b/);
+      assert.doesNotMatch(button, /\bmin-h-8\b|\bpx-3\b/);
+    } else {
+      assert.match(button, /\bmin-h-8\b[^"\n]*\bpx-3\b[^"\n]*text-\[13px\]/);
+    }
   }
 });
 

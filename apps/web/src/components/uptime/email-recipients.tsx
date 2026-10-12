@@ -97,7 +97,7 @@ export const UptimeEmailRecipients = memo(function UptimeEmailRecipients({ orgSl
       </div> : null}
     </div>
     {value.length > 0 ? <details className="mt-3 text-[11px] text-zinc-400">
-      <summary className="cursor-pointer transition-colors hover:text-zinc-200">Selected recipients ({value.length})</summary>
+      <summary className="cursor-pointer rounded transition-colors hover:text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Selected recipients ({value.length})</summary>
       <div className="mt-2 flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
         {value.slice(0, UPTIME_RECIPIENT_LIMIT).map((email) => <button key={email} type="button" disabled={disabled} onClick={() => onChange(toggleUptimeRecipient(value, email, false))} aria-label={`Remove ${email}`} className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.025] px-2 py-1 text-[11px] text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 motion-reduce:transition-none"><span className="truncate">{email}</span><X size={12} className="shrink-0" aria-hidden="true" /></button>)}
       </div>

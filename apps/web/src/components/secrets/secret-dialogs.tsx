@@ -340,7 +340,7 @@ export function SecretEditorDialog({
                   setReplaceValue(event.target.checked);
                   if (!event.target.checked) setValue("");
                 }}
-                className="mt-0.5 size-4 rounded border-white/20 bg-black accent-[#b7ff78]"
+                className="mt-0.5 size-4 rounded border-white/20 bg-black accent-[#b7ff78] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
               />
               <span>
                 <span className="block text-[13px] font-medium text-zinc-300">
@@ -365,8 +365,7 @@ export function SecretEditorDialog({
             }
           >
             <WorkspaceTextarea
-              className={`font-mono ${showValue ? "" : "[-webkit-text-security:disc]"}`}
-              style={{ minHeight: 128 }}
+              className={`min-h-32 font-mono ${showValue ? "" : "[-webkit-text-security:disc]"}`}
               value={value}
               onChange={(event) => setValue(event.target.value)}
               placeholder={
@@ -384,7 +383,7 @@ export function SecretEditorDialog({
               type="button"
               disabled={editing && !replaceValue}
               onClick={() => setShowValue((current) => !current)}
-              className="mt-2 text-[13px] text-zinc-600 transition-colors hover:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-2 rounded text-[13px] text-zinc-600 transition-colors hover:text-zinc-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {showValue ? "Mask value" : "Show while editing"}
             </button>
@@ -407,7 +406,7 @@ export function SecretEditorDialog({
                     aria-checked={checked}
                     disabled={item.slug === environment.slug}
                     onClick={() => toggleEnvironment(item.slug)}
-                    className={`flex min-h-14 items-center gap-3 rounded-xl border px-3.5 text-left transition-colors ${
+                    className={`flex min-h-14 items-center gap-3 rounded-xl border px-3.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] ${
                       checked
                         ? "border-accent/35 bg-accent/[0.06]"
                         : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.14]"
@@ -554,7 +553,7 @@ export function ImportDotenvDialog({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex min-h-20 w-full items-center justify-center gap-3 rounded-xl border border-dashed border-white/[0.13] bg-white/[0.02] text-[13px] text-zinc-500 transition-colors hover:border-white/[0.22] hover:bg-white/[0.04] hover:text-zinc-300"
+              className="flex min-h-20 w-full items-center justify-center gap-3 rounded-xl border border-dashed border-white/[0.13] bg-white/[0.02] text-[13px] text-zinc-500 transition-colors hover:border-white/[0.22] hover:bg-white/[0.04] hover:text-zinc-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
             >
               <HugeiconsIcon icon={Upload04Icon} size={18} strokeWidth={1.7} />
               Choose a .env file
@@ -564,8 +563,7 @@ export function ImportDotenvDialog({
               hint="Values stay in this dialog until submitted"
             >
               <WorkspaceTextarea
-                className="font-mono"
-                style={{ minHeight: 192 }}
+                className="min-h-48 font-mono"
                 value={envText}
                 onChange={(event) => setEnvText(event.target.value)}
                 placeholder={

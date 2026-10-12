@@ -49,6 +49,7 @@ const links = (html: string) => [...html.matchAll(/<a\b[^>]*>[\s\S]*?<\/a>/g)].m
 const href = (link: string) => link.match(/href="([^"]+)"/)?.[1];
 const environmentLinks = (html: string) => links(html).filter((link) => /\/secrets\/vaults\/[^/]+\/environments\//.test(href(link) ?? ""));
 const buttons = (html: string) => [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(([button]) => button);
+const buttonTag = (button: string) => button.match(/<button\b[^>]*>/)?.[0] ?? "";
 const textContent = (html: string) => html.replace(/<[^>]*>/g, "");
 const summary = (html: string) => html.match(/<dl\b[^>]*aria-label="Vault summary"[^>]*>[\s\S]*?<\/dl>/)?.[0] ?? "";
 const identity = (row: string) => row.match(/<span\b[^>]*class="flex size-8[^>]*>/)?.[0] ?? "";
@@ -59,13 +60,22 @@ test("add environment launchers are medium while row menu affordances stay compa
     const launchers = buttons(html).filter((button) => button.includes("Add environment"));
     assert.ok(launchers.length > 0);
     for (const button of launchers) {
-      assert.match(button, /class="button (?:primary|secondary) md(?:\s|")/);
-      assert.match(button, /aria-haspopup="dialog"/);
+      const trigger = buttonTag(button);
+      assert.match(trigger, /\bmin-h-9\b/);
+      assert.match(trigger, /\bpx-4\b/);
+      assert.doesNotMatch(trigger, /\bmin-h-(?:8|11)\b|\bpx-(?:3|5)\b/);
+      assert.match(trigger, /\bmt-4\b/.test(trigger) ? /border-white\/12 bg-zinc-900 text-zinc-50/ : /border-zinc-50 bg-zinc-50 text-zinc-950/);
+      assert.match(trigger, /focus-visible:outline-2/);
+      assert.match(trigger, /aria-haspopup="dialog"/);
     }
   }
   for (const row of rows(render())) {
     const action = buttons(row).find((button) => button.includes('aria-label="Actions for')) ?? "";
-    assert.match(action, /class="button ghost sm /);
+    const trigger = buttonTag(action);
+    assert.match(trigger, /text-zinc-400 hover:bg-\[#202023\] hover:text-zinc-50/);
+    assert.match(trigger, /\bmin-h-8\b[^"\n]*\bpx-3\b[^"\n]*text-\[13px\]/);
+    assert.match(trigger, /!h-9 !min-h-9 !w-9 !min-w-9 !px-0/);
+    assert.match(trigger, /aria-haspopup="menu"/);
   }
 });
 
@@ -100,8 +110,9 @@ test("encoded direct environment links and the scoped catalog backlink remain na
   assert.doesNotMatch(primary, /<button\b|<input\b|role="button"/);
   assert.match(row, /relative z-\[2\]/);
   const menu = buttons(row).find((button) => button.includes('aria-label="Actions for Live"')) ?? "";
-  assert.match(menu, /type="button"/); assert.match(menu, /aria-expanded="false"/);
-  assert.doesNotMatch(menu, /disabled/);
+  const menuTrigger = buttonTag(menu);
+  assert.match(menuTrigger, /type="button"/); assert.match(menuTrigger, /aria-expanded="false"/);
+  assert.doesNotMatch(menuTrigger, /\s(?:disabled|aria-disabled)=/);
   let depth = 0;
   for (const [tag] of html.matchAll(/<\/?a\b[^>]*>/g)) {
     depth += tag.startsWith("</") ? -1 : 1;
@@ -165,7 +176,8 @@ test("native search and header actions remain labeled and keyboard-reachable, wi
   assert.match(search, /maxLength="200"/); assert.match(search, /autoComplete="off"/); assert.match(search, /spellCheck="false"/);
   assert.match(html, /aria-label="Clear search"/);
   const create = buttons(html).find((button) => textContent(button).includes("Add environment")) ?? "";
-  assert.match(create, /aria-haspopup="dialog"/); assert.match(create, /tabindex="0"/); assert.doesNotMatch(create, /disabled/);
+  const createTrigger = buttonTag(create);
+  assert.match(createTrigger, /aria-haspopup="dialog"/); assert.match(createTrigger, /tabindex="0"/); assert.doesNotMatch(createTrigger, /\s(?:disabled|aria-disabled)=/);
   assert.match(html, /aria-label="Vault actions"/);
   assert.match(links(html)[0], /focus-visible:outline-2/);
   for (const row of rows(html)) {
@@ -247,7 +259,6 @@ test("actual content actions preserve environment identity and only invoke their
       if (specifier === "./secrets-ui") return { ActionMenu };
       if (specifier === "./overview-data") return overviewData;
       if (specifier === "./utils") return utils;
-      if (specifier.endsWith(".css")) return {};
       throw new Error(`Unexpected individual vault dependency: ${specifier}`);
     },
   });

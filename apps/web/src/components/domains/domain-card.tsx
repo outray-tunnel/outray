@@ -1,11 +1,10 @@
-import { useId, useRef, useState, type CSSProperties } from "react";
+import { useId, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Globe02Icon from "@outray/icons/stroke/Globe02Icon";
 import { Button } from "@/components/arc/button/button";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import { ResourceDeleteDialog } from "../resource-delete-dialog";
-import "../outray-arc-theme.css";
 import publicHosts from "../../../../../shared/public-hosts";
 
 const cnameTarget = publicHosts.tunnelDnsHostname(import.meta.env?.VITE_TUNNEL_URL);
@@ -78,8 +77,7 @@ export function DomainCard({
   return (
     <article
       aria-label={`Domain ${domain.domain}`}
-      className="outray-arc border-b border-white/[0.06] last:border-b-0"
-      style={{ "--control-height-sm": "36px" } as CSSProperties}
+      className="border-b border-white/[0.06] last:border-b-0"
     >
       <div className="flex min-h-[76px] items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.025] motion-reduce:transition-none sm:px-5">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-zinc-500 ring-1 ring-white/[0.06]">

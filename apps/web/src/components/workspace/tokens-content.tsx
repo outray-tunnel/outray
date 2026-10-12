@@ -6,7 +6,6 @@ import { WorkspacePageHeader } from "../workspace-page-header";
 import { WorkspaceEmptyState, WorkspaceNotice } from "./workspace-ui";
 import { filterTokens, maskedTokenPrefix, relativeTokenDate, tokenDate, tokenResourceLabel, tokenScopeGroups, tokenStatus, type TokenStatusFilter } from "./tokens-data";
 import type { AuthToken } from "@/lib/app-client";
-import "../outray-arc-theme.css";
 
 export interface TokensContentProps {
   tokens: AuthToken[] | null;
@@ -31,7 +30,7 @@ export function TokensContent({ tokens, loading, refreshing, error, canManage, p
   const visibleTokens = filterTokens(tokens ?? [], search, status, now);
   const filtered = search.trim().length > 0 || status !== "all";
   const clearFilters = () => { onSearchChange(""); onStatusChange("all"); };
-  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+  return <div className="mx-auto w-full max-w-[1440px] space-y-5">
     <WorkspacePageHeader appearance="compact" title="API tokens" description="Scoped credentials for the CLI, API, and automation."
       action={canManage && !permissionPending ? <Button size="md" aria-haspopup="dialog" onClick={onCreate}><Plus size={14} aria-hidden="true" />New token</Button> : undefined} />
     {permissionPending || (loading && !tokens) ? <TokensSkeleton /> : !canManage ? <WorkspaceEmptyState icon={<KeyRound size={24} aria-hidden="true" />} title="Token management is restricted" description="Only workspace owners and admins can view, create, or revoke API tokens." /> : !tokens ? <section role="alert" className="space-y-3">
@@ -41,8 +40,8 @@ export function TokensContent({ tokens, loading, refreshing, error, canManage, p
       {error ? <WorkspaceNotice message="Could not refresh tokens. Showing the last available metadata." action={<Button variant="ghost" size="sm" onClick={onRetry}>Retry</Button>} /> : null}
       {tokens.length === 0 ? <WorkspaceEmptyState icon={<KeyRound size={24} aria-hidden="true" />} title="No API tokens yet" description="Create a scoped credential for tunnels, telemetry, Secrets, or automation." action={<Button variant="secondary" size="md" aria-haspopup="dialog" onClick={onCreate}><Plus size={14} aria-hidden="true" />Create token</Button>} /> : <section aria-label="API token catalog" className="@container/token-catalog space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="outray-arc-requests-search min-w-0 flex-1 basis-[180px] sm:max-w-sm"><SearchField appearance="workspace" label="Search API tokens" value={search} onValueChange={onSearchChange} placeholder="Find a token or permission…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
-          <div className="outray-arc-address-filter w-[145px] shrink-0"><Select label="Filter token status" value={status} onValueChange={(value) => onStatusChange(value === "active" || value === "expired" || value === "revoked" ? value : "all")} options={[{ value: "all", label: "All statuses" }, { value: "active", label: "Active" }, { value: "expired", label: "Expired" }, { value: "revoked", label: "Revoked" }]} /></div>
+          <div className="min-w-0 flex-1 basis-[180px] sm:max-w-sm [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" label="Search API tokens" value={search} onValueChange={onSearchChange} placeholder="Find a token or permission…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
+          <div className="w-[145px] shrink-0 [&>div]:relative [&>div]:gap-0 [&_label]:sr-only"><Select label="Filter token status" value={status} onValueChange={(value) => onStatusChange(value === "active" || value === "expired" || value === "revoked" ? value : "all")} options={[{ value: "all", label: "All statuses" }, { value: "active", label: "Active" }, { value: "expired", label: "Expired" }, { value: "revoked", label: "Revoked" }]} /></div>
           <p role="status" aria-live="polite" className="ml-auto text-[11px] tabular-nums text-zinc-500">{refreshing ? "Updating tokens…" : `${visibleTokens.length.toLocaleString()}${filtered ? ` of ${tokens.length.toLocaleString()}` : ""} ${tokens.length === 1 && !filtered ? "token" : "tokens"}`}</p>
           <Button variant="ghost" size="sm" aria-label="Refresh tokens" loading={refreshing} onClick={onRetry}><RefreshCw size={14} aria-hidden="true" /></Button>
         </div>

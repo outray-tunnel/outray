@@ -15,7 +15,6 @@ import {
   traceIdentity, tracesSelectionMatches,
   type NormalizedTracesSearch, type TraceSummary, type TracesSearch, type TracesSnapshot,
 } from "./traces-data";
-import "../outray-arc-theme.css";
 
 export interface TracesContentProps {
   orgSlug: string;
@@ -54,7 +53,7 @@ export function TracesContent({ orgSlug, data, filters, searchInput, onSearchInp
   const updatedTime = Number.isFinite(receivedDate.getTime()) ? formatTraceTime(receivedDate.toISOString()) : "—";
 
   return (
-    <div className="outray-arc outray-arc-list mx-auto max-w-[1440px] space-y-5">
+    <div className="mx-auto max-w-[1440px] space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3 pb-1">
         <div className="min-w-0"><h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Traces</h1><p className="mt-1 text-[12px] text-zinc-400">Follow operations across services and find where time is spent.</p></div>
         <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
@@ -76,7 +75,7 @@ export function TracesContent({ orgSlug, data, filters, searchInput, onSearchInp
 
       <section aria-label="Recorded traces" className="min-w-0 overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
         <div className="flex flex-wrap items-end gap-3 border-b border-white/[0.07] p-4">
-          <div className="outray-arc-requests-search min-w-0 flex-1 basis-[260px]"><SearchField appearance="workspace" ref={searchRef} label="Search traces" placeholder="Operation, service or trace ID…" value={searchInput} onValueChange={onSearchInputChange} autoComplete="off" spellCheck={false} /></div>
+          <div className="min-w-0 flex-1 basis-[260px] [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" ref={searchRef} label="Search traces" placeholder="Operation, service or trace ID…" value={searchInput} onValueChange={onSearchInputChange} autoComplete="off" spellCheck={false} /></div>
           <div className="min-w-0 flex-1 basis-[170px] sm:max-w-[200px]"><Select label="Status" value={filters.errorsOnly ? "errors" : "all"} onValueChange={(value) => onFiltersChange({ errorsOnly: value === "errors" || undefined })} options={[{ value: "all", label: "All traces" }, { value: "errors", label: "Errors only" }]} /></div>
           {hasFilters && <Button variant="ghost" size="sm" onClick={onClearFilters}>Clear filters</Button>}
         </div>

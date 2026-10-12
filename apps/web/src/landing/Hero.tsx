@@ -1,22 +1,21 @@
 import { GitHubIcon } from "./GitHubIcon";
 import { HeroBeam } from "./HeroBeam";
-import styles from "./hero-beam.module.css";
 
 export function Hero({ signupUrl, githubUrl }: { signupUrl: string; githubUrl: string }) {
   return (
-<section className={`hero ${styles.hero}`} id="top" aria-labelledby="hero-title">
+<section className="relative isolate grid min-h-[min(1060px,100svh)] place-items-[start_center] overflow-hidden bg-page pt-[clamp(240px,26vh,300px)] pb-[72px] max-[860px]:pt-[164px] max-[620px]:pb-[62px]" id="top" aria-labelledby="hero-title">
   <HeroBeam />
-  <div className="page-shell hero-content hero-shell">
-    <h1 className="hero-title" id="hero-title">Everything between <span className="hero-endpoint hero-endpoint-local">localhost</span> and <span className="hero-endpoint hero-endpoint-production">production</span></h1>
-    <p className="hero-lede">
+  <div className="relative z-[2] mx-auto w-[min(calc(100%_-_48px),var(--container-page))] text-center max-[1080px]:w-[min(calc(100%_-_36px),var(--container-page))] max-[860px]:w-[min(calc(100%_-_28px),var(--container-page))] max-[620px]:w-[min(calc(100%_-_24px),var(--container-page))]">
+    <h1 className="mx-auto max-w-[1050px] text-[clamp(3.6rem,6.6vw,6.5rem)] leading-[.87] font-[580] tracking-[-.035em] text-ink max-[860px]:text-[clamp(3.7rem,11.6vw,6.4rem)] max-[620px]:text-[clamp(3.1rem,15.5vw,4.6rem)]" id="hero-title">Everything between <span className="relative inline-block whitespace-nowrap before:pointer-events-none before:absolute before:right-[.01em] before:bottom-[-.13em] before:left-[.01em] before:h-0.5 before:bg-[repeating-linear-gradient(90deg,rgba(255,255,255,.44)_0_6px,transparent_6px_11px)] before:content-[''] after:pointer-events-none after:absolute after:right-[-.045em] after:bottom-[-.155em] after:h-[.17em] after:w-[.055em] after:animate-hero-cursor after:bg-ink after:content-[''] motion-reduce:after:animate-none">localhost</span> and <span className="relative inline-block whitespace-nowrap before:pointer-events-none before:absolute before:right-[.01em] before:bottom-[-.13em] before:left-[.01em] before:h-0.5 before:origin-left before:scale-x-0 before:animate-hero-route before:bg-success before:content-[''] after:pointer-events-none after:absolute after:right-[-.11em] after:bottom-[-.16em] after:h-[.085em] after:w-[.085em] after:animate-hero-live after:rounded-full after:bg-success after:shadow-[0_0_0_.045em_rgb(52_211_153_/.13)] after:content-[''] motion-reduce:before:animate-none motion-reduce:before:scale-x-100 motion-reduce:after:animate-none">production</span></h1>
+    <p className="mx-auto mt-[34px] max-w-[720px] text-[clamp(1.08rem,2vw,1.34rem)] leading-[1.64] text-[#a3a3ab] max-[620px]:mt-[26px] max-[620px]:text-base">
       Connect your services, understand your systems, and keep your apps secure and reliable—all in one developer platform.
     </p>
-    <div className="hero-actions">
-      <a className="button button-primary" href={signupUrl} data-track="cta" data-track-label="hero-start-free">
+    <div className="mt-[34px] flex flex-wrap justify-center gap-[11px] max-[620px]:grid max-[620px]:w-full max-[620px]:grid-cols-1">
+      <a className="relative inline-flex min-h-[52px] items-center justify-center gap-2 overflow-hidden rounded-[14px] border border-white/90 bg-white px-[23px] text-[.94rem] font-[620] tracking-[-.015em] text-[#080808] shadow-[0_10px_30px_rgb(255_255_255/.08)] transition-[border-color,background-color,color,transform,box-shadow] duration-200 ease-snappy hover:-translate-y-px hover:border-white hover:bg-[#f1eff7] hover:shadow-[0_12px_36px_rgb(131_103_199/.18)] max-[620px]:w-full [&>svg]:size-[18px] [&>svg]:shrink-0 [&>svg]:transition-transform [&>svg]:duration-200 [&>svg]:ease-snappy hover:[&>svg]:translate-x-0.5" href={signupUrl} data-track="cta" data-track-label="hero-start-free">
         Start free
         <svg aria-hidden="true" viewBox="0 0 20 20"><path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6"></path></svg>
       </a>
-      <a className="button button-secondary" href={githubUrl} target="_blank" rel="noreferrer" data-track="github" data-track-label="hero">
+      <a className="relative inline-flex min-h-[52px] items-center justify-center gap-2 overflow-hidden rounded-[14px] border border-line-strong bg-[#111113] px-[23px] text-[.94rem] font-[620] tracking-[-.015em] text-ink transition-[border-color,background-color,color,transform,box-shadow] duration-200 ease-snappy hover:-translate-y-px hover:border-white/30 hover:bg-[#18181b] max-[620px]:w-full [&>svg]:size-[18px] [&>svg]:shrink-0" href={githubUrl} target="_blank" rel="noreferrer" data-track="github" data-track-label="hero">
         <GitHubIcon />
         GitHub
       </a>

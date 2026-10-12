@@ -18,7 +18,7 @@ export function VaultEnvironmentsFrame({ orgSlug, projectSlug, environmentSlug, 
   actions?: ReactNode;
   children?: ReactNode;
 }) {
-  return <div className="outray-arc mx-auto flex h-full min-h-0 w-full max-w-[1440px] flex-col gap-5 overflow-hidden" data-vault-environments-layout="">
+  return <div className="mx-auto flex h-full min-h-0 w-full max-w-[1440px] flex-col gap-5 overflow-hidden" data-vault-environments-layout="">
     <EnvironmentKeysHeader orgSlug={orgSlug} projectSlug={projectSlug} environmentSlug={environmentSlug} project={project} actions={actions} />
     <section aria-label="Environment secrets" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
       {project && <EnvironmentKeysTabs orgSlug={orgSlug} projectSlug={projectSlug} environmentSlug={environmentSlug} project={project} />}

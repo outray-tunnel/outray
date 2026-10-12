@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { LandingPage } from "@/landing/LandingPage";
 import { getSelfHostedHomeDestination } from "@/lib/self-hosted-home";
-import landingCss from "@/landing/landing.css?url";
 
 const title = "OutRay — Everything between localhost and production.";
 const description = "Developer infrastructure for secure tunnels, server-side observability, encrypted runtime secrets, and uptime monitoring.";
@@ -49,7 +48,6 @@ export const Route = createFileRoute("/")({
       },
     ],
     links: [
-      { rel: "stylesheet", href: landingCss },
       ...(!match.context.instance?.selfHosted
         ? [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }]
         : []),

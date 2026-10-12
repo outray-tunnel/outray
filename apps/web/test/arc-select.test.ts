@@ -21,7 +21,6 @@ async function renderSelect(overrides: Record<string, unknown> = {}) {
   const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true },
   }).outputText;
-  const cssImports: string[] = [];
   const primitives: Record<string, React.ComponentType<any>> = {};
   const primitive = (name: string) => primitives[name] ?? (primitives[name] = Object.assign(() => null, { displayName: name }));
   const module = { exports: {} as { Select: { render: (props: Record<string, any>, ref: null) => React.ReactNode } } };
@@ -39,10 +38,6 @@ async function renderSelect(overrides: Record<string, unknown> = {}) {
       };
       if (specifier === "lucide-react") return { Check: primitive("Check"), ChevronDown: primitive("ChevronDown"), ChevronUp: primitive("ChevronUp") };
       if (specifier === "../lib/motion-tokens") return { motionTokens };
-      if (specifier.endsWith(".css")) {
-        cssImports.push(specifier);
-        return { __esModule: true, default: new Proxy({}, { get: (_target, name) => `arc-${String(name)}` }) };
-      }
       throw new Error(`Unexpected Select dependency: ${specifier}`);
     },
   });
@@ -52,18 +47,18 @@ async function renderSelect(overrides: Record<string, unknown> = {}) {
       { value: "unavailable", label: "Unavailable signal", disabled: true },
     ], ...overrides,
   }, null);
-  return { tree, cssImports, primitives };
+  return { tree, primitives };
 }
 
 test("Select themes its own portaled menu without depending on an OutRay list page", async () => {
-  const { tree, cssImports, primitives } = await renderSelect();
+  const { tree, primitives } = await renderSelect();
   const portal = elements(tree).find((element) => element.type === primitives.Portal);
   assert.ok(portal, "the floating menu remains a Radix portal");
   const content = elements(portal.props.children).find((element) => element.type === primitives.Content);
   assert.ok(content, "the portal renders Radix content");
-  assert.ok(String(content.props.className).split(/\s+/).includes("outray-arc"), "portal content owns the scoped theme class");
-  assert.ok(String(content.props.className).split(/\s+/).includes("arc-content"), "the menu keeps shared Select styling");
-  assert.ok(cssImports.some((specifier) => specifier.endsWith("/outray-arc-theme.css")), "Select loads its portal's scoped theme");
+  assert.match(String(content.props.className), /bg-\[#111113\]/, "the portaled menu owns its surface styling");
+  assert.match(String(content.props.className), /border-white\/12/);
+  assert.match(String(content.props.className), /shadow-\[0_24px_70px_rgb\(0_0_0\/\.65\)\]/);
   assert.equal(content.props.position, "popper");
   const trigger = elements(tree).find((element) => element.type === primitives.Trigger);
   assert.ok(trigger);
@@ -99,24 +94,27 @@ test("decorated options retain plain typeahead labels, menu descriptions, select
   assert.equal(root.props["aria-invalid"], undefined, "field errors belong to the real trigger");
 });
 
-test("the scoped OutRay theme supplies distinct menu and hover colors plus Select tokens", async () => {
-  const theme = await readFile(new URL("../src/components/outray-arc-theme.css", import.meta.url), "utf8");
-  const scopedRule = theme.match(/\.outray-arc(?:,[^{]*)?\s*\{([^}]*)\}/)?.[1];
-  assert.ok(scopedRule, "the token rule applies directly to the portal's OutRay class");
-  const tokens = new Map([...scopedRule.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((match) => [match[1], match[2].trim()]));
-  for (const token of [
-    "--surface-raised", "--surface-muted", "--foreground", "--border", "--radius-control", "--shadow-floating",
-    "--text-sm", "--text-muted", "--duration-standard", "--duration-instant", "--ease-enter", "--ease-standard",
-  ]) assert.ok(tokens.get(token), `${token} is defined within the portal's own theme scope`);
-  assert.notEqual(tokens.get("--surface-muted"), tokens.get("--surface-raised"), "hover feedback must differ from the menu surface");
+test("the portaled menu carries its own distinct surface, foreground, border, radius, and motion treatment", async () => {
+  const { tree, primitives } = await renderSelect();
+  const content = elements(tree).find((element) => element.type === primitives.Content);
+  assert.ok(content);
+  const classes = String(content.props.className);
+  for (const utility of ["bg-[#111113]", "text-zinc-50", "border-white/12", "rounded-[14px]", "ease-out"]) {
+    assert.ok(classes.split(/\s+/).includes(utility), `${utility} belongs to the portal itself`);
+  }
+  assert.match(classes, /data-\[state=open\]:duration-\[240ms\]/);
+  assert.match(classes, /data-\[state=closed\]:duration-\[120ms\]/);
+  assert.match(classes, /data-\[state=closed\]:opacity-0/);
+  assert.match(classes, /motion-reduce:transition-none/);
 });
 
 test("enabled pointer hover complements Radix keyboard highlighting and keeps motion and disabled guards", async () => {
-  const css = await readFile(new URL("../src/components/arc/select/select.module.css", import.meta.url), "utf8");
-  assert.match(css, /\.item\[data-highlighted\]:not\(\[data-disabled\]\)\s*\{[^}]*background:\s*var\(--surface-muted\)/, "enabled keyboard highlight remains visible");
-  const pointerMediaRules = [...css.matchAll(/@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)\s*\{([^}]+)\}/g)].map((match) => match[1]);
-  assert.ok(pointerMediaRules.some((rule) => /\.item(?=[^{]*:hover)(?=[^{]*:not\(\[data-disabled\]\))[^{}]*\{[^}]*background:\s*var\(--surface-muted\)/.test(rule)),
-    "enabled options receive direct hover feedback only on hover-capable fine pointers");
-  assert.match(css, /\.item\[data-disabled\]\s*\{[^}]*opacity:/, "disabled options retain their visual treatment");
-  assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[^}]*\.item[^}]*transition:\s*none/, "reduced motion disables option transitions");
+  const { tree, primitives } = await renderSelect();
+  const item = elements(tree).find((element) => element.type === primitives.Item);
+  assert.ok(item);
+  const classes = String(item.props.className);
+  assert.match(classes, /data-highlighted:bg-\[#202023\]/, "keyboard highlight remains visible");
+  assert.match(classes, /hover:not-data-disabled:bg-\[#202023\]/, "pointer hover never styles disabled options");
+  assert.match(classes, /data-disabled:opacity-45/, "disabled options retain their visual treatment");
+  assert.match(classes, /motion-reduce:transition-none/, "reduced motion disables option transitions");
 });

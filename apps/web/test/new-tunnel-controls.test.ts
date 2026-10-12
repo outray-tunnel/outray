@@ -77,7 +77,7 @@ test("the new tunnel button uses the shared medium size and still opens plan-lim
 
   assert.match(html, /New tunnel \(plan limit reached\)/);
   assert.match(html, /<button/);
-  assert.match(html, /<button\b[^>]*class="[^"]*\bmd\b/);
+  assert.match(html, /<button\b[^>]*class="[^"]*min-h-9/);
   assert.doesNotMatch(html, /disabled=""/);
 });
 
@@ -93,7 +93,6 @@ test("composite tunnel inputs retain their neutral shell focus and accessible la
     const input = inputs.find(([markup]) => markup.includes(`id="${id}"`));
     assert.ok(input, `${id} uses the shared native input component`);
     assert.match(input[0], /variant="bare"/);
-    assert.match(input[0], /data-outray-composite-input=""/);
     assert.ok(input[0].includes(`aria-describedby="${hint}"`));
     assert.ok(source.includes(`htmlFor="${id}"`));
     assert.ok(source.includes(`id="${hint}"`));
@@ -112,16 +111,13 @@ test("new tunnel command actions use the small size inside the modal", async () 
   for (const [button] of buttons) assert.match(button, /size="sm"/);
 });
 
-test("only marked composite inputs suppress their inner outline while other controls keep visible focus", async () => {
-  const theme = await readFile(new URL("../src/components/outray-arc-theme.css", import.meta.url), "utf8");
-  const compositeRule = theme.match(/\.outray-arc input\[data-outray-composite-input\]:focus-visible\s*\{([^}]+)\}/);
-  assert.ok(compositeRule);
-  assert.match(compositeRule[1], /outline:\s*0\s*;/);
-  assert.match(compositeRule[1], /outline-offset:\s*0\s*;/);
+test("composite inputs and shared buttons own their focus treatment in Tailwind utilities", async () => {
+  const inputs = await readFile(new URL("../src/components/ui/workspace-input-styles.ts", import.meta.url), "utf8");
+  assert.match(inputs, /workspaceInputBareClassName = "[^"]*focus-visible:outline-none/);
+  assert.match(inputs, /workspaceInputShellClassName = `\$\{shared\}[^`]*focus-within:border-white\/35/);
 
-  const otherControls = theme.match(/\.outray-arc:focus-visible,\s*\.outray-arc :is\(button, input, summary\):focus-visible\s*\{([^}]+)\}/);
-  assert.ok(otherControls);
-  assert.match(otherControls[1], /outline:\s*2px solid /);
-  assert.match(otherControls[1], /outline-offset:\s*2px\s*;/);
-  assert.doesNotMatch(theme, /(?:^|\n)\s*(?:input|\.outray-arc input):focus-visible\s*\{[^}]*outline:\s*(?:0|none)\s*;/);
+  const buttons = await readFile(new URL("../src/components/arc/button/button.tsx", import.meta.url), "utf8");
+  assert.match(buttons, /buttonClassName = "[^"]*focus-visible:outline-2/);
+  assert.match(buttons, /focus-visible:outline-offset-2/);
+  assert.match(buttons, /focus-visible:outline-\[#8367c7\]/);
 });

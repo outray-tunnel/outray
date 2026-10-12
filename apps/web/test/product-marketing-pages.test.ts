@@ -12,7 +12,6 @@ import { TunnelFeatureSections } from "../src/landing/products/TunnelFeatureSect
 import { TunnelDeveloperExperience, TUNNEL_PLUGINS, tunnelPluginIndexFromKey, tokenizeTunnelCode } from "../src/landing/products/TunnelDeveloperExperience";
 import { TunnelDomainSection, TunnelLocalSection, TunnelProtocolsSection } from "../src/landing/products/TunnelAddressSections";
 import { TunnelNetworkDiagram } from "../src/landing/products/TunnelNetworkDiagram";
-import tunnelStyles from "../src/landing/products/tunnel-sections.module.css";
 import { CopyButton } from "../src/components/arc/copy-button/copy-button";
 import { productIds, products, type ProductId } from "../src/landing/products/content";
 import { productPageHead } from "../src/landing/products/meta";
@@ -24,7 +23,7 @@ function productPage(product: ProductId) {
   return React.createElement(ProductPage, {
     product,
     ...(product === "tunnels" ? {
-      className: tunnelStyles.page,
+      className: "[--accent:#888] [--accent-deep:#444] [--accent-light:#d4d4d4] [--accent-rgb:160_160_160]",
       hero: React.createElement(TunnelHero),
       workflow: React.createElement(TunnelTerminalSection),
       sections: React.createElement(TunnelFeatureSections),
@@ -208,7 +207,7 @@ test("every product page renders its own content and direct documentation withou
       assert.match(html, /Get started/);
       if (product === "tunnels") assert.match(html, /illustrative|example|sample/i);
       else assert.match(html, /Illustrative interface · sample data/);
-      if (product !== "tunnels") assert.match(html, /<pre tabindex="0" aria-label=/);
+      if (product !== "tunnels") assert.match(html, /<pre\b[^>]*tabindex="0"[^>]*aria-label=/);
       assert.equal(products[product].workflow.steps.length, 3);
       assert.equal(products[product].capabilities.length, 4);
       assert.equal(products[product].useCases.length, 3);
@@ -216,7 +215,7 @@ test("every product page renders its own content and direct documentation withou
         const next = products[product].next;
         assert.ok(html.includes(`href="/products/${next}"`));
         assert.ok(html.includes(`Explore ${products[next].name}`));
-        assert.equal((html.match(/href="\/products\/[^\"]+"/g) ?? []).length, 1, "only the connected-product content link remains");
+        assert.equal((html.match(/href="\/products\/[^"]+"/g) ?? []).length, 1, "only the connected-product content link remains");
       }
       for (const other of productIds.filter((id) => id !== product)) assert.ok(!html.includes(products[other].title));
     }
@@ -246,11 +245,11 @@ test("the tunnels hero has its new headline, real destinations and copyable exam
   assert.match(hero, /href="\/signup"[^>]*>Start tunneling/);
   assert.match(hero, /href="\/docs\/tunnels"[^>]*>Learn more/);
   assert.match(hero, /npx outray 3000/);
-  assert.match(hero, /aria-label="Copy[^\"]*command"/i);
+  assert.match(hero, /aria-label="Copy[^"]*command"/i);
   assert.match(hero, /aria-live="polite"/);
   assert.match(hero, /aria-label="Example public address/, "the portal is labelled as an example rather than live connection data");
   assert.doesNotMatch(hero, /99\.9\d*%|requests per second|live traffic metrics/i);
-  assert.doesNotMatch(html, /class="pd-workflow pd-section"/);
+  assert.ok(!html.includes(products.tunnels.workflow.title), "the generic workflow is absent");
   assert.doesNotMatch(html, /id="capabilities-title"|id="use-cases-title"/);
   assert.ok(!html.includes(products.tunnels.workflow.title), "the new terminal section replaces the generic tunnel workflow");
 });
@@ -279,11 +278,9 @@ test("the tunnel hero centers its command row and places Learn more underneath w
   assert.match(hero, /href="\/signup"[^>]*>Start tunneling/);
   assert.match(hero, /href="\/docs\/tunnels"[^>]*>Learn more/);
   assert.ok(hero.indexOf('href="/docs/tunnels"') > hero.indexOf("npx outray 3000"), "the docs link follows the command in reading and keyboard order");
-  const css = await readFile(new URL("../src/landing/products/tunnel-hero.module.css", import.meta.url), "utf8");
-  const quickStart = css.match(/\.quickStart\s*\{([^}]+)\}/)?.[1];
-  assert.ok(quickStart);
-  assert.match(quickStart, /grid-column:\s*1\s*\/\s*-1\s*;/, "the command spans the copy and portal columns");
-  assert.match(quickStart, /align-items:\s*center|justify-items:\s*center|text-align:\s*center/, "the full-width quick start row is centered");
+  const source = await readFile(new URL("../src/landing/products/TunnelHero.tsx", import.meta.url), "utf8");
+  assert.match(source, /col-span-full/, "the command spans the copy and portal columns");
+  assert.match(source, /justify-self-center justify-items-center/, "the full-width quick start row is centered");
 });
 
 test("the dedicated tunnel hero is isolated from the other product heroes and overview", () => {
@@ -306,7 +303,7 @@ test("the tunnel illustration is decorative and its SVG definitions are unique a
   const definitionIds = [...output.matchAll(/<(?:linearGradient|radialGradient|filter|mask|clipPath)\b[^>]*\bid="([^"]+)"/g)].map((match) => match[1]);
   assert.ok(definitionIds.length > 0, "the unique tunnel illustration is present during SSR");
   assert.equal(new Set(definitionIds).size, definitionIds.length, "separate hero instances cannot share SVG definition identifiers");
-  for (const reference of output.matchAll(/url\(#([^\)]+)\)/g)) assert.ok(definitionIds.includes(reference[1]), `Missing SVG definition: ${reference[1]}`);
+  for (const reference of output.matchAll(/url\(#([^)]+)\)/g)) assert.ok(definitionIds.includes(reference[1]), `Missing SVG definition: ${reference[1]}`);
 });
 
 test("the tunnel command delegates clipboard behavior and feedback to the shared CopyButton", () => {
@@ -330,30 +327,46 @@ test("the tunnel command delegates clipboard behavior and feedback to the shared
 });
 
 test("the tunnel hero has narrow-screen layouts and static packet behavior for reduced motion", async () => {
-  const css = await readFile(new URL("../src/landing/products/tunnel-hero.module.css", import.meta.url), "utf8");
-  assert.match(css, /@media \(max-width: 820px\)/);
-  assert.match(css, /@media \(max-width: 540px\)/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.packet\s*\{\s*animation:\s*none/);
+  const source = await readFile(new URL("../src/landing/products/TunnelHero.tsx", import.meta.url), "utf8");
+  assert.match(source, /max-\[820px\]:/);
+  assert.match(source, /max-\[540px\]:/);
+  assert.match(source, /motion-reduce:animate-none/);
 });
 
-test("the Tunnels page keeps readable neutral headlines and depth while allowing selective demo accents", async () => {
+test("the Tunnels page keeps readable neutral headlines while allowing selective demo accents", async () => {
   const source = await readFile(new URL("../src/landing/products/TunnelHero.tsx", import.meta.url), "utf8");
-  const css = await readFile(new URL("../src/landing/products/tunnel-hero.module.css", import.meta.url), "utf8");
   assert.match(source, /var\(--accent(?:-light|-deep)?\)/i, "selective accents remain available in the decorative portal");
-  const headline = css.match(/\.headline span:last-child\s*\{([^}]+)\}/)?.[1] ?? "";
-  assert.doesNotMatch(headline, /var\(--accent/i);
-  for (const file of ["tunnel-hero", "tunnel-terminal", "tunnel-developer", "tunnel-address", "tunnel-sections", "tunnel-network"]) {
-    const styles = await readFile(new URL(`../src/landing/products/${file}.module.css`, import.meta.url), "utf8");
-    for (const [, selector, declarations] of styles.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-      if (!/\.(?:title|headline)\b/.test(selector)) continue;
-      for (const [, rawColor] of declarations.matchAll(/(?:^|;)\s*color:\s*#([\da-f]{3}|[\da-f]{6})\b/gi)) {
-        const color = rawColor.length === 3 ? [...rawColor].map((digit) => digit.repeat(2)).join("") : rawColor;
-        const channels = [0, 2, 4].map((index) => parseInt(color.slice(index, index + 2), 16));
-        assert.ok(Math.max(...channels) - Math.min(...channels) < 20, `${file} heading remains neutral rather than color-washed`);
-      }
+  const html = renderToStaticMarkup(productPage("tunnels"));
+  const headings = [...html.matchAll(/<h[12]\b[^>]*class="([^"]+)"/g)].map((match) => match[1]);
+  assert.ok(headings.length >= 7);
+  for (const classes of headings) {
+    assert.doesNotMatch(classes, /text-\[var\(--accent/i, "headings remain neutral rather than color-washed");
+    assert.doesNotMatch(classes, /text-transparent|bg-clip-text/, "headings do not use accent gradient text");
+    for (const [, rawColor] of classes.matchAll(/text-\[#([\da-f]{3}|[\da-f]{6})\]/gi)) {
+      const color = rawColor.length === 3 ? [...rawColor].map((digit) => digit.repeat(2)).join("") : rawColor;
+      const channels = [0, 2, 4].map((index) => parseInt(color.slice(index, index + 2), 16));
+      assert.ok(Math.max(...channels) - Math.min(...channels) < 20, `#${rawColor} remains a neutral headline color`);
     }
-    assert.match(styles, /(?:linear|radial)-gradient|box-shadow/, `${file} keeps depth instead of flattening every surface`);
   }
+});
+
+test("Tunnels cards and chrome use flat fills without removing purposeful illustration gradients", async () => {
+  const files = {
+    hero: await readFile(new URL("../src/landing/products/TunnelHero.tsx", import.meta.url), "utf8"),
+    terminal: await readFile(new URL("../src/landing/products/TunnelTerminal.tsx", import.meta.url), "utf8"),
+    developer: await readFile(new URL("../src/landing/products/TunnelDeveloperExperience.tsx", import.meta.url), "utf8"),
+    address: await readFile(new URL("../src/landing/products/TunnelAddressSections.tsx", import.meta.url), "utf8"),
+    network: await readFile(new URL("../src/landing/products/TunnelNetworkDiagram.tsx", import.meta.url), "utf8"),
+    sections: await readFile(new URL("../src/landing/products/TunnelFeatureSections.tsx", import.meta.url), "utf8"),
+  };
+  for (const [name, source] of Object.entries(files)) {
+    assert.match(source, /bg-\[#(?:0[589]|11|15|19|1d|20|29)[0-9a-f]*\]/i, `${name} keeps explicit solid surface fills`);
+  }
+  assert.doesNotMatch(files.sections, /bg-\[(?:linear|radial)-gradient/, "the final CTA has no neutral wash");
+  assert.match(files.network, /bg-\[radial-gradient\([^\]]*var\(--node-rgb\)/, "colored node glows remain decorative, not card shading");
+  assert.match(files.network, /bg-\[linear-gradient\(/, "the colored connection track and packet trail remain intact");
+  assert.match(files.address, /bg-\[linear-gradient\(/, "the local-device grid remains a purposeful pattern");
+  assert.match(files.hero, /<linearGradient\b/, "the decorative portal keeps its illustrated light");
 });
 
 test("Tunnels removes section eyebrows, including the hero product label, without removing other products' copy", () => {
@@ -365,7 +378,6 @@ test("Tunnels removes section eyebrows, including the hero product label, withou
   ]) assert.ok(!html.includes(label), `Removed section eyebrow: ${label}`);
   for (const product of productIds.filter((id) => id !== "tunnels")) {
     const other = renderToStaticMarkup(productPage(product));
-    assert.match(other, /class="pd-eyebrow"/);
     assert.ok(other.includes(`OUTRAY ${products[product].name.toUpperCase()}`));
   }
 });
@@ -417,9 +429,8 @@ test("the request stream follows the tunnel hero with deterministic, clearly lab
 test("the new request stream does not replace the other product workflows or overview previews", () => {
   for (const product of productIds.filter((id) => id !== "tunnels")) {
     const html = renderToStaticMarkup(productPage(product));
-    assert.match(html, /class="pd-workflow pd-section"/);
     assert.ok(html.includes(products[product].workflow.title));
-    assert.match(html, /<pre tabindex="0" aria-label=/);
+    assert.match(html, /<pre\b[^>]*tabindex="0"[^>]*aria-label=/);
     assert.match(html, /id="capabilities-title"|id="use-cases-title"/);
     assert.ok(html.includes(`Explore ${products[products[product].next].name}`));
     assert.doesNotMatch(html, /tunnel-developer-title|tunnel-domain-title|tunnel-local-title|tunnel-protocols-title|tunnel-open-source-title|tunnel-start-title/);
@@ -444,7 +455,7 @@ test("the full Tunnels page presents its new feature sections in order and retai
     assert.ok(html.includes(`href="${destination}"`), `Missing destination: ${destination}`);
   }
   assert.match(html, /href="https:\/\/github\.com\/outray-tunnel\/outray"[^>]*target="_blank"[^>]*rel="noreferrer"/);
-  assert.match(html, /href="https:\/\/discord\.gg\/[^\"]+"[^>]*target="_blank"[^>]*rel="noreferrer"/);
+  assert.match(html, /href="https:\/\/discord\.gg\/[^"]+"[^>]*target="_blank"[^>]*rel="noreferrer"/);
   assert.match(html, /AGPL-3\.0 platform · MIT framework SDKs/);
   assert.match(html, /instance-owned limits/);
   assert.match(html, /No deployment\.|doesn’t deploy your app/);
@@ -455,7 +466,7 @@ test("the full Tunnels page presents its new feature sections in order and retai
   assert.match(cta, /href="\/docs\/tunnels"[^>]*>Read the docs/);
 });
 
-test("the connection section restores the four original-inspired stages with an illustrative, inspectable CSS animation", async () => {
+test("the connection section restores the four original-inspired stages with an illustrative, inspectable Tailwind animation", async () => {
   const html = renderToStaticMarkup(productPage("tunnels"));
   const connection = html.match(/<section\b[^>]*aria-labelledby="tunnel-connection-title"[^>]*>([\s\S]*?)<\/section>/)?.[1];
   assert.ok(connection);
@@ -472,16 +483,18 @@ test("the connection section restores the four original-inspired stages with an 
   assert.match(first, /data-motion="paused"/);
   assert.deepEqual([...first.matchAll(/data-stage="([^"]+)"/g)].map((match) => match[1]), ["local", "secure", "edge", "public"]);
   assert.doesNotMatch(first, /<canvas|aria-live="(?:polite|assertive)"/);
-  const css = await readFile(new URL("../src/landing/products/tunnel-network.module.css", import.meta.url), "utf8");
-  assert.match(css, /@keyframes/);
-  assert.match(css, /animation-play-state:\s*paused/);
-  assert.match(css, /data-motion=["']running["']/);
-  assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*animation:\s*none/);
+  const diagramSource = await readFile(new URL("../src/landing/products/TunnelNetworkDiagram.tsx", import.meta.url), "utf8");
+  const globalCss = await readFile(new URL("../src/index.css", import.meta.url), "utf8");
+  assert.match(globalCss, /@keyframes packet-horizontal/);
+  assert.match(globalCss, /@keyframes node-glow/);
+  assert.match(diagramSource, /\[animation-play-state:paused\]/);
+  assert.match(diagramSource, /data-motion=\{running \? "running" : "paused"\}/);
+  assert.match(diagramSource, /motion-reduce:animate-none/);
 });
 
 test("the four network accents stay vivid and their animated glows use the same palette", async () => {
-  const css = await readFile(new URL("../src/landing/products/tunnel-network.module.css", import.meta.url), "utf8");
-  const accents = [...css.matchAll(/--node-color:\s*#([\da-f]{6});\s*--node-rgb:\s*(\d+)\s+(\d+)\s+(\d+)/gi)];
+  const source = await readFile(new URL("../src/landing/products/TunnelNetworkDiagram.tsx", import.meta.url), "utf8");
+  const accents = [...source.matchAll(/--node-color:#([\da-f]{6})\]\s+\[--node-rgb:(\d+)_(\d+)_(\d+)\]/gi)];
   assert.equal(accents.length, 4, "each connection stage has a purposeful accent");
   assert.equal(new Set(accents.map(([, hex]) => hex.toLowerCase())).size, 4, "the four stages remain visually distinct");
   for (const [, hex, red, green, blue] of accents) {
@@ -492,8 +505,8 @@ test("the four network accents stay vivid and their animated glows use the same 
     assert.ok(brightest >= 210, `#${hex} should stay bright against the dark node surface`);
     assert.deepEqual([Number(red), Number(green), Number(blue)], channels, "node and glow colors stay consistent");
   }
-  assert.match(css, /\.node\s*\{[^}]*color:\s*var\(--node-color\)/);
-  assert.match(css, /\.glow\s*\{[^}]*rgb\(var\(--node-rgb\)/);
+  assert.match(source, /text-\[var\(--node-color\)\]/);
+  assert.match(source, /rgb\(var\(--node-rgb\)\//);
 });
 
 test("the restored network animation pauses offscreen, in a hidden tab, and through its user control without a JS loop", async () => {
@@ -768,8 +781,8 @@ test("the terminal respects initial and changing reduced-motion preferences with
     assert.equal(harness.intervals.size, 0);
     assert.ok(terminalElements(tree).some((element) => element.props.children === "Static preview"));
   } finally { harness.dispose(); }
-  const css = await readFile(new URL("../src/landing/products/tunnel-terminal.module.css", import.meta.url), "utf8");
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*animation:\s*none/);
+  const source = await readFile(new URL("../src/landing/products/TunnelTerminal.tsx", import.meta.url), "utf8");
+  assert.match(source, /motion-reduce:animate-none/);
 });
 
 test("the terminal works without IntersectionObserver but still waits for a visible document", async () => {
@@ -791,7 +804,7 @@ test("Tunnels-only hero, workflow and feature dependencies are composed by its r
   assert.match(tunnelRoute, /import\s*\{\s*TunnelHero\s*\}\s*from ["'][^"']*TunnelHero["']/);
   assert.match(tunnelRoute, /<ProductPage\s+product="tunnels"/);
   assert.match(tunnelRoute, /hero=\{<TunnelHero\s*\/>\}/);
-  assert.match(tunnelRoute, /className=\{styles\.page\}/, "the route scopes neutral accent variables to the Tunnels page only");
+  assert.match(tunnelRoute, /className="\[--accent:#888\][^"]+"/, "the route scopes neutral accent variables to the Tunnels page only");
   assert.match(tunnelRoute, /import\s*\{\s*TunnelTerminalSection\s*\}\s*from ["'][^"']*TunnelTerminal["']/);
   assert.match(tunnelRoute, /workflow=\{<TunnelTerminalSection\s*\/>\}/);
   assert.match(tunnelRoute, /import\s*\{\s*TunnelFeatureSections\s*\}\s*from ["'][^"']*TunnelFeatureSections["']/);
@@ -845,7 +858,8 @@ test("shared navigation and footer use real product destinations while retaining
   assert.match(navigation, /encodeURIComponent\(dashboardOrganization.slug\)/);
   assert.match(navigation, /Dashboard/);
   for (const source of [navigation, footer]) {
-    assert.match(source, /className="brand-link" href="\/"/);
+    assert.ok(source.includes('href="/"'));
+    assert.match(source, /aria-label="OutRay home"/);
     assert.ok(source.includes('href="/products"'));
     for (const product of productIds) assert.ok(source.includes(`/products/${product}`));
   }
@@ -855,15 +869,15 @@ test("shared navigation and footer use real product destinations while retaining
   }
 });
 
-test("all product routes share the layout styles and declare their own metadata", async () => {
+test("all product routes use the Tailwind layout and declare their own metadata", async () => {
   const layoutRoute = await readFile(new URL("../src/routes/products.tsx", import.meta.url), "utf8");
-  const css = await readFile(new URL("../src/landing/products/products.css", import.meta.url), "utf8");
-  assert.match(layoutRoute, /landing\/landing\.css\?url/);
-  assert.match(layoutRoute, /products\/products\.css\?url/);
+  const layout = await readFile(new URL("../src/landing/products/ProductLayout.tsx", import.meta.url), "utf8");
+  const globalCss = await readFile(new URL("../src/index.css", import.meta.url), "utf8");
+  assert.doesNotMatch(layoutRoute, /\.css\?url/);
   assert.match(layoutRoute, /component: ProductLayout/);
-  assert.doesNotMatch(css, /^\s*(?:body|html|:root|\*)\s*\{/m);
-  assert.match(css, /@media \(max-width: 540px\)/);
-  assert.doesNotMatch(css, /\.pd-product-nav\b/);
+  assert.match(layout, /min-h-screen/);
+  assert.doesNotMatch(layout, /pd-product-nav/);
+  assert.match(globalCss, /^@import "tailwindcss";/);
   for (const product of productIds) {
     const route = await readFile(new URL(`../src/routes/products.${product}.tsx`, import.meta.url), "utf8");
     assert.ok(route.includes(`createFileRoute("/products/${product}")`));

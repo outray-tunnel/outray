@@ -2,4 +2,4 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 Astro.response.status = 404;
 ---
-<BaseLayout title="Status page not found"><main class="shell"><p>STATUS</p><h1>Page not found</h1><p>This status page is unavailable or has not been published.</p><a href="https://outray.co">OutRay home →</a></main><style>main{min-height:70vh;padding-top:100px}h1{font-size:clamp(32px,7vw,62px);letter-spacing:-.05em}p{color:#a1a1aa}a{color:#c4b5fd}</style></BaseLayout>
+<BaseLayout title="Status page not found"><main class="mx-auto min-h-[70vh] w-[min(100%_-_48px,800px)] pt-[100px] max-[600px]:w-[min(100%_-_32px,800px)]"><p class="my-[1em] text-[#a1a1aa]">STATUS</p><h1 class="my-[0.67em] text-[clamp(32px,7vw,62px)] font-bold tracking-[-0.05em]">Page not found</h1><p class="my-[1em] text-[#a1a1aa]">This status page is unavailable or has not been published.</p><a class="text-[#c4b5fd]" href="https://outray.co">OutRay home →</a></main></BaseLayout>

@@ -6,7 +6,6 @@ import { SearchField } from "../arc/search-field/search-field";
 import { Select } from "../arc/select/select";
 import { ConnectServiceSheet } from "./connect-service-sheet";
 import { filterServiceInventory, parseServiceLastSeen, serviceDisplayHealth, type ServiceInventoryHealth, type ServiceInventoryItem } from "./services-data";
-import "../outray-arc-theme.css";
 
 export interface ServicesContentProps {
   orgSlug: string;
@@ -49,7 +48,7 @@ export function ServicesContent({ orgSlug, services, loading, isFetching, error,
   const referenceTime = updatedAt ?? initialReferenceTime;
 
   return (
-    <div className="outray-arc outray-arc-list mx-auto max-w-[1440px] space-y-5">
+    <div className="mx-auto max-w-[1440px] space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3 pb-1">
         <div className="min-w-0">
           <h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Services</h1>

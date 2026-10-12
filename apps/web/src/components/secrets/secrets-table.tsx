@@ -25,7 +25,6 @@ import { SearchField } from "../arc/search-field/search-field";
 import { formatRelativeDate, formatSecretDate } from "./utils";
 import { usePermission } from "@/lib/auth-client";
 import { BulkActionsDialog, type BulkAction } from "./bulk-actions-dialog";
-import "../outray-arc-theme.css";
 
 interface RevealedSecret {
   value: string;
@@ -256,7 +255,7 @@ export function SecretsTable({
     },
   ];
 
-  const surfaceClassName = `outray-arc ph-no-capture @container/secret-table min-w-0 ${scrollRows ? "flex h-full min-h-0 flex-col overflow-hidden" : ""} ${contained ? "" : "overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]"}`;
+  const surfaceClassName = `ph-no-capture @container/secret-table min-w-0 ${scrollRows ? "flex h-full min-h-0 flex-col overflow-hidden" : ""} ${contained ? "" : "overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]"}`;
   const messageClassName = scrollRows ? "flex min-h-0 flex-1 flex-col items-center justify-center px-5 py-6 text-center" : "px-5 py-12 text-center";
   if (secrets.length === 0) {
     return <div className={surfaceClassName}>
@@ -276,7 +275,7 @@ export function SecretsTable({
         {notice && <SecretsNotice tone="success" message={notice} onDismiss={() => setNotice(null)} />}
       </div>}
       <div className={`flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] px-4 py-3 ${scrollRows ? "shrink-0" : ""}`}>
-        <div className="outray-arc-requests-search min-w-0 flex-1 sm:max-w-sm"><SearchField appearance="workspace" label="Search secret keys" value={query} onValueChange={setQuery} placeholder="Search keys…" autoComplete="off" spellCheck={false} /></div>
+        <div className="min-w-0 flex-1 sm:max-w-sm [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" label="Search secret keys" value={query} onValueChange={setQuery} placeholder="Search keys…" autoComplete="off" spellCheck={false} /></div>
         {query.trim() && <span role="status" className="text-[11px] tabular-nums text-zinc-500">{visibleSecrets.length.toLocaleString()} of {secrets.length.toLocaleString()} keys</span>}
       </div>
 

@@ -15,6 +15,7 @@ import {
   TraceWaterfallSkeleton,
 } from "../src/components/observability/trace-inspector";
 import { orderedTraceSpans, traceTimelineDuration } from "../src/components/observability/trace-waterfall-data";
+import { tunnelTabsClassName } from "../src/components/arc/tabs/tunnel-tabs-class";
 import * as waterfallData from "../src/components/observability/trace-waterfall-data";
 import * as traceData from "../src/components/observability/traces-data";
 import * as logData from "../src/components/observability/logs-data";
@@ -155,7 +156,7 @@ type Element = React.ReactElement<ElementProps>;
 async function loadInspector(fetchDetails: (...args: any[]) => Promise<traceData.TraceDetailsResponse>, hooks?: Record<string, unknown>) {
   const source = await readFile(new URL("../src/components/observability/trace-inspector.tsx", import.meta.url), "utf8");
   const compiled = ts.transpileModule(`${source}\nexport { useTraceDetails };`, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true } }).outputText;
-  const components = { SideSheet: () => null, CopyButton: () => null, Tabs: () => null, TabsList: () => null, TabsTrigger: () => null, TabsContent: () => null, Button: () => null, JsonViewer: () => null, TraceStatusBadge: () => null };
+  const components = { SideSheet: () => null, CopyButton: () => null, Tabs: () => null, TabsList: () => null, TabsTrigger: () => null, TabsContent: () => null, Button: () => null, JsonViewer: () => null, TraceStatusBadge: () => null, tunnelTabsClassName };
   const module = { exports: {} as Record<string, (...args: any[]) => any> };
   runInNewContext(compiled, {
     React, AbortController, module, exports: module.exports,
@@ -196,7 +197,7 @@ test("shared modal restores focus, keys org and trace, and uses the neutral Arc 
   assert.deepEqual(writes, [true, false]);
   const tabs = tree.props.children[2] as Element;
   assert.equal(tabs.type, components.Tabs);
-  assert.match(tabs.props.className, /outray-arc-tunnel-tabs/);
+  assert.match(tabs.props.className, /\[&>\[role=tabpanel\]\]:mt-7!/);
   const list = tabs.props.children[0] as Element;
   assert.equal(list.props["data-outray-tabs-list"], true);
   assert.deepEqual(list.props.children.map((trigger: Element) => [trigger.props.value, trigger.props["data-outray-tabs-trigger"]]), [["waterfall", true], ["context", true], ["raw", true]]);

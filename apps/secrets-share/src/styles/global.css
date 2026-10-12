@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Geom";
+  font-display: swap;
+  src: url("/fonts/geom-latin.woff2") format("woff2");
+}
+
+@theme {
+  --font-sans: "Geom", "Inter", system-ui, sans-serif;
+  --animate-menu-exit: menu-exit 130ms linear both;
+
+  @keyframes menu-exit {
+    to {
+      --menu-exit: 1;
+    }
+  }
+}

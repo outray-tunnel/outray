@@ -281,7 +281,8 @@ test("mobile browsing opens a compact library and selection closes it with focus
   const html = render();
   assert.match(html, /aria-label="Browse instruments" aria-expanded="false" aria-controls="metric-instrument-library"/);
   assert.match(html, /id="metric-instrument-library" class="hidden lg:block"/);
-  assert.match(html, /id="metric-instrument-library" class="hidden lg:block"><div class="outray-arc-requests-search/);
+  assert.match(html, /id="metric-instrument-library" class="hidden lg:block"><div class="px-4 pb-4/);
+  assert.match(html, /\[&amp;_label\]:sr-only/);
   assert.match(html, /lg:!hidden/);
   const ui = await loadContent();
   const selections: metricData.MetricsSearch[] = [];

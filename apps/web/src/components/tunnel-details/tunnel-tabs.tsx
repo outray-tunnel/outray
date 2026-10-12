@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/arc/tabs/tabs";
-import "../outray-arc-theme.css";
+import { tunnelTabsClassName } from "@/components/arc/tabs/tunnel-tabs-class";
 
 interface TunnelTabsProps {
   activeTab: string;
@@ -26,7 +26,7 @@ export function TunnelTabs({
       value={activeTab}
       onValueChange={setActiveTab}
       activationMode="automatic"
-      className="outray-arc outray-arc-tunnel-tabs"
+      className={tunnelTabsClassName}
     >
       <TabsList aria-label="Tunnel views" data-outray-tabs-list>
         {tabs.map((tab) => (

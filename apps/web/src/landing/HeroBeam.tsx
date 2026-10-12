@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type ComponentType } from "react";
 import type { HeroBeamCanvasProps } from "./HeroBeamCanvas";
-import styles from "./hero-beam.module.css";
 
 export function HeroBeam() {
   const container = useRef<HTMLDivElement>(null);
@@ -53,8 +52,8 @@ export function HeroBeam() {
   const showScene = Scene !== null && view.motionAllowed && !failed;
 
   return (
-    <div ref={container} className={styles.beam} data-ready={showScene && ready ? "true" : undefined} aria-hidden="true">
-      <svg className={styles.fallback} viewBox="0 0 1400 780" preserveAspectRatio="xMidYMid slice" focusable="false">
+    <div ref={container} className="group/beam pointer-events-none absolute inset-0 z-0 overflow-hidden" data-ready={showScene && ready ? "true" : undefined} aria-hidden="true">
+      <svg className="absolute inset-0 size-full opacity-100 transition-opacity duration-500 group-data-[ready=true]/beam:opacity-0 motion-reduce:transition-none min-[768px]:-translate-x-[10%]" viewBox="0 0 1400 780" preserveAspectRatio="xMidYMid slice" focusable="false">
         <defs>
           <linearGradient id={`${id}-light`} x1="0" y1="0" x2="1" y2="0">
             <stop offset="0" stopColor="#ffffff" stopOpacity="0" />

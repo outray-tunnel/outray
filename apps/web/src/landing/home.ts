@@ -36,7 +36,7 @@ function setupExplicitTracking(signal: AbortSignal) {
 }
 
 function setupShowcasePanels(tabs: HTMLElement, panels: HTMLElement[], signal: AbortSignal) {
-  const stage = tabs.querySelector<HTMLElement>(".product-switcher__stage");
+  const stage = tabs.querySelector<HTMLElement>("[data-product-stage]");
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
   let activePanel: HTMLElement | undefined;
   let finishTimer = 0;
@@ -263,7 +263,7 @@ function setupHeader(signal: AbortSignal) {
   }
 
   document
-    .querySelectorAll<HTMLDetailsElement>(".mobile-nav")
+    .querySelectorAll<HTMLDetailsElement>("[data-mobile-nav]")
     .forEach((menu) => {
       menu
         .querySelectorAll("a")

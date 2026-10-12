@@ -1,5 +1,5 @@
 import { Search, Zap } from "lucide-react";
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { appClient } from "@/lib/app-client";
 import { WorkspaceInput } from "@/components/ui/workspace-input";
@@ -102,16 +102,15 @@ export function ProtocolEvents({
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={`Search ${isTcp ? "connections" : "packets"}...`}
             aria-label={`Search ${isTcp ? "connections" : "packets"}`}
-            style={{ "--workspace-input-padding-left": "40px" } as CSSProperties}
+            className="[--workspace-input-padding-left:40px]"
           />
         </div>
         <div className="flex bg-white/5 rounded-xl p-1 relative">
           <div
-            className="absolute h-[calc(100%-8px)] bg-white/10 rounded-lg transition-all duration-200 ease-out"
+            className="absolute top-1 h-[calc(100%-8px)] rounded-lg bg-white/10 transition-all duration-200 ease-out"
             style={{
               width: `${100 / TIME_RANGES.length}%`,
               left: `calc(${(activeIndex * 100) / TIME_RANGES.length}% + 4px)`,
-              top: "4px",
             }}
           />
           {TIME_RANGES.map((range) => (

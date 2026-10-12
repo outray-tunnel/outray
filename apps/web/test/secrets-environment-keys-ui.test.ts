@@ -90,6 +90,8 @@ function buttons(html: string) {
   return [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(([button]) => button);
 }
 
+const buttonTag = (button: string) => button.match(/<button\b[^>]*>/)?.[0] ?? "";
+
 test("environment navigation uses full native links with one current page and Alerts-style underlines", () => {
   const html = render();
   const links = environmentLinks(html);
@@ -190,9 +192,14 @@ test("the environment header preserves add, import and export actions alongside 
   for (const label of ["Import", "Export .env", "Add secret"]) {
     const action = buttons(html).find((button) => button.includes(label)) ?? "";
     assert.ok(action, `${label} remains available`);
-    assert.match(action, /class="button (?:primary|secondary) md(?:\s|")/);
-    assert.match(action, /tabindex="0"/);
-    assert.doesNotMatch(action, /disabled/);
+    const trigger = buttonTag(action);
+    assert.match(trigger, /\bmin-h-9\b/);
+    assert.match(trigger, /\bpx-4\b/);
+    assert.doesNotMatch(trigger, /\bmin-h-(?:8|11)\b|\bpx-(?:3|5)\b/);
+    assert.match(trigger, label === "Add secret" ? /border-zinc-50 bg-zinc-50 text-zinc-950/ : /border-white\/12 bg-zinc-900 text-zinc-50/);
+    assert.match(trigger, /focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-\[#8367c7\]/);
+    assert.match(trigger, /tabindex="0"/);
+    assert.doesNotMatch(trigger, /\s(?:disabled|aria-disabled)=/);
   }
   const exporting = render({ exporting: true });
   const exportAction = buttons(exporting).find((button) => button.includes("Export .env")) ?? "";
@@ -210,7 +217,10 @@ test("initial key rendering contains metadata only and a genuine empty environme
   const empty = render({ data: { ...data, environment: emptyEnvironment, secrets: [], revision: 0 } });
   assert.match(empty, /No secrets in this environment/);
   assert.match(empty, /Add first secret/);
-  assert.match(buttons(empty).find((button) => button.includes("Add first secret")) ?? "", /class="button secondary md /);
+  const addFirst = buttonTag(buttons(empty).find((button) => button.includes("Add first secret")) ?? "");
+  assert.match(addFirst, /\bmin-h-9\b/);
+  assert.match(addFirst, /border-white\/12 bg-zinc-900 text-zinc-50/);
+  assert.match(addFirst, /aria-haspopup="dialog"/);
   assert.equal(environmentLinks(empty).length, environments.length);
   assert.doesNotMatch(empty, /DATABASE_URL|API_KEY|Try again/);
 });

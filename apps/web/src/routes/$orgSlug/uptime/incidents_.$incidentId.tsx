@@ -4,8 +4,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight, ChevronDown, Info, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/arc/button/button";
-import buttonStyles from "@/components/arc/button/button.module.css";
-import "@/components/outray-arc-theme.css";
 import { IncidentBadge, IncidentStatusSelect, StagePill } from "@/components/uptime/incident-ui";
 import { incidentStageDescriptions } from "@/components/uptime/incident-stages";
 import { IncidentRichContent, IncidentRichEditor } from "@/components/uptime/incident-rich-editor";
@@ -18,7 +16,7 @@ import {
   uptimeRequest,
 } from "@/components/uptime/uptime-client";
 import { UptimeHeaderSkeleton, UptimeRowsSkeleton, UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
-import { labelClass, UptimeError } from "@/components/uptime/uptime-ui";
+import { labelClass, secondaryButtonMedium, UptimeError } from "@/components/uptime/uptime-ui";
 import { UptimeDialog } from "@/components/uptime/uptime-dialog";
 import { UptimeSideSheet } from "@/components/uptime/uptime-side-sheet";
 import { useUptimeUnsavedChanges } from "@/components/uptime/use-uptime-unsaved-changes";
@@ -82,7 +80,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     await queryClient.invalidateQueries({ queryKey: ["uptime", orgSlug] });
   };
 
-  if (resource.isPending) return <div className="outray-arc mx-auto w-full max-w-[1440px] pb-12">
+  if (resource.isPending) return <div className="mx-auto w-full max-w-[1440px] pb-12">
     {back}
     <UptimeSkeleton label="Loading incident" className="space-y-7">
       <UptimeHeaderSkeleton action />
@@ -92,7 +90,7 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     </UptimeSkeleton>
   </div>;
 
-  if (!resource.data) return <div className="outray-arc mx-auto w-full max-w-[1440px] pb-12">
+  if (!resource.data) return <div className="mx-auto w-full max-w-[1440px] pb-12">
     {back}
     <h1 className="mb-3 text-xl font-normal text-zinc-100">{resource.error instanceof UptimeRequestError && resource.error.status === 404 ? "Incident not found" : "Could not load incident"}</h1>
     <UptimeError message={resource.error?.message || "This incident is not available."} />
@@ -137,14 +135,14 @@ function IncidentDetail({ orgSlug, incidentId }: { orgSlug: string; incidentId: 
     finally { setIgnoring(false); }
   };
 
-  return <div className="outray-arc mx-auto w-full max-w-[1440px] pb-12">
+  return <div className="mx-auto w-full max-w-[1440px] pb-12">
     {back}
     <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0 flex-1">
         <h1 className="break-words text-[20px] font-normal tracking-[-0.035em] text-zinc-100">{incident.title}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2"><IncidentBadge incident={incident} updates={updates} /><p className="text-[12px] leading-5 text-zinc-500">{manual ? "Team updates and publication history." : "Monitor detection and recovery, with team-published updates."}</p></div>
       </div>
-      {publicReportAvailable && page && <a className={`${buttonStyles.button} ${buttonStyles.secondary} ${buttonStyles.md}`} href={new URL(`incidents/${encodeURIComponent(incident.id)}`, statusPageUrl(statusBase, page.slug)).href} target="_blank" rel="noopener noreferrer">Public report<ArrowUpRight size={14} aria-hidden="true" /></a>}
+      {publicReportAvailable && page && <a className={secondaryButtonMedium} href={new URL(`incidents/${encodeURIComponent(incident.id)}`, statusPageUrl(statusBase, page.slug)).href} target="_blank" rel="noopener noreferrer">Public report<ArrowUpRight size={14} aria-hidden="true" /></a>}
     </header>
 
     {resource.isError && <div className="mb-5"><UptimeError message={`The latest refresh failed. Showing the last loaded incident. ${resource.error.message}`} /></div>}

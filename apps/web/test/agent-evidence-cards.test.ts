@@ -135,9 +135,9 @@ test("legacy evidence requires no presentation and is left to normal citation ch
 });
 
 test("evidence cards adapt at mobile widths, preserve keyboard focus and respect reduced motion", async () => {
-  const css = await readFile(new URL("../src/components/agent/agent-evidence-cards.module.css", import.meta.url), "utf8");
-  assert.match(css, /\.inspect:focus-visible, \.more > summary:focus-visible/);
-  assert.match(css, /@media \(max-width: 540px\)[\s\S]*\.comparisons \{ grid-template-columns: minmax\(0, 1fr\)/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*transition: none/);
-  assert.doesNotMatch(css, /animation:|position:\s*fixed/);
+  const source = await readFile(new URL("../src/components/agent/agent-evidence-cards.tsx", import.meta.url), "utf8");
+  assert.match(source, /focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-zinc-400/);
+  assert.match(source, /grid grid-cols-2 gap-3 max-\[540px\]:grid-cols-1/);
+  assert.match(source, /motion-reduce:transition-none/);
+  assert.doesNotMatch(source, /\banimate-|\bfixed\b/);
 });

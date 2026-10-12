@@ -37,12 +37,12 @@ export function setupProductOutline(
     : tabs.querySelector<HTMLElement>("[data-product-outline]");
   const svg = frame?.querySelector<SVGSVGElement>("[data-product-outline-svg]");
   const path = frame?.querySelector<SVGPathElement>("[data-product-outline-path]");
-  const stage = frame?.querySelector<HTMLElement>(".product-switcher__stage");
+  const stage = frame?.querySelector<HTMLElement>("[data-product-stage]");
   const buttons = Array.from(
     frame?.querySelectorAll<HTMLButtonElement>("[data-product-tab]") ?? [],
   );
   const pillSurfaces = Array.from(
-    frame?.querySelectorAll<HTMLElement>(".product-switcher__pills span") ?? [],
+    frame?.querySelectorAll<HTMLElement>("[data-product-pill]") ?? [],
   );
 
   // Keep the CSS fallback if dimensions cannot be observed or on mobile.

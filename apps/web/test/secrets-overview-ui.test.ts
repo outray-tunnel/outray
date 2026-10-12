@@ -26,6 +26,8 @@ import type {
 
 Object.assign(globalThis, { React });
 
+const buttonTag = (button: string) => button.match(/<button\b[^>]*>/)?.[0] ?? "";
+
 test("overview vault launchers use the medium size in the header and empty state", () => {
   const emptyData = { ...data, projectCount: 0, environmentCount: 0, secretCount: 0, projects: [] };
   for (const html of [render(), render({ data: emptyData })]) {
@@ -33,8 +35,13 @@ test("overview vault launchers use the medium size in the header and empty state
       .map(([button]) => button).filter((button) => /New vault|Create vault/.test(button));
     assert.ok(launchers.length > 0);
     for (const button of launchers) {
-      assert.match(button, /class="button (?:primary|secondary) md(?:\s|")/);
-      assert.match(button, /aria-haspopup="dialog"/);
+      const trigger = buttonTag(button);
+      assert.match(trigger, /\bmin-h-9\b/);
+      assert.match(trigger, /\bpx-4\b/);
+      assert.doesNotMatch(trigger, /\bmin-h-(?:8|11)\b|\bpx-(?:3|5)\b/);
+      assert.match(trigger, button.includes("New vault") ? /border-zinc-50 bg-zinc-50 text-zinc-950/ : /border-white\/12 bg-zinc-900 text-zinc-50/);
+      assert.match(trigger, /focus-visible:outline-2/);
+      assert.match(trigger, /aria-haspopup="dialog"/);
     }
   }
 });
@@ -190,9 +197,10 @@ test("all six preview rows are whole-row scoped links with a separate new-vault 
   assert.match(html, /href="\/other-workspace\/secrets\/audit"/);
   assert.match(html, /Showing 6 of 8 vaults/);
   const create = [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].find(([button]) => button.includes("New vault"))?.[0] ?? "";
-  assert.match(create, /aria-haspopup="dialog"/);
-  assert.match(create, /tabindex="0"/);
-  assert.doesNotMatch(create, /disabled/);
+  const createTrigger = buttonTag(create);
+  assert.match(createTrigger, /aria-haspopup="dialog"/);
+  assert.match(createTrigger, /tabindex="0"/);
+  assert.doesNotMatch(createTrigger, /\s(?:disabled|aria-disabled)=/);
   assert.doesNotMatch(html, /href="\/acme\//);
 });
 

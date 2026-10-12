@@ -111,7 +111,7 @@ function SubdomainsPage({ orgSlug }: { orgSlug: string }) {
   }
 
   return (
-    <div className="outray-arc outray-arc-list mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <SubdomainHeader
         currentSubdomainCount={subdomains.length}
         subdomainLimit={limit}
@@ -147,7 +147,7 @@ function SubdomainsPage({ orgSlug }: { orgSlug: string }) {
         label="Reserved subdomains"
         toolbar={
           <>
-            <div className="outray-arc-address-search w-full sm:max-w-[360px]">
+            <div className="w-full sm:max-w-[360px] [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only">
               <SearchField
                 appearance="workspace"
                 label="Search subdomains"

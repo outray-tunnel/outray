@@ -1,9 +1,7 @@
-import styles from "./hero-beam.module.css";
-
 /** Static counterpart for SSR, reduced motion, and unavailable WebGL. */
 export function HeroAuroraFallback({ id }: { id: string }) {
   return (
-    <svg className={styles.auroraFallback} viewBox="0 0 1000 800" focusable="false" aria-hidden="true">
+    <svg className="absolute top-0 right-[-30%] h-full w-[min(1100px,90vw)] opacity-85 transition-opacity duration-500 group-data-[ready=true]/beam:opacity-0 motion-reduce:transition-none max-[767px]:hidden" viewBox="0 0 1000 800" focusable="false" aria-hidden="true">
       <defs>
         <linearGradient id={`${id}-aurora`} x1="1" y1="0" x2="0" y2="0">
           <stop stopColor="#7fffc5" stopOpacity="0.5" />

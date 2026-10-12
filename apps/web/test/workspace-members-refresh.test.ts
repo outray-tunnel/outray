@@ -24,7 +24,7 @@ const render = (overrides: Partial<MembersContentProps> = {}) => renderToStaticM
 
 test("members have a compact workspace header, accessible counts, avatars and roles", () => {
   const html = render();
-  assert.match(html, /outray-arc mx-auto w-full max-w-\[1440px\] space-y-5/);
+  assert.match(html, /class="mx-auto w-full max-w-\[1440px\] space-y-5"/);
   assert.match(html, /<h1[^>]*text-(?:\[20px\]|xl)[^>]*font-normal[^>]*>Members<\/h1>/);
   assert.match(html, /The people with access to your workspace/);
   assert.match(html, /role="tablist"[^>]*aria-label="Workspace team"/);
@@ -68,7 +68,8 @@ test("owners including the last owner remain protected and permission-only actio
 test("invite launchers are medium-sized and block duplicate actions while pending", () => {
   const html = render();
   const launch = [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].find(([button]) => button.includes("Invite member"))?.[0] || "";
-  assert.match(launch, /class="button primary md(?:\s|")/);
+  assert.match(launch, /min-h-9/);
+  assert.match(launch, /border-zinc-50 bg-zinc-50 text-zinc-950/);
   assert.match(launch, /aria-haspopup="dialog"/);
   const busyLaunch = [...render({ busy: true }).matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].find(([button]) => button.includes("Invite member"))?.[0] || "";
   assert.match(busyLaunch, /disabled=""/);

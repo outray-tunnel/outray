@@ -1,12 +1,14 @@
 import { defineConfig } from "astro/config";
 import node from "@astrojs/node";
 import react from "@astrojs/react";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   output: "server",
   adapter: node({ mode: "standalone" }),
   integrations: [react()],
   vite: {
+    plugins: [tailwindcss()],
     // Hoisted UI dependencies must share the app's React instance.
     resolve: { dedupe: ["react", "react-dom"] },
     ssr: { noExternal: ["motion", "framer-motion", /^@radix-ui\//] },

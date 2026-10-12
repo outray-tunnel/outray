@@ -61,6 +61,7 @@ async function loadComponent(path: string, initialState: any[] = []) {
         useEffect: (callback: () => void) => effects.push(callback),
       };
       if (specifier === "./overview-data") return overviewData;
+      if (specifier === "./setup-endpoints") return { observabilitySetupCode: (code: string) => code };
       if (specifier === "@tanstack/react-router") return { Link: (props: any) => React.createElement("a", { href: props.to }, props.children) };
       if (specifier === "@tanstack/react-query") return { useQuery: () => ({}), useQueryClient: () => ({ invalidateQueries: () => {} }) };
       if (specifier === "@/lib/app-client") return { appClient: {} };

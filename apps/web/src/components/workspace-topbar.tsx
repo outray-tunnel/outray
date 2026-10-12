@@ -7,7 +7,6 @@ import { ReportBugModal } from "./report-bug-modal";
 import { Sparkles } from "lucide-react";
 import { Button } from "./arc/button/button";
 import { useAgentChat } from "./agent/agent-chat-context";
-import "./outray-arc-theme.css";
 
 export function WorkspaceTopbar({
   onOpenNavigation,
@@ -38,7 +37,7 @@ export function WorkspaceTopbar({
           onOpenNavigation={onOpenNavigation}
           isNavigationOpen={isNavigationOpen}
         />
-        <div className="outray-arc ml-auto flex items-center gap-2 sm:gap-3">
+        <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <Button type="button" variant="ghost" size="sm" data-agent-trigger aria-haspopup="dialog" aria-expanded={agent.isOpen} aria-controls={agent.panelId} onClick={agent.openAgent} className={agent.isOpen ? "!bg-white/[0.05] !text-zinc-200" : "!text-zinc-400"}>
             <Sparkles size={14} strokeWidth={1.7} aria-hidden="true" />Agent
           </Button>

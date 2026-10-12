@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import ts from "typescript";
+import { primaryButton, primaryButtonSmall, secondaryButton, secondaryButtonMedium } from "../src/components/uptime/uptime-ui";
 
 const files = {
   create: "components/uptime/create-incident-dialog.tsx",
@@ -52,7 +53,7 @@ test("incident page launchers use Arc md with stable dialog anchoring", async ()
       assert.doesNotMatch(attribute(node, "className")?.getText() ?? "", /primaryButton|secondaryButton|min-h/);
       assert.ok(attribute(node, "onClick"));
     }
-    assert.match(root.getText(), /className="outray-arc mx-auto/);
+    assert.match(root.getText(), /className="mx-auto/);
   }
 });
 
@@ -113,7 +114,7 @@ test("notification settings launch at md while confirmation actions and OAuth li
   const anchors = controls(root, "a");
   assert.equal(anchors.length, 2);
   for (const node of anchors) {
-    assert.match(attribute(node, "className")?.getText() ?? "", inOverlay(node) ? /buttonStyles\.sm/ : /buttonStyles\.md/);
+    assert.equal(value(node, "className"), inOverlay(node) ? "{primaryButtonSmall}" : "{secondaryButtonMedium}");
     assert.match(value(node, "href") ?? "", /uptimeApiPath/);
     assert.equal(attribute(node, "onClick"), undefined, "OAuth stays a native navigation, not a button-side redirect");
   }
@@ -127,11 +128,11 @@ test("notification settings launch at md while confirmation actions and OAuth li
 test("Uptime overlays use the actual Arc dialog and shared side sheet with busy close guards", async () => {
   const modal = await source("components/uptime/uptime-dialog.tsx");
   assert.match(modal.getText(), /import .*Dialog, DialogContent.*arc\/dialog\/dialog/);
-  assert.match(modal.getText(), /import "\.\.\/outray-arc-theme\.css"/);
+  assert.match(modal.getText(), /import .*workspaceScopeClassName.*ui\/workspace-scope/);
   assert.equal(controls(modal, "dialog").length, 0);
   const dialog = controls(modal, "DialogContent")[0];
   assert.ok(dialog);
-  assert.match(value(dialog, "className") ?? "", /workspace-ui outray-arc outray-arc-dialog/);
+  assert.match(value(dialog, "className") ?? "", /workspaceScopeClassName/);
   assert.equal(value(dialog, "closeDisabled"), "{busy}");
   assert.equal(value(dialog, "onInteractOutside"), "{preventBusyClose}");
   assert.ok(attribute(dialog, "onOpenAutoFocus"));
@@ -139,9 +140,23 @@ test("Uptime overlays use the actual Arc dialog and shared side sheet with busy 
   const panel = await source("components/uptime/uptime-side-sheet.tsx");
   assert.match(panel.getText(), /import .*SideSheet.*ui\/side-sheet/);
   assert.equal(value(controls(panel, "SideSheet")[0], "closeDisabled"), "{busy}");
-  const shared = await source("components/uptime/uptime-ui.tsx");
-  assert.match(shared.getText(), /primaryButton =.*buttonStyles\.primary.*buttonStyles\.md/);
-  assert.match(shared.getText(), /secondaryButton =.*buttonStyles\.secondary.*buttonStyles\.sm/);
+  for (const className of [primaryButton, secondaryButtonMedium]) {
+    assert.match(className, /(?:^| )min-h-9(?: |$)/);
+    assert.match(className, /(?:^| )px-4(?: |$)/);
+    assert.match(className, /(?:^| )focus-visible:outline-2(?: |$)/);
+    assert.match(className, /(?:^| )focus-visible:outline-offset-2(?: |$)/);
+    assert.match(className, /(?:^| )focus-visible:outline-\[#8367c7\](?: |$)/);
+  }
+  for (const className of [primaryButtonSmall, secondaryButton]) {
+    assert.match(className, /(?:^| )min-h-8(?: |$)/);
+    assert.match(className, /(?:^| )px-3(?: |$)/);
+  }
+  assert.match(primaryButton, /(?:^| )border-zinc-50(?: |$)/);
+  assert.match(primaryButton, /(?:^| )bg-zinc-50(?: |$)/);
+  assert.match(primaryButtonSmall, /(?:^| )text-zinc-950(?: |$)/);
+  assert.match(secondaryButton, /(?:^| )border-white\/12(?: |$)/);
+  assert.match(secondaryButtonMedium, /(?:^| )bg-zinc-900(?: |$)/);
+  assert.match(secondaryButtonMedium, /(?:^| )text-zinc-50(?: |$)/);
   const richEditor = await source(files.richEditor);
   const toolbar = controls(richEditor, "Button").find((node) => value(node, "title") === "{tool.label}");
   assert.ok(toolbar);

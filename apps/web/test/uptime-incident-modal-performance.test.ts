@@ -190,7 +190,6 @@ test("title and body typing keep memoized picker props stable and do not re-deri
     "@/lib/uptime/incident-display": { pageComponents: (value: UptimePageResponse) => { derivations++; return display.pageComponents(value); } },
     "@/components/ui/workspace-input": { WorkspaceInput: Input },
     "@/components/arc/button/button": { Button: bare },
-    "@/components/arc/button/button.module.css": { __esModule: true, default: {} },
     "./incident-ui": { IncidentStatusSelect: bare }, "./incident-rich-editor": { IncidentRichEditor: RichEditor },
     "./incident-component-picker": { IncidentComponentPicker: Picker },
     "./uptime-dialog": { UptimeDialog: bare },

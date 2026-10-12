@@ -58,6 +58,7 @@ function render(overrides: Partial<ContentProps> = {}) {
 
 const rows = (html: string) => [...html.matchAll(/<(?:article|li|div)\b[^>]*data-secret-share="([^"]+)"[^>]*>/g)].map(([, id]) => id);
 const buttons = (html: string) => [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(([button]) => button);
+const buttonTag = (button: string) => button.match(/<button\b[^>]*>/)?.[0] ?? "";
 const visibleText = (html: string) => html.replace(/<[^>]*>/g, "");
 
 test("empty shares explain sharing without adding an organization member and offer a clear next step", () => {
@@ -71,8 +72,13 @@ test("empty shares explain sharing without adding an organization member and off
   const launchers = buttons(html).filter((button) => /Choose secrets|Share secrets/.test(button));
   assert.ok(launchers.length > 0);
   for (const button of launchers) {
-    assert.match(button, /class="button (?:primary|secondary) md(?:\s|")/);
-    assert.doesNotMatch(button, /disabled/);
+    const trigger = buttonTag(button);
+    assert.match(trigger, /\bmin-h-9\b/);
+    assert.match(trigger, /\bpx-4\b/);
+    assert.match(trigger, /border-zinc-50 bg-zinc-50 text-zinc-950/);
+    assert.match(trigger, /focus-visible:outline-2/);
+    assert.doesNotMatch(trigger, /\bmin-h-(?:8|11)\b|\bpx-(?:3|5)\b/);
+    assert.doesNotMatch(trigger, /\s(?:disabled|aria-disabled)=/);
   }
   assert.doesNotMatch(html, /<a\b[^>]*>[\s\S]*?<button\b/);
 });
@@ -139,8 +145,11 @@ test("rows show supported states, key names, timestamps, and revoke only active 
   assert.match(html, /<time\b[^>]*dateTime="2026-10-14T09:00:00Z"/);
   const revokes = buttons(html).filter((button) => /^Revoke(?: share)?$/.test(visibleText(button).trim()));
   assert.equal(revokes.length, 1);
-  assert.match(revokes[0], /class="button (?:danger|ghost) sm(?:\s|")/);
-  assert.match(revokes[0], /aria-haspopup="dialog"/);
+  const revoke = buttonTag(revokes[0]);
+  assert.match(revoke, /\bmin-h-8\b[^"\n]*\bpx-3\b[^"\n]*text-\[13px\]/);
+  assert.match(revoke, /text-zinc-400 hover:bg-\[#202023\] hover:text-zinc-50/);
+  assert.match(revoke, /focus-visible:outline-2/);
+  assert.match(revoke, /aria-haspopup="dialog"/);
   assert.doesNotMatch(html, /<a\b|secrets\.outray\.dev\//);
   assert.equal(buttons(html).filter((button) => /^Open|^Copy/.test(visibleText(button).trim())).length, 0);
 });

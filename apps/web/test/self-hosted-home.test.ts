@@ -31,7 +31,6 @@ async function homeFixture(selfHosted: boolean, destination: () => Promise<"/log
       if (specifier === "@tanstack/react-router") return { createFileRoute: () => (options: unknown) => ({ options }), redirect };
       if (specifier === "@/landing/LandingPage") return { LandingPage };
       if (specifier === "@/lib/self-hosted-home") return { getSelfHostedHomeDestination: destination };
-      if (specifier === "@/landing/landing.css?url") return { default: "/landing.css" };
       throw new Error(`Unexpected root dependency: ${specifier}`);
     },
   });

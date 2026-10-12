@@ -36,7 +36,7 @@ function setupExplicitTracking() {
 }
 
 function setupShowcasePanels(tabs: HTMLElement, panels: HTMLElement[]) {
-  const stage = tabs.querySelector<HTMLElement>(".product-switcher__stage");
+  const stage = tabs.querySelector<HTMLElement>("[data-product-stage]");
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
   let activePanel: HTMLElement | undefined;
   let finishTimer = 0;
@@ -258,7 +258,7 @@ function setupHeader() {
   }
 
   document
-    .querySelectorAll<HTMLDetailsElement>(".mobile-nav")
+    .querySelectorAll<HTMLDetailsElement>("[data-mobile-nav]")
     .forEach((menu) => {
       menu
         .querySelectorAll("a")

@@ -5,6 +5,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DomainCard } from "../src/components/domains/domain-card";
 import { SubdomainCard } from "../src/components/subdomains/subdomain-card";
+import publicHosts from "../../../shared/public-hosts";
 
 // The Node test runner uses classic JSX; Vite uses automatic JSX.
 Object.assign(globalThis, { React });
@@ -17,6 +18,7 @@ const domain = {
   createdAt,
 };
 const subdomain = { id: "subdomain-1", subdomain: "preview", createdAt };
+const cnameTarget = publicHosts.tunnelDnsHostname();
 const noop = async () => {};
 
 function renderDomain(props: Partial<React.ComponentProps<typeof DomainCard>> = {}) {
@@ -91,7 +93,7 @@ test("explicitly expanded domains expose the same full DNS records in every stat
     assert.match(html, /Full hostnames are shown/);
     assert.match(html, /provider appends the DNS zone, enter only the relative name/);
     for (const [type, name, value] of [
-      ["CNAME", domain.domain, "edge.outray.app"],
+      ["CNAME", domain.domain, cnameTarget],
       ["TXT", `_outray-challenge.${domain.domain}`, domain.id],
     ]) {
       const row = [...html.matchAll(/<tr\b[^>]*>[\s\S]*?<\/tr>/g)].map(([record]) => record)
@@ -204,7 +206,8 @@ test("copy controls use the displayed full DNS names, exact ownership token, and
     readFile(new URL("../src/components/domains/domain-card.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/subdomains/subdomain-card.tsx", import.meta.url), "utf8"),
   ]);
-  assert.match(domainSource, /type:\s*"CNAME",\s*name:\s*domain\.domain,\s*value:\s*"edge\.outray\.app"/);
+  assert.match(domainSource, /const cnameTarget = publicHosts\.tunnelDnsHostname\(import\.meta\.env\?\.VITE_TUNNEL_URL\)/);
+  assert.match(domainSource, /type:\s*"CNAME",\s*name:\s*domain\.domain,\s*value:\s*cnameTarget/);
   assert.match(domainSource, /type:\s*"TXT",\s*name:\s*`_outray-challenge\.\$\{domain\.domain\}`,\s*value:\s*domain\.id/);
   assert.match(domainSource, /<CopyButton\b[^>]*value=\{record\.name\}/);
   assert.match(domainSource, /<CopyButton\b[^>]*value=\{record\.value\}/);
@@ -252,5 +255,6 @@ test("pending deletion guards all dismissal routes and focuses the safe Cancel a
   assert.match(source, /onOpenAutoFocus=\{\(event\) => \{\s*event\.preventDefault\(\);\s*cancelRef\.current\?\.focus\(\)/);
   assert.match(source, /ref=\{cancelRef\}[\s\S]*?disabled=\{isPending\}/);
   assert.match(source, /variant="danger"[\s\S]*?loading=\{isPending\}/);
-  assert.match(source, /<DialogContent\s+className="outray-arc"/);
+  assert.match(source, /<DialogContent\s+title=\{title\}/);
+  assert.doesNotMatch(source, /outray-arc/);
 });

@@ -52,21 +52,52 @@ const frameworks = [
 ];
 ---
 
-<section class="developer-workflow workflow" id="workflow" aria-labelledby="workflow-title">
-  <div class="page-shell">
-    <div class="section-intro section-intro-split">
+<section
+  class="border-y border-[rgb(255_255_255/0.065)] py-[clamp(104px,12vw,160px)] [background:radial-gradient(circle_at_50%_0%,rgb(131_103_199/0.09),transparent_34rem),#070708] max-[620px]:py-[86px]"
+  id="workflow"
+  aria-labelledby="workflow-title"
+>
+  <div
+    class="mx-auto [width:min(calc(100%_-_48px),var(--container-page))] max-[1080px]:[width:min(calc(100%_-_36px),var(--container-page))] max-[860px]:[width:min(calc(100%_-_28px),var(--container-page))] max-[620px]:[width:min(calc(100%_-_24px),var(--container-page))]"
+  >
+    <div
+      class="grid grid-cols-[minmax(0,1.1fr)_minmax(280px,0.55fr)] items-end gap-[60px] max-[860px]:grid-cols-1 max-[860px]:gap-6"
+    >
       <div>
-        <p class="eyebrow"><span></span> Developer workflow</p>
-        <h2 id="workflow-title">Add OutRay without rebuilding your stack.</h2>
+        <p
+          class="text-accent-light inline-flex items-center gap-[9px] text-[0.74rem] leading-[1.1] font-bold tracking-[0.15em] uppercase"
+        >
+          <span class="h-px w-[18px] bg-current"></span> Developer workflow
+        </p>
+        <h2
+          class="mt-[19px] max-w-[920px] text-[clamp(2.7rem,5.6vw,5.5rem)] leading-[0.98] font-[570] tracking-[-0.062em] max-[620px]:text-[clamp(2.75rem,14vw,4.2rem)]"
+          id="workflow-title"
+        >
+          Add OutRay without rebuilding your stack.
+        </h2>
       </div>
-      <p>Use one CLI for tunnels and secrets, plus small server-side SDKs for observability. Your application stays yours.</p>
+      <p
+        class="text-muted mb-[5px] max-w-[680px] text-[clamp(1rem,1.45vw,1.17rem)] leading-[1.7] max-[860px]:mb-0"
+      >
+        Use one CLI for tunnels and secrets, plus small server-side SDKs for
+        observability. Your application stays yours.
+      </p>
     </div>
 
-    <div class="workflow-tabs" data-product-tabs data-default-tab="tunnels" data-tab-group="workflow">
-      <div class="tab-list workflow-tablist product-tabs" role="tablist" aria-label="OutRay product workflows">
+    <div
+      class="border-line mt-[clamp(56px,7vw,82px)] min-w-0 overflow-hidden rounded-shell border bg-[#09090a] shadow-card [&[data-enhanced=true]_[data-product-panel]:not([data-active=true])]:hidden max-[620px]:rounded-[20px] contrast-more:border-line-strong"
+      data-product-tabs
+      data-default-tab="tunnels"
+      data-tab-group="workflow"
+    >
+      <div
+        class="border-line grid grid-cols-3 gap-[6px] border-b bg-[#0b0b0d] p-[7px] max-[620px]:grid-cols-1"
+        role="tablist"
+        aria-label="OutRay product workflows"
+      >
         {workflows.map((workflow, index) => (
           <button
-            class="workflow-tab product-tab"
+            class="group/tab relative flex min-h-14 items-center justify-center gap-2.5 rounded-[11px] border-0 bg-transparent text-[0.86rem] font-[590] text-[#8a8a94] transition-[background-color,color] duration-180 hover:text-[#bdbdc4] aria-selected:bg-[#171719] aria-selected:text-[#f3f3f5] aria-selected:[box-shadow:inset_0_0_0_1px_rgb(255_255_255/0.08)] after:absolute after:right-[24%] after:-bottom-2 after:left-[24%] after:hidden after:h-px after:bg-accent-light after:shadow-[0_0_10px_var(--color-accent)] after:content-[''] aria-selected:after:block max-[620px]:min-h-[46px] max-[620px]:justify-start max-[620px]:px-3.5 max-[620px]:aria-selected:after:top-1/4 max-[620px]:aria-selected:after:right-auto max-[620px]:aria-selected:after:bottom-1/4 max-[620px]:aria-selected:after:left-[-7px] max-[620px]:aria-selected:after:h-auto max-[620px]:aria-selected:after:w-px"
             type="button"
             id={`tab-${workflow.id}`}
             role="tab"
@@ -75,48 +106,107 @@ const frameworks = [
             tabindex={index === 0 ? 0 : -1}
             data-product-tab={workflow.id}
           >
-            <span class={`tab-number tab-number-${workflow.id}`}>0{index + 1}</span>
+            <span
+              class="font-mono text-[0.64rem] text-[#8a8a94] group-aria-selected/tab:text-accent-light"
+            >
+              0{index + 1}
+            </span>
             {workflow.label}
           </button>
         ))}
       </div>
 
-      <div class="workflow-panels">
+      <div class="min-w-0">
         {workflows.map((workflow, index) => (
           <div
-            class="workflow-panel product-tab-panel"
+            class="grid grid-cols-[minmax(230px,0.64fr)_minmax(420px,1.36fr)] items-stretch gap-[clamp(28px,5vw,60px)] p-[clamp(24px,4vw,48px)] [&[hidden]]:hidden max-[860px]:grid-cols-1 max-[620px]:px-3 max-[620px]:py-4"
             id={`panel-${workflow.id}`}
             role="tabpanel"
             aria-labelledby={`tab-${workflow.id}`}
             data-product-panel={workflow.id}
             data-active={index === 0 ? "true" : "false"}
           >
-            <div class="workflow-copy">
-              <p class="code-language">{workflow.language}</p>
-              <h3>{workflow.title}</h3>
-              <p>{workflow.description}</p>
-              <a class="inline-link" href={docsUrl} data-track="cta" data-track-label={`${workflow.id}-read-docs`}>
+            <div
+              class="flex flex-col items-start justify-center max-[860px]:px-1.5 max-[860px]:pt-2"
+            >
+              <p
+                class="rounded-[7px] border border-[rgb(131_103_199/0.2)] bg-[rgb(131_103_199/0.08)] px-[7px] py-[5px] font-mono text-[0.59rem] tracking-[0.08em] text-[#b5a1e1] uppercase"
+              >
+                {workflow.language}
+              </p>
+              <h3
+                class="mt-[17px] text-[clamp(1.75rem,3.2vw,2.8rem)] leading-[1.05] font-[570] tracking-[-0.05em]"
+              >
+                {workflow.title}
+              </h3>
+              <p class="text-muted mt-[18px] text-[0.94rem] leading-[1.67]">
+                {workflow.description}
+              </p>
+              <a
+                class="group/link mt-[29px] inline-flex items-center gap-2 rounded-lg text-[0.92rem] font-[620] text-[#ded8ee]"
+                href={docsUrl}
+                data-track="cta"
+                data-track-label={`${workflow.id}-read-docs`}
+              >
                 Read the documentation
-                <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+                <svg
+                  class="size-[18px] shrink-0 transition-transform duration-180 ease-snappy group-hover/link:translate-x-0.5"
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  ><path
+                    d="M4 10h11m-4-4 4 4-4 4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"></path></svg
+                >
               </a>
             </div>
-            <div class="code-panel">
-              <div class="code-toolbar code-panel-header">
+            <div
+              class="border-line relative min-h-[330px] overflow-hidden rounded-2xl border bg-[#060607] max-[620px]:min-h-[290px]"
+            >
+              <div
+                class="border-line flex min-h-[50px] items-center justify-between border-b py-0 pr-[9px] pl-4 font-mono text-[0.67rem] text-[#91919b]"
+              >
                 <span>{workflow.filename}</span>
                 <button
-                  class="copy-button"
+                  class="group/copy inline-flex h-[34px] min-w-[74px] items-center justify-center gap-1.5 rounded-[9px] border-0 bg-transparent px-2.5 text-[0.65rem] text-[#91919b] transition-[background-color,color] duration-160 hover:bg-[rgb(255_255_255/0.05)] hover:text-white data-[copied=true]:bg-[rgb(52_211_153/0.1)] data-[copied=true]:text-success"
                   type="button"
                   data-copy={workflow.code}
                   aria-label={`Copy ${workflow.label} example`}
                   data-track="command-copy"
                   data-track-label={`${workflow.id}-example`}
                 >
-                  <svg class="copy-icon" aria-hidden="true" viewBox="0 0 20 20"><path d="M7 6V4.8C7 3.8 7.8 3 8.8 3h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8H14M4.8 7h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8H4.8c-1 0-1.8-.8-1.8-1.8V8.8C3 7.8 3.8 7 4.8 7Z" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>
-                  <svg class="check-icon" aria-hidden="true" viewBox="0 0 20 20"><path d="m4 10 4 4 8-8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"></path></svg>
+                  <svg
+                    class="size-[17px] group-data-[copied=true]/copy:hidden"
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    ><path
+                      d="M7 6V4.8C7 3.8 7.8 3 8.8 3h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8H14M4.8 7h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8H4.8c-1 0-1.8-.8-1.8-1.8V8.8C3 7.8 3.8 7 4.8 7Z"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.4"></path></svg
+                  >
+                  <svg
+                    class="hidden size-[17px] group-data-[copied=true]/copy:block"
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    ><path
+                      d="m4 10 4 4 8-8"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.7"></path></svg
+                  >
                   <span data-copy-label>Copy</span>
                 </button>
               </div>
-              <pre><code>{workflow.code}</code></pre>
+              <pre
+                class="max-w-full overflow-auto px-6 pt-[25px] pb-8 font-mono text-[clamp(0.72rem,1.1vw,0.82rem)] leading-[1.8] text-[#d1d1d6] [tab-size:2] max-[620px]:px-4 max-[620px]:pt-5 max-[620px]:pb-[26px] max-[620px]:text-[0.68rem]"
+                ><code>{workflow.code}</code></pre
+              >
               <span class="sr-only" aria-live="polite" data-copy-status></span>
             </div>
           </div>
@@ -124,12 +214,30 @@ const frameworks = [
       </div>
     </div>
 
-    <div class="framework-strip" role="region" aria-labelledby="frameworks-title">
-      <p id="frameworks-title">Built for the Node.js tools you already use</p>
-      <ul class="frameworks framework-list">
+    <div
+      class="border-line mt-[18px] grid grid-cols-[210px_minmax(0,1fr)] items-center gap-7 rounded-[17px] border bg-[#09090a] px-5 py-[18px] max-[860px]:grid-cols-1"
+      role="region"
+      aria-labelledby="frameworks-title"
+    >
+      <p class="text-[0.77rem] leading-[1.4] text-[#91919b]" id="frameworks-title">
+        Built for the Node.js tools you already use
+      </p>
+      <ul
+        class="m-0 grid list-none grid-cols-7 gap-[7px] p-0 max-[620px]:grid-cols-3 max-[390px]:grid-cols-2"
+      >
         {frameworks.map(({ name, slug }) => (
-          <li class="framework-item" title={name}>
-            <img src={`/frameworks/${slug}.svg`} width="24" height="24" alt="" loading="lazy" />
+          <li
+            class="group/framework grid min-h-16 min-w-0 place-items-center gap-[5px] rounded-[11px] border border-[rgb(255_255_255/0.065)] bg-[#0b0b0d] px-1 py-2 text-center text-[0.56rem] text-[#a0a0a9] transition-[border-color,background-color,color,transform] duration-170 ease-snappy hover:-translate-y-0.5 hover:border-[rgb(255_255_255/0.15)] hover:bg-[#111113] hover:text-[#bcbcc3]"
+            title={name}
+          >
+            <img
+              class="size-[23px] object-contain grayscale opacity-[0.72] transition-[filter,opacity] duration-170 group-hover/framework:grayscale-0 group-hover/framework:opacity-100"
+              src={`/frameworks/${slug}.svg`}
+              width="24"
+              height="24"
+              alt=""
+              loading="lazy"
+            />
             <span>{name}</span>
           </li>
         ))}

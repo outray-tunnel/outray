@@ -14,7 +14,6 @@ import {
   logsSelectionMatches, parseLogTimestamp, sortedLogs,
   type LogEvent, type LogsSearch, type LogsSnapshot,
 } from "./logs-data";
-import "../outray-arc-theme.css";
 
 export interface LogsContentProps {
   orgSlug: string;
@@ -58,7 +57,7 @@ export function LogsContent({
   }, [data?.services, filters.service]);
 
   return (
-    <div className="outray-arc outray-arc-list mx-auto max-w-[1440px] space-y-5">
+    <div className="mx-auto max-w-[1440px] space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3 pb-1">
         <div className="min-w-0">
           <h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Logs</h1>
@@ -74,7 +73,7 @@ export function LogsContent({
 
       <section aria-label="Application logs" className="min-w-0 overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
         <div className="flex flex-wrap items-end gap-3 border-b border-white/[0.07] p-4">
-          <div className="outray-arc-requests-search min-w-0 flex-1 basis-full sm:basis-[260px]">
+          <div className="min-w-0 flex-1 basis-full sm:basis-[260px] [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only">
             <SearchField appearance="workspace" ref={searchRef} label="Search logs" placeholder="Message, service, event name or trace ID…" value={searchInput} onValueChange={onSearchInputChange} autoComplete="off" spellCheck={false} />
           </div>
           <div className="min-w-0 flex-1 basis-[180px] sm:max-w-[220px]">

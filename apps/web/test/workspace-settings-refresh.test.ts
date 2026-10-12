@@ -91,7 +91,8 @@ test("opt-in compact headers keep untouched workspace headers unchanged", () => 
 test("new settings use existing quiet Arc tabs, scoped routes and content-preserving background reads", async () => {
   const layout = await readFile(new URL("../src/routes/$orgSlug/settings.tsx", import.meta.url), "utf8");
   assert.match(layout, /components\/arc\/tabs\/tabs/);
-  assert.match(layout, /outray-arc-tunnel-tabs/);
+  assert.match(layout, /tunnelTabsClassName/);
+  assert.match(layout, /className=\{tunnelTabsClassName\}/);
   assert.match(layout, /aria-label="Settings sections"/);
   assert.match(layout, /params: \{ orgSlug \}/);
   assert.match(layout, /TabsContent value=\{tab\} forceMount/);
@@ -118,15 +119,17 @@ test("workspace feedback uses error alerts and polite status updates", () => {
 });
 
 test("settings and dialogs remain mobile-friendly and honor reduced motion", async () => {
-  const settings = await readFile(new URL("../src/components/workspace/settings-content.module.css", import.meta.url), "utf8");
-  const dialog = await readFile(new URL("../src/components/workspace/workspace-ui.module.css", import.meta.url), "utf8");
-  assert.match(settings, /max-width: 900px/);
-  assert.match(settings, /max-width: 540px/);
-  assert.match(settings, /overflow-wrap: anywhere/);
-  assert.match(settings, /prefers-reduced-motion: reduce/);
-  assert.match(dialog, /max-height: calc\(100dvh - 48px\)/);
-  assert.match(dialog, /overflow-y: auto/);
-  assert.match(dialog, /prefers-reduced-motion: reduce/);
+  const [settings, dialog] = await Promise.all([
+    readFile(new URL("../src/components/workspace/settings-content.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/workspace/workspace-ui.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(settings, /max-\[900px\]:grid-cols-\[minmax\(0,1fr\)\]/);
+  assert.match(settings, /max-\[540px\]:p-5/);
+  assert.match(settings, /\[overflow-wrap:anywhere\]/);
+  assert.match(settings, /motion-reduce:transition-none/);
+  assert.match(dialog, /max-h-\[calc\(100dvh-48px\)\]/);
+  assert.match(dialog, /overflow-y-auto/);
+  assert.match(dialog, /motion-reduce:transition-none/);
 });
 
 test("dialog closure restores its opener or a stable page target after row removal", () => {

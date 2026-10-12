@@ -17,9 +17,9 @@ import { Select } from "@/components/arc/select/select";
 import { SearchField } from "@/components/arc/search-field/search-field";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
+import { workspaceScopeClassName } from "@/components/ui/workspace-scope";
 import { UptimeDialog } from "@/components/uptime/uptime-dialog";
 import { StatusPageRowMenu } from "@/components/uptime/status-page-row-menu";
-import "@/components/outray-arc-theme.css";
 
 export const Route = createFileRoute("/$orgSlug/uptime/status-page")({
   head: () => ({ meta: [{ title: "Status page - OutRay Uptime" }] }),
@@ -53,7 +53,7 @@ function WorkspaceStatusPage({ orgSlug }: { orgSlug: string }) {
   const canManage = pageData.data?.canManage === true;
   const selectedTab = editorTabs.find((tab) => pathname.replace(/\/$/, "") === tab.to.replace("$orgSlug", orgSlug))?.label || "Overview";
 
-  return <div className="workspace-ui outray-arc mx-auto max-w-[1440px] pb-8">
+  return <div className={`${workspaceScopeClassName} mx-auto max-w-[1440px] pb-8`}>
     {pageData.error && <div className="mb-4 space-y-2"><UptimeError message={pageData.error} /><Button type="button" variant="secondary" size="sm" onClick={pageData.reload}>Try again</Button></div>}
     {pageData.loading && !page && <UptimeSkeleton label="Loading status page" className="space-y-7">
       <UptimeHeaderSkeleton action />

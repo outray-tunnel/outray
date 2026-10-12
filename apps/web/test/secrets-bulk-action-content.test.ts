@@ -79,7 +79,7 @@ test("bulk deletion offers hold-to-delete rather than a typed confirmation or su
   assert.doesNotMatch(html, /Type DELETE|type="text"|type="submit"/);
   assert.equal(buttons(html).filter((button) => button.includes("Cancel")).length, 0);
   assert.equal(buttons(html).length, 1, "the full-width hold action is the delete modal’s only footer button");
-  assert.match(html, /class="actions deleteActions"/);
+  assert.match(html, /class="[^"]*ml-0 w-full min-w-0[^"]*"/);
 });
 
 test("delete omits Cancel in both idle and pending states while retaining the production safeguard", () => {
@@ -102,7 +102,7 @@ test("production uses a real required checkbox and action-specific acknowledgeme
     assert.match(checkbox, /required=""/); assert.match(checkbox, /checked=""/);
     assert.match(checkbox, /aria-describedby="[^"]+-production-hint"/);
     assert.doesNotMatch(checkbox, /aria-hidden|role="checkbox"|tabindex="-1"/);
-    assert.match(html, /class="checkboxMark" aria-hidden="true"/);
+    assert.match(html, /peer-focus-visible:outline-2[^"]*" aria-hidden="true"/);
     assert.match(html, action === "share" ? /I confirm sharing these production secrets/ : /I confirm this production change/);
   }
   assert.doesNotMatch(render({ environment: production, needsProduction: false }), /type="checkbox"/, "the controller determines protection from both source and destination");
@@ -127,7 +127,6 @@ test("success exposes the one-time fragment-bearing URL with copy feedback, no f
   assert.match(input, /dir="ltr"/);
   assert.match(html, /aria-label="Copy link"/); assert.match(html, /complete link cannot be recovered later/);
   const copy = buttons(html).find((button) => button.includes('aria-label="Copy link"')) ?? "";
-  assert.match(copy, /iconOnly/); assert.match(copy, /plain/);
   assert.doesNotMatch(copy, /class="label"|>Copy link</, "the copy action has no visible label");
   assert.match(html, /including the part after #/); assert.match(html, /Done/);
   assert.doesNotMatch(html, /<form|Create share link|Expires in|Maximum reveals/);
@@ -146,7 +145,6 @@ test("native and custom control adapters forward exact values, while deleting on
     if (specifier === "../arc/copy-button/copy-button") return { CopyButton };
     if (specifier === "../ui/workspace-input") return { WorkspaceInput: "input" };
     if (specifier === "./hold-to-delete") return { HoldToDelete };
-    if (specifier.endsWith(".module.css")) return { default: new Proxy({}, { get: (_target, key) => key }), __esModule: true };
     throw new Error(`Unexpected bulk content dependency: ${specifier}`);
   } });
   function elements(node: React.ReactNode): React.ReactElement<any>[] { if (Array.isArray(node)) return node.flatMap(elements); if (!React.isValidElement(node)) return []; const element = node as React.ReactElement<any>; return [element, ...elements(element.props.children)]; }
@@ -184,19 +182,19 @@ test("native and custom control adapters forward exact values, while deleting on
   assert.equal(copy.props.label, "Copy link"); assert.equal(copy.props.value, link, "copy retains the entire fragment-bearing link");
 });
 
-test("modal CSS bounds and scrolls content while preserving compact mobile actions and quiet semantic control focus", async () => {
-  const css = await readFile(new URL("../src/components/secrets/bulk-actions.module.css", import.meta.url), "utf8");
-  assert.match(css, /max-height:\s*calc\(100dvh - 24px\)/);
-  assert.match(css, /\.fields\s*\{[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/);
-  assert.match(css, /\.footer\s*\{[^}]*flex:\s*0 0 auto/);
-  assert.match(css, /\.deleteActions\s*\{[^}]*width:\s*100%/);
-  assert.match(css, /\.deleteActions\s*\{[^}]*margin(?:-left)?:\s*0/);
-  assert.match(css, /\.copyButton\.copyButton\s*\{[^}]*width:\s*44px[^}]*height:\s*44px[^}]*flex:\s*0 0 44px/);
-  assert.doesNotMatch(css, /\.linkRow\s*\{[^}]*flex-direction:\s*column/, "the compact icon stays beside the URL on mobile");
-  assert.match(css, /\.checkbox > input\s*\{[^}]*opacity:\s*0/);
-  assert.match(css, /\.radio > input\s*\{[^}]*opacity:\s*0/);
-  assert.match(css, /input:focus-visible \+ \.checkboxMark\s*\{[^}]*outline:/);
-  assert.match(css, /input:focus-visible \+ \.radioMark\s*\{[^}]*outline:/);
-  assert.match(css, /@media \(max-width:\s*540px\)[\s\S]*flex-direction:\s*column/);
-  assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*transition:\s*none/);
+test("modal utilities bound and scroll content while preserving compact mobile actions and quiet semantic control focus", async () => {
+  const [dialog, content] = await Promise.all([
+    readFile(new URL("../src/components/secrets/bulk-actions-dialog.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/secrets/bulk-action-content.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(dialog, /max-h-\[calc\(100dvh-24px\)\]/);
+  assert.match(content, /min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain/);
+  assert.match(content, /const footerClassName = "flex shrink-0/);
+  assert.match(content, /action === "delete" \? "ml-0 w-full min-w-0"/);
+  assert.match(content, /className="size-11 basis-11 rounded-xl/);
+  assert.match(content, /flex min-w-0 items-center gap-2 \[&>input\]:min-w-0/);
+  assert.match(content, /peer absolute inset-0 z-1 m-0 size-full cursor-\[inherit\] opacity-0/);
+  assert.match(content, /peer-focus-visible:outline-2/);
+  assert.match(content, /max-\[540px\]:flex-col/);
+  assert.match(content, /motion-reduce:transition-none/);
 });

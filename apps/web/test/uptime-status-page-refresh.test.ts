@@ -101,6 +101,7 @@ async function loadViews(overrides: Partial<typeof context> = {}, resources?: Pa
       if (specifier.endsWith("/status-url")) return { preferredStatusPageUrl, statusPageUrl };
       if (specifier.endsWith("/status-layout")) return { moveStatusLayout };
       if (specifier.endsWith("/workspace-input")) return { WorkspaceInput, WorkspaceTextarea };
+      if (specifier === "@/components/ui/workspace-scope") return { workspaceScopeClassName: "workspace-scope" };
       if (specifier.endsWith("/button/button")) return { Button };
       if (specifier.endsWith("/select/select")) return { Select };
       if (specifier.endsWith("/search-field/search-field")) return { SearchField };
@@ -193,6 +194,7 @@ test("resource refresh errors preserve the editor and offer an explicit retry", 
   assert.match(html, /Could not refresh settings|Try again/);
   assert.match(html, /data-editor-outlet="true"/);
   assert.match(html, /aria-label="Status page section"/);
+  assert.match(html, /class="workspace-scope mx-auto max-w-\[1440px\] pb-8"/);
 });
 
 test("an unavailable monitor list does not block appearance, publishing or domain editors", async () => {

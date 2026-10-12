@@ -112,7 +112,6 @@ export function ObservabilityOverviewContent({
           type="button"
           variant="secondary"
           size="md"
-          className="outray-arc"
           aria-haspopup="dialog"
           aria-expanded={connectOpen}
           onClick={() => setConnectOpen(true)}

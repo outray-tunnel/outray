@@ -17,8 +17,7 @@ import { Button } from "../arc/button/button";
 import { Dialog, DialogContent } from "../arc/dialog/dialog";
 import { Select } from "../ui/select";
 import { WorkspaceInput, WorkspaceTextarea } from "../ui/workspace-input";
-import "../outray-arc-theme.css";
-import styles from "./replay-modal.module.css";
+import { workspaceScopeClassName } from "../ui/workspace-scope";
 
 type RequestTab = "headers" | "body";
 
@@ -272,8 +271,8 @@ export function ReplayModal({
       <DialogContent
         title="Replay request"
         description="Review, modify, and resend the captured request. Sending may change data in the destination service."
-        className={`workspace-ui outray-arc ${styles.content}`}
-        overlayClassName={styles.overlay}
+        className={`${workspaceScopeClassName} z-81! flex max-h-[calc(100dvh-2rem)] w-[min(calc(100vw-2rem),768px)] flex-col overflow-hidden rounded-xl bg-[#111112] [&>div:last-child]:flex [&>div:last-child]:min-h-0 [&>div:last-child]:flex-col [&>div:last-child]:overflow-hidden [&>div:last-child]:p-0 max-[480px]:max-h-[calc(100dvh-1rem)] max-[480px]:w-[calc(100vw-1rem)]`}
+        overlayClassName="z-80! bg-black/55! backdrop-blur-sm!"
         aria-busy={replaying}
         closeDisabled={replaying}
         onEscapeKeyDown={(event) => {
@@ -300,7 +299,7 @@ export function ReplayModal({
                   type="button"
                   onClick={cancelEdit}
                   disabled={replaying}
-                  className="h-8 rounded-md px-3 text-[10px] font-medium text-zinc-600 transition-colors hover:bg-white/[0.04] hover:text-zinc-300"
+                  className="h-8 rounded-md px-3 text-[10px] font-medium text-zinc-600 transition-colors hover:bg-white/[0.04] hover:text-zinc-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
                 >
                   Cancel
                 </button>
@@ -308,7 +307,7 @@ export function ReplayModal({
                   type="button"
                   onClick={() => setIsEditing(false)}
                   disabled={replaying}
-                  className="h-8 rounded-md border border-white/[0.1] px-3 text-[10px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.04]"
+                  className="h-8 rounded-md border border-white/[0.1] px-3 text-[10px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.04] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
                 >
                   Done
                 </button>
@@ -318,7 +317,7 @@ export function ReplayModal({
                 type="button"
                 onClick={() => setIsEditing(true)}
                 disabled={replaying}
-                className="flex h-8 items-center gap-2 rounded-md border border-white/[0.09] px-3 text-[10px] font-medium text-zinc-500 transition-colors hover:border-white/[0.16] hover:bg-white/[0.03] hover:text-zinc-300"
+                className="flex h-8 items-center gap-2 rounded-md border border-white/[0.09] px-3 text-[10px] font-medium text-zinc-500 transition-colors hover:border-white/[0.16] hover:bg-white/[0.03] hover:text-zinc-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
               >
                 <HugeiconsIcon
                   icon={Edit02Icon}
@@ -372,7 +371,7 @@ export function ReplayModal({
                 onClick={() => setActiveTab(id)}
                 disabled={disabled}
                 aria-pressed={activeTab === id}
-                className={`flex h-11 items-center gap-2 border-b text-[10px] font-medium transition-colors ${
+                className={`flex h-11 items-center gap-2 border-b text-[10px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#8367c7] ${
                   activeTab === id
                     ? "border-white text-zinc-200"
                     : disabled
@@ -395,7 +394,7 @@ export function ReplayModal({
               type="button"
               onClick={addHeader}
               disabled={replaying}
-              className="ml-auto mb-2.5 flex h-6 items-center gap-1.5 text-[9px] font-medium text-zinc-600 transition-colors hover:text-zinc-300"
+              className="ml-auto mb-2.5 flex h-6 items-center gap-1.5 rounded text-[9px] font-medium text-zinc-600 transition-colors hover:text-zinc-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
             >
               <HugeiconsIcon
                 icon={Add01Icon}
@@ -419,7 +418,7 @@ export function ReplayModal({
                       type="button"
                       onClick={addHeader}
                       disabled={replaying}
-                      className="mt-2 text-[10px] text-zinc-400 hover:text-white"
+                      className="mt-2 rounded text-[10px] text-zinc-400 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
                     >
                       Add a header
                     </button>
@@ -440,7 +439,7 @@ export function ReplayModal({
                           onChange={(event) =>
                             updateHeader(index, "enabled", event.target.checked)
                           }
-                          className="size-3 accent-white"
+                          className="size-3 accent-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
                           aria-label={`Include ${header.key || "header"}`}
                         />
                       )}
@@ -472,7 +471,7 @@ export function ReplayModal({
                             type="button"
                             onClick={() => removeHeader(index)}
                             disabled={replaying}
-                            className="flex size-7 shrink-0 items-center justify-center rounded-md text-zinc-700 transition-colors hover:bg-red-500/[0.06] hover:text-red-400"
+                            className="flex size-7 shrink-0 items-center justify-center rounded-md text-zinc-700 transition-colors hover:bg-red-500/[0.06] hover:text-red-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
                             aria-label={`Remove ${header.key || "header"}`}
                           >
                             <HugeiconsIcon
@@ -511,8 +510,7 @@ export function ReplayModal({
                   value={body}
                   onChange={(event) => setBody(event.target.value)}
                   rows={12}
-                  className="font-mono"
-                  style={{ resize: "none" }}
+                  className="resize-none font-mono"
                   placeholder="Request body…"
                 />
               ) : body ? (

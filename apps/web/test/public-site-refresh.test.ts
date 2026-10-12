@@ -55,13 +55,14 @@ test("final CTA retains the requested simplified copy and two-line heading", () 
 });
 
 test("hero beam crossfades only opacity and disables transitions for reduced motion", async () => {
-  const css = await readFile(new URL("../src/landing/hero-beam.module.css", import.meta.url), "utf8");
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(css, /\.fallback,\s*\.canvasLayer,\s*\.auroraFallback \{ transition: none; \}/);
-  assert.match(css, /\.fallback \{\s*opacity: 1;\s*transition: opacity/);
-  assert.match(css, /\.canvasLayer \{\s*opacity: 0;\s*transition: opacity/);
-  assert.match(css, /pointer-events: none/);
-  assert.doesNotMatch(css, /animation:.*(?:blur|width|height)/);
+  const beam = await readFile(new URL("../src/landing/HeroBeam.tsx", import.meta.url), "utf8");
+  const canvas = await readFile(new URL("../src/landing/HeroBeamCanvas.tsx", import.meta.url), "utf8");
+  const fallback = await readFile(new URL("../src/landing/HeroAuroraFallback.tsx", import.meta.url), "utf8");
+  assert.match(beam, /opacity-100 transition-opacity duration-500 group-data-\[ready=true\]\/beam:opacity-0 motion-reduce:transition-none/);
+  assert.match(canvas, /opacity-0 transition-opacity duration-500 group-data-\[ready=true\]\/beam:opacity-100 motion-reduce:transition-none/);
+  assert.match(fallback, /transition-opacity duration-500 group-data-\[ready=true\]\/beam:opacity-0 motion-reduce:transition-none/);
+  assert.match(beam, /pointer-events-none/);
+  assert.doesNotMatch(`${beam}\n${canvas}\n${fallback}`, /animate-\[(?:blur|width|height)/);
 });
 
 test("docs have unique public URLs and no broken internal documentation links", async () => {
@@ -102,11 +103,11 @@ test("docs keep keyboard search and mobile navigation in the new shell", async (
   assert.match(header, /href="#docs-content"/);
   const route = await readFile(new URL("../src/routes/docs/$.tsx", import.meta.url), "utf8");
   assert.match(route, /id="docs-content" tabIndex=\{-1\}/);
-  const css = await readFile(new URL("../src/components/docs/docs.module.css", import.meta.url), "utf8");
-  assert.match(css, /focus-visible/);
-  assert.match(css, /max-width: 767px/);
-  assert.match(css, /\[data-card="true"\]/);
-  assert.doesNotMatch(css, /:global\(\[data-card\]\)/);
+  assert.match(header, /\[&_:is\(a,button\):focus-visible\]:outline-2/);
+  assert.match(header, /max-md:/);
+  assert.match(route, /\[&_\[data-card=true\]\]/);
+  assert.match(route, /motion-reduce:\[&_\[data-card=true\]\]:transition-none/);
+  assert.doesNotMatch(`${header}\n${route}`, /docs\.module\.css/);
 });
 
 test("docs shell server-renders with real Fumadocs search and sidebar contexts", async () => {

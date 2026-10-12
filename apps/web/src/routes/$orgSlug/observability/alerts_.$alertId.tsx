@@ -27,7 +27,6 @@ import { WorkspaceInput, WorkspaceTextarea } from "@/components/ui/workspace-inp
 import { startAlertDetailPolling } from "@/components/observability/alert-detail-polling";
 import { AlertStateBadge } from "@/components/observability/alert-status-badge";
 import { conditionLabel, formatAlertValue, formatClockTime, formatRelativeTime, formatWindow, getEffectiveState, normalizeAlertsSearch, signalLabel } from "@/components/observability/alerts-data";
-import "@/components/outray-arc-theme.css";
 import { AlertEmailRecipients } from "@/components/observability/alert-email-recipients";
 import {
   AlertDetailContext,
@@ -446,7 +445,7 @@ function AlertDetailsEditModal({
   };
 
   return <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !saving) onClose(); }}>
-    <DialogContent title="Edit alert details" description="Update the name and description without changing the condition." className="outray-arc outray-arc-dialog" closeDisabled={saving} onEscapeKeyDown={(event) => { if (saving) event.preventDefault(); }} onInteractOutside={(event) => { if (saving) event.preventDefault(); }}>
+    <DialogContent title="Edit alert details" description="Update the name and description without changing the condition." className="w-[min(calc(100vw-32px),560px)]!" closeDisabled={saving} onEscapeKeyDown={(event) => { if (saving) event.preventDefault(); }} onInteractOutside={(event) => { if (saving) event.preventDefault(); }}>
     <form onSubmit={(event) => void save(event)} className="space-y-4" aria-busy={saving}>
       <label className="block text-xs text-zinc-400">Name
         <WorkspaceInput value={name} onChange={(event) => setName(event.target.value)} maxLength={120} required disabled={saving} className="mt-2" />
@@ -881,7 +880,7 @@ export function AlertNotificationsTab() {
         </div>
       </Panel>
       <Dialog open={settingsProvider !== null} onOpenChange={(open) => { if (!open && !saving) setSettingsProvider(null); }}>
-        <DialogContent title={`${settingsProvider === "slack" ? "Slack" : "Discord"} settings`} description="Removing this connection stops its notifications for this alert. Other destinations are unchanged." className="outray-arc outray-arc-dialog" closeDisabled={saving} onEscapeKeyDown={(event) => { if (saving) event.preventDefault(); }} onInteractOutside={(event) => { if (saving) event.preventDefault(); }}>
+        <DialogContent title={`${settingsProvider === "slack" ? "Slack" : "Discord"} settings`} description="Removing this connection stops its notifications for this alert. Other destinations are unchanged." className="w-[min(calc(100vw-32px),560px)]!" closeDisabled={saving} onEscapeKeyDown={(event) => { if (saving) event.preventDefault(); }} onInteractOutside={(event) => { if (saving) event.preventDefault(); }}>
           <dl className="space-y-3 rounded-lg border border-white/[0.08] p-4 text-[13px]">
             {settingsProvider === "slack" && <div><dt className="text-zinc-500">Workspace</dt><dd className="mt-1 text-zinc-200">{alert.notificationSlackTarget?.workspaceName || "Connected workspace"}</dd></div>}
             <div><dt className="text-zinc-500">Channel</dt><dd className="mt-1 text-zinc-200">{settingsProvider === "slack" ? selectedTarget?.channelName || selectedTarget?.channelId || "Selected channel" : selectedTarget?.channelId || "Selected channel"}</dd></div>
@@ -922,7 +921,7 @@ function TabHeading({
 }
 
 function ObservabilityPage({ children }: { children: ReactNode }) {
-  return <div className="outray-arc outray-arc-list mx-auto max-w-[1440px] space-y-5">{children}</div>;
+  return <div className="mx-auto max-w-[1440px] space-y-5">{children}</div>;
 }
 
 function Panel({ title, description, action, children }: { title?: string; description?: string; action?: ReactNode; children: ReactNode }) {
@@ -1215,7 +1214,7 @@ function DeleteAlertModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !deleting) onClose(); }}>
-      <DialogContent title="Delete alert?" description="This cannot be undone." className="outray-arc outray-arc-dialog" closeDisabled={deleting} onEscapeKeyDown={(event) => { if (deleting) event.preventDefault(); }} onInteractOutside={(event) => { if (deleting) event.preventDefault(); }}>
+      <DialogContent title="Delete alert?" description="This cannot be undone." className="w-[min(calc(100vw-32px),560px)]!" closeDisabled={deleting} onEscapeKeyDown={(event) => { if (deleting) event.preventDefault(); }} onInteractOutside={(event) => { if (deleting) event.preventDefault(); }}>
         <div className="space-y-5" aria-busy={deleting}>
           <div className="flex items-start gap-3 text-[13px] leading-6 text-zinc-400">
             <HugeiconsIcon icon={Alert02Icon} size={18} className="mt-1 shrink-0 text-rose-400" />

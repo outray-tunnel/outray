@@ -7,7 +7,6 @@ import {
   DialogContent,
   DialogTrigger,
 } from "@/components/arc/dialog/dialog";
-import "./outray-arc-theme.css";
 
 interface ResourceDeleteDialogProps {
   title: string;
@@ -72,13 +71,12 @@ export function ResourceDeleteDialog({
           disabled={disabled || isPending}
           aria-label={triggerLabel}
           title={triggerLabel}
-          style={{ width: 36, paddingInline: 0 }}
+          className="w-9 px-0!"
         >
           <HugeiconsIcon icon={Delete02Icon} size={15} strokeWidth={1.7} aria-hidden="true" />
         </Button>
       </DialogTrigger>
       <DialogContent
-        className="outray-arc"
         title={title}
         description={description}
         closeDisabled={isPending}

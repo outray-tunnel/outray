@@ -4,6 +4,7 @@ import { ArrowUpRight, Info, RotateCcw } from "lucide-react";
 import { Button } from "@/components/arc/button/button";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/arc/tabs/tabs";
+import { tunnelTabsClassName } from "@/components/arc/tabs/tunnel-tabs-class";
 import { SideSheet } from "@/components/ui/side-sheet";
 import type { TunnelEvent, RequestCapture, RequestDetails, InspectorTab } from "./types";
 import { formatBytes } from "./utils";
@@ -16,7 +17,6 @@ import { ResponseTabContent } from "./response-tab-content";
 import { FullCaptureDisabledContent } from "./full-capture-disabled-content";
 import { useRequestCapture } from "./use-request-capture";
 import { ReplayModal } from "./replay-modal";
-import "../outray-arc-theme.css";
 
 interface RequestInspectorDrawerProps {
   request: TunnelEvent | null;
@@ -137,7 +137,7 @@ function RequestInspectorSession({
         onValueChange={(tab) => {
           if (tab === "request" || tab === "response") setActiveTab(tab);
         }}
-        className="outray-arc outray-arc-tunnel-tabs"
+        className={tunnelTabsClassName}
       >
         <TabsList aria-label="Request detail sections" data-outray-tabs-list>
           <TabsTrigger value="request" data-outray-tabs-trigger>Request</TabsTrigger>

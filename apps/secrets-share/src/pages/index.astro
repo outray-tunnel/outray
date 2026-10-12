@@ -3,15 +3,15 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import ShareComposer from "../components/ShareComposer";
 ---
 <BaseLayout title="Share a secret — OutRay" showHeader={false}>
-  <section class="share-layout">
-    <div class="hero">
-      <a class="brand hero-brand" href="/" aria-label="OutRay Share home">
-        <img src="/outray-mark.svg" width="27" height="27" alt="" />
-        <span>OutRay<span class="brand-muted"> / Share</span></span>
+  <section class="grid min-h-screen grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] place-content-center items-center justify-items-center gap-[clamp(48px,7vw,116px)] py-12 [&>astro-island]:w-full [&>astro-island]:min-w-0 max-[900px]:grid-cols-1 max-[900px]:gap-[34px] max-[900px]:py-16 max-[640px]:gap-7 max-[640px]:pt-10 max-[640px]:pb-16">
+    <div class="w-full max-w-[490px] text-left max-[900px]:max-w-[660px]">
+      <a class="inline-flex items-center gap-[11px] text-lg font-semibold tracking-[-0.04em] no-underline" href="/" aria-label="OutRay Share home">
+        <img class="brightness-0 invert" src="/outray-mark.svg" width="27" height="27" alt="" />
+        <span>OutRay<span class="font-normal text-[#85858c]"> / Share</span></span>
       </a>
-      <h1>Secret sharing.<br />100% free.</h1>
-      <p class="hero-copy">Create a temporary link for something sensitive. Only someone with the complete link can open what you share.</p>
-      <p class="hero-footnote"><span aria-hidden="true"></span> Encrypted in your browser. No account needed.</p>
+      <h1 class="mt-[22px] mb-[22px] text-[clamp(42px,4.8vw,62px)] leading-[1.06] font-medium tracking-[-0.052em]">Secret sharing.<br />100% free.</h1>
+      <p class="m-0 max-w-[470px] text-[15px] leading-[1.7] text-[#aaaab1]">Create a temporary link for something sensitive. Only someone with the complete link can open what you share.</p>
+      <p class="mt-[34px] flex items-center gap-[10px] text-xs text-[#83838c] max-[900px]:mt-5"><span class="size-[6px] flex-none rounded-full bg-[#38c999] shadow-[0_0_0_4px_#38c99915]" aria-hidden="true"></span> Encrypted in your browser. No account needed.</p>
     </div>
     <ShareComposer client:load />
   </section>

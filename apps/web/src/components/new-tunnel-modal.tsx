@@ -9,7 +9,6 @@ import { Dialog, DialogContent } from "@/components/arc/dialog/dialog";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
 import { WorkspaceInput } from "@/components/ui/workspace-input";
 import { workspaceInputShellClassName } from "@/components/ui/workspace-input-styles";
-import "./outray-arc-theme.css";
 import {
   buildNewTunnelCommand,
   isValidLocalPort,
@@ -141,7 +140,7 @@ export function NewTunnelModal({
       <DialogContent
         title="New tunnel"
         description="Configure your local service, then run the command in your terminal."
-        className="outray-arc outray-arc-dialog"
+        className="w-[min(calc(100vw-32px),560px)]!"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           portInput.current?.focus();
@@ -168,7 +167,6 @@ export function NewTunnelModal({
                           ref={portInput}
                           variant="bare"
                           id="new-tunnel-local-port"
-                          data-outray-composite-input=""
                           type="text"
                           inputMode="numeric"
                           autoComplete="off"
@@ -225,7 +223,6 @@ export function NewTunnelModal({
                         <WorkspaceInput
                           variant="bare"
                           id="new-tunnel-address"
-                          data-outray-composite-input=""
                           type="text"
                           autoComplete="off"
                           spellCheck={false}

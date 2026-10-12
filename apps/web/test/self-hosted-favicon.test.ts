@@ -51,8 +51,6 @@ async function loadRoute(file: string, selfHosted: boolean, configError?: Error)
         getSelfHostedHomeDestination: async () => "/login",
       };
       if (specifier === "../index.css?url") return "/app.css";
-      if (specifier === "@/landing/landing.css?url") return "/landing.css";
-      if (specifier === "@/landing/products/products.css?url") return "/products.css";
       throw new Error(`Unexpected favicon fixture dependency: ${specifier}`);
     },
   }, { filename: file });
@@ -98,8 +96,7 @@ for (const pathname of ["/login", "/acme/tunnel", "/products"]) {
     assert.match(html, /name="viewport" content="width=device-width, initial-scale=1"/);
     assert.match(html, /<meta charSet="utf-8"\/>/i);
     if (pathname === "/products") {
-      assert.match(html, /href="\/landing\.css"/);
-      assert.match(html, /href="\/products\.css"/);
+      assert.doesNotMatch(html, /href="\/(?:landing|products)\.css"/);
       assert.match(html, /name="theme-color" content="#050505"/);
     } else {
       assert.match(html, new RegExp(`<title>${pathname === "/login" ? "Sign in" : "Overview"} — OutRay</title>`));
@@ -124,14 +121,14 @@ for (const pathname of ["/", "/products"]) {
     assert.match(icons(html)[0], /href="\/favicon\.svg"/);
     assert.doesNotMatch(html, /favicon-self-hosted/);
     assert.match(html, /href="\/app\.css"/);
-    assert.match(html, /href="\/landing\.css"/);
+    assert.doesNotMatch(html, /href="\/(?:landing|products)\.css"/);
     assert.match(html, /href="\/fonts\/geom-latin\.woff2"/);
     assert.match(html, /name="theme-color" content="#050505"/);
     if (pathname === "/") {
       assert.match(html, /rel="manifest" href="\/site\.webmanifest"/);
       assert.match(html, /rel="canonical" href="https:\/\/hosted\.example\.test\/"/);
       assert.match(html, /<title>OutRay — Everything between localhost and production\.<\/title>/);
-    } else assert.match(html, /href="\/products\.css"/);
+    }
   });
 }
 
@@ -147,9 +144,20 @@ test("a failed instance-config lookup does not remove root metadata/styles or ca
     assert.match(html, /name="viewport" content="width=device-width, initial-scale=1"/);
     assert.doesNotMatch(html, /favicon-self-hosted/);
     assert.ok(icons(html).length <= 1, "an error page must not gain duplicate icons");
-    if (pathname !== "/login") assert.match(html, /href="\/landing\.css"/);
+    assert.doesNotMatch(html, /href="\/(?:landing|products)\.css"/);
   }
   assert.deepEqual(errors, [], "head callbacks should not mask the original config failure with another error");
+});
+
+test("public routes inherit the root Tailwind stylesheet without route-level CSS bundles", async () => {
+  const home = await readFile(new URL("../src/routes/index.tsx", import.meta.url), "utf8");
+  const products = await readFile(new URL("../src/routes/products.tsx", import.meta.url), "utf8");
+  const root = await readFile(new URL("../src/routes/__root.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(`${home}\n${products}`, /\.css\?url/);
+  assert.match(home, /component: LandingPage/);
+  assert.match(products, /component: ProductLayout/);
+  assert.match(root, /import appCss from "\.\.\/index\.css\?url"/);
+  assert.match(root, /rel:\s*"stylesheet",\s*href:\s*appCss/);
 });
 
 test("metallic favicon preserves the original transparent OutRay geometry and only internal SVG references", async () => {

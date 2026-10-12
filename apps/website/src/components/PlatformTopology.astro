@@ -1,6 +1,19 @@
-<div class="topology" data-topology role="group" aria-label="OutRay platform topology">
-  <div class="topology-backdrop" aria-hidden="true"></div>
-  <svg class="topology-lines topology-svg" viewBox="0 0 1040 520" role="img" aria-labelledby="topology-title topology-description">
+<div
+  class="group/topology border-line relative isolate min-h-[520px] overflow-hidden rounded-shell border [background:radial-gradient(circle_at_50%_46%,rgb(131_103_199/0.14),transparent_28%),linear-gradient(180deg,rgb(255_255_255/0.025),transparent_34%),#080809] [box-shadow:var(--shadow-card),inset_0_1px_rgb(255_255_255/0.03)] before:absolute before:-z-[1] before:inset-0 before:bg-[linear-gradient(rgb(255_255_255/0.03)_1px,transparent_1px),linear-gradient(90deg,rgb(255_255_255/0.03)_1px,transparent_1px)] before:bg-[length:42px_42px] before:content-[''] before:[mask-image:radial-gradient(circle_at_50%_50%,black,transparent_78%)] max-[860px]:min-h-[450px] max-[620px]:min-h-[590px] max-[620px]:rounded-[20px]"
+  data-topology
+  role="group"
+  aria-label="OutRay platform topology"
+>
+  <div
+    class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_51%_50%,rgb(131_103_199/0.14),transparent_26%),linear-gradient(rgb(255_255_255/0.028)_1px,transparent_1px),linear-gradient(90deg,rgb(255_255_255/0.028)_1px,transparent_1px)] bg-[length:auto,42px_42px,42px_42px] [mask-image:radial-gradient(ellipse_at_center,black_15%,transparent_78%)]"
+    aria-hidden="true"
+  ></div>
+  <svg
+    class="absolute inset-0 h-full w-full overflow-visible max-[620px]:hidden"
+    viewBox="0 0 1040 520"
+    role="img"
+    aria-labelledby="topology-title topology-description"
+  >
     <title id="topology-title">One local service connected to OutRay's three products</title>
     <desc id="topology-description">A local application flows through OutRay Edge, with paths to Tunnels, Observability, and Secrets.</desc>
     <defs>
@@ -14,47 +27,142 @@
         <feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
       </filter>
     </defs>
-    <path class="topology-path topology-trunk" d="M220 260H452" pathLength="1"></path>
-    <path class="topology-path" data-topology-path="tunnels" data-product-path="tunnels" d="M590 260C690 260 686 102 822 102" pathLength="1"></path>
-    <path class="topology-path" data-topology-path="observability" data-product-path="observability" d="M590 260H822" pathLength="1"></path>
-    <path class="topology-path" data-topology-path="secrets" data-product-path="secrets" d="M590 260C690 260 686 418 822 418" pathLength="1"></path>
-    <circle class="topology-pulse" cx="452" cy="260" r="7" filter="url(#soft-glow)"></circle>
+    <path
+      class="fill-none opacity-[0.84] [stroke:url(#path-gradient)] [stroke-dasharray:0.035_0.025] [stroke-linecap:round] [stroke-width:1.8] [vector-effect:non-scaling-stroke] [animation:topology-dash_2.8s_linear_infinite] [transition:opacity_240ms_ease,stroke_240ms_ease,stroke-width_240ms_ease] motion-reduce:animate-none"
+      d="M220 260H452"
+      pathLength="1"></path>
+    <path
+      class="fill-none opacity-[0.56] [stroke:url(#path-gradient)] [stroke-dasharray:0.035_0.025] [stroke-linecap:round] [stroke-width:1.55] [vector-effect:non-scaling-stroke] [animation:topology-dash_2.8s_linear_infinite] [transition:opacity_240ms_ease,stroke_240ms_ease,stroke-width_240ms_ease] group-data-[active-product=tunnels]/topology:opacity-100 group-data-[active-product=tunnels]/topology:stroke-accent-light group-data-[active-product=tunnels]/topology:[stroke-width:2] group-data-[active-product=observability]/topology:opacity-10 group-data-[active-product=secrets]/topology:opacity-10 motion-reduce:animate-none"
+      data-topology-path="tunnels"
+      data-product-path="tunnels"
+      d="M590 260C690 260 686 102 822 102"
+      pathLength="1"></path>
+    <path
+      class="fill-none opacity-[0.56] [stroke:url(#path-gradient)] [stroke-dasharray:0.035_0.025] [stroke-linecap:round] [stroke-width:1.55] [vector-effect:non-scaling-stroke] [animation:topology-dash_2.8s_linear_infinite] [transition:opacity_240ms_ease,stroke_240ms_ease,stroke-width_240ms_ease] group-data-[active-product=observability]/topology:opacity-100 group-data-[active-product=observability]/topology:stroke-accent-light group-data-[active-product=observability]/topology:[stroke-width:2] group-data-[active-product=tunnels]/topology:opacity-10 group-data-[active-product=secrets]/topology:opacity-10 motion-reduce:animate-none"
+      data-topology-path="observability"
+      data-product-path="observability"
+      d="M590 260H822"
+      pathLength="1"></path>
+    <path
+      class="fill-none opacity-[0.56] [stroke:url(#path-gradient)] [stroke-dasharray:0.035_0.025] [stroke-linecap:round] [stroke-width:1.55] [vector-effect:non-scaling-stroke] [animation:topology-dash_2.8s_linear_infinite] [transition:opacity_240ms_ease,stroke_240ms_ease,stroke-width_240ms_ease] group-data-[active-product=secrets]/topology:opacity-100 group-data-[active-product=secrets]/topology:stroke-accent-light group-data-[active-product=secrets]/topology:[stroke-width:2] group-data-[active-product=tunnels]/topology:opacity-10 group-data-[active-product=observability]/topology:opacity-10 motion-reduce:animate-none"
+      data-topology-path="secrets"
+      data-product-path="secrets"
+      d="M590 260C690 260 686 418 822 418"
+      pathLength="1"></path>
+    <circle
+      class="fill-[#a78bfa] [animation:topology-pulse_2s_ease-in-out_infinite] motion-reduce:animate-none"
+      cx="452"
+      cy="260"
+      r="7"
+      filter="url(#soft-glow)"></circle>
   </svg>
 
-  <div class="topology-node topology-node-local">
-    <span class="node-icon" aria-hidden="true">
+  <div
+    class="absolute top-1/2 left-[3.6%] z-[2] flex min-h-[104px] w-[190px] flex-wrap items-center gap-3 rounded-2xl border border-[rgb(255_255_255/0.13)] bg-[rgb(15_15_17/0.91)] p-4 text-[#a8a8b1] shadow-[0_18px_45px_rgb(0_0_0/0.36),inset_0_1px_rgb(255_255_255/0.035)] backdrop-blur-[12px] [transform:translateY(-50%)] [transform-box:fill-box] [transform-origin:center] [transition:border-color_220ms_ease,background-color_220ms_ease,color_220ms_ease,filter_220ms_ease,transform_260ms_var(--ease-snappy)] hover:[transform:translateY(calc(-50%_-_2px))] hover:border-[rgb(131_103_199/0.7)] hover:bg-[rgb(24_20_31/0.95)] hover:text-white hover:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] focus-visible:[transform:translateY(calc(-50%_-_2px))] focus-visible:border-[rgb(131_103_199/0.7)] focus-visible:bg-[rgb(24_20_31/0.95)] focus-visible:text-white focus-visible:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] max-[860px]:min-h-[90px] max-[860px]:w-[158px] max-[860px]:p-3 max-[620px]:top-5 max-[620px]:left-1/2 max-[620px]:min-h-[78px] max-[620px]:w-[calc(100%_-_40px)] max-[620px]:flex-nowrap max-[620px]:[transform:translateX(-50%)] max-[620px]:hover:[transform:translateX(-50%)_translateY(-2px)] max-[620px]:focus-visible:[transform:translateX(-50%)_translateY(-2px)]"
+  >
+    <span
+      class="grid size-[38px] shrink-0 place-items-center self-start rounded-[11px] border border-[rgb(131_103_199/0.22)] bg-[rgb(131_103_199/0.09)] text-[#b9a6e8] [&_svg]:size-5"
+      aria-hidden="true"
+    >
       <svg viewBox="0 0 24 24"><path d="M4 6.5h16v11H4zM7 10l2 2-2 2m4 0h3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></svg>
     </span>
-    <span class="node-kicker">Your machine</span>
-    <strong>localhost:3000</strong>
-    <span class="node-status"><i></i> Running locally</span>
+    <span
+      class="block w-[calc(100%_-_52px)] text-[0.62rem] leading-[1.2] font-[680] tracking-[0.08em] text-[#707079] uppercase max-[620px]:w-auto"
+      >Your machine</span
+    >
+    <strong
+      class="mt-[-32px] mr-0 mb-0 ml-[52px] w-[calc(100%_-_52px)] font-mono text-[0.75rem] text-[#eeeeef] max-[620px]:m-0 max-[620px]:w-auto"
+      >localhost:3000</strong
+    >
+    <span
+      class="flex w-full items-center gap-[7px] text-[0.65rem] text-[#777780] max-[620px]:ml-auto max-[620px]:w-auto max-[390px]:hidden"
+      ><i
+        class="bg-success size-1.5 rounded-full shadow-[0_0_9px_rgb(52_211_153/0.55)]"
+      ></i> Running locally</span
+    >
   </div>
 
-  <div class="topology-node topology-node-core">
-    <span class="node-orbit" aria-hidden="true"></span>
-    <img src="/brand/outray-mark.svg" width="42" height="42" alt="" />
-    <span class="node-kicker">OutRay</span>
-    <strong>Developer edge</strong>
+  <div
+    class="absolute top-1/2 left-[51.3%] z-[2] flex min-h-[148px] w-[148px] flex-col items-center justify-center gap-[7px] rounded-full border border-[rgb(131_103_199/0.4)] bg-[radial-gradient(circle,#1d1728,#0f0e12_70%)] p-5 text-center text-[#a8a8b1] shadow-[0_18px_45px_rgb(0_0_0/0.36),inset_0_1px_rgb(255_255_255/0.035)] backdrop-blur-[12px] [transform:translate(-50%,-50%)] [transform-box:fill-box] [transform-origin:center] [transition:border-color_220ms_ease,background-color_220ms_ease,color_220ms_ease,filter_220ms_ease,transform_260ms_var(--ease-snappy)] hover:[transform:translate(-50%,calc(-50%_-_2px))] hover:border-[rgb(131_103_199/0.7)] hover:bg-[rgb(24_20_31/0.95)] hover:text-white hover:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] focus-visible:[transform:translate(-50%,calc(-50%_-_2px))] focus-visible:border-[rgb(131_103_199/0.7)] focus-visible:bg-[rgb(24_20_31/0.95)] focus-visible:text-white focus-visible:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] max-[860px]:left-1/2 max-[860px]:min-h-[126px] max-[860px]:w-[126px] max-[620px]:top-[122px] max-[620px]:min-h-[116px] max-[620px]:w-[116px] max-[620px]:[transform:translateX(-50%)] max-[620px]:hover:[transform:translateX(-50%)_translateY(-2px)] max-[620px]:focus-visible:[transform:translateX(-50%)_translateY(-2px)]"
+  >
+    <span
+      class="absolute inset-[-14px] rounded-full border border-dashed border-[rgb(131_103_199/0.25)] [animation:orbit-spin_18s_linear_infinite] motion-reduce:animate-none"
+      aria-hidden="true"
+    ></span>
+    <img class="size-10" src="/brand/outray-mark.svg" width="42" height="42" alt="" />
+    <span
+      class="block text-[0.62rem] leading-[1.2] font-[680] tracking-[0.08em] text-[#707079] uppercase"
+      >OutRay</span
+    >
+    <strong class="text-[0.76rem] text-[#eeeef1]">Developer edge</strong>
   </div>
 
-  <a class="topology-node topology-node-product topology-node-tunnels" href="#tunnels" data-topology-node="tunnels" data-track="navigation" data-track-label="topology-tunnels">
-    <span class="node-icon" aria-hidden="true">
+  <a
+    class="absolute top-[10.2%] right-[2.5%] z-[2] flex min-h-[76px] w-[190px] items-center gap-3 rounded-2xl border border-[rgb(255_255_255/0.13)] bg-[rgb(15_15_17/0.91)] p-4 text-[#a8a8b1] shadow-[0_18px_45px_rgb(0_0_0/0.36),inset_0_1px_rgb(255_255_255/0.035)] backdrop-blur-[12px] [transform-box:fill-box] [transform-origin:center] [transition:border-color_220ms_ease,background-color_220ms_ease,color_220ms_ease,filter_220ms_ease,transform_260ms_var(--ease-snappy)] hover:[transform:translateY(-50%)_translateX(4px)] hover:border-[rgb(131_103_199/0.7)] hover:bg-[rgb(24_20_31/0.95)] hover:text-white hover:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] focus-visible:[transform:translateY(-50%)_translateX(4px)] focus-visible:border-[rgb(131_103_199/0.7)] focus-visible:bg-[rgb(24_20_31/0.95)] focus-visible:text-white focus-visible:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] group-data-[active-product=tunnels]/topology:border-[rgb(131_103_199/0.7)] group-data-[active-product=tunnels]/topology:bg-[rgb(24_20_31/0.95)] group-data-[active-product=tunnels]/topology:text-white group-data-[active-product=tunnels]/topology:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] group-data-[active-product=observability]/topology:opacity-50 group-data-[active-product=secrets]/topology:opacity-50 max-[860px]:w-[166px] max-[860px]:p-3 max-[620px]:top-[265px] max-[620px]:right-auto max-[620px]:left-1/2 max-[620px]:min-h-[78px] max-[620px]:w-[calc(100%_-_40px)] max-[620px]:[transform:translateX(-50%)] max-[620px]:hover:[transform:translateX(-50%)_translateY(-2px)] max-[620px]:focus-visible:[transform:translateX(-50%)_translateY(-2px)]"
+    href="#tunnels"
+    data-topology-node="tunnels"
+    data-track="navigation"
+    data-track-label="topology-tunnels"
+  >
+    <span
+      class="grid size-[38px] shrink-0 place-items-center rounded-[11px] border border-[rgb(131_103_199/0.22)] bg-[rgb(131_103_199/0.09)] text-[#b9a6e8] [&_svg]:size-5"
+      aria-hidden="true"
+    >
       <svg viewBox="0 0 24 24"><path d="m5 16 4-4 3 3 7-7M15 8h4v4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"></path></svg>
     </span>
-    <span><span class="node-kicker">Expose</span><strong>Tunnels</strong></span>
+    <span
+      ><span
+        class="block text-[0.62rem] leading-[1.2] font-[680] tracking-[0.08em] text-[#707079] uppercase"
+        >Expose</span
+      ><strong class="mt-[3px] block text-[0.84rem] font-[620] text-[#e9e9ec]"
+        >Tunnels</strong
+      ></span
+    >
   </a>
 
-  <a class="topology-node topology-node-product topology-node-observability" href="#observability" data-topology-node="observability" data-track="navigation" data-track-label="topology-observability">
-    <span class="node-icon" aria-hidden="true">
+  <a
+    class="absolute top-1/2 right-[2.5%] z-[2] flex min-h-[76px] w-[190px] items-center gap-3 rounded-2xl border border-[rgb(255_255_255/0.13)] bg-[rgb(15_15_17/0.91)] p-4 text-[#a8a8b1] shadow-[0_18px_45px_rgb(0_0_0/0.36),inset_0_1px_rgb(255_255_255/0.035)] backdrop-blur-[12px] [transform:translateY(-50%)] [transform-box:fill-box] [transform-origin:center] [transition:border-color_220ms_ease,background-color_220ms_ease,color_220ms_ease,filter_220ms_ease,transform_260ms_var(--ease-snappy)] hover:[transform:translateY(-50%)_translateX(4px)] hover:border-[rgb(131_103_199/0.7)] hover:bg-[rgb(24_20_31/0.95)] hover:text-white hover:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] focus-visible:[transform:translateY(-50%)_translateX(4px)] focus-visible:border-[rgb(131_103_199/0.7)] focus-visible:bg-[rgb(24_20_31/0.95)] focus-visible:text-white focus-visible:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] group-data-[active-product=observability]/topology:border-[rgb(131_103_199/0.7)] group-data-[active-product=observability]/topology:bg-[rgb(24_20_31/0.95)] group-data-[active-product=observability]/topology:text-white group-data-[active-product=observability]/topology:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] group-data-[active-product=tunnels]/topology:opacity-50 group-data-[active-product=secrets]/topology:opacity-50 max-[860px]:w-[166px] max-[860px]:p-3 max-[620px]:top-[361px] max-[620px]:right-auto max-[620px]:left-1/2 max-[620px]:min-h-[78px] max-[620px]:w-[calc(100%_-_40px)] max-[620px]:[transform:translateX(-50%)] max-[620px]:hover:[transform:translateX(-50%)_translateY(-2px)] max-[620px]:focus-visible:[transform:translateX(-50%)_translateY(-2px)]"
+    href="#observability"
+    data-topology-node="observability"
+    data-track="navigation"
+    data-track-label="topology-observability"
+  >
+    <span
+      class="grid size-[38px] shrink-0 place-items-center rounded-[11px] border border-[rgb(131_103_199/0.22)] bg-[rgb(131_103_199/0.09)] text-[#b9a6e8] [&_svg]:size-5"
+      aria-hidden="true"
+    >
       <svg viewBox="0 0 24 24"><path d="M3 12h4l2-5 4 10 2-5h6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"></path></svg>
     </span>
-    <span><span class="node-kicker">Observe</span><strong>Observability</strong></span>
+    <span
+      ><span
+        class="block text-[0.62rem] leading-[1.2] font-[680] tracking-[0.08em] text-[#707079] uppercase"
+        >Observe</span
+      ><strong class="mt-[3px] block text-[0.84rem] font-[620] text-[#e9e9ec]"
+        >Observability</strong
+      ></span
+    >
   </a>
 
-  <a class="topology-node topology-node-product topology-node-secrets" href="#secrets" data-topology-node="secrets" data-track="navigation" data-track-label="topology-secrets">
-    <span class="node-icon" aria-hidden="true">
+  <a
+    class="absolute right-[2.5%] bottom-[10.2%] z-[2] flex min-h-[76px] w-[190px] items-center gap-3 rounded-2xl border border-[rgb(255_255_255/0.13)] bg-[rgb(15_15_17/0.91)] p-4 text-[#a8a8b1] shadow-[0_18px_45px_rgb(0_0_0/0.36),inset_0_1px_rgb(255_255_255/0.035)] backdrop-blur-[12px] [transform-box:fill-box] [transform-origin:center] [transition:border-color_220ms_ease,background-color_220ms_ease,color_220ms_ease,filter_220ms_ease,transform_260ms_var(--ease-snappy)] hover:[transform:translateY(-50%)_translateX(4px)] hover:border-[rgb(131_103_199/0.7)] hover:bg-[rgb(24_20_31/0.95)] hover:text-white hover:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] focus-visible:[transform:translateY(-50%)_translateX(4px)] focus-visible:border-[rgb(131_103_199/0.7)] focus-visible:bg-[rgb(24_20_31/0.95)] focus-visible:text-white focus-visible:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] group-data-[active-product=secrets]/topology:border-[rgb(131_103_199/0.7)] group-data-[active-product=secrets]/topology:bg-[rgb(24_20_31/0.95)] group-data-[active-product=secrets]/topology:text-white group-data-[active-product=secrets]/topology:[filter:drop-shadow(0_0_20px_rgb(131_103_199/0.2))] group-data-[active-product=tunnels]/topology:opacity-50 group-data-[active-product=observability]/topology:opacity-50 max-[860px]:w-[166px] max-[860px]:p-3 max-[620px]:top-[457px] max-[620px]:right-auto max-[620px]:bottom-auto max-[620px]:left-1/2 max-[620px]:min-h-[78px] max-[620px]:w-[calc(100%_-_40px)] max-[620px]:[transform:translateX(-50%)] max-[620px]:hover:[transform:translateX(-50%)_translateY(-2px)] max-[620px]:focus-visible:[transform:translateX(-50%)_translateY(-2px)]"
+    href="#secrets"
+    data-topology-node="secrets"
+    data-track="navigation"
+    data-track-label="topology-secrets"
+  >
+    <span
+      class="grid size-[38px] shrink-0 place-items-center rounded-[11px] border border-[rgb(131_103_199/0.22)] bg-[rgb(131_103_199/0.09)] text-[#b9a6e8] [&_svg]:size-5"
+      aria-hidden="true"
+    >
       <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5zM12 15v2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"></path></svg>
     </span>
-    <span><span class="node-kicker">Secure</span><strong>Secrets</strong></span>
+    <span
+      ><span
+        class="block text-[0.62rem] leading-[1.2] font-[680] tracking-[0.08em] text-[#707079] uppercase"
+        >Secure</span
+      ><strong class="mt-[3px] block text-[0.84rem] font-[620] text-[#e9e9ec]"
+        >Secrets</strong
+      ></span
+    >
   </a>
 </div>

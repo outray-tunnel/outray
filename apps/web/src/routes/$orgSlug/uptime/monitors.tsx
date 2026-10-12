@@ -48,15 +48,15 @@ function MonitorCatalog({ orgSlug }: { orgSlug: string }) {
     finally { pending.current = false; if (mounted.current) setSaving(false); }
   };
 
-  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+  return <div className="mx-auto w-full max-w-[1440px] space-y-5">
     <UptimePageHeading title="Monitors" description="Check public endpoints every minute. Get team alerts and choose when issues become public incidents."
       action={resource.data?.canManage ? <Button type="button" size="md" aria-haspopup="dialog" disabled={atLimit} onClick={() => { setError(null); setSuccess(null); setCreating(true); }}><Plus size={15} aria-hidden="true" />Add monitor</Button> : undefined} />
     {success ? <p role="status" className="text-[12px] leading-5 text-zinc-400">{success}</p> : null}
     {atLimit ? <p role="status" className="rounded-lg border border-amber-400/10 bg-amber-400/[0.025] px-4 py-3 text-[12px] text-amber-200/75">This workspace has reached its limit of {resource.data!.limit} monitors. Existing monitors can still be edited, paused, or deleted.</p> : null}
     <UptimePanel className="@container/monitor-catalog overflow-hidden">
       <div className="flex flex-col gap-3 border-b border-white/[0.07] p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="outray-arc-requests-search w-full sm:max-w-[340px]"><SearchField label="Search monitors" appearance="workspace" value={search} onValueChange={setSearch} placeholder="Search name or URL…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
-        <div className="flex items-center gap-3"><span className="shrink-0 text-[11px] tabular-nums text-zinc-500">{resource.data ? `${rows.length} / ${resource.data.limit === -1 ? "Unlimited" : resource.data.limit}` : "—"}</span><div className="outray-arc-address-filter w-[154px]"><Select label="Monitor state" value={view} onValueChange={(value) => setView(value as MonitorView)} options={[{ value: "all", label: "All monitors" }, { value: "up", label: "Up" }, { value: "down", label: "Down" }, { value: "unknown", label: "Unknown" }, { value: "paused", label: "Paused" }]} /></div></div>
+        <div className="w-full sm:max-w-[340px] [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField label="Search monitors" appearance="workspace" value={search} onValueChange={setSearch} placeholder="Search name or URL…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
+        <div className="flex items-center gap-3"><span className="shrink-0 text-[11px] tabular-nums text-zinc-500">{resource.data ? `${rows.length} / ${resource.data.limit === -1 ? "Unlimited" : resource.data.limit}` : "—"}</span><div className="w-[154px] [&>div]:relative [&>div]:gap-0 [&_label]:sr-only"><Select label="Monitor state" value={view} onValueChange={(value) => setView(value as MonitorView)} options={[{ value: "all", label: "All monitors" }, { value: "up", label: "Up" }, { value: "down", label: "Down" }, { value: "unknown", label: "Unknown" }, { value: "paused", label: "Paused" }]} /></div></div>
       </div>
       {resource.error ? <div className="flex flex-wrap items-center gap-3 px-4 py-3"><div className="min-w-0 flex-1"><UptimeError message={resource.error} /></div><Button type="button" variant="secondary" size="sm" onClick={resource.reload}><RotateCcw size={13} aria-hidden="true" />Retry</Button></div> : null}
       {resource.loading && !resource.data ? <UptimeSkeleton label="Loading monitors"><UptimeRowsSkeleton rows={5} /></UptimeSkeleton>

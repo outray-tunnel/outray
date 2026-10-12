@@ -1,4 +1,6 @@
 ---
+import "../styles/global.css";
+
 interface Props {
   title: string;
   description?: string;
@@ -10,7 +12,7 @@ interface Props {
 const { title, description = "Live service status and incident updates.", accent = "#8367c7", canonical, noindex = false } = Astro.props;
 ---
 <!doctype html>
-<html lang="en">
+<html lang="en" class="bg-[#09090b] font-sans text-[#f4f4f5] [color-scheme:dark]" style={`--accent: ${accent}`}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -21,30 +23,15 @@ const { title, description = "Live service status and incident updates.", accent
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
     {canonical && <link rel="canonical" href={canonical} />}
-    <style is:global define:vars={{ accent }}>
-      @font-face { font-family: "Geom"; font-style: normal; font-weight: 300 900; font-display: swap; src: url("/fonts/geom-latin.woff2") format("woff2"); }
-      :root { color-scheme: dark; font-family: "Geom", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #09090b; color: #f4f4f5; }
-      * { box-sizing: border-box; }
-      body { margin: 0; min-width: 320px; background: #09090b; }
-      button, input { font: inherit; }
-      button { cursor: pointer; }
-      a { color: inherit; }
-      :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-      .shell { width: min(100% - 48px, 800px); margin-inline: auto; }
-      .footer { border-top: 1px solid #27272a; padding: 24px 0 40px; color: #a1a1aa; font-size: 13px; }
-      .footer .shell { display: flex; justify-content: center; align-items: center; }
-      .footer a { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: #e4e4e7; }
-      .footer a span { color: #a1a1aa; }
-      .footer a strong { font-weight: 650; }
-      .footer img { display: block; width: 18px; height: 18px; }
-      .footer a:hover { color: #f4f4f5; }
-      @media (max-width: 600px) { .shell { width: min(100% - 32px, 800px); } }
-    </style>
   </head>
-  <body>
+  <body class="m-0 min-w-80 bg-[#09090b] [&_button]:cursor-pointer [&_:focus-visible]:outline-2 [&_:focus-visible]:outline-offset-[3px] [&_:focus-visible]:outline-[var(--accent)]">
     <slot />
-    <footer class="footer">
-      <div class="shell"><a href="https://outray.co" target="_blank" rel="noopener noreferrer"><span>Powered by</span><img src="/outray-mark.svg" alt="" /><strong>OutRay</strong></a></div>
+    <footer class="border-t border-[#27272a] pt-6 pb-10 text-[13px] text-[#a1a1aa]">
+      <div class="mx-auto flex w-[min(100%_-_48px,800px)] items-center justify-center max-[600px]:w-[min(100%_-_32px,800px)]">
+        <a class="inline-flex items-center gap-2 text-[#e4e4e7] no-underline hover:text-[#f4f4f5]" href="https://outray.co" target="_blank" rel="noopener noreferrer">
+          <span class="text-[#a1a1aa]">Powered by</span><img class="block size-[18px]" src="/outray-mark.svg" alt="" /><strong class="font-[650]">OutRay</strong>
+        </a>
+      </div>
     </footer>
   </body>
 </html>

@@ -4,7 +4,6 @@ import Add01Icon from "@outray/icons/stroke/Add01Icon";
 import Alert02Icon from "@outray/icons/stroke/Alert02Icon";
 import Globe02Icon from "@outray/icons/stroke/Globe02Icon";
 import { Button, type ButtonSize } from "@/components/arc/button/button";
-import "@/components/outray-arc-theme.css";
 
 export interface AddressPageHeaderProps {
   title: string;

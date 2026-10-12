@@ -60,7 +60,7 @@ test("the complete organization inventory uses native labeled links with a singl
   const create = links(html).find((link) => textContent(link).includes("Create organization"));
   assert.ok(create); assert.equal(href(create), "/onboarding");
   assert.equal(links(html).length, 13);
-  assert.match(html, /<header class="heading"><span>Organizations<\/span><\/header>/);
+  assert.match(html, /<header class="[^"]*shrink-0[^"]*"><span>Organizations<\/span><\/header>/);
   assert.doesNotMatch(html, /class="count"/);
   // The actual dropdown derives both values from the same router location.
   // Keeping the pathname under another organization would legitimately activate
@@ -76,7 +76,7 @@ test("encoded organization destinations drop foreign resource IDs while the curr
   const html = render({ organizations: [current, target], orgSlug: current.slug, pathname }, suffix);
   assert.deepEqual(options(html).map(href), [`${pathname}${suffix}`, `/${encodeURIComponent(target.slug)}/secrets/vaults`]);
   assert.doesNotMatch(options(html)[1], /private-api|private-live|search=original|focused-secret/);
-  assert.doesNotMatch(options(html)[1], /aria-current/);
+  assert.doesNotMatch(options(html)[1], /\saria-current=/);
   assert.match(options(html)[0], /aria-current="(?:true|page)"/);
   const staticPage = render({ pathname: "/payments/observability/logs" });
   assert.deepEqual(options(staticPage).map(href), ["/payments/observability/logs", "/research/observability/logs", "/ops/observability/logs"]);
@@ -112,7 +112,7 @@ test("empty membership and no search matches are distinct states that keep the c
 
 test("avatars use decorative safe images or readable initials, without executable image sources or duplicate accessible names", () => {
   const valid = renderToStaticMarkup(React.createElement(OrganizationAvatar, { organization: organizations[1], className: "triggerAvatar" }));
-  assert.match(valid, /class="avatar triggerAvatar" aria-hidden="true"/);
+  assert.match(valid, /class="[^"]*size-5[^"]*triggerAvatar" aria-hidden="true"/);
   assert.match(valid, /<img[^>]*src="\/logos\/research.png"/);
   assert.match(valid, /alt=""/); assert.match(valid, /draggable="false"/); assert.match(valid, /referrerPolicy="no-referrer"/);
   for (const logo of [undefined, null, "", "javascript:alert(1)", "//evil.test/logo.png", "http://evil.test/logo.png", "data:image/svg+xml;base64,PHN2Zz4=", "/\\evil.test/logo.png"]) {
@@ -138,7 +138,6 @@ async function contentController() {
       if (specifier === "@tanstack/react-router") return { Link };
       if (specifier === "lucide-react") return { Check: Placeholder, Plus: Placeholder, Search: Placeholder };
       if (specifier === "./organization-switcher-state") return switcherState;
-      if (specifier.endsWith(".module.css")) return { __esModule: true, default: new Proxy({}, { get: (_target, key) => key }) };
       throw new Error(`Unexpected organization-switcher dependency: ${specifier}`);
     },
   });
@@ -189,30 +188,24 @@ test("a failed logo falls back to initials and a changed logo can load without a
 });
 
 test("popover source keeps native focus/Tab behavior with a collision-bounded scrolling list and reduced-motion treatments", async () => {
-  const [css, source, workspaceCss] = await Promise.all([
-    readFile(new URL("../src/components/sidebar/organization-switcher.module.css", import.meta.url), "utf8"),
+  const [source, content] = await Promise.all([
     readFile(new URL("../src/components/sidebar/organization-dropdown.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../src/index.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/sidebar/organization-switcher-content.tsx", import.meta.url), "utf8"),
   ]);
-  assert.match(css, /\.panel\s*\{[^}]*max-width:\s*calc\(100vw - 24px\)/);
-  assert.match(css, /\.panel\s*\{[^}]*width:\s*max\(220px, var\(--radix-popover-trigger-width\)\)/);
-  assert.match(css, /\.panel\s*\{[^}]*max-height:\s*min\(320px, var\(--radix-popover-content-available-height\)\)/);
-  assert.match(css, /\.trigger\s*\{[^}]*min-height:\s*36px/);
-  assert.match(css, /\.option\s*\{[^}]*min-height:\s*32px/);
-  assert.match(css, /\.avatar\s*\{[^}]*width:\s*20px;[^}]*height:\s*20px/);
-  assert.match(workspaceCss, /:root\s*\{[^}]*--workspace-radius-lg:\s*0\.75rem/);
-  assert.match(workspaceCss, /\.workspace-ui \.rounded-lg\s*\{[^}]*border-radius:\s*var\(--workspace-radius-lg\)/);
-  for (const control of ["trigger", "panel", "option", "create"]) {
-    assert.match(css, new RegExp(`\\.${control}\\s*\\{[^}]*border-radius:\\s*var\\(--workspace-radius-lg\\)`), `${control} shares the active sidebar link radius token`);
-  }
-  assert.match(css, /\.option\[aria-current\]/, "selected styling accepts the router's aria-current=page output");
-  assert.match(css, /\.list\s*\{[^}]*min-height:\s*0;[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior:\s*contain/);
-  assert.equal((css.match(/overflow-y:\s*auto/g) ?? []).length, 1);
-  assert.match(css, /\.heading\s*\{[^}]*flex:\s*0 0 auto/); assert.match(css, /\.footer\s*\{[^}]*flex:\s*0 0 auto/);
-  assert.match(css, /\.option:focus-visible\s*\{[^}]*box-shadow:\s*inset/);
-  assert.match(css, /\.create:focus-visible\s*\{[^}]*box-shadow:\s*inset/);
-  assert.match(css, /\.search:focus-within\s*\{[^}]*border-color/);
-  assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*animation:\s*none[\s\S]*transition:\s*none/);
+  assert.match(source, /max-w-\[calc\(100vw-24px\)\]/);
+  assert.match(source, /w-\[max\(220px,var\(--radix-popover-trigger-width\)\)\]/);
+  assert.match(source, /max-h-\[min\(320px,var\(--radix-popover-content-available-height\)\)\]/);
+  assert.match(source, /min-h-9/);
+  assert.match(content, /min-h-8/);
+  assert.match(content, /inline-flex size-5 basis-5/);
+  for (const file of [source, content]) assert.match(file, /rounded-xl/);
+  assert.match(content, /aria-current:bg-white\/\[\.055\]/, "selected styling accepts the router's aria-current output");
+  assert.match(content, /min-h-0 overflow-y-auto overscroll-contain/);
+  assert.equal((content.match(/overflow-y-auto/g) ?? []).length, 1);
+  assert.match(content, /<header className="flex shrink-0/); assert.match(content, /<footer className="shrink-0/);
+  assert.match(content, /focus-visible:shadow-\[inset_0_0_0_1px_rgb\(255_255_255\/\.2\)\]/);
+  assert.match(content, /focus-within:border-white\/25/);
+  assert.match(`${source}\n${content}`, /motion-reduce:transition-none/);
   assert.match(source, /<Popover\.Trigger asChild>/); assert.match(source, /<button type="button"/);
   assert.match(source, /<Popover\.Portal>/); assert.match(source, /<Popover\.Content[^>]*collisionPadding=\{12\}/);
   assert.match(source, /onOpenAutoFocus=/); assert.match(source, /onOpenAutoFocus[\s\S]*?searchRef\.current/);

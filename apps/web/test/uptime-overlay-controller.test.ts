@@ -41,7 +41,6 @@ async function controller() {
   const body = new FakeHTMLElement(), opener = new FakeHTMLElement(), panel = new FakeHTMLElement(), first = new FakeHTMLElement();
   const document = { body, activeElement: opener as FakeHTMLElement | null };
   const Dialog = () => null, DialogContent = () => null;
-  const styles = { dialog: "uptime-dialog", overlay: "uptime-overlay", raisedDialog: "raised-dialog", raisedOverlay: "raised-overlay", dialogBody: "dialog-body", dialogFooter: "dialog-footer" };
   const module = { exports: {} as { UptimeDialog: (props: Props) => React.ReactElement<Props> } };
   runInNewContext(compiled, {
     React, document, HTMLElement: FakeHTMLElement, Element: FakeElement, module, exports: module.exports,
@@ -51,8 +50,7 @@ async function controller() {
         useRef(initial: unknown) { const index = refIndex++; return refs[index] ?? (refs[index] = { current: initial }); },
       };
       if (specifier === "../arc/dialog/dialog") return { Dialog, DialogContent };
-      if (specifier.endsWith(".module.css")) return styles;
-      if (specifier.endsWith(".css")) return {};
+      if (specifier === "../ui/workspace-scope") return { workspaceScopeClassName: "workspace-scope" };
       throw new Error(`Unexpected Uptime dialog dependency: ${specifier}`);
     },
   });
@@ -123,14 +121,15 @@ test("a disconnected opener allows native close-focus fallback instead of focusi
 
 test("nested dialogs inherit raised layers and sibling discard confirmations opt into the same safe layer", async () => {
   const dialog = await controller();
-  const ordinary = dialog.render(); assert.doesNotMatch(ordinary.content.className, /raised-dialog/); assert.equal(ordinary.root.props.value, 1);
-  const nested = dialog.render({}, 1); assert.match(nested.content.className, /raised-dialog/); assert.match(nested.content.overlayClassName, /raised-overlay/);
+  const ordinary = dialog.render(); assert.doesNotMatch(ordinary.content.className, /z-91!/); assert.equal(ordinary.root.props.value, 1);
+  assert.match(ordinary.content.className, /workspace-scope z-81!/); assert.match(ordinary.content.overlayClassName, /z-80! backdrop-blur-none!/);
+  const nested = dialog.render({}, 1); assert.match(nested.content.className, /z-91!/); assert.match(nested.content.overlayClassName, /z-90!/);
   assert.equal(nested.root.props.value, 2);
-  const sibling = dialog.render({ layer: 1 }); assert.match(sibling.content.className, /raised-dialog/); assert.match(sibling.content.overlayClassName, /raised-overlay/);
-  const css = await readFile(new URL("../src/components/uptime/uptime-ui.module.css", import.meta.url), "utf8");
-  assert.match(css, /\.overlay\.overlay\s*\{\s*z-index:\s*80/); assert.match(css, /\.dialog\.dialog\s*\{\s*z-index:\s*81/);
-  assert.match(css, /\.overlay\.overlay\s*\{[^}]*backdrop-filter:\s*none/, "Uptime editors dim the workspace without full-screen backdrop repainting");
-  assert.match(css, /\.raisedOverlay\.raisedOverlay\s*\{\s*z-index:\s*90/); assert.match(css, /\.raisedDialog\.raisedDialog\s*\{\s*z-index:\s*91/);
+  const sibling = dialog.render({ layer: 1 }); assert.match(sibling.content.className, /z-91!/); assert.match(sibling.content.overlayClassName, /z-90!/);
+  const dialogSource = await readFile(new URL("../src/components/uptime/uptime-dialog.tsx", import.meta.url), "utf8");
+  assert.match(dialogSource, /className=\{`\$\{workspaceScopeClassName\} \$\{dialogClassName\}/);
+  assert.match(dialogSource, /overlayClassName=\{`z-80! backdrop-blur-none!/,
+    "Uptime editors dim the workspace without full-screen backdrop repainting");
   for (const path of ["../src/components/uptime/create-incident-dialog.tsx", "../src/routes/$orgSlug/uptime/incidents_.$incidentId.tsx"]) {
     const source = await readFile(new URL(path, import.meta.url), "utf8");
     const ast = ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);

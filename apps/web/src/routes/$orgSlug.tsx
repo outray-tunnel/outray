@@ -17,6 +17,7 @@ import { useFeatureFlag } from "@/lib/feature-flags";
 import { OrganizationAccessPage, OrganizationAccessSkeleton } from "@/components/organization/organization-access-page";
 import { AgentChatProvider } from "@/components/agent/agent-chat-provider";
 import { AgentChatHost } from "@/components/agent/agent-chat-host";
+import { workspaceScopeClassName } from "@/components/ui/workspace-scope";
 import { instanceProductForPath } from "../../../../shared/instance-config";
 
 export const Route = createFileRoute("/$orgSlug")({
@@ -100,7 +101,7 @@ function DashboardLayout() {
 
   return (
     <AgentChatProvider key={`${session?.user.id ?? "pending"}:${matchedOrgId}`} orgSlug={orgSlug}>
-    <div className="workspace-ui fixed inset-0 flex overflow-hidden bg-[#070707] text-gray-300 font-sans selection:bg-accent/30">
+    <div className={`${workspaceScopeClassName} fixed inset-0 flex overflow-hidden bg-[#070707] font-sans text-gray-300 selection:bg-accent/30`}>
       {/* Keep the workspace in the viewport; long pages scroll inside main. */}
       <div className="flex h-full min-h-0 w-full overflow-hidden">
         {/* Desktop sidebar - hidden on mobile */}

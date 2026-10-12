@@ -9,8 +9,6 @@ import { AgentPreparation } from "./agent-preparation";
 import { AgentMessageResponse } from "./agent-message-response";
 import { AgentEvidenceCards } from "./agent-evidence-cards";
 import { newAgentId, useAgentChat, useAgentChatState } from "./agent-chat-context";
-import "../outray-arc-theme.css";
-import styles from "./agent-chat-panel.module.css";
 
 const iconButton = "flex size-9 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 motion-reduce:transition-none";
 
@@ -55,8 +53,8 @@ export function AgentPanelContent({ onClose }: { onClose: () => void }) {
 
   return <>
     <header className="flex h-14 shrink-0 items-center gap-2 border-b border-white/[0.08] px-4 lg:h-11">
-      <span className={working ? styles.workingIcon : "text-zinc-300"} aria-hidden="true"><Sparkles size={15} /></span>
-      <h2 className={`text-[13px] font-medium text-zinc-100 ${working ? styles.workingLabel : ""}`}>{working ? "Agent working…" : "Agent"}</h2>
+      <span className={working ? "inline-flex animate-[pulse_2.6s_ease-in-out_infinite] text-violet-300 motion-reduce:animate-none motion-reduce:opacity-100" : "text-zinc-300"} aria-hidden="true"><Sparkles size={15} /></span>
+      <h2 className={`text-[13px] font-medium text-zinc-100 ${working ? "animate-[pulse_2.6s_ease-in-out_infinite] text-[#beb7cc] motion-reduce:animate-none motion-reduce:opacity-100" : ""}`}>{working ? "Agent working…" : "Agent"}</h2>
       <div className="ml-auto flex items-center gap-0.5">
         <button type="button" className={iconButton} aria-label="New chat" title="New chat" onClick={() => startThread()}><MessageSquarePlus size={16} aria-hidden="true" /></button>
         <button type="button" className={iconButton} aria-label="Chat history" title="Chat history" aria-pressed={state.historyOpen} onClick={() => dispatch({ type: "history", open: !state.historyOpen })}><Clock3 size={16} aria-hidden="true" /></button>
@@ -112,7 +110,7 @@ export function AgentMessageView({ message, orgSlug = "" }: { message: AgentMess
   const showDetails = hasAnswer && !working;
   const evidence = showDetails ? message.evidence.flatMap((item) => { if (item.presentation) return []; const href = safeAgentEvidenceHref(item.href, orgSlug); return href ? [{ ...item, href }] : []; }) : [];
   return <article aria-label="Agent response" aria-busy={working} className="min-w-0">
-    <div className="mb-2.5 flex items-center gap-2 text-[11px] text-zinc-500" data-agent-status={working ? "working" : "idle"}><span className={working ? styles.workingIcon : "text-zinc-400"} aria-hidden="true"><Sparkles size={12} /></span><span className={working ? styles.workingLabel : undefined}>{working ? "Agent working…" : "Agent"}</span></div>
+    <div className="mb-2.5 flex items-center gap-2 text-[11px] text-zinc-500" data-agent-status={working ? "working" : "idle"}><span className={working ? "inline-flex animate-[pulse_2.6s_ease-in-out_infinite] text-violet-300 motion-reduce:animate-none motion-reduce:opacity-100" : "text-zinc-400"} aria-hidden="true"><Sparkles size={12} /></span><span className={working ? "animate-[pulse_2.6s_ease-in-out_infinite] text-[#beb7cc] motion-reduce:animate-none motion-reduce:opacity-100" : undefined}>{working ? "Agent working…" : "Agent"}</span></div>
     {working && (message.steps.length > 0 || preparing && !hasAnswer) && <div className="mb-4"><AgentPreparation steps={message.steps} complete={!preparing} /></div>}
     {hasAnswer && <AgentMessageResponse text={message.text} orgSlug={orgSlug} streaming={preparing} />}
     {!working && message.steps.length > 0 && <div className={hasAnswer ? "mt-4" : "mb-4"}><AgentPreparation steps={message.steps} complete /></div>}
@@ -140,7 +138,7 @@ export function AgentComposer({ value, onChange, onSend, onStop, inputRef, prepa
       if (value.trim() && !blocked) onSend();
     }
   }
-  return <div className="shrink-0 border-t border-white/[0.07] px-4 pt-4" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+  return <div className="shrink-0 border-t border-white/[0.07] px-4 pt-4 pb-[max(12px,env(safe-area-inset-bottom))]">
     <form aria-label="Message Agent" onSubmit={(event) => { event.preventDefault(); if (value.trim() && !blocked) onSend(); }}>
       <div className="relative">
         <WorkspaceTextarea ref={inputRef} aria-label="Message Agent" placeholder="Ask a question…" value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={keyDown} maxLength={AGENT_MAX_PROMPT_LENGTH} rows={3} autoComplete="off" className="!min-h-[92px] !resize-none !rounded-xl !pr-12 !text-[13px]" />

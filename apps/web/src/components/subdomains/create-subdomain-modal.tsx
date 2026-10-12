@@ -1,9 +1,8 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from "react";
 import { Button } from "../arc/button/button";
 import { Dialog, DialogContent } from "../arc/dialog/dialog";
 import { WorkspaceInput } from "../ui/workspace-input";
 import { workspaceInputShellClassName } from "../ui/workspace-input-styles";
-import "../outray-arc-theme.css";
 
 export interface CreateSubdomainModalProps {
   isOpen: boolean;
@@ -42,7 +41,6 @@ export function CreateSubdomainForm({ value, onValueChange, onSubmit, onCancel, 
           ref={inputRef}
           variant="bare"
           id={inputId}
-          data-outray-composite-input=""
           type="text"
           autoComplete="off"
           autoCapitalize="none"
@@ -125,8 +123,7 @@ export function CreateSubdomainModal({ isOpen, onClose, onCreate, isPending, err
       <DialogContent
         title="Reserve subdomain"
         description="Keep a predictable address for tunnels in this workspace."
-        className="outray-arc outray-arc-dialog"
-        style={{ width: "min(calc(100vw - 32px), 440px)", "--space-6": "20px", "--text-lg": "18px", "--radius-control": "10px" } as CSSProperties}
+        className="w-[min(calc(100vw-32px),440px)]!"
         aria-busy={busy}
         closeDisabled={busy}
         onEscapeKeyDown={(event) => { if (isPending || submissionLocked.current) event.preventDefault(); }}

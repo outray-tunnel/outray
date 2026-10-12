@@ -1,8 +1,8 @@
 import { lazy, Suspense } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { workspaceScopeClassName } from "../ui/workspace-scope";
 import { useAgentChatState } from "./agent-chat-context";
-import styles from "./agent-chat-panel.module.css";
 
 const AgentChatPanel = lazy(() => import("./agent-chat-panel"));
 
@@ -18,11 +18,11 @@ export function AgentChatHost() {
 
   return <Dialog.Root open={state.panelOpen} onOpenChange={(open) => { if (!open) close(); }}>
     <Dialog.Portal>
-      <Dialog.Overlay style={state.panelOpen ? undefined : { pointerEvents: "none" }} className={`${styles.overlay} fixed inset-0 z-[80] bg-black/40`} />
-      <Dialog.Content id={panelId} aria-describedby={undefined} style={state.panelOpen ? undefined : { pointerEvents: "none" }} onCloseAutoFocus={(event) => {
+      <Dialog.Overlay className="fixed inset-0 z-80 bg-black/40 opacity-100 transition-opacity starting:opacity-0 data-[state=open]:duration-[260ms] data-[state=open]:ease-out data-[state=closed]:pointer-events-none data-[state=closed]:opacity-0 data-[state=closed]:duration-[190ms] data-[state=closed]:ease-in motion-reduce:transition-none" />
+      <Dialog.Content id={panelId} aria-describedby={undefined} onCloseAutoFocus={(event) => {
         event.preventDefault();
         restoreFocus();
-      }} className={`${styles.panel} workspace-ui outray-arc ph-no-capture fixed inset-y-0 right-0 z-[81] flex h-dvh w-full max-w-[720px] flex-col border-l border-white/[0.08] bg-[#111112] text-zinc-200 shadow-[-24px_0_80px_rgba(0,0,0,0.3)] outline-none`}>
+      }} className={`${workspaceScopeClassName} ph-no-capture fixed inset-y-0 right-0 z-81 flex h-dvh w-full max-w-[720px] translate-x-0 flex-col border-l border-white/[0.08] bg-[#111112] text-zinc-200 shadow-[-24px_0_80px_rgba(0,0,0,0.3)] outline-none transition-transform starting:translate-x-full data-[state=open]:duration-[260ms] data-[state=open]:ease-[cubic-bezier(.22,1,.36,1)] data-[state=closed]:pointer-events-none data-[state=closed]:translate-x-full data-[state=closed]:duration-[190ms] data-[state=closed]:ease-[cubic-bezier(.4,0,1,1)] motion-reduce:transition-none`}>
         <Dialog.Title className="sr-only">Agent chat</Dialog.Title>
         <Suspense fallback={<AgentPanelLoading />}><AgentChatPanel onClose={close} /></Suspense>
       </Dialog.Content>

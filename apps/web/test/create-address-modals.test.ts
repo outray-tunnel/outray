@@ -59,7 +59,6 @@ async function controller(resource: Resource) {
     "../arc/dialog/dialog": { Dialog, DialogContent },
     "../ui/workspace-input": { WorkspaceInput },
     "../ui/workspace-input-styles": { workspaceInputShellClassName },
-    "../outray-arc-theme.css": {},
     "@/lib/reserved-status-domain": { isReservedStatusDomain },
   };
   const module = { exports: {} as Record<string, (props: CreateDomainModalProps) => React.ReactElement> };
@@ -109,17 +108,18 @@ for (const resource of ["domains", "subdomains"] as const) {
     const id = input.match(/id="([^"]+)"/)?.[1];
     assert.ok(id);
     assert.ok(html.includes(`for="${id}"`));
-    assert.match(input, /data-outray-composite-input=""|data-outray-composite-input/);
+    assert.match(input, /data-workspace-input="bare"/);
+    assert.match(input, /focus-visible:outline-none/);
     assert.match(input, /aria-invalid="true"/);
     assert.match(input, /aria-describedby=/);
-    assert.ok(html.includes(workspaceInputShellClassName), "address uses the shared composite input shell");
+    assert.match(html, /focus-within:border-white\/35/, "address uses the shared composite input shell");
     assert.match(html, /role="alert"/);
     assert.match(html, /Already taken &lt;address&gt;/);
     assert.ok(html.includes(normalized));
     assert.match(html, /Cancel/);
     const buttons = [...html.matchAll(/<button\b[^>]*>/g)].map(([button]) => button);
     assert.equal(buttons.length, 2);
-    for (const button of buttons) assert.match(button, /class="[^"]*\bsm\b/, "modal actions use the shared small size");
+    for (const button of buttons) assert.match(button, /class="[^"]*min-h-8 px-3/, "modal actions use the shared small size utilities");
     assert.doesNotMatch(html, /fixed inset-0|autoFocus|user@example/);
   });
 

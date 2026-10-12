@@ -52,11 +52,11 @@ test("change details project typed safe metadata and never dump secret values, p
 
 test("technical information stays collapsed, optional fields are omitted, and the only action copies the event ID", () => {
   const html = render({ result: "success", requestId: "request-42", ipAddress: "203.0.113.10", userAgent: "OutRay CLI", entryId: "entry-42", actorTokenId: "token-42" });
-  assert.match(html, /<details class="technical">/); assert.doesNotMatch(html, /<details[^>]*open/);
+  const disclosure = html.match(/<details\b[^>]*>/)?.[0] ?? "";
+  assert.match(disclosure, /class="[^"]*group[^"]*"/); assert.doesNotMatch(disclosure, /\sopen(?:=|\s|>)/);
   for (const value of ["event-42", "secret-42", "vault-42", "env-42", "member-42", "token-42", "entry-42", "request-42", "203.0.113.10", "OutRay CLI"]) assert.ok(html.includes(value));
   const buttons = [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(([button]) => button);
   assert.equal(buttons.length, 1); assert.match(buttons[0], /aria-label="Copy event ID"/);
-  assert.match(buttons[0], /iconOnly/); assert.match(buttons[0], /plain/);
   assert.doesNotMatch(buttons[0], />Copy event ID</);
   assert.match(html, /role="status" aria-live="polite"/);
   const minimal = render({ resourceId: null, projectId: null, environmentId: null, actorId: null });
@@ -98,7 +98,6 @@ async function stubbedModule() {
     if (specifier === "../ui/side-sheet") return { SideSheet };
     if (specifier === "../arc/copy-button/copy-button") return { CopyButton };
     if (specifier === "./audit-data") return helpers;
-    if (specifier.endsWith(".module.css")) return { default: new Proxy({}, { get: (_target, key) => key }), __esModule: true };
     throw new Error(`Unexpected audit event sheet dependency: ${specifier}`);
   } });
   return { module, context, SideSheet, CopyButton };
@@ -139,9 +138,10 @@ test("shared sheet owns keyboard/focus behaviour and clears retained details imm
 });
 
 test("technical details have quiet keyboard focus, wrapping values, stacked mobile context and reduced motion", async () => {
-  const css = await readFile(new URL("../src/components/secrets/audit-event-sheet.module.css", import.meta.url), "utf8");
-  assert.match(css, /\.technical > summary:focus-visible\s*\{[^}]*outline:/);
-  assert.match(css, /\.context dd, \.metadata dd, \.technicalRows dd\s*\{[^}]*overflow-wrap:\s*anywhere/);
-  assert.match(css, /@media \(max-width:\s*420px\)[\s\S]*grid-template-columns:\s*1fr/);
-  assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*transition:\s*none/);
+  const source = await readFile(new URL("../src/components/secrets/audit-event-sheet.tsx", import.meta.url), "utf8");
+  assert.match(source, /\[&>summary:focus-visible\]:outline-2/);
+  assert.match(source, /\[&_dd\]:\[overflow-wrap:anywhere\]/);
+  assert.match(source, /max-\[420px\]:\[&>div\]:grid-cols-1/);
+  assert.match(source, /motion-reduce:\[&>summary\]:transition-none/);
+  assert.match(source, /motion-reduce:\[&>summary>svg\]:transition-none/);
 });

@@ -1,9 +1,7 @@
-import type { CSSProperties } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Globe02Icon from "@outray/icons/stroke/Globe02Icon";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import { ResourceDeleteDialog } from "../resource-delete-dialog";
-import "../outray-arc-theme.css";
 
 interface Subdomain {
   id: string;
@@ -26,8 +24,7 @@ export function SubdomainCard({ subdomain, onDelete }: SubdomainCardProps) {
   return (
     <article
       aria-label={`Reserved subdomain ${address}`}
-      className="outray-arc flex min-h-[76px] items-center gap-3 border-b border-white/[0.06] px-4 py-3 transition-colors last:border-b-0 hover:bg-white/[0.025] motion-reduce:transition-none sm:px-5"
-      style={{ "--control-height-sm": "36px" } as CSSProperties}
+      className="flex min-h-[76px] items-center gap-3 border-b border-white/[0.06] px-4 py-3 transition-colors last:border-b-0 hover:bg-white/[0.025] motion-reduce:transition-none sm:px-5"
     >
       <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-zinc-500 ring-1 ring-white/[0.06]">
         <HugeiconsIcon icon={Globe02Icon} size={16} strokeWidth={1.7} aria-hidden="true" />

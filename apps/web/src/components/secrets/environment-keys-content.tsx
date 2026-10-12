@@ -4,7 +4,6 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Download, Layers, LockKeyhole, Plus, RefreshCw, Upload } from "lucide-react";
 import { Button } from "../arc/button/button";
 import type { SecretEnvironment, SecretMetadata, SecretProject } from "@/lib/secrets-client";
-import "../outray-arc-theme.css";
 
 export interface EnvironmentKeysData {
   project: SecretProject;
@@ -78,7 +77,7 @@ export function EnvironmentKeysContent({ orgSlug, projectSlug, environmentSlug, 
     <Button variant="secondary" size="md" loading={exporting} aria-haspopup={data.environment.isProduction ? "dialog" : undefined} onClick={onExport}><Download size={13} aria-hidden="true" />Export .env</Button>
     <Button size="md" aria-haspopup="dialog" onClick={onAdd}><Plus size={14} aria-hidden="true" />Add secret</Button>
   </div>;
-  return <div className={sharedLayout ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "outray-arc @container/secret-keys mx-auto w-full max-w-[1440px] space-y-5"}>
+  return <div className={sharedLayout ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "@container/secret-keys mx-auto w-full max-w-[1440px] space-y-5"}>
     {sharedLayout ? actionsContainer && createPortal(actions, actionsContainer) : <EnvironmentKeysHeader orgSlug={orgSlug} projectSlug={projectSlug} environmentSlug={environmentSlug} project={data?.project ?? null} actions={actions} />}
     {actionError && <p role="alert" className="shrink-0 border border-rose-400/20 bg-rose-400/[0.035] px-4 py-3 text-[12px] text-rose-200">{actionError}</p>}
     {loading && !data ? <EnvironmentKeysSkeleton sharedLayout={sharedLayout} /> : !data ? <section role="alert" className={`bg-[#111112] px-5 py-12 text-center ${sharedLayout ? "flex min-h-0 flex-1 flex-col items-center justify-center" : "rounded-xl border border-white/[0.08]"}`}><Layers size={22} className="mx-auto text-zinc-500" aria-hidden="true" /><h2 className="mt-3 text-[14px] font-medium text-zinc-200">Environment unavailable</h2><p className="mx-auto mt-1 max-w-md text-[12px] leading-5 text-zinc-500">{error || "We could not load the secret keys for this environment."}</p><Button variant="secondary" size="sm" className="mt-4" onClick={onRetry}><RefreshCw size={13} aria-hidden="true" />Try again</Button></section> : <section aria-label="Environment secret keys" className={`min-w-0 overflow-hidden bg-[#111112] ${sharedLayout ? "flex min-h-0 flex-1 flex-col" : "rounded-xl border border-white/[0.08]"}`}>

@@ -3,10 +3,9 @@ import { ProductPage } from "@/landing/products/ProductPage";
 import { TunnelHero } from "@/landing/products/TunnelHero";
 import { TunnelTerminalSection } from "@/landing/products/TunnelTerminal";
 import { TunnelFeatureSections } from "@/landing/products/TunnelFeatureSections";
-import styles from "@/landing/products/tunnel-sections.module.css";
 import { productPageHead } from "@/landing/products/meta";
 
 export const Route = createFileRoute("/products/tunnels")({
   head: () => productPageHead("tunnels"),
-  component: () => <ProductPage product="tunnels" className={styles.page} hero={<TunnelHero />} workflow={<TunnelTerminalSection />} sections={<TunnelFeatureSections />} />,
+  component: () => <ProductPage product="tunnels" className="[--accent:#888] [--accent-deep:#444] [--accent-light:#d4d4d4] [--accent-rgb:160_160_160] [--foreground:#f2f2f2] [--surface-muted:#242424] [--text-secondary:#a0a0a0]" hero={<TunnelHero />} workflow={<TunnelTerminalSection />} sections={<TunnelFeatureSections />} />,
 });

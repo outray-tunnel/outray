@@ -7,7 +7,6 @@ import InformationCircleIcon from "@outray/icons/stroke/InformationCircleIcon";
 import ListViewIcon from "@outray/icons/stroke/ListViewIcon";
 import { Button } from "@/components/arc/button/button";
 import { DialogContent } from "@/components/arc/dialog/dialog";
-import "../outray-arc-theme.css";
 
 export interface RequestCaptureSettingsModalProps {
   enabled: boolean;
@@ -40,7 +39,7 @@ export function RequestCaptureSettingsModal(
     <DialogContent
       title="Request capture settings"
       description="Choose what OutRay captures for new requests."
-      className="outray-arc outray-arc-dialog outray-arc-capture-dialog"
+      className="w-[min(calc(100vw-32px),560px)]! [&>div:first-child]:p-5! [&>div:first-child_button]:rounded-[10px]! [&>div:first-child_h2]:text-lg! [&>div:first-child_h2]:font-normal [&>div:first-child_h2]:tracking-[-.025em] [&>div:nth-child(2)]:p-5!"
       aria-busy={props.isLoading || props.isUpdating}
       closeDisabled={props.isUpdating}
       onEscapeKeyDown={(event) => {

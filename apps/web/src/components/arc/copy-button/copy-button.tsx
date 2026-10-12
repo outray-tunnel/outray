@@ -5,7 +5,6 @@ import { AnimatePresence, motion, useReducedMotion, type TargetAndTransition, ty
 import { CircleAlert, Copy } from "lucide-react";
 import { motionTokens } from "../lib/motion-tokens";
 import { useCopyFeedback } from "../lib/use-copy-feedback";
-import styles from "./copy-button.module.css";
 
 export interface CopyButtonProps {
   value: string;
@@ -69,9 +68,9 @@ function useGlyphs(text: string) {
  */
 function MorphText({ text, reduced }: { text: string; reduced: boolean }) {
   const glyphs = useGlyphs(text);
-  return <motion.span className={styles.glyphs} layoutRoot>
+  return <motion.span className="relative col-start-1 row-start-1 inline-flex justify-self-start whitespace-pre" layoutRoot>
     <AnimatePresence mode="popLayout" initial={false}>
-      {glyphs.map(glyph => <motion.span key={glyph.id} className={styles.glyph} layout={reduced ? false : "position"} layoutDependency={text} initial={reduced ? fadeIn : glyphIn} animate={rest} exit={reduced ? fadeOut : glyphOut} transition={reduced ? instant : { ...enter, delay: Math.min(glyph.order * .02, .12), layout: settle }}>{glyph.char}</motion.span>)}
+      {glyphs.map(glyph => <motion.span key={glyph.id} className="inline-block" layout={reduced ? false : "position"} layoutDependency={text} initial={reduced ? fadeIn : glyphIn} animate={rest} exit={reduced ? fadeOut : glyphOut} transition={reduced ? instant : { ...enter, delay: Math.min(glyph.order * .02, .12), layout: settle }}>{glyph.char}</motion.span>)}
     </AnimatePresence>
   </motion.span>;
 }
@@ -88,22 +87,22 @@ export function CopyButton({ value, label = "Copy", className, iconOnly = false,
 
   return <><button
     type="button"
-    className={[styles.button, iconOnly && styles.iconOnly, variant === "plain" && styles.plain, className].filter(Boolean).join(" ")}
+    className={["inline-flex min-h-8 w-max max-w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-zinc-900 px-3 text-[13px] font-medium text-zinc-50 transition-[background-color,border-color,color,transform] duration-160 ease-[cubic-bezier(.22,1,.36,1)] hover:border-white/20 hover:bg-[#202023] active:scale-[.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none", iconOnly && "size-8 px-0 active:scale-[.96]", variant === "plain" && "border-transparent bg-transparent text-zinc-400 hover:border-transparent hover:text-zinc-50", className].filter(Boolean).join(" ")}
     onClick={() => void handleCopy()}
     aria-label={label}
     data-copy-state={state}
     disabled={disabled}
   >
-    <span className={styles.icon} aria-hidden="true">
+    <span className="relative grid size-4 shrink-0" aria-hidden="true">
       <AnimatePresence initial={false}>
-        <motion.span key={state} className={styles.iconInner} data-state={state} initial={reduced ? fadeIn : iconIn} animate={rest} exit={reduced ? fadeOut : iconOut} transition={reduced ? instant : iconEnter}>
+        <motion.span key={state} className="absolute inset-0 grid place-items-center data-[state=copied]:text-emerald-300 data-[state=error]:text-rose-300" data-state={state} initial={reduced ? fadeIn : iconIn} animate={rest} exit={reduced ? fadeOut : iconOut} transition={reduced ? instant : iconEnter}>
           {state === "copied" ? <DrawnCheck reduced={reduced} /> : state === "error" ? <CircleAlert size={16} strokeWidth={1.75} /> : <Copy size={16} strokeWidth={1.75} />}
         </motion.span>
       </AnimatePresence>
     </span>
-    {!iconOnly && <span className={styles.label} aria-hidden="true">
-      <span className={styles.measure}>{label}</span><span className={styles.measure}>Copied</span><span className={styles.measure}>Failed</span>
+    {!iconOnly && <span className="-mx-1 grid min-w-0 overflow-x-clip px-1 text-left whitespace-nowrap" aria-hidden="true">
+      <span className="invisible col-start-1 row-start-1">{label}</span><span className="invisible col-start-1 row-start-1">Copied</span><span className="invisible col-start-1 row-start-1">Failed</span>
       <MorphText text={text} reduced={reduced} />
     </span>}
-  </button><span className={styles.srOnly} role="status" aria-live="polite">{state === "idle" ? "" : state === "error" ? `${label}: Could not copy` : `${label}: Copied`}</span></>;
+  </button><span className="sr-only" role="status" aria-live="polite">{state === "idle" ? "" : state === "error" ? `${label}: Could not copy` : `${label}: Copied`}</span></>;
 }

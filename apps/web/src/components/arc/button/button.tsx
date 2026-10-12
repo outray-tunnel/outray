@@ -5,7 +5,6 @@ import type { ButtonHTMLAttributes, ReactNode, Ref, RefObject } from "react";
 import { AnimatePresence, animate, motion, useIsPresent, useMotionValue, useReducedMotion } from "motion/react";
 import type { TargetAndTransition, Variants } from "motion/react";
 import { motionTokens } from "../lib/motion-tokens";
-import styles from "./button.module.css";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 export type ButtonSize = "sm" | "md" | "lg";
@@ -34,6 +33,18 @@ const fadeIn: TargetAndTransition = { ...rest, opacity: 0 };
 const fadeOut: TargetAndTransition = { opacity: 0, transition: { duration: motionTokens.duration.instant } };
 /** Scale rides the spring; opacity and blur tween so blur never overshoots below zero. */
 const iconEnter = { ...motionTokens.spring.snappy, opacity: { duration: motionTokens.duration.fast, ease: [...motionTokens.ease.enter] }, filter: { duration: motionTokens.duration.fast, ease: [...motionTokens.ease.enter] } } as const;
+const buttonClassName = "relative inline-flex min-h-9 items-center justify-center gap-2 rounded-xl border border-transparent px-4 text-[13px] leading-[1.45] font-medium whitespace-nowrap transition-[color,background,border-color,opacity,box-shadow] duration-160 ease-[cubic-bezier(.22,1,.36,1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] disabled:cursor-not-allowed disabled:opacity-[.52] aria-busy:cursor-progress motion-reduce:transition-none";
+const variantClassNames: Record<ButtonVariant, string> = {
+  primary: "border-zinc-50 bg-zinc-50 text-zinc-950 hover:opacity-[.91] hover:shadow-[0_1px_2px_rgb(0_0_0/.25)] active:opacity-[.84]",
+  secondary: "border-white/12 bg-zinc-900 text-zinc-50 hover:bg-[#202023] hover:shadow-[0_1px_2px_rgb(0_0_0/.25)] active:bg-[#202023]",
+  ghost: "text-zinc-400 hover:bg-[#202023] hover:text-zinc-50 active:bg-[#202023] active:text-zinc-50",
+  danger: "border-white/12 bg-zinc-900 text-rose-300 hover:border-rose-300 hover:bg-[#202023] active:border-rose-300 active:bg-[#202023]",
+};
+const sizeClassNames: Record<ButtonSize, string> = {
+  sm: "min-h-8 px-3 text-[13px]",
+  md: "min-h-9",
+  lg: "min-h-11 px-5 text-[13px]",
+};
 
 /** A key for the label content: text plus element names, so a new label or icon crossfades while prop-only updates stay in place. */
 function labelKey(node: ReactNode): string {
@@ -73,7 +84,7 @@ function useMorphWidth(content: RefObject<HTMLElement | null>, key: string, redu
 
 function LabelPhase({ children, icon, reduced, ref }: { children: ReactNode; icon: boolean; reduced: boolean; ref?: Ref<HTMLSpanElement> }) {
   const present = useIsPresent();
-  return <motion.span ref={ref} className={styles.labelPhase} aria-hidden={present ? undefined : true} initial={reduced ? fadeIn : icon ? iconIn : textIn} animate={rest} exit={reduced ? fadeOut : icon ? iconOut : textOut} transition={reduced ? { duration: motionTokens.duration.instant } : icon ? iconEnter : { duration: motionTokens.duration.standard, ease: [...motionTokens.ease.enter] }}>{children}</motion.span>;
+  return <motion.span ref={ref} className="inline-flex items-center justify-center gap-2 whitespace-nowrap [&_svg]:shrink-0" aria-hidden={present ? undefined : true} initial={reduced ? fadeIn : icon ? iconIn : textIn} animate={rest} exit={reduced ? fadeOut : icon ? iconOut : textOut} transition={reduced ? { duration: motionTokens.duration.instant } : icon ? iconEnter : { duration: motionTokens.duration.standard, ease: [...motionTokens.ease.enter] }}>{children}</motion.span>;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -94,7 +105,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   const popup = props["aria-haspopup"];
   const anchorsLayer = (popup !== undefined && popup !== false && popup !== "false") || props.role === "combobox" || (props as Record<string, unknown>)["data-state"] !== undefined;
   const inert = disabled || loading || props["aria-disabled"] === true || props["aria-disabled"] === "true";
-  const classes = [styles.button, styles[variant], styles[size], className].filter(Boolean).join(" ");
+  const classes = [buttonClassName, variantClassNames[variant], sizeClassNames[size], className].filter(Boolean).join(" ");
 
   return (
     <motion.button
@@ -113,10 +124,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       onClick={loading ? event => event.preventDefault() : onClick}
     >
       <AnimatePresence initial={false}>
-        {loading ? <motion.span key="loader" className={styles.loader} aria-hidden="true" initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: .6 }} animate={{ opacity: 1, scale: 1 }} exit={reduceMotion ? fadeOut : { ...iconOut, scale: .8 }} transition={reduceMotion ? { duration: motionTokens.duration.instant } : iconEnter}><span className={styles.spinner} /></motion.span> : null}
+        {loading ? <motion.span key="loader" className="absolute top-1/2 left-1/2 grid size-4 -translate-1/2" aria-hidden="true" initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: .6 }} animate={{ opacity: 1, scale: 1 }} exit={reduceMotion ? fadeOut : { ...iconOut, scale: .8 }} transition={reduceMotion ? { duration: motionTokens.duration.instant } : iconEnter}><span className="animate-spin rounded-full border-[1.5px] border-current border-r-transparent motion-reduce:animate-none" /></motion.span> : null}
       </AnimatePresence>
-      <motion.span className={[styles.labelSlot, loading ? styles.loadingLabel : ""].filter(Boolean).join(" ")} style={{ width }}>
-        <span ref={contentRef} className={styles.labelContent}>
+      <motion.span className={`relative inline-flex min-w-0 items-center justify-center transition-opacity duration-160 data-[morphing]:[clip-path:inset(-50%_-12px)] motion-reduce:transition-none ${loading ? "opacity-0" : ""}`} style={{ width }}>
+        <span ref={contentRef} className="inline-flex shrink-0 items-center">
           <AnimatePresence mode="popLayout" initial={false}>
             <LabelPhase key={key} icon={!/\S/.test(key.replace(/<[^>]*>/g, ""))} reduced={reduceMotion}>{children}</LabelPhase>
           </AnimatePresence>

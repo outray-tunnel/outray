@@ -9,7 +9,6 @@ import type { SecretProject, SecretsOverview } from "@/lib/secrets-client";
 import { SecretsOverviewActivity } from "./overview-activity";
 import { filterOverviewVaults, vaultUpdatedAt, type SecretsVaultSort } from "./overview-data";
 import { formatRelativeDate, formatSecretDate } from "./utils";
-import "../outray-arc-theme.css";
 
 const PREVIEW_LIMIT = 6;
 
@@ -32,7 +31,7 @@ export function SecretsOverviewContent({ orgSlug, data, loading, isFetching, err
   onSearchInputChange, onSortChange, onClearSearch, onCreate, onRetry }: SecretsOverviewContentProps) {
   const matches = useMemo(() => filterOverviewVaults(data?.projects ?? [], searchInput, sort), [data?.projects, searchInput, sort]);
   const vaults = matches.slice(0, PREVIEW_LIMIT);
-  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+  return <div className="mx-auto w-full max-w-[1440px] space-y-5">
     <header className="flex flex-wrap items-end justify-between gap-3 pb-1">
       <div className="min-w-0">
         <h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Overview</h1>
@@ -78,8 +77,8 @@ export function SecretsOverviewContent({ orgSlug, data, loading, isFetching, err
             <Button variant="secondary" size="md" className="mt-4" aria-haspopup="dialog" onClick={onCreate}><Plus size={13} aria-hidden="true" />Create vault</Button>
           </div> : <>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="outray-arc-requests-search min-w-0 flex-1 basis-[180px]"><SearchField appearance="workspace" label="Search vaults" value={searchInput} onValueChange={onSearchInputChange} placeholder="Find a vault or environment…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
-              <div className="outray-arc-address-filter w-[164px] shrink-0"><Select label="Sort vaults" value={sort} onValueChange={(value) => onSortChange(value as SecretsVaultSort)} options={[{ value: "updated", label: "Recently updated" }, { value: "name", label: "Name" }]} /></div>
+              <div className="min-w-0 flex-1 basis-[180px] [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" label="Search vaults" value={searchInput} onValueChange={onSearchInputChange} placeholder="Find a vault or environment…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
+              <div className="w-[164px] shrink-0 [&>div]:relative [&>div]:gap-0 [&_label]:sr-only"><Select label="Sort vaults" value={sort} onValueChange={(value) => onSortChange(value as SecretsVaultSort)} options={[{ value: "updated", label: "Recently updated" }, { value: "name", label: "Name" }]} /></div>
             </div>
             <div className="overflow-hidden rounded-xl border border-white/[0.08]">
               {vaults.length === 0 ? <div className="px-5 py-10 text-center">

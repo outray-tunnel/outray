@@ -164,7 +164,7 @@ test("the hidden aurora is absent from SSR while the beam keeps unique SVG IDs",
   assert.equal((output.match(/<svg/g) ?? []).length, 2, "each hero renders only its original beam fallback");
   const ids = [...output.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
   assert.equal(new Set(ids).size, ids.length, "separate hero instances cannot share gradient or filter identifiers");
-  for (const reference of output.matchAll(/url\(#([^\)]+)\)/g)) {
+  for (const reference of output.matchAll(/url\(#([^)]+)\)/g)) {
     assert.ok(ids.includes(reference[1]), `Missing local SVG definition: ${reference[1]}`);
   }
   assert.doesNotMatch(output, /<canvas|tabindex=|role="button"|Loading|aurora/i);
@@ -175,7 +175,9 @@ test("hero keeps its copy and primary actions without the product links bar", ()
     signupUrl: "/signup", githubUrl: "https://github.com/outray-tunnel/outray",
   }));
   assert.match(output, /aria-labelledby="hero-title"/);
-  assert.match(output, /page-shell hero-content hero-shell/);
+  assert.match(output, /min-h-\[min\(1060px,100svh\)\]/);
+  assert.match(output, /var\(--container-page\)/);
+  assert.match(output, /relative z-\[2\][^"\n]*text-center/);
   assert.match(output, /Everything between.*localhost.*production/);
   assert.match(output, /Connect your services, understand your systems, and keep your apps secure and reliable/);
   assert.match(output, /href="\/signup"/);
@@ -215,13 +217,13 @@ test("hidden aurora components stay outside the beam's SSR and renderer imports"
 });
 
 test("the aurora is clipped to the far right and cannot intercept hero interactions", async () => {
-  const css = await readFile(new URL("../src/landing/hero-beam.module.css", import.meta.url), "utf8");
-  const aurora = css.match(/\.auroraFallback\s*\{([^}]+)\}/)?.[1];
-  assert.ok(aurora, "the static aurora has its own position independent of the original beam");
-  assert.match(aurora, /position:\s*absolute/);
-  assert.match(aurora, /right:\s*[^;]*-\d/, "a negative right offset keeps the source beyond the screen edge");
-  assert.match(css, /\.beam\s*\{[^}]*overflow:\s*hidden[^}]*pointer-events:\s*none/);
-  assert.doesNotMatch(css, /[^}]*\.canvasLayer[^}]*\{[^}]*transform:/, "the shared renderer stays full width so the aurora can reach the page edge");
+  const beam = await readFile(beamSourceUrl, "utf8");
+  const canvas = await readFile(canvasSourceUrl, "utf8");
+  const fallback = await readFile(new URL("../src/landing/HeroAuroraFallback.tsx", import.meta.url), "utf8");
+  assert.match(fallback, /className="[^"]*absolute[^"]*top-0[^"]*right-\[-30%\]/, "the static aurora keeps its source beyond the screen edge");
+  assert.match(fallback, /max-\[767px\]:hidden/);
+  assert.match(beam, /className="[^"]*pointer-events-none[^"]*overflow-hidden/);
+  assert.doesNotMatch(canvas, /className="[^"]*translate-/, "the shared renderer stays full width so the aurora can reach the page edge");
 });
 
 test("reduced motion keeps the static beam and never starts the animation bundle", async () => {
@@ -646,8 +648,6 @@ test("the animated and static aurora keep their calibrated alignment with the or
   const scene = aurora.root();
   assert.ok(scene);
   assert.equal(scene.props.position[1], 1, "the rotated curtain offset is raised to align with the original beam");
-  const css = await readFile(new URL("../src/landing/hero-beam.module.css", import.meta.url), "utf8");
-  const fallback = css.match(/\.auroraFallback\s*\{([^}]+)\}/)?.[1];
-  assert.ok(fallback);
-  assert.match(fallback, /top:\s*0(?:%|px)?\s*;/, "the static aurora cannot drift down during SSR or reduced motion");
+  const fallback = await readFile(new URL("../src/landing/HeroAuroraFallback.tsx", import.meta.url), "utf8");
+  assert.match(fallback, /className="[^"]*top-0/, "the static aurora cannot drift down during SSR or reduced motion");
 });

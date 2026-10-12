@@ -45,7 +45,9 @@ test("token catalog uses the compact console header, product groups, masked pref
   assert.match(list[1], /Never used/); assert.match(list[2], /No expiry/);
   assert.equal(buttons(html).filter((button) => /aria-label="Revoke /.test(button)).length, 2);
   assert.match(list[0], /dateTime="2026-12-01T12:00:00.000Z" title="[^"]+"/);
-  assert.match(html, /class="button primary md/);
+  const newToken = buttons(html).find((button) => button.includes("New token")) ?? "";
+  assert.match(newToken, /min-h-9/);
+  assert.match(newToken, /border-zinc-50 bg-zinc-50 text-zinc-950/);
   assert.match(html, /aria-haspopup="dialog"/);
   assert.match(html, /Only masked prefixes are shown/);
 });
@@ -142,7 +144,7 @@ test("one-time reveal starts with the token prefix, uses icon-only Arc copy, and
   assert.match(html, /ph-no-capture/); assert.match(html, /<code>outray_synthetic_test_credential<\/code>/);
   assert.match(html, /overflow-x-auto whitespace-pre/);
   const copy = buttons(html).find((button) => /aria-label="Copy token"/.test(button));
-  assert.ok(copy); assert.match(copy, /iconOnly/);
+  assert.ok(copy); assert.match(copy, /size-8 px-0/);
   assert.doesNotMatch(copy, />Copy<|>Copied</); assert.doesNotMatch(html, /<input\b|autoFocus|autofocus/);
   assert.match(html, /hidden after 30 seconds/);
   const hidden = renderToStaticMarkup(React.createElement(TokenReveal, { token: null, copyError: null, onCopyError: noop, onCopied: noop }));

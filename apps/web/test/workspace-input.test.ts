@@ -97,29 +97,27 @@ test("workspace textarea preserves multiline editing, native accessibility and a
 });
 
 test("shared fields own the Create vault geometry and neutral focus without requiring a page wrapper", async () => {
-  const css = await readFile(new URL("../src/components/ui/workspace-input.module.css", import.meta.url), "utf8");
-  assert.match(css, /\.control\.control,\s*\.shell\.shell\s*\{[^}]*min-height:\s*44px/);
-  assert.match(css, /\.control\.control,\s*\.shell\.shell\s*\{[^}]*border-radius:\s*16px/);
-  assert.match(css, /\.control\.control,\s*\.shell\.shell\s*\{[^}]*background:\s*#0b0b0b/);
-  const focus = css.match(/\.control\.control:focus,[^{]*\{([^}]*)\}/)?.[1];
-  assert.ok(focus);
-  assert.match(focus, /outline:\s*none/); assert.match(focus, /outline-offset:\s*0/);
-  assert.match(focus, /border-color:\s*rgb\(255 255 255 \/ 35%\)/);
-  assert.match(focus, /box-shadow:\s*0 0 0 1px rgb\(255 255 255 \/ 8%\)/);
-  assert.doesNotMatch(css, /\.workspace-ui|\.outray-arc|#8367c7|outline-accent/, "portaled fields own their treatment rather than relying on surrounding page classes");
-  assert.match(css, /\[data-field-size="compact"\][^{]*\{[^}]*height:\s*36px/);
-  assert.match(css, /\.control\.textarea\s*\{[^}]*height:\s*auto;[^}]*min-height:\s*112px/);
-  assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)[^{]*\{[^}]*transition:\s*none/);
+  for (const classes of [workspaceInputClassName, workspaceInputShellClassName]) {
+    assert.match(classes, /min-h-11/);
+    assert.match(classes, /rounded-2xl/);
+    assert.match(classes, /bg-\[#0b0b0b\]/);
+  }
+  assert.match(workspaceInputClassName, /focus:outline-none/);
+  assert.match(workspaceInputClassName, /focus:border-white\/35/);
+  assert.match(workspaceInputClassName, /focus:shadow-\[0_0_0_1px_rgb\(255_255_255\/\.08\)\]/);
+  assert.doesNotMatch(workspaceInputClassName, /workspace-ui|outray-arc|#8367c7|outline-accent/, "portaled fields own their treatment rather than relying on surrounding page classes");
+  assert.match(workspaceInputClassName, /data-\[field-size=compact\]:h-9/);
+  assert.match(workspaceTextareaClassName, /min-h-28/);
+  assert.match(workspaceTextareaClassName, /resize-y/);
+  assert.match(workspaceInputClassName, /motion-reduce:transition-none/);
 });
 
 test("composite fields use one shell focus edge and pointer hover cannot weaken focused borders", async () => {
-  const css = await readFile(new URL("../src/components/ui/workspace-input.module.css", import.meta.url), "utf8");
-  assert.match(css, /\.bare\.bare:focus,[^{]*\{[^}]*outline:\s*none;[^}]*box-shadow:\s*none/);
-  const shellHover = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)].find(([_, selector, body]) => selector.includes(".shell:hover") && body.includes("border-color"));
-  assert.ok(shellHover);
-  assert.match(shellHover[1], /\.shell:hover(?=[^{]*:not\(:focus-within\))/, "shell hover cannot beat the focused border with its :has(input) selector specificity");
-  assert.match(css, /\.shell\.shell:has\(input\[aria-invalid="true"\]\):focus-within[^}]*border-color:\s*#fb7185/);
-  assert.match(css, /\.shell > input:disabled\s*\{[^}]*opacity:\s*1/, "disabled shell and disabled inner input do not dim twice");
+  assert.match(workspaceInputBareClassName, /focus:outline-none/);
+  assert.match(workspaceInputBareClassName, /focus:shadow-none/);
+  assert.match(workspaceInputShellClassName, /focus-within:border-white\/35/);
+  assert.match(workspaceInputShellClassName, /has-\[input\[aria-invalid=true\]\]:border-rose-400\/60/);
+  assert.match(workspaceInputShellClassName, /\[&>input:disabled\]:opacity-100/, "disabled shell and disabled inner input do not dim twice");
 });
 
 test("stock SearchField stays stock and workspace SearchField is an explicit visual opt-in", () => {
@@ -191,7 +189,7 @@ test("both search appearances forward refs, retain naming, update values and res
       assert.equal(refKind === "object" ? objectRef.current : callbackNode, null);
       const emptyNodes = elements(harness.render({ appearance, label: "Search logs", value: "", onValueChange() {} }, forwardedRef));
       assert.equal(emptyNodes.some((node) => node.type === harness.primitives.button), false, "empty search has no focusable hidden clear button");
-      assert.ok(emptyNodes.some((node) => node.props.className === "search-clearSlot"), "clear slot stays reserved when empty");
+      assert.ok(emptyNodes.some((node) => String(node.props.className).includes("grid size-6 shrink-0 place-items-center")), "clear slot stays reserved when empty");
     }
   }
 });

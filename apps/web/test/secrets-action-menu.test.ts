@@ -10,6 +10,7 @@ import {
   type ActionMenuItem,
 } from "../src/components/secrets/secrets-ui";
 import MoreVerticalIcon from "@outray/icons/stroke/MoreVerticalIcon";
+import { workspaceScopeClassName } from "../src/components/ui/workspace-scope";
 
 Object.assign(globalThis, { React });
 
@@ -180,6 +181,8 @@ async function menuController(compact = false, allDisabled = false) {
       if (specifier === "@/components/ui/select") return { Select: () => null };
       if (specifier === "@/components/arc/button/button")
         return { Button: ArcButton };
+      if (specifier === "@/components/ui/workspace-scope")
+        return { workspaceScopeClassName };
       if (specifier.endsWith(".css")) return {};
       throw new Error(`Unexpected action-menu dependency: ${specifier}`);
     },
@@ -317,32 +320,17 @@ test("long action labels stay on one line in an intrinsic-width, viewport-bounde
   }
 });
 
-test("the menu-only inset focus rule outranks the shared purple outline without changing other Arc controls", async () => {
-  const css = await readFile(new URL("../src/components/outray-arc-theme.css", import.meta.url), "utf8");
-  const genericSelector = ".outray-arc :is(button, input, summary):focus-visible";
-  const scopedSelector = '.outray-arc [data-secrets-action-menu] button[role="menuitem"]:focus-visible';
-  const genericStart = css.indexOf(genericSelector); const scopedStart = css.indexOf(scopedSelector);
-  assert.ok(genericStart >= 0); assert.ok(scopedStart > genericStart, "the scoped override follows the shared control rule");
-  const generic = css.slice(genericStart).match(/\{([^}]+)\}/)?.[1] ?? "";
-  const scoped = css.slice(scopedStart).match(/\{([^}]+)\}/)?.[1] ?? "";
-  assert.match(generic, /outline:\s*2px solid #8367c7/);
-  assert.match(scoped, /outline:\s*0\s*;/); assert.match(scoped, /outline-offset:\s*0\s*;/);
-  assert.match(scoped, /box-shadow:\s*inset 0 0 0 1px rgb\(255 255 255 \/ 18%\)/);
-  assert.doesNotMatch(scoped, /#8367c7|var\(--focus-ring\)/);
-  // All :is() arguments in this particular shared rule are type selectors, so
-  // expanding to button preserves its specificity before counting simple terms.
-  function simpleSpecificity(selector: string) {
-    const ids = selector.match(/#[\w-]+/g) ?? [];
-    const attributes = selector.match(/\[[^\]]+\]/g) ?? [];
-    const bare = selector.replace(/\[[^\]]+\]/g, " ");
-    const classes = bare.match(/\.[\w-]+/g) ?? []; const pseudoClasses = bare.match(/:[\w-]+/g) ?? [];
-    const types = bare.replace(/#[\w-]+|\.[\w-]+|:[\w-]+/g, " ").match(/[a-z][\w-]*/gi) ?? [];
-    return [ids.length, attributes.length + classes.length + pseudoClasses.length, types.length];
+test("menu items own their quiet keyboard focus treatment without a global theme selector", async () => {
+  const controller = await menuController();
+  controller.render().trigger.props.onClick();
+  const opened = controller.render();
+  assert.ok(opened.actions.length > 0);
+  for (const action of opened.actions) {
+    assert.match(action.props.className, /\boutline-none\b/);
+    assert.match(action.props.className, /focus-visible:shadow-\[inset_0_0_0_1px_rgb\(255_255_255\/.18\)\]/);
+    assert.doesNotMatch(action.props.className, /focus-visible:outline/);
   }
-  const sharedSpecificity = simpleSpecificity(genericSelector.replace(":is(button, input, summary)", "button"));
-  const menuSpecificity = simpleSpecificity(scopedSelector);
-  assert.deepEqual(sharedSpecificity, [0, 2, 1]); assert.deepEqual(menuSpecificity, [0, 4, 1]);
-  assert.ok(menuSpecificity[1] > sharedSpecificity[1], "outline-none alone cannot beat the unlayered shared selector; this hook can");
+  controller.unmount();
 });
 
 test("ArrowUp opens on the last enabled action and ArrowDown opens on the first", async () => {

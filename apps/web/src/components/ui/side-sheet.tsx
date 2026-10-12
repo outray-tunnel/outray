@@ -4,7 +4,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useRef, type ComponentPropsWithoutRef, type ReactNode, type RefObject } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
-import "../outray-arc-theme.css";
+import { workspaceScopeClassName } from "./workspace-scope";
 
 type ContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Content>;
 
@@ -90,7 +90,7 @@ export function SideSheet({
             }}
           >
             <motion.div
-              className="workspace-ui outray-arc fixed inset-y-0 right-0 z-[61] flex h-dvh max-h-dvh w-full max-w-[640px] min-w-0 flex-col overflow-hidden border-l border-white/[0.08] bg-[#111112] text-zinc-200 shadow-[-20px_0_70px_rgba(0,0,0,0.35)] outline-none"
+              className={`${workspaceScopeClassName} fixed inset-y-0 right-0 z-[61] flex h-dvh max-h-dvh w-full max-w-[640px] min-w-0 flex-col overflow-hidden border-l border-white/[0.08] bg-[#111112] text-zinc-200 shadow-[-20px_0_70px_rgba(0,0,0,0.35)] outline-none`}
               initial={reducedMotion ? { opacity: 0 } : { x: 32, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={reducedMotion ? { opacity: 0 } : { x: 24, opacity: 0 }}
@@ -110,7 +110,7 @@ export function SideSheet({
                 </DialogPrimitive.Close>
               </header>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">{children}</div>
-              {footer && <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-white/[0.08] px-5 py-4 sm:px-6" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>{footer}</footer>}
+              {footer && <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-white/[0.08] px-5 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] sm:px-6">{footer}</footer>}
             </motion.div>
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>}

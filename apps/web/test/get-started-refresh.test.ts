@@ -87,7 +87,7 @@ test("restored product cards retain the original CLI, telemetry, vault and statu
 
 test("skip navigation and setup links remain scoped to the current workspace", async () => {
   const html = await render("outray-tunnel");
-  assert.match(html, /href="\/outray-tunnel"[^>]*>Skip and continue to console/);
+  assert.match(html, /href="\/outray-tunnel\/tunnel"[^>]*>Skip and continue to console/);
   assert.match(html, /href="\/outray-tunnel\/setup\?product=uptime"/);
   assert.doesNotMatch(html, /href="\/acme/);
 });

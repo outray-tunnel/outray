@@ -19,52 +19,23 @@ const duration = incident.resolvedAt
   ? Math.max(1, Math.ceil((incident.resolvedAt.getTime() - incident.startedAt.getTime()) / 60_000))
   : null;
 const stage = publishedIncidentStage(incident);
+const badgeClasses = stage === "resolved" || stage === "recovered"
+  ? "border-[#27664e] text-[#6ee7b7]"
+  : stage === "identified"
+    ? "border-[#896418] text-[#fcd34d]"
+    : stage === "monitoring"
+      ? "border-[#245886] text-[#93c5fd]"
+      : "border-[#7f343f] text-[#fda4af]";
 ---
 <BaseLayout title={`${incident.title} · ${pageName}`} description={`Incident report for ${incident.title} on ${pageName}.`} accent={accent} canonical={canonical}>
-  <main class="shell report">
-    <a class="back" href={pageHref}><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m12.5 4.5-5.5 5.5 5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>{backLabel}</a>
-    <div class="report-card">
-      <div class="eyebrow">Incident report</div>
-      <div class="title-row"><h1>{incident.title}</h1><span class:list={["badge", stage]}>{stage[0].toUpperCase() + stage.slice(1)}</span></div>
-      <p class="meta">Started <time datetime={incident.startedAt.toISOString()}>{formatDate(incident.startedAt)}</time>{duration && <> · Duration {duration} {duration === 1 ? "minute" : "minutes"}</>}</p>
-      {incident.components.length > 0 && <p class="affected">Affected components: {incident.components.join(", ")}</p>}
-      {incident.updates.length > 0 ? <section class="updates" aria-labelledby="updates-heading"><h2 id="updates-heading">Updates</h2><ol>{incident.updates.map((update) => <li><div class="update-title"><strong>{update.status}</strong><time datetime={update.publishedAt.toISOString()}>{formatDate(update.publishedAt)}</time></div><div class="rich-update" set:html={renderIncidentHtml(update.body, update.note)} /></li>)}</ol></section> : <section class="updates" aria-labelledby="updates-heading"><h2 id="updates-heading">Updates</h2><p class="empty">This incident was detected automatically. There are no published team updates yet.</p></section>}
+  <main class="mx-auto min-h-[calc(100dvh_-_73px)] w-[min(100%_-_48px,800px)] pt-11 pb-24 max-[600px]:w-[min(100%_-_32px,800px)]">
+    <a class="mb-[30px] inline-flex items-center gap-[6px] text-[13px] text-[#a1a1aa] no-underline hover:text-white" href={pageHref}><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m12.5 4.5-5.5 5.5 5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>{backLabel}</a>
+    <div class="rounded-[14px] border border-[#303036] bg-[#101012] p-[clamp(20px,5vw,36px)]">
+      <div class="text-[11px] font-bold tracking-[0.12em] text-[#a1a1aa] uppercase">Incident report</div>
+      <div class="mt-[14px] flex items-start justify-between gap-[18px] max-[560px]:flex-col-reverse max-[560px]:items-start"><h1 class="m-0 text-[clamp(27px,4vw,39px)] leading-[1.15] font-semibold tracking-[-0.035em] [overflow-wrap:anywhere]">{incident.title}</h1><span class:list={["flex-none rounded-full border px-[10px] py-[7px] text-[11px] font-bold", badgeClasses]}>{stage[0].toUpperCase() + stage.slice(1)}</span></div>
+      <p class="mt-4 text-[13px] leading-[1.6] text-[#a1a1aa]">Started <time datetime={incident.startedAt.toISOString()}>{formatDate(incident.startedAt)}</time>{duration && <> · Duration {duration} {duration === 1 ? "minute" : "minutes"}</>}</p>
+      {incident.components.length > 0 && <p class="mt-[6px] text-[13px] leading-[1.6] text-[#a1a1aa]">Affected components: {incident.components.join(", ")}</p>}
+      {incident.updates.length > 0 ? <section class="mt-9 border-t border-[#303036] pt-[26px]" aria-labelledby="updates-heading"><h2 class="mb-5 text-[17px] font-semibold" id="updates-heading">Updates</h2><ol class="m-0 list-none border-l border-[#3f3f46] pl-5">{incident.updates.map((update) => <li class="relative pb-[25px] pl-[18px] last:pb-0 before:absolute before:top-[5px] before:left-[-25px] before:size-2 before:rounded-full before:bg-[#a1a1aa]"><div class="flex flex-wrap justify-between gap-3"><strong class="text-[13px] capitalize">{update.status}</strong><time class="text-[11px] text-[#85858f]" datetime={update.publishedAt.toISOString()}>{formatDate(update.publishedAt)}</time></div><div class="text-[13px] leading-[1.65] text-[#d4d4d8] [overflow-wrap:anywhere] [&_a]:text-[#a78bfa] [&_a]:underline [&_blockquote]:mt-[10px] [&_blockquote]:border-l-2 [&_blockquote]:border-[#71717a] [&_blockquote]:pl-3 [&_blockquote]:text-[#a1a1aa] [&_h2]:mt-[10px] [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-[#f4f4f5] [&_h3]:mt-[10px] [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-[#f4f4f5] [&_ol]:mt-[10px] [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-[10px] [&_ul]:mt-[10px] [&_ul]:list-disc [&_ul]:pl-5" set:html={renderIncidentHtml(update.body, update.note)} /></li>)}</ol></section> : <section class="mt-9 border-t border-[#303036] pt-[26px]" aria-labelledby="updates-heading"><h2 class="mb-5 text-[17px] font-semibold" id="updates-heading">Updates</h2><p class="text-[13px] leading-[1.6] text-[#a1a1aa]">This incident was detected automatically. There are no published team updates yet.</p></section>}
     </div>
   </main>
-  <style>
-    .report { min-height: calc(100dvh - 73px); padding-top: 44px; padding-bottom: 96px; }
-    .back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 30px; color: #a1a1aa; text-decoration: none; font-size: 13px; }
-    .back:hover { color: #fff; }
-    .report-card { border: 1px solid #303036; border-radius: 14px; background: #101012; padding: clamp(20px, 5vw, 36px); }
-    .eyebrow { color: #a1a1aa; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-    .title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-top: 14px; }
-    h1 { margin: 0; font-size: clamp(27px, 4vw, 39px); font-weight: 600; line-height: 1.15; letter-spacing: -.035em; overflow-wrap: anywhere; }
-    .badge { flex: none; padding: 7px 10px; border: 1px solid #7f343f; border-radius: 99px; color: #fda4af; font-size: 11px; font-weight: 700; }
-    .badge.resolved, .badge.recovered { border-color: #27664e; color: #6ee7b7; }
-    .badge.identified { border-color: #896418; color: #fcd34d; }
-    .badge.monitoring { border-color: #245886; color: #93c5fd; }
-    .meta, .affected { color: #a1a1aa; font-size: 13px; line-height: 1.6; }
-    .meta { margin: 16px 0 0; }
-    .affected { margin: 6px 0 0; }
-    .updates { margin-top: 36px; border-top: 1px solid #303036; padding-top: 26px; }
-    h2 { margin: 0 0 20px; font-size: 17px; font-weight: 600; }
-    ol { margin: 0; padding: 0 0 0 20px; border-left: 1px solid #3f3f46; list-style: none; }
-    li { position: relative; padding: 0 0 25px 18px; }
-    li:last-child { padding-bottom: 0; }
-    li::before { content: ""; position: absolute; left: -25px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: #a1a1aa; }
-    .update-title { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .update-title strong { text-transform: capitalize; font-size: 13px; }
-    .update-title time { color: #85858f; font-size: 11px; }
-    li p { margin: 10px 0 0; color: #d4d4d8; white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
-    .rich-update { color: #d4d4d8; font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
-    .rich-update :global(p), .rich-update :global(h2), .rich-update :global(h3), .rich-update :global(ul), .rich-update :global(ol), .rich-update :global(blockquote) { margin: 10px 0 0; }
-    .rich-update :global(h2), .rich-update :global(h3) { color: #f4f4f5; font-size: 14px; font-weight: 600; }
-    .rich-update :global(ul), .rich-update :global(ol) { padding-left: 20px; }
-    .rich-update :global(ul) { list-style: disc; }
-    .rich-update :global(ol) { list-style: decimal; }
-    .rich-update :global(blockquote) { border-left: 2px solid #71717a; padding-left: 12px; color: #a1a1aa; }
-    .rich-update :global(a) { color: #a78bfa; text-decoration: underline; }
-    .empty { color: #a1a1aa; font-size: 13px; line-height: 1.6; }
-    @media (max-width: 560px) { .title-row { flex-direction: column-reverse; align-items: flex-start; } }
-  </style>
 </BaseLayout>

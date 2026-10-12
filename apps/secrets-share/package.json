@@ -8,7 +8,7 @@
     "build": "astro build",
     "check": "astro check",
     "lint": "astro check",
-    "test": "tsx --tsconfig ./tsconfig.json --import ./test/register-css-loader.mjs --test test/*.test.ts",
+    "test": "tsx --tsconfig ./tsconfig.json --import ./test/register-tsx-loader.mjs --test test/*.test.ts",
     "start": "node dist/server/entry.mjs"
   },
   "dependencies": {
@@ -25,10 +25,12 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@tailwindcss/vite": "4.1.18",
     "@types/node": "^22.15.30",
     "@types/pg": "^8.15.4",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
+    "tailwindcss": "4.1.18",
     "tsx": "^4.20.3",
     "typescript": "~5.9.3"
   }

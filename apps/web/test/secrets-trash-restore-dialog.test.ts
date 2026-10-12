@@ -56,8 +56,9 @@ test("move recovery explains original values and leaves destination changes unto
   assert.match(html, /Moved secrets · 3 secrets/);
   assert.match(html, /Restores original source values\. Destination values stay unchanged/);
   const restore = buttons(html).find((button) => button.includes('type="submit"')) ?? "";
-  assert.match(restore, /class="[^"]*primary[^"]*sm/);
-  assert.doesNotMatch(restore, /danger|disabled=""/);
+  assert.match(restore, /border-zinc-50 bg-zinc-50 text-zinc-950/);
+  assert.match(restore, /min-h-8 px-3/);
+  assert.doesNotMatch(restore, /text-rose-300|disabled=""/);
 });
 
 test("vault and environment summaries describe only records in their own deletion batch", () => {
@@ -77,7 +78,7 @@ test("production uses a designed real required checkbox and no hidden accessibil
   assert.match(checkbox, /required=""/); assert.match(checkbox, /checked=""/);
   assert.match(checkbox, /aria-describedby="[^"]+-production-hint"/);
   assert.doesNotMatch(checkbox, /aria-hidden|role="checkbox"|tabindex="-1"/);
-  assert.match(html, /class="checkboxMark" aria-hidden="true"/);
+  assert.match(html, /peer-focus-visible:outline-2[^"]*" aria-hidden="true"/);
   assert.match(html, /I confirm restoring this production configuration/);
   assert.doesNotMatch(render(), /type="checkbox"|Production recovery/);
 });
@@ -135,9 +136,8 @@ test("dialog session blocks duplicate submissions, all dismissal paths, and edit
     if (specifier === "../arc/button/button") return { Button: Placeholder };
     if (specifier === "../arc/dialog/dialog") return { Dialog, DialogContent };
     if (specifier === "../ui/workspace-input") return { WorkspaceInput: Placeholder };
+    if (specifier === "../ui/workspace-scope") return { workspaceScopeClassName: "workspace-scope" };
     if (specifier === "./trash-data") return { canConfirmTrashRestore, trashCountLabel: () => "3 secrets", trashKind: () => "Secret batch", trashLocation: () => null, trashRestoreDescription: () => "Restore secrets." };
-    if (specifier.endsWith(".module.css")) return { default: new Proxy({}, { get: (_target, key) => key }), __esModule: true };
-    if (specifier.endsWith(".css")) return {};
     throw new Error(`Unexpected restore dialog dependency: ${specifier}`);
   } });
   let closes = 0, prevented = 0;
@@ -179,12 +179,12 @@ test("dialog session blocks duplicate submissions, all dismissal paths, and edit
 });
 
 test("recovery dialog keeps its footer outside the bounded scrolling body and respects reduced motion", async () => {
-  const css = await readFile(new URL("../src/components/secrets/trash-restore-dialog.module.css", import.meta.url), "utf8");
-  assert.match(css, /max-height:\s*calc\(100dvh - 24px\)/);
-  assert.match(css, /\.fields\s*\{[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/);
-  assert.match(css, /\.footer\s*\{[^}]*flex:\s*0 0 auto/);
-  assert.match(css, /\.checkbox > input\s*\{[^}]*opacity:\s*0/);
-  assert.match(css, /input:focus-visible \+ \.checkboxMark\s*\{[^}]*outline:/);
-  assert.match(css, /@media \(max-width:\s*540px\)[\s\S]*min-height:\s*40px/);
-  assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*transition:\s*none/);
+  const source = await readFile(new URL("../src/components/secrets/trash-restore-dialog.tsx", import.meta.url), "utf8");
+  assert.match(source, /max-h-\[calc\(100dvh-24px\)\]/);
+  assert.match(source, /min-h-0 flex-1 flex-col gap-5 overflow-y-auto/);
+  assert.match(source, /<footer className="flex shrink-0/);
+  assert.match(source, /peer absolute inset-0 z-1 m-0 size-full cursor-\[inherit\] opacity-0/);
+  assert.match(source, /peer-focus-visible:outline-2/);
+  assert.match(source, /max-\[540px\]:\[&>button\]:min-h-10/);
+  assert.match(source, /motion-reduce:transition-none/);
 });

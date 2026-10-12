@@ -2,9 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { completeShareUrl, encryptShare } from "@outray/share-crypto";
 import { secretsClient, type SecretEnvironment, type SecretMetadata } from "@/lib/secrets-client";
 import { Dialog, DialogContent } from "../arc/dialog/dialog";
+import { workspaceScopeClassName } from "../ui/workspace-scope";
 import { BulkActionContent } from "./bulk-action-content";
-import styles from "./bulk-actions.module.css";
-import "../outray-arc-theme.css";
 
 export type BulkAction = "move" | "delete" | "share";
 
@@ -179,7 +178,7 @@ export function BulkActionsDialog(props: Props) {
   const title = draft.link ? "Share link" : draft.action === "share" ? "Share secrets" : draft.action === "delete" ? "Delete secrets" : "Move secrets";
   return <Dialog open={!!action} onOpenChange={(next) => { if (!next) dismiss(); }}>
     <DialogContent title={title} description={`${count} ${count === 1 ? "secret" : "secrets"} selected from ${draft.environment.name}.`}
-      className={`workspace-ui outray-arc ph-no-capture ${styles.dialog}`} data-private-product="secrets" aria-busy={draft.busy} closeDisabled={draft.busy}
+      className={`${workspaceScopeClassName} ph-no-capture flex max-h-[calc(100dvh-24px)] w-[min(calc(100vw-24px),520px)] flex-col overflow-hidden rounded-2xl [&>div:first-child]:shrink-0 [&>div:first-child]:gap-4 [&>div:first-child]:px-6 [&>div:first-child]:py-5 [&>div:first-child_h2]:text-lg [&>div:first-child_h2]:font-normal [&>div:first-child_h2]:tracking-[-.025em] [&>div:first-child_p]:mt-1 [&>div:first-child_p]:text-xs [&>div:first-child_p]:leading-[1.6] [&>div:last-child]:flex [&>div:last-child]:min-h-0 [&>div:last-child]:flex-1 [&>div:last-child]:flex-col [&>div:last-child]:overflow-hidden [&>div:last-child]:p-0 max-[540px]:[&>div:first-child]:p-[18px]`} data-private-product="secrets" aria-busy={draft.busy} closeDisabled={draft.busy}
       onEscapeKeyDown={preventPendingClose} onPointerDownOutside={preventPendingClose} onInteractOutside={preventPendingClose}
       onOpenAutoFocus={(event) => {
         event.preventDefault();

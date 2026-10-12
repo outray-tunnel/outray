@@ -7,6 +7,7 @@ import { Button } from "../arc/button/button";
 import { Dialog, DialogContent } from "../arc/dialog/dialog";
 import { Select } from "../arc/select/select";
 import { WorkspaceInput, WorkspaceTextarea } from "../ui/workspace-input";
+import { workspaceScopeClassName } from "../ui/workspace-scope";
 import { AlertEmailRecipients } from "./alert-email-recipients";
 import { AlertSelectionControl } from "./alert-selection-control";
 import {
@@ -17,8 +18,6 @@ import {
   type AlertSignal,
   type AlertOperator,
 } from "./alerts-data";
-import "../outray-arc-theme.css";
-import styles from "./alert-form.module.css";
 
 interface ServiceOption {
   name: string;
@@ -577,7 +576,7 @@ function AlertForm({
             : "Choose a signal, define a condition, then connect your team."
         }
         closeDisabled={submitting}
-        className={`workspace-ui outray-arc ${styles.dialog}`}
+        className={`${workspaceScopeClassName} flex w-[min(calc(100vw-32px),640px)] flex-col overflow-hidden [&>div:first-child_h2]:font-normal [&>div:first-child_h2]:tracking-[-.025em] [&>div:nth-child(2)]:flex [&>div:nth-child(2)]:min-h-0 [&>div:nth-child(2)]:flex-col [&>div:nth-child(2)]:overflow-hidden [&>div:nth-child(2)]:p-0 max-sm:w-[calc(100vw-24px)]`}
         onOpenAutoFocus={() => {
           returnFocus.current =
             document.activeElement instanceof HTMLElement
@@ -595,7 +594,7 @@ function AlertForm({
           if (savingRef.current) event.preventDefault();
         }}
       >
-        <form onSubmit={submit} noValidate className={styles.form}>
+        <form onSubmit={submit} noValidate className="flex h-[min(600px,calc(100dvh-164px))] max-h-[calc(100dvh-164px)] min-h-0 flex-col max-sm:h-[min(600px,calc(100dvh-192px))] max-sm:max-h-[calc(100dvh-192px)]">
           {!conditionMode && (
             <ol
               aria-label="Alert setup progress"
@@ -641,7 +640,7 @@ function AlertForm({
 
           <div
             ref={contentRef}
-            className={`${styles.content} space-y-5 px-5 py-5 sm:px-6`}
+            className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
           >
             <fieldset disabled={submitting} className="min-w-0 space-y-5">
               <div>
@@ -713,8 +712,7 @@ function AlertForm({
                           placeholder="What this alert protects and who should respond"
                           rows={2}
                           maxLength={1000}
-                          className="mt-2"
-                          style={{ minHeight: 80, resize: "none" }}
+                          className="mt-2 min-h-20 resize-none"
                         />
                       </label>
                     </FormSection>

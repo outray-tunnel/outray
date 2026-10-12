@@ -132,13 +132,12 @@ test("loading organizations uses a quiet status skeleton with no error heading o
 });
 
 test("organization access styling keeps the restrained heading, responsive bounds, focus visibility and reduced motion", async () => {
-  const css = await readFile(new URL("../src/components/organization/organization-access-page.module.css", import.meta.url), "utf8");
-  const rule = css.match(/\.heading\s+h1\s*\{[^}]*\}/)?.[0];
-  assert.ok(rule, "the title has an explicit CSS rule");
-  assert.match(rule, /font-size:\s*20px/);
-  assert.match(rule, /font-weight:\s*(?:400|normal)/);
-  assert.match(css, /min-height:\s*100svh/);
-  assert.match(css, /@media\s*\(max-width:/);
-  assert.match(css, /:focus-visible\s*\{[^}]*(?:outline|box-shadow):/);
-  assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*(?:animation|transition):\s*none/);
+  const source = await readFile(new URL("../src/components/organization/organization-access-page.tsx", import.meta.url), "utf8");
+  assert.match(source, /\[&_h1\]:text-xl/);
+  assert.match(source, /\[&_h1\]:font-normal/);
+  assert.match(source, /min-h-svh/);
+  assert.match(source, /max-\[600px\]:px-5/);
+  assert.match(source, /\[&_a:focus-visible\]:outline-2/);
+  assert.match(source, /motion-reduce:transition-none/);
+  assert.match(source, /motion-reduce:animate-none/);
 });

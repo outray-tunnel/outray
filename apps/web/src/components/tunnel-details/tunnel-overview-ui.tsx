@@ -7,7 +7,6 @@ import { parseTunnelStatsRange } from "@/lib/tunnel-stats-range";
 import { SegmentedControl } from "../ui/segmented-control";
 import { OVERVIEW_RANGES } from "./tunnel-overview-format";
 import { buildTunnelMetricBars } from "./tunnel-overview-data";
-import "../outray-arc-theme.css";
 
 export interface OverviewChartPoint {
   time: string;
@@ -87,7 +86,7 @@ export function TunnelOverviewShell({
 
   if (error && metrics.every((metric) => metric.numericValue === null)) {
     return (
-      <div role="alert" className="outray-arc rounded-xl border border-white/[0.08] bg-[#111112] px-6 py-12 text-center">
+      <div role="alert" className="rounded-xl border border-white/[0.08] bg-[#111112] px-6 py-12 text-center">
         <p className="text-[13px] text-zinc-200">Overview could not be loaded.</p>
         <p className="mt-1 text-[12px] text-zinc-500">
           Your tunnel may still be online. Try loading its activity again.
@@ -102,7 +101,7 @@ export function TunnelOverviewShell({
   }
 
   return (
-    <div className="outray-arc space-y-7">
+    <div className="space-y-7">
       {error && (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-400/15 bg-amber-400/[0.035] px-4 py-3 text-[12px] text-amber-100/75">
           <span>Could not refresh this overview. Showing the last available data.</span>

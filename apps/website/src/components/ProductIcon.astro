@@ -84,7 +84,7 @@ const icon = geometry[product];
 ---
 
 <svg
-  class:list={["product-icon", className]}
+  class:list={["shrink-0", className]}
   xmlns="http://www.w3.org/2000/svg"
   width="24"
   height="24"
@@ -92,7 +92,7 @@ const icon = geometry[product];
   aria-hidden="true"
   focusable="false"
 >
-  <g class="product-icon__stroke" fill="none" stroke="currentColor" stroke-width="1.7">
+  <g class="group-aria-selected:hidden" fill="none" stroke="currentColor" stroke-width="1.7">
     {icon.stroke.map((path) => (
       <path
         d={path.d}
@@ -101,21 +101,7 @@ const icon = geometry[product];
       />
     ))}
   </g>
-  <g class="product-icon__solid" fill="currentColor">
+  <g class="hidden group-aria-selected:inline" fill="currentColor">
     <path d={icon.solid} fill-rule="evenodd" clip-rule="evenodd" />
   </g>
 </svg>
-
-<style>
-  .product-icon__solid {
-    display: none;
-  }
-
-  :global([aria-selected="true"]) .product-icon__stroke {
-    display: none;
-  }
-
-  :global([aria-selected="true"]) .product-icon__solid {
-    display: inline;
-  }
-</style>

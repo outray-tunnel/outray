@@ -4,6 +4,7 @@ import { ArrowUpRight, ChevronRight, Logs } from "lucide-react";
 import { Button } from "@/components/arc/button/button";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/arc/tabs/tabs";
+import { tunnelTabsClassName } from "@/components/arc/tabs/tunnel-tabs-class";
 import { JsonViewer } from "@/components/requests/json-viewer";
 import { SideSheet } from "@/components/ui/side-sheet";
 import { logAttributes } from "./logs-data";
@@ -72,7 +73,7 @@ function TraceInspectorSession({ trace, orgSlug, range, details }: { trace: Trac
   return <div className="min-w-0 space-y-5">
     <TraceInspectorSummary trace={trace} orgSlug={orgSlug} range={range} {...copyFeedback} />
     {copyError && <p role="alert" className="text-[12px] leading-5 text-amber-300">Could not copy to the clipboard. Check your browser permissions and try again.</p>}
-    <Tabs value={tab} onValueChange={(value) => setTab(value as DetailTab)} className="outray-arc outray-arc-tunnel-tabs">
+    <Tabs value={tab} onValueChange={(value) => setTab(value as DetailTab)} className={tunnelTabsClassName}>
       <TabsList aria-label="Trace detail sections" data-outray-tabs-list>
         <TabsTrigger value="waterfall" data-outray-tabs-trigger>Waterfall</TabsTrigger>
         <TabsTrigger value="context" data-outray-tabs-trigger>Context</TabsTrigger>

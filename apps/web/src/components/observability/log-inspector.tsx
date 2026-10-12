@@ -3,6 +3,7 @@ import { useState, type ReactNode, type RefObject } from "react";
 import { ArrowUpRight, ChevronRight, Network } from "lucide-react";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/arc/tabs/tabs";
+import { tunnelTabsClassName } from "@/components/arc/tabs/tunnel-tabs-class";
 import { JsonViewer, formatBody } from "@/components/requests/json-viewer";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SideSheet } from "@/components/ui/side-sheet";
@@ -54,7 +55,7 @@ function LogInspectorSession({ event, orgSlug }: { event: LogEvent; orgSlug: str
     <div className="min-w-0 space-y-5">
       <LogInspectorSummary event={event} orgSlug={orgSlug} {...copyFeedback} />
       {copyError && <p role="alert" className="text-[12px] leading-5 text-amber-300">Could not copy to the clipboard. Check your browser permissions and try again.</p>}
-      <Tabs value={tab} onValueChange={(value) => setTab(value as LogDetailTab)} className="outray-arc outray-arc-tunnel-tabs">
+      <Tabs value={tab} onValueChange={(value) => setTab(value as LogDetailTab)} className={tunnelTabsClassName}>
         <TabsList aria-label="Log detail sections" data-outray-tabs-list>
           <TabsTrigger value="message" data-outray-tabs-trigger>Message</TabsTrigger>
           <TabsTrigger value="context" data-outray-tabs-trigger>Context</TabsTrigger>

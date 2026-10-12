@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Dialog, DialogContent } from "../arc/dialog/dialog";
+import { workspaceScopeClassName } from "../ui/workspace-scope";
 import { EnvironmentFormContent } from "./environment-form-content";
-import styles from "./environment-form.module.css";
 import { secretsClient, type SecretEnvironment } from "@/lib/secrets-client";
-import "../outray-arc-theme.css";
 
 type Field = "name" | "slug" | "description" | "confirmation";
 type FieldErrors = Partial<Record<Field, string>>;
@@ -118,7 +117,7 @@ export function EnvironmentDialog({ open, onClose, orgSlug, projectSlug, environ
   return <Dialog open={open} onOpenChange={(next) => { if (!next) dismiss(); }}>
     <DialogContent title={snapshot ? "Edit environment" : "Add environment"}
       description={snapshot ? "Update this environment’s name and description." : "Keep a separate set of secret values in this vault."}
-      className={`workspace-ui outray-arc ph-no-capture ${styles.dialog}`} data-private-product="secrets" aria-busy={draft.saving} closeDisabled={draft.saving}
+      className={`${workspaceScopeClassName} ph-no-capture flex max-h-[calc(100dvh-24px)] w-[min(calc(100vw-24px),520px)] flex-col overflow-hidden rounded-2xl [&>div:first-child]:shrink-0 [&>div:first-child]:gap-4 [&>div:first-child]:px-6 [&>div:first-child]:py-5 [&>div:first-child_h2]:text-lg [&>div:first-child_h2]:font-normal [&>div:first-child_h2]:tracking-[-.025em] [&>div:first-child_p]:mt-1 [&>div:first-child_p]:text-xs [&>div:first-child_p]:leading-[1.6] [&>div:last-child]:flex [&>div:last-child]:min-h-0 [&>div:last-child]:flex-1 [&>div:last-child]:flex-col [&>div:last-child]:overflow-hidden [&>div:last-child]:p-0 max-[540px]:[&>div:first-child]:p-[18px]`} data-private-product="secrets" aria-busy={draft.saving} closeDisabled={draft.saving}
       onEscapeKeyDown={preventPendingClose} onPointerDownOutside={preventPendingClose} onInteractOutside={preventPendingClose}
       onOpenAutoFocus={(event) => {
         event.preventDefault();

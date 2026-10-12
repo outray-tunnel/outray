@@ -107,6 +107,7 @@ async function controller(initial: Partial<DialogProps> = {}, origin: string | u
       if (specifier === "react") return hooks;
       if (specifier === "../arc/dialog/dialog") return { Dialog, DialogContent };
       if (specifier === "./bulk-action-content") return { BulkActionContent: Content };
+      if (specifier === "../ui/workspace-scope") return { workspaceScopeClassName: "workspace-scope" };
       if (specifier === "@/lib/secrets-client") return { secretsClient: client };
       if (specifier === "@outray/share-crypto") return {
         encryptShare(input: Props) { calls.push({ action: "encrypt", input: clone(input) }); return encryptionOutcome(); },
@@ -333,7 +334,7 @@ test("completed actions cannot be repeated by an old form handler while the moda
   }
 });
 
-test("portaled bulk modals retain private theme scope and restore a connected opener without focusing outside the dialog", async () => {
+test("portaled bulk modals retain private workspace density scope and restore a connected opener without focusing outside the dialog", async () => {
   const document = { activeElement: null as FakeElement | null, body: null as FakeElement | null };
   class FakeElement {
     isConnected = true;
@@ -347,7 +348,7 @@ test("portaled bulk modals retain private theme scope and restore a connected op
   document.body = new FakeElement(); const trigger = new FakeElement(), panel = new FakeElement(), first = new FakeElement(); panel.first = first;
   document.activeElement = trigger;
   const view = await controller({}, "https://secrets.outray.dev", { document, HTMLElement: FakeElement }); const shell = view.show().shell;
-  assert.match(shell.className, /workspace-ui outray-arc ph-no-capture/); assert.equal(shell["data-private-product"], "secrets");
+  assert.match(shell.className, /workspace-scope ph-no-capture/); assert.equal(shell["data-private-product"], "secrets");
   const opened = Object.assign(event(), { target: panel }); shell.onOpenAutoFocus(opened);
   assert.equal(opened.prevented, true); assert.equal(first.focuses, 1); assert.deepEqual(panel.queried, ["[data-bulk-autofocus]"]);
   const closed = event(); shell.onCloseAutoFocus(closed); assert.equal(closed.prevented, true); assert.equal(trigger.focuses, 1);

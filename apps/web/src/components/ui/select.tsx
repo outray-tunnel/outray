@@ -172,7 +172,7 @@ export function Select({
             disabled={option.disabled}
             onMouseEnter={() => setHighlightedIndex(index)}
             onClick={() => chooseOption(option)}
-            className={`relative flex min-h-9 w-full items-center gap-3 rounded-lg px-3 py-2 text-left ${
+            className={`relative flex min-h-9 w-full items-center gap-3 rounded-lg px-3 py-2 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#8367c7] ${
               option.disabled ? "cursor-not-allowed opacity-35" : ""
             } ${optionClassName}`}
           >
@@ -227,7 +227,7 @@ export function Select({
         aria-expanded={isOpen}
         aria-controls={isOpen ? listboxId : undefined}
         aria-activedescendant={isOpen ? `${listboxId}-${highlightedIndex}` : undefined}
-        className={`flex h-10 w-full items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-3 text-left outline-none transition-colors hover:border-white/[0.13] hover:bg-white/[0.04] focus:border-white/[0.16] disabled:cursor-not-allowed disabled:opacity-40 ${triggerClassName}`}
+        className={`flex h-10 w-full items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-3 text-left outline-none transition-colors hover:border-white/[0.13] hover:bg-white/[0.04] focus:border-white/[0.16] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] disabled:cursor-not-allowed disabled:opacity-40 ${triggerClassName}`}
       >
         {icon && <span className="shrink-0 text-zinc-600">{icon}</span>}
         <span className={`min-w-0 flex-1 truncate text-[11px] ${selectedOption?.className ?? "text-zinc-400"}`}>

@@ -11,7 +11,6 @@ import { ConnectServiceSheet } from "./connect-service-sheet";
 import { HttpRequestCaptureBadge, HttpRequestStatusBadge } from "./http-request-badges";
 import { formatHttpRequestDuration, formatHttpRequestNumber, formatHttpRequestTime, parseHttpRequestTimestamp, type CaptureFilter, type HttpRequestSummary, type RequestFacets, type RequestsResponse, type StatusFilter } from "./http-requests-data";
 import { formatBytes } from "../requests/utils";
-import "../outray-arc-theme.css";
 
 export interface HttpRequestsContentProps {
   orgSlug: string;
@@ -61,7 +60,7 @@ export function HttpRequestsContent(props: HttpRequestsContentProps) {
   const retry = <Button variant="secondary" className="mt-4" onClick={onRetry} loading={refreshing}>Try again</Button>;
 
   return (
-    <div className="outray-arc outray-arc-list mx-auto max-w-[1440px] space-y-5">
+    <div className="mx-auto max-w-[1440px] space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3 pb-1">
         <div className="min-w-0">
           <h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Requests</h1>
@@ -87,7 +86,7 @@ export function HttpRequestsContent(props: HttpRequestsContentProps) {
       <section aria-label="HTTP request inventory" className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
         <div className="space-y-4 border-b border-white/[0.07] p-4">
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-            <div className="outray-arc-requests-search w-full min-w-0 sm:max-w-[360px]">
+            <div className="w-full min-w-0 sm:max-w-[360px] [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only">
               <SearchField appearance="workspace" label="Search requests" placeholder="Path, service, request or trace ID" value={search} onValueChange={onSearchChange} autoComplete="off" spellCheck={false} />
             </div>
           </div>

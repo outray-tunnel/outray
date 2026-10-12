@@ -104,11 +104,10 @@ async function controller({ reducedMotion = false, response = async () => ({ ok:
       if (specifier === "../arc/dialog/dialog") return { Dialog, DialogContent };
       if (specifier === "../ui/select") return { Select };
       if (specifier === "../ui/workspace-input") return { WorkspaceInput, WorkspaceTextarea };
+      if (specifier === "../ui/workspace-scope") return { workspaceScopeClassName: "workspace-scope" };
       if (specifier === "./json-viewer") return { formatBody, JsonViewer };
       if (specifier === "./utils") return { getHttpMethodColor };
       if (specifier === "./request-inspector-data") return { requestInspectorUrl };
-      if (specifier.endsWith(".module.css")) return { default: { content: "replay-content", overlay: "replay-overlay" }, __esModule: true };
-      if (specifier.endsWith(".css")) return {};
       if (specifier.startsWith("@hugeicons") || specifier.startsWith("@outray/icons/")) return requireModule(specifier);
       throw new Error(`Unexpected replay import: ${specifier}`);
     },
@@ -139,8 +138,10 @@ test("replay uses the shared native dialog portal above the request side sheet, 
   assert.equal(content.type, DialogContent);
   assert.equal(content.props.title, "Replay request");
   assert.match(content.props.description, /Sending may change data/);
-  assert.equal(content.props.overlayClassName, "replay-overlay");
-  assert.match(content.props.className, /outray-arc replay-content/);
+  assert.match(content.props.overlayClassName, /z-80!/);
+  assert.match(content.props.overlayClassName, /bg-black\/55!/);
+  assert.match(content.props.className, /workspace-scope/);
+  assert.match(content.props.className, /z-81!/);
   const html = renderToStaticMarkup(React.createElement("div", null, body));
   assert.doesNotMatch(html, /fixed inset-0|md:left-1\/2/);
   assert.match(html, /Replay sends a real request/);
@@ -149,10 +150,9 @@ test("replay uses the shared native dialog portal above the request side sheet, 
   assert.match(shared, /DialogPrimitive\.Portal/);
   assert.match(shared, /DialogPrimitive\.Content/);
   assert.match(shared, /useReducedMotion/);
-  const css = await readFile(new URL("../src/components/requests/replay-modal.module.css", import.meta.url), "utf8");
-  assert.match(css, /\.overlay\.overlay\s*\{[^}]*z-index: 80/);
-  assert.match(css, /\.content\.content\s*\{[^}]*z-index: 81/);
-  assert.match(css, /100dvh/);
+  assert.match(content.props.overlayClassName, /z-80!/);
+  assert.match(content.props.className, /z-81!/);
+  assert.match(content.props.className, /100dvh/);
 });
 
 test("replay initialization preserves captured values and excludes transport-owned headers", async () => {

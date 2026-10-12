@@ -73,7 +73,7 @@ export function TimeRangeControl({
           key={range.value}
           type="button"
           onClick={() => onChange?.(range.value)}
-          className={`h-7 rounded-md px-2.5 text-[10px] font-medium transition-colors ${
+          className={`h-7 rounded-md px-2.5 text-[10px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] ${
             value === range.value
               ? "bg-white/[0.09] text-zinc-200"
               : "text-zinc-700 hover:text-zinc-400"

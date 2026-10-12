@@ -55,14 +55,17 @@ const structuredData = {
     <script is:inline>document.documentElement.classList.add("js");</script>
   </head>
   <body>
-    <a class="skip-link" href="#main-content">Skip to content</a>
+    <a
+      class="fixed top-3 left-3 z-[1000] -translate-y-[140%] rounded-xl border border-line-strong bg-white px-4 py-[11px] font-bold text-page transition-transform duration-200 ease-snappy focus:translate-y-0"
+      href="#main-content"
+    >Skip to content</a>
     <Navigation
       loginUrl={siteLinks.login}
       signupUrl={siteLinks.signup}
       docsUrl={siteLinks.docs}
       githubUrl={siteLinks.github}
     />
-    <main class="site-main" id="main-content">
+    <main class="relative z-[1]" id="main-content">
       <Hero signupUrl={siteLinks.signup} githubUrl={siteLinks.github} />
       <ProductStories docsUrl={siteLinks.docs} />
       <OpenSource githubUrl={siteLinks.github} />

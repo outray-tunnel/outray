@@ -14,27 +14,18 @@ export async function resolve(specifier, context, nextResolve) {
   return nextResolve(specifier, context);
 }
 
-// Node server-render tests need class names, not browser styles. Astro/Vite
-// compiles the actual styles and automatic JSX runtime in the app.
+// Node server-render tests need Astro's automatic JSX runtime behavior.
 export async function load(url, context, nextLoad) {
   const pathname = new URL(url).pathname;
-  if (pathname.endsWith(".tsx")) {
-    const source = await readFile(new URL(url), "utf8");
-    return {
-      format: "module", shortCircuit: true,
-      source: ts.transpileModule(source, { compilerOptions: {
-        module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022,
-        jsx: ts.JsxEmit.ReactJSX,
-      } }).outputText,
-    };
-  }
-  if (!pathname.endsWith(".css")) return nextLoad(url, context);
-
+  if (!pathname.endsWith(".tsx")) return nextLoad(url, context);
+  const source = await readFile(new URL(url), "utf8");
   return {
     format: "module",
     shortCircuit: true,
-    source: pathname.endsWith(".module.css")
-      ? "export default new Proxy({}, { get: (_target, key) => typeof key === 'string' ? key : undefined });"
-      : "export default {};",
+    source: ts.transpileModule(source, { compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+      jsx: ts.JsxEmit.ReactJSX,
+    } }).outputText,
   };
 }

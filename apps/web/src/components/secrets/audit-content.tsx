@@ -6,7 +6,6 @@ import { Select } from "../arc/select/select";
 import type { SecretAuditEvent } from "@/lib/secrets-client";
 import { auditActionLabel, auditActorDetail, auditActorLabel, auditCategory, auditLocation, auditResourceName, auditVaultOptions, filterAuditEvents, groupAuditEvents, type AuditCategory, type AuditDay } from "./audit-data";
 import { formatSecretDate } from "./utils";
-import "../outray-arc-theme.css";
 
 export interface SecretsAuditContentProps {
   events?: SecretAuditEvent[];
@@ -63,7 +62,7 @@ export function SecretsAuditContent({ events, loading, refreshing, error, hasMor
     return next;
   });
 
-  return <div data-private-product="secrets" className="outray-arc ph-no-capture mx-auto w-full max-w-[1440px] space-y-5">
+  return <div data-private-product="secrets" className="ph-no-capture mx-auto w-full max-w-[1440px] space-y-5">
     <header className="flex flex-wrap items-end justify-between gap-3 pb-1">
       <div className="min-w-0"><h1 data-audit-heading tabIndex={-1} className="text-[20px] font-normal tracking-[-0.035em] text-white">Audit log</h1>
         <p className="mt-1 text-[12px] leading-5 text-zinc-500">Who accessed or changed your secrets, and when.</p></div>
@@ -82,10 +81,10 @@ export function SecretsAuditContent({ events, loading, refreshing, error, hasMor
         <Button variant="secondary" size="md" className="mt-6" onClick={onChooseVaults}>View vaults<ArrowRight size={14} aria-hidden="true" /></Button>
       </section> : <section aria-label="Audit activity" className="@container/audit-log space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="outray-arc-requests-search min-w-0 flex-1 basis-full @[720px]/audit-log:basis-[200px]"><SearchField appearance="workspace" label="Search loaded audit events" value={search} onValueChange={changeFilter(onSearchChange)} placeholder="Search loaded activity…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
-          <div className="outray-arc-address-filter min-w-0 flex-1 basis-[154px] @[720px]/audit-log:max-w-[166px]"><Select label="Filter by resource" value={resource} onValueChange={changeFilter(onResourceChange)} options={resources} /></div>
-          <div className="outray-arc-address-filter min-w-0 flex-1 basis-[140px] @[720px]/audit-log:max-w-[145px]"><Select label="Filter by actor" value={actor} onValueChange={changeFilter(onActorChange)} options={[{ value: "all", label: "All actors" }, { value: "user", label: "Members" }, { value: "machine", label: "Machine tokens" }, { value: "system", label: "System" }]} /></div>
-          <div className="outray-arc-address-filter min-w-0 flex-1 basis-[160px] @[720px]/audit-log:max-w-[190px]"><Select label="Filter by vault" value={vault} onValueChange={changeFilter(onVaultChange)} options={selectedVaultOptions} /></div>
+          <div className="min-w-0 flex-1 basis-full @[720px]/audit-log:basis-[200px] [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" label="Search loaded audit events" value={search} onValueChange={changeFilter(onSearchChange)} placeholder="Search loaded activity…" maxLength={200} autoComplete="off" spellCheck={false} /></div>
+          <div className="min-w-0 flex-1 basis-[154px] @[720px]/audit-log:max-w-[166px] [&>div]:relative [&>div]:gap-0 [&_label]:sr-only"><Select label="Filter by resource" value={resource} onValueChange={changeFilter(onResourceChange)} options={resources} /></div>
+          <div className="min-w-0 flex-1 basis-[140px] @[720px]/audit-log:max-w-[145px] [&>div]:relative [&>div]:gap-0 [&_label]:sr-only"><Select label="Filter by actor" value={actor} onValueChange={changeFilter(onActorChange)} options={[{ value: "all", label: "All actors" }, { value: "user", label: "Members" }, { value: "machine", label: "Machine tokens" }, { value: "system", label: "System" }]} /></div>
+          <div className="min-w-0 flex-1 basis-[160px] @[720px]/audit-log:max-w-[190px] [&>div]:relative [&>div]:gap-0 [&_label]:sr-only"><Select label="Filter by vault" value={vault} onValueChange={changeFilter(onVaultChange)} options={selectedVaultOptions} /></div>
           <Button variant="ghost" size="sm" disabled={busy} aria-label="Refresh audit log" title="Refresh audit log" onClick={onRetry}><RefreshCw size={14} aria-hidden="true" /></Button>
         </div>
 

@@ -142,7 +142,7 @@ function DomainsPage({ orgSlug }: { orgSlug: string }) {
   }
 
   return (
-    <div className="outray-arc outray-arc-list mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <DomainHeader
         currentDomainCount={domains.length}
         domainLimit={limit}
@@ -178,7 +178,7 @@ function DomainsPage({ orgSlug }: { orgSlug: string }) {
         label="Custom domains"
         toolbar={
           <>
-            <div className="outray-arc-address-search w-full sm:max-w-[360px]">
+            <div className="w-full sm:max-w-[360px] [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only">
               <SearchField
                 appearance="workspace"
                 label="Search domains"
@@ -197,7 +197,7 @@ function DomainsPage({ orgSlug }: { orgSlug: string }) {
                   ? `${filtered.length} ${filtered.length === 1 ? "domain" : "domains"}`
                   : ""}
               </span>
-              <div className="outray-arc-address-filter w-[164px]">
+              <div className="w-[164px] [&>div]:relative [&>div]:gap-0 [&_label]:sr-only">
                 <Select
                   label="Filter domain status"
                   options={domainStatusOptions}

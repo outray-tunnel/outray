@@ -99,18 +99,14 @@ test("tunnel header back navigation uses the route organization slug", () => {
   assert.match(html, /href="\/current-org\/tunnel\/tunnels"[^>]*>[^<]*<svg[^>]*>[\s\S]*?All tunnels/);
   assert.doesNotMatch(html, /href="\/stale-org\/tunnel\/tunnels"/);
   assert.doesNotMatch(html, /href="\/current-org\/tunnels"/);
-  assert.match(html, /<button\b[^>]*class="[^"]*\bmd\b[^>]*>[\s\S]*?Stop tunnel/);
+  assert.match(html, /<button\b[^>]*class="[^"]*min-h-9[^"]*bg-\[oklch\(21\.5%_0_0\)\]![^>]*>[\s\S]*?Stop tunnel/);
 });
 
-test("stop confirmations use small actions without overriding shared control heights", async () => {
+test("stop confirmations use small actions with direct dark-control utilities", async () => {
   const source = await readFile(new URL("../src/components/tunnel-details/tunnel-header.tsx", import.meta.url), "utf8");
-  const footer = source.slice(source.indexOf('<div className="outray-arc-stock-buttons flex justify-end gap-2">'));
-  const buttons = [...footer.matchAll(/<Button\b[\s\S]*?>/g)].map(([button]) => button);
-  assert.equal(buttons.length, 2);
-  for (const button of buttons) assert.match(button, /size="sm"/);
-  const theme = await readFile(new URL("../src/components/outray-arc-theme.css", import.meta.url), "utf8");
-  const stockTokens = theme.match(/\.outray-arc-stock-buttons\s*\{([^}]+)\}/)?.[1];
-  assert.ok(stockTokens);
-  assert.doesNotMatch(stockTokens, /--control-height-/);
-  assert.match(stockTokens, /--danger:/, "danger colors retain UIArc's styling");
+  const footer = source.slice(source.indexOf('<div className="flex justify-end gap-2">'));
+  assert.equal((footer.match(/size="sm"/g) ?? []).length, 2);
+  assert.equal((footer.match(/rounded-\[1\.125rem\]!/g) ?? []).length, 2);
+  assert.equal((footer.match(/bg-\[oklch\(21\.5%_0_0\)\]!/g) ?? []).length, 2);
+  assert.match(footer, /text-\[oklch\(76%_\.2_25\)\]!/, "danger action keeps its destructive color");
 });

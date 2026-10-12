@@ -2,7 +2,6 @@ import { Component, useEffect, useRef, type ReactNode } from "react";
 import { createRoot, extend, useFrame, useThree, type RootStore } from "@react-three/fiber";
 import { BufferAttribute, BufferGeometry, CylinderGeometry, Group, Mesh, Points, PointsMaterial, ShaderMaterial } from "three";
 import { BeamGroup } from "../components/landing/beam-group";
-import styles from "./hero-beam.module.css";
 
 // The same scene/shader as main, without registering unrelated Three objects.
 extend({ BufferAttribute, BufferGeometry, CylinderGeometry, Group, Mesh, Points, PointsMaterial, ShaderMaterial });
@@ -104,5 +103,5 @@ export default function HeroBeamCanvas({ active, onReady, onError }: HeroBeamCan
     };
   }, [onReady, onError]);
 
-  return <div ref={container} className={styles.canvasLayer} />;
+  return <div ref={container} className="absolute inset-0 size-full opacity-0 transition-opacity duration-500 group-data-[ready=true]/beam:opacity-100 motion-reduce:transition-none [&>canvas]:block [&>canvas]:size-full" />;
 }

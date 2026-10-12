@@ -253,8 +253,7 @@ test("overlay keeps workspace capture protection and restores opener focus on cl
       if (specifier === "lucide-react") return new Proxy({}, { get: () => () => null });
       if (specifier === "./agent-chat-data") return data;
       if (specifier === "./agent-chat-context") return { useAgentChatState: () => ({ state: { ...initialAgentChatState, panelOpen: true }, dispatch: (event: AgentChatAction) => events.push(event), panelId: "agent-panel", returnFocusRef }) };
-      if (specifier === "./agent-chat-panel.module.css") return { panel: "agent-panel", overlay: "agent-overlay" };
-      if (specifier.endsWith(".css")) return {};
+      if (specifier === "../ui/workspace-scope") return { workspaceScopeClassName: "workspace-scope" };
       return new Proxy({}, { get: () => () => null });
     },
   });

@@ -111,13 +111,13 @@ test("Beam downgrades are enabled secondary actions without recommendation or hi
   for (const currentPlan of ["pulse", "unlimited"]) {
     const html = markup(BillingPlanComparison, { currentPlan, currentInterval: "month", currency: "USD", interval: "month", onCheckout: noop });
     const articles = html.match(/<article\b[^>]*>[\s\S]*?<\/article>/g) ?? [];
-    assert.doesNotMatch(html, /data-recommended|>Recommended<\/span>/);
+    assert.doesNotMatch(html, /\sdata-recommended=|>Recommended<\/span>/);
     const beam = articles.find(article => /<h3[^>]*>Beam<\/h3>/.test(article));
     assert.ok(beam);
     const button = beam.match(/<button\b[^>]*>[\s\S]*?<\/button>/)?.[0];
     assert.ok(button);
-    assert.match(button, /class="[^"]*\bsecondary\b/);
-    assert.doesNotMatch(button, /class="[^"]*\bprimary\b/);
+    assert.match(button, /border-white\/12 bg-zinc-900 text-zinc-50/);
+    assert.doesNotMatch(button, /border-zinc-50 bg-zinc-50 text-zinc-950/);
     assert.match(button, /Downgrade to Beam/);
     assert.doesNotMatch(button, /\bdisabled=""|aria-disabled="true"|aria-busy="true"/);
   }
@@ -133,7 +133,7 @@ test("choosing Beam from a lower tier retains the sole highlighted recommendatio
     assert.match(recommended[0], />Recommended<\/span>/);
     const button = recommended[0].match(/<button\b[^>]*>[\s\S]*?<\/button>/)?.[0];
     assert.ok(button);
-    assert.match(button, /class="[^"]*\bprimary\b/);
+    assert.match(button, /border-zinc-50 bg-zinc-50 text-zinc-950/);
     assert.match(button, /Choose Beam/);
     assert.doesNotMatch(button, /\bdisabled=""|aria-disabled="true"|aria-busy="true"/);
   }
@@ -161,11 +161,9 @@ test("Beam actions still respect current-plan and checkout guards", () => {
 });
 
 test("the recommended plan has a distinct card surface and outline", async () => {
-  const css = await readFile(new URL("../src/components/workspace/billing-content.module.css", import.meta.url), "utf8");
-  const recommended = css.match(/\.planOption\[data-recommended\]\s*\{([^}]+)\}/)?.[1];
-  assert.ok(recommended);
-  assert.match(recommended, /background:/);
-  assert.match(recommended, /box-shadow:\s*inset/);
+  const source = await readFile(new URL("../src/components/workspace/billing-content.tsx", import.meta.url), "utf8");
+  assert.match(source, /data-recommended:bg-\[#9d81ce\]\/\[\.07\]/);
+  assert.match(source, /data-recommended:shadow-\[inset_0_0_0_1px_rgb\(157_129_206\/\.32\)\]/);
 });
 
 test("active subscriptions lock animated billing controls and loading disables other plan actions", () => {
@@ -368,6 +366,7 @@ test("billing refresh uses actual Arc components and a recoverable shared dialog
   assert.match(modal, /WorkspaceDialog/); assert.match(modal, /busy=\{isLoading\}/);
   assert.match(modal, /if \(busy\.current/);
   assert.match(modal, /`\/api\/subscriptions\/\$\{orgSlug\}\/cancel`/);
-  const css = await readFile(new URL("../src/components/workspace/billing-content.module.css", import.meta.url), "utf8");
-  assert.match(css, /prefers-reduced-motion/); assert.match(css, /overflow-x: auto/);
+  const billing = await readFile(new URL("../src/components/workspace/billing-content.tsx", import.meta.url), "utf8");
+  assert.match(billing, /motion-reduce:\[&>span\]:transition-none/);
+  assert.match(billing, /overflow-x-auto/);
 });

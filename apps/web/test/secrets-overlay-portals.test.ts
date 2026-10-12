@@ -119,6 +119,7 @@ async function controller(name: OverlayName, initiallyOpen = true) {
       if (specifier === "motion/react") return { AnimatePresence, motion };
       if (specifier === "@/components/ui/select") return { Select: () => null };
       if (specifier === "@/components/arc/button/button") return { Button: () => null };
+      if (specifier === "@/components/ui/workspace-scope") return { workspaceScopeClassName: "workspace-scope" };
       if (specifier.endsWith(".css")) return {};
       if (specifier.startsWith("@hugeicons") || specifier.startsWith("@outray/icons/")) return requireModule(specifier);
       throw new Error(`Unexpected secrets overlay import: ${specifier}`);
@@ -208,7 +209,7 @@ test("body targeting mounts before dialog focus or sheet Escape listeners are in
   }
 });
 
-test("both body portals carry their own workspace theme and secrets capture protection outside query containers", async () => {
+test("both body portals carry their own workspace density and secrets capture protection outside query containers", async () => {
   for (const name of ["SecretsDialog", "SecretsSheet"] as const) {
     const overlay = await controller(name);
     const { portal, root } = portalRoot(overlay.settle());
@@ -216,7 +217,7 @@ test("both body portals carry their own workspace theme and secrets capture prot
     assert.ok(React.isValidElement<ElementProps>(portal.children));
     assert.equal(portal.children.type, overlay.AnimatePresence, "presence and its exit animation remain inside the portal");
     const classes = root.props.className.split(/\s+/);
-    for (const className of ["workspace-ui", "outray-arc", "ph-no-capture", "fixed", "inset-0", "z-[100]"]) assert.ok(classes.includes(className), `${name} root includes ${className}`);
+    for (const className of ["workspace-scope", "ph-no-capture", "fixed", "inset-0", "z-[100]"]) assert.ok(classes.includes(className), `${name} root includes ${className}`);
     assert.doesNotMatch(root.props.className, /@container|overflow-hidden|\btransform\b|contain-/);
     const html = renderToStaticMarkup(React.createElement(React.Fragment, null, portal.children));
     assert.match(html, /data-private-product="secrets"/);

@@ -16,7 +16,6 @@ import {
   sortedMetricPoints, sortedMetricServiceValues,
   type MetricMetadata, type MetricsSearch, type MetricsSnapshot,
 } from "./metrics-data";
-import "../outray-arc-theme.css";
 
 export interface MetricsContentProps {
   orgSlug: string;
@@ -57,7 +56,7 @@ export function MetricsContent({
   const initialLoading = !data && (loading || !error);
 
   return (
-    <div className="outray-arc outray-arc-list mx-auto max-w-[1440px] space-y-5">
+    <div className="mx-auto max-w-[1440px] space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3 pb-1">
         <div className="min-w-0">
           <h1 className="text-[20px] font-normal tracking-[-0.035em] text-white">Metrics</h1>
@@ -92,7 +91,7 @@ export function MetricsContent({
             </div>
           </div>
           <div id="metric-instrument-library" className={catalogOpen ? "block" : "hidden lg:block"}>
-            <div className="outray-arc-requests-search px-4 pb-4">
+            <div className="px-4 pb-4 [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only">
               <SearchField appearance="workspace" label="Search metrics" placeholder="Find a metric…" value={catalogSearch} onValueChange={setCatalogSearch} disabled={!data || !metrics.length} autoComplete="off" spellCheck={false} />
             </div>
           {initialLoading ? <MetricLibrarySkeleton /> : !data ? (

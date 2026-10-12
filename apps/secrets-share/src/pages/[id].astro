@@ -6,11 +6,11 @@ const id = Astro.params.id || "";
 if (!isShareId(id)) Astro.response.status = 404;
 ---
 <BaseLayout title="Open a secret — OutRay">
-  <section class="reveal-wrap">
-    <span class="eyebrow">A private link for you</span>
-    <h1>Someone shared a secret.</h1>
-    <p class="hero-copy">The content is encrypted. Revealing it uses one view, and the link may stop working after its time or view limit.</p>
-    {isShareId(id) ? <ShareReveal client:load id={id} /> : <p class="alert">This link is unavailable.</p>}
-    <a class="share-your-own" href="/">Share yours too <span aria-hidden="true">→</span></a>
+  <section class="mx-auto flex min-h-[calc(100vh_-_86px)] w-full max-w-[720px] flex-col justify-center py-14 max-[640px]:min-h-[calc(100vh_-_70px)] max-[640px]:pt-10 max-[640px]:pb-16">
+    <span>A private link for you</span>
+    <h1 class="mt-[19px] mb-[22px] text-[clamp(38px,5vw,57px)] leading-[1.06] font-medium tracking-[-0.052em]">Someone shared a secret.</h1>
+    <p class="m-0 max-w-[470px] text-[15px] leading-[1.7] text-[#aaaab1]">The content is encrypted. Revealing it uses one view, and the link may stop working after its time or view limit.</p>
+    {isShareId(id) ? <ShareReveal client:load id={id} /> : <p class="mt-4 rounded-[10px] border border-[#a24152] bg-[#3a151d] px-[13px] py-[10px] text-[13px] text-[#ffc5ce]">This link is unavailable.</p>}
+    <a class="mt-[26px] inline-flex items-center self-center gap-[7px] text-[13px] text-[#aaaab2] no-underline hover:text-[#f5f5f6]" href="/">Share yours too <span class="text-[17px] leading-none" aria-hidden="true">→</span></a>
   </section>
 </BaseLayout>

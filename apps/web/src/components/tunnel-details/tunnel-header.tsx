@@ -11,7 +11,6 @@ import {
   DialogContent,
   DialogTrigger,
 } from "@/components/arc/dialog/dialog";
-import "../outray-arc-theme.css";
 
 type HeaderFeedback = { kind: "success" | "error"; message: string };
 
@@ -129,7 +128,7 @@ export function TunnelHeader({
         setIsConfirmOpen(open);
       }}
     >
-      <header className="outray-arc min-w-0">
+      <header className="min-w-0">
         <Link
           to="/$orgSlug/tunnel/tunnels"
           params={{ orgSlug }}
@@ -172,7 +171,7 @@ export function TunnelHeader({
               variant="danger"
               size="md"
               disabled={stopPending || !tunnel.isOnline}
-              className="outray-arc-stock-buttons shrink-0"
+              className="shrink-0 rounded-[1.125rem]! border-[oklch(29%_0_0)]! bg-[oklch(21.5%_0_0)]! text-sm/[1.4]! text-[oklch(76%_.2_25)]! hover:border-[oklch(76%_.2_25)]! hover:bg-[oklch(26%_0_0)]!"
             >
               <HugeiconsIcon icon={StopIcon} size={12} />
               Stop tunnel
@@ -236,10 +235,10 @@ export function TunnelHeader({
       </header>
 
       <DialogContent
-        className="outray-arc outray-arc-stop-dialog"
         title="Stop tunnel"
         description="Active connections will close and this address will go offline. You can reconnect using the CLI."
         aria-busy={stopPending}
+        closeDisabled={stopPending}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           cancelRef.current?.focus();
@@ -264,7 +263,7 @@ export function TunnelHeader({
             {stopError}
           </p>
         )}
-        <div className="outray-arc-stock-buttons flex justify-end gap-2">
+        <div className="flex justify-end gap-2">
           <Button
             ref={cancelRef}
             type="button"
@@ -272,6 +271,7 @@ export function TunnelHeader({
             size="sm"
             disabled={stopPending}
             onClick={() => setIsConfirmOpen(false)}
+            className="rounded-[1.125rem]! border-[oklch(29%_0_0)]! bg-[oklch(21.5%_0_0)]! text-sm/[1.4]! text-[oklch(96%_0_0)]! hover:bg-[oklch(26%_0_0)]!"
           >
             Cancel
           </Button>
@@ -281,6 +281,7 @@ export function TunnelHeader({
             size="sm"
             loading={stopPending}
             onClick={() => void handleStop()}
+            className="rounded-[1.125rem]! border-[oklch(29%_0_0)]! bg-[oklch(21.5%_0_0)]! text-sm/[1.4]! text-[oklch(76%_.2_25)]! hover:border-[oklch(76%_.2_25)]! hover:bg-[oklch(26%_0_0)]!"
           >
             <HugeiconsIcon icon={StopIcon} size={12} />
             Stop tunnel

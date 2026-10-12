@@ -13,287 +13,140 @@ const tunnelFeatures = [
   "Request inspection when you need the full exchange",
   "One command from localhost to a public URL",
 ];
-
 const observabilityFeatures = [
   "Correlated traces, logs, and metrics",
   "Server-side request and dependency spans",
   "Framework-aware route names",
   "Payload capture you explicitly control",
 ];
-
 const secretFeatures = [
   "Vaults organized by environment",
   "Encrypted values and version history",
   "Audit records for sensitive actions",
   "Runtime injection through the OutRay CLI",
 ];
-
 const uptimeFeatures = [
   "One-minute HTTP(S) checks",
   "Observed uptime, latency, and incident history",
   "Public status pages with grouped components",
   "Team alerts and team-published subscriber updates",
 ];
+
+const traceSpans = [
+  { name: "POST /api/orders", duration: "412ms", bar: "after:left-0 after:w-full" },
+  { name: "auth middleware", duration: "78ms", bar: "after:left-[2%] after:w-[19%]" },
+  { name: "db select user", duration: "49ms", bar: "after:left-[6%] after:w-[12%]" },
+  { name: "validate order", duration: "31ms", bar: "after:left-[23%] after:w-[8%]" },
+  { name: "db insert order", duration: "185ms", bar: "after:left-[34%] after:w-[45%]" },
+  { name: "queue publish", duration: "62ms", bar: "after:left-[81%] after:w-[15%]" },
+];
+
+const tabClass = "group relative flex h-20 min-w-0 items-center justify-center gap-3.5 rounded-full border border-white/[.09] bg-surface-2 px-[clamp(12px,2.2vw,28px)] text-[clamp(.93rem,1.3vw,1.05rem)] font-[620] text-[#9b9ba3] transition-colors duration-150 hover:border-white/20 hover:bg-[#19191c] hover:text-[#f5f5f6] aria-selected:rounded-[40px_40px_0_0] aria-selected:border-line-strong aria-selected:border-b-transparent aria-selected:bg-[#0a0a0b] aria-selected:text-white after:pointer-events-none after:absolute after:right-px after:bottom-[-25px] after:left-px after:hidden after:h-[27px] after:bg-[#0a0a0b] after:content-[''] aria-selected:after:block group-data-[outline-ready=true]/frame:border-transparent group-data-[outline-ready=true]/frame:bg-transparent group-data-[outline-ready=true]/frame:hover:border-transparent group-data-[outline-ready=true]/frame:hover:bg-transparent group-data-[outline-ready=true]/frame:aria-selected:after:hidden max-[860px]:gap-2.5 max-[860px]:px-3 max-[860px]:text-[.9rem] max-[620px]:h-[50px] max-[620px]:shrink-0 max-[620px]:snap-start max-[620px]:gap-2 max-[620px]:rounded-full max-[620px]:px-4 max-[620px]:text-[.82rem] max-[620px]:aria-selected:h-[50px] max-[620px]:aria-selected:rounded-full max-[620px]:aria-selected:border-white/[.18] max-[620px]:aria-selected:bg-[#202023] max-[620px]:aria-selected:after:hidden";
+const articleClass = "group/panel grid min-h-[640px] grid-cols-[minmax(0,.78fr)_minmax(0,1.22fr)] items-center gap-x-[clamp(32px,4vw,60px)] gap-y-[clamp(30px,3.5vw,46px)] p-[clamp(40px,4.6vw,64px)] [html.js_&]:data-[active=false]:hidden group-data-[switching=true]/stage:data-[active=true]:animate-product-panel motion-reduce:animate-none max-[1080px]:grid-cols-1 max-[1080px]:items-start max-[1080px]:gap-y-[34px] max-[860px]:min-h-0 max-[860px]:p-12 max-[620px]:min-h-0 max-[620px]:gap-y-7 max-[620px]:px-5 max-[620px]:pt-[30px] max-[620px]:pb-[22px]";
+const copyClass = "relative col-start-1 row-start-1 max-w-[470px] max-[1080px]:max-w-[720px]";
+const indexClass = "w-fit rounded-[9px] px-2.5 py-[7px] text-[.66rem] font-[680] tracking-[.08em] text-[#bba9e5] uppercase";
+const titleClass = "mt-[22px] max-w-[13ch] text-[clamp(2.35rem,3.2vw,3.25rem)] leading-[1.02] font-[570] tracking-[-.055em] max-[1080px]:max-w-[16ch] max-[1080px]:text-[clamp(2.2rem,4.3vw,3rem)] max-[620px]:max-w-[14ch] max-[620px]:text-[clamp(2rem,8.2vw,2.55rem)]";
+const descriptionClass = "mt-6 max-w-[41ch] text-[clamp(1rem,1.2vw,1.1rem)] leading-[1.6] text-muted max-[620px]:mt-[18px]";
+const linkClass = "mt-[30px] inline-flex items-center gap-2 rounded-lg text-[.92rem] font-[620] text-[#ded8ee] [&>svg]:h-[18px] [&>svg]:w-[18px] [&>svg]:shrink-0 [&>svg]:transition-transform [&>svg]:duration-200 [&>svg]:ease-snappy hover:[&>svg]:translate-x-0.5";
+const panelClass = "relative col-start-2 row-start-1 min-h-[460px] w-full min-w-0 overflow-hidden rounded-shell border border-line bg-[#09090a] shadow-[0_28px_80px_rgb(0_0_0_/.34),inset_0_1px_rgb(255_255_255_/.035)] before:pointer-events-none before:absolute before:inset-x-[25%] before:top-[-30%] before:z-0 before:h-[280px] before:rounded-full before:bg-[rgb(131_103_199_/.1)] before:blur-[80px] before:content-[''] [&>*]:relative [&>*]:z-[1] max-[1080px]:col-start-1 max-[1080px]:row-start-2 max-[620px]:min-h-0";
+const toolbarClass = "relative z-[2] flex min-h-[70px] items-center justify-between border-b border-line px-5";
+const panelTitleClass = "flex items-center gap-3 [&>span:last-child]:grid [&>span:last-child]:gap-0.5 [&_small]:text-[.61rem] [&_small]:font-[650] [&_small]:tracking-[.09em] [&_small]:text-[#65656d] [&_small]:uppercase [&_strong]:text-[.82rem] [&_strong]:font-[620] [&_strong]:text-[#ededf0]";
+const glyphClass = "grid h-[37px] w-[37px] place-items-center rounded-[10px] border border-[rgb(131_103_199_/.22)] bg-[rgb(131_103_199_/.08)] text-[#b8a6e5]";
+const featureListClass = "col-span-full row-start-2 grid grid-cols-4 border-t border-line pt-[26px] max-[1080px]:col-start-1 max-[1080px]:row-start-3 max-[1080px]:grid-cols-2 max-[620px]:grid-cols-1 max-[620px]:pt-3.5";
+const featureItemClasses = [
+  "flex min-w-0 items-start gap-2.5 py-0.5 pr-[18px] text-[.83rem] leading-[1.45] text-[#b7b7c0] max-[1080px]:px-0 max-[1080px]:py-2.5 max-[620px]:py-[11px]",
+  "flex min-w-0 items-start gap-2.5 border-l border-line px-[18px] py-0.5 text-[.83rem] leading-[1.45] text-[#b7b7c0] max-[1080px]:py-2.5 max-[620px]:border-t max-[620px]:border-l-0 max-[620px]:px-0 max-[620px]:py-[11px]",
+  "flex min-w-0 items-start gap-2.5 border-l border-line px-[18px] py-0.5 text-[.83rem] leading-[1.45] text-[#b7b7c0] max-[1080px]:border-t max-[1080px]:border-l-0 max-[1080px]:px-0 max-[1080px]:py-2.5 max-[620px]:py-[11px]",
+  "flex min-w-0 items-start gap-2.5 border-l border-line px-[18px] py-0.5 text-[.83rem] leading-[1.45] text-[#b7b7c0] max-[1080px]:border-t max-[1080px]:py-2.5 max-[620px]:border-l-0 max-[620px]:px-0 max-[620px]:py-[11px]",
+];
+const featureDotClass = "mt-[.5em] h-[5px] w-[5px] shrink-0 rounded-full bg-accent-light";
 ---
 
-<section class="products product-showcase" aria-label="Explore OutRay products">
-  <div class="page-shell product-switcher" data-product-tabs data-default-tab="tunnels" data-tab-group="showcase">
-    <div class="product-switcher__frame" data-product-outline>
-      <div class="product-switcher__pills" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-      <div class="product-switcher__tabs" role="tablist" aria-label="OutRay products">
-      <button
-        class="product-switcher__tab"
-        type="button"
-        id="showcase-tab-tunnels"
-        role="tab"
-        aria-selected="true"
-        aria-controls="tunnels"
-        tabindex="0"
-        data-product-tab="tunnels"
-      >
-        <ProductIcon product="tunnels" class="product-switcher__icon" />
-        <span>Tunnels</span>
-      </button>
-      <button
-        class="product-switcher__tab"
-        type="button"
-        id="showcase-tab-observability"
-        role="tab"
-        aria-selected="false"
-        aria-controls="observability"
-        tabindex="-1"
-        data-product-tab="observability"
-      >
-        <ProductIcon product="observability" class="product-switcher__icon" />
-        <span>Observability</span>
-      </button>
-      <button
-        class="product-switcher__tab"
-        type="button"
-        id="showcase-tab-secrets"
-        role="tab"
-        aria-selected="false"
-        aria-controls="secrets"
-        tabindex="-1"
-        data-product-tab="secrets"
-      >
-        <ProductIcon product="secrets" class="product-switcher__icon" />
-        <span>Secrets</span>
-      </button>
-      <button
-        class="product-switcher__tab"
-        type="button"
-        id="showcase-tab-uptime"
-        role="tab"
-        aria-selected="false"
-        aria-controls="uptime"
-        tabindex="-1"
-        data-product-tab="uptime"
-      >
-        <ProductIcon product="uptime" class="product-switcher__icon" />
-        <span>Uptime</span>
-      </button>
+<section class="py-[clamp(24px,4vw,56px)] pb-[clamp(104px,12vw,170px)] max-[620px]:pt-7 max-[620px]:pb-[86px]" aria-label="Explore OutRay products">
+  <div class="relative mx-auto w-[min(calc(100%-48px),var(--container-page))] max-[1080px]:w-[min(calc(100%-36px),var(--container-page))] max-[860px]:w-[min(calc(100%-28px),var(--container-page))] max-[620px]:w-[min(calc(100%-24px),var(--container-page))]" data-product-tabs data-default-tab="tunnels" data-tab-group="showcase">
+    <div class="group/frame relative isolate rounded-[42px] bg-[#030304] p-6 max-[860px]:p-[18px] max-[620px]:rounded-[30px] max-[620px]:border max-[620px]:border-white/10 max-[620px]:bg-[#0d0d0e]" data-product-outline>
+      <div class="pointer-events-none absolute top-6 right-6 left-6 z-0 hidden h-20 grid-cols-4 gap-[clamp(12px,2vw,28px)] group-data-[outline-ready=true]/frame:grid max-[860px]:top-[18px] max-[860px]:right-[18px] max-[860px]:left-[18px] max-[860px]:gap-3 max-[620px]:group-data-[outline-ready=true]/frame:hidden" data-product-pills aria-hidden="true">
+        <span class="rounded-full border border-white/[.09] bg-surface-2" data-product-pill></span><span class="rounded-full border border-white/[.09] bg-surface-2" data-product-pill></span><span class="rounded-full border border-white/[.09] bg-surface-2" data-product-pill></span><span class="rounded-full border border-white/[.09] bg-surface-2" data-product-pill></span>
+      </div>
+      <div class="relative z-[2] grid h-[104px] grid-cols-4 items-start gap-[clamp(12px,2vw,28px)] max-[860px]:gap-3 max-[620px]:flex max-[620px]:h-auto max-[620px]:snap-x max-[620px]:snap-proximity max-[620px]:gap-2.5 max-[620px]:overflow-x-auto max-[620px]:[overscroll-behavior-inline:contain] max-[620px]:[scrollbar-width:none] max-[620px]:[&::-webkit-scrollbar]:hidden" role="tablist" aria-label="OutRay products">
+        <button class={tabClass} type="button" id="showcase-tab-tunnels" role="tab" aria-selected="true" aria-controls="tunnels" tabindex="0" data-product-tab="tunnels"><ProductIcon product="tunnels" class="h-7 w-7 text-current max-[860px]:h-[23px] max-[860px]:w-[23px] max-[620px]:h-5 max-[620px]:w-5" /><span>Tunnels</span></button>
+        <button class={tabClass} type="button" id="showcase-tab-observability" role="tab" aria-selected="false" aria-controls="observability" tabindex="-1" data-product-tab="observability"><ProductIcon product="observability" class="h-7 w-7 text-current max-[860px]:h-[23px] max-[860px]:w-[23px] max-[620px]:h-5 max-[620px]:w-5" /><span>Observability</span></button>
+        <button class={tabClass} type="button" id="showcase-tab-secrets" role="tab" aria-selected="false" aria-controls="secrets" tabindex="-1" data-product-tab="secrets"><ProductIcon product="secrets" class="h-7 w-7 text-current max-[860px]:h-[23px] max-[860px]:w-[23px] max-[620px]:h-5 max-[620px]:w-5" /><span>Secrets</span></button>
+        <button class={tabClass} type="button" id="showcase-tab-uptime" role="tab" aria-selected="false" aria-controls="uptime" tabindex="-1" data-product-tab="uptime"><ProductIcon product="uptime" class="h-7 w-7 text-current max-[860px]:h-[23px] max-[860px]:w-[23px] max-[620px]:h-5 max-[620px]:w-5" /><span>Uptime</span></button>
       </div>
 
-      <div class="product-switcher__stage">
-      <div class="product-switcher__panels">
-    <article
-      class="product-section product-switcher__panel"
-      id="tunnels"
-      role="tabpanel"
-      aria-labelledby="showcase-tab-tunnels"
-      data-product-panel="tunnels"
-      data-product-section="tunnels"
-      data-active="true"
-    >
-      <div class="product-copy">
-        <p class="product-index">01 / Tunnels</p>
-        <h2 class="product-title">Give localhost a real address.</h2>
-        <p class="product-description">Put a local service online in seconds, keep a stable domain, and inspect the requests that cross the tunnel.</p>
-        <a class="inline-link product-link" href={docsUrl} data-track="cta" data-track-label="tunnels-read-docs">
-          Read the docs
-          <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
-        </a>
-      </div>
+      <div class="group/stage relative z-[2] min-h-[640px] overflow-hidden rounded-[40px] border border-line-strong bg-[radial-gradient(circle_at_73%_30%,rgb(131_103_199_/_0.09),transparent_35rem),#0a0a0b] before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_73%_30%,rgb(131_103_199_/_0.085),transparent_33rem),linear-gradient(rgb(255_255_255_/_0.012)_1px,transparent_1px),linear-gradient(90deg,rgb(255_255_255_/_0.012)_1px,transparent_1px)] before:bg-[size:48px_48px] before:[mask-image:linear-gradient(to_bottom,black,transparent_75%)] before:content-[''] data-[switching=true]:transition-[height] data-[switching=true]:duration-[220ms] data-[switching=true]:ease-snappy group-data-[outline-ready=true]/frame:border-transparent group-data-[outline-ready=true]/frame:bg-transparent motion-reduce:data-[switching=true]:transition-none max-[620px]:mt-5 max-[620px]:min-h-0 max-[620px]:rounded-3xl max-[620px]:bg-[#151517]" data-product-stage>
+        <div class="relative z-[1]">
+          <article class={articleClass} id="tunnels" role="tabpanel" aria-labelledby="showcase-tab-tunnels" data-product-panel="tunnels" data-product-section="tunnels" data-active="true">
+            <div class={copyClass}>
+              <p class={indexClass}>01 / Tunnels</p>
+              <h2 class={titleClass}>Give localhost a real address.</h2>
+              <p class={descriptionClass}>Put a local service online in seconds, keep a stable domain, and inspect the requests that cross the tunnel.</p>
+              <a class={linkClass} href={docsUrl} data-track="cta" data-track-label="tunnels-read-docs">Read the docs <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg></a>
+            </div>
+            <div class:list={[panelClass, "isolate"]} role="group" aria-label="Tunnel request interface">
+              <div class={toolbarClass}>
+                <div class={panelTitleClass}><span class={glyphClass}><ProductIcon product="tunnels" class="h-[19px] w-[19px]" /></span><span><small>Tunnel</small><strong>orders-api</strong></span></div>
+                <span class="inline-flex items-center gap-[7px] font-mono text-[.67rem] font-[650] tracking-[.08em] text-success uppercase"><i class="h-1.5 w-1.5 shrink-0 rounded-full bg-success shadow-[0_0_9px_rgb(52_211_153_/.55)]"></i>Live</span>
+              </div>
+              <div class="m-5 flex min-h-[58px] items-center justify-between gap-5 rounded-[13px] border border-line bg-[#0d0d0f] px-4 font-mono text-[.72rem] text-[#aaaab3]"><span class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">https://orders.outray.app</span><svg class="h-[18px] w-[18px] text-[#64646d]" aria-hidden="true" viewBox="0 0 20 20"><path d="M7 6V4.8C7 3.8 7.8 3 8.8 3h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8H14M4.8 7h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8H4.8c-1 0-1.8-.8-1.8-1.8V8.8C3 7.8 3.8 7 4.8 7Z" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg></div>
+              <div class="mx-5 overflow-hidden rounded-[14px] border border-line bg-[#09090b]" role="table" aria-label="Recent tunnel requests">
+                <div class="grid min-h-[43px] grid-cols-[64px_minmax(120px,1fr)_60px_66px] items-center gap-3.5 border-b border-line px-[15px] font-sans text-[.61rem] font-[660] tracking-[.06em] text-[#9898a2] uppercase max-[620px]:grid-cols-[52px_minmax(0,1fr)_36px] max-[620px]:gap-1.5 max-[620px]:px-2 max-[620px]:text-[.6rem] [&>:last-child]:max-[620px]:hidden" role="row"><span role="columnheader">Method</span><span role="columnheader">Path</span><span role="columnheader">Status</span><span role="columnheader">Duration</span></div>
+                {[["POST", "/api/orders", "201", "124ms", "bg-blue-500/10 text-blue-300"], ["GET", "/api/orders/:id", "200", "48ms", "bg-[rgb(131_103_199_/.1)] text-[#bdaae9]"], ["PATCH", "/api/orders/:id", "200", "82ms", "bg-amber-500/10 text-amber-300"]].map(([method, path, status, duration, tone]) => (
+                  <div class="grid min-h-[62px] grid-cols-[64px_minmax(120px,1fr)_60px_66px] items-center gap-3.5 border-b border-line px-[15px] font-mono text-[.72rem] text-[#b4b4bd] last:border-b-0 max-[620px]:grid-cols-[52px_minmax(0,1fr)_36px] max-[620px]:gap-1.5 max-[620px]:px-2 max-[620px]:text-[.6rem] [&>:last-child]:max-[620px]:hidden" role="row"><span role="cell" class:list={["w-fit rounded-md px-1.5 py-1 text-[.61rem]", tone]}>{method}</span><span class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" role="cell">{path}</span><span class="text-success" role="cell">{status}</span><span role="cell">{duration}</span></div>
+                ))}
+              </div>
+              <div class="flex items-center gap-[7px] px-5 pt-[18px] pb-5 text-[.65rem] text-[#92929b] [&>span]:rounded-[7px] [&>span]:border [&>span]:border-white/[.075] [&>span]:px-2 [&>span]:py-[5px] [&>span:last-child]:max-[620px]:hidden"><span>HTTP</span><span>localhost:3000</span><span>Request capture enabled</span></div>
+            </div>
+            <ul class={featureListClass} aria-label="Tunnel capabilities">{tunnelFeatures.map((feature, index) => <li class={featureItemClasses[index]}><span class={featureDotClass} aria-hidden="true"></span>{feature}</li>)}</ul>
+          </article>
 
-      <div class="product-panel tunnel-panel" role="group" aria-label="Tunnel request interface">
-        <div class="panel-toolbar">
-          <div class="panel-title">
-            <span class="product-glyph"><ProductIcon product="tunnels" /></span>
-            <span><small>Tunnel</small><strong>orders-api</strong></span>
-          </div>
-          <span class="status-pill"><i></i>Live</span>
-        </div>
-        <div class="tunnel-url">
-          <span>https://orders.outray.app</span>
-          <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 6V4.8C7 3.8 7.8 3 8.8 3h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8H14M4.8 7h6.4c1 0 1.8.8 1.8 1.8v6.4c0 1-.8 1.8-1.8 1.8H4.8c-1 0-1.8-.8-1.8-1.8V8.8C3 7.8 3.8 7 4.8 7Z" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>
-        </div>
-        <div class="request-table" role="table" aria-label="Recent tunnel requests">
-          <div class="request-row request-heading" role="row">
-            <span role="columnheader">Method</span><span role="columnheader">Path</span><span role="columnheader">Status</span><span role="columnheader">Duration</span>
-          </div>
-          <div class="request-row" role="row">
-            <span role="cell" class="method method-post">POST</span><span role="cell">/api/orders</span><span role="cell" class="status-code">201</span><span role="cell">124ms</span>
-          </div>
-          <div class="request-row" role="row">
-            <span role="cell" class="method">GET</span><span role="cell">/api/orders/:id</span><span role="cell" class="status-code">200</span><span role="cell">48ms</span>
-          </div>
-          <div class="request-row" role="row">
-            <span role="cell" class="method method-patch">PATCH</span><span role="cell">/api/orders/:id</span><span role="cell" class="status-code">200</span><span role="cell">82ms</span>
-          </div>
-        </div>
-        <div class="panel-footer"><span>HTTP</span><span>localhost:3000</span><span>Request capture enabled</span></div>
-      </div>
-      <ul class="feature-list product-features" aria-label="Tunnel capabilities">
-        {tunnelFeatures.map((feature) => (
-          <li><span aria-hidden="true"></span>{feature}</li>
-        ))}
-      </ul>
-    </article>
+          <article class={articleClass} id="observability" role="tabpanel" aria-labelledby="showcase-tab-observability" data-product-panel="observability" data-product-section="observability" data-active="false">
+            <div class={copyClass}><p class={indexClass}>02 / Observability</p><h2 class={titleClass}>Follow a request all the way through.</h2><p class={descriptionClass}>See what your server did, where it spent time, and which log belongs to which request—without instrumenting every handler by hand.</p><a class={linkClass} href={docsUrl} data-track="cta" data-track-label="observability-read-docs">Read the docs <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg></a></div>
+            <div class:list={[panelClass, "isolate"]} role="group" aria-label="Distributed trace interface">
+              <div class={toolbarClass}><div class={panelTitleClass}><span class={glyphClass}><ProductIcon product="observability" class="h-[19px] w-[19px]" /></span><span><small>Trace details</small><strong>POST /api/orders</strong></span></div><span class="rounded-lg border border-[rgb(131_103_199_/.2)] bg-[rgb(131_103_199_/.08)] px-[9px] py-1.5 font-mono text-[.64rem] text-[#b9a7e6]">412ms</span></div>
+              <div class="mx-5 mt-[18px] grid grid-cols-3 overflow-hidden rounded-[13px] border border-line [&>span]:grid [&>span]:gap-[7px] [&>span]:px-[15px] [&>span]:py-[13px] [&>span+span]:border-l [&>span+span]:border-line [&_small]:text-[.58rem] [&_small]:font-[650] [&_small]:tracking-[.07em] [&_small]:text-[#585860] [&_small]:uppercase [&_strong]:font-mono [&_strong]:text-[.69rem] [&_strong]:text-[#c9c9ce]"><span><small>Status</small><strong class="flex items-center gap-1.5 !text-success"><i class="h-1.5 w-1.5 rounded-full bg-success shadow-[0_0_9px_rgb(52_211_153_/.55)]"></i>OK</strong></span><span><small>Service</small><strong>orders-api</strong></span><span><small>Spans</small><strong>6</strong></span></div>
+              <div class="m-5 mt-4 overflow-hidden rounded-[14px] border border-line" role="list" aria-label="Trace span waterfall">
+                {traceSpans.map(({ name, duration, bar }, index) => (
+                  <div class:list={["grid min-h-[47px] grid-cols-[minmax(112px,.62fr)_minmax(150px,1.38fr)_51px] items-center gap-3 border-b border-line px-[13px] font-mono text-[.62rem] text-[#7e7e87] last:border-b-0 max-[620px]:grid-cols-[minmax(90px,.72fr)_minmax(120px,1.28fr)]", index === 0 && "text-[#d2d2d7]"]} role="listitem"><span class="overflow-hidden text-ellipsis whitespace-nowrap">{name}</span><i class:list={["relative h-[18px] overflow-hidden rounded-md bg-[#111114] not-italic after:absolute after:inset-y-[3px] after:rounded-sm after:bg-[linear-gradient(90deg,#654aa8,#9b83d2)] after:content-['']", bar]}></i><small class="text-right text-[#5d5d65] max-[620px]:hidden">{duration}</small></div>
+                ))}
+              </div>
+            </div>
+            <ul class={featureListClass} aria-label="Observability capabilities">{observabilityFeatures.map((feature, index) => <li class={featureItemClasses[index]}><span class={featureDotClass} aria-hidden="true"></span>{feature}</li>)}</ul>
+          </article>
 
-    <article
-      class="product-section product-switcher__panel"
-      id="observability"
-      role="tabpanel"
-      aria-labelledby="showcase-tab-observability"
-      data-product-panel="observability"
-      data-product-section="observability"
-      data-active="false"
-    >
-      <div class="product-copy">
-        <p class="product-index">02 / Observability</p>
-        <h2 class="product-title">Follow a request all the way through.</h2>
-        <p class="product-description">See what your server did, where it spent time, and which log belongs to which request—without instrumenting every handler by hand.</p>
-        <a class="inline-link product-link" href={docsUrl} data-track="cta" data-track-label="observability-read-docs">
-          Read the docs
-          <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
-        </a>
-      </div>
+          <article class={articleClass} id="secrets" role="tabpanel" aria-labelledby="showcase-tab-secrets" data-product-panel="secrets" data-product-section="secrets" data-active="false">
+            <div class={copyClass}><p class={indexClass}>03 / Secrets</p><h2 class={titleClass}>Keep configuration out of the repo.</h2><p class={descriptionClass}>Store encrypted values in a vault, organize them across environments, and inject them only when your process starts.</p><a class={linkClass} href={docsUrl} data-track="cta" data-track-label="secrets-read-docs">Read the docs <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg></a></div>
+            <div class={panelClass} role="group" aria-label="Secrets vault interface">
+              <div class={toolbarClass}><div class={panelTitleClass}><span class={glyphClass}><ProductIcon product="secrets" class="h-[19px] w-[19px]" /></span><span><small>Vault</small><strong>orders-service</strong></span></div><span class="rounded-lg border border-[rgb(131_103_199_/.2)] bg-[rgb(131_103_199_/.08)] px-[9px] py-1.5 font-mono text-[.64rem] text-[#b9a7e6]">Production</span></div>
+              <div class="grid min-h-[45px] grid-cols-[minmax(120px,1fr)_minmax(120px,.9fr)_70px] items-center gap-3.5 border-b border-line px-5 text-[.6rem] font-[660] tracking-[.08em] text-[#9898a2] uppercase max-[620px]:grid-cols-[minmax(105px,1fr)_minmax(85px,.8fr)] max-[620px]:px-3.5 max-[390px]:grid-cols-[minmax(0,1fr)_minmax(0,.8fr)] max-[390px]:gap-2 max-[390px]:px-2.5 [&>:last-child]:max-[620px]:hidden"><span>Key</span><span>Value</span><span>Updated</span></div>
+              {[["DATABASE_URL", "just now"], ["STRIPE_SECRET_KEY", "2m ago"], ["REDIS_URL", "5m ago"], ["WEBHOOK_SECRET", "1h ago"]].map(([key, updated]) => (
+                <div class="grid min-h-16 grid-cols-[minmax(120px,1fr)_minmax(120px,.9fr)_70px] items-center gap-3.5 border-b border-line px-5 text-[.7rem] text-[#c8c8ce] max-[620px]:grid-cols-[minmax(105px,1fr)_minmax(85px,.8fr)] max-[620px]:px-3.5 max-[390px]:grid-cols-[minmax(0,1fr)_minmax(0,.8fr)] max-[390px]:gap-2 max-[390px]:px-2.5"><span class="overflow-hidden text-ellipsis whitespace-nowrap font-mono">{key}</span><code class="overflow-hidden text-ellipsis whitespace-nowrap font-mono tracking-[.1em] text-[#94949d]">••••••••••••</code><small class="text-right text-[#5d5d65] max-[620px]:hidden">{updated}</small></div>
+              ))}
+              <div class="flex min-h-14 items-center gap-2 px-5 text-[.66rem] text-[#686870]"><i class="h-1.5 w-1.5 shrink-0 rounded-full bg-success shadow-[0_0_9px_rgb(52_211_153_/.55)]"></i><span>Encrypted at rest · decrypted on explicit reveal or runtime delivery</span></div>
+            </div>
+            <ul class={featureListClass} aria-label="Secrets capabilities">{secretFeatures.map((feature, index) => <li class={featureItemClasses[index]}><span class={featureDotClass} aria-hidden="true"></span>{feature}</li>)}</ul>
+          </article>
 
-      <div class="product-panel trace-panel" role="group" aria-label="Distributed trace interface">
-        <div class="panel-toolbar">
-          <div class="panel-title">
-            <span class="product-glyph"><ProductIcon product="observability" /></span>
-            <span><small>Trace details</small><strong>POST /api/orders</strong></span>
-          </div>
-          <span class="trace-duration">412ms</span>
-        </div>
-        <div class="trace-summary">
-          <span><small>Status</small><strong class="ok-text"><i></i>OK</strong></span>
-          <span><small>Service</small><strong>orders-api</strong></span>
-          <span><small>Spans</small><strong>6</strong></span>
-        </div>
-        <div class="waterfall" role="list" aria-label="Trace span waterfall">
-          <div class="span-row span-root" role="listitem"><span>POST /api/orders</span><i style="--span-start: 0%; --span-width: 100%"></i><small>412ms</small></div>
-          <div class="span-row" role="listitem"><span>auth middleware</span><i style="--span-start: 2%; --span-width: 19%"></i><small>78ms</small></div>
-          <div class="span-row" role="listitem"><span>db select user</span><i style="--span-start: 6%; --span-width: 12%"></i><small>49ms</small></div>
-          <div class="span-row" role="listitem"><span>validate order</span><i style="--span-start: 23%; --span-width: 8%"></i><small>31ms</small></div>
-          <div class="span-row" role="listitem"><span>db insert order</span><i style="--span-start: 34%; --span-width: 45%"></i><small>185ms</small></div>
-          <div class="span-row" role="listitem"><span>queue publish</span><i style="--span-start: 81%; --span-width: 15%"></i><small>62ms</small></div>
+          <article class={articleClass} id="uptime" role="tabpanel" aria-labelledby="showcase-tab-uptime" data-product-panel="uptime" data-product-section="uptime" data-active="false">
+            <div class={copyClass}><p class={indexClass}>04 / Uptime</p><h2 class={titleClass}>Know when a service goes down.</h2><p class={descriptionClass}>Check your public endpoints, alert your team when they fail, and keep everyone informed on a status page you control.</p><a class={linkClass} href={docsUrl} data-track="cta" data-track-label="uptime-read-docs">Read the docs <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg></a></div>
+            <div class={panelClass} role="group" aria-label="Uptime status page interface">
+              <div class={toolbarClass}><div class={panelTitleClass}><span class={glyphClass}><ProductIcon product="uptime" class="h-[19px] w-[19px]" /></span><span><small>Status page</small><strong>Acme services</strong></span></div><span class="rounded-lg border border-white/[.11] px-[9px] py-1.5 font-mono text-[.64rem] text-[#a8a8b0]">Public</span></div>
+              <div class="grid gap-[17px] p-5">
+                <div class="flex min-h-[72px] items-center gap-3.5 rounded-[13px] border border-[rgb(52_211_153_/.22)] bg-[rgb(52_211_153_/.055)] px-[15px] py-[13px]"><span class="grid h-[35px] w-[35px] shrink-0 place-items-center rounded-[9px] bg-[rgb(52_211_153_/.12)] text-success" aria-hidden="true"><ProductIcon product="uptime" class="h-[19px] w-[19px]" /></span><span class="grid gap-[5px]"><strong class="text-[.89rem] font-[650] text-[#d2f7e6]">All systems operational</strong><small class="text-[.68rem] text-[#849a8e]">Current status across visible services</small></span></div>
+                <div class="overflow-hidden rounded-[13px] border border-line bg-[#0b0b0d]">
+                  <div class="flex min-h-12 items-center justify-between gap-3 border-b border-line px-[17px]"><strong class="text-[.73rem] font-[640] text-[#d5d5d9]">Services</strong><span class="font-mono text-[.62rem] text-[#777781]">2 components</span></div>
+                  <div class="flex min-h-[55px] items-center justify-between gap-3 px-[17px]"><span class="text-[.75rem] text-[#c9c9d0]">API</span><span class="inline-flex items-center gap-[7px] font-mono text-[.63rem] text-success"><i class="h-1.5 w-1.5 rounded-full bg-success"></i>Operational</span></div>
+                  <div class="flex min-h-[55px] items-center justify-between gap-3 border-t border-line px-[17px]"><span class="text-[.75rem] text-[#c9c9d0]">Dashboard</span><span class="inline-flex items-center gap-[7px] font-mono text-[.63rem] text-success"><i class="h-1.5 w-1.5 rounded-full bg-success"></i>Operational</span></div>
+                </div>
+                <div class="flex justify-between gap-3 px-0.5 py-[11px] text-[.68rem]"><span class="text-[#7e7e87]">Incident history</span><strong class="font-[520] text-[#b7b7bf]">No recent incidents</strong></div>
+              </div>
+            </div>
+            <ul class={featureListClass} aria-label="Uptime capabilities">{uptimeFeatures.map((feature, index) => <li class={featureItemClasses[index]}><span class={featureDotClass} aria-hidden="true"></span>{feature}</li>)}</ul>
+          </article>
         </div>
       </div>
-      <ul class="feature-list product-features" aria-label="Observability capabilities">
-        {observabilityFeatures.map((feature) => (
-          <li><span aria-hidden="true"></span>{feature}</li>
-        ))}
-      </ul>
-    </article>
-
-    <article
-      class="product-section product-switcher__panel"
-      id="secrets"
-      role="tabpanel"
-      aria-labelledby="showcase-tab-secrets"
-      data-product-panel="secrets"
-      data-product-section="secrets"
-      data-active="false"
-    >
-      <div class="product-copy">
-        <p class="product-index">03 / Secrets</p>
-        <h2 class="product-title">Keep configuration out of the repo.</h2>
-        <p class="product-description">Store encrypted values in a vault, organize them across environments, and inject them only when your process starts.</p>
-        <a class="inline-link product-link" href={docsUrl} data-track="cta" data-track-label="secrets-read-docs">
-          Read the docs
-          <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
-        </a>
-      </div>
-
-      <div class="product-panel secrets-panel" role="group" aria-label="Secrets vault interface">
-        <div class="panel-toolbar">
-          <div class="panel-title">
-            <span class="product-glyph"><ProductIcon product="secrets" /></span>
-            <span><small>Vault</small><strong>orders-service</strong></span>
-          </div>
-          <span class="environment-pill">Production</span>
-        </div>
-        <div class="secret-heading"><span>Key</span><span>Value</span><span>Updated</span></div>
-        <div class="secret-row"><span>DATABASE_URL</span><code>••••••••••••</code><small>just now</small></div>
-        <div class="secret-row"><span>STRIPE_SECRET_KEY</span><code>••••••••••••</code><small>2m ago</small></div>
-        <div class="secret-row"><span>REDIS_URL</span><code>••••••••••••</code><small>5m ago</small></div>
-        <div class="secret-row"><span>WEBHOOK_SECRET</span><code>••••••••••••</code><small>1h ago</small></div>
-        <div class="secret-sync"><i></i><span>Encrypted at rest · decrypted on explicit reveal or runtime delivery</span></div>
-      </div>
-      <ul class="feature-list product-features" aria-label="Secrets capabilities">
-        {secretFeatures.map((feature) => (
-          <li><span aria-hidden="true"></span>{feature}</li>
-        ))}
-      </ul>
-    </article>
-
-    <article
-      class="product-section product-switcher__panel"
-      id="uptime"
-      role="tabpanel"
-      aria-labelledby="showcase-tab-uptime"
-      data-product-panel="uptime"
-      data-product-section="uptime"
-      data-active="false"
-    >
-      <div class="product-copy">
-        <p class="product-index">04 / Uptime</p>
-        <h2 class="product-title">Know when a service goes down.</h2>
-        <p class="product-description">Check your public endpoints, alert your team when they fail, and keep everyone informed on a status page you control.</p>
-        <a class="inline-link product-link" href={docsUrl} data-track="cta" data-track-label="uptime-read-docs">
-          Read the docs
-          <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
-        </a>
-      </div>
-
-      <div class="product-panel uptime-panel" role="group" aria-label="Uptime status page interface">
-        <div class="panel-toolbar">
-          <div class="panel-title">
-            <span class="product-glyph"><ProductIcon product="uptime" /></span>
-            <span><small>Status page</small><strong>Acme services</strong></span>
-          </div>
-          <span class="uptime-page-label">Public</span>
-        </div>
-        <div class="uptime-panel__body">
-          <div class="uptime-panel__summary">
-            <span class="uptime-panel__summary-icon" aria-hidden="true"><ProductIcon product="uptime" /></span>
-            <span><strong>All systems operational</strong><small>Current status across visible services</small></span>
-          </div>
-          <div class="uptime-panel__group">
-            <div class="uptime-panel__group-heading"><strong>Services</strong><span>2 components</span></div>
-            <div class="uptime-panel__component"><span>API</span><span><i></i>Operational</span></div>
-            <div class="uptime-panel__component"><span>Dashboard</span><span><i></i>Operational</span></div>
-          </div>
-          <div class="uptime-panel__history">
-            <span>Incident history</span>
-            <strong>No recent incidents</strong>
-          </div>
-        </div>
-      </div>
-      <ul class="feature-list product-features" aria-label="Uptime capabilities">
-        {uptimeFeatures.map((feature) => (
-          <li><span aria-hidden="true"></span>{feature}</li>
-        ))}
-      </ul>
-    </article>
-      </div>
-    </div>
-      <svg class="product-switcher__outline" data-product-outline-svg aria-hidden="true" preserveAspectRatio="none">
-        <path data-product-outline-path></path>
-      </svg>
+      <svg class="pointer-events-none absolute inset-0 z-[1] hidden h-full w-full overflow-visible group-data-[outline-ready=true]/frame:block max-[620px]:hidden" data-product-outline-svg aria-hidden="true" preserveAspectRatio="none"><path class="fill-[#0a0a0b] stroke-line-strong [stroke-width:1.5] [vector-effect:non-scaling-stroke]" data-product-outline-path></path></svg>
     </div>
   </div>
 </section>

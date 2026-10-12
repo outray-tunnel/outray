@@ -8,7 +8,6 @@ import { overviewMonitorRows, uptimeOverviewSummary } from "./overview-data";
 import { UptimeRowsSkeleton, UptimeSkeleton, UptimeSummarySkeleton } from "./uptime-skeleton";
 import { primaryButton, secondaryButton, StateBadge, UptimeError, UptimePageHeading, UptimePanel } from "./uptime-ui";
 import { incidentDuration } from "@/lib/uptime/incident-display";
-import "../outray-arc-theme.css";
 
 type Resource<T> = { data: T | null; loading: boolean; error: string | null };
 type MonitorsResponse = { monitors: UptimeMonitor[]; limit: number; canManage?: boolean };
@@ -38,7 +37,7 @@ export function UptimeOverviewContent({ orgSlug, monitors, incidents, page, onRe
   const refreshing = [monitors, incidents, page].some((resource) => resource.loading && resource.data);
   const canManage = monitors.data?.canManage === true;
 
-  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+  return <div className="mx-auto w-full max-w-[1440px] space-y-5">
     <UptimePageHeading title="Overview" description="Service health, detected issues, and your public status page."
       action={<div className="flex items-center gap-2"><Button variant="ghost" size="sm" type="button" aria-label="Refresh Uptime overview" title="Refresh overview" disabled={refreshing} onClick={onRefresh}><RefreshCw size={14} aria-hidden="true" /></Button>{canManage && <Link className={primaryButton} to="/$orgSlug/uptime/monitors" params={{ orgSlug }}><Plus size={14} aria-hidden="true" />Add monitor</Link>}</div>} />
     {refreshing && <span role="status" className="sr-only">Refreshing Uptime overview</span>}

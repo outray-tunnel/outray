@@ -137,7 +137,7 @@ function BillingWorkspace({ orgSlug, success }: { orgSlug: string; success?: boo
     else window.location.href = `/api/${orgSlug}/portal/polar`;
   };
 
-  return <div className="outray-arc mx-auto w-full max-w-[1440px] space-y-5">
+  return <div className="mx-auto w-full max-w-[1440px] space-y-5">
     <WorkspacePageHeader appearance="compact" title="Billing" description="Manage your plan, resource usage, and subscription." action={canManageBilling && query.data ? <ArcButton type="button" variant="ghost" size="sm" onClick={() => { void query.refetch(); }} loading={query.isFetching} disabled={Boolean(checkoutPlan)} aria-label="Refresh billing details"><RefreshCw size={14} aria-hidden="true" />Refresh</ArcButton> : undefined} />
     {success && canManageBilling ? <WorkspaceNotice tone="success" message="Payment completed. Your subscription details will update after confirmation." /> : null}
     {notice ? <WorkspaceNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} /> : null}

@@ -8,6 +8,7 @@ import {
   accountMenuFocusIndex,
   workspaceAccountIdentity,
 } from "../src/components/workspace-account-menu-state";
+import { workspaceScopeClassName } from "../src/components/ui/workspace-scope";
 
 // The Node test runner uses classic JSX; Vite uses automatic JSX.
 Object.assign(globalThis, { React });
@@ -126,15 +127,36 @@ test("the dashboard places one topbar above independent content scrolling, outsi
   assert.doesNotMatch(layout, /<MobileHeader\b|<MobileNavigationTrigger\b/);
   assert.match(layout, /<WorkspaceTopbar\b[\s\S]*?<main\b[\s\S]*?data-scroll-restoration-id=\{`workspace-content-/);
   assert.doesNotMatch(layout, /\{!?unifiedSidebar && <WorkspaceTopbar/);
-  assert.match(layout, /workspace-ui fixed inset-0 flex overflow-hidden/);
+  assert.match(layout, /workspaceScopeClassName/);
+  assert.match(layout, /fixed inset-0 flex overflow-hidden/);
   assert.match(layout, /flex h-full min-h-0 w-full overflow-hidden/);
   assert.match(layout, /hidden md:flex h-full/);
   assert.match(layout, /min-h-0 flex-1 overflow-y-auto/);
 });
 
+test("the reusable workspace scope preserves every typography and radius density override as Tailwind utilities", () => {
+  assert.deepEqual(workspaceScopeClassName.split(" "), [
+    String.raw`[&_.text-\[8px\]]:text-[.625rem]/[.875rem]`,
+    String.raw`[&_.text-\[9px\]]:text-[.6875rem]/[.9375rem]`,
+    String.raw`[&_.text-\[10px\]]:text-[.75rem]/[1rem]`,
+    String.raw`[&_.text-\[11px\]]:text-[.8125rem]/[1.125rem]`,
+    String.raw`[&_.text-\[12px\]]:text-[.8125rem]/[1.125rem]`,
+    "[&_.text-xs]:text-[.8125rem]/[1.125rem]",
+    String.raw`[&_.text-\[13px\]]:text-[.875rem]/[1.25rem]`,
+    String.raw`[&_.text-\[14px\]]:text-[1rem]/[1.375rem]`,
+    String.raw`[&_.text-\[15px\]]:text-[.9375rem]/[1.375rem]`,
+    "[&_.text-sm]:text-[.9375rem]/[1.375rem]",
+    "[&_.rounded-sm]:rounded-[.5rem]",
+    "[&_.rounded-md]:rounded-[.625rem]",
+    "[&_.rounded-lg]:rounded-[.75rem]",
+    "[&_.rounded-xl]:rounded-[1rem]",
+    "[&_.rounded-2xl]:rounded-[1.25rem]",
+  ]);
+});
+
 test("long workspace pages cannot scroll the sidebar and topbar out of the viewport", async () => {
   const layout = await readFile(new URL("../src/routes/$orgSlug.tsx", import.meta.url), "utf8");
-  const frame = layout.match(/className="(workspace-ui[^"]+)"/);
+  const frame = layout.match(/className=\{`\$\{workspaceScopeClassName\} ([^`]+)`\}/);
   assert.ok(frame);
   const frameClasses = frame[1].split(/\s+/);
   for (const expected of ["fixed", "inset-0", "overflow-hidden"]) {
