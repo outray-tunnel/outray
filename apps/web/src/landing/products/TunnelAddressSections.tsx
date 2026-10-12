@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import ArrowRight01Icon from "@outray/icons/stroke/ArrowRight01Icon";
 import DatabaseIcon from "@outray/icons/stroke/DatabaseIcon";
@@ -34,7 +35,7 @@ export function TunnelDomainSection() {
         <li><Check />CNAME routing and TXT ownership verification</li>
         <li><Check />The same address when you reconnect</li>
       </ul>
-      <a className={linkClass} href="/docs/custom-domains">Connect a domain<Arrow /></a>
+      <Link className={linkClass} to="/docs/$" params={{ _splat: "custom-domains" }}>Connect a domain<Arrow /></Link>
     </div>
     <figure className="relative m-0 min-w-0 rounded-[18px] border border-[#414141] bg-[#111] max-[760px]:w-full max-[760px]:max-w-[580px] max-[760px]:justify-self-center" aria-label="Illustrative custom-domain DNS configuration">
       <div className="flex min-w-0 items-center gap-[15px] rounded-t-[18px] border-b border-[#353535] bg-[#191919] px-[21px] py-[17px] max-[440px]:gap-2.5 max-[440px]:p-[15px] [&>code]:min-w-0 [&>code]:[overflow-wrap:anywhere] [&>code]:font-mono [&>code]:text-[11px] [&>code]:text-[#d0d0d0] max-[440px]:[&>code]:text-[10px]"><span className="flex shrink-0 gap-[5px] [&>i]:size-1.5 [&>i]:rounded-full [&>i]:border [&>i]:border-[#606060] [&>i]:bg-[#303030]" aria-hidden="true"><i /><i /><i /></span><code>preview.example.com</code><span className="ml-auto font-mono text-[10px] tracking-[.1em] text-[#969696]">EXAMPLE</span></div>
@@ -72,7 +73,7 @@ export function TunnelLocalSection() {
       <p className={leadClass}>Your phone is part of your dev environment, too. Add <code>--local</code> to advertise your app on your local network while keeping its public tunnel.</p>
       <div className="mt-[27px] max-w-[405px]"><Command command="outray 3000 --local" label="Copy local network command" /></div>
       <p className="mt-[17px] max-w-[440px] text-xs leading-[1.8] text-[#969696]">Devices need to share a network and support mDNS, such as Bonjour or Avahi. For trusted local HTTPS, install mkcert and trust its CA on each device; otherwise certificates are self-signed.</p>
-      <a className={linkClass} href="/docs/cli-reference#options">Explore local access<Arrow /></a>
+      <Link className={linkClass} to="/docs/$" params={{ _splat: "cli-reference" }} hash="options">Explore local access<Arrow /></Link>
     </div>
   </section>;
 }
@@ -92,6 +93,6 @@ export function TunnelProtocolsSection() {
   return <section className={sectionClass} aria-labelledby="tunnel-protocols-title">
     <div className="mx-auto max-w-[720px] text-center max-[760px]:text-left"><h2 className={titleClass} id="tunnel-protocols-title">Any protocol.<br /><span>One command away.</span></h2><p className={`${leadClass} mx-auto max-w-[505px] max-[760px]:mx-0`}>An HTTP URL, a TCP stream, or a UDP endpoint. Pick the transport your service already speaks.</p></div>
     <div className="mt-[58px] grid grid-cols-3 border-y border-[#2b2b2b] max-[760px]:mt-[39px] max-[760px]:grid-cols-1">{protocols.map((protocol, index) => <article className={`flex min-w-0 flex-col items-start px-[26px] pt-[33px] pb-[30px] max-[1000px]:px-[19px] max-[760px]:px-[5px] max-[760px]:py-[27px] ${index > 0 ? "border-l border-[#2b2b2b] max-[760px]:border-t max-[760px]:border-l-0" : ""}`} key={protocol.kind}><span className="mb-[23px] grid size-11 place-items-center rounded-[11px] border border-[#4a4a4a] bg-[#1d1d1d] text-[#e0e0e0]"><ProtocolIcon kind={protocol.kind} /></span><h3 className="text-[22px] font-[520] tracking-[-.03em] text-[#f5f5f5] max-[1000px]:text-xl">{protocol.name}</h3><p className="mt-[7px] text-[11px] leading-[1.6] text-[#b0b0b0]">{protocol.use}</p><p className="my-[22px_25px] flex-1 text-[13px] leading-[1.8] text-[#b0b0b0] max-[760px]:my-[17px_20px]">{protocol.description}</p><div className="w-full max-[760px]:max-w-[410px] [&_code]:text-[11px]"><Command command={protocol.command} label={protocol.label} /></div></article>)}</div>
-    <div className="mt-[18px] flex flex-wrap items-center justify-between gap-3"><p className="m-0 max-w-[600px] text-xs leading-[1.7] text-[#969696]">Raw TCP and UDP services still need their own authentication and encryption.</p><a className={`${linkClass} mt-0`} href="/docs/protocols">Choose your protocol<Arrow /></a></div>
+    <div className="mt-[18px] flex flex-wrap items-center justify-between gap-3"><p className="m-0 max-w-[600px] text-xs leading-[1.7] text-[#969696]">Raw TCP and UDP services still need their own authentication and encryption.</p><Link className={`${linkClass} mt-0`} to="/docs/$" params={{ _splat: "protocols" }}>Choose your protocol<Arrow /></Link></div>
   </section>;
 }
