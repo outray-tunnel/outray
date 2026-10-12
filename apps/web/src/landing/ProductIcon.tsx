@@ -90,7 +90,7 @@ export function ProductIcon({ product, className }: Props) {
   aria-hidden="true"
   focusable="false"
 >
-  <g className="product-icon__stroke" fill="none" stroke="currentColor" strokeWidth="1.7">
+  <g className="product-icon__stroke" data-icon-variant="stroke" fill="none" stroke="currentColor" strokeWidth="1.7">
     {icon.stroke.map((path) => (
       <path
         key={path.d}
@@ -100,7 +100,7 @@ export function ProductIcon({ product, className }: Props) {
       />
     ))}
   </g>
-  <g className="product-icon__solid" fill="currentColor">
+  <g className="product-icon__solid hidden" data-icon-variant="solid" fill="currentColor">
     <path d={icon.solid} fillRule="evenodd" clipRule="evenodd" />
   </g>
 </svg>
