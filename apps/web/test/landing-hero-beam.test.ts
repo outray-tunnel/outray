@@ -4,6 +4,7 @@ import { runInNewContext } from "node:vm";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterContextProvider } from "@tanstack/react-router";
 import ts from "typescript";
 import { HeroBeam } from "../src/landing/HeroBeam";
 import { HeroAuroraFallback } from "../src/landing/HeroAuroraFallback";
@@ -14,6 +15,13 @@ const beamSourceUrl = new URL("../src/landing/HeroBeam.tsx", import.meta.url);
 const canvasSourceUrl = new URL("../src/landing/HeroBeamCanvas.tsx", import.meta.url);
 const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
 type Element = React.ReactElement<Record<string, any>>;
+
+function renderHero(component: React.ReactNode) {
+  const root = createRootRoute();
+  const signup = createRoute({ getParentRoute: () => root, path: "signup" });
+  const router = createRouter({ routeTree: root.addChildren([signup]), history: createMemoryHistory({ initialEntries: ["/"] }), isServer: true });
+  return renderToStaticMarkup(React.createElement(RouterContextProvider, { router, children: component }));
+}
 
 function elements(node: React.ReactNode): Element[] {
   if (Array.isArray(node)) return node.flatMap(elements);
@@ -171,7 +179,7 @@ test("the hidden aurora is absent from SSR while the beam keeps unique SVG IDs",
 });
 
 test("hero keeps its copy and primary actions without the product links bar", () => {
-  const output = renderToStaticMarkup(React.createElement(Hero, {
+  const output = renderHero(React.createElement(Hero, {
     signupUrl: "/signup", githubUrl: "https://github.com/outray-tunnel/outray",
   }));
   assert.match(output, /aria-labelledby="hero-title"/);
