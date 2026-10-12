@@ -1,11 +1,12 @@
+import { Link } from "@tanstack/react-router";
 import { ProductIcon } from "./ProductIcon";
 import { authClient } from "@/lib/auth-client";
 
 const productLinks = [
-  { id: "tunnels", label: "Tunnels", href: "/products/tunnels", description: "Put a local service on a public URL." },
-  { id: "observability", label: "Observability", href: "/products/observability", description: "Follow requests through traces, logs, and metrics." },
-  { id: "secrets", label: "Secrets", href: "/products/secrets", description: "Deliver encrypted values to every environment." },
-  { id: "uptime", label: "Uptime", href: "/products/uptime", description: "Check endpoints and share service status." },
+  { id: "tunnels", label: "Tunnels", to: "/products/tunnels", description: "Put a local service on a public URL." },
+  { id: "observability", label: "Observability", to: "/products/observability", description: "Follow requests through traces, logs, and metrics." },
+  { id: "secrets", label: "Secrets", to: "/products/secrets", description: "Deliver encrypted values to every environment." },
+  { id: "uptime", label: "Uptime", to: "/products/uptime", description: "Check endpoints and share service status." },
 ] as const;
 
 const activeItemClasses = {
@@ -27,12 +28,14 @@ const previewCardClass = "overflow-hidden rounded-[9px] border border-white/[.09
 const focusClass = "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-light";
 const primaryButtonClass = `relative inline-flex min-h-[42px] items-center justify-center gap-2 overflow-hidden rounded-[14px] border border-white/90 bg-white px-4 text-[.94rem] font-[620] tracking-[-.015em] text-[#080808] shadow-[0_10px_30px_rgb(255_255_255_/.08)] transition-[border-color,background-color,transform,box-shadow] duration-200 ease-snappy hover:-translate-y-px hover:border-white hover:bg-[#f1eff7] hover:shadow-[0_12px_36px_rgb(131_103_199_/.18)] ${focusClass}`;
 
-export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginUrl: string; signupUrl: string; docsUrl: string; githubUrl: string }) {
+export function Navigation({ loginUrl, signupUrl, githubUrl }: { loginUrl: "/login"; signupUrl: "/signup"; githubUrl: string }) {
   const { data: session, isPending: isSessionPending } = authClient.useSession();
   const { data: activeOrganization } = authClient.useActiveOrganization();
   const { data: organizations } = authClient.useListOrganizations();
   const dashboardOrganization = organizations?.find((organization) => organization.id === activeOrganization?.id) ?? organizations?.[0];
-  const dashboardUrl = dashboardOrganization ? `/${encodeURIComponent(dashboardOrganization.slug)}/tunnel` : "/select";
+  const dashboardLink = dashboardOrganization
+    ? { to: "/$orgSlug/tunnel" as const, params: { orgSlug: dashboardOrganization.slug } }
+    : { to: "/select" as const };
 
   return (
     <header
@@ -40,16 +43,16 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
       data-site-header
     >
       <div className="pointer-events-auto mx-auto flex min-h-[78px] w-[min(calc(100%-48px),var(--container-page))] items-center gap-6 max-[1080px]:w-[min(calc(100%-36px),var(--container-page))] max-[860px]:w-[min(calc(100%-28px),var(--container-page))] max-[860px]:gap-2.5 max-[620px]:w-[min(calc(100%-24px),var(--container-page))]">
-        <a
+        <Link
           className={`inline-flex min-h-[42px] shrink-0 items-center gap-2.5 rounded-[11px] text-[1.06rem] font-bold tracking-[-.035em] text-[#f5f5f6] ${focusClass}`}
-          href="/"
+          to="/"
           aria-label="OutRay home"
           data-track="navigation"
           data-track-label="logo"
         >
           <img className="h-[30px] w-[30px]" src="/brand/outray-mark.svg" width="34" height="34" alt="" />
           <span>OutRay</span>
-        </a>
+        </Link>
 
         <nav className="mx-auto flex items-center gap-[clamp(22px,3vw,42px)] max-[860px]:hidden" aria-label="Primary navigation">
           <details className="group/products relative" data-products-menu data-active-product="tunnels">
@@ -60,21 +63,21 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
             <div className="absolute top-full left-1/2 z-[2] w-[min(720px,calc(100vw-48px))] -translate-x-1/2 pt-[17px]">
               <div className="grid min-h-[390px] grid-cols-[.95fr_1.05fr] gap-3 rounded-2xl border border-white/[.11] bg-[#0d0d0f] p-2.5 shadow-[0_30px_70px_rgb(0_0_0_/.48)] animate-products-menu motion-reduce:animate-none">
                 <div className="py-[5px]">
-                  <a className={`mx-3 mt-[5px] mb-[9px] inline-flex font-mono text-[.69rem] font-semibold tracking-[.12em] text-[#74747e] uppercase transition-colors hover:text-white ${focusClass}`} href="/products" data-track="navigation" data-track-label="all-products">All products →</a>
-                  {productLinks.map(({ id, label, href, description }) => (
-                    <a
+                  <Link className={`mx-3 mt-[5px] mb-[9px] inline-flex font-mono text-[.69rem] font-semibold tracking-[.12em] text-[#74747e] uppercase transition-colors hover:text-white ${focusClass}`} to="/products" data-track="navigation" data-track-label="all-products">All products →</Link>
+                  {productLinks.map(({ id, label, to, description }) => (
+                    <Link
                       key={id}
                       className={`flex min-h-[82px] items-center gap-3 rounded-[10px] px-2.5 py-[11px] text-[#e5e5e8] transition-colors duration-200 hover:bg-white/[.055] focus-visible:bg-white/[.055] ${focusClass} ${activeItemClasses[id]}`}
-                      href={href}
+                      to={to}
                       aria-label={label}
                       data-menu-product={id}
                       data-track="navigation"
                       data-track-label={id}
                     >
-                      <span className="grid h-[39px] w-[39px] shrink-0 place-items-center rounded-[10px] border border-white/10 bg-[#151518] text-[#b6a1e8]"><ProductIcon product={id} className="h-5 w-5 [&_.product-icon__solid]:hidden" /></span>
+                      <span className="grid h-[39px] w-[39px] shrink-0 place-items-center rounded-[10px] border border-white/10 bg-[#151518] text-[#b6a1e8]"><ProductIcon product={id} className="h-5 w-5" /></span>
                       <span className="grid min-w-0 gap-[3px]"><strong className="text-[.94rem] font-[620]">{label}</strong><small className="text-[.77rem] leading-[1.32] text-[#898993]">{description}</small></span>
                       <svg className="ml-auto h-4 w-4 shrink-0 text-[#777780]" aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.4" /></svg>
-                    </a>
+                    </Link>
                   ))}
                 </div>
                 <div className="relative min-w-0 overflow-hidden rounded-[10px] border border-white/[.07] bg-[#121215]" aria-hidden="true">
@@ -122,7 +125,7 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
             </div>
           </details>
           <ul className="flex list-none items-center gap-[clamp(17px,2vw,27px)] p-0 [&_a]:inline-flex [&_a]:min-h-[42px] [&_a]:items-center [&_a]:text-[.91rem] [&_a]:font-[520] [&_a]:text-[#81818b] [&_a]:transition-colors [&_a]:duration-200 hover:[&_a]:text-white [&_a:focus-visible]:outline-2 [&_a:focus-visible]:outline-offset-4 [&_a:focus-visible]:outline-accent-light">
-            <li><a href={docsUrl} data-track="navigation" data-track-label="docs">Docs</a></li>
+            <li><Link to="/docs/$" params={{ _splat: "" }} data-track="navigation" data-track-label="docs">Docs</Link></li>
             <li><a href={githubUrl} target="_blank" rel="noreferrer" data-track="github" data-track-label="navigation">GitHub</a></li>
           </ul>
         </nav>
@@ -131,11 +134,11 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
           {isSessionPending ? (
             <span className="h-[42px] w-[210px] max-[860px]:w-[118px]" aria-hidden="true" />
           ) : session?.user ? (
-            <a className={`${primaryButtonClass} max-[860px]:px-3.5`} href={dashboardUrl} data-track="cta" data-track-label="nav-dashboard">Dashboard</a>
+            <Link className={`${primaryButtonClass} max-[860px]:px-3.5`} {...dashboardLink} data-track="cta" data-track-label="nav-dashboard">Dashboard</Link>
           ) : (
             <>
-              <a className={`inline-flex min-h-10 items-center rounded-[10px] px-3 text-[.9rem] font-[540] text-[#aaaab2] transition-colors duration-200 hover:bg-white/[.055] hover:text-white max-[860px]:hidden ${focusClass}`} href={loginUrl} data-track="cta" data-track-label="nav-login">Log in</a>
-              <a className={`${primaryButtonClass} max-[860px]:px-3.5`} href={signupUrl} data-track="cta" data-track-label="nav-start-free">Start free</a>
+              <Link className={`inline-flex min-h-10 items-center rounded-[10px] px-3 text-[.9rem] font-[540] text-[#aaaab2] transition-colors duration-200 hover:bg-white/[.055] hover:text-white max-[860px]:hidden ${focusClass}`} to={loginUrl} data-track="cta" data-track-label="nav-login">Log in</Link>
+              <Link className={`${primaryButtonClass} max-[860px]:px-3.5`} to={signupUrl} data-track="cta" data-track-label="nav-start-free">Start free</Link>
             </>
           )}
         </div>
@@ -149,22 +152,22 @@ export function Navigation({ loginUrl, signupUrl, docsUrl, githubUrl }: { loginU
             <nav aria-label="Mobile navigation">
               <p className="mx-2.5 mt-2 mb-1.5 font-mono text-[.69rem] font-semibold tracking-[.12em] text-[#73737e] uppercase">Products</p>
               <ul className="list-none p-0 [&_li+li]:mt-0.5">
-                {productLinks.map(({ id, label, href }) => (
-                  <li key={id}><a className={`flex min-h-12 items-center rounded-[10px] px-3 text-[.93rem] text-[#d1d1d7] hover:bg-white/5 hover:text-white ${focusClass}`} href={href} data-track="navigation" data-track-label={`mobile-${id}`}><span>{label}</span><svg className="ml-auto h-4 w-4 text-[#6f6f79]" aria-hidden="true" viewBox="0 0 20 20"><path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg></a></li>
+                {productLinks.map(({ id, label, to }) => (
+                  <li key={id}><Link className={`flex min-h-12 items-center rounded-[10px] px-3 text-[.93rem] text-[#d1d1d7] hover:bg-white/5 hover:text-white ${focusClass}`} to={to} data-track="navigation" data-track-label={`mobile-${id}`}><span>{label}</span><svg className="ml-auto h-4 w-4 text-[#6f6f79]" aria-hidden="true" viewBox="0 0 20 20"><path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg></Link></li>
                 ))}
               </ul>
               <p className="mx-2.5 mt-2 mb-1.5 font-mono text-[.69rem] font-semibold tracking-[.12em] text-[#73737e] uppercase">Explore</p>
               <ul className="grid list-none grid-cols-1 p-0">
-                <li><a className={`flex min-h-12 items-center rounded-[10px] px-3 text-[.93rem] text-[#d1d1d7] hover:bg-white/5 hover:text-white ${focusClass}`} href="/products" data-track="navigation" data-track-label="mobile-all-products">All products</a></li>
-                <li><a className={`flex min-h-12 items-center rounded-[10px] px-3 text-[.93rem] text-[#d1d1d7] hover:bg-white/5 hover:text-white ${focusClass}`} href={docsUrl} data-track="navigation" data-track-label="mobile-docs">Docs</a></li>
+                <li><Link className={`flex min-h-12 items-center rounded-[10px] px-3 text-[.93rem] text-[#d1d1d7] hover:bg-white/5 hover:text-white ${focusClass}`} to="/products" data-track="navigation" data-track-label="mobile-all-products">All products</Link></li>
+                <li><Link className={`flex min-h-12 items-center rounded-[10px] px-3 text-[.93rem] text-[#d1d1d7] hover:bg-white/5 hover:text-white ${focusClass}`} to="/docs/$" params={{ _splat: "" }} data-track="navigation" data-track-label="mobile-docs">Docs</Link></li>
                 <li><a className={`flex min-h-12 items-center rounded-[10px] px-3 text-[.93rem] text-[#d1d1d7] hover:bg-white/5 hover:text-white ${focusClass}`} href={githubUrl} target="_blank" rel="noreferrer" data-track="github" data-track-label="mobile-navigation">GitHub</a></li>
               </ul>
             </nav>
             <div className="mt-1.5 grid grid-cols-1 border-t border-line pt-2.5">
               {!isSessionPending && (session?.user ? (
-                <a className={`flex min-h-[46px] items-center justify-between rounded-[10px] px-3 text-[.9rem] text-[#e5e5e9] hover:bg-white/5 ${focusClass}`} href={dashboardUrl} data-track="cta" data-track-label="mobile-dashboard">Dashboard <span aria-hidden="true">↗</span></a>
+                <Link className={`flex min-h-[46px] items-center justify-between rounded-[10px] px-3 text-[.9rem] text-[#e5e5e9] hover:bg-white/5 ${focusClass}`} {...dashboardLink} data-track="cta" data-track-label="mobile-dashboard">Dashboard <span aria-hidden="true">↗</span></Link>
               ) : (
-                <a className={`flex min-h-[46px] items-center justify-between rounded-[10px] px-3 text-[.9rem] text-[#e5e5e9] hover:bg-white/5 ${focusClass}`} href={loginUrl} data-track="cta" data-track-label="mobile-login">Log in to console <span aria-hidden="true">↗</span></a>
+                <Link className={`flex min-h-[46px] items-center justify-between rounded-[10px] px-3 text-[.9rem] text-[#e5e5e9] hover:bg-white/5 ${focusClass}`} to={loginUrl} data-track="cta" data-track-label="mobile-login">Log in to console <span aria-hidden="true">↗</span></Link>
               ))}
             </div>
           </div>
