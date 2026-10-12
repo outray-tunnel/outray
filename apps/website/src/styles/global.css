@@ -74,8 +74,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  body::before,
-  body::after {
+  body::before {
     position: fixed;
     z-index: -2;
     inset: 0;
@@ -89,13 +88,6 @@
       linear-gradient(90deg, rgb(255 255 255 / 0.025) 1px, transparent 1px);
     background-size: 64px 64px;
     mask-image: linear-gradient(to bottom, black, transparent 62%);
-  }
-
-  body::after {
-    z-index: -1;
-    background:
-      radial-gradient(circle at 2% 32%, rgb(131 103 199 / 0.08), transparent 22rem),
-      radial-gradient(circle at 98% 68%, rgb(131 103 199 / 0.07), transparent 25rem);
   }
 
   ::selection {
