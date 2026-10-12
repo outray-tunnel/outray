@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import ArrowRight01Icon from "@outray/icons/stroke/ArrowRight01Icon";
 import Globe02Icon from "@outray/icons/stroke/Globe02Icon";
@@ -76,7 +77,7 @@ export function TunnelNetworkDiagram() {
     <div className="mt-[42px] grid justify-items-center gap-2.5 text-center max-[760px]:mt-7 max-[760px]:gap-3">
       <p className="m-0 text-[11px] leading-[1.7] text-[#989898]">Illustrative connection. Keep your app and CLI running to stay connected.</p>
       <div className="flex flex-wrap items-center justify-center gap-x-[25px] gap-y-3">
-        <a className="inline-flex min-h-10 items-center gap-[9px] rounded-sm text-xs text-[#d0d0d0] transition-colors duration-150 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c5c5c5] motion-reduce:transition-none" href="/docs/architecture">How the connection works<HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={1.5} aria-hidden="true" /></a>
+        <Link className="inline-flex min-h-10 items-center gap-[9px] rounded-sm text-xs text-[#d0d0d0] transition-colors duration-150 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c5c5c5] motion-reduce:transition-none" to="/docs/$" params={{ _splat: "architecture" }}>How the connection works<HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={1.5} aria-hidden="true" /></Link>
         {reducedMotion === true ? <span className="text-[11px] text-[#989898]">Static diagram</span> : <button className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-[7px] border border-[#303030] bg-[#111] px-2.5 py-[5px] font-[inherit] text-[11px] text-[#b3b3b3] transition-[background,color] duration-150 hover:bg-[#1d1d1d] hover:text-[#f1f1f1] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c5c5c5] motion-reduce:transition-none" type="button" aria-label={paused ? "Resume connection animation" : "Pause connection animation"} aria-pressed={paused} onClick={() => setPaused((value) => !value)}><HugeiconsIcon icon={paused ? PlayIcon : PauseIcon} size={13} strokeWidth={1.5} aria-hidden="true" />{paused ? "Resume" : "Pause"}</button>}
       </div>
     </div>
