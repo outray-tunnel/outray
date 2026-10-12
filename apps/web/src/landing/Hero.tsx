@@ -1,7 +1,8 @@
+import { Link } from "@tanstack/react-router";
 import { GitHubIcon } from "./GitHubIcon";
 import { HeroBeam } from "./HeroBeam";
 
-export function Hero({ signupUrl, githubUrl }: { signupUrl: string; githubUrl: string }) {
+export function Hero({ signupUrl, githubUrl }: { signupUrl: "/signup"; githubUrl: string }) {
   return (
 <section className="relative isolate grid min-h-[min(1060px,100svh)] place-items-[start_center] overflow-hidden bg-page pt-[clamp(240px,26vh,300px)] pb-[72px] max-[860px]:pt-[164px] max-[620px]:pb-[62px]" id="top" aria-labelledby="hero-title">
   <HeroBeam />
@@ -11,10 +12,10 @@ export function Hero({ signupUrl, githubUrl }: { signupUrl: string; githubUrl: s
       Connect your services, understand your systems, and keep your apps secure and reliable—all in one developer platform.
     </p>
     <div className="mt-[34px] flex flex-wrap justify-center gap-[11px] max-[620px]:grid max-[620px]:w-full max-[620px]:grid-cols-1">
-      <a className="relative inline-flex min-h-[52px] items-center justify-center gap-2 overflow-hidden rounded-[14px] border border-white/90 bg-white px-[23px] text-[.94rem] font-[620] tracking-[-.015em] text-[#080808] shadow-[0_10px_30px_rgb(255_255_255/.08)] transition-[border-color,background-color,color,transform,box-shadow] duration-200 ease-snappy hover:-translate-y-px hover:border-white hover:bg-[#f1eff7] hover:shadow-[0_12px_36px_rgb(131_103_199/.18)] max-[620px]:w-full [&>svg]:size-[18px] [&>svg]:shrink-0 [&>svg]:transition-transform [&>svg]:duration-200 [&>svg]:ease-snappy hover:[&>svg]:translate-x-0.5" href={signupUrl} data-track="cta" data-track-label="hero-start-free">
+      <Link className="relative inline-flex min-h-[52px] items-center justify-center gap-2 overflow-hidden rounded-[14px] border border-white/90 bg-white px-[23px] text-[.94rem] font-[620] tracking-[-.015em] text-[#080808] shadow-[0_10px_30px_rgb(255_255_255/.08)] transition-[border-color,background-color,color,transform,box-shadow] duration-200 ease-snappy hover:-translate-y-px hover:border-white hover:bg-[#f1eff7] hover:shadow-[0_12px_36px_rgb(131_103_199/.18)] max-[620px]:w-full [&>svg]:size-[18px] [&>svg]:shrink-0 [&>svg]:transition-transform [&>svg]:duration-200 [&>svg]:ease-snappy hover:[&>svg]:translate-x-0.5" to={signupUrl} data-track="cta" data-track-label="hero-start-free">
         Start free
         <svg aria-hidden="true" viewBox="0 0 20 20"><path d="m7 4 6 6-6 6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6"></path></svg>
-      </a>
+      </Link>
       <a className="relative inline-flex min-h-[52px] items-center justify-center gap-2 overflow-hidden rounded-[14px] border border-line-strong bg-[#111113] px-[23px] text-[.94rem] font-[620] tracking-[-.015em] text-ink transition-[border-color,background-color,color,transform,box-shadow] duration-200 ease-snappy hover:-translate-y-px hover:border-white/30 hover:bg-[#18181b] max-[620px]:w-full [&>svg]:size-[18px] [&>svg]:shrink-0" href={githubUrl} target="_blank" rel="noreferrer" data-track="github" data-track-label="hero">
         <GitHubIcon />
         GitHub
