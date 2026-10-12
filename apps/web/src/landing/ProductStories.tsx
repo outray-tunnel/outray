@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { ProductIcon } from "./ProductIcon";
 
 const tunnelFeatures = [
@@ -51,8 +52,9 @@ const secretRows = [
 ];
 
 const focusClass = "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-light";
-const tabClass = `group relative flex h-20 min-w-0 items-center justify-center gap-3.5 rounded-full border border-white/[.09] bg-surface-2 px-[clamp(12px,2.2vw,28px)] text-[clamp(.93rem,1.3vw,1.05rem)] font-[620] text-[#9b9ba3] transition-colors duration-150 hover:border-white/20 hover:bg-[#19191c] hover:text-[#f5f5f6] aria-selected:rounded-[40px_40px_0_0] aria-selected:border-line-strong aria-selected:border-b-transparent aria-selected:bg-[#0a0a0b] aria-selected:text-white after:pointer-events-none after:absolute after:right-px after:bottom-[-25px] after:left-px after:hidden after:h-[27px] after:bg-[#0a0a0b] after:content-[''] aria-selected:after:block group-data-[outline-ready=true]/frame:border-transparent group-data-[outline-ready=true]/frame:bg-transparent group-data-[outline-ready=true]/frame:hover:border-transparent group-data-[outline-ready=true]/frame:hover:bg-transparent group-data-[outline-ready=true]/frame:aria-selected:after:hidden max-[860px]:gap-2.5 max-[860px]:px-3 max-[860px]:text-[.9rem] max-[620px]:h-[50px] max-[620px]:shrink-0 max-[620px]:snap-start max-[620px]:gap-2 max-[620px]:rounded-full max-[620px]:px-4 max-[620px]:text-[.82rem] max-[620px]:aria-selected:h-[50px] max-[620px]:aria-selected:rounded-full max-[620px]:aria-selected:border-white/[.18] max-[620px]:aria-selected:bg-[#202023] max-[620px]:aria-selected:after:hidden ${focusClass}`;
-const tabIconClass = "h-7 w-7 shrink-0 text-current [&_.product-icon__solid]:hidden group-aria-selected:[&_.product-icon__stroke]:hidden group-aria-selected:[&_.product-icon__solid]:inline max-[860px]:h-[23px] max-[860px]:w-[23px] max-[620px]:h-5 max-[620px]:w-5";
+// The SVG owns the selected outline once ready; override the selected fallback too.
+const tabClass = `group relative flex h-20 min-w-0 items-center justify-center gap-3.5 rounded-full border border-white/[.09] bg-surface-2 px-[clamp(12px,2.2vw,28px)] text-[clamp(.93rem,1.3vw,1.05rem)] font-[620] text-[#9b9ba3] transition-[color] duration-150 hover:border-white/20 hover:bg-[#19191c] hover:text-[#f5f5f6] aria-selected:rounded-[40px_40px_0_0] aria-selected:border-line-strong aria-selected:border-b-transparent aria-selected:bg-[#0a0a0b] aria-selected:text-white after:pointer-events-none after:absolute after:right-px after:bottom-[-25px] after:left-px after:hidden after:h-[27px] after:bg-[#0a0a0b] after:content-[''] aria-selected:after:block group-data-[outline-ready=true]/frame:border-transparent group-data-[outline-ready=true]/frame:bg-transparent group-data-[outline-ready=true]/frame:hover:border-transparent group-data-[outline-ready=true]/frame:hover:bg-transparent group-data-[outline-ready=true]/frame:aria-selected:border-transparent group-data-[outline-ready=true]/frame:aria-selected:bg-transparent group-data-[outline-ready=true]/frame:aria-selected:after:hidden max-[860px]:gap-2.5 max-[860px]:px-3 max-[860px]:text-[.9rem] max-[620px]:h-[50px] max-[620px]:shrink-0 max-[620px]:snap-start max-[620px]:gap-2 max-[620px]:rounded-full max-[620px]:px-4 max-[620px]:text-[.82rem] max-[620px]:aria-selected:h-[50px] max-[620px]:aria-selected:rounded-full max-[620px]:aria-selected:border-white/[.18] max-[620px]:aria-selected:bg-[#202023] max-[620px]:aria-selected:after:hidden ${focusClass}`;
+const tabIconClass = "h-7 w-7 shrink-0 text-current group-aria-selected:[&_[data-icon-variant=stroke]]:hidden group-aria-selected:[&_[data-icon-variant=solid]]:inline max-[860px]:h-[23px] max-[860px]:w-[23px] max-[620px]:h-5 max-[620px]:w-5";
 const articleClass = "group/panel grid min-h-[640px] grid-cols-[minmax(0,.78fr)_minmax(0,1.22fr)] items-center gap-x-[clamp(32px,4vw,60px)] gap-y-[clamp(30px,3.5vw,46px)] p-[clamp(40px,4.6vw,64px)] [html.js_&]:data-[active=false]:hidden group-data-[switching=true]/stage:data-[active=true]:animate-product-panel motion-reduce:animate-none max-[1080px]:grid-cols-1 max-[1080px]:items-start max-[1080px]:gap-y-[34px] max-[860px]:min-h-0 max-[860px]:p-12 max-[620px]:min-h-0 max-[620px]:gap-y-7 max-[620px]:px-5 max-[620px]:pt-[30px] max-[620px]:pb-[22px]";
 const copyClass = "relative col-start-1 row-start-1 max-w-[470px] max-[1080px]:max-w-[720px]";
 const indexClass = "w-fit rounded-[9px] px-2.5 py-[7px] text-[.66rem] font-[680] tracking-[.08em] text-[#bba9e5] uppercase";
@@ -65,7 +67,7 @@ const panelClass = "relative col-start-2 row-start-1 min-h-[460px] w-full min-w-
 const toolbarClass = "relative z-[2] flex min-h-[70px] items-center justify-between border-b border-line px-5";
 const panelTitleClass = "flex items-center gap-3 [&>span:last-child]:grid [&>span:last-child]:gap-0.5 [&_small]:text-[.61rem] [&_small]:font-[650] [&_small]:tracking-[.09em] [&_small]:text-[#65656d] [&_small]:uppercase [&_strong]:text-[.82rem] [&_strong]:font-[620] [&_strong]:text-[#ededf0]";
 const glyphClass = "grid h-[37px] w-[37px] place-items-center rounded-[10px] border border-[rgb(131_103_199_/.22)] bg-[rgb(131_103_199_/.08)] text-[#b8a6e5]";
-const panelIconClass = "h-[19px] w-[19px] [&_.product-icon__solid]:hidden";
+const panelIconClass = "h-[19px] w-[19px]";
 const featureListClass = "col-span-full row-start-2 grid list-none grid-cols-4 border-t border-line pt-[26px] max-[1080px]:col-start-1 max-[1080px]:row-start-3 max-[1080px]:grid-cols-2 max-[620px]:grid-cols-1 max-[620px]:pt-3.5";
 const featureItemClasses = [
   "flex min-w-0 items-start gap-2.5 py-0.5 pr-[18px] text-[.83rem] leading-[1.45] text-[#b7b7c0] max-[1080px]:px-0 max-[1080px]:py-2.5 max-[620px]:py-[11px]",
@@ -85,7 +87,7 @@ function FeatureList({ features, label }: { features: string[]; label: string })
   );
 }
 
-export function ProductStories({ docsUrl }: { docsUrl: string }) {
+export function ProductStories() {
   return (
     <section className="py-[clamp(24px,4vw,56px)] pb-[clamp(104px,12vw,170px)] max-[620px]:pt-7 max-[620px]:pb-[86px]" aria-label="Explore OutRay products">
       <div className="relative mx-auto w-[min(calc(100%-48px),var(--container-page))] max-[1080px]:w-[min(calc(100%-36px),var(--container-page))] max-[860px]:w-[min(calc(100%-28px),var(--container-page))] max-[620px]:w-[min(calc(100%-24px),var(--container-page))]" data-product-tabs data-default-tab="tunnels" data-tab-group="showcase">
@@ -111,8 +113,8 @@ export function ProductStories({ docsUrl }: { docsUrl: string }) {
                   <h2 className={titleClass}>Give localhost a real address.</h2>
                   <p className={descriptionClass}>Put a local service online in seconds, keep a stable domain, and inspect the requests that cross the tunnel.</p>
                   <div className={actionClass}>
-                    <a className={linkClass} href="/products/tunnels" data-track="cta" data-track-label="tunnels-explore">Explore Tunnels <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg></a>
-                    <a className={docsLinkClass} href={`${docsUrl}/tunnels`} data-track="cta" data-track-label="tunnels-read-docs">Documentation</a>
+                    <Link className={linkClass} to="/products/tunnels" data-track="cta" data-track-label="tunnels-explore">Explore Tunnels <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg></Link>
+                    <Link className={docsLinkClass} to="/docs/$" params={{ _splat: "tunnels" }} data-track="cta" data-track-label="tunnels-read-docs">Documentation</Link>
                   </div>
                 </div>
                 <div className={`${panelClass} isolate`} role="group" aria-label="Tunnel request interface">
@@ -138,8 +140,8 @@ export function ProductStories({ docsUrl }: { docsUrl: string }) {
                   <h2 className={titleClass}>Follow a request all the way through.</h2>
                   <p className={descriptionClass}>See what your server did, where it spent time, and which log belongs to which request—without instrumenting every handler by hand.</p>
                   <div className={actionClass}>
-                    <a className={linkClass} href="/products/observability" data-track="cta" data-track-label="observability-explore">Explore Observability <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg></a>
-                    <a className={docsLinkClass} href={`${docsUrl}/observability`} data-track="cta" data-track-label="observability-read-docs">Documentation</a>
+                    <Link className={linkClass} to="/products/observability" data-track="cta" data-track-label="observability-explore">Explore Observability <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg></Link>
+                    <Link className={docsLinkClass} to="/docs/$" params={{ _splat: "observability" }} data-track="cta" data-track-label="observability-read-docs">Documentation</Link>
                   </div>
                 </div>
                 <div className={`${panelClass} isolate`} role="group" aria-label="Distributed trace interface">
@@ -160,8 +162,8 @@ export function ProductStories({ docsUrl }: { docsUrl: string }) {
                   <h2 className={titleClass}>Keep configuration out of the repo.</h2>
                   <p className={descriptionClass}>Store encrypted values in a vault, organize them across environments, and inject them only when your process starts.</p>
                   <div className={actionClass}>
-                    <a className={linkClass} href="/products/secrets" data-track="cta" data-track-label="secrets-explore">Explore Secrets <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg></a>
-                    <a className={docsLinkClass} href={`${docsUrl}/secrets`} data-track="cta" data-track-label="secrets-read-docs">Documentation</a>
+                    <Link className={linkClass} to="/products/secrets" data-track="cta" data-track-label="secrets-explore">Explore Secrets <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg></Link>
+                    <Link className={docsLinkClass} to="/docs/$" params={{ _splat: "secrets" }} data-track="cta" data-track-label="secrets-read-docs">Documentation</Link>
                   </div>
                 </div>
                 <div className={panelClass} role="group" aria-label="Secrets vault interface">
@@ -181,8 +183,8 @@ export function ProductStories({ docsUrl }: { docsUrl: string }) {
                   <h2 className={titleClass}>Know when a service goes down.</h2>
                   <p className={descriptionClass}>Check your public endpoints, alert your team when they fail, and keep everyone informed on a status page you control.</p>
                   <div className={actionClass}>
-                    <a className={linkClass} href="/products/uptime" data-track="cta" data-track-label="uptime-explore">Explore Uptime <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg></a>
-                    <a className={docsLinkClass} href={`${docsUrl}/uptime`} data-track="cta" data-track-label="uptime-read-docs">Documentation</a>
+                    <Link className={linkClass} to="/products/uptime" data-track="cta" data-track-label="uptime-explore">Explore Uptime <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg></Link>
+                    <Link className={docsLinkClass} to="/docs/$" params={{ _splat: "uptime" }} data-track="cta" data-track-label="uptime-read-docs">Documentation</Link>
                   </div>
                 </div>
                 <div className={panelClass} role="group" aria-label="Uptime status page interface">
