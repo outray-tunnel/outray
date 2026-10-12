@@ -1,4 +1,5 @@
 import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Activity03Icon from "@outray/icons/stroke/Activity03Icon";
 import ArrowRight01Icon from "@outray/icons/stroke/ArrowRight01Icon";
@@ -133,7 +134,7 @@ function PluginTabs() {
         </div>
         <div className="flex min-h-[45px] items-center justify-between gap-2.5 pt-3 max-[1050px]:flex-wrap max-[1050px]:gap-x-3 max-[1050px]:gap-y-0.5 max-[540px]:gap-x-2.5 max-[540px]:gap-y-0.5">
           <code className="min-w-0 overflow-auto py-[3px] font-mono text-[10px] whitespace-nowrap text-[#aaa] max-[540px]:text-[9px]">{plugin.install}</code>
-          <a className={smallLinkClass} href={plugin.docs}>Setup guide<HugeiconsIcon icon={ArrowRight01Icon} aria-hidden="true" size={14} strokeWidth={1.7} /></a>
+          <Link className={smallLinkClass} to="/docs/$" params={{ _splat: plugin.docs.slice("/docs/".length) }}>Setup guide<HugeiconsIcon icon={ArrowRight01Icon} aria-hidden="true" size={14} strokeWidth={1.7} /></Link>
         </div>
       </div>)}
       <p className="mt-[5px] text-[10px] leading-[1.6] text-[#a3a3a3] max-[540px]:text-[9px]">Use a server-side token with tunnel access. Never expose it in client code.</p>
@@ -182,7 +183,7 @@ function RequestInspection() {
       </div>
     </div>
     <span className="absolute size-px overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status">Showing example {request.method} {request.path}, {request.status}, {request.duration}.</span>
-    <div className="mt-auto flex items-center justify-between gap-3 pt-6 max-[1050px]:flex-wrap max-[1050px]:gap-1.5 max-[820px]:flex-nowrap max-[540px]:flex-wrap max-[540px]:gap-1.5"><span className="text-[11px] text-[#a3a3a3]">See the request, not just the status.</span><a className={smallLinkClass} href="/docs/tunnels">Explore Tunnels<HugeiconsIcon icon={ArrowRight01Icon} aria-hidden="true" size={14} strokeWidth={1.7} /></a></div>
+    <div className="mt-auto flex items-center justify-between gap-3 pt-6 max-[1050px]:flex-wrap max-[1050px]:gap-1.5 max-[820px]:flex-nowrap max-[540px]:flex-wrap max-[540px]:gap-1.5"><span className="text-[11px] text-[#a3a3a3]">See the request, not just the status.</span><Link className={smallLinkClass} to="/docs/$" params={{ _splat: "tunnels" }}>Explore Tunnels<HugeiconsIcon icon={ArrowRight01Icon} aria-hidden="true" size={14} strokeWidth={1.7} /></Link></div>
   </article>;
 }
 
