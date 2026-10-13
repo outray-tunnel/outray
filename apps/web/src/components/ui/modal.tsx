@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion, type Transition } from "motion/react";
 import { IconButton } from "./icon-button";
 
 export interface ModalProps {
@@ -43,6 +43,9 @@ export function Modal({
   size = "md",
   appearance = "default",
 }: ModalProps) {
+  const reduced = useReducedMotion();
+  const enter: Transition = { type: "tween", duration: reduced ? 0 : 0.16, ease: [0.16, 1, 0.3, 1] };
+  const leave: Transition = { type: "tween", duration: reduced ? 0 : 0.12, ease: [0.22, 1, 0.36, 1] };
   const appearanceStyles =
     appearance === "flat"
       ? "bg-[#080808] border border-white/[0.08] rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
@@ -53,17 +56,19 @@ export function Modal({
       {isOpen && (
         <>
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={reduced ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, transition: leave }}
+            transition={enter}
             onClick={onClose}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
           <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-4">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={reduced ? false : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: reduced ? 0 : 2, transition: leave }}
+              transition={enter}
               className={`pointer-events-auto flex max-h-[90vh] w-full flex-col overflow-hidden ${sizeStyles[size]} ${appearanceStyles}`}
             >
               {children}
