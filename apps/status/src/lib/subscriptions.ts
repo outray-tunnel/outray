@@ -20,16 +20,17 @@ const MAX_PENDING_SUBSCRIBERS = 2_000;
 const MAX_SIGNUPS_PER_IP_HOUR = 5;
 const MAX_SIGNUPS_PER_EMAIL_QUARTER_HOUR = 1;
 
-export type SubscriptionResult = "sent" | "already-confirmed" | "rate-limited" | "full";
+export type SubscriptionResult = "sent" | "already-confirmed" | "rate-limited" | "full" | "disabled";
 
 export async function requestSubscription(pageId: string, rawEmail: string, clientIp: string): Promise<SubscriptionResult> {
   const config = getStatusConfig();
   if (!config.enabled) throw new Error("Uptime is disabled");
-  if (!config.zeptoApiKey || !config.fromEmail) throw new Error("Subscription email delivery is not configured");
   const email = normalizeEmail(rawEmail);
   if (!email) throw new Error("Invalid email address");
   const page = await findPublishedPageById(pageId);
   if (!page) throw new Error("Status page not found");
+  if (!page.subscriptions_enabled) return "disabled";
+  if (!config.zeptoApiKey || !config.fromEmail) throw new Error("Subscription email delivery is not configured");
 
   const ipHash = hashRateKey("ip", clientIp);
   const emailHash = hashRateKey("email", email);
@@ -37,7 +38,13 @@ export async function requestSubscription(pageId: string, rawEmail: string, clie
   let rawToken: string | null = null;
   try {
     await client.query("BEGIN");
-    await client.query("SELECT id FROM uptime_status_pages WHERE id = $1 FOR UPDATE", [page.id]);
+    const lockedPage = await client.query<{ published: boolean; subscriptions_enabled: boolean }>(
+      "SELECT published, subscriptions_enabled FROM uptime_status_pages WHERE id = $1 FOR UPDATE", [page.id],
+    );
+    if (!lockedPage.rows[0]?.published || !lockedPage.rows[0].subscriptions_enabled) {
+      await client.query("COMMIT");
+      return "disabled";
+    }
     await client.query(
       `DELETE FROM uptime_subscribers WHERE page_id = $1 AND status = 'pending'
        AND token_expires_at < NOW()`,
@@ -101,8 +108,28 @@ export async function requestSubscription(pageId: string, rawEmail: string, clie
     client.release();
   }
   if (!rawToken) throw new Error("Could not create confirmation token");
-  await sendConfirmationEmail(email, page.name, rawToken);
-  return "sent";
+  // Persist consent/rate-limit attempts before contacting the mail provider,
+  // then serialize the send against admin pauses without undoing those records
+  // on a provider failure. Once a pause commits, no new email can begin.
+  const sender = await getPool().connect();
+  try {
+    await sender.query("BEGIN");
+    const lockedPage = await sender.query<{ published: boolean; subscriptions_enabled: boolean }>(
+      "SELECT published, subscriptions_enabled FROM uptime_status_pages WHERE id = $1 FOR SHARE", [page.id],
+    );
+    if (!lockedPage.rows[0]?.published || !lockedPage.rows[0].subscriptions_enabled) {
+      await sender.query("COMMIT");
+      return "disabled";
+    }
+    await sendConfirmationEmail(email, page.name, rawToken);
+    await sender.query("COMMIT");
+    return "sent";
+  } catch (error) {
+    await sender.query("ROLLBACK");
+    throw error;
+  } finally {
+    sender.release();
+  }
 }
 
 export async function inspectConfirmation(token: string): Promise<SubscriberRow | null> {
@@ -111,7 +138,7 @@ export async function inspectConfirmation(token: string): Promise<SubscriberRow 
     `SELECT s.id, s.page_id, s.organization_id, s.email, s.status, p.name, p.slug
      FROM uptime_subscribers s JOIN uptime_status_pages p ON p.id = s.page_id
      WHERE s.token_hash = $1 AND s.token_expires_at > NOW()
-       AND s.status = 'pending' AND p.published = true LIMIT 1`,
+       AND s.status = 'pending' AND p.published = true AND p.subscriptions_enabled = true LIMIT 1`,
     [tokenHash(token)],
   );
   return rows[0] || null;
@@ -126,7 +153,7 @@ export async function confirmSubscription(token: string): Promise<SubscriberRow 
       `SELECT s.id, s.page_id, s.organization_id, s.email, s.status, p.name, p.slug
        FROM uptime_subscribers s JOIN uptime_status_pages p ON p.id = s.page_id
        WHERE s.token_hash = $1 AND s.token_expires_at > NOW()
-         AND s.status = 'pending' AND p.published = true LIMIT 1`,
+         AND s.status = 'pending' AND p.published = true AND p.subscriptions_enabled = true LIMIT 1`,
       [tokenHash(token)],
     );
     const subscriber = candidate.rows[0];
@@ -134,7 +161,13 @@ export async function confirmSubscription(token: string): Promise<SubscriberRow 
       await client.query("ROLLBACK");
       return null;
     }
-    await client.query("SELECT id FROM uptime_status_pages WHERE id = $1 FOR UPDATE", [subscriber.page_id]);
+    const lockedPage = await client.query<{ published: boolean; subscriptions_enabled: boolean }>(
+      "SELECT published, subscriptions_enabled FROM uptime_status_pages WHERE id = $1 FOR UPDATE", [subscriber.page_id],
+    );
+    if (!lockedPage.rows[0]?.published || !lockedPage.rows[0].subscriptions_enabled) {
+      await client.query("ROLLBACK");
+      return null;
+    }
     const count = await client.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count FROM uptime_subscribers
        WHERE page_id = $1 AND status = 'confirmed'`,
