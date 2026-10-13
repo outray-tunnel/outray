@@ -3,6 +3,8 @@ import type { IncidentDocument } from "@outray/incident-content";
 import { getStatusConfig, STATUS_PAGE_SLUG, statusPageUrl } from "./config";
 
 export type PublicState = "operational" | "degraded" | "outage" | "unknown";
+export type PublicIncidentImpact = "degraded" | "outage";
+type PublicIncidentSource = "uptime_monitor" | "uptime_manual" | "observability_alert";
 
 interface PageRow {
   id: string;
@@ -13,6 +15,7 @@ interface PageRow {
   logo_url: string | null;
   accent_color: string;
   published: boolean;
+  subscriptions_enabled: boolean;
 }
 
 interface GroupRow {
@@ -59,12 +62,14 @@ interface ComponentIncidentRow {
   source_type: string;
   started_at: Date;
   resolved_at: Date | null;
+  public_impact?: PublicIncidentImpact | null;
+  updated_at?: Date;
 }
 
 interface IncidentRow {
   id: string;
   title: string;
-  source_type: "uptime_monitor" | "uptime_manual";
+  source_type: PublicIncidentSource;
   status: string;
   started_at: Date;
   resolved_at: Date | null;
@@ -121,7 +126,7 @@ export interface PublicComponentHistoryDay extends PublicHistoryDay {
 export interface PublicIncident {
   id: string;
   title: string;
-  sourceType: "uptime_monitor" | "uptime_manual";
+  sourceType: PublicIncidentSource;
   status: "open" | "resolved";
   startedAt: Date;
   resolvedAt: Date | null;
@@ -133,6 +138,10 @@ export interface PublicIncident {
 
 export function publishedIncidentStage(incident: PublicIncident): string {
   const latest = [...incident.updates].sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime() || b.id.localeCompare(a.id))[0];
+  if (incident.sourceType === "observability_alert") {
+    if (incident.status === "resolved") return "recovered";
+    return latest?.status === "resolved" ? "monitoring" : latest?.status ?? "down";
+  }
   if (incident.sourceType === "uptime_monitor") return incident.status === "resolved" ? "recovered" : latest?.status ?? "down";
   return latest?.status ?? (incident.status === "resolved" ? "recovered" : "down");
 }
@@ -145,6 +154,7 @@ export interface PublicStatusPage {
   description: string | null;
   logoUrl: string | null;
   accentColor: string;
+  subscriptionsEnabled: boolean;
   state: PublicState;
   groups: PublicGroup[];
   standaloneComponents: PublicComponent[];
@@ -195,7 +205,7 @@ export async function findPageForRequest(
     if (canonicalSubdomainSlug && slug) return null;
     if (!pageSlug || !STATUS_PAGE_SLUG.test(pageSlug)) return null;
     const rows = await query<PageRow>(
-      `SELECT id, organization_id, slug, name, description, logo_url, accent_color, published
+      `SELECT id, organization_id, slug, name, description, logo_url, accent_color, published, subscriptions_enabled
        FROM uptime_status_pages WHERE slug = $1 AND published = true LIMIT 1`,
       [pageSlug],
     );
@@ -206,7 +216,7 @@ export async function findPageForRequest(
   if (slug) return null;
   const rows = await query<PageRow>(
     `SELECT p.id, p.organization_id, p.slug, p.name, p.description, p.logo_url,
-            p.accent_color, p.published
+            p.accent_color, p.published, p.subscriptions_enabled
      FROM uptime_status_pages p
      JOIN domains d ON d.id = p.domain_id AND d.organization_id = p.organization_id
      WHERE d.domain = $1 AND d.purpose = 'status' AND d.status = 'active'
@@ -219,7 +229,7 @@ export async function findPageForRequest(
 
 export async function findPublishedPageById(pageId: string): Promise<PageRow | null> {
   const rows = await query<PageRow>(
-    `SELECT id, organization_id, slug, name, description, logo_url, accent_color, published
+    `SELECT id, organization_id, slug, name, description, logo_url, accent_color, published, subscriptions_enabled
      FROM uptime_status_pages WHERE id = $1 AND published = true LIMIT 1`,
     [pageId],
   );
@@ -287,18 +297,25 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
     ),
     query<ComponentIncidentRow>(
       `WITH public_incidents AS (
-         SELECT i.id, i.organization_id, i.title, i.source_type,
+         SELECT i.id, i.organization_id,
+                CASE WHEN i.source_type = 'observability_alert' THEN i.public_title ELSE i.title END AS title,
+                i.source_type, i.public_impact, i.updated_at,
                 CASE WHEN i.source_type = 'uptime_manual' THEN
                   (SELECT MIN(u.published_at) FROM uptime_incident_updates u
                    WHERE u.incident_id = i.id AND u.organization_id = $2 AND u.published_at IS NOT NULL)
                 ELSE i.started_at END AS started_at,
-                i.resolved_at
+                CASE WHEN i.source_type = 'observability_alert' AND
+                  (i.status <> 'resolved' OR NOT i.recovery_confirmed)
+                  THEN NULL ELSE i.resolved_at END AS resolved_at
          FROM incidents i
-         WHERE i.organization_id = $2 AND i.source_type IN ('uptime_monitor', 'uptime_manual')
-           AND (i.source_type <> 'uptime_monitor' OR i.uptime_publication_state = 'published')
+         WHERE i.organization_id = $2
+           AND ((i.source_type = 'uptime_monitor' AND i.uptime_publication_state = 'published') OR
+             i.source_type = 'uptime_manual' OR
+             (i.source_type = 'observability_alert' AND i.uptime_publication_state = 'published'
+               AND length(trim(i.public_title)) > 0 AND i.public_impact IN ('degraded', 'outage')))
        )
        SELECT DISTINCT c.id AS component_id, i.id, i.title, i.source_type,
-              i.started_at, i.resolved_at
+              i.started_at, i.resolved_at, i.public_impact, i.updated_at
        FROM public_incidents i
        JOIN uptime_incident_components ic ON ic.incident_id = i.id AND ic.organization_id = $2
        JOIN uptime_status_components c ON c.id = ic.component_id
@@ -312,13 +329,22 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
       [page.id, page.organization_id, historyStart],
     ),
     query<IncidentRow>(
-      `SELECT i.id, i.title, i.source_type, i.status, i.started_at, i.resolved_at,
+      `SELECT i.id,
+              CASE WHEN i.source_type = 'observability_alert' THEN i.public_title ELSE i.title END AS title,
+              i.source_type,
+              CASE WHEN i.source_type = 'observability_alert' AND
+                (i.status <> 'resolved' OR NOT i.recovery_confirmed)
+                THEN 'open' ELSE i.status END AS status,
+              i.started_at,
+              CASE WHEN i.source_type = 'observability_alert' AND
+                (i.status <> 'resolved' OR NOT i.recovery_confirmed)
+                THEN NULL ELSE i.resolved_at END AS resolved_at,
               COALESCE((SELECT array_agg(DISTINCT c.name ORDER BY c.name)
                         FROM uptime_incident_components ic
                         JOIN uptime_status_components c ON c.id = ic.component_id
                         LEFT JOIN uptime_status_groups g ON g.id = c.group_id
                           AND g.page_id = c.page_id AND g.organization_id = c.organization_id
-                        WHERE ic.incident_id = i.id AND c.page_id = $1
+                        WHERE ic.incident_id = i.id AND ic.organization_id = $2 AND c.page_id = $1
                           AND c.organization_id = $2 AND c.visible = true
                           AND (c.group_id IS NULL OR g.visible = true)), ARRAY[]::text[]) AS components,
               (SELECT u.note FROM uptime_incident_updates u
@@ -331,7 +357,9 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
                ORDER BY u.published_at DESC LIMIT 1) AS latest_note_at
        FROM incidents i
        WHERE i.organization_id = $2
-         AND EXISTS (
+         AND ((i.source_type = 'uptime_manual' AND NOT EXISTS (
+           SELECT 1 FROM uptime_incident_components ic WHERE ic.incident_id = i.id
+         )) OR EXISTS (
            SELECT 1 FROM uptime_incident_components ic
            JOIN uptime_status_components c ON c.id = ic.component_id
            LEFT JOIN uptime_status_groups g ON g.id = c.group_id
@@ -339,13 +367,17 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
            WHERE ic.incident_id = i.id AND ic.organization_id = $2
              AND c.page_id = $1 AND c.organization_id = $2 AND c.visible = true
              AND (c.group_id IS NULL OR g.visible = true)
-         )
+         ))
          AND ((i.source_type = 'uptime_monitor' AND i.uptime_publication_state = 'published') OR
            (i.source_type = 'uptime_manual' AND EXISTS (
              SELECT 1 FROM uptime_incident_updates u
              WHERE u.incident_id = i.id AND u.organization_id = $2
-               AND u.published_at IS NOT NULL)))
-       ORDER BY CASE WHEN i.status = 'resolved' THEN 1 ELSE 0 END, i.started_at DESC LIMIT 25`,
+               AND u.published_at IS NOT NULL)) OR
+           (i.source_type = 'observability_alert' AND i.uptime_publication_state = 'published'
+             AND length(trim(i.public_title)) > 0 AND i.public_impact IN ('degraded', 'outage')))
+       ORDER BY CASE WHEN i.status = 'resolved' AND
+         (i.source_type <> 'observability_alert' OR i.recovery_confirmed) THEN 1 ELSE 0 END,
+         i.started_at DESC LIMIT 25`,
       [page.id, page.organization_id],
     ),
   ]);
@@ -396,11 +428,21 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
     );
     const completedChecks = history.reduce((sum, day) => sum + day.checks, 0);
     const successfulChecks = history.reduce((sum, day) => sum + day.successes, 0);
-    const state = monitors.length > 0
+    const baseState = monitors.length > 0
       ? aggregateMonitorEvidence(monitors)
       : component.manual_updated_at
         ? parseState(component.manual_state)
         : "unknown";
+    // Public impact belongs to the approved incident snapshot, not the live
+    // alert configuration. Missing telemetry, deletion or remapping cannot
+    // silently restore a component while that incident is still active.
+    const activeObservabilityIncidents = (incidentsByComponent.get(component.id) || [])
+      .filter((incident) => incident.source_type === "observability_alert" && !incident.resolved_at);
+    const state = overlayPublishedIncidentImpacts(baseState, activeObservabilityIncidents
+      .flatMap((incident) => incident.public_impact ? [incident.public_impact] : []));
+    const baseUpdatedAt = monitors.length === 0 ? component.manual_updated_at : newestCheck(monitors);
+    const incidentUpdatedAt = activeObservabilityIncidents.reduce((latest, incident) =>
+      Math.max(latest, incident.updated_at?.getTime() || incident.started_at.getTime()), 0);
     const bucket = componentsByGroup.get(component.group_id) || [];
     bucket.push({
       id: component.id,
@@ -408,8 +450,8 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
       name: component.name,
       description: component.description,
       state,
-      manual: monitors.length === 0,
-      updatedAt: monitors.length === 0 ? component.manual_updated_at : newestCheck(monitors),
+      manual: monitors.length === 0 && activeObservabilityIncidents.length === 0,
+      updatedAt: incidentUpdatedAt > (baseUpdatedAt?.getTime() || 0) ? new Date(incidentUpdatedAt) : baseUpdatedAt,
       history,
       observedUptime90d: completedChecks > 0 ? successfulChecks / completedChecks * 100 : null,
     });
@@ -439,6 +481,7 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
     description: page.description,
     logoUrl,
     accentColor,
+    subscriptionsEnabled: page.subscriptions_enabled,
     state: aggregateStates(allComponents.map((item) => item.state)),
     groups: publicGroups,
     standaloneComponents,
@@ -461,12 +504,19 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
 export async function loadPublicIncident(page: PageRow, incidentId: string): Promise<PublicIncident | null> {
   if (!/^[0-9a-f-]{36}$/i.test(incidentId)) return null;
   const rows = await query<IncidentRow>(
-    `SELECT i.id, i.title, i.source_type, i.status,
+    `SELECT i.id,
+            CASE WHEN i.source_type = 'observability_alert' THEN i.public_title ELSE i.title END AS title,
+            i.source_type,
+            CASE WHEN i.source_type = 'observability_alert' AND
+              (i.status <> 'resolved' OR NOT i.recovery_confirmed)
+              THEN 'open' ELSE i.status END AS status,
             CASE WHEN i.source_type = 'uptime_manual' THEN
               (SELECT MIN(u.published_at) FROM uptime_incident_updates u
                WHERE u.incident_id = i.id AND u.organization_id = $2 AND u.published_at IS NOT NULL)
             ELSE i.started_at END AS started_at,
-            i.resolved_at,
+            CASE WHEN i.source_type = 'observability_alert' AND
+              (i.status <> 'resolved' OR NOT i.recovery_confirmed)
+              THEN NULL ELSE i.resolved_at END AS resolved_at,
             COALESCE((SELECT array_agg(DISTINCT c.name ORDER BY c.name)
                       FROM uptime_incident_components ic
                       JOIN uptime_status_components c ON c.id = ic.component_id
@@ -483,8 +533,10 @@ export async function loadPublicIncident(page: PageRow, incidentId: string): Pro
              ORDER BY u.published_at DESC LIMIT 1) AS latest_note_at
      FROM incidents i
      WHERE i.id = $3 AND i.organization_id = $2
-       AND i.source_type IN ('uptime_monitor', 'uptime_manual')
-       AND EXISTS (
+       AND i.source_type IN ('uptime_monitor', 'uptime_manual', 'observability_alert')
+       AND ((i.source_type = 'uptime_manual' AND NOT EXISTS (
+         SELECT 1 FROM uptime_incident_components ic WHERE ic.incident_id = i.id
+       )) OR EXISTS (
          SELECT 1 FROM uptime_incident_components ic
          JOIN uptime_status_components c ON c.id = ic.component_id
          LEFT JOIN uptime_status_groups g ON g.id = c.group_id
@@ -492,11 +544,14 @@ export async function loadPublicIncident(page: PageRow, incidentId: string): Pro
          WHERE ic.incident_id = i.id AND ic.organization_id = $2
            AND c.page_id = $1 AND c.organization_id = $2 AND c.visible = true
            AND (c.group_id IS NULL OR g.visible = true)
-       )
-       AND ((i.source_type = 'uptime_monitor' AND i.uptime_publication_state = 'published') OR EXISTS (
+       ))
+       AND ((i.source_type = 'uptime_monitor' AND i.uptime_publication_state = 'published') OR
+         (i.source_type = 'uptime_manual' AND EXISTS (
          SELECT 1 FROM uptime_incident_updates u
          WHERE u.incident_id = i.id AND u.organization_id = $2 AND u.published_at IS NOT NULL
-       ))
+       )) OR
+         (i.source_type = 'observability_alert' AND i.uptime_publication_state = 'published'
+           AND length(trim(i.public_title)) > 0 AND i.public_impact IN ('degraded', 'outage')))
      LIMIT 1`,
     [page.id, page.organization_id, incidentId],
   );
@@ -547,7 +602,7 @@ export function buildDailyHistory(rows: Map<string, Pick<DailyCheckRow, "checks"
 
 export function addIncidentsToHistory(
   history: PublicHistoryDay[],
-  incidents: Array<Pick<ComponentIncidentRow, "id" | "title" | "source_type" | "started_at" | "resolved_at">>,
+  incidents: Array<Pick<ComponentIncidentRow, "id" | "title" | "source_type" | "started_at" | "resolved_at" | "public_impact">>,
   now: number,
 ): PublicComponentHistoryDay[] {
   return history.map((day) => {
@@ -566,9 +621,11 @@ export function addIncidentsToHistory(
       lastEnd = Math.max(lastEnd, end);
     }
     const automatic = overlaps.some(({ incident }) => incident.source_type === "uptime_monitor");
+    const state = overlaps.length && (day.state === "operational" || day.state === "unknown") ? "degraded" : day.state;
     return {
       ...day,
-      state: overlaps.length && (day.state === "operational" || day.state === "unknown") ? "degraded" : day.state,
+      state: overlayPublishedIncidentImpacts(state, overlaps.flatMap(({ incident }) =>
+        incident.source_type === "observability_alert" && incident.public_impact ? [incident.public_impact] : [])),
       incidentMinutes: coveredMs > 0 ? Math.max(1, Math.ceil(coveredMs / 60_000)) : 0,
       incidentKind: overlaps.length ? automatic ? "downtime" : "incident" : null,
       incidents: overlaps.map(({ incident, start, end }) => ({
@@ -579,6 +636,15 @@ export function addIncidentsToHistory(
       })),
     };
   });
+}
+
+export function overlayPublishedIncidentImpacts(
+  state: PublicState,
+  impacts: readonly PublicIncidentImpact[],
+): PublicState {
+  if (state === "outage" || impacts.includes("outage")) return "outage";
+  if (state === "degraded" || impacts.includes("degraded")) return "degraded";
+  return state;
 }
 
 function newestCheck(monitors: MonitorEvidenceRow[]): Date | null {
