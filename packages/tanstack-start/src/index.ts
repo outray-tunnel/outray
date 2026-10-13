@@ -2,6 +2,9 @@ import { SpanKind, SpanStatusCode, trace, type Span } from "@opentelemetry/api";
 import {
   captureFetchRequest,
   captureFetchResponse,
+  resolveHttpPayloadCapture,
+  type HttpPayloadCaptureContext,
+  type HttpPayloadCapturePolicy,
   type HttpPayloadCaptureSetting,
 } from "@outray/core";
 import { createOutrayHttpServerMetrics } from "@outray/observability";
@@ -42,12 +45,13 @@ const INTEGER_SEGMENT = /^\d+$/;
 const LONG_HEX_SEGMENT = /^[0-9a-f]{16,}$/i;
 const ULID_SEGMENT = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
 
-export interface OutrayTanStackRouteContext {
+export interface OutrayTanStackRouteContext extends HttpPayloadCaptureContext {
   request: Request;
   pathname: string;
 }
 
-export interface OutrayTanStackStartOptions {
+export interface OutrayTanStackStartOptions
+  extends HttpPayloadCapturePolicy<OutrayTanStackRouteContext> {
   /**
    * Opt in to bounded and redacted request/response capture. Disabled by
    * default. Values use the same safety limits as the other OutRay adapters.
@@ -64,6 +68,8 @@ export interface OutrayTanStackStartOptions {
   ) => string | null | undefined;
   /** Skip telemetry for a request. Framework asset paths are skipped by default. */
   ignore?: (context: OutrayTanStackRouteContext) => boolean;
+  /** Keep framework assets, favicon and robots requests excluded by default. */
+  ignoreDefaultPaths?: boolean;
 }
 
 export interface OutrayTanStackRequestContext<TResult = unknown> {
@@ -190,6 +196,7 @@ async function runInstrumentedRequest<TResult>(
     }
     return result;
   } catch (error) {
+    span.setAttribute("http.response.status_code", 500);
     span.setStatus({ code: SpanStatusCode.ERROR });
     if (options.recordExceptions !== false && error instanceof Error) {
       span.recordException(error);
@@ -208,8 +215,13 @@ export async function instrumentTanStackRequest<TResult>(
   options: OutrayTanStackStartOptions = {},
 ): Promise<TResult> {
   const pathname = requestPathname(context.request, context.pathname);
-  const routeContext = { request: context.request, pathname };
-  let ignored = isDefaultIgnoredTanStackPath(pathname);
+  const routeContext = {
+    request: context.request,
+    pathname,
+    method: context.request.method,
+  };
+  let ignored =
+    options.ignoreDefaultPaths !== false && isDefaultIgnoredTanStackPath(pathname);
   try {
     ignored ||= options.ignore?.(routeContext) === true;
   } catch {
@@ -218,6 +230,16 @@ export async function instrumentTanStackRequest<TResult>(
   if (ignored) {
     return await context.next();
   }
+
+  const capturePayloads = resolveHttpPayloadCapture(
+    options.capturePayloads,
+    routeContext,
+    options,
+  );
+  const requestOptions = {
+    capturePayloads,
+    recordExceptions: options.recordExceptions,
+  };
 
   let route: string | null | undefined;
   try {
@@ -235,7 +257,7 @@ export async function instrumentTanStackRequest<TResult>(
     try {
       const result = await runInstrumentedRequest(
         context,
-        options,
+        requestOptions,
         activeSpan,
         route,
       );
@@ -244,7 +266,10 @@ export async function instrumentTanStackRequest<TResult>(
     } catch (error) {
       finishMetrics({
         statusCode: 500,
-        errorType: error instanceof Error ? error.name : "Error",
+        errorType:
+          options.recordExceptions === false
+            ? undefined
+            : error instanceof Error ? error.name : "Error",
       });
       throw error;
     }
@@ -257,7 +282,7 @@ export async function instrumentTanStackRequest<TResult>(
       try {
         const result = await runInstrumentedRequest(
           context,
-          options,
+          requestOptions,
           span,
           route,
         );
@@ -266,7 +291,10 @@ export async function instrumentTanStackRequest<TResult>(
       } catch (error) {
         finishMetrics({
           statusCode: 500,
-          errorType: error instanceof Error ? error.name : "Error",
+          errorType:
+            options.recordExceptions === false
+              ? undefined
+              : error instanceof Error ? error.name : "Error",
         });
         throw error;
       } finally {
