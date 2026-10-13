@@ -123,7 +123,7 @@ function NotificationsContent({ orgSlug, integration }: { orgSlug: string; integ
     <UptimePageHeading title="Notifications" description="Manage the channels your team uses for Uptime alerts." />
     {notice && <div role={notice.kind === "error" ? "alert" : "status"} className={`mb-4 flex items-center justify-between gap-4 rounded-lg border px-4 py-2 text-[12px] leading-5 ${notice.kind === "error" ? "border-rose-400/15 bg-rose-400/[0.025] text-rose-300" : notice.kind === "success" ? "border-emerald-400/15 bg-emerald-400/[0.025] text-emerald-300" : "border-white/[0.08] bg-white/[0.025] text-zinc-300"}`}>
       <p>{notice.message}</p>
-      <Button type="button" variant="ghost" size="sm" aria-label="Dismiss notification feedback" onClick={() => setNotice(null)} className="!size-8 !min-w-0 !px-0 shrink-0"><X size={14} aria-hidden="true" /></Button>
+      <Button type="button" variant="ghost" size="sm" aria-label="Dismiss notification feedback" onClick={() => setNotice(null)} className="!size-8 !min-w-0 !px-0 shrink-0 rounded-lg! border-0! bg-transparent"><X size={14} aria-hidden="true" /></Button>
     </div>}
 
     <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
