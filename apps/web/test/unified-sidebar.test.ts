@@ -4,6 +4,7 @@ import { runInNewContext } from "node:vm";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   createMemoryHistory,
   createRootRoute,
@@ -82,6 +83,19 @@ function label(element: string) {
 function activeBadges(html: string) {
   return [...html.matchAll(/<span\b[^>]*aria-label="[^"]* active tunnels?"[^>]*>[\s\S]*?<\/span>/g)]
     .map(([badge]) => badge);
+}
+
+function firstIconGeometry(html: string) {
+  const geometry = html.match(/<svg\b[^>]*>([\s\S]*?)<\/svg>/)?.[1];
+  assert.ok(geometry, "the navigation item renders an icon");
+  return geometry;
+}
+
+function iconGeometry(icon: IconSvgElement, strokeWidth?: number) {
+  return firstIconGeometry(renderToStaticMarkup(React.createElement(HugeiconsIcon, {
+    icon,
+    ...(strokeWidth === undefined ? {} : { strokeWidth }),
+  })));
 }
 
 test("unified navigation keeps all four products and their existing pages", () => {
@@ -269,11 +283,103 @@ test("collapsed navigation has four named product links and no second-level cont
   for (const [index, product] of mobileProducts.entries()) {
     assert.ok(links[index].includes(`href="${product.to.replace("/$orgSlug", "/acme")}"`));
     assert.ok(links[index].includes(`aria-label="${product.label}"`));
+    const openingTag = links[index].match(/<a\b[^>]*>/)?.[0]!;
+    assert.match(openingTag, /\bmx-auto\b/);
+    assert.match(openingTag, /\bsize-10\b/);
+    assert.doesNotMatch(openingTag, /\bw-full\b|\bh-10\b/);
   }
   assert.equal(elements(html, "button").length, 0);
   const active = links.filter((link) => link.includes('aria-current="page"'));
   assert.equal(active.length, 1);
   assert.match(active[0], /aria-label="Secrets"/);
+});
+
+test("active product roots and subpages render genuine solids at default thickness in both sidebar states", () => {
+  for (const currentProduct of mobileProducts) {
+    const root = currentProduct.to.replace("/$orgSlug", "/acme");
+    const child = currentProduct.pages[1].to.replace("/$orgSlug", "/acme");
+    for (const pathname of [root, `${root}/`, `${child}/detail-1`]) {
+      for (const isCollapsed of [false, true]) {
+        const html = renderNavigation({ pathname, isCollapsed });
+        const items = elements(html, isCollapsed ? "a" : "button");
+        for (const [index, product] of mobileProducts.entries()) {
+          const active = product.key === currentProduct.key;
+          assert.equal(firstIconGeometry(items[index]), iconGeometry(active ? product.activeIcon : product.icon, active ? undefined : 1.7),
+            `${pathname}: ${product.label} uses its ${active ? "default solid" : "original outline"} icon (${isCollapsed ? "collapsed" : "expanded"})`);
+          if (active) {
+            const solidSvg = items[index].match(/<svg\b[^>]*>[\s\S]*?<\/svg>/)?.[0]!;
+            assert.doesNotMatch(solidSvg, /\bstroke(?:-width)?=/,
+              "default fill-only solids must not acquire an extra outline stroke");
+          }
+        }
+      }
+    }
+  }
+});
+
+test("a search-open disclosure and standalone workspace route keep non-current product icons outlined", () => {
+  for (const product of mobileProducts) {
+    const html = renderNavigation({ pathname: "/acme/members", searchQuery: product.label });
+    const button = elements(html, "button")[0];
+    assert.match(button, /aria-expanded="true"/);
+    assert.equal(firstIconGeometry(button), iconGeometry(product.icon, 1.7));
+  }
+  const links = elements(renderNavigation({ pathname: "/acme/members", isCollapsed: true }), "a");
+  for (const [index, product] of mobileProducts.entries()) {
+    assert.equal(firstIconGeometry(links[index]), iconGeometry(product.icon, 1.7));
+    assert.doesNotMatch(links[index], /aria-current="page"/);
+  }
+});
+
+test("collapsed workspace and split-product NavItems center a square without altering expanded sizing", () => {
+  for (const compact of [false, true]) {
+    for (const isActive of [false, true]) {
+      const props = {
+        to: "/$orgSlug/secrets",
+        params: { orgSlug: "acme" },
+        label: "Secrets",
+        icon: mobileProducts[2].icon,
+        activeIcon: mobileProducts[2].activeIcon,
+        compact,
+        isActive,
+      };
+      const collapsed = elements(renderWithRouter(React.createElement(NavItem, {
+        ...props, isCollapsed: true,
+      }), "/acme/secrets/vaults/vault-1"), "a")[0];
+      const collapsedTag = collapsed.match(/<a\b[^>]*>/)?.[0]!;
+      assert.match(collapsedTag, /\bmx-auto\b/);
+      assert.match(collapsedTag, /\bsize-10\b/);
+      assert.doesNotMatch(collapsedTag, /\bw-full\b|\bh-(?:9|10)\b|\bpx-2\.5\b/);
+      assert.match(collapsedTag, /aria-label="Secrets"/);
+      assert.match(collapsedTag, /focus-visible:outline-2/);
+      assert.equal(firstIconGeometry(collapsed), iconGeometry(isActive ? props.activeIcon : props.icon));
+      if (isActive) assert.doesNotMatch(collapsed, /\bstroke(?:-width)?=/);
+
+      const expanded = elements(renderWithRouter(React.createElement(NavItem, {
+        ...props, isCollapsed: false,
+      }), "/acme/secrets/vaults/vault-1"), "a")[0];
+      const expandedTag = expanded.match(/<a\b[^>]*>/)?.[0]!;
+      assert.match(expandedTag, compact ? /\bh-9\b/ : /\bh-10\b/);
+      assert.match(expandedTag, /\bw-full\b/);
+      assert.match(expandedTag, /\bgap-3\b/);
+      assert.match(expandedTag, /\bpx-3\b/);
+      assert.doesNotMatch(expandedTag, /\bsize-10\b|\bmx-auto\b/);
+      assert.match(expanded, />Secrets<\/span>/);
+    }
+  }
+});
+
+test("split product links use genuine solid variants without changing workspace icons", async () => {
+  const source = await readFile(new URL("../src/components/app-sidebar.tsx", import.meta.url), "utf8");
+  for (const [icon, activeIcon] of [
+    ["Cone01Icon", "Cone01SolidIcon"], ["Pulse02Icon", "Pulse02SolidIcon"],
+    ["LockPasswordIcon", "LockPasswordSolidIcon"], ["HeartPulseIcon", "HeartPulseSolidIcon"],
+  ]) {
+    assert.match(source, new RegExp(`icon: ${icon},\\s*activeIcon: ${activeIcon},`));
+  }
+  for (const activeIcon of ["UserGroupSolidIcon", "Key02SolidIcon", "WalletCardsSolidIcon", "Settings02SolidIcon"]) {
+    assert.match(source, new RegExp(`activeIcon: ${activeIcon}`));
+  }
 });
 
 test("positive tunnel counts appear only on the Active tunnels child link, never product disclosures", () => {
