@@ -2,6 +2,9 @@ import { SpanKind, SpanStatusCode, trace, type Span } from "@opentelemetry/api";
 import {
   captureFetchRequest,
   captureFetchResponse,
+  resolveHttpPayloadCapture,
+  type HttpPayloadCaptureContext,
+  type HttpPayloadCapturePolicy,
   type HttpPayloadCaptureSetting,
 } from "@outray/core";
 import {
@@ -42,21 +45,26 @@ const INTEGER_SEGMENT = /^\d+$/;
 const LONG_HEX_SEGMENT = /^[0-9a-f]{16,}$/i;
 const ULID_SEGMENT = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
 
-export interface OutrayHonoRequestContext {
+export interface OutrayHonoRequestContext extends HttpPayloadCaptureContext {
   context: OutrayHonoContext;
   request: Request;
   pathname: string;
 }
 
-export interface OutrayHonoRequestOptions {
+export interface OutrayHonoRequestOptions
+  extends HttpPayloadCapturePolicy<OutrayHonoRequestContext> {
   /** Opt in to bounded, redacted request and response capture. */
   capturePayloads?: HttpPayloadCaptureSetting;
+  /** Record exception details and metric error names. Defaults to true. */
+  recordExceptions?: boolean;
   /** Resolve a stable route template when Hono has not matched one yet. */
   routeResolver?: (
     context: OutrayHonoRequestContext,
   ) => string | null | undefined;
   /** Skip telemetry for a request. OPTIONS and /health are ignored by default. */
   ignore?: (context: OutrayHonoRequestContext) => boolean;
+  /** Keep OPTIONS and /health requests excluded by default. */
+  ignoreDefaultPaths?: boolean;
 }
 
 export interface OutrayHonoOptions
@@ -164,8 +172,14 @@ async function runInstrumentedRequest(
       await captureResponseSafely(context.res, options.capturePayloads);
     }
   } catch (error) {
+    span.setAttribute(
+      "http.response.status_code",
+      context.res?.status >= 500 ? context.res.status : 500,
+    );
     span.setStatus({ code: SpanStatusCode.ERROR });
-    if (error instanceof Error) span.recordException(error);
+    if (options.recordExceptions !== false && error instanceof Error) {
+      span.recordException(error);
+    }
     throw error;
   }
 }
@@ -187,9 +201,15 @@ export function createOutrayHonoMiddleware(
   return async (context, next) => {
     const request = context.req.raw;
     const pathname = pathnameFrom(request);
-    const requestContext = { context, request, pathname };
+    const requestContext = {
+      context,
+      request,
+      pathname,
+      method: request.method,
+    };
 
-    let ignored = defaultIgnoredRequest(request, pathname);
+    let ignored =
+      options.ignoreDefaultPaths !== false && defaultIgnoredRequest(request, pathname);
     try {
       ignored ||= options.ignore?.(requestContext) === true;
     } catch {
@@ -199,6 +219,15 @@ export function createOutrayHonoMiddleware(
       await next();
       return;
     }
+
+    const requestOptions = {
+      capturePayloads: resolveHttpPayloadCapture(
+        options.capturePayloads,
+        requestContext,
+        options,
+      ),
+      recordExceptions: options.recordExceptions,
+    };
 
     let route: string | null | undefined;
     try {
@@ -218,7 +247,7 @@ export function createOutrayHonoMiddleware(
         await runInstrumentedRequest(
           context,
           next,
-          options,
+          requestOptions,
           activeSpan,
           pathname,
           route,
@@ -230,7 +259,10 @@ export function createOutrayHonoMiddleware(
       } catch (error) {
         finishMetrics({
           statusCode: context.res?.status >= 500 ? context.res.status : 500,
-          errorType: error instanceof Error ? error.name : "Error",
+          errorType:
+            options.recordExceptions === false
+              ? undefined
+              : error instanceof Error ? error.name : "Error",
           route: context.req.routePath || route,
         });
         throw error;
@@ -246,7 +278,7 @@ export function createOutrayHonoMiddleware(
           await runInstrumentedRequest(
             context,
             next,
-            options,
+            requestOptions,
             span,
             pathname,
             route!,
@@ -258,7 +290,10 @@ export function createOutrayHonoMiddleware(
         } catch (error) {
           finishMetrics({
             statusCode: context.res?.status >= 500 ? context.res.status : 500,
-            errorType: error instanceof Error ? error.name : "Error",
+            errorType:
+              options.recordExceptions === false
+                ? undefined
+                : error instanceof Error ? error.name : "Error",
             route: context.req.routePath || route!,
           });
           throw error;
@@ -272,13 +307,23 @@ export function createOutrayHonoMiddleware(
 
 /** Initialize OutRay and return middleware ready to register before routes. */
 export function outray(options: OutrayHonoOptions): OutrayHonoRegistration {
-  const { capturePayloads, routeResolver, ignore, ...observabilityOptions } =
-    options;
+  const {
+    capturePayloads,
+    shouldCapturePayloads,
+    recordExceptions,
+    routeResolver,
+    ignore,
+    ignoreDefaultPaths,
+    ...observabilityOptions
+  } = options;
   const observability = startOutrayObservability(observabilityOptions);
   const middleware = createOutrayHonoMiddleware({
     capturePayloads,
+    shouldCapturePayloads,
+    recordExceptions,
     routeResolver,
     ignore,
+    ignoreDefaultPaths,
   });
   return {
     middleware,
