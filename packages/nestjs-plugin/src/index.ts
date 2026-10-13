@@ -3,6 +3,8 @@ import {
   OutrayClient,
   LocalAccessManager,
   createNodeHttpPayloadCaptureMiddleware,
+  type HttpPayloadCapturePolicy,
+  type NodeHttpPayloadCaptureContext,
 } from "@outray/core";
 import {
   createOutrayNodeHttpMiddleware,
@@ -29,6 +31,7 @@ function installPayloadCapture(
   app: INestApplication,
   captureOptions: OutrayPayloadCaptureOptions,
   silent: boolean,
+  policy?: HttpPayloadCapturePolicy<NodeHttpPayloadCaptureContext>,
 ): boolean {
   if (captureRegisteredApps.has(app)) return true;
 
@@ -57,7 +60,7 @@ function installPayloadCapture(
       return false;
     }
 
-    app.use(createNodeHttpPayloadCaptureMiddleware(captureOptions));
+    app.use(createNodeHttpPayloadCaptureMiddleware(captureOptions, policy));
     captureRegisteredApps.add(app);
     return true;
   } catch (error) {
@@ -74,8 +77,9 @@ function installPayloadCapture(
 export function registerOutrayPayloadCapture(
   app: INestApplication,
   captureOptions: OutrayPayloadCaptureOptions = true,
+  policy?: HttpPayloadCapturePolicy<NodeHttpPayloadCaptureContext>,
 ): boolean {
-  return installPayloadCapture(app, captureOptions, false);
+  return installPayloadCapture(app, captureOptions, false, policy);
 }
 
 /** Register OutRay telemetry before `app.listen()` and controller setup. */
@@ -86,7 +90,12 @@ export function registerOutrayObservability(
   const registered = observabilityRegisteredApps.get(app);
   if (registered) return registered;
 
-  const { capturePayloads, request, ...observabilityOptions } = options;
+  const {
+    capturePayloads,
+    shouldCapturePayloads,
+    request,
+    ...observabilityOptions
+  } = options;
   const observability = startOutrayObservability(observabilityOptions);
 
   const adapterType = app.getHttpAdapter()?.getType?.();
@@ -116,7 +125,7 @@ export function registerOutrayObservability(
     }),
   );
   if (capturePayloads !== undefined && capturePayloads !== false) {
-    installPayloadCapture(app, capturePayloads, false);
+    installPayloadCapture(app, capturePayloads, false, { shouldCapturePayloads });
   }
   observabilityRegisteredApps.set(app, observability);
   return observability;
@@ -137,6 +146,7 @@ export async function outray(
     silent = false,
     local = false,
     capturePayloads,
+    shouldCapturePayloads,
   } = options;
 
   if (options.observability) {
@@ -144,6 +154,9 @@ export async function outray(
       ...options.observability,
       capturePayloads:
         options.capturePayloads ?? options.observability.capturePayloads,
+      shouldCapturePayloads:
+        options.shouldCapturePayloads ??
+        options.observability.shouldCapturePayloads,
     });
   }
 
@@ -153,7 +166,7 @@ export async function outray(
     capturePayloads !== undefined &&
     capturePayloads !== false
   ) {
-    installPayloadCapture(app, capturePayloads, silent);
+    installPayloadCapture(app, capturePayloads, silent, { shouldCapturePayloads });
   }
 
   if (!enabled) {
