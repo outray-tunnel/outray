@@ -57,4 +57,10 @@ export type {
   HttpPayloadCaptureOptions,
   HttpPayloadCaptureSetting,
   NodeHttpPayloadCaptureMiddleware,
+  NodeHttpPayloadCaptureContext,
 } from "./http-payload-capture";
+export { resolveHttpPayloadCapture } from "./http-payload-capture-policy";
+export type {
+  HttpPayloadCaptureContext,
+  HttpPayloadCapturePolicy,
+} from "./http-payload-capture-policy";
