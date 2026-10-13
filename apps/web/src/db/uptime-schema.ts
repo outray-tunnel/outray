@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { organizations, users } from "./auth-schema";
 import { domains } from "./app-schema";
-import { incidents } from "./alerts-schema";
+import { incidents, observabilityAlerts } from "./alerts-schema";
 import type { EncryptedUptimeHeaders, EncryptedUptimeWebhook } from "@/lib/secrets/crypto";
 
 const timestamptz = (name: string) =>
@@ -111,6 +111,7 @@ export const uptimeStatusPages = pgTable(
     logoUrl: text("logo_url"),
     accentColor: text("accent_color").notNull().default("#8367c7"),
     published: boolean("published").notNull().default(false),
+    subscriptionsEnabled: boolean("subscriptions_enabled").notNull().default(true),
     domainId: text("domain_id").unique().references(() => domains.id, { onDelete: "set null" }),
     createdAt: timestamptz("created_at").notNull().defaultNow(),
     updatedAt: timestamptz("updated_at").notNull().defaultNow().$onUpdate(() => new Date()),
@@ -181,6 +182,20 @@ export const uptimeIncidentComponents = pgTable(
   (table) => [primaryKey({ columns: [table.incidentId, table.componentId] })],
 );
 
+// Explicit, tenant-scoped links: telemetry service names are not public component identities.
+export const uptimeComponentAlerts = pgTable(
+  "uptime_component_alerts",
+  {
+    organizationId: text("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    componentId: text("component_id").notNull().references(() => uptimeStatusComponents.id, { onDelete: "cascade" }),
+    alertId: text("alert_id").notNull().references(() => observabilityAlerts.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.componentId, table.alertId] }),
+    index("uptime_component_alerts_alert_idx").on(table.organizationId, table.alertId),
+  ],
+);
+
 export const uptimeIncidentUpdates = pgTable(
   "uptime_incident_updates",
   {
@@ -198,7 +213,7 @@ export const uptimeIncidentUpdates = pgTable(
   (table) => [
     index("uptime_incident_updates_incident_idx").on(table.incidentId, table.createdAt),
     check("uptime_incident_updates_status_check", sql`${table.status} IN ('investigating', 'identified', 'monitoring', 'resolved')`),
-    check("uptime_incident_updates_note_check", sql`length(trim(${table.note})) > 0`),
+    check("uptime_incident_updates_note_check", sql`length(trim(${table.note})) <= 4000`),
   ],
 );
 
