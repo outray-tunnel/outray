@@ -1,0 +1,2 @@
+ALTER TABLE "uptime_incident_updates" DROP CONSTRAINT "uptime_incident_updates_note_check";--> statement-breakpoint
+ALTER TABLE "uptime_incident_updates" ADD CONSTRAINT "uptime_incident_updates_note_check" CHECK (length(trim("uptime_incident_updates"."note")) <= 4000);
