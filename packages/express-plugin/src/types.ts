@@ -1,11 +1,16 @@
-import type { HttpPayloadCaptureSetting } from "@outray/core";
+import type {
+  HttpPayloadCapturePolicy,
+  HttpPayloadCaptureSetting,
+  NodeHttpPayloadCaptureContext,
+} from "@outray/core";
 import type {
   OutrayNodeHttpMiddlewareOptions,
   OutrayObservabilityOptions,
 } from "@outray/observability";
 
 export interface OutrayExpressObservabilityOptions
-  extends OutrayObservabilityOptions {
+  extends OutrayObservabilityOptions,
+    HttpPayloadCapturePolicy<NodeHttpPayloadCaptureContext> {
   /** Opt in to bounded and redacted request/response capture. */
   capturePayloads?: HttpPayloadCaptureSetting;
   /** Customize request filtering and low-cardinality route names. */
@@ -15,7 +20,8 @@ export interface OutrayExpressObservabilityOptions
 /**
  * Configuration options for the Outray Express middleware
  */
-export interface OutrayPluginOptions {
+export interface OutrayPluginOptions
+  extends HttpPayloadCapturePolicy<NodeHttpPayloadCaptureContext> {
   /** Start request tracing, logs, and metrics using in-code configuration. */
   observability?: OutrayExpressObservabilityOptions;
   /**
