@@ -15,7 +15,7 @@ import { WorkspaceInput, WorkspaceTextarea } from "../src/components/ui/workspac
 import * as uptimeUi from "../src/components/uptime/uptime-ui";
 import * as skeletons from "../src/components/uptime/uptime-skeleton";
 import { appearanceDraftChanged, appearanceEditorReducer, createAppearanceState } from "../src/components/uptime/status-page-data";
-import { preferredStatusPageUrl, statusPageUrl } from "../src/lib/uptime/status-url";
+import { preferredStatusPageUrl, statusPageOrigin, statusPagePreviewUrl, statusPageUrl } from "../src/lib/uptime/status-url";
 import { moveStatusLayout } from "../src/lib/uptime/status-layout";
 import type { UptimePage } from "../src/components/uptime/uptime-client";
 import type { StatusPageEditorContextValue } from "../src/components/uptime/status-page-editor-context";
@@ -76,14 +76,14 @@ const context: StatusPageEditorContextValue = {
   reload: () => {}, appearanceDraft: createAppearanceState(page).draft, setAppearanceDraft: () => {}, appearanceDirty: false, appearanceSaving: false, setAppearanceSaving: () => {}, commitAppearance: () => {},
 };
 type Resource = { data: any; loading: boolean; error: string | null; reload: () => void };
-async function loadViews(overrides: Partial<typeof context> = {}, resources?: Partial<Record<string, Resource>>, section = "") {
+async function loadViews(overrides: Partial<typeof context> = {}, resources?: Partial<Record<string, Resource>>, section = "", environment: Record<string, string | boolean> = {}) {
   const source = await readFile(sourceFile, "utf8");
   const fixture = { ...context, ...overrides };
   const copiedAddresses: string[] = [];
   const module = { exports: {} as any };
   const route = { useParams: () => ({ orgSlug: "acme" }), useNavigate: () => () => {}, options: {} as any };
   const Link = ({ to, params, children, ...props }: any) => React.createElement("a", { ...props, href: to.replace("$orgSlug", params.orgSlug) }, children);
-  const code = ts.transpileModule(source.replaceAll("import.meta.env", "({})"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true } }).outputText;
+  const code = ts.transpileModule(source.replaceAll("import.meta.env", `(${JSON.stringify(environment)})`), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true } }).outputText;
   runInNewContext(code, {
     React, module, exports: module.exports,
     require: (specifier: string) => {
@@ -98,7 +98,7 @@ async function loadViews(overrides: Partial<typeof context> = {}, resources?: Pa
       if (specifier.endsWith("/uptime-skeleton")) return skeletons;
       if (specifier.endsWith("/status-page-editor-context")) return { useStatusPageEditor: () => fixture };
       if (specifier.endsWith("/status-page-editor-provider")) return { StatusPageEditorProvider: ({ children }: any) => children };
-      if (specifier.endsWith("/status-url")) return { preferredStatusPageUrl, statusPageUrl };
+      if (specifier.endsWith("/status-url")) return { preferredStatusPageUrl, statusPageOrigin, statusPagePreviewUrl, statusPageUrl };
       if (specifier.endsWith("/status-layout")) return { moveStatusLayout };
       if (specifier.endsWith("/workspace-input")) return { WorkspaceInput, WorkspaceTextarea };
       if (specifier === "@/components/ui/workspace-scope") return { workspaceScopeClassName: "workspace-scope" };
@@ -138,6 +138,13 @@ test("status overview and View page prioritize the custom domain without changin
   const publishing = views.render("StatusPagePublishing");
   assert.match(publishing, /OutRay address/);
   assert.match(publishing, /https:\/\/acme\.status\.outray\.app\//);
+});
+
+test("View page opens local subscription controls in development without changing canonical copy addresses", async () => {
+  const views = await loadViews({ page: { ...page, published: true, customDomain: "status.byteship.dev" } }, undefined, "/subscribers", { DEV: true });
+  assert.match(views.layout(), /href="http:\/\/localhost:4323\/acme\/"[^>]*>View page/);
+  assert.match(views.render("StatusPageOverview"), /https:\/\/status\.byteship\.dev\//);
+  assert.deepEqual(views.copiedAddresses, ["https://status.byteship.dev/"]);
 });
 
 test("View page falls back to OutRay and verified domains do not make drafts public", async () => {
@@ -197,13 +204,21 @@ test("resource refresh errors preserve the editor and offer an explicit retry", 
   assert.match(html, /class="workspace-scope mx-auto max-w-\[1440px\] pb-8"/);
 });
 
-test("an unavailable monitor list does not block appearance, publishing or domain editors", async () => {
-  for (const section of ["/appearance", "/publishing", "/domains"]) {
+test("an unavailable monitor list does not block appearance, publishing, domain or subscriber editors", async () => {
+  for (const section of ["/appearance", "/publishing", "/domains", "/subscribers"]) {
     const views = await loadViews({}, { "/monitors": { data: null, loading: false, error: "Monitors unavailable", reload: () => {} } }, section);
     const html = views.layout();
     assert.match(html, /data-editor-outlet="true"/);
     assert.doesNotMatch(html, /Monitors unavailable|Loading status page details/);
   }
+});
+
+test("subscriber navigation selects its own section and the overview links directly to management", async () => {
+  const views = await loadViews({}, undefined, "/subscribers");
+  const html = views.layout();
+  assert.match(html, /aria-pressed="true"[^>]*>[\s\S]*?>Subscribers</);
+  assert.match(html, /data-editor-outlet="true"/);
+  assert.match(views.render("StatusPageOverview"), /href="\/acme\/uptime\/status-page\/subscribers"/);
 });
 
 test("failed component monitor loading offers retry without rendering a misleading empty picker", async () => {
