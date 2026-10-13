@@ -275,14 +275,13 @@ export function HttpRequestInspectorContent({
 function InspectorCopyButton({
   value,
   label,
-  iconOnly = true,
   ...feedback
-}: CopyFeedbackProps & { value: string; label: string; iconOnly?: boolean }) {
+}: CopyFeedbackProps & { value: string; label: string }) {
   return (
     <CopyButton
       value={value}
       label={label}
-      iconOnly={iconOnly}
+      iconOnly
       variant="plain"
       className="!min-h-7 !rounded-md !text-xs"
       {...feedback}
@@ -302,7 +301,6 @@ function RequestPayload({
           <InspectorCopyButton
             value={generateHttpRequestCurl(request)}
             label="Copy as cURL"
-            iconOnly={false}
             {...feedback}
           />
         }
