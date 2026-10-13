@@ -23,7 +23,12 @@ class FocusTarget {
   focused = 0;
   expandedListbox = false;
   dialog: FocusTarget | null = null;
+  autofocus: FocusTarget | null = null;
   focus() { this.focused++; }
+  querySelector(selector: string) {
+    assert.equal(selector, "[data-autofocus]:not([disabled])");
+    return this.autofocus;
+  }
   closest(selector: string) {
     if (selector === '[role="dialog"]') return this.dialog;
     assert.equal(selector, '[aria-haspopup="listbox"][aria-expanded="true"]');
@@ -176,6 +181,40 @@ test("sheet backdrop and Escape use modal primitives and respect nested close lo
     assert.ok(closeClasses.includes(utility), `${utility} keeps the panel close icon bare at rest while preserving hover feedback`);
   }
   assert.ok(!closeClasses.some((utility) => utility === "border" || /^bg-(?!transparent$)/.test(utility)), "panel close does not regain permanent chrome");
+});
+
+test("a large sheet is viewport-bounded while existing product sheets keep their 640px default and Motion lifecycle", async () => {
+  const ui = await loadComponent("../src/components/ui/side-sheet.tsx");
+  for (const size of [undefined, "md", "lg"] as const) {
+    const tree = elements(ui.render("SideSheet", { open: true, title: "Declear incident", size, children: "Draft", footer: "Actions", onClose() {} }));
+    const panel = tree.find((element) => element.type === ui.stubs.MotionDiv && element.props["data-size"]);
+    assert.ok(panel);
+    assert.equal(panel.props["data-size"], size ?? "md");
+    const classes = String(panel.props.className).split(/\s+/);
+    assert.ok(classes.includes("max-w-[640px]"), "existing callers retain the default width");
+    assert.ok(classes.includes("data-[size=lg]:max-w-[960px]"), "only an explicitly large panel activates its wider maximum");
+    for (const utility of ["fixed", "inset-y-0", "right-0", "h-dvh", "max-h-dvh", "w-full", "min-w-0", "overflow-hidden"]) {
+      assert.ok(classes.includes(utility), `${utility} keeps the sheet responsive and its footer visible`);
+    }
+    assert.equal(panel.props.initial.x, 32); assert.equal(panel.props.animate.x, 0); assert.equal(panel.props.exit.x, 24);
+    assert.equal(panel.props.transition.duration, 0.22);
+    assert.ok(tree.some((element) => element.type === "div" && String(element.props.className).includes("overflow-y-auto")));
+    assert.ok(tree.some((element) => element.type === "footer" && String(element.props.className).includes("shrink-0")));
+  }
+});
+
+test("sheets focus an explicit incident title on opening and preserve native initial focus when none exists", async () => {
+  const ui = await loadComponent("../src/components/ui/side-sheet.tsx");
+  const panel = new FocusTarget(), title = new FocusTarget(); panel.autofocus = title;
+  const tree = elements(ui.render("SideSheet", { open: true, title: "Declear incident", children: "Draft", onClose() {} }));
+  const content = tree.find((element) => element.type === ui.stubs.Content)!;
+  let prevented = 0;
+  content.props.onOpenAutoFocus({ target: panel, preventDefault() { prevented++; } });
+  assert.equal(title.focused, 1); assert.equal(prevented, 1);
+  panel.autofocus = null;
+  content.props.onOpenAutoFocus({ target: panel, preventDefault() { prevented++; } });
+  assert.equal(prevented, 1, "the native modal primitive owns initial focus for ordinary product sheets");
+  assert.equal(title.focused, 1);
 });
 
 test("closing the sheet returns focus to its trigger or a still-connected original opener", async () => {
