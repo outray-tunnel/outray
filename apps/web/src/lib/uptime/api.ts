@@ -1,12 +1,13 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { domains } from "@/db/app-schema";
 import { members } from "@/db/auth-schema";
-import { uptimeComponentMonitors, uptimeMonitors, uptimeStatusComponents, uptimeStatusGroups, uptimeStatusPages } from "@/db/uptime-schema";
+import { incidents } from "@/db/alerts-schema";
+import { uptimeComponentMonitors, uptimeIncidentComponents, uptimeMonitors, uptimeStatusComponents, uptimeStatusGroups, uptimeStatusPages } from "@/db/uptime-schema";
 import { requireAlertManager } from "@/lib/observability/alert-access";
 import { isAlertManagerRole } from "@/lib/observability/alert-validation";
 import { requireOrgMembershipFromSlug } from "@/lib/org";
-import { deriveComponentState, rollupStatus } from "./state";
+import { deriveComponentState, overlayIncidentImpacts, rollupStatus } from "./state";
 
 export function uptimeDisabled() {
   return process.env.OUTRAY_UPTIME_DISABLED === "true";
@@ -81,6 +82,20 @@ export async function loadPage(organizationId: string) {
   const monitors = monitorIds.length ? await db.select().from(uptimeMonitors)
     .where(and(eq(uptimeMonitors.organizationId, organizationId), inArray(uptimeMonitors.id, monitorIds), isNull(uptimeMonitors.deletedAt))) : [];
   const monitorById = new Map(monitors.map((monitor) => [monitor.id, monitor]));
+  const impactRows = components.length ? await db.select({ componentId: uptimeIncidentComponents.componentId,
+    impact: incidents.publicImpact }).from(uptimeIncidentComponents)
+    .innerJoin(incidents, and(eq(incidents.id, uptimeIncidentComponents.incidentId), eq(incidents.organizationId, organizationId)))
+    .where(and(eq(uptimeIncidentComponents.organizationId, organizationId),
+      inArray(uptimeIncidentComponents.componentId, components.map((component) => component.id)),
+      eq(incidents.sourceType, "observability_alert"), eq(incidents.uptimePublicationState, "published"),
+      sql`length(trim(${incidents.publicTitle})) > 0`, inArray(incidents.publicImpact, ["degraded", "outage"]),
+      or(ne(incidents.status, "resolved"), eq(incidents.recoveryConfirmed, false)))) : [];
+  const impactsByComponent = new Map<string, string[]>();
+  for (const row of impactRows) {
+    const impacts = impactsByComponent.get(row.componentId) ?? [];
+    if (row.impact) impacts.push(row.impact);
+    impactsByComponent.set(row.componentId, impacts);
+  }
   const linksByComponent = new Map<string, string[]>();
   for (const link of links) {
     const ids = linksByComponent.get(link.componentId) ?? [];
@@ -92,10 +107,10 @@ export async function loadPage(organizationId: string) {
     return {
       ...component,
       monitorIds: componentMonitorIds,
-      state: deriveComponentState(component.manualState as "unknown" | "operational" | "degraded" | "outage",
+      state: overlayIncidentImpacts(deriveComponentState(component.manualState as "unknown" | "operational" | "degraded" | "outage",
         componentMonitorIds.map((id) => monitorById.get(id) ?? {
           state: "unknown", lastCheckedAt: null, enabled: false, deletedAt: new Date(),
-        })),
+        })), impactsByComponent.get(component.id) ?? []),
     };
   };
   const assembledGroups = groups.sort((a, b) => a.sortOrder - b.sortOrder).map((group) => {
