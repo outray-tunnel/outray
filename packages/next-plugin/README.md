@@ -88,6 +88,39 @@ and streaming bodies are not captured.
 
 Pages Router handlers are not currently supported by this wrapper.
 
+### Per-request capture policy
+
+`withOutrayRequest` accepts the shared core capture policy through
+`shouldCapturePayloads`. Its callback receives `{ request, pathname, method }`
+and runs once before any request/response cloning. Capture remains disabled
+when its static setting is absent, the callback returns anything other than
+`true`, or the callback throws. These requests still produce request spans and
+HTTP metrics; the handler receives the original objects and errors propagate
+unchanged.
+
+```ts
+export const POST = withOutrayRequest(handler, {
+  capturePayloads: true,
+  shouldCapturePayloads: ({ pathname }) => !pathname.startsWith("/api/secrets/"),
+  recordExceptions: false,
+  ignoreDefaultPaths: false,
+});
+```
+
+The compatibility shortcut accepts the same request policy as an optional
+third argument: `withOutrayPayloadCapture(handler, captureOptions, policy)`.
+Existing two-argument calls behave unchanged. `ignoreDefaultPaths: false`
+includes framework assets, favicon, and robots requests; an explicit `ignore`
+predicate still skips telemetry. With `recordExceptions: false`, failures record
+generic HTTP 500/error status without exception details or error-name metric
+attributes. These controls do not suppress application logs or sanitize custom
+route names. Configure a separate server-side log policy if handlers can log
+private content.
+The raw pathname remains `url.path` request metadata even when `routeResolver`
+sets a sanitized `http.route`. Payload gating is not a blanket privacy filter;
+keep secret values out of URLs and use a separate metadata policy when path
+values also need suppression.
+
 Use `outray` and `withOutraySpan` from `@outray/next/observability` for logging
 and application child spans:
 
