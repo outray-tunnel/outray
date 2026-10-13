@@ -1,5 +1,7 @@
 import type {
+  HttpPayloadCapturePolicy,
   HttpPayloadCaptureSetting,
+  NodeHttpPayloadCaptureContext,
   OutrayClientOptions,
 } from "@outray/core";
 import type {
@@ -8,19 +10,22 @@ import type {
 } from "@outray/observability";
 
 export interface OutrayNestObservabilityOptions
-  extends OutrayObservabilityOptions {
+  extends OutrayObservabilityOptions,
+    HttpPayloadCapturePolicy<NodeHttpPayloadCaptureContext> {
   /** Opt in to bounded and redacted request/response capture. */
   capturePayloads?: HttpPayloadCaptureSetting;
   /** Customize request filtering and low-cardinality route names. */
   request?: OutrayNodeHttpMiddlewareOptions;
 }
 
-export interface OutrayPluginOptions extends Partial<
-  Omit<
-    OutrayClientOptions,
-    "localPort" | "onTunnelReady" | "onError" | "onReconnecting" | "onClose"
-  >
-> {
+export interface OutrayPluginOptions
+  extends Partial<
+      Omit<
+        OutrayClientOptions,
+        "localPort" | "onTunnelReady" | "onError" | "onReconnecting" | "onClose"
+      >
+    >,
+    HttpPayloadCapturePolicy<NodeHttpPayloadCaptureContext> {
   /** Start request tracing, logs, and metrics using in-code configuration. */
   observability?: OutrayNestObservabilityOptions;
   /**
