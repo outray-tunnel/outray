@@ -43,8 +43,8 @@ export function NavItem({
         isActive === undefined ? { className: inactiveClassName } : {}
       }
       activeOptions={activeOptions}
-      className={`group relative flex w-full items-center rounded-lg tracking-[-0.01em] transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${compact ? "h-9 text-[13px] font-normal" : "h-10 text-sm font-medium"} ${
-        isCollapsed ? "justify-center px-2.5" : "gap-3 px-3"
+      className={`group relative flex items-center rounded-lg tracking-[-0.01em] transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${compact ? "text-[13px] font-normal" : "text-sm font-medium"} ${
+        isCollapsed ? "mx-auto size-10 shrink-0 justify-center p-0" : `${compact ? "h-9" : "h-10"} w-full gap-3 px-3`
       } ${isActive === undefined ? "" : isActive ? activeClassName : inactiveClassName}`}
       title={isCollapsed ? label : undefined}
       aria-current={isActive ? "page" : undefined}
