@@ -82,7 +82,7 @@ export function FullCaptureDisabledContent({
               Enable full capture?
             </Dialog.Title>
             <Dialog.Close
-              className="flex size-7 shrink-0 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40 motion-reduce:transition-none"
+              className="flex size-7 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40 motion-reduce:transition-none"
               disabled={enableFullCaptureMutation.isPending}
               aria-label="Close capture confirmation"
             >
