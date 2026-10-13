@@ -3,8 +3,12 @@ import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
 import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
+import { Button } from "../src/components/arc/button/button";
 import { motionTokens } from "../src/components/arc/lib/motion-tokens";
+
+Object.assign(globalThis, { React });
 
 type Element = React.ReactElement<Record<string, any>>;
 
@@ -182,7 +186,16 @@ test("shared dialog preserves caller sizing, focus callbacks, dismissal guards, 
 
 test("shared close-button press feedback is Motion-driven and disabled for reduced motion", async () => {
   const harness = await dialogHarness();
-  const normal = harness.render(true).nodes.find((node) => node.type === harness.motion.button)!;
+  const nodes = harness.render(true).nodes;
+  const normal = nodes.find((node) => node.type === harness.motion.button)!;
+  const close = nodes.find((node) => node.type === harness.radix.Close)!;
+  assert.equal(close.props.asChild, true, "the icon button keeps Radix close behavior without a nested button");
+  assert.equal(close.props["aria-label"], "Close dialog");
+  assert.equal(normal.props.type, "button");
+  for (const utility of ["bg-transparent", "border-0", "rounded-lg", "hover:bg-[#202023]"]) {
+    assert.ok(classes(normal).includes(utility), `${utility} keeps close controls bare until hovered`);
+  }
+  assert.ok(!classes(normal).some((utility) => utility === "border" || /^bg-(?!transparent$)/.test(utility)), "no resting close-button background or border remains");
   assert.equal(normal.props.whileTap.scale, .96);
   assert.ok(!classes(normal).some((utility) => /(?:^|:)(?:transition-|duration-|scale-|animate-)/.test(utility)));
   const reduced = harness.render(true, { reduced: true }).nodes.find((node) => node.type === harness.motion.button)!;
@@ -243,6 +256,19 @@ test("workspace dialog gives Motion the sole entrance and exit while retaining c
     assert.equal(nodes.find((node) => node.type === primitive)!.props.forceMount, true, "Radix cannot interrupt Motion's exit lifetime");
   }
   const panel = nodes.find((node) => node.type === harness.radix.Content)!;
+  const close = nodes.find((node) => node.type === harness.radix.Close)!;
+  const closeButton = close.props.children as Element;
+  assert.equal(close.props.asChild, true);
+  assert.equal(closeButton.props.disabled, true, "the close icon remains locked during saves");
+  assert.equal(closeButton.props["aria-label"], "Close Create token");
+  assert.equal(closeButton.props.type, "button");
+  for (const utility of ["border-0!", "bg-transparent", "rounded-lg!"]) {
+    assert.ok(classes(closeButton).includes(utility), `${utility} overrides the shared text-button chrome only for the close control`);
+  }
+  const closeHtml = renderToStaticMarkup(React.createElement(Button, closeButton.props));
+  assert.match(closeHtml, /hover:bg-\[#202023\]/, "the existing ghost hover background stays available");
+  assert.match(closeHtml, /aria-label="Close Create token"/);
+  assert.match(closeHtml, /disabled=""/);
   tree.props.onOpenChange(false);
   assert.equal(closed, 0, "busy dialog still blocks dismissal");
   for (const callback of ["onEscapeKeyDown", "onPointerDownOutside"]) {
