@@ -41,20 +41,24 @@ test("records Nest request metrics through the Express adapter", async () => {
     apiKey: "test-token",
     serviceName: "nest-metrics-test",
     enabled: false,
+    capturePayloads: true,
+    shouldCapturePayloads: () => false,
   });
   assert.notEqual(observability, false);
+  assert.equal(middleware.length, 2, "a rejected payload gate does not remove request metrics");
 
   const response = new EventEmitter() as EventEmitter & { statusCode: number };
   response.statusCode = 204;
-  middleware[0]?.(
-    {
+  const request = {
       method: "DELETE",
       originalUrl: "/users/42",
       baseUrl: "/users",
       route: { path: "/:userId" },
-    },
+    };
+  middleware[0]?.(
+    request,
     response,
-    () => response.emit("finish"),
+    () => middleware[1]?.(request, response, () => response.emit("finish")),
   );
 
   await provider.forceFlush();
