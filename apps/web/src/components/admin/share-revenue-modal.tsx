@@ -209,10 +209,12 @@ export function ShareRevenueModal({
                   Share Revenue Metric
                 </h2>
                 <button
+                  type="button"
                   onClick={onClose}
-                  className="p-2 hover:bg-white/5 rounded-lg transition-colors text-gray-400 hover:text-white"
+                  aria-label="Close revenue sharing"
+                  className="rounded-lg border-0 bg-transparent p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
                 >
-                  <X size={20} />
+                  <X size={20} aria-hidden="true" />
                 </button>
               </div>
 
