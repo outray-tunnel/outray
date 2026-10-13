@@ -267,7 +267,16 @@ test("portaling preserves backdrop and explicit close actions for dialogs and sh
     const close = elements(root).find((element) => element.props.label === "Close");
     assert.ok(backdrop, `${name} has its accessible backdrop close control`);
     assert.ok(close, `${name} has its explicit close button`);
-    backdrop.props.onClick(); close.props.onClick();
+    const closeButton = (close.type as (props: ElementProps) => React.ReactElement<ElementProps>)(close.props);
+    assert.equal(closeButton.type, "button");
+    assert.equal(closeButton.props.type, "button");
+    assert.equal(closeButton.props["aria-label"], "Close");
+    const closeClasses = String(closeButton.props.className).split(/\s+/);
+    for (const utility of ["border-0!", "bg-transparent", "rounded-lg!", "hover:bg-white/[0.04]"]) {
+      assert.ok(closeClasses.includes(utility), `${name} preserves ${utility} on its actual icon control`);
+    }
+    assert.ok(!React.Children.toArray(closeButton.props.children).some((child) => typeof child === "string"), "close has only the icon, not a visible label");
+    backdrop.props.onClick(); closeButton.props.onClick();
     assert.equal(overlay.closed(), 2);
     overlay.unmount();
   }
