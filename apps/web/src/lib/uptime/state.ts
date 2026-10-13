@@ -30,3 +30,10 @@ export function rollupStatus(states: PublicComponentState[]): PublicComponentSta
   if (states.some((state) => state === "degraded" || state === "outage")) return "degraded";
   return "unknown";
 }
+
+/** Approved impacts never replace probe/manual evidence or erase another active outage. */
+export function overlayIncidentImpacts(state: PublicComponentState, impacts: readonly string[]): PublicComponentState {
+  if (state === "outage" || impacts.includes("outage")) return "outage";
+  if (state === "degraded" || impacts.includes("degraded")) return "degraded";
+  return state;
+}
