@@ -16,6 +16,7 @@
     "@astrojs/node": "9.5.5",
     "@astrojs/react": "4.3.0",
     "astro": "5.18.2",
+    "motion": "^12.23.26",
     "pg": "^8.16.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
