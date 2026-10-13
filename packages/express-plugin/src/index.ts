@@ -33,7 +33,12 @@ export function registerOutrayObservability(
   const registered = observabilityRegisteredApps.get(app);
   if (registered) return registered;
 
-  const { capturePayloads, request, ...observabilityOptions } = options;
+  const {
+    capturePayloads,
+    shouldCapturePayloads,
+    request,
+    ...observabilityOptions
+  } = options;
   const observability = startOutrayObservability(observabilityOptions);
   app.use(
     createOutrayNodeHttpMiddleware({
@@ -42,7 +47,11 @@ export function registerOutrayObservability(
     }),
   );
   if (capturePayloads !== undefined && capturePayloads !== false) {
-    app.use(createNodeHttpPayloadCaptureMiddleware(capturePayloads));
+    app.use(
+      createNodeHttpPayloadCaptureMiddleware(capturePayloads, {
+        shouldCapturePayloads,
+      }),
+    );
   }
   observabilityRegisteredApps.set(app, observability);
   return observability;
@@ -95,6 +104,7 @@ export default function outray(
     silent = false,
     local = false,
     capturePayloads,
+    shouldCapturePayloads,
   } = options;
 
   if (options.observability) {
@@ -102,6 +112,9 @@ export default function outray(
       ...options.observability,
       capturePayloads:
         options.capturePayloads ?? options.observability.capturePayloads,
+      shouldCapturePayloads:
+        options.shouldCapturePayloads ??
+        options.observability.shouldCapturePayloads,
     });
   }
 
@@ -112,7 +125,11 @@ export default function outray(
     capturePayloads !== false
   ) {
     try {
-      app.use(createNodeHttpPayloadCaptureMiddleware(capturePayloads));
+      app.use(
+        createNodeHttpPayloadCaptureMiddleware(capturePayloads, {
+          shouldCapturePayloads,
+        }),
+      );
     } catch (error) {
       if (!silent) {
         console.warn(
