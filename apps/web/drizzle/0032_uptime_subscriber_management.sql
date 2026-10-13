@@ -1,0 +1,1 @@
+ALTER TABLE "uptime_status_pages" ADD COLUMN "subscriptions_enabled" boolean DEFAULT true NOT NULL;
