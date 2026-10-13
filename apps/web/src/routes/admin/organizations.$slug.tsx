@@ -615,10 +615,12 @@ function StatsModal({
             {title}
           </h3>
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            aria-label={`Close ${title}`}
+            className="rounded-lg border-0 bg-transparent p-2 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
           >
-            <X size={18} className="text-gray-400" />
+            <X size={18} className="text-gray-400" aria-hidden="true" />
           </button>
         </div>
         <div className="p-6 overflow-y-auto flex-1">
