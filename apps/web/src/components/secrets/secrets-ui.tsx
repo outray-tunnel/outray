@@ -417,6 +417,7 @@ export function SecretsDialog({
                 icon={Cancel01Icon}
                 label="Close"
                 tone="quiet"
+                className="rounded-lg! border-0! bg-transparent"
                 onClick={onClose}
               />
             </div>
@@ -508,6 +509,7 @@ export function SecretsSheet({
                 icon={Cancel01Icon}
                 label="Close"
                 tone="quiet"
+                className="rounded-lg! border-0! bg-transparent"
                 onClick={onClose}
               />
             </div>
