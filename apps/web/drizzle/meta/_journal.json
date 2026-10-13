@@ -211,6 +211,27 @@
       "when": 1791639605076,
       "tag": "0029_organization_quotas",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1791880612798,
+      "tag": "0030_observability_status_bridge",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791894050859,
+      "tag": "0031_optional_initial_incident_update",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791905582154,
+      "tag": "0032_uptime_subscriber_management",
+      "breakpoints": true
     }
   ]
 }
