@@ -8,12 +8,13 @@ import { INCIDENT_COMPONENT_PAGE_SIZE, incidentComponentRows, incidentComponentW
 
 // Title, body and status changes in the form do not rebuild the component list.
 // Search covers every component; only the current page enters the DOM.
-export const IncidentComponentPicker = memo(function IncidentComponentPicker({ page, selected, onToggle, id, error }: {
+export const IncidentComponentPicker = memo(function IncidentComponentPicker({ page, selected, onToggle, id, error, optional = false }: {
   page?: UptimePageResponse;
   selected: string[];
   onToggle: (id: string, checked: boolean) => void;
   id: string;
   error?: string;
+  optional?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
@@ -21,7 +22,7 @@ export const IncidentComponentPicker = memo(function IncidentComponentPicker({ p
   const window = useMemo(() => incidentComponentWindow(rows, search, pageIndex), [rows, search, pageIndex]);
   const selectedIds = useMemo(() => new Set(selected), [selected]);
   return <fieldset>
-    <legend className={`${labelClass} mb-2`}>Affected components <span className="ml-1 font-normal text-zinc-500">{selected.length ? `${selected.length} selected` : ""}</span></legend>
+    <legend className={`${labelClass} mb-2`}>Affected components{optional ? <span className="font-normal text-zinc-500"> (optional)</span> : null} <span className="ml-1 font-normal text-zinc-500">{selected.length ? `${selected.length} selected` : ""}</span></legend>
     <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.015]">
       <div className="border-b border-white/[0.07] p-2 [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField id={id} appearance="workspace" value={search} onValueChange={(value) => { setSearch(value); setPageIndex(0); }} label="Find a component" aria-invalid={!!error} aria-describedby={error ? `${id}-error` : undefined} placeholder="Find a component…" /></div>
       <div className="max-h-40 overflow-y-auto p-1.5">
