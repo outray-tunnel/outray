@@ -3,7 +3,7 @@ import test from "node:test";
 import { getTableName, type SQL } from "drizzle-orm";
 import { PgDialect, type PgTable } from "drizzle-orm/pg-core";
 import type { SecretsTransaction } from "../src/lib/secrets/database";
-import { createUptimeIncidentUpdate, editUptimeIncidentDraft, parseIncidentUpdate, publishUptimeUpdate, PublishError } from "../src/lib/uptime/incident-api";
+import { createUptimeIncidentUpdate, editUptimeIncidentDraft, parseComponentIds, parseInitialIncidentUpdate, parseIncidentUpdate, publishUptimeUpdate, PublishError } from "../src/lib/uptime/incident-api";
 
 const incident = { id: "incident-a", organizationId: "tenant-a", title: "API incident", status: "open", sourceType: "uptime_manual" };
 const draft = { id: "update-a", incidentId: incident.id, organizationId: incident.organizationId,
@@ -36,7 +36,7 @@ function transaction(selectRows: unknown[][]) {
       calls.push(`insert:${getTableName(value)}`);
       return { values(row: Record<string, unknown>) {
         writes.push(row);
-        return { returning: async () => [row] };
+        return { returning: async () => [row], onConflictDoNothing: async () => {} };
       } };
     },
     update(value: PgTable) {
@@ -57,6 +57,80 @@ const create = (tx: SecretsTransaction, publish = false) => createUptimeIncident
   organizationId: "tenant-a", incidentId: incident.id, userId: "user-a",
   data: { note: "New update", bodyJson: null, status: "investigating", componentStates: {}, publish },
 });
+
+const observabilityIncident = { ...incident, sourceType: "observability_alert", title: "PRIVATE database query token=secret",
+  publicTitle: "API service degradation", publicImpact: "degraded", uptimePublicationState: "detected", recoveryConfirmed: false };
+
+test("an observability update cannot imply recovery from an internal resolved state or override component health", async () => {
+  for (const lifecycle of ["open", "resolved"]) {
+    const mock = transaction([[{ id: "tenant-a" }], [{ ...observabilityIncident, status: lifecycle }]]);
+    await assert.rejects(createUptimeIncidentUpdate(mock.tx, { organizationId: "tenant-a", incidentId: incident.id, userId: "manager-a",
+      data: { note: "We recovered", bodyJson: null, status: "resolved", componentStates: {}, publish: true },
+    }), (error: unknown) => error instanceof PublishError && error.field === "acknowledgeRecovery" && error.status === 409);
+    assert.deepEqual(mock.writes, []);
+  }
+  const mock = transaction([[{ id: "tenant-a" }], [observabilityIncident]]);
+  await assert.rejects(createUptimeIncidentUpdate(mock.tx, { organizationId: "tenant-a", incidentId: incident.id, userId: "manager-a",
+    data: { note: "Override", bodyJson: null, status: "investigating", componentStates: { "component-a": "operational" }, publish: false },
+  }), (error: unknown) => error instanceof PublishError && error.field === "componentStates");
+  assert.deepEqual(mock.writes, []);
+  const inconsistent = transaction([[{ id: "tenant-a" }], [{ ...observabilityIncident, recoveryConfirmed: true, status: "open" }]]);
+  await assert.rejects(createUptimeIncidentUpdate(inconsistent.tx, { organizationId: "tenant-a", incidentId: incident.id, userId: "manager-a",
+    data: { note: "Recovered", bodyJson: null, status: "resolved", componentStates: {}, publish: true },
+  }), (error: unknown) => error instanceof PublishError && error.field === "acknowledgeRecovery");
+  assert.deepEqual(inconsistent.writes, []);
+});
+
+test("observability publication requires an explicit safe title and configured component impact", async () => {
+  for (const overrides of [{ publicTitle: null }, { publicImpact: null }, { uptimePublicationState: null }]) {
+    const mock = transaction([[{ id: "tenant-a" }], [{ ...observabilityIncident, ...overrides }]]);
+    await assert.rejects(create(mock.tx, true), (error: unknown) => error instanceof PublishError && error.field === "publicTitle");
+    assert.deepEqual(mock.writes, []);
+  }
+});
+
+test("approved observability publication preserves the canonical id and queues only customer-written content", async () => {
+  const mock = transaction([
+    [{ id: "tenant-a" }], [observabilityIncident], [{ componentId: "component-a" }],
+    [{ id: "tenant-a" }], [{ id: "page-a", published: true, slug: "services" }], [{ id: "component-a" }],
+    [{ count: 0 }], [{ id: "subscriber-a", email: "customer@example.invalid" }],
+  ]);
+  const update = await createUptimeIncidentUpdate(mock.tx, { organizationId: "tenant-a", incidentId: incident.id, userId: "manager-a",
+    data: { note: "We are investigating intermittent API failures.", bodyJson: null, status: "investigating", componentStates: {}, publish: true },
+  });
+  assert.equal(update?.incidentId, incident.id);
+  assert.ok(mock.writes.some((row) => row.uptimePublicationState === "published"));
+  const queued = mock.writes.find((row) => Array.isArray(row)) as unknown as Array<{ incidentId: string; payload: Record<string, unknown> }>;
+  assert.equal(queued[0].incidentId, incident.id);
+  assert.equal(queued[0].payload.title, observabilityIncident.publicTitle);
+  assert.equal(queued[0].payload.note, "We are investigating intermittent API failures.");
+  assert.doesNotMatch(JSON.stringify(queued), /PRIVATE|secret|sourceSnapshot|triggerValue/);
+  assert.ok(!mock.calls.includes("insert:incidents"));
+  assert.equal(mock.unused(), 0);
+});
+
+test("explicit manager recovery applies only on published update and records confirmed source recovery", async () => {
+  for (const publish of [false, true]) {
+    const approved = { ...observabilityIncident, uptimePublicationState: "published" };
+    const mock = transaction([
+      [{ id: "tenant-a" }], [approved], [{ componentId: "component-a" }],
+      ...(publish ? [[{ id: "tenant-a" }], [{ id: "page-a", published: true }], [{ count: 0 }], []] : []),
+    ]);
+    await createUptimeIncidentUpdate(mock.tx, { organizationId: "tenant-a", incidentId: incident.id, userId: "manager-a",
+      data: { note: "Recovery verified independently", bodyJson: null, status: "resolved", componentStates: {}, publish, acknowledgeRecovery: true },
+    });
+    assert.equal(mock.writes.some((row) => row.recoveryConfirmed === true && row.status === "resolved"), publish);
+    assert.equal(mock.unused(), 0);
+  }
+});
+
+test("a published observability title cannot be rewritten through an unpublished draft", async () => {
+  const mock = transaction([[{ id: "tenant-a" }], [{ ...observabilityIncident, uptimePublicationState: "published" }]]);
+  await assert.rejects(createUptimeIncidentUpdate(mock.tx, { organizationId: "tenant-a", incidentId: incident.id, userId: "manager-a",
+    data: { note: "Private draft", bodyJson: null, status: "monitoring", componentStates: {}, publish: false, publicTitle: "Secret internal title" },
+  }), (error: unknown) => error instanceof PublishError && error.field === "publicTitle");
+  assert.deepEqual(mock.writes, []);
+});
 const edit = (tx: SecretsTransaction, body: Record<string, unknown>) => editUptimeIncidentDraft(tx, {
   organizationId: "tenant-a", incidentId: incident.id, updateId: draft.id, body,
 });
@@ -71,6 +145,60 @@ test("rich update requests derive legacy note and reject unsafe formatting", () 
   if (legacy.success) assert.equal(legacy.data.bodyJson, null);
   const unsafe = parseIncidentUpdate({ body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "click", marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] }] }] } });
   assert.deepEqual(unsafe, { success: false, field: "body", error: "The update contains unsupported formatting or needs text" });
+});
+
+test("initial declaration parsing alone accepts an optional first update and requires supplied status", () => {
+  for (const input of [
+    { status: "investigating" }, { status: "identified", note: "" }, { status: "monitoring", note: "  " },
+    { status: "resolved", body: { type: "doc", content: [{ type: "paragraph", content: [] }] } },
+  ]) {
+    const result = parseInitialIncidentUpdate(input);
+    assert.ok(result.success);
+    assert.equal(result.data.note, "");
+    assert.equal(result.data.bodyJson, null);
+    assert.equal(result.data.status, input.status);
+    assert.equal(parseIncidentUpdate(input).success, false, "follow-up updates still require text");
+  }
+  for (const input of [
+    {}, { status: null }, { status: "open" }, { status: "investigating", note: null },
+    { status: "investigating", note: "x".repeat(4_001) },
+    { status: "investigating", body: { type: "doc", content: [{ type: "image" }] } },
+    { status: "investigating", body: null }, { status: "investigating", publish: "true" },
+  ]) assert.equal(parseInitialIncidentUpdate(input).success, false);
+  assert.equal(parseIncidentUpdate({ note: "A follow-up update" }).success, true, "shared default status is unchanged");
+  assert.equal(parseComponentIds(undefined), null);
+  assert.equal(parseComponentIds([]), null);
+  assert.deepEqual(parseComponentIds(undefined, { allowEmpty: true }), []);
+  assert.deepEqual(parseComponentIds([], { allowEmpty: true }), []);
+  assert.equal(parseComponentIds(null, { allowEmpty: true }), null);
+  assert.equal(parseComponentIds([false], { allowEmpty: true }), null);
+});
+
+test("a blank initial declaration draft can publish its status without invented text or component links", async () => {
+  const blank = { ...draft, note: "", bodyJson: null, componentStates: {} };
+  const mock = transaction([
+    [{ id: "tenant-a" }], [incident], [blank], [],
+    [{ id: "tenant-a" }], [{ id: "page-a", published: true }], [{ count: 0 }], [],
+  ]);
+  const updated = await edit(mock.tx, { publish: true });
+  assert.equal(updated?.note, "");
+  assert.equal(updated?.bodyJson, null);
+  assert.equal(updated?.status, "investigating");
+  assert.ok(updated?.publishedAt);
+  assert.equal(mock.unused(), 0);
+  assert.ok(!mock.calls.includes("insert:uptime_incident_components"));
+});
+
+test("a blank initial draft still rejects malformed content and automatic drafts retain text validation", async () => {
+  const blank = { ...draft, note: "", bodyJson: null, componentStates: {} };
+  for (const body of [{ body: { type: "doc", content: [{ type: "image" }] } }, { note: "x".repeat(4_001) }]) {
+    const mock = transaction([[{ id: "tenant-a" }], [incident], [blank]]);
+    await assert.rejects(edit(mock.tx, body), (error: unknown) => error instanceof PublishError && error.status === 400);
+    assert.deepEqual(mock.writes, []);
+  }
+  const automatic = transaction([[{ id: "tenant-a" }], [{ ...incident, sourceType: "uptime_monitor" }], [blank]]);
+  await assert.rejects(edit(automatic.tx, { publish: true }), (error: unknown) => error instanceof PublishError && error.field === "note");
+  assert.deepEqual(automatic.writes, []);
 });
 
 test("POST update checks resolved lifecycle after organization and incident row locks", async () => {
