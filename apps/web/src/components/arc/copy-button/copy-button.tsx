@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, type TargetAndTransition, type Transition } from "motion/react";
 import { CircleAlert, Copy } from "lucide-react";
 import { motionTokens } from "../lib/motion-tokens";
@@ -10,7 +9,8 @@ export interface CopyButtonProps {
   value: string;
   label?: string;
   className?: string;
-  iconOnly?: boolean;
+  /** Kept for existing callers; copy buttons are always icon-only. */
+  iconOnly?: true;
   variant?: "outline" | "plain";
   disabled?: boolean;
   onCopied?: () => void;
@@ -21,7 +21,6 @@ export interface CopyButtonProps {
  *  The same motion plays in reverse when the confirmation hands back to idle, so nothing ever snaps. */
 const settle = { type: "spring", visualDuration: .5, bounce: .06 } as const;
 const enter = { duration: .36, ease: [...motionTokens.ease.enter] } as const;
-const leave = { duration: .2, ease: [...motionTokens.ease.standard] } as const;
 const instant = { duration: motionTokens.duration.instant } as const;
 const soft = `blur(${motionTokens.blur.soft}px)`;
 const rest: TargetAndTransition = { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" };
@@ -31,9 +30,6 @@ const fadeOut: TargetAndTransition = { opacity: 0, transition: instant };
 const iconIn: TargetAndTransition = { opacity: 0, scale: .6, filter: soft };
 const iconOut: TargetAndTransition = { opacity: 0, scale: .6, filter: soft, transition: { duration: .24, ease: [...motionTokens.ease.standard] } };
 const iconEnter: Transition = { scale: settle, opacity: { ...enter, delay: .03 }, filter: { ...enter, delay: .03 } };
-/** Letters rise about .3em out of a soft blur; the outgoing ones lift away a little faster. */
-const glyphIn: TargetAndTransition = { opacity: 0, y: 4, filter: soft };
-const glyphOut: TargetAndTransition = { opacity: 0, y: -3, filter: soft, transition: leave };
 
 /** The success tick draws itself from its short stroke, the way a hand would write it: quick to start, then easing into place while the icon settles. */
 function DrawnCheck({ reduced }: { reduced: boolean }) {
@@ -42,43 +38,9 @@ function DrawnCheck({ reduced }: { reduced: boolean }) {
   </svg>;
 }
 
-type Glyph = { id: string; char: string; order: number };
-const toGlyphs = (chars: string[], seq: number): Glyph[] => chars.map((char, order) => ({ id: `${seq}:${order}`, char, order }));
-
-/** Shared leading and trailing characters keep their identity, so "Copy" to "Copied" only replaces the changed letters. */
-function useGlyphs(text: string) {
-  const [state, setState] = useState(() => ({ text, seq: 0, glyphs: toGlyphs([...text], 0) }));
-  if (state.text === text) return state.glyphs;
-  const prev = [...state.text], next = [...text];
-  let start = 0, end = 0;
-  while (start < prev.length && start < next.length && prev[start] === next[start]) start++;
-  while (end < prev.length - start && end < next.length - start && prev[prev.length - 1 - end] === next[next.length - 1 - end]) end++;
-  if (start < 2) start = 0;
-  if (end < 2) end = 0;
-  const seq = state.seq + 1;
-  const glyphs = [...state.glyphs.slice(0, start), ...toGlyphs(next.slice(start, next.length - end), seq), ...state.glyphs.slice(state.glyphs.length - end)];
-  setState({ text, seq, glyphs });
-  return glyphs;
-}
-
-/**
- * The label cell already reserves its widest state, so the row stays put and only the letters move. It is a layout root:
- * the letters measure their glide inside the label only, so when the button itself moves (a page entering, a panel
- * sliding, a list reflowing) they ride along instead of flying in from where the button used to be.
- */
-function MorphText({ text, reduced }: { text: string; reduced: boolean }) {
-  const glyphs = useGlyphs(text);
-  return <motion.span className="relative col-start-1 row-start-1 inline-flex justify-self-start whitespace-pre" layoutRoot>
-    <AnimatePresence mode="popLayout" initial={false}>
-      {glyphs.map(glyph => <motion.span key={glyph.id} className="inline-block" layout={reduced ? false : "position"} layoutDependency={text} initial={reduced ? fadeIn : glyphIn} animate={rest} exit={reduced ? fadeOut : glyphOut} transition={reduced ? instant : { ...enter, delay: Math.min(glyph.order * .02, .12), layout: settle }}>{glyph.char}</motion.span>)}
-    </AnimatePresence>
-  </motion.span>;
-}
-
-export function CopyButton({ value, label = "Copy", className, iconOnly = false, variant = "outline", disabled, onCopied, onCopyError }: CopyButtonProps) {
+export function CopyButton({ value, label = "Copy", className, variant = "plain", disabled, onCopied, onCopyError }: CopyButtonProps) {
   const { state, copy } = useCopyFeedback();
   const reduced = useReducedMotion() ?? false;
-  const text = state === "copied" ? "Copied" : state === "error" ? "Failed" : label;
 
   async function handleCopy() {
     if (await copy(value)) onCopied?.();
@@ -87,11 +49,12 @@ export function CopyButton({ value, label = "Copy", className, iconOnly = false,
 
   return <><button
     type="button"
-    className={["inline-flex min-h-8 w-max max-w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-zinc-900 px-3 text-[13px] font-medium text-zinc-50 transition-[background-color,border-color,color,transform] duration-160 ease-[cubic-bezier(.22,1,.36,1)] hover:border-white/20 hover:bg-[#202023] active:scale-[.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none", iconOnly && "size-8 px-0 active:scale-[.96]", variant === "plain" && "border-transparent bg-transparent text-zinc-400 hover:border-transparent hover:text-zinc-50", className].filter(Boolean).join(" ")}
+    className={["inline-flex size-8 px-0 shrink-0 items-center justify-center rounded-xl border transition-[background-color,border-color,color,transform] duration-160 ease-[cubic-bezier(.22,1,.36,1)] active:scale-[.96] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none", variant === "outline" ? "border-white/12 bg-zinc-900 text-zinc-50 hover:border-white/20 hover:bg-[#202023]" : "border-transparent bg-transparent text-zinc-400 hover:border-transparent hover:bg-transparent hover:text-zinc-50", className].filter(Boolean).join(" ")}
     onClick={() => void handleCopy()}
     aria-label={label}
     data-copy-state={state}
     disabled={disabled}
+    title={label}
   >
     <span className="relative grid size-4 shrink-0" aria-hidden="true">
       <AnimatePresence initial={false}>
@@ -100,9 +63,5 @@ export function CopyButton({ value, label = "Copy", className, iconOnly = false,
         </motion.span>
       </AnimatePresence>
     </span>
-    {!iconOnly && <span className="-mx-1 grid min-w-0 overflow-x-clip px-1 text-left whitespace-nowrap" aria-hidden="true">
-      <span className="invisible col-start-1 row-start-1">{label}</span><span className="invisible col-start-1 row-start-1">Copied</span><span className="invisible col-start-1 row-start-1">Failed</span>
-      <MorphText text={text} reduced={reduced} />
-    </span>}
   </button><span className="sr-only" role="status" aria-live="polite">{state === "idle" ? "" : state === "error" ? `${label}: Could not copy` : `${label}: Copied`}</span></>;
 }
