@@ -59,18 +59,41 @@ export interface UptimePage {
   accentColor: string;
   logoUrl: string | null;
   published: boolean;
+  subscriptionsEnabled?: boolean;
   customDomain?: string | null;
+}
+
+export type UptimeSubscriberStatus = "pending" | "confirmed" | "unsubscribed";
+
+export interface UptimeSubscriber {
+  id: string;
+  email: string;
+  status: UptimeSubscriberStatus;
+  createdAt: string;
+  confirmedAt: string | null;
+  unsubscribedAt: string | null;
+  lastSentAt: string | null;
+}
+
+export interface UptimeSubscribersResponse {
+  subscribers: UptimeSubscriber[];
+  counts: Record<"all" | UptimeSubscriberStatus, number>;
+  nextCursor: string | null;
+  subscriptionsEnabled: boolean;
 }
 
 export interface UptimeIncident {
   id: string;
   title: string;
+  publicTitle?: string | null;
+  publicImpact?: "degraded" | "outage" | null;
+  recoveryConfirmed?: boolean;
   status: "open" | "resolved";
-  sourceType?: "uptime_manual" | "uptime_monitor";
+  sourceType?: "uptime_manual" | "uptime_monitor" | "observability_alert";
   uptimePublicationState?: "detected" | "published" | "ignored" | null;
   uptimePublishedAt?: string | null;
   sourceId?: string;
-  sourceSnapshot?: { affectedComponents?: Array<{ id: string; name: string }>; monitorName?: string };
+  sourceSnapshot?: { affectedComponents?: Array<{ id: string; name: string }>; monitorName?: string; alertName?: string; service?: string; environment?: string | null };
   startedAt?: string;
   resolvedAt?: string | null;
   createdAt?: string;
@@ -109,6 +132,16 @@ export interface UptimeIncidentDetailResponse {
   componentIds: string[];
   canManage: boolean;
   monitorAvailable: boolean;
+  observabilitySource?: {
+    alertId: string;
+    alertName: string;
+    service: string | null;
+    environment: string | null;
+    alertAvailable: boolean;
+    impact: "degraded" | "outage" | null;
+    recoveryConfirmed: boolean;
+    publicTitle: string | null;
+  } | null;
   notifications: Array<{
     id: string; event: string; channel: string; status: string; attempts: number;
     lastError: string | null; sentAt: string | null; createdAt: string;
