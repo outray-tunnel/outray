@@ -77,6 +77,7 @@ const telemetry = registerOutrayObservability(app, {
     redactedHeaders: ["x-workspace-secret"],
     redactedFields: ["accountPin"],
   },
+  shouldCapturePayloads: ({ pathname }) => !pathname.startsWith("/secrets/"),
 });
 
 telemetry.info("orders API started");
@@ -111,6 +112,22 @@ redacted. Bodies default to 16 KiB (hard limit 64 KiB) and serialized headers
 default to 8 KiB (hard limit 32 KiB). Multipart, text, XML, binary, compressed,
 and streaming bodies are not captured.
 
+### Keep sensitive endpoints metadata-only
+
+`shouldCapturePayloads` uses the shared `HttpPayloadCapturePolicy<NodeHttpPayloadCaptureContext>`
+policy from `@outray/core`. Its context contains the Node `request`, `response`,
+`pathname`, and HTTP `method`. Only `true` permits the configured payload capture;
+`false` or a thrown error skips **all request and response headers and bodies**.
+The policy is evaluated once per request, without consuming request streams.
+Request spans, status, duration, and metrics remain active.
+
+Set the callback on `registerOutrayObservability` or on the top-level `outray`
+options. When `observability` is nested inside `outray`, a top-level callback
+overrides the nested callback, just as top-level `capturePayloads` overrides its
+nested setting. Capture still requires `capturePayloads` to be enabled, and works
+when the development tunnel is disabled. This policy controls payload capture
+only; use request route/filter options and logging policy separately when needed.
+
 ## Options
 
 ```typescript
@@ -135,6 +152,9 @@ interface OutrayPluginOptions {
 
   /** Opt-in OpenTelemetry payload capture (default: false) */
   capturePayloads?: boolean | HttpPayloadCaptureOptions;
+
+  /** Per-request payload gate; metadata tracing remains active */
+  shouldCapturePayloads?: (context: NodeHttpPayloadCaptureContext) => boolean;
 
   /** Callback when tunnel is ready */
   onTunnelReady?: (url: string) => void;
