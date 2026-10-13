@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@source "../../../web/src/components/arc/button/button.tsx";
+@source "../../../web/src/components/ui/workspace-input.tsx";
+@source "../../../web/src/components/ui/workspace-input-styles.ts";
+@source "../../../web/src/components/ui/workspace-scope.ts";
+
 @font-face {
   font-family: "Geom";
   font-style: normal;
