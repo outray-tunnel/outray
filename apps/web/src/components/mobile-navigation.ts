@@ -17,6 +17,10 @@ import Pulse02Icon from "@outray/icons/stroke/Pulse02Icon";
 import Route03Icon from "@outray/icons/stroke/Route03Icon";
 import ServerStack01Icon from "@outray/icons/stroke/ServerStack01Icon";
 import WorkflowSquare06Icon from "@outray/icons/stroke/WorkflowSquare06Icon";
+import Cone01SolidIcon from "@outray/icons/solid/Cone01Icon";
+import HeartPulseSolidIcon from "@outray/icons/solid/HeartPulseIcon";
+import LockPasswordSolidIcon from "@outray/icons/solid/LockPasswordIcon";
+import Pulse02SolidIcon from "@outray/icons/solid/Pulse02Icon";
 
 export interface MobileNavItem {
   label: string;
@@ -31,18 +35,19 @@ export interface MobileProduct {
   label: string;
   to: string;
   icon: IconSvgElement;
+  activeIcon: IconSvgElement;
   pages: MobileNavItem[];
 }
 
 export const mobileProducts: MobileProduct[] = [
-  { key: "tunnels", label: "Tunnels", to: "/$orgSlug/tunnel", icon: Cone01Icon, pages: [
+  { key: "tunnels", label: "Tunnels", to: "/$orgSlug/tunnel", icon: Cone01Icon, activeIcon: Cone01SolidIcon, pages: [
     { label: "Overview", to: "/$orgSlug/tunnel", icon: Home01Icon, exact: true },
     { label: "Active tunnels", shortLabel: "Tunnels", to: "/$orgSlug/tunnel/tunnels", icon: Route03Icon },
     { label: "Requests", to: "/$orgSlug/tunnel/requests", icon: HistoryIcon },
     { label: "Subdomains", to: "/$orgSlug/tunnel/subdomains", icon: Globe02Icon },
     { label: "Domains", to: "/$orgSlug/tunnel/domains", icon: LinkSquare01Icon },
   ] },
-  { key: "observability", label: "Observability", to: "/$orgSlug/observability", icon: Pulse02Icon, pages: [
+  { key: "observability", label: "Observability", to: "/$orgSlug/observability", icon: Pulse02Icon, activeIcon: Pulse02SolidIcon, pages: [
     { label: "Overview", to: "/$orgSlug/observability", icon: Home01Icon, exact: true },
     { label: "Services", to: "/$orgSlug/observability/services", icon: ServerStack01Icon },
     { label: "Requests", to: "/$orgSlug/observability/requests", icon: Route03Icon },
@@ -51,14 +56,14 @@ export const mobileProducts: MobileProduct[] = [
     { label: "Traces", to: "/$orgSlug/observability/traces", icon: WorkflowSquare06Icon },
     { label: "Alerts", to: "/$orgSlug/observability/alerts", icon: Alert02Icon },
   ] },
-  { key: "secrets", label: "Secrets", to: "/$orgSlug/secrets", icon: LockPasswordIcon, pages: [
+  { key: "secrets", label: "Secrets", to: "/$orgSlug/secrets", icon: LockPasswordIcon, activeIcon: LockPasswordSolidIcon, pages: [
     { label: "Overview", to: "/$orgSlug/secrets", icon: Home01Icon, exact: true },
     { label: "Vaults", to: "/$orgSlug/secrets/vaults", icon: Folder01Icon },
     { label: "Shares", to: "/$orgSlug/secrets/shares", icon: LinkSquare01Icon },
     { label: "Trash", to: "/$orgSlug/secrets/trash", icon: Delete02Icon },
     { label: "Audit log", shortLabel: "Audit", to: "/$orgSlug/secrets/audit", icon: Audit01Icon },
   ] },
-  { key: "uptime", label: "Uptime", to: "/$orgSlug/uptime", icon: HeartPulseIcon, pages: [
+  { key: "uptime", label: "Uptime", to: "/$orgSlug/uptime", icon: HeartPulseIcon, activeIcon: HeartPulseSolidIcon, pages: [
     { label: "Overview", to: "/$orgSlug/uptime", icon: Home01Icon, exact: true },
     { label: "Monitors", to: "/$orgSlug/uptime/monitors", icon: HeartPulseIcon },
     { label: "Incidents", to: "/$orgSlug/uptime/incidents", icon: Alert02Icon },
