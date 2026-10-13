@@ -58,6 +58,7 @@ async function loadPageHarness(options: { page?: typeof page | null; domain?: Ro
       if (specifier === "@/db") return { db };
       if (specifier === "@/db/app-schema") return { domains: table("domains") };
       if (specifier === "@/db/auth-schema") return {};
+      if (specifier === "@/db/alerts-schema") return {};
       if (specifier === "@/db/uptime-schema") return {
         uptimeStatusPages: table("pages"), uptimeStatusGroups: table("groups"), uptimeStatusComponents: table("components"),
       };
