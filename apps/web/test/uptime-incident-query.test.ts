@@ -19,7 +19,7 @@ function compile(value = "") {
 test("incident list defaults preserve the original all-sources 100-row response", () => {
   assert.deepEqual(query(), { q: "", view: "all", source: "all", cursor: null, limit: 100 });
   assert.equal(query("limit=25").limit, 25);
-  assert.deepEqual(compile().params, ["tenant-a", "uptime_monitor", "uptime_manual"]);
+  assert.deepEqual(compile().params, ["tenant-a", "uptime_monitor", "uptime_manual", "observability_alert"]);
 });
 
 test("list options reject malformed values before querying", () => {
@@ -32,14 +32,14 @@ test("list options reject malformed values before querying", () => {
 test("title search is a parameterized literal substring, including SQL wildcard characters", () => {
   const value = "API 50%_\\' OR 1=1";
   const compiled = compile(new URLSearchParams({ q: value }).toString());
-  assert.match(compiled.sql, /strpos\(lower\("incidents"\."title"\), lower\(\$4\)\) > 0/);
-  assert.equal(compiled.params[3], value);
+  assert.match(compiled.sql, /strpos\(lower\("incidents"\."title"\), lower\(\$5\)\) > 0/);
+  assert.equal(compiled.params[4], value);
   assert.equal(compiled.sql.includes(value), false);
 });
 
 test("active excludes unpublished manual incidents while drafts require no published update", () => {
   const active = compile("view=active");
-  assert.match(active.sql, /"incidents"\."status" = \$4/);
+  assert.match(active.sql, /"incidents"\."status" = \$5/);
   assert.ok(active.params.includes("open"));
   assert.match(active.sql, /or exists/);
   assert.match(active.sql, /"uptime_incident_updates"\."published_at" is not null/);
@@ -48,7 +48,7 @@ test("active excludes unpublished manual incidents while drafts require no publi
   assert.match(drafts.sql, /not exists/);
   assert.equal(drafts.params.filter((param) => param === "uptime_manual").length, 3);
   const resolved = compile("view=resolved&source=automatic");
-  assert.deepEqual(resolved.params, ["tenant-a", "uptime_monitor", "uptime_manual", "uptime_monitor", "resolved"]);
+  assert.deepEqual(resolved.params, ["tenant-a", "uptime_monitor", "uptime_manual", "observability_alert", "uptime_monitor", "observability_alert", "resolved"]);
 });
 
 test("cursor preserves both descending order keys and rejects invalid payloads", () => {
@@ -56,7 +56,7 @@ test("cursor preserves both descending order keys and rejects invalid payloads",
   const cursor = encodeIncidentCursor(row);
   assert.deepEqual(decodeIncidentCursor(cursor), row);
   const compiled = compile(new URLSearchParams({ cursor }).toString());
-  assert.match(compiled.sql, /"incidents"\."started_at" < \$4 or \("incidents"\."started_at" = \$5 and "incidents"\."id" < \$6\)/);
+  assert.match(compiled.sql, /"incidents"\."started_at" < \$5 or \("incidents"\."started_at" = \$6 and "incidents"\."id" < \$7\)/);
   assert.deepEqual(compiled.params.slice(-3), [row.startedAt.toISOString(), row.startedAt.toISOString(), row.id]);
   for (const invalid of [
     {}, { v: 2, startedAt: row.startedAt, id: row.id },
@@ -66,6 +66,15 @@ test("cursor preserves both descending order keys and rejects invalid payloads",
   ]) {
     assert.equal(decodeIncidentCursor(Buffer.from(JSON.stringify(invalid)).toString("base64url")), null);
   }
+});
+
+test("observability source filtering preserves canonical incidents, including unmapped private detections", () => {
+  const observed = compile("source=observability&view=detected");
+  assert.ok(observed.params.includes("observability_alert"));
+  assert.match(observed.sql, /"uptime_publication_state" is null/);
+  assert.match(observed.sql, /"incidents"\."organization_id" = \$1/);
+  assert.equal(query("source=observability").source, "observability");
+  assert.ok(compile("source=automatic").params.filter((value) => value === "observability_alert").length === 2);
 });
 
 test("pagination uses a lookahead row without skipping tied start timestamps", () => {
