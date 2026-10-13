@@ -52,7 +52,7 @@ export function AgentChatHost() {
 
 function AgentPanelLoading() {
   return <div aria-label="Loading Agent" aria-busy="true" className="flex min-h-0 flex-1 flex-col">
-    <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/[0.08] px-4 lg:h-11"><span role="status" className="text-[13px] text-zinc-400">Loading Agent…</span><Dialog.Close aria-label="Close Agent" className="flex size-9 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 motion-reduce:transition-none"><X size={17} aria-hidden="true" /></Dialog.Close></div>
+    <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/[0.08] px-4 lg:h-11"><span role="status" className="text-[13px] text-zinc-400">Loading Agent…</span><Dialog.Close aria-label="Close Agent" className="flex size-9 items-center justify-center rounded-lg border-0 bg-transparent text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 motion-reduce:transition-none"><X size={17} aria-hidden="true" /></Dialog.Close></div>
     <div aria-hidden="true" className="flex min-h-0 flex-1 flex-col justify-center gap-3 px-5 sm:px-8"><div className="h-5 w-44 max-w-full animate-pulse rounded bg-white/[0.05] motion-reduce:animate-none" /><div className="h-4 w-64 max-w-full animate-pulse rounded bg-white/[0.035] motion-reduce:animate-none" /></div>
     <div aria-hidden="true" className="shrink-0 border-t border-white/[0.07] p-4"><div className="h-[92px] rounded-xl border border-white/[0.08] bg-white/[0.025]" /></div>
   </div>;
