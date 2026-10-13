@@ -29,8 +29,9 @@ export interface DialogContentProps extends ComponentPropsWithoutRef<typeof Dial
   overlayClassName?: string;
 }
 
-const fade: Transition = { duration: motionTokens.duration.instant };
-const leave: Transition = { duration: motionTokens.duration.fast, ease: [...motionTokens.ease.standard] };
+const instant: Transition = { type: "tween", duration: 0 };
+const enter: Transition = { type: "tween", duration: 0.16, ease: [...motionTokens.ease.enter] };
+const leave: Transition = { type: "tween", duration: 0.12, ease: [...motionTokens.ease.standard] };
 
 /** When the title or description changes while open, the new copy rises in and the old copy leaves upward. */
 function SwapText({ text }: { text: string }) {
@@ -49,25 +50,24 @@ export function DialogContent({ title, description, children, className, overlay
   useLayoutEffect(() => { change.current = { open, at: performance.now() }; }, [open]);
   const pressOutside: DialogContentProps["onPointerDownOutside"] = event => {
     onPointerDownOutside?.(event);
-    if (open !== null && (!change.current.open || event.detail.originalEvent.timeStamp < change.current.at)) event.preventDefault();
+    if (!change.current.open || event.detail.originalEvent.timeStamp < change.current.at) event.preventDefault();
   };
-  const classes = ["fixed inset-0 z-51 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[min(calc(100vw-2rem),440px)] translate-y-0 scale-100 overflow-auto rounded-2xl border border-white/12 bg-[#111113] text-zinc-50 opacity-100 shadow-[0_24px_70px_rgb(0_0_0/.65)] outline-none transition-[opacity,transform] ease-out starting:translate-y-2 starting:scale-[.96] starting:opacity-0 data-[state=open]:duration-[240ms] data-[state=closed]:pointer-events-none data-[state=closed]:translate-y-1 data-[state=closed]:scale-[.98] data-[state=closed]:opacity-0 data-[state=closed]:duration-[160ms] motion-reduce:transition-none", className].filter(Boolean).join(" ");
-  const overlayClasses = ["fixed inset-0 z-50 bg-[oklch(10%_0_0/.46)] opacity-100 backdrop-blur-[7px] transition-opacity ease-out starting:opacity-0 data-[state=open]:duration-[240ms] data-[state=closed]:pointer-events-none data-[state=closed]:opacity-0 data-[state=closed]:duration-[160ms] motion-reduce:transition-none", overlayClassName].filter(Boolean).join(" ");
+  if (open === null) throw new Error("DialogContent must be rendered inside the shared Dialog component");
+  // Motion owns opacity and transform. CSS transitions on these layers would
+  // chase every animation frame and add a second, delayed animation.
+  const classes = ["fixed inset-0 z-51 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[min(calc(100vw-2rem),440px)] overflow-auto rounded-2xl border border-white/12 bg-[#111113] text-zinc-50 shadow-[0_24px_70px_rgb(0_0_0/.65)] outline-none data-[state=closed]:pointer-events-none!", className].filter(Boolean).join(" ");
+  const overlayClasses = ["fixed inset-0 z-50 bg-[oklch(10%_0_0/.46)] backdrop-blur-[7px] data-[state=closed]:pointer-events-none!", overlayClassName].filter(Boolean).join(" ");
   const inner = <>
-    <div className="flex items-start justify-between gap-5 border-b border-white/12 p-6"><div><DialogPrimitive.Title className="relative m-0 font-sans text-[19px] leading-[1.45] font-medium tracking-[-.01em] [overflow-wrap:anywhere]"><SwapText text={title}/></DialogPrimitive.Title>{description ? <DialogPrimitive.Description className="relative mt-2 mb-0 text-[13px] leading-[1.45] text-zinc-400 [overflow-wrap:anywhere]"><SwapText text={description}/></DialogPrimitive.Description> : null}</div><DialogPrimitive.Close className="my-[calc((19px*1.45-32px)/2)] grid size-8 shrink-0 place-items-center rounded-xl border border-white/12 bg-white/[.025] text-zinc-400 transition-[background-color,color,transform] duration-160 ease-out hover:bg-[#202023] hover:text-zinc-50 active:scale-[.96] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transform-none motion-reduce:transition-none" disabled={closeDisabled} aria-label="Close dialog"><X size={16} strokeWidth={1.75} aria-hidden="true"/></DialogPrimitive.Close></div>
+    <div className="flex items-start justify-between gap-5 border-b border-white/12 p-6"><div><DialogPrimitive.Title className="relative m-0 font-sans text-[19px] leading-[1.45] font-medium tracking-[-.01em] [overflow-wrap:anywhere]"><SwapText text={title}/></DialogPrimitive.Title>{description ? <DialogPrimitive.Description className="relative mt-2 mb-0 text-[13px] leading-[1.45] text-zinc-400 [overflow-wrap:anywhere]"><SwapText text={description}/></DialogPrimitive.Description> : null}</div><DialogPrimitive.Close asChild disabled={closeDisabled} aria-label="Close dialog"><motion.button type="button" className="my-[calc((19px*1.45-32px)/2)] grid size-8 shrink-0 place-items-center rounded-xl border border-white/12 bg-white/[.025] text-zinc-400 hover:bg-[#202023] hover:text-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45" whileTap={reduced ? undefined : { scale: .96 }} transition={reduced ? instant : { type: "tween", duration: 0.08 }}><X size={16} strokeWidth={1.75} aria-hidden="true"/></motion.button></DialogPrimitive.Close></div>
     <div className="p-6 text-[13px] leading-[1.45]">{children}</div>
   </>;
-  // Under a bare Radix root the open state is unknown here, so CSS keyframes keyed off data-state animate the layers instead.
-  if (open === null) return <DialogPrimitive.Portal>
-    <DialogPrimitive.Overlay className={overlayClasses}/>
-    <DialogPrimitive.Content {...props} onPointerDownOutside={pressOutside} className={classes}>{inner}</DialogPrimitive.Content>
-  </DialogPrimitive.Portal>;
-  // The overlay fades while the dialog rises 8px and scales up on a spring. Closing is shorter and quieter, and starts from wherever the entrance is.
+  // Presence retains the portal through its exit; Motion is the only animation
+  // owner, with a short tween rather than a long spring or a zoom.
   return <AnimatePresence>
     {open && <DialogPrimitive.Portal key="dialog" forceMount>
-      <DialogPrimitive.Overlay asChild forceMount><motion.div className={overlayClasses} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: reduced ? fade : leave }} transition={reduced ? fade : { duration: motionTokens.duration.standard, ease: [...motionTokens.ease.enter] }}/></DialogPrimitive.Overlay>
+      <DialogPrimitive.Overlay asChild forceMount><motion.div className={overlayClasses} initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: reduced ? instant : leave }} transition={reduced ? instant : { ...enter, duration: 0.14 }}/></DialogPrimitive.Overlay>
       <DialogPrimitive.Content {...props} onPointerDownOutside={pressOutside} asChild forceMount>
-        <motion.div className={classes} initial={reduced ? { opacity: 0 } : { opacity: 0, y: 8, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduced ? { opacity: 0, transition: fade } : { opacity: 0, y: 4, scale: .98, transition: leave }} transition={reduced ? fade : { default: motionTokens.spring.smooth, opacity: { duration: motionTokens.duration.fast, ease: [...motionTokens.ease.enter] } }}>{inner}</motion.div>
+        <motion.div className={classes} initial={reduced ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduced ? 0 : 2, transition: reduced ? instant : leave }} transition={reduced ? instant : enter}>{inner}</motion.div>
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>}
   </AnimatePresence>;
