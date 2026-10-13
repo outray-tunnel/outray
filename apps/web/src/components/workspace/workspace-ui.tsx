@@ -47,7 +47,7 @@ export function WorkspaceDialog({ open, onClose, title, description, children, f
             {description ? <Dialog.Description className="mt-1.25 text-xs leading-[1.7] text-[#929299]">{description}</Dialog.Description> : null}
           </div>
           <Dialog.Close asChild>
-            <Button type="button" variant="ghost" size="sm" disabled={busy} aria-label={`Close ${title}`} className="w-[30px] min-w-[30px] shrink-0 px-0!">
+            <Button type="button" variant="ghost" size="sm" disabled={busy} aria-label={`Close ${title}`} className="w-[30px] min-w-[30px] shrink-0 rounded-lg! border-0! bg-transparent px-0!">
               <X size={16} aria-hidden="true" />
             </Button>
           </Dialog.Close>
@@ -72,7 +72,7 @@ export function WorkspaceNotice({ message, tone = "error", action, onDismiss }: 
     <Icon size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
     <div className="min-w-0 flex-1">{message}</div>
     {action}
-    {onDismiss ? <Button type="button" variant="ghost" size="sm" aria-label="Dismiss message" onClick={onDismiss} className="w-[30px] min-w-[30px] shrink-0 px-0!"><X size={14} aria-hidden="true" /></Button> : null}
+    {onDismiss ? <Button type="button" variant="ghost" size="sm" aria-label="Dismiss message" onClick={onDismiss} className="w-[30px] min-w-[30px] shrink-0 rounded-lg! border-0! bg-transparent px-0!"><X size={14} aria-hidden="true" /></Button> : null}
   </div>;
 }
 
