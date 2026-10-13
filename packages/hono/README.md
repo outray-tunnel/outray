@@ -63,6 +63,36 @@ JSON and form payloads are bounded and sensitive headers and fields are
 redacted. Streaming, multipart, compressed, XML, and binary bodies are not
 captured.
 
+Set `shouldCapturePayloads: ({ pathname, method }) => boolean` alongside an
+enabled `capturePayloads` setting to decide which requests can have content
+captured. This policy uses the shared core resolver: it runs once per
+instrumented request, treats non-`true` results and thrown errors as capture
+disabled, and never mutates shared settings. Excluded content is not cloned or
+read, but the request still records route, status, timing, and HTTP metrics.
+
+```ts
+const telemetry = outray({
+  apiKey: process.env.OUTRAY_API_KEY,
+  serviceName: "orders-api",
+  capturePayloads: true,
+  shouldCapturePayloads: ({ pathname }) => !pathname.startsWith("/api/secrets/"),
+  recordExceptions: false,
+  ignoreDefaultPaths: false,
+})
+```
+
+`ignoreDefaultPaths: false` also instruments `/health` and `OPTIONS` requests;
+explicit `ignore` callbacks still take precedence. Defaults are unchanged.
+`recordExceptions: false` omits exception details and exception-derived metric
+error names, while preserving thrown errors and generic failure status. Payload
+policy does not suppress application logs or sanitize custom route names. Keep
+console capture disabled, or supply an appropriate `shouldCaptureLog` policy,
+when handlers may log private data.
+The raw pathname is still included as `url.path` request metadata, even when a
+`routeResolver` supplies a sanitized `http.route`. The content gate is not a
+blanket privacy filter: never put secret values in URLs, and apply a separate
+metadata policy if your application needs path-value suppression.
+
 ## Application spans
 
 Use `withOutraySpan` when a library does not already emit OpenTelemetry spans:
