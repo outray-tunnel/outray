@@ -27,6 +27,23 @@ test("rejects scripts, unsupported nodes, malformed documents and unsafe links",
   ]) assert.equal(parseIncidentDocument(candidate), null);
 });
 
+test("empty incident documents require an explicit opt-in without weakening formatting or limits", () => {
+  for (const empty of [{ type: "doc", content: [] }, legacyIncidentDocument(""), legacyIncidentDocument("  \n ")]) {
+    assert.equal(parseIncidentDocument(empty), null);
+    const parsed = parseIncidentDocument(empty, { allowEmpty: true });
+    assert.ok(parsed);
+    assert.equal(parsed.note, "");
+  }
+  for (const malformed of [
+    null,
+    { type: "doc", content: [{ type: "image" }] },
+    { type: "doc", content: [{ type: "paragraph", attrs: { unsafe: true } }] },
+    { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: " ", marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] }] }] },
+    legacyIncidentDocument("x".repeat(4_001)),
+    { type: "doc", content: Array.from({ length: 251 }, () => ({ type: "paragraph" })) },
+  ]) assert.equal(parseIncidentDocument(malformed, { allowEmpty: true }), null);
+});
+
 test("legacy text and malformed saved JSON render as escaped paragraphs", () => {
   const note = "A <script>alert(1)</script>\nSecond line";
   assert.equal(incidentPlainText(legacyIncidentDocument(note)), note);
