@@ -6,6 +6,7 @@ import {
   captureFetchRequest,
   captureFetchResponse,
   isHttpPayloadCaptureActive,
+  resolveHttpPayloadCapture,
 } from "@outray/core";
 import {
   createOutrayHttpServerMetrics,
@@ -286,8 +287,11 @@ async function runNextHandler<
   try {
     result = handler(request, ...args);
   } catch (error) {
+    span.setAttribute("http.response.status_code", 500);
     span.setStatus({ code: SpanStatusCode.ERROR });
-    if (error instanceof Error) span.recordException(error);
+    if (options.recordExceptions !== false && error instanceof Error) {
+      span.recordException(error);
+    }
     throw error;
   }
 
@@ -303,8 +307,11 @@ async function runNextHandler<
     response = await result;
   } catch (error) {
     await requestCapture;
+    span.setAttribute("http.response.status_code", 500);
     span.setStatus({ code: SpanStatusCode.ERROR });
-    if (error instanceof Error) span.recordException(error);
+    if (options.recordExceptions !== false && error instanceof Error) {
+      span.recordException(error);
+    }
     throw error;
   }
 
@@ -341,14 +348,28 @@ export function withOutrayRequest<
 ): (request: Request, ...args: Arguments) => Promise<Result> {
   return async (request: Request, ...args: Arguments): Promise<Result> => {
     const pathname = pathnameFrom(request);
-    const requestContext: OutrayNextRequestContext = { request, pathname };
-    let ignored = isDefaultIgnoredNextPath(pathname);
+    const requestContext: OutrayNextRequestContext = {
+      request,
+      pathname,
+      method: request.method,
+    };
+    let ignored =
+      options.ignoreDefaultPaths !== false && isDefaultIgnoredNextPath(pathname);
     try {
       ignored ||= options.ignore?.(requestContext) === true;
     } catch {
       // A telemetry filter cannot block the application request.
     }
     if (ignored) return handler(request, ...args);
+
+    const requestOptions = {
+      capturePayloads: resolveHttpPayloadCapture(
+        options.capturePayloads,
+        requestContext,
+        options,
+      ),
+      recordExceptions: options.recordExceptions,
+    };
 
     let route: string | null | undefined;
     try {
@@ -368,7 +389,7 @@ export function withOutrayRequest<
           handler,
           request,
           args,
-          options,
+          requestOptions,
           span,
           pathname,
           route!,
@@ -378,7 +399,10 @@ export function withOutrayRequest<
       } catch (error) {
         finishMetrics({
           statusCode: 500,
-          errorType: error instanceof Error ? error.name : "Error",
+          errorType:
+            options.recordExceptions === false
+              ? undefined
+              : error instanceof Error ? error.name : "Error",
           route: route!,
         });
         throw error;
@@ -424,8 +448,21 @@ export function withOutrayPayloadCapture<
 >(
   handler: (request: Request, ...args: Arguments) => Result | Promise<Result>,
   captureOptions: OutrayPayloadCaptureOptions = true,
+  requestOptions: Omit<OutrayNextRequestOptions, "capturePayloads"> = {},
 ): (request: Request, ...args: Arguments) => Promise<Result> {
-  return withOutrayRequest(handler, { capturePayloads: captureOptions });
+  const options: OutrayNextRequestOptions = {
+    capturePayloads: captureOptions,
+    recordExceptions: requestOptions.recordExceptions,
+    routeResolver: requestOptions.routeResolver,
+    ignore: requestOptions.ignore,
+    ignoreDefaultPaths: requestOptions.ignoreDefaultPaths,
+  };
+  // Forward the policy lazily so its getter is read inside core's safety boundary.
+  Object.defineProperty(options, "shouldCapturePayloads", {
+    enumerable: true,
+    get: () => requestOptions.shouldCapturePayloads,
+  });
+  return withOutrayRequest(handler, options);
 }
 
 // Named exports for better tree-shaking
