@@ -129,7 +129,9 @@ test("settings and dialogs remain mobile-friendly and honor reduced motion", asy
   assert.match(settings, /motion-reduce:transition-none/);
   assert.match(dialog, /max-h-\[calc\(100dvh-48px\)\]/);
   assert.match(dialog, /overflow-y-auto/);
-  assert.match(dialog, /motion-reduce:transition-none/);
+  assert.match(dialog, /useReducedMotion/);
+  assert.match(dialog, /duration: reducedMotion \? 0/);
+  assert.doesNotMatch(dialog, /animate-workspace-(?:dialog|overlay)-/);
 });
 
 test("dialog closure restores its opener or a stable page target after row removal", () => {
