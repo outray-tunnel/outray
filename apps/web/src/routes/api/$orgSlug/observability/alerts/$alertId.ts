@@ -271,6 +271,7 @@ export const Route = createFileRoute(
                   eq(incidents.sourceType, "observability_alert"),
                   eq(incidents.sourceId, row.id),
                   eq(incidents.status, "open"),
+                  isNull(incidents.uptimePublicationState),
                 ),
               );
           }
@@ -333,6 +334,7 @@ export const Route = createFileRoute(
                 eq(incidents.sourceType, "observability_alert"),
                 eq(incidents.sourceId, deleted.id),
                 eq(incidents.status, "open"),
+                isNull(incidents.uptimePublicationState),
               ),
             );
 
