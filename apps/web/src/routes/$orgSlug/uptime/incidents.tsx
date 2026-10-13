@@ -11,7 +11,7 @@ import { IncidentBadge } from "@/components/uptime/incident-ui";
 import { formatTime, type UptimeIncidentListResponse, type UptimePageResponse, uptimeRequest } from "@/components/uptime/uptime-client";
 import { UptimeRowsSkeleton, UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
 import { secondaryButton, UptimeError, UptimePageHeading } from "@/components/uptime/uptime-ui";
-import { affectedComponentNames, incidentDuration, incidentLabel, incidentSearch, pageComponents, type IncidentSearch } from "@/lib/uptime/incident-display";
+import { affectedComponentNames, incidentDuration, incidentLabel, incidentSearch, incidentSourceLabel, pageComponents, type IncidentSearch } from "@/lib/uptime/incident-display";
 
 export const Route = createFileRoute("/$orgSlug/uptime/incidents")({
   head: () => ({ meta: [{ title: "Incidents - OutRay Uptime" }] }),
@@ -84,12 +84,12 @@ function UptimeIncidents() {
   };
 
   return <div className="mx-auto w-full max-w-[1440px]">
-    <UptimePageHeading title="Incidents" description="Track issues, share updates, and follow recovery." action={canManage ? <Button type="button" size="md" aria-haspopup="dialog" onClick={() => setCreating(true)}><Plus size={15} aria-hidden="true" />Create incident</Button> : undefined} />
+    <UptimePageHeading title="Incidents" description="Track issues, share updates, and follow recovery." action={canManage ? <Button type="button" size="md" aria-haspopup="dialog" onClick={() => setCreating(true)}><Plus size={15} aria-hidden="true" />Declear incident</Button> : undefined} />
     <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
       <SegmentedControl label="Filter incidents by status" options={Array.from(views)} value={search.view ?? "all"} onValueChange={(value) => changeFilter({ view: value as IncidentSearch["view"] })} />
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
         <div className="min-w-0 sm:w-60 [&>div]:relative [&>div]:gap-0 [&_input:focus-visible]:outline-none [&_label]:sr-only"><SearchField appearance="workspace" label="Search incidents by title" value={searchText} onValueChange={changeSearch} placeholder="Search incidents…" autoComplete="off" /></div>
-        <div className="min-w-0 sm:w-40 [&>div]:relative [&>div]:gap-0 [&_label]:sr-only"><Select label="Incident source" value={search.source ?? "all"} onValueChange={(value) => changeFilter({ source: value as IncidentSearch["source"] })} options={[{ value: "all", label: "All sources" }, { value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }]} /></div>
+        <div className="min-w-0 sm:w-40 [&>div]:relative [&>div]:gap-0 [&_label]:sr-only"><Select label="Incident source" value={search.source ?? "all"} onValueChange={(value) => changeFilter({ source: value as IncidentSearch["source"] })} options={[{ value: "all", label: "All sources" }, { value: "automatic", label: "Automatic" }, { value: "observability", label: "Observability" }, { value: "manual", label: "Manual" }]} /></div>
       </div>
     </div>
     {incidents.error && <div className="mb-4 space-y-2"><UptimeError message={incidents.error instanceof Error ? incidents.error.message : "Could not load incidents."} /><Button type="button" variant="secondary" size="sm" loading={incidents.isFetching} onClick={() => void incidents.refetch()}>Try again</Button></div>}
@@ -97,14 +97,14 @@ function UptimeIncidents() {
     <section aria-label="Incident history" className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
       <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_90px_112px_120px_14px] gap-4 border-b border-white/[0.07] bg-white/[0.015] px-5 py-2.5 text-[11px] text-zinc-500 lg:grid"><span>Incident</span><span>Source</span><span>Started</span><span>Duration</span><span /></div>
       {incidents.isPending && <UptimeSkeleton label="Loading incidents"><UptimeRowsSkeleton rows={5} /></UptimeSkeleton>}
-      {!incidents.isPending && !incidents.isError && !rows.length && <div className="flex flex-col items-center px-6 py-14 text-center"><CircleCheck size={26} strokeWidth={1.4} className="mb-4 text-zinc-600" aria-hidden="true" /><h2 className="text-sm font-medium text-zinc-200">{filtered ? "No matching incidents" : "No incidents yet"}</h2><p className="mt-2 max-w-sm text-[13px] leading-6 text-zinc-500">{filtered ? "Try a different search or filter to find what you need." : "Monitor-detected issues and updates from your team will appear here."}</p>{filtered ? <button type="button" className={`${secondaryButton} mt-5 gap-2`} onClick={clearFilters}><X size={13} aria-hidden="true" />Clear filters</button> : !page.isPending && !page.isError && !page.data?.page && canManage ? <Link to="/$orgSlug/uptime/status-page" params={{ orgSlug }} className={`${secondaryButton} mt-5 gap-2`}>Set up your status page<ArrowUpRight size={14} aria-hidden="true" /></Link> : canManage && <Button type="button" variant="secondary" size="md" className="mt-5" aria-haspopup="dialog" onClick={() => setCreating(true)}>Create incident</Button>}</div>}
+      {!incidents.isPending && !incidents.isError && !rows.length && <div className="flex flex-col items-center px-6 py-14 text-center"><CircleCheck size={26} strokeWidth={1.4} className="mb-4 text-zinc-600" aria-hidden="true" /><h2 className="text-sm font-medium text-zinc-200">{filtered ? "No matching incidents" : "No incidents yet"}</h2><p className="mt-2 max-w-sm text-[13px] leading-6 text-zinc-500">{filtered ? "Try a different search or filter to find what you need." : "Monitor-detected issues and updates from your team will appear here."}</p>{filtered ? <button type="button" className={`${secondaryButton} mt-5 gap-2`} onClick={clearFilters}><X size={13} aria-hidden="true" />Clear filters</button> : !page.isPending && !page.isError && !page.data?.page && canManage ? <Link to="/$orgSlug/uptime/status-page" params={{ orgSlug }} className={`${secondaryButton} mt-5 gap-2`}>Set up your status page<ArrowUpRight size={14} aria-hidden="true" /></Link> : canManage && <Button type="button" variant="secondary" size="md" className="mt-5" aria-haspopup="dialog" onClick={() => setCreating(true)}>Declear incident</Button>}</div>}
       {rows.map((incident) => {
         const names = affectedComponentNames(incident, components);
         const label = incidentLabel(incident);
         return <Link key={incident.id} to="/$orgSlug/uptime/incidents/$incidentId" params={{ orgSlug, incidentId: incident.id }} search={search} className="group grid gap-2 border-b border-white/[0.06] px-5 py-3.5 transition-colors last:border-b-0 hover:bg-white/[0.025] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-zinc-500 motion-reduce:transition-none lg:grid-cols-[minmax(0,1fr)_90px_112px_120px_14px] lg:items-center lg:gap-4">
           <div className="min-w-0"><p className="min-w-0 break-words text-[13px] font-medium text-zinc-200 group-hover:text-white">{incident.title}</p><div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5"><IncidentBadge incident={incident} /><p className="min-w-0 truncate text-[11px] text-zinc-500" title={names.join(", ")}>{names.length ? names.join(", ") : "No status-page components linked"}</p></div></div>
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-zinc-500 lg:contents">
-          <span>{incident.sourceType === "uptime_manual" ? "Manual" : "Automatic"}</span>
+          <span>{incidentSourceLabel(incident)}</span>
           <time className="text-[11px] text-zinc-500" dateTime={incident.startedAt || incident.createdAt} title={formatTime(incident.startedAt || incident.createdAt)}>{new Date(incident.startedAt || incident.createdAt || "").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</time>
           <span className="text-[11px] text-zinc-500">{label === "Draft" ? "Unpublished" : `${incidentDuration(incident)}${incident.status === "open" ? " · ongoing" : ""}`}</span>
           </div>
