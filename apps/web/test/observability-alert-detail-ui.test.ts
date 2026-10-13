@@ -95,13 +95,14 @@ test("alert overview uses compact metrics and useful incident/delivery drilldown
   assert.ok(links.every((link) => link.props.search.search === "checkout"));
 });
 
-test("detail has five preserved route tabs with a reduced-motion neutral animated underline", async () => {
+test("detail preserves route tabs and adds status-page linking with a reduced-motion neutral animated underline", async () => {
   const harness = await load();
   harness.reset([data, false]);
   const nodes = harness.render("AlertDetailWorkspace", { orgSlug: "org/name", alertId: alert.id });
   const links = nodes.filter((node) => node.type === harness.stubs.Link);
   const tabs = links.filter((node) => typeof node.props.children === "function");
-  assert.equal(tabs.length, 5);
+  assert.equal(tabs.length, 6);
+  assert.ok(tabs.some((tab) => tab.props.to === "/$orgSlug/observability/alerts/$alertId/status-page"));
   for (const tab of tabs) {
     assert.equal(tab.props.search.search, "checkout");
     assert.doesNotMatch(tab.props.activeProps.className, /violet|purple/);
