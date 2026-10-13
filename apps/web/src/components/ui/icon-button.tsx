@@ -13,7 +13,7 @@ export interface IconButtonProps
 }
 
 const variantStyles: Record<IconButtonVariant, string> = {
-  ghost: "hover:bg-white/5 text-gray-400 hover:text-white",
+  ghost: "border-0 bg-transparent hover:bg-white/5 text-gray-400 hover:text-white",
   secondary:
     "bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white",
   destructive:
