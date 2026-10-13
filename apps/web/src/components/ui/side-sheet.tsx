@@ -104,7 +104,7 @@ export function SideSheet({
                 <DialogPrimitive.Close
                   disabled={closeDisabled}
                   aria-label="Close panel"
-                  className="-mr-2 -mt-1 flex size-10 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+                  className="-mr-2 -mt-1 flex size-10 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
                 >
                   <X size={17} strokeWidth={1.75} aria-hidden="true" />
                 </DialogPrimitive.Close>
