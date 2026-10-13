@@ -193,6 +193,161 @@ test("ignored requests bypass instrumentation and still execute once", async () 
   assert.equal(exporter.getFinishedSpans().length, 0);
 });
 
+test("default asset exclusions remain compatible and can be disabled without overriding custom ignores", async () => {
+  const paths = ["/@vite/client", "/assets/application.js", "/favicon.ico", "/robots.txt"];
+  for (const pathname of paths) {
+    const response = new Response("asset", { status: 404 });
+    let executions = 0;
+    const context = {
+      request: new Request(`https://app.test${pathname}`),
+      next: () => { executions += 1; return response; },
+    };
+    assert.equal(await instrumentTanStackRequest(context), response);
+    assert.equal(executions, 1);
+    assert.equal(exporter.getFinishedSpans().length, 0);
+
+    assert.equal(await instrumentTanStackRequest(context, { ignoreDefaultPaths: false }), response);
+    const [span] = exporter.getFinishedSpans();
+    assert.equal(span?.attributes["http.route"], pathname);
+    assert.equal(span?.attributes["http.response.status_code"], 404);
+    assert.equal(executions, 2);
+    exporter.reset();
+
+    assert.equal(await instrumentTanStackRequest(context, { ignoreDefaultPaths: false, ignore: () => true }), response);
+    assert.equal(executions, 3);
+    assert.equal(exporter.getFinishedSpans().length, 0);
+  }
+});
+
+test("a shared per-request payload gate keeps concurrent sensitive requests metadata-only", async () => {
+  const privateRequest = new Request("https://app.test/api/acme/secrets/reveal?token=private-query", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: "Bearer private-header" },
+    body: JSON.stringify({ value: "private-request-body" }),
+  });
+  const privateResponse = Response.json({ value: "private-response-body" });
+  let privateClones = 0;
+  privateRequest.clone = () => { privateClones += 1; throw new Error("must never clone private request"); };
+  privateResponse.clone = () => { privateClones += 1; throw new Error("must never clone private response"); };
+
+  const publicRequest = new Request("https://app.test/api/acme/uptime/monitors", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name: "Checkout" }),
+  });
+  const publicResponse = Response.json({ ok: true }, { status: 201 });
+  const gateCalls = new Map<string, number>();
+  const options = {
+    capturePayloads: true,
+    shouldCapturePayloads: ({ pathname, method }: { pathname: string; method?: string }) => {
+      assert.equal(method, "POST");
+      gateCalls.set(pathname, (gateCalls.get(pathname) ?? 0) + 1);
+      return !pathname.includes("/secrets/");
+    },
+    routeResolver: ({ pathname }: { pathname: string }) => pathname.includes("/secrets/")
+      ? "/api/:orgSlug/secrets/reveal" : "/api/:orgSlug/uptime/monitors",
+  };
+  const results = await Promise.all([
+    instrumentTanStackRequest({ request: privateRequest, next: async () => {
+      assert.equal(privateRequest.bodyUsed, false);
+      assert.equal((await privateRequest.json()).value, "private-request-body");
+      await Promise.resolve();
+      return privateResponse;
+    } }, options),
+    instrumentTanStackRequest({ request: publicRequest, next: async () => {
+      assert.equal(publicRequest.bodyUsed, false);
+      assert.equal((await publicRequest.json()).name, "Checkout");
+      await Promise.resolve();
+      return publicResponse;
+    } }, options),
+  ]);
+  assert.equal(results[0], privateResponse);
+  assert.equal(results[1], publicResponse);
+  assert.equal(privateResponse.bodyUsed, false);
+  assert.equal(publicResponse.bodyUsed, false);
+  assert.equal(privateClones, 0);
+  assert.equal(options.capturePayloads, true, "the gate cannot mutate shared configuration");
+  assert.deepEqual([...gateCalls.values()], [1, 1], "capture eligibility is resolved only once for each request");
+
+  const spans = exporter.getFinishedSpans();
+  assert.equal(spans.length, 2);
+  const privateSpan = spans.find((span) => span.attributes["http.route"] === "/api/:orgSlug/secrets/reveal")!;
+  const publicSpan = spans.find((span) => span.attributes["http.route"] === "/api/:orgSlug/uptime/monitors")!;
+  assert.equal(privateSpan.attributes["http.response.status_code"], 200);
+  assert.equal(Object.keys(privateSpan.attributes).some((key) => key.startsWith("outray.http.")), false);
+  assert.doesNotMatch(JSON.stringify(privateSpan.attributes), /private-(?:query|header|request-body|response-body)/);
+  assert.equal(JSON.parse(String(publicSpan.attributes["outray.http.request.body"])).name, "Checkout");
+  assert.equal(JSON.parse(String(publicSpan.attributes["outray.http.response.body"])).ok, true);
+
+  await meterProvider.forceFlush();
+  const requestCount = metricExporter.getMetrics().flatMap((resource) => resource.scopeMetrics)
+    .flatMap((scope) => scope.metrics).find((metric) => metric.descriptor.name === "http.server.request.count");
+  for (const route of ["/api/:orgSlug/secrets/reveal", "/api/:orgSlug/uptime/monitors"]) {
+    assert.ok(requestCount?.dataPoints.some((point) => point.attributes["http.route"] === route));
+  }
+});
+
+test("payload gate failures fail closed before cloning without changing the handler or metrics", async () => {
+  const request = new Request("https://app.test/api/capture-gate-failure", { method: "POST", body: "private-body" });
+  const response = Response.json({ value: "private-response" }, { status: 202 });
+  let clones = 0, evaluations = 0, executions = 0;
+  request.clone = () => { clones += 1; throw new Error("unexpected request clone"); };
+  response.clone = () => { clones += 1; throw new Error("unexpected response clone"); };
+  const result = await instrumentTanStackRequest({ request, next: () => {
+    executions += 1;
+    assert.equal(request.bodyUsed, false);
+    return response;
+  } }, { capturePayloads: true, shouldCapturePayloads: () => {
+    evaluations += 1;
+    throw new Error("private capture predicate failure");
+  } });
+  assert.equal(result, response);
+  assert.equal(clones, 0);
+  assert.equal(evaluations, 1);
+  assert.equal(executions, 1);
+  const [span] = exporter.getFinishedSpans();
+  assert.ok(span);
+  assert.equal(span.attributes["http.response.status_code"], 202);
+  assert.equal(Object.keys(span.attributes).some((key) => key.startsWith("outray.http.")), false);
+  assert.equal(span.events.length, 0);
+  await meterProvider.forceFlush();
+  const point = metricExporter.getMetrics().flatMap((resource) => resource.scopeMetrics)
+    .flatMap((scope) => scope.metrics).find((metric) => metric.descriptor.name === "http.server.request.count")
+    ?.dataPoints.find((entry) => entry.attributes["http.route"] === "/api/capture-gate-failure");
+  assert.equal(point?.attributes["http.response.status_code"], 202);
+});
+
+test("a payload predicate cannot enable capture when the static setting is disabled", async () => {
+  let evaluations = 0;
+  const response = Response.json({ ok: true });
+  assert.equal(await instrumentTanStackRequest({
+    request: new Request("https://app.test/api/no-payload-setting"), next: () => response,
+  }, { capturePayloads: false, shouldCapturePayloads: () => { evaluations += 1; return true; } }), response);
+  assert.equal(evaluations, 0);
+  assert.equal(Object.keys(exporter.getFinishedSpans()[0]!.attributes).some((key) => key.startsWith("outray.http.")), false);
+});
+
+test("a throwing enumerable payload-policy getter cannot interrupt TanStack requests", async () => {
+  const options = { capturePayloads: true };
+  let evaluations = 0, clones = 0;
+  Object.defineProperty(options, "shouldCapturePayloads", { enumerable: true, get() {
+    evaluations += 1;
+    throw new Error("private-policy-getter-error");
+  } });
+  const request = new Request("https://app.test/api/throwing-policy-getter");
+  const response = Response.json({ ok: true }, { status: 202 });
+  request.clone = () => { clones += 1; throw new Error("unexpected clone"); };
+  response.clone = () => { clones += 1; throw new Error("unexpected clone"); };
+  assert.equal(await instrumentTanStackRequest({ request, next: () => response }, options), response);
+  assert.equal(evaluations, 1);
+  assert.equal(clones, 0);
+  assert.equal(exporter.getFinishedSpans()[0]?.attributes["http.response.status_code"], 202);
+  await meterProvider.forceFlush();
+  const count = metricExporter.getMetrics().flatMap((resource) => resource.scopeMetrics).flatMap((scope) => scope.metrics)
+    .find((metric) => metric.descriptor.name === "http.server.request.count");
+  assert.ok(count?.dataPoints.some((point) => point.attributes["http.route"] === "/api/throwing-policy-getter"));
+});
+
 test("records failures without swallowing them", async () => {
   const failure = new Error("handler failed");
   await assert.rejects(
@@ -231,6 +386,37 @@ test("metadata-only requests omit query values, credentials, bodies, and excepti
   const serialized = JSON.stringify({ name: span.name, attributes: span.attributes, events: span.events });
   for (const value of ["private-query-value", "private-header-value", "private-body-value", failure.message]) {
     assert.equal(serialized.includes(value), false);
+  }
+});
+
+test("metadata-only failures keep generic HTTP status without leaking error names into spans or metrics", async () => {
+  for (const useActiveSpan of [false, true]) {
+    const failure = new Error("private-exception-message");
+    failure.name = "private-database-query-error-name";
+    const route = useActiveSpan ? "/api/metadata-failure-active" : "/api/metadata-failure-new";
+    const request = new Request(`https://app.test${route}`);
+    const activeSpan = useActiveSpan ? provider.getTracer("metadata-only-test").startSpan("incoming") : undefined;
+    const run = () => instrumentTanStackRequest({ request, next: () => Promise.reject(failure) }, {
+      capturePayloads: true, shouldCapturePayloads: () => false, recordExceptions: false,
+    });
+    await assert.rejects(activeSpan ? context.with(trace.setSpan(context.active(), activeSpan), run) : run(), failure);
+    activeSpan?.end();
+    const span = exporter.getFinishedSpans().find((candidate) => candidate.attributes["http.route"] === route)!;
+    assert.equal(span.attributes["http.response.status_code"], 500);
+    assert.equal(span.status.code, 2);
+    assert.equal(span.events.length, 0);
+    assert.doesNotMatch(JSON.stringify({ name: span.name, attributes: span.attributes, events: span.events, status: span.status }), /private-/);
+
+    await meterProvider.forceFlush();
+    const attributes = metricExporter.getMetrics().flatMap((resource) => resource.scopeMetrics)
+      .flatMap((scope) => scope.metrics).flatMap((metric) => metric.dataPoints.map((point) => point.attributes))
+      .filter((entry) => entry["http.route"] === route);
+    assert.ok(attributes.length > 0);
+    assert.ok(attributes.some((entry) => entry["http.response.status_code"] === 500));
+    for (const entry of attributes) {
+      assert.equal(entry["error.type"], undefined);
+      assert.doesNotMatch(JSON.stringify(entry), /private-/);
+    }
   }
 });
 
