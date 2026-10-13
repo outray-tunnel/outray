@@ -58,7 +58,7 @@ export function AgentPanelContent({ onClose }: { onClose: () => void }) {
       <div className="ml-auto flex items-center gap-0.5">
         <button type="button" className={iconButton} aria-label="New chat" title="New chat" onClick={() => startThread()}><MessageSquarePlus size={16} aria-hidden="true" /></button>
         <button type="button" className={iconButton} aria-label="Chat history" title="Chat history" aria-pressed={state.historyOpen} onClick={() => dispatch({ type: "history", open: !state.historyOpen })}><Clock3 size={16} aria-hidden="true" /></button>
-        <button type="button" className={iconButton} aria-label="Close Agent" title="Close Agent" onClick={onClose}><X size={17} aria-hidden="true" /></button>
+        <button type="button" className={`${iconButton} border-0 bg-transparent`} aria-label="Close Agent" title="Close Agent" onClick={onClose}><X size={17} aria-hidden="true" /></button>
       </div>
     </header>
 
