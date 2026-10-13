@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { incidents } from "@/db/alerts-schema";
 import { uptimeIncidentComponents, uptimeIncidentUpdates, uptimeStatusComponents, uptimeStatusPages } from "@/db/uptime-schema";
 import { badInput, canManageUptime, jsonBody, notFound, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
-import { lockUptimeOrganization, parseComponentIds, parseIncidentUpdate, PublishError, publishUptimeUpdate } from "@/lib/uptime/incident-api";
+import { lockUptimeOrganization, parseComponentIds, parseInitialIncidentUpdate, PublishError, publishUptimeUpdate } from "@/lib/uptime/incident-api";
 import { loadIncidentList, parseIncidentListQuery } from "@/lib/uptime/incident-query";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/")({
@@ -27,18 +27,18 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/")({
       if (body instanceof Response) return body;
       const title = body.title;
       if (typeof title !== "string" || !title.trim() || title.trim().length > 160) return badInput("Title must be 1–160 characters", "title");
-      const componentIds = parseComponentIds(body.componentIds);
-      if (!componentIds) return badInput("Choose at least one affected component", "componentIds");
-      const parsed = parseIncidentUpdate(body);
+      const componentIds = parseComponentIds(body.componentIds, { allowEmpty: true });
+      if (!componentIds) return badInput("Invalid affected components", "componentIds");
+      const parsed = parseInitialIncidentUpdate(body);
       if (!parsed.success) return badInput(parsed.error, parsed.field);
       const [page] = await db.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
         .where(eq(uptimeStatusPages.organizationId, access.organization.id)).limit(1);
       if (!page) return notFound("Status page");
-      const components = await db.select({ id: uptimeStatusComponents.id, name: uptimeStatusComponents.name })
+      const components = componentIds.length ? await db.select({ id: uptimeStatusComponents.id, name: uptimeStatusComponents.name })
         .from(uptimeStatusComponents).where(and(
           eq(uptimeStatusComponents.organizationId, access.organization.id),
           eq(uptimeStatusComponents.pageId, page.id), inArray(uptimeStatusComponents.id, componentIds),
-        ));
+        )) : [];
       if (components.length !== componentIds.length) return badInput("An affected component is unavailable", "componentIds");
       const now = new Date();
       try {
@@ -53,9 +53,11 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/")({
             sourceSnapshot: { affectedComponents: components },
             startedAt: now,
           }).returning();
-          await tx.insert(uptimeIncidentComponents).values(componentIds.map((componentId) => ({
-            organizationId: access.organization.id, incidentId, componentId,
-          })));
+          if (componentIds.length) {
+            await tx.insert(uptimeIncidentComponents).values(componentIds.map((componentId) => ({
+              organizationId: access.organization.id, incidentId, componentId,
+            })));
+          }
           const [update] = await tx.insert(uptimeIncidentUpdates).values({
             id: updateId, organizationId: access.organization.id, incidentId,
             createdBy: access.session!.user.id, note: parsed.data.note, bodyJson: parsed.data.bodyJson,
