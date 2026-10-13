@@ -55,7 +55,7 @@ export function MobileNavSheet({ isOpen, onClose, orgSlug }: { isOpen: boolean; 
       <div className="flex h-full flex-col">
         <header className="flex shrink-0 items-center justify-between border-b border-white/[0.07] px-5 py-4">
           <div className="min-w-0"><p className="truncate text-[11px] text-zinc-500">{selectedOrg?.name || "OutRay"}</p><h2 id={headingId} className="mt-0.5 text-lg font-normal tracking-tight text-zinc-100">Navigation</h2></div>
-          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close navigation" className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] text-zinc-400 hover:bg-white/[0.05] hover:text-white focus-visible:outline-2 focus-visible:outline-violet-400"><X size={18} aria-hidden="true" /></button>
+          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close navigation" className="flex size-10 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent text-zinc-400 hover:bg-white/[0.05] hover:text-white focus-visible:outline-2 focus-visible:outline-violet-400"><X size={18} aria-hidden="true" /></button>
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
@@ -65,7 +65,7 @@ export function MobileNavSheet({ isOpen, onClose, orgSlug }: { isOpen: boolean; 
               const active = product?.key === item.key;
               return <Link key={item.key} to={item.to} params={{ orgSlug }} onClick={onClose} aria-current={active ? "page" : undefined}
                 className={`flex min-h-14 items-center gap-3 rounded-xl border px-3 text-[13px] transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-violet-400 ${active ? "border-white/[0.15] bg-white/[0.07] text-zinc-100" : "border-white/[0.08] text-zinc-400 hover:border-white/[0.14] hover:bg-white/[0.035] hover:text-zinc-200"}`}>
-                <HugeiconsIcon icon={item.icon} size={19} strokeWidth={1.7} className="shrink-0" aria-hidden="true" /><span className="min-w-0 truncate">{item.label}</span>{active && <Check size={14} className="ml-auto shrink-0 text-zinc-300" aria-hidden="true" />}
+                <HugeiconsIcon icon={active ? item.activeIcon : item.icon} size={19} {...(active ? {} : { strokeWidth: 1.7 })} className="shrink-0" aria-hidden="true" /><span className="min-w-0 truncate">{item.label}</span>{active && <Check size={14} className="ml-auto shrink-0 text-zinc-300" aria-hidden="true" />}
               </Link>;
             })}</div>
           </section>
