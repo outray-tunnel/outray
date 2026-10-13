@@ -24,6 +24,8 @@ export interface AlertRule {
   signal: AlertSignal;
   service: string;
   environment: string | null;
+  statusPagePublicTitle?: string | null;
+  statusPageImpact?: "degraded" | "outage";
   metricName: string | null;
   metricType: string | null;
   metricUnit: string | null;
