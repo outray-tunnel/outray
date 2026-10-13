@@ -29,8 +29,15 @@ export interface OutrayTanStackServerEntry extends OutrayLogMethods {
 export function createOutrayTanStackServerEntry(
   options: OutrayTanStackServerOptions,
 ): OutrayTanStackServerEntry {
-  const { capturePayloads, recordExceptions, routeResolver, ignore, ...observabilityOptions } =
-    options;
+  const {
+    capturePayloads,
+    shouldCapturePayloads,
+    recordExceptions,
+    routeResolver,
+    ignore,
+    ignoreDefaultPaths,
+    ...observabilityOptions
+  } = options;
 
   const observability = startOutrayObservability(observabilityOptions);
 
@@ -47,7 +54,14 @@ export function createOutrayTanStackServerEntry(
           request,
           next: () => handleRequest(request, requestOptions),
         },
-        { capturePayloads, recordExceptions, routeResolver, ignore },
+        {
+          capturePayloads,
+          shouldCapturePayloads,
+          recordExceptions,
+          routeResolver,
+          ignore,
+          ignoreDefaultPaths,
+        },
       );
     },
   };
