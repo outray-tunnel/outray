@@ -27,6 +27,8 @@ interface ClaimedAlertRow {
   signal: AlertRule["signal"];
   service: string;
   environment: string | null;
+  status_page_public_title: string | null;
+  status_page_impact: "degraded" | "outage";
   metric_name: string | null;
   metric_type: string | null;
   metric_unit: string | null;
@@ -199,6 +201,13 @@ async function persistMeasurement(
       return;
     }
 
+    const protectedIncident = await client.query(
+      `SELECT 1 FROM incidents
+       WHERE source_type = 'observability_alert' AND source_id = $1
+         AND organization_id = $2 AND status = 'open'
+         AND uptime_publication_state IS NOT NULL LIMIT 1`,
+      [current.id, current.organizationId],
+    );
     const transition = transitionAlertState({
       state: current.state,
       failureStreak: current.failureStreak,
@@ -207,6 +216,7 @@ async function persistMeasurement(
       consecutiveRecoveries: current.consecutiveRecoveries,
       noDataState: current.noDataState,
       observation: measurement.observation,
+      protectIncident: Boolean(protectedIncident.rowCount),
     });
     const evaluatedAt = new Date();
 
@@ -340,8 +350,13 @@ async function persistEvaluationError(
     );
     await client.query(
       `UPDATE observability_alerts
-       SET last_evaluated_at = $3,
+      SET last_evaluated_at = $3,
            last_evaluation_error = $4,
+           recovery_streak = CASE WHEN EXISTS (
+             SELECT 1 FROM incidents WHERE source_type = 'observability_alert'
+               AND source_id = $1 AND organization_id = observability_alerts.organization_id
+               AND status = 'open' AND uptime_publication_state IS NOT NULL
+           ) THEN 0 ELSE recovery_streak END,
            lease_owner = NULL,
            lease_until = NULL,
            updated_at = NOW()
@@ -383,12 +398,23 @@ async function openIncident(
   measurement: AlertMeasurement,
   evaluatedAt: Date,
 ) {
+  const componentRows = alert.statusPagePublicTitle ? await client.query<{ id: string; name: string }>(
+    `SELECT c.id, c.name FROM uptime_component_alerts ca
+     JOIN uptime_status_components c ON c.id = ca.component_id AND c.organization_id = ca.organization_id
+     JOIN uptime_status_pages p ON p.id = c.page_id AND p.organization_id = c.organization_id
+     LEFT JOIN uptime_status_groups g ON g.id = c.group_id AND g.organization_id = c.organization_id AND g.page_id = c.page_id
+     WHERE ca.alert_id = $1 AND ca.organization_id = $2 AND c.visible = true
+       AND (c.group_id IS NULL OR g.visible = true)`,
+    [alert.id, alert.organizationId],
+  ) : { rows: [] };
+  const linked = componentRows.rows.length > 0;
   const id = randomUUID();
   const inserted = await client.query<{ id: string; started_at: Date }>(
     `INSERT INTO incidents (
        id, organization_id, source_type, source_id, status, title,
-       source_snapshot, trigger_value, last_value, started_at, created_at, updated_at
-     ) VALUES ($1,$2,'observability_alert',$3,'open',$4,$5,$6,$6,$7,NOW(),NOW())
+       source_snapshot, trigger_value, last_value, started_at, created_at, updated_at,
+       uptime_publication_state, public_title, public_impact
+     ) VALUES ($1,$2,'observability_alert',$3,'open',$4,$5,$6,$6,$7,NOW(),NOW(),$8,$9,$10)
      ON CONFLICT DO NOTHING
      RETURNING id, started_at`,
     [
@@ -400,13 +426,26 @@ async function openIncident(
         alertName: alert.name,
         signal: alert.signal,
         service: alert.service,
+        environment: alert.environment,
         threshold: alert.threshold,
+        affectedComponents: componentRows.rows,
       }),
       measurement.value,
       evaluatedAt,
+      linked ? "detected" : null,
+      linked ? alert.statusPagePublicTitle : null,
+      linked ? alert.statusPageImpact ?? "degraded" : null,
     ],
   );
   if (inserted.rows[0]) {
+    if (linked) {
+      await client.query(
+        `INSERT INTO uptime_incident_components (organization_id, incident_id, component_id)
+         SELECT $1, $2, id FROM uptime_status_components WHERE organization_id = $1 AND id = ANY($3::text[])
+         ON CONFLICT DO NOTHING`,
+        [alert.organizationId, inserted.rows[0].id, componentRows.rows.map((component) => component.id)],
+      );
+    }
     return {
       id: inserted.rows[0].id,
       startedAt: inserted.rows[0].started_at,
@@ -433,11 +472,12 @@ async function resolveIncident(
   const result = await client.query<{ id: string; started_at: Date }>(
     `UPDATE incidents
      SET status = 'resolved', resolved_at = $3, resolved_value = $4,
+         recovery_confirmed = $5,
          last_value = $4, updated_at = NOW()
      WHERE source_type = 'observability_alert' AND source_id = $1
        AND organization_id = $2 AND status = 'open'
      RETURNING id, started_at`,
-    [alert.id, alert.organizationId, evaluatedAt, measurement.value],
+    [alert.id, alert.organizationId, evaluatedAt, measurement.value, measurement.observation === "healthy"],
   );
   return result.rows[0]
     ? { id: result.rows[0].id, startedAt: result.rows[0].started_at }
@@ -722,6 +762,8 @@ function mapAlertRow(row: ClaimedAlertRow): AlertRule {
     signal: row.signal,
     service: row.service,
     environment: row.environment,
+    statusPagePublicTitle: row.status_page_public_title ?? null,
+    statusPageImpact: row.status_page_impact ?? "degraded",
     metricName: row.metric_name,
     metricType: row.metric_type,
     metricUnit: row.metric_unit,
