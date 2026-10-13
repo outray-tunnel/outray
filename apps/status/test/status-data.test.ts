@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { test } from "node:test";
 import { getStatusConfig, statusPageUrl } from "../src/lib/config";
-import { addIncidentsToHistory, aggregateMonitorEvidence, aggregateStates, buildDailyHistory, normalizeRequestHost, publishedIncidentStage, safeLogoUrl, slugFromStatusHost, type PublicIncident } from "../src/lib/status-data";
+import { addIncidentsToHistory, aggregateMonitorEvidence, aggregateStates, buildDailyHistory, normalizeRequestHost, overlayPublishedIncidentImpacts, publishedIncidentStage, safeLogoUrl, slugFromStatusHost, type PublicIncident } from "../src/lib/status-data";
 import { isSameOrigin, makeUnsubscribeToken, safeClientIp, verifyUnsubscribeToken } from "../src/lib/security";
 
 test("public incident stage uses only the latest published update", () => {
@@ -16,6 +16,20 @@ test("public incident stage uses only the latest published update", () => {
   assert.equal(publishedIncidentStage({ ...incident, sourceType: "uptime_monitor" }), "monitoring");
   assert.equal(publishedIncidentStage({ ...incident, sourceType: "uptime_monitor", updates: [] }), "down");
   assert.equal(publishedIncidentStage({ ...incident, sourceType: "uptime_monitor", status: "resolved" }), "recovered");
+  assert.equal(publishedIncidentStage({ ...incident, sourceType: "observability_alert" }), "monitoring");
+  assert.equal(publishedIncidentStage({ ...incident, sourceType: "observability_alert", status: "resolved" }), "recovered");
+  assert.equal(publishedIncidentStage({ ...incident, sourceType: "observability_alert", updates: [
+    { ...incident.updates[1]!, status: "resolved" },
+  ] }), "monitoring");
+});
+
+test("approved incident impacts use the worst source without inventing healthy evidence", () => {
+  assert.equal(overlayPublishedIncidentImpacts("unknown", []), "unknown");
+  assert.equal(overlayPublishedIncidentImpacts("operational", ["degraded"]), "degraded");
+  assert.equal(overlayPublishedIncidentImpacts("unknown", ["outage"]), "outage");
+  assert.equal(overlayPublishedIncidentImpacts("degraded", ["outage", "degraded"]), "outage");
+  assert.equal(overlayPublishedIncidentImpacts("outage", ["degraded"]), "outage");
+  assert.equal(overlayPublishedIncidentImpacts("degraded", []), "degraded");
 });
 
 const now = Date.parse("2026-09-29T10:00:00.000Z");
@@ -88,6 +102,21 @@ test("component history includes public monitor and published manual incident du
   assert.equal(decorated[89]?.incidentKind, "downtime");
   assert.deepEqual(decorated[89]?.incidents.map((item) => item.id), ["monitor-1", "manual-1"]);
   assert.equal(decorated[89]?.state, "degraded");
+});
+
+test("observability history keeps the approved impact and canonical incident identity", () => {
+  const history = buildDailyHistory(new Map(), Date.parse("2026-09-29T00:00:00Z"), 0);
+  const decorated = addIncidentsToHistory(history, [
+    { id: "canonical-alert-incident", title: "API unavailable", source_type: "observability_alert",
+      public_impact: "outage", started_at: new Date("2026-09-29T09:00:00Z"), resolved_at: null },
+  ], Date.parse("2026-09-29T10:00:00Z"));
+  assert.equal(decorated[89]?.state, "outage");
+  assert.equal(decorated[89]?.incidentMinutes, 60);
+  assert.equal(decorated[89]?.incidentKind, "incident");
+  assert.deepEqual(decorated[89]?.incidents, [
+    { id: "canonical-alert-incident", title: "API unavailable", minutes: 60, automatic: false },
+  ]);
+  assert.equal(decorated[88]?.state, "unknown");
 });
 
 test("unsubscribe token is signed and expires", () => {
