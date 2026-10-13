@@ -58,6 +58,7 @@ async function bootstrap() {
       redactedHeaders: ["x-workspace-secret"],
       redactedFields: ["accountPin"],
     },
+    shouldCapturePayloads: ({ pathname }) => !pathname.startsWith("/secrets/"),
   });
 
   if (telemetry) telemetry.info("orders API started");
@@ -90,6 +91,32 @@ redacted. Bodies default to 16 KiB (hard limit 64 KiB) and serialized headers
 default to 8 KiB (hard limit 32 KiB). Multipart, text, XML, binary, compressed,
 and streaming bodies are not captured.
 
+### Keep sensitive endpoints metadata-only
+
+`shouldCapturePayloads` uses the shared `HttpPayloadCapturePolicy<NodeHttpPayloadCaptureContext>`
+policy from `@outray/core`. The context contains the Node `request`, `response`,
+`pathname`, and HTTP `method`. Only `true` permits configured payload capture;
+`false` or a thrown error skips **all request and response headers and bodies**.
+The policy runs once per request without consuming request streams. Request spans,
+status, duration, and metrics remain active.
+
+Set it on `registerOutrayObservability` or the top-level `outray` options. A
+top-level callback overrides a callback inside `observability`, matching the
+precedence of `capturePayloads`. It does not enable capture by itself and remains
+effective when the development tunnel is disabled. Payload policy does not also
+filter request metadata or logs; configure those separately when needed.
+
+For an existing OpenTelemetry setup, explicit capture registration accepts the
+same policy as an optional third argument. Register before `app.listen()`:
+
+```typescript
+import { registerOutrayPayloadCapture } from "@outray/nest";
+
+registerOutrayPayloadCapture(app, true, {
+  shouldCapturePayloads: ({ pathname }) => !pathname.startsWith("/secrets/"),
+});
+```
+
 ## Configuration
 
 You can pass options to the `outray` function:
@@ -120,6 +147,7 @@ await outray(app, {
 | `enabled`         | `boolean`                              | `true` (in dev)              | Whether to enable the tunnel.                                                                         |
 | `silent`          | `boolean`                              | `false`                      | specific to Console logs.                                                                             |
 | `capturePayloads` | `boolean \| HttpPayloadCaptureOptions` | `false`                      | Register opt-in payload capture before the app is initialized. Prefer `registerOutrayPayloadCapture`. |
+| `shouldCapturePayloads` | `(context: NodeHttpPayloadCaptureContext) => boolean` | - | Per-request payload gate; metadata tracing remains active. |
 | `onTunnelReady`   | `(url: string) => void`                | -                            | Callback when tunnel is ready.                                                                        |
 
 ## License
