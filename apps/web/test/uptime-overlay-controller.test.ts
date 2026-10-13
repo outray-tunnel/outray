@@ -81,6 +81,19 @@ test("shared Uptime overlays remain server-safe and delegate focus trapping to i
   }
 });
 
+test("large Uptime sheets forward sizing, locked close state and footer ownership without changing their default", () => {
+  const footer = React.createElement("button", { type: "submit", form: "incident-draft-form" }, "Save draft");
+  for (const size of [undefined, "md", "lg"] as const) {
+    const sheet = UptimeSideSheet({ open: true, onClose() {}, title: "Declear incident", size, busy: true, footer, children: "Draft" });
+    assert.equal(sheet.props.size, size);
+    assert.equal(sheet.props.closeDisabled, true);
+    assert.equal(sheet.props.title, "Declear incident");
+    assert.equal(sheet.props.footer, footer);
+    assert.equal(sheet.props.children, "Draft");
+    assert.equal(renderToStaticMarkup(sheet), "", "private drafts are never serialized inline through the larger sheet");
+  }
+});
+
 test("busy Uptime dialogs reject every dismissal path and expose the native close-disabled/busy contract", async () => {
   const dialog = await controller(); let view = dialog.render({ busy: true });
   assert.equal(view.content.closeDisabled, true); assert.equal(view.content["aria-busy"], true);
