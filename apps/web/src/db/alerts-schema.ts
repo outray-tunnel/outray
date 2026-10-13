@@ -34,6 +34,8 @@ export const observabilityAlerts = pgTable(
     signal: text("signal").notNull(),
     service: text("service").notNull(),
     environment: text("environment"),
+    statusPagePublicTitle: text("status_page_public_title"),
+    statusPageImpact: text("status_page_impact").notNull().default("degraded"),
 
     metricKey: text("metric_key"),
     metricName: text("metric_name"),
@@ -160,6 +162,8 @@ export const observabilityAlerts = pgTable(
       "observability_alerts_threshold_not_nan_check",
       sql`${table.threshold} <> 'NaN'::double precision`,
     ),
+    check("observability_alerts_status_page_impact_check", sql`${table.statusPageImpact} IN ('degraded', 'outage')`),
+    check("observability_alerts_status_page_title_check", sql`${table.statusPagePublicTitle} IS NULL OR length(trim(${table.statusPagePublicTitle})) BETWEEN 1 AND 160`),
   ],
 );
 
@@ -229,6 +233,9 @@ export const incidents = pgTable(
     uptimePublicationState: text("uptime_publication_state"),
     uptimePublishedAt: timestampWithTimezone("uptime_published_at"),
     title: text("title").notNull(),
+    publicTitle: text("public_title"),
+    publicImpact: text("public_impact"),
+    recoveryConfirmed: boolean("recovery_confirmed").notNull().default(false),
     sourceSnapshot: jsonb("source_snapshot")
       .$type<Record<string, unknown>>()
       .notNull()
@@ -252,7 +259,7 @@ export const incidents = pgTable(
     index("incidents_source_idx").on(table.sourceType, table.sourceId),
     index("incidents_uptime_publication_idx")
       .on(table.organizationId, table.uptimePublicationState, table.startedAt)
-      .where(sql`${table.sourceType} = 'uptime_monitor'`),
+      .where(sql`${table.sourceType} IN ('uptime_monitor', 'observability_alert')`),
     uniqueIndex("incidents_one_open_source_idx")
       .on(table.organizationId, table.sourceType, table.sourceId)
       .where(sql`${table.status} = 'open'`),
@@ -260,7 +267,9 @@ export const incidents = pgTable(
       "incidents_status_check",
       sql`${table.status} IN ('open', 'resolved')`,
     ),
-    check("incidents_uptime_publication_state_check", sql`(${table.sourceType} = 'uptime_monitor' AND ${table.uptimePublicationState} IN ('detected', 'published', 'ignored')) OR (${table.sourceType} <> 'uptime_monitor' AND ${table.uptimePublicationState} IS NULL)`),
+    check("incidents_uptime_publication_state_check", sql`(${table.sourceType} = 'uptime_monitor' AND ${table.uptimePublicationState} IN ('detected', 'published', 'ignored')) OR (${table.sourceType} = 'observability_alert' AND (${table.uptimePublicationState} IS NULL OR ${table.uptimePublicationState} IN ('detected', 'published', 'ignored'))) OR (${table.sourceType} NOT IN ('uptime_monitor', 'observability_alert') AND ${table.uptimePublicationState} IS NULL)`),
+    check("incidents_public_impact_check", sql`${table.publicImpact} IS NULL OR ${table.publicImpact} IN ('degraded', 'outage')`),
+    check("incidents_public_title_check", sql`${table.publicTitle} IS NULL OR length(trim(${table.publicTitle})) BETWEEN 1 AND 160`),
   ],
 );
 
