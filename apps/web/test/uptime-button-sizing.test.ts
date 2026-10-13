@@ -57,6 +57,30 @@ test("incident page launchers use Arc md with stable dialog anchoring", async ()
   }
 });
 
+test("both declaration launchers use the requested name and creation opens a large sheet, not a centered modal", async () => {
+  const list = await source(files.incidents);
+  const launchers = controls(list, "Button").filter((node) => value(node, "onClick") === "{() => setCreating(true)}");
+  assert.equal(launchers.length, 2, "header and empty-state incident declarations stay consistent");
+  for (const launcher of launchers) {
+    assert.equal(value(launcher, "aria-haspopup"), "dialog");
+    assert.equal(value(launcher, "size"), "md");
+    assert.ok(ts.isJsxElement(launcher.parent));
+    assert.match(launcher.parent.getText(), />Declear incident<\/Button>/);
+    assert.doesNotMatch(launcher.parent.getText(), />Create incident</);
+  }
+  const create = await source(files.create);
+  const sheet = controls(create, "UptimeSideSheet");
+  assert.equal(sheet.length, 1);
+  assert.equal(value(sheet[0], "size"), "lg");
+  assert.equal(value(sheet[0], "title"), "Declear incident");
+  assert.equal(value(sheet[0], "onClose"), "{requestClose}");
+  assert.equal(value(sheet[0], "busy"), "{saving !== null}");
+  const dialogs = controls(create, "UptimeDialog");
+  assert.equal(dialogs.length, 1, "only unsaved-draft confirmation remains a centered dialog");
+  assert.equal(value(dialogs[0], "title"), "Discard this draft?");
+  assert.equal(value(dialogs[0], "layer"), "{1}");
+});
+
 test("incident creation, link, update, discard, and ignore overlay actions use explicit Arc sm sizes", async () => {
   let count = 0;
   for (const path of [files.create, files.richEditor, files.detail]) {
@@ -80,11 +104,11 @@ test("save and publish preserve form ownership, permission checks, and focusable
   assert.ok(draft);
   assert.equal(value(draft, "form"), "{formId}");
   assert.equal(value(draft, "loading"), '{saving === "draft"}');
-  assert.equal(value(draft, "disabled"), '{saving === "publish" || !page.data?.page || !components.length}');
+  assert.equal(value(draft, "disabled"), '{saving === "publish" || !page.data?.page}');
   const publish = controls(create, "Button").find((node) => value(node, "onClick") === "{() => void create(true)}");
   assert.ok(publish);
   assert.equal(value(publish, "loading"), '{saving === "publish"}');
-  assert.equal(value(publish, "disabled"), '{saving === "draft" || !page.data?.page?.published || !components.length}');
+  assert.equal(value(publish, "disabled"), '{saving === "draft" || !page.data?.page?.published}');
   assert.equal(value(publish, "onClick"), "{() => void create(true)}");
 
   const detail = await source(files.detail);
@@ -96,7 +120,7 @@ test("save and publish preserve form ownership, permission checks, and focusable
   const update = controls(detail, "Button").find((node) => value(node, "onClick") === "{() => void save(true)}");
   assert.ok(update);
   assert.equal(value(update, "loading"), '{saving === "publish"}');
-  assert.equal(value(update, "disabled"), '{saving === "draft" || !editable || !pagePublished}');
+  assert.equal(value(update, "disabled"), '{saving === "draft" || !editable || !pagePublished || observability && (!linkedComponents || status === "resolved" && !monitorRecovered && !acknowledgeRecovery)}');
 });
 
 test("notification settings launch at md while confirmation actions and OAuth links remain sm in the modal", async () => {
