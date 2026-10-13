@@ -1,6 +1,34 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { mobileItemIsActive, mobileProductForPath, mobileProducts } from "../src/components/mobile-navigation";
+import Cone01Icon from "@outray/icons/stroke/Cone01Icon";
+import HeartPulseIcon from "@outray/icons/stroke/HeartPulseIcon";
+import LockPasswordIcon from "@outray/icons/stroke/LockPasswordIcon";
+import Pulse02Icon from "@outray/icons/stroke/Pulse02Icon";
+import Cone01SolidIcon from "@outray/icons/solid/Cone01Icon";
+import HeartPulseSolidIcon from "@outray/icons/solid/HeartPulseIcon";
+import LockPasswordSolidIcon from "@outray/icons/solid/LockPasswordIcon";
+import Pulse02SolidIcon from "@outray/icons/solid/Pulse02Icon";
+
+test("product metadata pairs default outline icons with their genuine solid variants", () => {
+  const defaultIcons = [Cone01Icon, Pulse02Icon, LockPasswordIcon, HeartPulseIcon];
+  const solidIcons = [Cone01SolidIcon, Pulse02SolidIcon, LockPasswordSolidIcon, HeartPulseSolidIcon];
+  for (const [index, product] of mobileProducts.entries()) {
+    assert.equal(product.icon, defaultIcons[index], product.label);
+    assert.equal(product.activeIcon, solidIcons[index], product.label);
+    assert.notDeepEqual(product.icon, product.activeIcon, product.label);
+  }
+});
+
+test("the mobile menu preserves default solid thickness and only overrides inactive outline strokes", async () => {
+  const source = await readFile(new URL("../src/components/mobile-nav-sheet.tsx", import.meta.url), "utf8");
+  const productIcon = source.match(/<HugeiconsIcon\s+icon=\{active\s*\?\s*item\.activeIcon\s*:\s*item\.icon\}[\s\S]*?\/>/)?.[0];
+  assert.ok(productIcon, "the selected mobile product switches to its genuine solid icon");
+  assert.match(productIcon, /\{\.\.\.\(active\s*\?\s*\{\}\s*:\s*\{\s*strokeWidth:\s*1\.7\s*\}\)\}/);
+  assert.doesNotMatch(productIcon, /\bstrokeWidth=|\bstroke=/,
+    "an explicit stroke override would thicken the active fill-only solid geometry");
+});
 
 test("mobile navigation stays with the current product on nested routes", () => {
   assert.equal(mobileProductForPath("/acme/observability/alerts/rule", "acme")?.key, "observability");
