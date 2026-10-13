@@ -168,7 +168,14 @@ test("sheet backdrop and Escape use modal primitives and respect nested close lo
   content.props.onInteractOutside({ preventDefault: () => { prevented++; } });
   assert.equal(forwarded, 2);
   assert.equal(prevented, 2);
-  assert.equal(tree.find((element) => element.type === ui.stubs.Close)?.props.disabled, true);
+  const close = tree.find((element) => element.type === ui.stubs.Close)!;
+  assert.equal(close.props.disabled, true);
+  assert.equal(close.props["aria-label"], "Close panel");
+  const closeClasses = String(close.props.className).split(/\s+/);
+  for (const utility of ["border-0", "bg-transparent", "rounded-lg", "hover:bg-white/[0.05]"]) {
+    assert.ok(closeClasses.includes(utility), `${utility} keeps the panel close icon bare at rest while preserving hover feedback`);
+  }
+  assert.ok(!closeClasses.some((utility) => utility === "border" || /^bg-(?!transparent$)/.test(utility)), "panel close does not regain permanent chrome");
 });
 
 test("closing the sheet returns focus to its trigger or a still-connected original opener", async () => {
