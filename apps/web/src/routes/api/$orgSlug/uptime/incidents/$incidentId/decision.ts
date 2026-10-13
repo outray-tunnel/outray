@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { incidents } from "@/db/alerts-schema";
 import { badInput, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
@@ -19,10 +19,11 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/$incidentId
         await lockUptimeOrganization(tx, access.organization.id);
         const [incident] = await tx.select().from(incidents).where(and(
           eq(incidents.id, params.incidentId), eq(incidents.organizationId, access.organization.id),
-          eq(incidents.sourceType, "uptime_monitor"),
+          inArray(incidents.sourceType, ["uptime_monitor", "observability_alert"]),
         )).for("update").limit(1);
         if (!incident) return { kind: "missing" as const };
-        if (incident.status !== "open" || incident.uptimePublicationState !== "detected") {
+        if (incident.status !== "open" || (incident.uptimePublicationState !== "detected" &&
+            !(incident.sourceType === "observability_alert" && incident.uptimePublicationState === null))) {
           return { kind: "conflict" as const };
         }
         const [updated] = await tx.update(incidents).set({ uptimePublicationState: "ignored", updatedAt: new Date() })
