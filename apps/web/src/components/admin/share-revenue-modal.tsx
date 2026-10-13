@@ -376,22 +376,20 @@ export function ShareRevenueModal({
                 {/* Action Buttons */}
                 <div className="flex items-center gap-3">
                   <button
+                    type="button"
                     onClick={handleCopy}
                     disabled={loading}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors disabled:opacity-50"
+                    aria-label={copied ? "Revenue image copied" : "Copy revenue image"}
+                    title={copied ? "Revenue image copied" : "Copy revenue image"}
+                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-transparent text-gray-300 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 disabled:opacity-50"
                   >
                     {copied ? (
-                      <>
-                        <Check size={16} className="text-green-400" />
-                        Copied
-                      </>
+                      <Check size={16} className="text-green-400" aria-hidden="true" />
                     ) : (
-                      <>
-                        <Copy size={16} />
-                        Copy
-                      </>
+                      <Copy size={16} aria-hidden="true" />
                     )}
                   </button>
+                  <span className="sr-only" role="status" aria-live="polite">{copied ? "Revenue image copied." : ""}</span>
                   <button
                     onClick={handleDownload}
                     disabled={loading || downloading}
