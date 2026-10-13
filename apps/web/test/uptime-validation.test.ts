@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { deriveComponentState, rollupStatus } from "../src/lib/uptime/state";
+import { deriveComponentState, overlayIncidentImpacts, rollupStatus } from "../src/lib/uptime/state";
 import { UPTIME_LIMITS, validateMonitorInput } from "../src/lib/uptime/validation";
 
 const monitor = { name: "API", url: "https://api.example.com/health" };
@@ -69,4 +69,13 @@ test("component and page rollup never call stale evidence operational", () => {
   assert.equal(rollupStatus(["operational", "unknown"]), "unknown");
   assert.equal(rollupStatus(["operational", "outage"]), "degraded");
   assert.equal(rollupStatus(["outage", "outage"]), "outage");
+});
+
+test("approved incident impacts preserve independent probe and manual failures", () => {
+  assert.equal(overlayIncidentImpacts("operational", ["degraded"]), "degraded");
+  assert.equal(overlayIncidentImpacts("unknown", ["outage"]), "outage");
+  assert.equal(overlayIncidentImpacts("degraded", ["outage", "degraded"]), "outage");
+  assert.equal(overlayIncidentImpacts("outage", ["degraded"]), "outage");
+  assert.equal(overlayIncidentImpacts("unknown", []), "unknown");
+  assert.equal(overlayIncidentImpacts("operational", []), "operational");
 });
