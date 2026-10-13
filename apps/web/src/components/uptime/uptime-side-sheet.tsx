@@ -10,6 +10,7 @@ export function UptimeSideSheet({ busy = false, ...props }: {
   children: ReactNode;
   footer: ReactNode;
   busy?: boolean;
+  size?: "md" | "lg";
 }) {
   return <SideSheet {...props} closeDisabled={busy} />;
 }
