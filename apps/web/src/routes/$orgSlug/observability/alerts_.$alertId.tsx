@@ -49,6 +49,7 @@ const detailTabs = [
   { label: "Evaluations", to: "/$orgSlug/observability/alerts/$alertId/evaluations" },
   { label: "Incidents", to: "/$orgSlug/observability/alerts/$alertId/incidents" },
   { label: "Notifications", to: "/$orgSlug/observability/alerts/$alertId/notifications" },
+  { label: "Status page", to: "/$orgSlug/observability/alerts/$alertId/status-page" },
 ] as const;
 
 export const Route = createFileRoute(
@@ -655,14 +656,14 @@ export function AlertEvaluationsTab() {
 }
 
 export function AlertIncidentsTab() {
-  const { data } = useAlertDetail();
+  const { data, orgSlug } = useAlertDetail();
   const { alert, incidents } = data;
 
   return (
     <div className="space-y-4">
       <TabHeading
         title="Incidents"
-        description="When this alert fired and when it recovered."
+        description="Review detected issues, approve public updates, and follow confirmed recovery in the shared incident inbox."
         count={incidents.length}
       />
       <Panel title="Incident history" description="Most recent incidents first">
@@ -671,7 +672,7 @@ export function AlertIncidentsTab() {
             <EmptyPanel message="No incidents have been opened." />
           ) : (
             incidents.map((incident) => (
-              <div key={incident.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:gap-5 sm:px-5">
+              <Link key={incident.id} to="/$orgSlug/uptime/incidents/$incidentId" params={{ orgSlug, incidentId: incident.id }} search={{ source: "observability" }} className="flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-white/[0.025] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-zinc-500 motion-reduce:transition-none sm:flex-row sm:items-center sm:gap-5 sm:px-5">
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] text-zinc-200"><IncidentStatus state={incident.status} /></p>
                   <p className="mt-1 text-xs text-zinc-500">Started {formatDateTime(incidentStart(incident))}</p>
@@ -686,7 +687,8 @@ export function AlertIncidentsTab() {
                   </p>
                   <p className="mt-1 text-xs text-zinc-400">Last observed value</p>
                 </div>
-              </div>
+                <span className="text-xs text-zinc-400">Manage incident →</span>
+              </Link>
             ))
           )}
         </div>
