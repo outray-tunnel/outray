@@ -9,6 +9,6 @@ export const POST: APIRoute = async ({ request }) => {
   const token = form.get("token");
   if (typeof token !== "string") return new Response("Invalid token", { status: 400 });
   const subscriber = await confirmSubscription(token);
-  if (!subscriber) return new Response("Link expired or subscription limit reached", { status: 410 });
+  if (!subscriber) return new Response("Link expired, subscriptions turned off, or subscription limit reached", { status: 410, headers: { "Cache-Control": "no-store" } });
   return new Response(null, { status: 303, headers: { Location: "/subscription-confirmed", "Cache-Control": "no-store" } });
 };
