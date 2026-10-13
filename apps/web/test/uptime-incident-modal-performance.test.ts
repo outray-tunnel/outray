@@ -39,6 +39,7 @@ function hooks() {
     return memos[slot].value;
   };
   return {
+    refs,
     react: {
       ...React, useId: () => "incident-test", useMemo: memoValue,
       useCallback: (callback: any, dependencies: unknown[]) => memoValue(() => callback, dependencies),
@@ -63,7 +64,9 @@ async function load(sourcePath: string, modules: Record<string, unknown>) {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true,
   } }).outputText;
   const module = { exports: {} as any };
-  runInNewContext(compiled, { React, module, exports: module.exports, require: (name: string) => {
+  runInNewContext(compiled, { React, module, exports: module.exports,
+    requestAnimationFrame: (callback: () => void) => callback(), document: { getElementById: () => null },
+    require: (name: string) => {
     assert.ok(Object.hasOwn(modules, name), `Unexpected incident dependency ${name}`); return modules[name];
   } });
   return module.exports;
@@ -193,6 +196,7 @@ test("title and body typing keep memoized picker props stable and do not re-deri
     "./incident-ui": { IncidentStatusSelect: bare }, "./incident-rich-editor": { IncidentRichEditor: RichEditor },
     "./incident-component-picker": { IncidentComponentPicker: Picker },
     "./uptime-dialog": { UptimeDialog: bare },
+    "./uptime-side-sheet": { UptimeSideSheet: bare },
     "./use-uptime-unsaved-changes": { useUptimeUnsavedChanges: () => ({ status: "idle" }) },
     "./uptime-client": { uptimeRequest: async () => ({}), UptimeRequestError: Error },
     "./uptime-skeleton": { UptimeSkeleton: bare }, "./uptime-ui": { labelClass: "label", UptimeError: bare },
@@ -207,4 +211,231 @@ test("title and body typing keep memoized picker props stable and do not re-deri
     for (const key of Object.keys(picker.props)) assert.equal(next.props[key], picker.props[key], `Changed picker prop: ${key}`);
   }
   assert.equal(derivations, 1);
+});
+
+async function incidentComposer(
+  request: (...args: any[]) => Promise<any> = async () => ({ incident: { id: "created-incident" } }),
+  pageResponse: UptimePageResponse = page,
+) {
+  const runtime = hooks();
+  const Sheet = (props: any) => React.createElement("aside", props, props.children);
+  const Dialog = (props: any) => React.createElement("div", props, props.children);
+  const Input = (props: any) => React.createElement("input", props);
+  const Picker = (props: any) => React.createElement("div", props);
+  const Editor = (props: any) => React.createElement("div", props);
+  const Status = (props: any) => React.createElement("select", props);
+  const Button = (props: any) => React.createElement("button", props, props.children);
+  let closed = 0, resets = 0, proceeds = 0, blocked = false, lastDirty = false;
+  const created: string[] = [];
+  const module = await load("../src/components/uptime/create-incident-dialog.tsx", {
+    react: runtime.react,
+    "@tanstack/react-router": { Link: bare }, "@outray/incident-content": content,
+    "@tanstack/react-query": { useQuery: () => ({ data: pageResponse, isPending: false, isError: false }) },
+    "lucide-react": { Info: bare },
+    "@/lib/uptime/incident-display": display,
+    "@/components/ui/workspace-input": { WorkspaceInput: Input },
+    "@/components/arc/button/button": { Button },
+    "./incident-ui": { IncidentStatusSelect: Status }, "./incident-rich-editor": { IncidentRichEditor: Editor },
+    "./incident-component-picker": { IncidentComponentPicker: Picker },
+    "./uptime-dialog": { UptimeDialog: Dialog }, "./uptime-side-sheet": { UptimeSideSheet: Sheet },
+    "./use-uptime-unsaved-changes": { useUptimeUnsavedChanges: (dirty: boolean) => {
+      lastDirty = dirty;
+      return { status: blocked ? "blocked" : "idle", reset() { resets++; blocked = false; }, proceed() { proceeds++; } };
+    } },
+    "./uptime-client": { uptimeRequest: request, UptimeRequestError: Error },
+    "./uptime-skeleton": { UptimeSkeleton: bare }, "./uptime-ui": { labelClass: "label", UptimeError: bare },
+  });
+  return {
+    Sheet, Dialog, Input, Picker, Editor, Status, Button, created,
+    get closed() { return closed; }, get resets() { return resets; }, get proceeds() { return proceeds; }, get dirty() { return lastDirty; },
+    blockNavigation() { blocked = true; },
+    render() {
+      const tree = elements(runtime.render(() => module.CreateIncidentDialog({ orgSlug: "demo", onClose() { closed++; }, onCreated: (id: string) => created.push(id) })));
+      runtime.refs[0].current = { reportValidity: () => true };
+      return {
+        tree,
+        sheet: tree.find((element) => element.type === Sheet)!,
+        discard: tree.find((element) => element.type === Dialog)!,
+      };
+    },
+  };
+}
+
+test("incident declaration uses the large side sheet and retains a focused title plus modal discard confirmation", async () => {
+  const ui = await incidentComposer();
+  let view = ui.render();
+  assert.equal(view.sheet.props.open, true);
+  assert.equal(view.sheet.props.size, "lg");
+  assert.equal(view.sheet.props.title, "Declear incident");
+  assert.equal(view.sheet.props.busy, false);
+  assert.equal(view.tree.find((element) => element.type === ui.Input)?.props["data-autofocus"], true);
+  assert.equal(view.discard.props.title, "Discard this draft?");
+  assert.equal(view.discard.props.layer, 1);
+  assert.equal(view.discard.props.open, false);
+  assert.equal(ui.dirty, false);
+  view.sheet.props.onClose(); assert.equal(ui.closed, 1);
+
+  view.tree.find((element) => element.type === ui.Input)!.props.onChange({ target: { value: "Checkout is degraded" } });
+  view = ui.render(); view.sheet.props.onClose(); view = ui.render();
+  assert.equal(ui.closed, 1, "closing a dirty sheet must prompt without losing its draft");
+  assert.equal(ui.dirty, true);
+  assert.equal(view.discard.props.open, true);
+  assert.equal(view.tree.find((element) => element.type === ui.Input)?.props.value, "Checkout is degraded");
+  elements(view.discard.props.footer).find((element) => element.props.children === "Keep editing")!.props.onClick();
+  view = ui.render(); assert.equal(view.discard.props.open, false); assert.equal(ui.resets, 1);
+
+  ui.blockNavigation(); view = ui.render(); assert.equal(view.discard.props.open, true);
+  elements(view.discard.props.footer).find((element) => element.props.children === "Discard draft")!.props.onClick();
+  assert.equal(ui.proceeds, 1); assert.equal(ui.closed, 2);
+});
+
+test("an untouched editor's canonical empty documents and whitespace never trigger a draft-discard prompt", async () => {
+  const emptyBodies: content.IncidentDocument[] = [
+    { type: "doc", content: [{ type: "paragraph" }] },
+    { type: "doc", content: [] },
+    { type: "doc", content: [{ type: "paragraph", content: [] }] },
+    { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: " \t\n " }] }] },
+  ];
+  for (const body of emptyBodies) {
+    const ui = await incidentComposer();
+    let view = ui.render();
+    view.tree.find((element) => element.type === ui.Editor)!.props.onChange(body);
+    view = ui.render();
+    assert.equal(ui.dirty, false, JSON.stringify(body));
+    view.sheet.props.onClose(); view = ui.render();
+    assert.equal(ui.closed, 1, "empty editor normalization should not trap an otherwise clean sheet");
+    assert.equal(view.discard.props.open, false);
+  }
+});
+
+test("a nonempty incident update protects its draft even when no other field has changed", async () => {
+  const ui = await incidentComposer();
+  let view = ui.render();
+  view.tree.find((element) => element.type === ui.Editor)!.props.onChange({
+    type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Investigating intermittent errors." }] }],
+  });
+  view = ui.render(); assert.equal(ui.dirty, true);
+  assert.equal(view.tree.find((element) => element.type === ui.Input)?.props.value, "");
+  view.sheet.props.onClose(); view = ui.render();
+  assert.equal(ui.closed, 0);
+  assert.equal(view.discard.props.open, true);
+});
+
+test("the declaration sheet keeps publish semantics, submitting locks and independent draft form ownership", async () => {
+  const requests: any[] = [];
+  let finish!: (result: { incident: { id: string } }) => void;
+  const pending = new Promise<{ incident: { id: string } }>((resolve) => { finish = resolve; });
+  const ui = await incidentComposer(async (orgSlug, path, init) => {
+    requests.push({ orgSlug, path, body: JSON.parse(String(init.body)) });
+    return pending;
+  });
+  let view = ui.render();
+  view.tree.find((element) => element.type === ui.Input)!.props.onChange({ target: { value: "Checkout is degraded" } });
+  view.tree.find((element) => element.type === ui.Picker)!.props.onToggle("component-0", true);
+  view.tree.find((element) => element.type === ui.Editor)!.props.onChange(content.legacyIncidentDocument("Investigating checkout errors."));
+  view = ui.render();
+  const actions = elements(view.sheet.props.footer);
+  const publish = actions.find((element) => element.type === ui.Button && element.props.children === "Declear incident")!;
+  const draft = actions.find((element) => element.type === ui.Button && element.props.children === "Save draft")!;
+  assert.ok(publish);
+  assert.equal(draft.props.type, "submit");
+  assert.equal(draft.props.form, view.tree.find((element) => element.type === "form")?.props.id);
+  publish.props.onClick(); publish.props.onClick();
+  assert.equal(requests.length, 1, "duplicate clicks must not create duplicate incidents");
+  assert.equal(requests[0].orgSlug, "demo"); assert.equal(requests[0].path, "/incidents");
+  assert.equal(requests[0].body.publish, true); assert.equal(requests[0].body.title, "Checkout is degraded");
+  assert.deepEqual(requests[0].body.componentIds, ["component-0"]);
+  view = ui.render();
+  assert.equal(view.sheet.props.busy, true);
+  assert.equal(view.tree.find((element) => element.type === "fieldset")?.props.disabled, true);
+  assert.equal(view.tree.find((element) => element.type === ui.Editor)?.props.disabled, true);
+  assert.equal(elements(view.sheet.props.footer).find((element) => element.props.children === "Save draft")?.props.disabled, true);
+  assert.equal(elements(view.sheet.props.footer).find((element) => element.props.children === "Cancel")?.props.disabled, true);
+  view.sheet.props.onClose(); assert.equal(ui.closed, 0); assert.equal(ui.render().discard.props.open, false);
+  finish({ incident: { id: "new-incident" } });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(ui.created, ["new-incident"]);
+  view = ui.render(); assert.equal(view.sheet.props.busy, false); assert.equal(ui.dirty, false);
+});
+
+test("incident declaration and draft saving require only title and status, not an update or components", async () => {
+  for (const publish of [false, true]) {
+    const requests: any[] = [];
+    const ui = await incidentComposer(async (_orgSlug, _path, init) => {
+      requests.push(JSON.parse(String(init.body)));
+      return { incident: { id: "minimal-incident" } };
+    });
+    let view = ui.render();
+    assert.equal(view.tree.find((element) => element.type === ui.Picker)!.props.optional, true);
+    assert.ok(view.tree.some((element) => element.type === "p" && elements(element).some((child) => child.props.children === "(optional)")));
+    view.tree.find((element) => element.type === ui.Input)!.props.onChange({ target: { value: " API outage " } });
+    view.tree.find((element) => element.type === ui.Status)!.props.onChange("identified");
+    view = ui.render();
+    if (publish) elements(view.sheet.props.footer).find((element) => element.props.children === "Declear incident")!.props.onClick();
+    else view.tree.find((element) => element.type === "form")!.props.onSubmit({ preventDefault() {} });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.deepEqual(requests, [{ title: "API outage", status: "identified", componentIds: [], publish }]);
+    assert.deepEqual(ui.created, ["minimal-incident"]);
+  }
+});
+
+test("a status page without components still exposes and enables the incident declaration form", async () => {
+  const requests: any[] = [];
+  const ui = await incidentComposer(async (_orgSlug, _path, init) => {
+    requests.push(JSON.parse(String(init.body)));
+    return { incident: { id: "unlinked-incident" } };
+  }, { ...page, standaloneComponents: [], groups: [] });
+  let view = ui.render();
+  assert.ok(view.tree.find((element) => element.type === "form"));
+  assert.equal(view.tree.some((element) => element.type === ui.Picker), false);
+  const actions = elements(view.sheet.props.footer);
+  assert.equal(actions.find((element) => element.props.children === "Save draft")!.props.disabled, false);
+  assert.equal(actions.find((element) => element.props.children === "Declear incident")!.props.disabled, false);
+  view.tree.find((element) => element.type === ui.Input)!.props.onChange({ target: { value: "Service disruption" } });
+  view = ui.render();
+  elements(view.sheet.props.footer).find((element) => element.props.children === "Declear incident")!.props.onClick();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(requests.length, 1);
+  assert.deepEqual(requests[0].componentIds, []);
+  assert.equal(requests[0].body, undefined);
+});
+
+test("optional first updates accept canonical blank documents but still reject malformed or oversized content", async () => {
+  for (const body of [content.legacyIncidentDocument(""), { type: "doc", content: [{ type: "paragraph" }] }, content.legacyIncidentDocument(" \t ")]) {
+    const requests: any[] = [];
+    const ui = await incidentComposer(async (_orgSlug, _path, init) => {
+      requests.push(JSON.parse(String(init.body))); return { incident: { id: "empty-update" } };
+    });
+    let view = ui.render();
+    view.tree.find((element) => element.type === ui.Input)!.props.onChange({ target: { value: "API outage" } });
+    view.tree.find((element) => element.type === ui.Editor)!.props.onChange(body);
+    view = ui.render();
+    elements(view.sheet.props.footer).find((element) => element.props.children === "Declear incident")!.props.onClick();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(requests.length, 1); assert.equal(requests[0].body, undefined);
+  }
+  for (const body of [{ type: "doc", content: [{ type: "image" }] }, content.legacyIncidentDocument("x".repeat(4001))]) {
+    let requests = 0;
+    const ui = await incidentComposer(async () => { requests++; return { incident: { id: "invalid" } }; });
+    let view = ui.render();
+    view.tree.find((element) => element.type === ui.Input)!.props.onChange({ target: { value: "API outage" } });
+    view.tree.find((element) => element.type === ui.Editor)!.props.onChange(body);
+    view = ui.render();
+    elements(view.sheet.props.footer).find((element) => element.props.children === "Declear incident")!.props.onClick();
+    view = ui.render();
+    assert.equal(requests, 0); assert.equal(view.tree.find((element) => element.type === ui.Editor)!.props.invalid, true);
+  }
+});
+
+test("the incident name remains required and an unpublished page still prevents declaration", async () => {
+  let requests = 0;
+  const ui = await incidentComposer(async () => { requests++; return { incident: { id: "invalid" } }; });
+  let view = ui.render();
+  elements(view.sheet.props.footer).find((element) => element.props.children === "Declear incident")!.props.onClick();
+  view = ui.render();
+  assert.equal(requests, 0); assert.equal(view.tree.find((element) => element.type === ui.Input)!.props["aria-invalid"], true);
+  const unpublished = await incidentComposer(undefined, { ...page, page: { ...page.page!, published: false } });
+  const actions = elements(unpublished.render().sheet.props.footer);
+  assert.equal(actions.find((element) => element.props.children === "Declear incident")!.props.disabled, true);
+  assert.equal(actions.find((element) => element.props.children === "Save draft")!.props.disabled, false);
 });
