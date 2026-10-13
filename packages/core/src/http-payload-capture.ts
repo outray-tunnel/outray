@@ -4,6 +4,11 @@ import type {
   IncomingMessage,
   ServerResponse,
 } from "node:http";
+import {
+  resolveHttpPayloadCapture,
+  type HttpPayloadCaptureContext,
+  type HttpPayloadCapturePolicy,
+} from "./http-payload-capture-policy";
 
 const REDACTED = "[REDACTED]";
 const CAPTURE_VERSION = "1";
@@ -111,8 +116,14 @@ export interface HttpPayloadCaptureOptions {
 
 export type HttpPayloadCaptureSetting = boolean | HttpPayloadCaptureOptions;
 
+export interface NodeHttpPayloadCaptureContext extends HttpPayloadCaptureContext {
+  request: IncomingMessage & { body?: unknown; originalUrl?: string };
+  response: ServerResponse;
+  method: string;
+}
+
 export type NodeHttpPayloadCaptureMiddleware = (
-  request: IncomingMessage & { body?: unknown },
+  request: IncomingMessage & { body?: unknown; originalUrl?: string },
   response: ServerResponse,
   next: (error?: unknown) => void,
 ) => void;
@@ -763,6 +774,19 @@ function encodingFromArgs(args: unknown[]): BufferEncoding | undefined {
     : undefined;
 }
 
+function nodeRequestPathname(
+  request: NodeHttpPayloadCaptureContext["request"],
+): string {
+  const target = request.originalUrl ?? request.url ?? "/";
+  // Preserve the path the router actually receives. URL.pathname collapses
+  // literal and encoded dot segments, which could hide a sensitive prefix.
+  if (target.startsWith("/")) return target.split(/[?#]/, 1)[0];
+
+  const parsed = new URL(target, "http://localhost");
+  const absolute = target.match(/^[a-z][a-z0-9+.-]*:\/\/[^/?#]*(\/[^?#]*)?/i);
+  return absolute ? absolute[1] || "/" : parsed.pathname;
+}
+
 /**
  * Creates Connect/Express-compatible middleware. It does not consume request
  * streams; request bodies are captured only when an upstream/downstream parser
@@ -770,6 +794,7 @@ function encodingFromArgs(args: unknown[]): BufferEncoding | undefined {
  */
 export function createNodeHttpPayloadCaptureMiddleware(
   setting: HttpPayloadCaptureSetting,
+  policy?: HttpPayloadCapturePolicy<NodeHttpPayloadCaptureContext>,
 ): NodeHttpPayloadCaptureMiddleware {
   const options = normalizeOptions(setting);
 
@@ -777,6 +802,35 @@ export function createNodeHttpPayloadCaptureMiddleware(
     if (!options) {
       next();
       return;
+    }
+
+    if (policy !== undefined) {
+      let capture: HttpPayloadCaptureSetting = setting;
+      try {
+        const shouldCapturePayloads = policy.shouldCapturePayloads;
+        if (shouldCapturePayloads !== undefined) {
+          // Express can mount middleware below a prefix; originalUrl preserves
+          // that prefix so policies still see the full public request pathname.
+          const pathname = nodeRequestPathname(request);
+          capture = resolveHttpPayloadCapture(
+            setting,
+            {
+              request,
+              response,
+              pathname,
+              method: (request.method ?? "GET").toUpperCase(),
+            },
+            { shouldCapturePayloads },
+          );
+        }
+      } catch {
+        // Invalid request context also fails closed without affecting handling.
+        capture = false;
+      }
+      if (capture === false) {
+        next();
+        return;
+      }
     }
 
     let span: Span | undefined;
