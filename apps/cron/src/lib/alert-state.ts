@@ -17,6 +17,8 @@ export interface AlertTransitionInput {
   consecutiveRecoveries: number;
   noDataState: AlertNoDataState;
   observation: AlertObservation;
+  /** A customer-capable incident needs real, consecutive healthy evidence to recover. */
+  protectIncident?: boolean;
 }
 
 export interface AlertTransition {
@@ -43,17 +45,21 @@ export function transitionAlertState(
 ): AlertTransition {
   const consecutiveFailures = clampStreak(input.consecutiveFailures);
   const consecutiveRecoveries = clampStreak(input.consecutiveRecoveries);
+  const state = input.protectIncident ? "firing" : input.state;
 
   if (input.observation === "error") {
     return {
-      state: input.state,
+      state,
       failureStreak: input.failureStreak,
-      recoveryStreak: input.recoveryStreak,
+      recoveryStreak: input.protectIncident ? 0 : input.recoveryStreak,
       incidentAction: null,
     };
   }
 
   if (input.observation === "no_data") {
+    if (input.protectIncident) {
+      return { state: "no_data", failureStreak: 0, recoveryStreak: 0, incidentAction: null };
+    }
     if (input.noDataState === "alerting") {
       return transitionAlertState({ ...input, observation: "breach" });
     }
@@ -69,7 +75,7 @@ export function transitionAlertState(
   }
 
   if (input.observation === "breach") {
-    if (input.state === "firing") {
+    if (state === "firing") {
       return {
         state: "firing",
         failureStreak: Math.max(input.failureStreak, consecutiveFailures),
@@ -88,7 +94,7 @@ export function transitionAlertState(
     };
   }
 
-  if (input.state === "firing") {
+  if (state === "firing") {
     const recoveryStreak = Math.max(0, input.recoveryStreak) + 1;
     const recovered = recoveryStreak >= consecutiveRecoveries;
     return {
