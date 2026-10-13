@@ -9,6 +9,11 @@ export default defineConfig({
   integrations: [react()],
   vite: {
     plugins: [tailwindcss()],
+    // Workspace dependencies are hoisted with their own React peer. Keep the
+    // renderer, islands and Motion on this app's pinned React runtime in dev
+    // and bundle Motion for SSR so Node cannot resolve the hoisted peer itself.
+    resolve: { dedupe: ["react", "react-dom"] },
+    ssr: { noExternal: ["motion", "framer-motion"] },
   },
   experimental: {
     // Astro's CSP hash generation runs during builds, not the Vite dev server.
