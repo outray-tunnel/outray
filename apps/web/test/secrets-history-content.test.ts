@@ -110,6 +110,22 @@ test("action feedback belongs to its version and pending work prevents duplicate
   assert.doesNotMatch(items[0] + items[1] + items[2], /Could not reveal this version/);
 });
 
+test("history copy actions render only their icons while retaining names, confirmation and audited callbacks", () => {
+  for (const copiedVersion of [null, 3]) {
+    const html = render({ copiedVersion });
+    const copies = buttons(html).filter((button) => /aria-label="Copy version \d+"/.test(button));
+    assert.equal(copies.length, versions.length);
+    for (const button of copies) {
+      assert.match(button, /<svg\b[^>]*aria-hidden="true"/);
+      assert.match(button, /title="(?:Copy|Copied) version \d+"/);
+      assert.match(button, /size-8 min-h-8!/);
+      assert.doesNotMatch(button.replace(/<[^>]+>/g, ""), /\S/);
+      assert.doesNotMatch(button, /bg-zinc-50|border-zinc-50/);
+    }
+    if (copiedVersion !== null) assert.match(html, /role="status" aria-live="polite">Version 3 copied\./);
+  }
+});
+
 async function stubbedModule() {
   const source = await readFile(new URL("../src/components/secrets/secret-history-content.tsx", import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true } }).outputText;
