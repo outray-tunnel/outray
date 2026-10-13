@@ -96,16 +96,16 @@ export function ProductNavigation({
               aria-label={product.label}
               aria-current={active ? "page" : undefined}
               title={product.label}
-              className={`relative flex h-10 w-full items-center justify-center rounded-lg transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 ${
+              className={`relative mx-auto flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 ${
                 active
                   ? "bg-white/[0.07] text-zinc-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
                   : "text-zinc-500 hover:bg-white/[0.045] hover:text-zinc-200"
               }`}
             >
               <HugeiconsIcon
-                icon={product.icon}
+                icon={active ? product.activeIcon : product.icon}
                 size={18}
-                strokeWidth={1.7}
+                {...(active ? {} : { strokeWidth: 1.7 })}
                 aria-hidden="true"
               />
             </Link>
@@ -141,9 +141,9 @@ export function ProductNavigation({
               } ${isSearching ? "cursor-default" : "hover:bg-white/[0.035] hover:text-zinc-200"}`}
             >
               <HugeiconsIcon
-                icon={product.icon}
+                icon={isCurrentProduct ? product.activeIcon : product.icon}
                 size={17}
-                strokeWidth={1.7}
+                {...(isCurrentProduct ? {} : { strokeWidth: 1.7 })}
                 className="shrink-0"
                 aria-hidden="true"
               />
