@@ -94,6 +94,43 @@ IDs, and ULIDs with `:id`. Use `routeResolver` for application-specific slugs or
 to provide exact TanStack route templates. Vite internals and common static
 asset paths are ignored by default.
 
+## Track sensitive endpoints without capturing their content
+
+Use `shouldCapturePayloads` to turn enabled capture off for particular requests.
+This option inherits the shared `HttpPayloadCapturePolicy` from `@outray/core`,
+so a `{ pathname, method }` predicate can be reused across framework adapters.
+TanStack additionally provides the original `request` in the callback context.
+Those requests still record their normalized route, method, status, duration,
+and HTTP metrics; their request and response streams are not cloned or read by
+capture. The predicate is evaluated once per instrumented request. Returning
+anything other than `true`, or throwing, disables capture for that request
+without changing its application response.
+
+```ts
+export default createOutrayTanStackServerEntry({
+  apiKey: process.env.OUTRAY_API_KEY,
+  serviceName: "my-tanstack-app",
+  capturePayloads: true,
+  shouldCapturePayloads: ({ pathname }) => !pathname.startsWith("/api/secrets/"),
+  recordExceptions: false,
+  ignoreDefaultPaths: false,
+});
+```
+
+`recordExceptions: false` omits exception messages, stack traces, and
+exception-derived metric error names. A thrown handler error still records a
+generic HTTP 500 and error status, then propagates unchanged. This setting does
+not control application logs: keep `captureConsole` disabled, or use a
+request-scoped `shouldCaptureLog` policy, when sensitive requests may log private
+content. Use `routeResolver` to replace sensitive path identifiers with explicit
+templates; payload gating does not sanitize custom route names.
+
+Set `ignoreDefaultPaths: false` to also instrument framework assets,
+`/favicon.ico`, and `/robots.txt`. It defaults to `true` for compatibility.
+Your explicit `ignore` predicate still skips telemetry even when default
+exclusions are disabled. `shouldCapturePayloads` never enables capture when
+`capturePayloads` is absent or `false`.
+
 This package instruments TanStack Start's Node/Nitro runtime. Keep the
 configuration in `src/server.ts`; it does not put the OutRay token in browser
 code and does not currently support edge runtimes.
