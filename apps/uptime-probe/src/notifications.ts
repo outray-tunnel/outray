@@ -158,18 +158,41 @@ async function deliverSubscriberNotification(pool: pg.Pool, notification: Notifi
     await finish(pool, notification.id, "suppressed", "invalid_payload");
     return;
   }
-  const details = await pool.query<{
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await deliverLockedSubscriberNotification(client, notification, payload);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function deliverLockedSubscriberNotification(client: pg.PoolClient, notification: Notification, payload: SubscriberPayload) {
+  // Lock order is page, then subscriber, matching consent/settings mutations.
+  // An exclusive subscriber lock also prevents parallel updates from racing
+  // the per-subscriber burst and daily send limits.
+  await client.query(
+    `SELECT id FROM uptime_status_pages
+     WHERE id = $1 AND organization_id = $2 FOR SHARE`,
+    [payload.pageId, notification.organization_id],
+  );
+  const details = await client.query<{
     email: string;
     status: string;
     last_sent_at: Date | null;
     page_slug: string;
     published: boolean;
+    subscriptions_enabled: boolean;
     published_at: Date | null;
     note: string;
     body_json: unknown;
   }>(
     `SELECT subscriber.email, subscriber.status, subscriber.last_sent_at,
-       page.slug AS page_slug, page.published, update.published_at,
+       page.slug AS page_slug, page.published, page.subscriptions_enabled, update.published_at,
        update.note, update.body_json
      FROM uptime_subscribers AS subscriber
      JOIN uptime_status_pages AS page ON page.id = subscriber.page_id
@@ -177,7 +200,8 @@ async function deliverSubscriberNotification(pool: pg.Pool, notification: Notifi
      WHERE subscriber.id = $1 AND subscriber.page_id = $2
        AND subscriber.organization_id = $3
        AND page.organization_id = $3 AND update.organization_id = $3
-       AND update.incident_id = $5`,
+       AND update.incident_id = $5
+     FOR UPDATE OF subscriber`,
     [payload.subscriberId, payload.pageId, notification.organization_id,
       payload.updateId, payload.incidentId],
   );
@@ -185,10 +209,23 @@ async function deliverSubscriberNotification(pool: pg.Pool, notification: Notifi
   if (!detail || detail.status !== "confirmed" || !detail.published ||
       !detail.published_at || detail.email.toLowerCase() !== notification.recipient.toLowerCase() ||
       detail.page_slug !== payload.pageSlug) {
-    await finish(pool, notification.id, "suppressed", "subscriber_inactive");
+    await finish(client, notification.id, "suppressed", "subscriber_inactive");
     return;
   }
-  const sent = await pool.query<{ count: number }>(
+  if (!detail.subscriptions_enabled) {
+    // Pause without losing queued updates or consuming retry attempts. The
+    // shared page lock remains held through send, serializing an in-flight
+    // delivery with a manager's off switch and administrative unsubscribe.
+    await client.query(
+      `UPDATE notifications SET status = 'pending', last_error = 'subscriptions_disabled',
+         next_attempt_at = NOW() + INTERVAL '1 minute',
+         lease_owner = NULL, lease_until = NULL, updated_at = NOW()
+       WHERE id = $1 AND lease_owner = $2`,
+      [notification.id, workerId],
+    );
+    return;
+  }
+  const sent = await client.query<{ count: number }>(
     `SELECT count(*)::int AS count FROM notifications
      WHERE organization_id = $1 AND source_type = 'uptime_incident_update'
        AND channel = 'email' AND status = 'sent'
@@ -197,12 +234,12 @@ async function deliverSubscriberNotification(pool: pg.Pool, notification: Notifi
     [notification.organization_id, payload.subscriberId],
   );
   if ((sent.rows[0]?.count ?? 0) >= 20) {
-    await finish(pool, notification.id, "suppressed", "send_limit");
+    await finish(client, notification.id, "suppressed", "send_limit");
     return;
   }
   // Smooth bursts to a subscriber without discarding a team-published update.
   if (detail.last_sent_at && Date.now() - detail.last_sent_at.getTime() < 60_000) {
-    await pool.query(
+    await client.query(
       `UPDATE notifications SET status = 'pending',
          next_attempt_at = $3::timestamptz + INTERVAL '1 minute',
          lease_owner = NULL, lease_until = NULL, updated_at = NOW()
@@ -212,28 +249,18 @@ async function deliverSubscriberNotification(pool: pg.Pool, notification: Notifi
     return;
   }
   await sendSubscriberEmail(notification.recipient, payload, detail.body_json, detail.note);
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    await client.query(
-      `UPDATE uptime_subscribers SET last_sent_at = NOW(), updated_at = NOW()
-       WHERE id = $1 AND page_id = $2 AND organization_id = $3 AND status = 'confirmed'`,
-      [payload.subscriberId, payload.pageId, notification.organization_id],
-    );
-    await client.query(
-      `UPDATE notifications SET status = 'sent', attempts = attempts + 1,
-         sent_at = NOW(), last_error = NULL, lease_owner = NULL,
-         lease_until = NULL, updated_at = NOW()
-       WHERE id = $1 AND lease_owner = $2`,
-      [notification.id, workerId],
-    );
-    await client.query("COMMIT");
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    client.release();
-  }
+  await client.query(
+    `UPDATE uptime_subscribers SET last_sent_at = NOW(), updated_at = NOW()
+     WHERE id = $1 AND page_id = $2 AND organization_id = $3 AND status = 'confirmed'`,
+    [payload.subscriberId, payload.pageId, notification.organization_id],
+  );
+  await client.query(
+    `UPDATE notifications SET status = 'sent', attempts = attempts + 1,
+       sent_at = NOW(), last_error = NULL, lease_owner = NULL,
+       lease_until = NULL, updated_at = NOW()
+     WHERE id = $1 AND lease_owner = $2`,
+    [notification.id, workerId],
+  );
 }
 
 function validSubscriberPayload(payload: SubscriberPayload, updateId: string): boolean {
@@ -292,7 +319,7 @@ export function publicStatusPageUrl(slug: string, baseUrl: string): string {
   return url.toString();
 }
 
-async function finish(pool: pg.Pool, id: string, status: "sent" | "suppressed", reason: string | null) {
+async function finish(pool: pg.Pool | pg.PoolClient, id: string, status: "sent" | "suppressed", reason: string | null) {
   await pool.query(
     `UPDATE notifications SET status = $3, attempts = attempts + 1,
        last_error = $4, sent_at = CASE WHEN $3 = 'sent' THEN NOW() ELSE sent_at END,
