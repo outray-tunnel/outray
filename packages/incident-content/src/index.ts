@@ -83,7 +83,7 @@ export function incidentPlainText(body: IncidentDocument): string {
   return walk(body).trim();
 }
 
-export function parseIncidentDocument(value: unknown): { body: IncidentDocument; note: string } | null {
+export function parseIncidentDocument(value: unknown, options: { allowEmpty?: boolean } = {}): { body: IncidentDocument; note: string } | null {
   if (!record(value) || value.type !== "doc" || !keys(value, ["type", "content"]) || !Array.isArray(value.content)) return null;
   if (JSON.stringify(value).length > maxJsonLength || value.content.length > maxNodes) return null;
   const count = { value: 0 };
@@ -91,7 +91,7 @@ export function parseIncidentDocument(value: unknown): { body: IncidentDocument;
   if (content.some((node) => node === null)) return null;
   const body: IncidentDocument = { type: "doc", content: content as IncidentNode[] };
   const note = incidentPlainText(body);
-  return note.length > 0 && note.length <= maxPlainLength ? { body, note } : null;
+  return (options.allowEmpty || note.length > 0) && note.length <= maxPlainLength ? { body, note } : null;
 }
 
 export function legacyIncidentDocument(note: string): IncidentDocument {
