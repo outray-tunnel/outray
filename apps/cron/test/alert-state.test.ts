@@ -105,3 +105,26 @@ test("query errors never resolve an existing incident", () => {
   });
   assert.equal(healthy.state, "healthy");
 });
+
+test("public-capable incidents never interpret absent telemetry as confirmed recovery", () => {
+  for (const noDataState of ["no_data", "healthy", "alerting"] as const) {
+    const result = transitionAlertState({ ...base, state: "firing", recoveryStreak: 1,
+      observation: "no_data", noDataState, protectIncident: true });
+    assert.deepEqual(result, { state: "no_data", failureStreak: 0, recoveryStreak: 0, incidentAction: null });
+  }
+});
+
+test("protected episodes require a fresh healthy streak after no-data or a query error", () => {
+  const first = transitionAlertState({ ...base, state: "no_data", observation: "healthy", protectIncident: true });
+  assert.equal(first.state, "firing");
+  assert.equal(first.recoveryStreak, 1);
+  assert.equal(first.incidentAction, null);
+  const interrupted = transitionAlertState({ ...base, state: first.state, recoveryStreak: first.recoveryStreak,
+    observation: "error", protectIncident: true });
+  assert.equal(interrupted.recoveryStreak, 0);
+  assert.equal(interrupted.incidentAction, null);
+  const recovered = transitionAlertState({ ...base, state: "no_data", recoveryStreak: 1,
+    observation: "healthy", protectIncident: true });
+  assert.equal(recovered.state, "healthy");
+  assert.equal(recovered.incidentAction, "resolve");
+});
