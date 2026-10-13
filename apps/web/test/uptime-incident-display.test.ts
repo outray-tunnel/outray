@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { UptimeComponent, UptimeIncident, UptimeIncidentUpdate, UptimePageResponse } from "../src/components/uptime/uptime-client";
-import { affectedComponentNames, incidentDuration, incidentLabel, incidentSearch, pageComponents, publicIncidentStage, publishedIncidentUpdates } from "../src/lib/uptime/incident-display";
+import { affectedComponentNames, incidentDuration, incidentLabel, incidentSearch, incidentSourceLabel, pageComponents, publicIncidentStage, publishedIncidentUpdates } from "../src/lib/uptime/incident-display";
 
 const incident: UptimeIncident = {
   id: "incident", title: "API errors", status: "open", sourceType: "uptime_manual",
@@ -20,7 +20,14 @@ test("URL filters normalize defaults and invalid values without retaining unrela
   });
   assert.deepEqual(incidentSearch({ q: 12, view: "all", source: "invalid" }), {});
   assert.deepEqual(incidentSearch({ view: "drafts", source: "automatic" }), { view: "drafts", source: "automatic" });
+  assert.deepEqual(incidentSearch({ view: "detected", source: "observability" }), { view: "detected", source: "observability" });
   assert.equal(incidentSearch({ q: "a".repeat(200) }).q?.length, 160);
+});
+
+test("shared incidents retain their originating product label", () => {
+  assert.equal(incidentSourceLabel(incident), "Manual");
+  assert.equal(incidentSourceLabel({ ...incident, sourceType: "uptime_monitor" }), "Uptime");
+  assert.equal(incidentSourceLabel({ ...incident, sourceType: "observability_alert" }), "Observability");
 });
 
 test("unpublished update status never changes incident lifecycle or draft visibility", () => {
@@ -33,6 +40,18 @@ test("unpublished update status never changes incident lifecycle or draft visibi
   assert.equal(publicIncidentStage(incident, [update("published", "2026-09-30T10:05:00Z", "identified"), resolvingDraft]), "identified");
   assert.equal(publicIncidentStage({ ...incident, sourceType: "uptime_monitor" }, []), "down");
   assert.equal(publicIncidentStage({ ...incident, sourceType: "uptime_monitor", status: "resolved" }, []), "recovered");
+});
+
+test("observability public lifecycle is protected from internal resolution without confirmed recovery", () => {
+  const approved: UptimeIncident = { ...incident, sourceType: "observability_alert", uptimePublicationState: "published",
+    status: "resolved", recoveryConfirmed: false };
+  assert.equal(incidentLabel(approved), "Active");
+  assert.equal(publicIncidentStage(approved, [update("safe-public", "2026-09-30T10:05:00Z", "investigating")]), "investigating");
+  assert.equal(incidentLabel({ ...approved, recoveryConfirmed: true }), "Resolved");
+  assert.equal(publicIncidentStage({ ...approved, recoveryConfirmed: true }), "recovered");
+  assert.equal(incidentLabel({ ...approved, uptimePublicationState: null }), "Resolved");
+  assert.equal(publicIncidentStage({ ...approved, uptimePublicationState: null }), "detected");
+  assert.equal(incidentLabel({ ...approved, status: "open", uptimePublicationState: null }), "Detected");
 });
 
 test("published timeline uses publication time, separates drafts, and does not mutate input", () => {
