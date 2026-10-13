@@ -16,6 +16,7 @@ export interface SideSheetProps {
   children: ReactNode;
   footer?: ReactNode;
   closeDisabled?: boolean;
+  size?: "md" | "lg";
   returnFocusRef?: RefObject<HTMLElement | null>;
   onEscapeKeyDown?: ContentProps["onEscapeKeyDown"];
   onInteractOutside?: ContentProps["onInteractOutside"];
@@ -30,6 +31,7 @@ export function SideSheet({
   children,
   footer,
   closeDisabled = false,
+  size = "md",
   returnFocusRef,
   onEscapeKeyDown,
   onInteractOutside,
@@ -73,8 +75,14 @@ export function SideSheet({
             {...(description ? {} : { "aria-describedby": undefined })}
             onEscapeKeyDown={handleEscape}
             onInteractOutside={handleOutside}
-            onOpenAutoFocus={() => {
+            onOpenAutoFocus={(event) => {
               opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+              const target = event?.target instanceof HTMLElement
+                ? event.target.querySelector<HTMLElement>("[data-autofocus]:not([disabled])") : null;
+              if (target) {
+                event.preventDefault();
+                target.focus({ preventScroll: true });
+              }
             }}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
@@ -90,7 +98,8 @@ export function SideSheet({
             }}
           >
             <motion.div
-              className={`${workspaceScopeClassName} fixed inset-y-0 right-0 z-[61] flex h-dvh max-h-dvh w-full max-w-[640px] min-w-0 flex-col overflow-hidden border-l border-white/[0.08] bg-[#111112] text-zinc-200 shadow-[-20px_0_70px_rgba(0,0,0,0.35)] outline-none`}
+              data-size={size}
+              className={`${workspaceScopeClassName} fixed inset-y-0 right-0 z-[61] flex h-dvh max-h-dvh w-full max-w-[640px] min-w-0 flex-col overflow-hidden border-l border-white/[0.08] bg-[#111112] text-zinc-200 shadow-[-20px_0_70px_rgba(0,0,0,0.35)] outline-none data-[size=lg]:max-w-[960px]`}
               initial={reducedMotion ? { opacity: 0 } : { x: 32, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={reducedMotion ? { opacity: 0 } : { x: 24, opacity: 0 }}
