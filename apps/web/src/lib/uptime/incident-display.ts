@@ -1,16 +1,25 @@
 import type { UptimeComponent, UptimeIncident, UptimeIncidentUpdate, UptimePageResponse } from "@/components/uptime/uptime-client";
 
-export type IncidentSearch = { q?: string; view?: "all" | "detected" | "active" | "resolved" | "drafts"; source?: "all" | "manual" | "automatic" };
+export type IncidentSearch = { q?: string; view?: "all" | "detected" | "active" | "resolved" | "drafts"; source?: "all" | "manual" | "automatic" | "observability" };
 
 export function incidentSearch(value: Record<string, unknown>): IncidentSearch {
   const q = typeof value.q === "string" ? value.q.trim().slice(0, 160) : "";
   const view = value.view === "detected" || value.view === "active" || value.view === "resolved" || value.view === "drafts" ? value.view : undefined;
-  const source = value.source === "manual" || value.source === "automatic" ? value.source : undefined;
+  const source = value.source === "manual" || value.source === "automatic" || value.source === "observability" ? value.source : undefined;
   return { ...(q ? { q } : {}), ...(view ? { view } : {}), ...(source ? { source } : {}) };
+}
+
+export function incidentSourceLabel(incident: UptimeIncident): string {
+  return incident.sourceType === "observability_alert" ? "Observability" : incident.sourceType === "uptime_manual" ? "Manual" : "Uptime";
 }
 
 export function incidentLabel(incident: UptimeIncident, updates = incident.updates ?? []): "Active" | "Resolved" | "Draft" | "Detected" | "Ignored" {
   if (incident.uptimePublicationState === "ignored") return "Ignored";
+  if (incident.sourceType === "observability_alert" && incident.uptimePublicationState !== "published") {
+    if (incident.uptimePublicationState == null && incident.status === "resolved") return "Resolved";
+    return incident.status === "resolved" && incident.recoveryConfirmed ? "Resolved" : "Detected";
+  }
+  if (incident.sourceType === "observability_alert" && incident.status === "resolved" && !incident.recoveryConfirmed) return "Active";
   if (incident.uptimePublicationState === "detected") return incident.status === "resolved" ? "Resolved" : "Detected";
   if (incident.status === "resolved") return "Resolved";
   if (incident.sourceType === "uptime_manual" && !updates.some((update) => update.publishedAt)) return "Draft";
@@ -21,6 +30,10 @@ export function publicIncidentStage(incident: UptimeIncident, updates = incident
   if (incident.sourceType !== "uptime_manual") {
     if (incident.uptimePublicationState === "ignored") return "ignored";
     if (incident.uptimePublicationState === "detected") return "detected";
+    if (incident.sourceType === "observability_alert") {
+      if (incident.uptimePublicationState !== "published") return "detected";
+      return incident.status === "resolved" && incident.recoveryConfirmed ? "recovered" : publishedIncidentUpdates(updates)[0]?.status ?? "investigating";
+    }
     return incident.status === "resolved" ? "recovered" : publishedIncidentUpdates(updates)[0]?.status ?? "down";
   }
   return publishedIncidentUpdates(updates)[0]?.status ?? "draft";
@@ -28,7 +41,8 @@ export function publicIncidentStage(incident: UptimeIncident, updates = incident
 
 export function incidentDuration(incident: UptimeIncident, now = Date.now()): string {
   const start = Date.parse(incident.startedAt || incident.createdAt || "");
-  const end = incident.resolvedAt ? Date.parse(incident.resolvedAt) : now;
+  const unconfirmedPublicRecovery = incident.sourceType === "observability_alert" && incident.uptimePublicationState === "published" && !incident.recoveryConfirmed;
+  const end = incident.resolvedAt && !unconfirmedPublicRecovery ? Date.parse(incident.resolvedAt) : now;
   if (!Number.isFinite(start) || !Number.isFinite(end)) return "—";
   const minutes = Math.max(0, Math.floor((end - start) / 60_000));
   if (minutes < 1) return "Less than a minute";
