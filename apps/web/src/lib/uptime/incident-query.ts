@@ -7,7 +7,7 @@ export type IncidentCursor = { startedAt: Date; id: string };
 export type IncidentListQuery = {
   q: string;
   view: "all" | "detected" | "active" | "resolved" | "drafts";
-  source: "all" | "manual" | "automatic";
+  source: "all" | "manual" | "automatic" | "observability";
   cursor: IncidentCursor | null;
   limit: number;
 };
@@ -42,7 +42,7 @@ export function parseIncidentListQuery(params: URLSearchParams):
     return { success: false, error: "Invalid incident view", field: "view" };
   }
   const source = params.get("source") ?? "all";
-  if (source !== "all" && source !== "manual" && source !== "automatic") {
+  if (source !== "all" && source !== "manual" && source !== "automatic" && source !== "observability") {
     return { success: false, error: "Invalid incident source", field: "source" };
   }
   const rawLimit = params.get("limit") ?? "100";
@@ -65,12 +65,16 @@ export function incidentListWhere(organizationId: string, query: IncidentListQue
   )`;
   return and(
     eq(incidents.organizationId, organizationId),
-    inArray(incidents.sourceType, ["uptime_monitor", "uptime_manual"]),
+    inArray(incidents.sourceType, ["uptime_monitor", "uptime_manual", "observability_alert"]),
     // strpos treats %, _ and backslashes as literal characters, unlike LIKE.
     query.q ? sql`strpos(lower(${incidents.title}), lower(${query.q})) > 0` : undefined,
-    query.source !== "all" ? eq(incidents.sourceType, query.source === "manual" ? "uptime_manual" : "uptime_monitor") : undefined,
-    query.view === "detected" ? and(eq(incidents.sourceType, "uptime_monitor"), eq(incidents.status, "open"), eq(incidents.uptimePublicationState, "detected")) : undefined,
-    query.view === "active" ? and(eq(incidents.status, "open"), or(and(eq(incidents.sourceType, "uptime_monitor"), sql`${incidents.uptimePublicationState} <> 'ignored'`), published)) : undefined,
+    query.source === "manual" ? eq(incidents.sourceType, "uptime_manual")
+      : query.source === "automatic" ? inArray(incidents.sourceType, ["uptime_monitor", "observability_alert"])
+        : query.source === "observability" ? eq(incidents.sourceType, "observability_alert") : undefined,
+    query.view === "detected" ? and(inArray(incidents.sourceType, ["uptime_monitor", "observability_alert"]), eq(incidents.status, "open"),
+      or(eq(incidents.uptimePublicationState, "detected"), and(eq(incidents.sourceType, "observability_alert"), sql`${incidents.uptimePublicationState} is null`))) : undefined,
+    query.view === "active" ? and(eq(incidents.status, "open"), or(and(inArray(incidents.sourceType, ["uptime_monitor", "observability_alert"]),
+      sql`coalesce(${incidents.uptimePublicationState}, 'detected') <> 'ignored'`), published)) : undefined,
     query.view === "resolved" ? eq(incidents.status, "resolved") : undefined,
     query.view === "drafts" ? and(eq(incidents.sourceType, "uptime_manual"), sql`not ${published}`) : undefined,
     query.cursor ? or(
