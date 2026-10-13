@@ -244,11 +244,13 @@ test("overlay keeps workspace capture protection and restores opener focus on cl
   const returnFocusRef: { current: typeof opener | null } = { current: opener };
   const events: AgentChatAction[] = [];
   const dialog = Object.fromEntries(["Root", "Portal", "Overlay", "Content", "Title"].map((name) => [name, (props: any) => props.children]));
+  const motion = { div: (props: any) => props.children };
   const module = { exports: {} as typeof import("../src/components/agent/agent-chat-host") };
   runInNewContext(compiled, { React, module, exports: module.exports, document: { getElementById: () => ({ contains: () => inside }), querySelector: () => ({ focus() { fallbackFocused++; } }) },
     require(specifier: string) {
       if (specifier === "react") return { ...React, lazy: () => () => null };
       if (specifier === "@radix-ui/react-dialog") return dialog;
+      if (specifier === "motion/react") return { motion, AnimatePresence: (props: any) => props.children, useReducedMotion: () => false };
       if (specifier === "@tanstack/react-router") return { Link: () => null };
       if (specifier === "lucide-react") return new Proxy({}, { get: () => () => null });
       if (specifier === "./agent-chat-data") return data;
@@ -260,8 +262,15 @@ test("overlay keeps workspace capture protection and restores opener focus on cl
   const tree = module.exports.AgentChatHost();
   const content = elements(tree).find((element) => element.type === dialog.Content)!;
   const overlay = elements(tree).find((element) => element.type === dialog.Overlay)!;
-  assert.match(content.props.className, /ph-no-capture.*fixed inset-y-0 right-0.*h-dvh w-full max-w-\[720px\]/);
-  assert.match(overlay.props.className, /fixed inset-0/);
+  const panelSurface = content.props.children as React.ReactElement<any>;
+  const overlaySurface = overlay.props.children as React.ReactElement<any>;
+  assert.equal(content.props.asChild, true, "privacy and layout belong to the same Motion DOM surface Radix uses for dialog behavior");
+  assert.equal(panelSurface.type, motion.div);
+  assert.match(panelSurface.props.className, /ph-no-capture.*fixed inset-y-0 right-0.*h-dvh w-full max-w-\[720px\]/);
+  assert.equal(content.props.id, "agent-panel", "Radix forwards the focus-restoration target id onto the Motion surface");
+  assert.equal(overlay.props.asChild, true);
+  assert.equal(overlaySurface.type, motion.div);
+  assert.match(overlaySurface.props.className, /fixed inset-0/);
   assert.equal(tree.type, dialog.Root);
   assert.equal(tree.props.open, true);
   assert.equal(tree.props.modal, undefined, "Radix keeps its modal focus trap enabled");
