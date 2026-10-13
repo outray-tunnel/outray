@@ -4,7 +4,8 @@ import test from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import {
-  ignoreInternalObservabilityRequest,
+  isSensitiveInternalObservabilityRequest,
+  resolveInternalObservabilityRoute,
   resolveInternalObservabilityOptions,
   runWithInternalObservabilityRequest,
   shouldCaptureInternalObservabilityLog,
@@ -35,10 +36,15 @@ test("internal Ops configuration enables bounded payload and console capture wit
   assert.deepEqual(options.capturePayloads, {
     maxBodyBytes: 16 * 1024,
     maxHeaderBytes: 8 * 1024,
+    redactedHeaders: ["location"],
     redactedFields: ["requestBody", "responseBody", "requestHeaders", "responseHeaders", "body", "params"],
   });
   assert.equal(options.captureConsole, true);
   assert.equal(options.shouldCaptureLog, shouldCaptureInternalObservabilityLog);
+  assert.equal(options.ignoreDefaultPaths, false, "internal request metadata includes the adapter's usual asset exclusions");
+  assert.equal(options.ignore, undefined, "sensitive requests must not disappear from telemetry");
+  assert.equal(options.routeResolver, resolveInternalObservabilityRoute);
+  assert.equal(typeof options.shouldCapturePayloads, "function");
   assert.equal(options.autoInstrumentations, false);
   assert.equal(options.recordExceptions, false);
   assert.equal(options.diagnostics, "none");
@@ -70,7 +76,7 @@ test("sensitive-request log suppression survives awaits and cannot affect simult
   assert.equal(configuredOptions.shouldCaptureLog!(), true, "background logs remain captured outside request scopes");
 });
 
-test("all excluded requests suppress log export while preserving results and thrown errors", async () => {
+test("all sensitive requests suppress log export while preserving results and thrown errors", async () => {
   for (const path of ["/api/auth/session", "/api/acme/%73ecrets/entries", "/api/cli/exchange", "/api/webhooks/polar", "/_serverFn/key", "/v1/logs"]) {
     const response = new Response("still handled");
     assert.equal(runWithInternalObservabilityRequest(new Request(`https://console.example.test${path}`), () => {
@@ -97,15 +103,57 @@ test("an opted-in console rejects ambiguous or insecure telemetry destinations w
   }
 });
 
-test("credential, secret, server-function and export routes bypass telemetry, including encoded paths", () => {
+test("credential, secret, server-function and ingest routes use metadata-only capture, including encoded paths", () => {
+  const options = resolveInternalObservabilityOptions(configured)!;
   for (const pathname of [
-    "/login", "/api/auth/callback/github", "/acme/secrets/vaults/one", "/api/acme/secrets/entries/key/reveal",
-    "/api/acme/auth-tokens", "/api/cli/exchange", "/api/dashboard/ws-token", "/api/webhooks/polar",
-    "/api/uptime/integrations/github.callback", "/_serverFn/unknown", "/v1/traces", "/v1/logs", "/v1/metrics",
-    "/api/acme/%73ecrets/entries", "/API/AUTH/session", "/api/bad%encoding",
-  ]) assert.equal(ignoreInternalObservabilityRequest({ pathname }), true, pathname);
-  for (const pathname of ["/", "/api/health", "/acme/tunnel", "/api/acme/observability/requests", "/api/acme/uptime/monitors"]) {
-    assert.equal(ignoreInternalObservabilityRequest({ pathname }), false, pathname);
+    "/login", "/logout", "/signup", "/register", "/api/auth/callback/github", "/acme/secrets/vaults/one",
+    "/api/acme/secrets/projects/vault/environments/production/secrets/secret-key/reveal",
+    "/api/acme/auth-tokens", "/api/acme/secrets/machine-tokens/key", "/api/acme/tokens/key",
+    "/api/acme/invitations/invite-id", "/invite/invite-id", "/api/admin/users/user-id",
+    "/api/cli/exchange", "/api/tunnel/auth", "/api/dashboard/ws-token", "/api/webhooks/polar", "/api/checkout/polar", "/api/acme/portal/polar",
+    "/api/uptime/integrations/github/callback", "/api/uptime/integrations/github.callback", "/_serverFn/unknown",
+    "/v1/traces", "/v1/logs", "/v1/metrics", "/api/acme/%73ecrets/entries", "/api/acme/%2573ecrets/entries",
+    "/api/acme/%252573ecrets/entries", "/API/AUTH/session", "/api/bad%encoding",
+  ]) {
+    assert.equal(isSensitiveInternalObservabilityRequest({ pathname }), true, pathname);
+    assert.equal(options.shouldCapturePayloads!({ pathname, request: new Request(`https://console.example.test${pathname}`) }), false, pathname);
+  }
+  for (const pathname of ["/", "/api/health", "/acme/tunnel", "/api/acme/observability/requests", "/api/acme/uptime/monitors", "/assets/app.js", "/favicon.ico", "/robots.txt"]) {
+    assert.equal(isSensitiveInternalObservabilityRequest({ pathname }), false, pathname);
+    assert.equal(options.shouldCapturePayloads!({ pathname, request: new Request(`https://console.example.test${pathname}`) }), true, pathname);
+  }
+});
+
+test("sensitive route templates hide names and identifiers instead of exporting raw private paths", () => {
+  const cases: Array<[string, string]> = [
+    ["/api/private-org/secrets/projects/private-project/environments/private-environment/secrets/private-secret/reveal", "/api/:orgSlug/secrets/projects/:projectSlug/environments/:environmentSlug/secrets/:secretId/reveal"],
+    ["/api/private-org/secrets/projects/private-project/environments/private-environment/export", "/api/:orgSlug/secrets/projects/:projectSlug/environments/:environmentSlug/export"],
+    ["/api/private-org/secrets/machine-tokens/private-token", "/api/:orgSlug/secrets/machine-tokens/:tokenId"],
+    ["/api/private-org/secrets/shares/private-share", "/api/:orgSlug/secrets/shares/:shareId"],
+    ["/api/private-org/secrets/shares/snapshot", "/api/:orgSlug/secrets/shares/snapshot"],
+    ["/api/private-org/portal/polar", "/api/:orgSlug/portal/polar"],
+    ["/api/admin/users/private-user", "/api/admin/users/:userId"],
+    ["/api/admin/organizations/private-org", "/api/admin/organizations/:slug"],
+    ["/api/uptime/integrations/private-provider/callback", "/api/uptime/integrations/:provider/callback"],
+    ["/api/auth/callback/private-provider", "/api/auth/callback/:provider"],
+    ["/api/auth/private-action/private-user", "/api/auth/:path"],
+    ["/_serverFn/private-function", "/_serverFn/:functionId"],
+    ["/api/private-org/secrets/private-unknown/private-value", "/:sensitive-route"],
+    ["/api/bad%encoding", "/:invalid-path"],
+  ];
+  for (const [pathname, expected] of cases) {
+    const route = resolveInternalObservabilityRoute({ pathname });
+    assert.equal(route, expected, pathname);
+    assert.doesNotMatch(route!, /private-/);
+  }
+  for (const pathname of ["/", "/api/health", "/api/acme/uptime/monitors", "/assets/app.js"]) {
+    assert.equal(resolveInternalObservabilityRoute({ pathname }), null, "ordinary requests retain SDK route normalization");
+  }
+  const encoded = "/api/private-org/%2573ecrets/projects/private-project/environments/private-environment/secrets/private-secret/reveal";
+  assert.equal(resolveInternalObservabilityRoute({ pathname: encoded }), cases[0][1]);
+  for (const pathname of ["", "not-an-absolute-path", "/api/%25252573ecrets/value", `/api/${"x".repeat(8192)}`]) {
+    assert.equal(isSensitiveInternalObservabilityRequest({ pathname }), true, "ambiguous routes fail closed for content capture");
+    assert.equal(resolveInternalObservabilityRoute({ pathname }), "/:invalid-path");
   }
 });
 
@@ -130,7 +178,14 @@ async function loadServer(env: Record<string, string | undefined>) {
       if (specifier === "./lib/internal-observability.server") return { resolveInternalObservabilityOptions, runWithInternalObservabilityRequest };
       if (specifier === "@tanstack/react-start/server") return { createStartHandler: () => fetch, defaultStreamHandler: {} };
       if (specifier === "@outray/tanstack-start/server") return { createOutrayTanStackServerEntry: (options: unknown) => {
-        assert.deepEqual(options, resolveInternalObservabilityOptions(env));
+        const { shouldCapturePayloads: gate, ...actual } = options as NonNullable<ReturnType<typeof resolveInternalObservabilityOptions>>;
+        const { shouldCapturePayloads: expectedGate, ...expected } = resolveInternalObservabilityOptions(env)!;
+        assert.deepEqual(actual, expected);
+        assert.equal(typeof gate, "function");
+        for (const pathname of ["/api/acme/secrets/reveal", "/api/acme/uptime/monitors"]) {
+          const context = { pathname, request: new Request(`https://console.example.test${pathname}`) };
+          assert.equal(gate!(context), expectedGate!(context));
+        }
         calls.push("sdk-initialized"); return { fetch };
       } };
       throw new Error(`Unexpected server dependency: ${specifier}`);
