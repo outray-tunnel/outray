@@ -1,14 +1,16 @@
 import { lazy, Suspense } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
 import { workspaceScopeClassName } from "../ui/workspace-scope";
 import { useAgentChatState } from "./agent-chat-context";
 
 const AgentChatPanel = lazy(() => import("./agent-chat-panel"));
 
-/** Keep the modal shell mounted so Radix can finish both animations. Chat content stays lazy. */
+/** Motion keeps the modal mounted through its exit. Chat content stays lazy. */
 export function AgentChatHost() {
   const { state, dispatch, panelId, returnFocusRef } = useAgentChatState();
+  const reducedMotion = useReducedMotion();
   const close = () => dispatch({ type: "close" });
   const restoreFocus = () => {
     const target = returnFocusRef.current?.isConnected && !document.getElementById(panelId)?.contains(returnFocusRef.current)
@@ -17,16 +19,34 @@ export function AgentChatHost() {
   };
 
   return <Dialog.Root open={state.panelOpen} onOpenChange={(open) => { if (!open) close(); }}>
-    <Dialog.Portal>
-      <Dialog.Overlay className="fixed inset-0 z-80 bg-black/40 opacity-100 transition-opacity starting:opacity-0 data-[state=open]:duration-[260ms] data-[state=open]:ease-out data-[state=closed]:pointer-events-none data-[state=closed]:opacity-0 data-[state=closed]:duration-[190ms] data-[state=closed]:ease-in motion-reduce:transition-none" />
-      <Dialog.Content id={panelId} aria-describedby={undefined} onCloseAutoFocus={(event) => {
-        event.preventDefault();
-        restoreFocus();
-      }} className={`${workspaceScopeClassName} ph-no-capture fixed inset-y-0 right-0 z-81 flex h-dvh w-full max-w-[720px] translate-x-0 flex-col border-l border-white/[0.08] bg-[#111112] text-zinc-200 shadow-[-24px_0_80px_rgba(0,0,0,0.3)] outline-none transition-transform starting:translate-x-full data-[state=open]:duration-[260ms] data-[state=open]:ease-[cubic-bezier(.22,1,.36,1)] data-[state=closed]:pointer-events-none data-[state=closed]:translate-x-full data-[state=closed]:duration-[190ms] data-[state=closed]:ease-[cubic-bezier(.4,0,1,1)] motion-reduce:transition-none`}>
-        <Dialog.Title className="sr-only">Agent chat</Dialog.Title>
-        <Suspense fallback={<AgentPanelLoading />}><AgentChatPanel onClose={close} /></Suspense>
-      </Dialog.Content>
-    </Dialog.Portal>
+    <AnimatePresence>
+      {state.panelOpen && <Dialog.Portal key="agent-chat" forceMount>
+        <Dialog.Overlay asChild forceMount>
+          <motion.div
+            className="fixed inset-0 z-80 bg-black/40 data-[state=closed]:pointer-events-none!"
+            initial={reducedMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { type: "tween", duration: reducedMotion ? 0 : 0.16, ease: "easeOut" } }}
+            transition={{ type: "tween", duration: reducedMotion ? 0 : 0.18, ease: "easeOut" }}
+          />
+        </Dialog.Overlay>
+        <Dialog.Content asChild forceMount id={panelId} aria-describedby={undefined} onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          restoreFocus();
+        }}>
+          <motion.div
+            className={`${workspaceScopeClassName} ph-no-capture fixed inset-y-0 right-0 z-81 flex h-dvh w-full max-w-[720px] flex-col border-l border-white/[0.08] bg-[#111112] text-zinc-200 shadow-[-24px_0_80px_rgba(0,0,0,0.3)] outline-none data-[state=closed]:pointer-events-none!`}
+            initial={reducedMotion ? false : { x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: reducedMotion ? 0 : "100%", transition: { type: "tween", duration: reducedMotion ? 0 : 0.18, ease: [0.4, 0, 1, 1] } }}
+            transition={{ type: "tween", duration: reducedMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Dialog.Title className="sr-only">Agent chat</Dialog.Title>
+            <Suspense fallback={<AgentPanelLoading />}><AgentChatPanel onClose={close} /></Suspense>
+          </motion.div>
+        </Dialog.Content>
+      </Dialog.Portal>}
+    </AnimatePresence>
   </Dialog.Root>;
 }
 
