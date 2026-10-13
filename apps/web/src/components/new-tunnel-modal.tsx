@@ -57,7 +57,8 @@ function SetupCommand({
               ? `${title} command copied`
               : `Copy ${title.toLowerCase()} command`
           }
-          className={`shrink-0 ${copied ? "text-emerald-400" : ""}`}
+          title={copied ? `${title} command copied` : `Copy ${title.toLowerCase()} command`}
+          className={`size-8 min-h-8! shrink-0 p-0! ${copied ? "text-emerald-400" : ""}`}
         >
           <HugeiconsIcon
             icon={copied ? Tick02Icon : Copy01Icon}
@@ -65,7 +66,6 @@ function SetupCommand({
             strokeWidth={1.8}
             aria-hidden="true"
           />
-          Copy
         </Button>
       </div>
       {copyError && <p role="alert" className="mt-2 text-[12px] text-rose-300">{copyError}</p>}
@@ -283,14 +283,15 @@ export function NewTunnelModal({
                         </p>
                         <Button
                           type="button"
-                          variant="primary"
+                          variant="ghost"
                           size="sm"
                           disabled={!command}
                           onClick={() => {
                             if (command) void copyToClipboard(command, "start");
                           }}
                           aria-label={copiedCommand === "start" ? "Tunnel command copied" : "Copy tunnel command"}
-                          className="shrink-0 self-start sm:self-auto"
+                          title={copiedCommand === "start" ? "Tunnel command copied" : "Copy tunnel command"}
+                          className="size-8 min-h-8! shrink-0 self-start p-0! sm:self-auto"
                         >
                           <HugeiconsIcon
                             icon={copiedCommand === "start" ? Tick02Icon : Copy01Icon}
@@ -298,7 +299,6 @@ export function NewTunnelModal({
                             strokeWidth={1.8}
                             aria-hidden="true"
                           />
-                          Copy command
                         </Button>
                       </div>
                       {copyError?.id === "start" && (
