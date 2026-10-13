@@ -38,19 +38,23 @@ test("records Express request metrics with the matched route", async () => {
     apiKey: "test-token",
     serviceName: "express-metrics-test",
     enabled: false,
+    capturePayloads: true,
+    shouldCapturePayloads: () => false,
   });
+  assert.equal(middleware.length, 2, "a rejected payload gate does not remove request metrics");
 
   const response = new EventEmitter() as EventEmitter & { statusCode: number };
   response.statusCode = 202;
-  middleware[0]?.(
-    {
+  const request = {
       method: "POST",
       originalUrl: "/orders/order_123",
       baseUrl: "/orders",
       route: { path: "/:orderId" },
-    },
+    };
+  middleware[0]?.(
+    request,
     response,
-    () => response.emit("finish"),
+    () => middleware[1]?.(request, response, () => response.emit("finish")),
   );
 
   await provider.forceFlush();
