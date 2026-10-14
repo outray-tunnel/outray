@@ -1,0 +1,188 @@
+/* UIArc registry source: https://uiarc.dev/r/confirm-morph.json; scoped OutRay tokens and accessibility. */
+/* The root holds the control in the flow of the page; the pill inside it springs between faces. */
+.root {
+  /* Keep UIArc's component contract scoped: OutRay uses Geom, restrained dark
+     surfaces and the same 12px corners as its other workspace controls. */
+  --foreground: var(--color-ink, #f7f7f8);
+  --background: var(--color-page, #050505);
+  --font-body: var(--font-sans, sans-serif);
+  --text-sm: 12px;
+  --tracking-body: -0.01em;
+  --control-height-sm: 32px;
+  --radius-pill: var(--workspace-radius-lg, 12px);
+  --surface-raised: #18181b;
+  --border: rgb(255 255 255 / 0.12);
+  --border-subtle: rgb(255 255 255 / 0.07);
+  --border-strong: rgb(255 255 255 / 0.24);
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --danger: var(--color-danger, #fb7185);
+  --success: var(--color-success, #34d399);
+  --accent: var(--color-accent, #8367c7);
+  --accent-strong: var(--color-accent-deep, #5a3f9d);
+  --accent-foreground: #fff;
+  --shadow-resting: none;
+  --duration-standard: 240ms;
+  --duration-fast: 160ms;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
+  color: var(--foreground);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-body);
+  line-height: 20px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * One neutral pill for every state. Only its width moves; corners, text and border never scale, so nothing distorts.
+ * Every face sits at its natural width against the pill's leading edge, so text never slides or squeezes: the question
+ * starts where the label was, and the springing edge reveals the rest. The border is an overlay so it never changes a measurement.
+ */
+.surface {
+  position: relative;
+  display: flex;
+  height: var(--control-height-sm);
+  max-width: 100%;
+  justify-content: flex-start;
+  overflow: clip;
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-resting);
+  transition: background-color var(--duration-standard) var(--ease-standard), box-shadow var(--duration-standard) var(--ease-standard);
+}
+.surface::after { content: ""; position: absolute; inset: 0; border: 1px solid var(--border); border-radius: inherit; pointer-events: none; transition: border-color var(--duration-standard) var(--ease-standard); }
+.root[data-disabled][data-state="idle"] .surface { box-shadow: none; }
+.root[data-disabled][data-state="idle"] .surface::after { border-color: var(--border-subtle); }
+
+/* Measure each face at its own intrinsic width, not a percentage of the pill's
+   previous animated width. Otherwise an icon-sized idle face locks the next
+   face (and its ResizeObserver measurement) to that same clipped width. */
+.face { display: flex; flex: none; width: max-content; min-width: 0; box-sizing: border-box; height: 100%; align-items: center; gap: 2px; padding: 0 4px; white-space: nowrap; }
+.face[data-face="idle"] { padding: 0; }
+/* A leaving face steps out of the flow, exactly where it was, and fades while the pill springs to the next one. */
+.face[inert] { position: absolute; top: 0; inset-inline-start: 0; pointer-events: none; }
+.part { display: inline-flex; height: 100%; align-items: center; }
+
+.trigger {
+  display: inline-flex;
+  height: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 0 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+.trigger:active:not(:disabled) { background: color-mix(in oklab, var(--foreground) 9%, transparent); transition-duration: 0ms; }
+.trigger:disabled { color: var(--text-muted); cursor: not-allowed; }
+.trigger:disabled .icon { opacity: .7; }
+.icon { display: grid; width: 16px; height: 16px; place-items: center; color: var(--text-secondary); }
+.trigger:disabled .icon { color: inherit; }
+.icon > svg { width: 16px; height: 16px; }
+
+.prompt { flex-shrink: 1; min-width: 0; max-width: 16rem; overflow: hidden; padding: 0 8px 0 12px; color: var(--foreground); font-weight: 500; font-variant-numeric: tabular-nums; }
+.prompt > span { overflow: hidden; text-overflow: ellipsis; }
+.root[data-icon-only][data-state="idle"] .surface { background: transparent; }
+.root[data-icon-only][data-state="idle"] .surface::after { border-color: transparent; }
+.root[data-icon-only] .trigger { width: 32px; justify-content: center; gap: 0; padding: 0; color: var(--text-secondary); }
+.root[data-icon-only] .trigger:hover { color: var(--foreground); }
+
+.secondary,
+.confirm {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  height: calc(var(--control-height-sm) - 8px);
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+  touch-action: manipulation;
+}
+.secondary { background: transparent; color: var(--text-secondary); }
+.face:is([data-face="done"], [data-face="error"]) .secondary { color: var(--foreground); }
+.secondary:active:not(:disabled) { background: color-mix(in oklab, var(--foreground) 11%, transparent); color: var(--foreground); transition-duration: 0ms; }
+.confirm:disabled, .secondary:disabled { cursor: not-allowed; opacity: .5; }
+
+/* The only coloured thing in the control: danger for a destructive answer, the accent for a reversible one. */
+.confirm { overflow: clip; background: color-mix(in oklab, var(--danger) 13%, transparent); color: var(--danger); }
+.confirm:active { background: color-mix(in oklab, var(--danger) 22%, transparent); transition-duration: 0ms; }
+.root[data-tone="neutral"] .confirm { background: var(--accent); color: var(--accent-foreground); }
+.root[data-tone="neutral"] .confirm:active { background: var(--accent-strong); }
+
+/* Hold: a solid copy of the button, label and all, revealed from the left as the hold fills; the label inverts as the edge passes. */
+.root[data-mode="hold"] .confirm { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.fill { position: absolute; inset: 0; display: inline-flex; align-items: center; justify-content: center; background: var(--danger); color: var(--background); pointer-events: none; }
+.root[data-tone="neutral"] .fill { background: var(--accent-strong); color: var(--accent-foreground); }
+
+.status { gap: 8px; padding: 0 10px 0 12px; color: var(--foreground); font-weight: 500; font-variant-numeric: tabular-nums; }
+.status > svg { flex: none; }
+.statusText { display: inline-flex; min-width: 0; overflow: hidden; text-overflow: ellipsis; align-items: baseline; gap: .25em; }
+.face[data-face="error"] .status { min-width: 0; flex-shrink: 1; }
+.face[data-face="error"] .statusText { display: block; }
+.face[data-face="pending"] .status { padding-inline: 12px 16px; color: var(--text-secondary); }
+.face[data-face="done"]:not(:has(.secondary)) .status { padding-right: 14px; }
+.face[data-face="counting"] .status { padding-right: 6px; color: var(--text-secondary); }
+.alert { color: var(--danger); }
+.check { width: 18px; height: 18px; }
+.checkDisc { fill: var(--success); }
+.checkTick { stroke: var(--background); }
+.spinner { animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ring { width: 16px; height: 16px; }
+.ringTrack { stroke: var(--border); }
+.ringFill { stroke: var(--danger); }
+.root[data-tone="neutral"] .ringFill { stroke: var(--accent); }
+/* Seconds keep one tabular width while the digits swap. */
+.seconds { display: inline-grid; min-width: 1ch; color: var(--foreground); font-variant-numeric: tabular-nums; }
+.digit { grid-area: 1 / 1; }
+
+/* Scoped inset rings stay visible inside the morph's clipped surface. */
+.root:focus { outline: none; }
+.trigger:focus-visible, .secondary:focus-visible, .confirm:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.root:focus-visible .surface { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.srOnly { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+@media (hover: hover) and (pointer: fine) {
+  .trigger:hover:not(:disabled):not(:active) { background: color-mix(in oklab, var(--foreground) 5%, transparent); }
+  .secondary:hover:not(:active) { background: color-mix(in oklab, var(--foreground) 7%, transparent); color: var(--foreground); }
+  .confirm:hover:not(:active) { background: color-mix(in oklab, var(--danger) 18%, transparent); }
+  .root[data-tone="neutral"] .confirm:hover:not(:active) { background: var(--accent-strong); }
+}
+/* Keyboard focus reads through fill, never a ring. */
+.trigger:focus-visible { background: color-mix(in oklab, var(--foreground) 6%, transparent); }
+.secondary:focus-visible { background: color-mix(in oklab, var(--foreground) 8%, transparent); color: var(--foreground); }
+.confirm:focus-visible { background: color-mix(in oklab, var(--danger) 20%, transparent); }
+.root[data-tone="neutral"] .confirm:focus-visible { background: var(--accent-strong); }
+
+@media (prefers-reduced-motion: reduce) {
+  .surface, .surface::after, .trigger, .secondary, .confirm { transition-duration: 0ms; }
+  .spinner { animation: none; }
+}
+
+@media (max-width: 639px) {
+  .prompt { max-width: 10rem; padding-inline: 6px; }
+  .secondary, .confirm { padding-inline: 9px; }
+}
+
+@media (prefers-contrast: more) {
+  .surface::after { border-color: var(--border-strong); }
+  .confirm { background: color-mix(in oklab, var(--danger) 22%, transparent); }
+}
