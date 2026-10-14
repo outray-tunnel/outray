@@ -19,8 +19,13 @@ import { AgentChatProvider } from "@/components/agent/agent-chat-provider";
 import { AgentChatHost } from "@/components/agent/agent-chat-host";
 import { workspaceScopeClassName } from "@/components/ui/workspace-scope";
 import { instanceProductForPath } from "../../../../shared/instance-config";
+import { parseOrganizationRouteParams } from "@/lib/documentation-routing";
 
 export const Route = createFileRoute("/$orgSlug")({
+  // Exact workspace children otherwise outrank the public /docs/$ catch-all.
+  // Skip this branch during matching, before organization hooks or loaders run.
+  params: { parse: parseOrganizationRouteParams },
+  skipRouteOnParseError: { params: true },
   beforeLoad: ({ context, location }) => {
     const product = instanceProductForPath(location.pathname);
     if ((product && !context.instance.products.includes(product)) ||
