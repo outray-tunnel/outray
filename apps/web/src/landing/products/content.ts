@@ -60,8 +60,8 @@ export const products: Record<ProductId, ProductContent> = {
   observability: {
     name: "Observability",
     number: "02",
-    title: "Find the story behind a request.",
-    description: "Bring server-side traces, structured logs, and metrics into one workspace. Follow a request into its dependencies and see where time was spent, without piecing together disconnected output.",
+    title: "Know what happened. And why.",
+    description: "Requests, traces, logs, and metrics with shared context. Understand your Node.js services, follow their dependencies, and find where time was spent.",
     summary: "Traces, logs, and metrics with shared request context.",
     tags: ["OpenTelemetry", "Node.js SDK", "Framework adapters"],
     workflow: {
