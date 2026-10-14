@@ -33,7 +33,7 @@
     "@outray/icons": "file:../../packages/icons",
     "@outray/share-crypto": "file:../../packages/share-crypto",
     "@outray/tanstack-start": "file:../../packages/tanstack-start",
-    "@outray/vite": "^0.0.6",
+    "@outray/vite": "^0.0.7",
     "@paystack/inline-js": "^2.22.7",
     "@polar-sh/sdk": "^0.42.1",
     "@polar-sh/tanstack-start": "^0.4.3",
