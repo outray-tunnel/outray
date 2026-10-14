@@ -4,7 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import Globe02Icon from "@outray/icons/stroke/Globe02Icon";
 import { Button } from "@/components/arc/button/button";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
-import { ResourceDeleteDialog } from "../resource-delete-dialog";
+import { ResourceConfirmDelete } from "@/components/arc/confirm-morph/resource-confirm-delete";
 import publicHosts from "../../../../../shared/public-hosts";
 
 const cnameTarget = publicHosts.tunnelDnsHostname(import.meta.env?.VITE_TUNNEL_URL);
@@ -79,7 +79,7 @@ export function DomainCard({
       aria-label={`Domain ${domain.domain}`}
       className="border-b border-white/[0.06] last:border-b-0"
     >
-      <div className="flex min-h-[76px] items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.025] motion-reduce:transition-none sm:px-5">
+      <div data-confirm-morph-boundary className="flex min-h-[76px] flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.025] motion-reduce:transition-none sm:px-5">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-zinc-500 ring-1 ring-white/[0.06]">
           <HugeiconsIcon icon={Globe02Icon} size={16} strokeWidth={1.7} aria-hidden="true" />
         </span>
@@ -101,7 +101,7 @@ export function DomainCard({
             </time>
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex max-w-full shrink-0 items-center gap-1">
           <Button
             type="button"
             variant="ghost"
@@ -116,12 +116,13 @@ export function DomainCard({
             <span className="sm:hidden">DNS</span>
             <ChevronDown size={13} aria-hidden="true" className={`transition-transform motion-reduce:transition-none ${isDnsOpen ? "rotate-180" : ""}`} />
           </Button>
-          <ResourceDeleteDialog
-            title="Remove domain"
+          <ResourceConfirmDelete
             description="This hostname will no longer be available for new tunnels in this workspace. Your DNS records will not be changed."
-            resourceName={domain.domain}
             triggerLabel={`Remove domain ${domain.domain}`}
             actionLabel="Remove domain"
+            confirmLabel="Remove"
+            pendingLabel="Removing…"
+            doneLabel="Domain removed"
             disabled={verificationPending}
             onConfirm={() => onDelete(domain.id)}
           />
