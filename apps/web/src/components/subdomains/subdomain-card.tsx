@@ -1,7 +1,7 @@
 import { HugeiconsIcon } from "@hugeicons/react";
 import Globe02Icon from "@outray/icons/stroke/Globe02Icon";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
-import { ResourceDeleteDialog } from "../resource-delete-dialog";
+import { ResourceConfirmDelete } from "@/components/arc/confirm-morph/resource-confirm-delete";
 
 interface Subdomain {
   id: string;
@@ -24,7 +24,8 @@ export function SubdomainCard({ subdomain, onDelete }: SubdomainCardProps) {
   return (
     <article
       aria-label={`Reserved subdomain ${address}`}
-      className="flex min-h-[76px] items-center gap-3 border-b border-white/[0.06] px-4 py-3 transition-colors last:border-b-0 hover:bg-white/[0.025] motion-reduce:transition-none sm:px-5"
+      data-confirm-morph-boundary
+      className="flex min-h-[76px] flex-wrap items-center gap-3 border-b border-white/[0.06] px-4 py-3 transition-colors last:border-b-0 hover:bg-white/[0.025] motion-reduce:transition-none sm:px-5"
     >
       <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.035] text-zinc-500 ring-1 ring-white/[0.06]">
         <HugeiconsIcon icon={Globe02Icon} size={16} strokeWidth={1.7} aria-hidden="true" />
@@ -47,14 +48,15 @@ export function SubdomainCard({ subdomain, onDelete }: SubdomainCardProps) {
           </time>
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="flex max-w-full shrink-0 items-center gap-1">
         <CopyButton value={address} label={`Copy address ${address}`} iconOnly variant="plain" />
-        <ResourceDeleteDialog
-          title="Release subdomain"
+        <ResourceConfirmDelete
           description="This reserved address will become available to other workspaces. This cannot be undone."
-          resourceName={address}
           triggerLabel={`Release subdomain ${address}`}
           actionLabel="Release subdomain"
+          confirmLabel="Release"
+          pendingLabel="Releasing…"
+          doneLabel="Subdomain released"
           onConfirm={() => onDelete(subdomain.id)}
         />
       </div>
