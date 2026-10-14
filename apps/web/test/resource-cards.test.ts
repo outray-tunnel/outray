@@ -140,9 +140,10 @@ test("reserved subdomains expose their full address and visible named copy/relea
   const copy = namedButton(html, "Copy address preview.outray.app");
   assert.match(opening(copy), /data-copy-state="idle"/);
   const release = namedButton(html, "Release subdomain preview.outray.app");
-  assert.match(opening(release), /aria-haspopup="dialog"/);
-  assert.match(opening(release), /aria-expanded="false"/);
-  assert.doesNotMatch(html, /role="dialog"/);
+  assert.match(opening(release), /data-confirm-morph-trigger="true"/);
+  assert.match(html, /data-state="idle"/);
+  assert.doesNotMatch(opening(release), /aria-haspopup="dialog"/);
+  assert.doesNotMatch(html, /role="dialog"|data-state="confirming"/);
 });
 
 test("resource actions remain keyboard-native and are not hidden behind pointer-hover styling", () => {
