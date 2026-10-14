@@ -20,7 +20,7 @@ function Arrow() {
 function TunnelConnection() {
   const id = useId();
   return (
-    <figure className="relative z-[1] ml-[-35px] h-[540px] w-[calc(100%+95px)] overflow-clip max-[1100px]:ml-0 max-[1100px]:h-[480px] max-[1100px]:w-[calc(100%+40px)] max-[820px]:row-start-3 max-[820px]:mx-auto max-[820px]:mt-6 max-[820px]:h-[570px] max-[820px]:w-[min(660px,100%)] max-[540px]:mt-[18px] max-[540px]:h-[415px]" aria-label="Example public address connected through OutRay to localhost port 3000">
+    <figure className="relative z-[1] ml-[-35px] h-[540px] w-[calc(100%+95px)] overflow-clip max-[1100px]:ml-0 max-[1100px]:h-[480px] max-[1100px]:w-[calc(100%+40px)] max-[820px]:row-start-3 max-[820px]:mx-auto max-[820px]:mt-6 max-[820px]:h-[570px] max-[820px]:w-[min(660px,100%)] max-[540px]:mt-[18px] max-[540px]:h-[415px]" aria-label="Public address connected through OutRay to localhost port 3000">
       <svg className="pointer-events-none absolute -top-2.5 -right-10 h-[650px] w-[820px] max-w-none max-[1100px]:-top-3 max-[1100px]:right-[-115px] max-[1100px]:h-[555px] max-[1100px]:w-[700px] max-[820px]:top-0 max-[820px]:right-[-25px] max-[820px]:h-[578px] max-[820px]:w-[730px] max-[540px]:top-[-24px] max-[540px]:right-[-45px] max-[540px]:h-[404px] max-[540px]:w-[510px]" viewBox="0 0 820 650" aria-hidden="true" focusable="false">
         <defs>
           <linearGradient id={`${id}-wire`} x1="200" y1="300" x2="720" y2="240" gradientUnits="userSpaceOnUse">
