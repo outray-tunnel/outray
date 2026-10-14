@@ -1,6 +1,6 @@
 {
   "name": "@outray/express",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Express tunnels and OpenTelemetry observability for OutRay",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -38,7 +38,7 @@
     "express": "^4.0.0 || ^5.0.0"
   },
   "dependencies": {
-    "@outray/core": "^0.0.6",
+    "@outray/core": "^0.0.7",
     "@outray/observability": "^0.1.5"
   },
   "devDependencies": {
