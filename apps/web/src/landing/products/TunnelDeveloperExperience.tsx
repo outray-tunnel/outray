@@ -20,7 +20,6 @@ export const TUNNEL_PLUGINS = [
     id: "vite",
     name: "Vite",
     file: "vite.config.ts",
-    install: "npm install --save-dev @outray/vite",
     docs: "/docs/vite-plugin",
     icon: SiVite,
     code: 'import { defineConfig } from "vite";\nimport outray from "@outray/vite";\n\nexport default defineConfig({\n  plugins: [outray({\n    apiKey: process.env.OUTRAY_API_KEY,\n  })],\n});',
@@ -29,7 +28,6 @@ export const TUNNEL_PLUGINS = [
     id: "next",
     name: "Next.js",
     file: "next.config.ts",
-    install: "npm install @outray/next",
     docs: "/docs/nextjs-plugin",
     icon: SiNextdotjs,
     code: 'import withOutray from "@outray/next";\n\nexport default withOutray(\n  {},\n  {\n    apiKey: process.env.OUTRAY_API_KEY,\n  },\n);',
@@ -38,7 +36,6 @@ export const TUNNEL_PLUGINS = [
     id: "express",
     name: "Express",
     file: "server.ts",
-    install: "npm install @outray/express",
     docs: "/docs/express-plugin",
     icon: SiExpress,
     code: 'import express from "express";\nimport outray from "@outray/express";\n\nconst app = express();\noutray(app, {\n  apiKey: process.env.OUTRAY_API_KEY,\n});\napp.listen(3000);',
@@ -132,12 +129,10 @@ function PluginTabs() {
           </div>
           <pre className="m-0 h-[211px] overflow-auto px-4 py-[18px] font-mono text-xs leading-[1.8] text-[#e5e5e8] [tab-size:2] focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#bdbdbd] max-[540px]:px-[13px] max-[540px]:py-[15px] max-[540px]:text-[11px] [&>code]:font-[inherit]" tabIndex={0} aria-label={`${plugin.name} tunnel integration code`}><code><HighlightedTunnelCode source={plugin.code} /></code></pre>
         </div>
-        <div className="flex min-h-[45px] items-center justify-between gap-2.5 pt-3 max-[1050px]:flex-wrap max-[1050px]:gap-x-3 max-[1050px]:gap-y-0.5 max-[540px]:gap-x-2.5 max-[540px]:gap-y-0.5">
-          <code className="min-w-0 overflow-auto py-[3px] font-mono text-[10px] whitespace-nowrap text-[#aaa] max-[540px]:text-[9px]">{plugin.install}</code>
+        <div className="flex min-h-[45px] justify-end pt-3">
           <Link className={smallLinkClass} to="/docs/$" params={{ _splat: plugin.docs.slice("/docs/".length) }}>Setup guide<HugeiconsIcon icon={ArrowRight01Icon} aria-hidden="true" size={14} strokeWidth={1.7} /></Link>
         </div>
       </div>)}
-      <p className="mt-[5px] text-[10px] leading-[1.6] text-[#a3a3a3] max-[540px]:text-[9px]">Use a server-side token with tunnel access. Never expose it in client code.</p>
     </div>
   );
 }
@@ -154,8 +149,8 @@ function RequestInspection() {
     </div>
     <p className={descriptionClass}>Follow HTTP traffic through your tunnel. Enable request capture to look closer at headers and supported payloads.</p>
     <div className="mt-7 min-w-0 overflow-hidden rounded-[10px] border border-[#363636] bg-[#090909]">
-      <div className="flex min-h-[45px] items-center justify-between gap-3 border-b border-[#333] bg-[#191919] px-[17px] text-[11px] text-[#e7e7e7] max-[540px]:gap-[7px] max-[540px]:px-3 [&>span:last-child]:font-mono [&>span:last-child]:text-[10px] [&>span:last-child]:text-[#aaa] max-[540px]:[&>span:last-child]:text-[9px]"><span>Requests</span><span>Example · capture enabled</span></div>
-      <ul className="m-0 list-none p-0 [&>li+li]:border-t [&>li+li]:border-[#202020]" aria-label="Example tunnel requests">
+      <div className="flex min-h-[45px] items-center border-b border-[#333] bg-[#191919] px-[17px] text-[11px] text-[#e7e7e7] max-[540px]:px-3"><span>Requests</span></div>
+      <ul className="m-0 list-none p-0 [&>li+li]:border-t [&>li+li]:border-[#202020]" aria-label="Tunnel requests">
         {exampleRequests.map((item, index) => <li key={item.path}>
           <button
             type="button"
@@ -172,7 +167,7 @@ function RequestInspection() {
           </button>
         </li>)}
       </ul>
-      <div className="border-t border-[#353535] px-[17px] py-[22px] max-[540px]:px-3" id={`${id}-request-detail`} role="region" aria-label="Selected example request">
+      <div className="border-t border-[#353535] px-[17px] py-[22px] max-[540px]:px-3" id={`${id}-request-detail`} role="region" aria-label="Selected request">
         <div className="grid gap-[11px]"><code className="[overflow-wrap:anywhere] font-mono text-xs text-[#f0f0f0]">{request.method} {request.path}</code><span className="text-[11px] text-[#aaa]">Response</span></div>
         <dl className="my-[22px_21px] grid grid-cols-2 gap-[18px] max-[820px]:grid-cols-[1fr_1fr_1.2fr] max-[540px]:grid-cols-2 [&>div:last-child]:col-span-full max-[820px]:[&>div:last-child]:col-auto max-[540px]:[&>div:last-child]:col-span-full [&_dt]:mb-[5px] [&_dt]:text-[10px] [&_dt]:text-[#aaa] [&_dd]:m-0 [&_dd]:font-mono [&_dd]:text-[11px] [&_dd]:text-[#bdbdbd]">
           <div><dt>Status</dt><dd className={request.status.startsWith("5") ? "text-[#fb7185]!" : undefined} data-error={request.status.startsWith("5")}>{request.status}</dd></div>
@@ -182,13 +177,13 @@ function RequestInspection() {
         <pre className="m-0 h-[118px] overflow-auto rounded-[7px] border border-[#303030] bg-[#050505] p-4 font-mono text-xs leading-[1.8] text-[#e5e5e8] max-[540px]:px-3 max-[540px]:text-[11px] [&>code]:font-[inherit]"><code>{request.body}</code></pre>
       </div>
     </div>
-    <span className="absolute size-px overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status">Showing example {request.method} {request.path}, {request.status}, {request.duration}.</span>
+    <span className="absolute size-px overflow-hidden whitespace-nowrap [clip-path:inset(50%)]" role="status">Showing {request.method} {request.path}, {request.status}, {request.duration}.</span>
     <div className="mt-auto flex items-center justify-between gap-3 pt-6 max-[1050px]:flex-wrap max-[1050px]:gap-1.5 max-[820px]:flex-nowrap max-[540px]:flex-wrap max-[540px]:gap-1.5"><span className="text-[11px] text-[#a3a3a3]">See the request, not just the status.</span><Link className={smallLinkClass} to="/docs/$" params={{ _splat: "tunnels" }}>Explore Tunnels<HugeiconsIcon icon={ArrowRight01Icon} aria-hidden="true" size={14} strokeWidth={1.7} /></Link></div>
   </article>;
 }
 
 export function TunnelDeveloperExperience() {
-  return <section className="border-t border-[#222] py-[100px_112px] [--foreground:#efefef] [--surface-muted:#262626] [--text-secondary:#a3a3a3] max-[820px]:py-[72px_84px] max-[540px]:py-[56px_64px]" aria-labelledby="tunnel-developer-title">
+  return <section className="py-[100px_112px] [--foreground:#efefef] [--surface-muted:#262626] [--text-secondary:#a3a3a3] max-[820px]:py-[72px_84px] max-[540px]:py-[56px_64px]" aria-labelledby="tunnel-developer-title">
     <div className="mb-[42px] max-w-[700px] max-[820px]:mb-[30px]">
       <h2 className="max-w-[620px] text-[clamp(31px,3.4vw,47px)] leading-[1.15] font-medium tracking-[-.045em] text-[#f7f7f7] max-[540px]:text-[29px]" id="tunnel-developer-title">First-class developer experience</h2>
       <p className="mt-5 text-base leading-[1.75] text-[#b0b0b4] max-[540px]:mt-[15px] max-[540px]:text-sm">Less setup. More building. OutRay fits right into the tools you already use.</p>
