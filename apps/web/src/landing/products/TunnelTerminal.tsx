@@ -75,16 +75,15 @@ export function TunnelTerminalSection() {
   }, [streaming]);
 
   return (
-    <section ref={sectionRef} className="relative border-t border-[#202020] py-[86px_112px] max-[820px]:py-[65px_80px] max-[540px]:py-[52px_65px]" aria-labelledby={titleId}>
+    <section ref={sectionRef} className="relative py-[86px_112px] max-[820px]:py-[65px_80px] max-[540px]:py-[52px_65px]" aria-labelledby={titleId}>
       <div className="mb-[38px] text-center max-[540px]:mb-[26px]">
         <h2 className="text-[clamp(29px,3.1vw,43px)] leading-[1.2] font-medium tracking-[-0.042em] text-[#f7f7f7] max-[540px]:text-[clamp(25px,6vw,32px)]" id={titleId}>Every request. As it arrives.</h2>
       </div>
 
-      <div className="mx-auto max-w-[1000px] overflow-hidden rounded-2xl border border-[#3b3b3b] bg-[#090909] max-[540px]:rounded-xl" role="region" aria-label="Example tunnel terminal">
+      <div className="mx-auto max-w-[1000px] overflow-hidden rounded-2xl border border-[#3b3b3b] bg-[#090909] max-[540px]:rounded-xl" role="region" aria-label="Tunnel terminal">
         <div className="grid min-h-[55px] grid-cols-[1fr_auto_1fr] items-center border-b border-[#363636] bg-[#191919] px-[22px] max-[540px]:min-h-11 max-[540px]:px-3.5">
           <span className="flex items-center gap-[7px] max-[540px]:gap-1 [&>i]:size-[9px] [&>i]:rounded-full [&>i]:border [&>i]:border-[#484848] [&>i]:bg-[#2a2a2a] max-[540px]:[&>i]:size-1.5" aria-hidden="true"><i /><i /><i /></span>
           <span className="font-mono text-[11px] text-[#b8b8bd] max-[540px]:text-[9px]">user@outray-cli</span>
-          <span className="justify-self-end font-mono text-[10px] text-[#aaa] max-[540px]:text-[8px]">Example</span>
         </div>
 
         <div className="px-[38px] pt-8 pb-[23px] font-mono text-[13px] leading-[1.7] max-[820px]:px-[25px] max-[540px]:px-4 max-[540px]:pt-[22px] max-[540px]:pb-[17px] max-[540px]:text-[10px]">
@@ -96,7 +95,7 @@ export function TunnelTerminalSection() {
             <p className="text-[11px] text-[#aaa] max-[540px]:text-[8px]">Keep this running to keep your tunnel active.</p>
           </div>
 
-          <table className="w-full table-fixed border-collapse font-[inherit] [&_th]:h-[33px] [&_th]:border-b [&_th]:border-[#242424] [&_th]:p-0 [&_th]:text-left [&_th]:text-[10px] [&_th]:font-normal [&_th]:text-[#999] max-[540px]:[&_th]:text-[8px]" aria-label="Sample HTTP requests" aria-live="off">
+          <table className="w-full table-fixed border-collapse font-[inherit] [&_th]:h-[33px] [&_th]:border-b [&_th]:border-[#242424] [&_th]:p-0 [&_th]:text-left [&_th]:text-[10px] [&_th]:font-normal [&_th]:text-[#999] max-[540px]:[&_th]:text-[8px]" aria-label="HTTP requests" aria-live="off">
             <thead><tr><th className="w-20 max-[540px]:w-[47px]" scope="col">Method</th><th scope="col">Path</th><th className="w-16 max-[540px]:w-9" scope="col">Status</th><th className="w-[65px] text-right! max-[540px]:w-10" scope="col">Time</th></tr></thead>
             <tbody>
               {logs.map((log, index) => (
@@ -112,14 +111,11 @@ export function TunnelTerminalSection() {
           <span className="mt-[11px] block h-3.5 w-[7px] bg-[#b66dff] opacity-90" aria-hidden="true" />
         </div>
 
-        <div className="flex min-h-[49px] items-center justify-between gap-3 border-t border-[#292929] px-[22px] py-2 text-[11px] text-[#999] max-[540px]:min-h-[46px] max-[540px]:gap-1.5 max-[540px]:px-[13px] max-[540px]:text-[8px]">
-          <span>Illustrative traffic · not a live tunnel.</span>
-          {reducedMotion === true ? <span className="inline-flex min-h-[33px] items-center text-[#999] max-[540px]:text-[8px]">Static preview</span> : (
-            <button type="button" className="inline-flex min-h-[33px] min-w-20 items-center justify-center gap-[7px] rounded-[7px] border-0 bg-transparent px-[9px] py-[5px] font-[inherit] text-[11px] text-[#b3b3b3] transition-[color,background] duration-150 hover:bg-[#252525] hover:text-[#eee] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#bdbdbd] motion-reduce:transition-none max-[540px]:min-w-[68px] max-[540px]:text-[10px]" aria-label={paused ? "Resume request stream" : "Pause request stream"} onClick={() => setPaused((value) => !value)}>
-              <HugeiconsIcon icon={paused ? PlayIcon : PauseIcon} size={14} strokeWidth={1.5} aria-hidden="true" />{paused ? "Resume" : "Pause"}
-            </button>
-          )}
-        </div>
+        {reducedMotion !== true ? <div className="flex min-h-[49px] items-center justify-end border-t border-[#292929] px-[22px] py-2 text-[11px] text-[#999] max-[540px]:min-h-[46px] max-[540px]:px-[13px] max-[540px]:text-[8px]">
+          <button type="button" className="inline-flex min-h-[33px] min-w-20 items-center justify-center gap-[7px] rounded-[7px] border-0 bg-transparent px-[9px] py-[5px] font-[inherit] text-[11px] text-[#b3b3b3] transition-[color,background] duration-150 hover:bg-[#252525] hover:text-[#eee] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#bdbdbd] motion-reduce:transition-none max-[540px]:min-w-[68px] max-[540px]:text-[10px]" aria-label={paused ? "Resume request stream" : "Pause request stream"} onClick={() => setPaused((value) => !value)}>
+            <HugeiconsIcon icon={paused ? PlayIcon : PauseIcon} size={14} strokeWidth={1.5} aria-hidden="true" />{paused ? "Resume" : "Pause"}
+          </button>
+        </div> : null}
       </div>
     </section>
   );
