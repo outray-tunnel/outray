@@ -46,6 +46,9 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "packages:publish": "node scripts/publish-packages.mjs",
+    "packages:publish:dry-run": "node scripts/publish-packages.mjs --dry-run",
+    "packages:publish:test": "node --test scripts/publish-packages.test.mjs",
     "db:migrate": "dotenv -e .env -- npm run db:migrate --workspace=outray-web",
     "db:migrate:ci": "npm run db:migrate:ci --workspace=outray-web",
     "db:generate-auth": "dotenv -e .env -- npm run db:generate-auth --workspace=outray-web",
@@ -55,6 +58,7 @@
   },
   "devDependencies": {
     "dotenv-cli": "^10.0.0",
+    "semver": "^7.7.3",
     "turbo": "^2.5.6"
   }
 }
