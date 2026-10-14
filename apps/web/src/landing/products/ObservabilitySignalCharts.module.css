@@ -1,0 +1,61 @@
+.metricChart,
+.traceChart {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin-top: 27px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #19191c;
+}
+
+.metricChart { padding: 17px 14px 0; }
+.metricHeading,
+.traceHeading { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 7px; }
+.metricHeading > span { color: #84848f; font-size: 10px; }
+.duration { flex-shrink: 0; color: #dedee7; font-size: 15px; font-weight: 500; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.metricColumns { display: grid; min-width: 0; height: 95px; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; margin-top: 7px; }
+.metricTarget { display: flex; min-width: 0; height: 100%; align-items: end; justify-content: stretch; border: 0; border-radius: 5px 5px 0 0; padding: 0; background: transparent; cursor: pointer; transition: background-color 160ms; }
+.metricTarget[data-active="true"] { background: #b785ff15; }
+.metricTarget:focus-visible { outline: 2px solid #c7a0ff; outline-offset: -2px; }
+.metricBar { width: 100%; min-height: 2px; border-radius: 3px 3px 0 0; background: #b785ff; opacity: .62; transform-origin: bottom; animation: metric-enter 540ms cubic-bezier(.22, 1, .36, 1) both; transition: opacity 160ms, background-color 160ms; }
+.metricTarget:nth-child(3n) .metricBar { opacity: .44; }
+.metricTarget[data-active="true"] .metricBar { background: #c7a0ff; opacity: 1; }
+.traceChart { padding: 16px 12px 13px; }
+.traceHeading { padding: 0 2px; }
+.traceHeading > code { min-width: 0; color: #9696a3; font-family: monospace; font-size: 9px; overflow-wrap: anywhere; }
+.traceHeading .duration { font-size: 14px; }
+.traceRows { display: grid; gap: 4px; margin-top: 12px; }
+.traceTarget { display: grid; min-width: 0; min-height: 29px; grid-template-columns: 91px minmax(0, 1fr); align-items: center; gap: 8px; border: 0; border-radius: 6px; padding: 5px 3px; background: transparent; text-align: left; cursor: pointer; transition: background-color 160ms; }
+.traceTarget[data-active="true"] { background: #ffffff08; }
+.traceTarget:focus-visible { outline: 2px solid #f5b85b; outline-offset: -2px; }
+.traceTarget > code { min-width: 0; color: #9494a1; font-family: monospace; font-size: 9px; overflow-wrap: anywhere; transition: color 160ms; }
+.traceTarget[data-active="true"] > code { color: #e0e0e9; }
+.traceTrack { min-width: 0; height: 14px; overflow: hidden; }
+.traceBar { display: block; height: 100%; min-width: 2px; border-radius: 3px; opacity: .56; transform-origin: left; animation: trace-enter 460ms cubic-bezier(.22, 1, .36, 1) both; transition: opacity 160ms; }
+.traceTarget[data-active="true"] .traceBar { opacity: 1; }
+
+@keyframes metric-enter { from { transform: scaleY(.05); opacity: .15; } to { transform: scaleY(1); } }
+@keyframes trace-enter { from { transform: scaleX(.05); opacity: .15; } to { transform: scaleX(1); } }
+
+@media (max-width: 1050px) {
+  .traceTarget { grid-template-columns: 78px minmax(0, 1fr); gap: 5px; }
+  .traceTarget > code, .traceHeading > code { font-size: 8px; }
+}
+
+@media (max-width: 760px) {
+  .metricChart, .traceChart { margin-top: 24px; }
+  .metricColumns { height: 92px; gap: 6px; }
+  .traceTarget { grid-template-columns: 100px minmax(0, 1fr); min-height: 33px; gap: 9px; }
+  .traceTarget > code, .traceHeading > code { font-size: 10px; }
+}
+
+@media (max-width: 440px) {
+  .metricColumns { gap: 4px; }
+  .traceTarget { grid-template-columns: 85px minmax(0, 1fr); }
+  .traceTarget > code, .traceHeading > code { font-size: 9px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metricBar, .traceBar { animation: none; }
+  .metricTarget, .metricBar, .traceTarget, .traceTarget > code, .traceBar { transition: none; }
+}
