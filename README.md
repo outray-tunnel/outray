@@ -167,6 +167,59 @@ Visit [outray.dev/docs](https://outray.dev/docs) for full documentation.
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+### Publishing npm packages
+
+The release script covers the eight public SDK packages and the `outray` CLI;
+private application workspaces are never published. Start with a preview:
+
+```bash
+npm run packages:publish:dry-run -- --all
+# Or select one package; dependencies are included automatically:
+npm run packages:publish:dry-run -- @outray/tanstack-start
+```
+
+Dry runs build and test the public packages, compare the files inside their
+packed artifacts with npm, and show the proposed release. They do not change
+package versions, the lockfile, or the registry. For an offline selection check,
+use `npm run packages:publish -- --all --plan`.
+
+For a live release, supply `NPMJS_TOKEN` through your shell or CI secret store,
+then run `npm run packages:publish -- --all` (or a public package name). Use a
+[granular npm token with write permission and Bypass 2FA enabled](https://docs.npmjs.com/using-private-packages-in-a-ci-cd-workflow/),
+scoped to the packages you intend to release. The script uses temporary npm
+configuration, leaves your existing `.npmrc` untouched, and does not pass this
+token to builds or tests. It does not load `.env` automatically; locally you can
+use `npx dotenv -e .env -- npm run packages:publish -- --all`.
+
+Changed published packages receive an automatic patch bump. An already-prepared,
+unpublished version is reused when newer than the published stable versions.
+Shared-package bumps do not automatically bump or publish unchanged public
+consumers, even with `--all`; they keep their existing dependency ranges. Only
+selected consumers with their own changed artifacts or pending releases have
+their shared dependency minima aligned to the versions they are built and tested
+against. For a dependency-only feature or fix, explicitly edit that consumer's
+dependency range before running the script; manifest changes count as package
+changes. Private workspace dependency ranges are updated where needed, without
+bumping or publishing those workspaces. The script refreshes the lockfile and
+rebuilds, tests, and audits the final artifacts before uploading them dependency-first.
+Review breaking API changes first: automatic patch bumps do not determine
+semantic compatibility. Different build toolchains can also change generated
+files and therefore trigger a release.
+
+Live releases require a clean working tree unless you explicitly pass
+`--allow-dirty`. Version and lockfile edits are left for you to review and
+commit; the script does not commit, create Git tags, or push. Pre-upload failures
+restore its manifest and lockfile edits. After an upload attempt, edits are kept
+because npm may already have accepted a package. Rerun with `--all --allow-dirty`
+and the same dist-tag to include all prepared releases, compare the prepared
+versions against npm and resume; identical published contents are skipped.
+Use `--tag next` for a non-default dist-tag; prerelease
+versions cannot be published under `latest`.
+
+Run `npm run packages:publish:test` for the release script's tests. This script is
+manual/CI-invoked; it does not enable automatic publishing on pushes or change
+the existing CLI binary-release workflow.
+
 ## License
 
 AGPL-3.0-only
