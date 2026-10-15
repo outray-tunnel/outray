@@ -8,7 +8,7 @@ import { createMemoryHistory, createRootRoute, createRoute, createRouter, Link, 
 import ts from "typescript";
 import { ProductPage, ProductsIndex } from "../src/landing/products/ProductPage";
 import { ObservabilityHero, OBSERVABILITY_HERO_SPANS, heroSpanIndexFromKey } from "../src/landing/products/ObservabilityHero";
-import { ObservabilityRequestStory, OBSERVABILITY_STORY_TRACE_ID, OBSERVABILITY_STORY_DURATION, OBSERVABILITY_STORY_SPANS, observabilityStoryIndexFromKey, observabilityTraceIndexFromKey } from "../src/landing/products/ObservabilityRequestStory";
+import { ObservabilityRequestStory, OBSERVABILITY_STORY_TRACE_ID, OBSERVABILITY_STORY_DURATION, OBSERVABILITY_STORY_SPANS, observabilityJourneyIndexFromKey } from "../src/landing/products/ObservabilityRequestStory";
 import { ObservabilityFeatureSections } from "../src/landing/products/ObservabilityFeatureSections";
 import { MetricChart, SignalTraceChart, METRIC_DURATION_SAMPLES, SIGNAL_TRACE_SPANS, signalChartIndexFromKey } from "../src/landing/products/ObservabilitySignalCharts";
 import { products } from "../src/landing/products/content";
@@ -55,7 +55,7 @@ function animatedDuration(node: React.ReactNode): Element {
 }
 
 /** Execute real callbacks and state; only decorative rendering and NumberFlow's animation are inert. */
-async function interactionHarness(file: "ObservabilityRequestStory" | "ObservabilityHero" | "ObservabilitySignalCharts", exportName: string = file, nested?: string) {
+async function interactionHarness(file: "ObservabilityRequestStory" | "ObservabilityHero" | "ObservabilitySignalCharts", exportName: string = file) {
   const source = await readFile(new URL(`../src/landing/products/${file}.tsx`, import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true },
@@ -89,13 +89,7 @@ async function interactionHarness(file: "ObservabilityRequestStory" | "Observabi
       throw new Error(`Unexpected observability demo dependency: ${specifier}`);
     },
   });
-  let component = module.exports[exportName];
-  if (nested) {
-    const child = elements(component()).find((element) => typeof element.type === "function" && element.type.name === nested);
-    assert.ok(child, `The actual ${nested} stays in ${exportName}`);
-    component = child.type as () => React.ReactNode;
-    hooks.splice(0);
-  }
+  const component = module.exports[exportName];
   return {
     get focused() { return focused; },
     render() {
@@ -117,7 +111,7 @@ test("Observability replaces the generic product template with its own complete 
     const html = renderToStaticMarkup(observabilityPage());
     assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
     assert.match(html, /Know what.*happened\..*And why\./);
-    assert.match(html, /One request\..*The whole picture\./);
+    assert.match(html, /One request\..*Every connection\./);
     assert.doesNotMatch(html, /Fits the way.*you build\.|observability-setup-title|Observability framework integration/);
     assert.doesNotMatch(html, /server instrumentation code|Copy .*observability setup|Copy .*install command/);
     assert.doesNotMatch(html, /npm install @outray\/(?:observability|express|tanstack-start)|OBSERVABILITY_TOKEN|startOutrayObservability|registerOutrayObservability|createOutrayTanStackServerEntry/);
@@ -132,7 +126,7 @@ test("Observability replaces the generic product template with its own complete 
   } finally { globalThis.fetch = originalFetch; }
 });
 
-test("the new Observability dependencies are scoped to its route, leaving generic products and previews untouched", async () => {
+test("the new Observability dependencies are scoped to its route, leaving shared fallback pages and overview previews untouched", async () => {
   const route = await readFile(new URL("../src/routes/products.observability.tsx", import.meta.url), "utf8");
   const shared = await readFile(new URL("../src/landing/products/ProductPage.tsx", import.meta.url), "utf8");
   assert.match(route, /<ProductPage\s+product="observability"/);
@@ -310,152 +304,132 @@ test("hero trace rows preview full-row hover context, preserve selection, and su
   assert.match(css, /\.spanRow\[data-active="true"\]/);
 });
 
-test("the request story correlates timing, operation context and logs deterministically", () => {
+test("the request journey connects four stages and renders only the selected stage's evidence", () => {
   const html = renderToStaticMarkup(React.createElement(ObservabilityRequestStory));
   assert.equal(html, renderToStaticMarkup(React.createElement(ObservabilityRequestStory)));
   assert.equal(OBSERVABILITY_STORY_DURATION, 342);
   assert.match(OBSERVABILITY_STORY_TRACE_ID, /^[a-f0-9]{32}$/);
-  assert.equal(OBSERVABILITY_STORY_SPANS.length, 4);
-  assert.equal(OBSERVABILITY_STORY_SPANS[0].duration, 342);
+  assert.deepEqual(OBSERVABILITY_STORY_SPANS.map(({ offset, duration }) => [offset, duration]), [[0, 342], [10, 84], [106, 123], [232, 108]]);
+  assert.match(html, /aria-labelledby="observability-story-title"/);
+  assert.match(html, /One request\..*Every connection\./);
+  assert.match(html, /aria-label="Checkout request journey"/);
+  assert.match(html, /aria-label="Selected request stage details"/);
+  assert.doesNotMatch(html, /role="(?:tablist|tab|tabpanel)"|Explore request telemetry|Checkout trace spans|Where the time went\./);
   for (const span of OBSERVABILITY_STORY_SPANS) {
-    assert.ok(span.offset >= 0 && span.duration > 0);
-    assert.ok(span.offset + span.duration <= OBSERVABILITY_STORY_DURATION, "every dependency fits inside the parent request");
-    assert.ok(html.includes(span.operation));
+    assert.ok(span.offset >= 0 && span.duration > 0 && span.offset + span.duration <= 342);
+    assert.ok(html.includes(`aria-label="Explore ${span.service}"`));
   }
-  assert.match(html, /aria-label="Explore request telemetry"/);
-  assert.match(html, /aria-label="Redacted checkout request body"/);
-  assert.match(html, /aria-label="Checkout trace spans"/);
-  assert.match(html, /aria-label="Logs correlated with the checkout request"/);
-  assert.match(html, /Sensitive fields redacted/);
-  assert.match(html, /\[REDACTED\]/);
+  assert.equal((html.match(/<button\b/g) ?? []).length, 4);
+  assert.equal((html.match(/aria-pressed="true"/g) ?? []).length, 1);
   assert.match(html, /200 OK/);
   assert.doesNotMatch(html, /201 Created|status=201/);
-  assert.match(html, /checkout-api/);
-  assert.match(html, /production/);
+  assert.match(html, /aria-label="Logs related to POST \/api\/checkout"/);
+  assert.match(html, /Checkout started/);
+  assert.match(html, /Checkout completed/);
+  assert.match(html, /aria-label="Request body for checkout-api"/);
+  assert.match(html, /\[REDACTED\]/);
+  assert.doesNotMatch(html, /aria-label="Logs (?:for|related to) postgres"|Cart loaded|Inventory reserved|Payment authorized/, "unselected stage evidence is not dumped into hidden console panels");
+  assert.doesNotMatch(html, /aria-label="Logs for /, "correlated application logs are not attributed as emitted by dependency services");
   assert.ok(html.includes(OBSERVABILITY_STORY_TRACE_ID));
-  const logList = html.match(/<ol\b[^>]*aria-label="Logs correlated with the checkout request"[^>]*>([\s\S]*?)<\/ol>/)?.[1];
-  assert.ok(logList);
-  assert.equal((logList.match(/<li\b/g) ?? []).length, 5);
-  assert.match(logList, /Checkout started/);
-  assert.match(logList, /Checkout completed/);
+
   const repeated = renderToStaticMarkup(React.createElement("div", null, React.createElement(ObservabilityRequestStory), React.createElement(ObservabilityRequestStory)));
-  const panelIds = [...repeated.matchAll(/\bid="([^"]+-(?:tab|panel)-(?:requests|trace|logs))"/g)].map((match) => match[1]);
-  assert.equal(panelIds.length, 12);
-  assert.equal(new Set(panelIds).size, panelIds.length);
+  const controls = [...repeated.matchAll(/aria-controls="([^"]+-detail)"/g)].map((match) => match[1]);
+  assert.equal(controls.length, 8);
+  assert.equal(new Set(controls).size, 2, "each journey instance controls its own detail region");
+  for (const id of controls) assert.ok(repeated.includes(`id="${id}"`));
+  const stageIds = [...repeated.matchAll(/\bid="([^"]+-stage-[0-3])"/g)].map((match) => match[1]);
+  assert.equal(stageIds.length, 8);
+  assert.equal(new Set(stageIds).size, 8);
 });
 
-test("the request story's real click and keyboard handlers select Requests, Trace and Logs without losing context", async () => {
-  for (let index = 0; index < 3; index++) {
-    assert.equal(observabilityStoryIndexFromKey(index, "ArrowRight"), (index + 1) % 3);
-    assert.equal(observabilityStoryIndexFromKey(index, "ArrowLeft"), (index + 2) % 3);
-    assert.equal(observabilityStoryIndexFromKey(index, "Home"), 0);
-    assert.equal(observabilityStoryIndexFromKey(index, "End"), 2);
-    assert.equal(observabilityStoryIndexFromKey(index, "Tab"), null);
+test("request journey hover previews, persistent selection and keyboard navigation keep evidence in context", async () => {
+  for (let index = 0; index < 4; index++) {
+    for (const key of ["ArrowDown", "ArrowRight"]) assert.equal(observabilityJourneyIndexFromKey(index, key), (index + 1) % 4);
+    for (const key of ["ArrowUp", "ArrowLeft"]) assert.equal(observabilityJourneyIndexFromKey(index, key), (index + 3) % 4);
+    assert.equal(observabilityJourneyIndexFromKey(index, "Home"), 0);
+    assert.equal(observabilityJourneyIndexFromKey(index, "End"), 3);
+    assert.equal(observabilityJourneyIndexFromKey(index, "Tab"), null);
   }
   const harness = await interactionHarness("ObservabilityRequestStory");
   let tree = harness.render();
-  const selected = () => elements(tree).find((element) => element.props.role === "tab" && element.props["aria-selected"] === true)!;
-  assert.match(selected().props.id, /-tab-requests$/);
-  const panels = () => elements(tree).filter((element) => element.props.role === "tabpanel");
-  assert.equal(panels().length, 3);
-  assert.deepEqual(panels().map((element) => element.props.hidden), [false, true, true]);
-  const logs = elements(tree).find((element) => element.props.role === "tab" && element.props.id.endsWith("-tab-logs"))!;
-  logs.props.onClick(); tree = harness.render();
-  assert.match(selected().props.id, /-tab-logs$/);
-  for (const [key, id] of [["ArrowRight", "requests"], ["ArrowRight", "trace"], ["ArrowRight", "logs"], ["ArrowLeft", "trace"], ["Home", "requests"], ["End", "logs"]]) {
-    let prevented = false;
-    selected().props.onKeyDown({ key, preventDefault() { prevented = true; } });
-    tree = harness.render();
-    assert.ok(prevented);
-    assert.ok(selected().props.id.endsWith(`-tab-${id}`));
-    assert.equal(harness.focused, selected().props.id);
-    assert.equal(panels().length, 3, "panels preserve their DOM containers while switching");
-    const active = panels().find((element) => element.props.hidden === false)!;
-    assert.equal(active.props.id, selected().props["aria-controls"]);
-    assert.equal(active.props["aria-labelledby"], selected().props.id);
-    const html = renderToStaticMarkup(tree);
-    assert.match(html, /POST/);
-    assert.match(html, /\/api\/checkout/);
-    assert.match(html, /200 OK/);
-    assert.match(html, /342 ms/);
-    const activeHtml = renderToStaticMarkup(active);
-    if (id === "requests") assert.match(activeHtml, /Request body/);
-    if (id === "trace") assert.match(activeHtml, /Where the time went/);
-    if (id === "logs") assert.match(activeHtml, /Checkout completed/);
-  }
-  let prevented = false;
-  selected().props.onKeyDown({ key: "Tab", preventDefault() { prevented = true; } });
-  assert.equal(prevented, false);
-});
-
-test("the story waterfall uses whole-row preview, persistent selection and keyboard-controlled contextual details", async () => {
-  for (let index = 0; index < 4; index++) {
-    assert.equal(observabilityTraceIndexFromKey(index, "ArrowDown"), (index + 1) % 4);
-    assert.equal(observabilityTraceIndexFromKey(index, "ArrowUp"), (index + 3) % 4);
-    assert.equal(observabilityTraceIndexFromKey(index, "Home"), 0);
-    assert.equal(observabilityTraceIndexFromKey(index, "End"), 3);
-    assert.equal(observabilityTraceIndexFromKey(index, "Tab"), null);
-  }
-  const harness = await interactionHarness("ObservabilityRequestStory", "ObservabilityRequestStory", "TracePanel");
-  let tree = harness.render();
-  const rows = () => elements(tree).filter((element) => element.type === "button" && "aria-pressed" in element.props);
-  const selected = () => rows().find((element) => element.props["aria-pressed"] === true)!;
-  const list = () => elements(tree).find((element) => element.props["aria-label"] === "Checkout trace spans")!;
-  const insight = () => elements(tree).find((element) => element.props.id?.endsWith("-insight"))!;
-  const assertInsight = (index: number) => {
-    const span = OBSERVABILITY_STORY_SPANS[index];
-    const html = renderToStaticMarkup(insight());
-    assert.ok(html.includes(`${span.duration} ms in ${span.service}.`));
-    assert.ok(html.includes(span.operation));
-    assert.ok(html.includes(`Starts at ${span.offset} ms`));
-    assert.equal(rows()[index].props["data-active"], true);
-  };
-  assert.equal(rows().length, 4);
-  assert.equal(selected(), rows()[2]);
-  assertInsight(2);
-  rows().forEach((row, index) => {
-    const span = OBSERVABILITY_STORY_SPANS[index];
-    assert.equal(row.props["aria-controls"], insight().props.id);
-    const html = renderToStaticMarkup(row);
-    assert.ok(html.includes(span.operation));
+  const stages = () => elements(tree).filter((element) => element.type === "button" && "aria-pressed" in element.props);
+  const selected = () => stages().find((element) => element.props["aria-pressed"] === true)!;
+  const list = () => elements(tree).find((element) => element.props["aria-label"] === "Checkout request journey")!;
+  const detail = () => elements(tree).find((element) => element.props["aria-label"] === "Selected request stage details")!;
+  const evidence = [
+    { title: "Server request", logs: ["Checkout started", "Checkout completed"], at: [0, 342], payload: "Request body", fields: ["cart_id", "email", "payment_token", "[REDACTED]"] },
+    { title: "Database query", logs: ["Cart loaded"], at: [94], payload: "Query attributes", fields: ["db.system", "postgresql", "db.operation"] },
+    { title: "Inventory request", logs: ["Inventory reserved"], at: [229], payload: "Response body", fields: ["items", "available", "reserved"] },
+    { title: "Payment request", logs: ["Payment authorized"], at: [340], payload: "Request body", fields: ["currency", "USD", "payment_token", "[REDACTED]"] },
+  ];
+  const assertDetail = (index: number) => {
+    const span = OBSERVABILITY_STORY_SPANS[index], expected = evidence[index];
+    const html = renderToStaticMarkup(detail());
     assert.ok(html.includes(span.service));
-    assert.ok(html.includes(`${span.duration} ms`));
-    const bar = elements(row).find((element) => element.props.style?.marginLeft !== undefined)!;
+    assert.ok(html.includes(span.operation));
+    assert.ok(html.includes(expected.title));
+    const number = animatedDuration(detail());
+    assert.equal(number.props.value, span.duration);
+    assert.equal(number.props.respectMotionPreference, true);
+    assert.ok(html.includes(`Starts at +${span.offset} ms`));
+    const timing = elements(detail()).find((element) => element.props.role === "img")!;
+    assert.equal(timing.props["aria-label"], `${span.operation}: starts at ${span.offset} ms, takes ${span.duration} ms of the 342 ms request`);
+    const bar = elements(timing).find((element) => element.props.style?.marginLeft !== undefined)!;
     assert.equal(parseFloat(bar.props.style.marginLeft), span.offset / 342 * 100);
     assert.equal(parseFloat(bar.props.style.width), span.duration / 342 * 100);
+    assert.ok(html.includes(`aria-label="Logs related to ${span.operation}"`));
+    assert.doesNotMatch(html, /aria-label="Logs for /, "log context describes correlation with the operation, not the log emitter");
+    for (const log of expected.logs) assert.ok(html.includes(log));
+    const timestamps = elements(detail()).filter((element) => element.type === "time");
+    assert.deepEqual(timestamps.map((timestamp) => timestamp.props.dateTime), expected.at.map((at) => `PT${at / 1000}S`));
+    assert.ok(html.includes(`aria-label="${expected.payload} for ${span.service}"`));
+    for (const field of expected.fields) assert.ok(html.includes(field));
+    assert.equal(stages()[index].props["data-active"], true);
+    assert.equal(detail().props.style["--stage-color"], span.color);
+    const connections = elements(tree).filter((element) => element.type === "g" && "data-active" in element.props);
+    assert.equal(connections.length, 3, "the server branches to three dependencies");
+    assert.deepEqual(connections.map((connection) => connection.props["data-active"]), [0, 1, 2].map((branch) => index === 0 || index === branch + 1), "connector emphasis follows the stage being inspected");
+  };
+  assert.equal(stages().length, 4);
+  assert.equal(selected(), stages()[0], "the server request is selected by default");
+  assertDetail(0);
+  stages().forEach((stage, index) => {
+    assert.equal(stage.props["aria-label"], `Explore ${OBSERVABILITY_STORY_SPANS[index].service}`);
+    assert.equal(stage.props["aria-controls"], detail().props.id);
   });
-  rows()[1].props.onMouseEnter(); tree = harness.render();
-  assertInsight(1);
-  assert.equal(selected(), rows()[2], "preview keeps the selected span intact");
+  stages()[1].props.onMouseEnter(); tree = harness.render();
+  assertDetail(1);
+  assert.equal(selected(), stages()[0], "hover previews do not change the committed stage");
+  stages()[1].props.onMouseLeave(); tree = harness.render();
+  assertDetail(0);
+  stages()[3].props.onMouseEnter(); tree = harness.render();
+  assertDetail(3);
   list().props.onMouseLeave(); tree = harness.render();
-  assertInsight(2);
-  rows()[3].props.onClick(); tree = harness.render();
-  assert.equal(selected(), rows()[3]);
-  assertInsight(3);
-  rows()[0].props.onMouseEnter(); tree = harness.render();
-  assertInsight(0);
-  rows()[1].props.onFocus(); tree = harness.render();
-  assert.equal(selected(), rows()[1], "focus clears a stale pointer preview");
-  assertInsight(1);
-  for (const [key, index] of [["End", 3], ["ArrowDown", 0], ["ArrowUp", 3], ["Home", 0]] as const) {
+  assertDetail(0);
+  stages()[2].props.onClick(); tree = harness.render();
+  assert.equal(selected(), stages()[2]);
+  assertDetail(2);
+  stages()[0].props.onMouseEnter(); tree = harness.render();
+  assertDetail(0);
+  list().props.onMouseLeave(); tree = harness.render();
+  assertDetail(2);
+  stages()[3].props.onMouseEnter(); tree = harness.render();
+  stages()[1].props.onFocus(); tree = harness.render();
+  assert.equal(selected(), stages()[1], "focus clears a stale hover preview");
+  assertDetail(1);
+  for (const [key, index] of [["End", 3], ["ArrowRight", 0], ["ArrowLeft", 3], ["Home", 0], ["ArrowDown", 1], ["ArrowUp", 0]] as const) {
     let prevented = false;
-    selected().props.onKeyDown({ key, preventDefault() { prevented = true; } });
-    tree = harness.render();
+    selected().props.onKeyDown({ key, preventDefault() { prevented = true; } }); tree = harness.render();
     assert.ok(prevented);
-    assert.equal(selected(), rows()[index]);
-    assert.equal(harness.focused, OBSERVABILITY_STORY_SPANS[index].operation);
+    assert.equal(selected(), stages()[index]);
+    assert.equal(harness.focused, selected().props.id);
     assert.equal(selected().props.tabIndex, 0);
-    assertInsight(index);
+    assert.ok(stages().filter((stage) => stage !== selected()).every((stage) => stage.props.tabIndex === -1));
+    assertDetail(index);
   }
   let prevented = false;
   selected().props.onKeyDown({ key: "Tab", preventDefault() { prevented = true; } });
-  assert.equal(prevented, false);
-  const css = await readFile(new URL("../src/landing/products/observability-sections.module.css", import.meta.url), "utf8");
-  assert.match(css, /\.spanButton\s*\{[^}]*width: 100%/);
-  assert.match(css, /\.spanButton:focus-visible/);
-  assert.match(css, /\.storyPanel:not\(\[hidden\]\) \.spanBar \{ animation: trace-bar-enter 550ms/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.spanBar \{ animation: none/);
-  assert.doesNotMatch(css, /\binfinite\b/);
+  assert.equal(prevented, false, "native Tab movement is preserved");
 });
 
 test("metric columns animate the headline value on full-area hover and keyboard focus, then reset outside", async () => {
@@ -601,27 +575,41 @@ test("signal charts preserve full-height hover hitboxes, active styling and fini
   assert.doesNotMatch(css, /\binfinite\b|(?:linear|radial)-gradient\(/);
 });
 
-test("request switching and signal cards have responsive, reduced-motion-safe flat surfaces", async () => {
-  const story = await readFile(new URL("../src/landing/products/ObservabilityRequestStory.tsx", import.meta.url), "utf8");
+test("signal cards retain their responsive, reduced-motion-safe flat surfaces", async () => {
   const features = await readFile(new URL("../src/landing/products/ObservabilityFeatureSections.tsx", import.meta.url), "utf8");
   const css = await readFile(new URL("../src/landing/products/observability-sections.module.css", import.meta.url), "utf8");
-  assert.doesNotMatch(story + features, /setInterval|setTimeout|Date\.|Math\.random|fetch\(|dangerouslySetInnerHTML/);
+  assert.doesNotMatch(features, /setInterval|setTimeout|Date\.|Math\.random|fetch\(|dangerouslySetInnerHTML/);
   assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(css, /@media \(max-width: 440px\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(css, /animation: none/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*transition: none/);
+  assert.doesNotMatch(css, /\banimation:/, "the remaining feature surfaces have no autonomous animations");
   assert.doesNotMatch(css, /(?:linear|radial)-gradient\(/);
-  const sectionFill = css.match(/\.storySection,[\s\S]*?\.featureSection \{([^}]+)\}/)?.[1];
+  const sectionFill = css.match(/\.featureSection \{([^}]+)\}/)?.[1];
   assert.ok(sectionFill);
   assert.doesNotMatch(sectionFill, /\bborder\b|\boutline\b/, "CSS modules do not reintroduce section dividers");
 });
 
-test("request panels retain the sizing guards verified to prevent tab-height jumps", async () => {
-  const css = await readFile(new URL("../src/landing/products/observability-sections.module.css", import.meta.url), "utf8");
-  const storyHeights = [...css.matchAll(/\.storyPanel\s*\{[^}]*min-height:\s*(\d+)px/g)].map((match) => Number(match[1]));
-  assert.equal(storyHeights.length, 3, "desktop, tablet, and narrow mobile panels have explicit minimum sizes");
-  for (const [index, minimum] of [470, 515, 590].entries()) assert.ok(storyHeights[index] >= minimum, "all request panels reserve enough room for the tallest tab at that breakpoint");
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.storyPanel\s*\{\s*min-height: 515px/);
-  assert.match(css, /@media \(max-width: 440px\)[\s\S]*?\.storyPanel\s*\{\s*min-height: 590px/);
-
+test("the request journey uses an open responsive graph, compact details and reduced-motion-safe connectors", async () => {
+  const source = await readFile(new URL("../src/landing/products/ObservabilityRequestStory.tsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("../src/landing/products/ObservabilityJourney.module.css", import.meta.url), "utf8");
+  assert.match(source, /from "\.\/ObservabilityJourney\.module\.css"/);
+  assert.doesNotMatch(source, /TracePanel|RequestPanel|LogsPanel|role="(?:tablist|tab|tabpanel)"|observabilityStoryIndexFromKey|observabilityTraceIndexFromKey/);
+  assert.doesNotMatch(source, /setInterval|setTimeout|Date\.|Math\.random|fetch\(|dangerouslySetInnerHTML/);
+  assert.match(source, /respectMotionPreference/);
+  assert.match(css, /\.journey\s*\{[^}]*display: grid/);
+  assert.match(css, /\.rootStage\s*\{[^}]*grid-row: 1 \/ 4/);
+  assert.match(css, /\.stage\s*\{[^}]*width: 100%/);
+  assert.match(css, /\.stage:focus-visible/);
+  assert.match(css, /@media \(max-width: 820px\)[\s\S]*?\.journey\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(css, /@media \(max-width: 480px\)/);
+  assert.match(css, /animation: follow-request 1350ms/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*animation: none/);
+  assert.doesNotMatch(css, /\binfinite\b|(?:linear|radial)-gradient\(/);
+  const section = css.match(/\.section\s*\{([^}]+)\}/)?.[1];
+  const outerJourney = css.match(/\.journey\s*\{([^}]+)\}/)?.[1];
+  assert.ok(section && outerJourney);
+  assert.doesNotMatch(section + outerJourney, /\bborder(?:-top|-bottom)?:|\bbackground:/, "there is no giant console container or section divider");
+  const minimums = [...css.matchAll(/(?:^|[;{])\s*min-height:\s*(\d+)px/g)].map((match) => Number(match[1]));
+  assert.ok(minimums.every((height) => height < 400), "the replacement does not bring back the old 470–590px fixed tab pane");
 });
