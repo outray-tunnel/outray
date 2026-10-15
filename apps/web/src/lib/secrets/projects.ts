@@ -1099,7 +1099,7 @@ export async function getOverview(access: SecretsAccess) {
               'updatedAt', pr.updated_at,
               'environments', pr.environments
             ) order by pr.name
-          ), '[]'::jsonb) as projects,
+          ) filter (where pr.id is not null), '[]'::jsonb) as projects,
           count(pr.id)::int as project_count,
           coalesce(sum(pr.environment_count), 0)::int as environment_count,
           coalesce(sum(pr.secret_count), 0)::int as secret_count,
