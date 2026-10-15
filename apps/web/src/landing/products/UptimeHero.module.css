@@ -1,0 +1,37 @@
+.hero { position: relative; display: flex; min-width: 0; min-height: min(740px, calc(100svh - var(--header-height))); align-items: center; justify-content: center; padding: 108px 0 116px; }
+.copy { width: 100%; max-width: 1000px; min-width: 0; text-align: center; }
+.copy h1 { margin: 0; color: #f5f5f5; font-size: clamp(51px, 5.3vw, 76px); font-weight: 530; line-height: 1.1; letter-spacing: -.055em; text-wrap: balance; }
+.copy h1 > span { color: #7bd5b0; }
+.lead { max-width: 540px; margin: 28px auto 0; color: #aaa; font-size: 17px; line-height: 1.85; text-wrap: pretty; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 13px 24px; margin-top: 32px; }
+.primaryButton, .textLink { display: inline-flex; align-items: center; justify-content: center; gap: 9px; font-size: 14px; transition: color 160ms, background-color 160ms; }
+.primaryButton { min-height: 49px; border-radius: 11px; padding: 13px 21px; background: #f5f5f5; color: #111; font-weight: 600; }
+.primaryButton:hover { background: #dfe5e2; }
+.textLink { min-height: 44px; border-radius: 5px; color: #b9b9b9; }
+.textLink:hover { color: #fff; }
+.primaryButton:focus-visible, .textLink:focus-visible { outline: 2px solid #7bd5b0; outline-offset: 5px; }
+.textLink > svg { transition: transform 160ms; }
+.textLink:hover > svg { transform: translateX(3px); }
+.setupNote { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 25px 0 0; color: #777781; font-size: 11px; }
+.setupNote svg { color: #8fada0; }
+
+@media (max-width: 820px) {
+  .hero { min-height: 600px; padding: 86px 0 96px; }
+  .copy h1 { font-size: clamp(46px, 7.3vw, 62px); }
+  .lead { max-width: 500px; margin-top: 25px; font-size: 16px; }
+}
+
+@media (max-width: 540px) {
+  .hero { min-height: 0; padding: 70px 0 80px; }
+  .copy h1 { font-size: clamp(37px, 9.6vw, 50px); line-height: 1.13; }
+  .lead { max-width: 350px; margin-top: 23px; font-size: 14px; }
+  .actions { gap: 13px 20px; margin-top: 26px; }
+  .primaryButton { min-height: 46px; padding: 12px 17px; }
+  .primaryButton, .textLink { font-size: 13px; }
+  .setupNote { margin-top: 20px; font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryButton, .textLink, .textLink > svg { transition: none; }
+  .textLink:hover > svg { transform: none; }
+}
