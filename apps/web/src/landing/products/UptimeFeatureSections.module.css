@@ -1,0 +1,220 @@
+.section { position: relative; min-width: 0; padding: 106px 0; }
+.title { color: #f5f5f5; font-size: clamp(35px, 3.7vw, 48px); font-weight: 530; line-height: 1.12; letter-spacing: -.047em; text-wrap: balance; }
+.lead { max-width: 420px; margin-top: 24px; color: #aaa; font-size: 16px; line-height: 1.8; text-wrap: pretty; }
+.supportingCopy { max-width: 420px; margin-top: 19px; color: #929292; font-size: 13px; line-height: 1.9; text-wrap: pretty; }
+.textLink { display: inline-flex; min-height: 44px; align-items: center; gap: 10px; margin-top: 24px; border-radius: 5px; color: #c6c6c9; font-size: 13px; transition: color 160ms; }
+.textLink > svg { flex-shrink: 0; transition: transform 160ms; }
+.textLink:hover { color: #fff; }
+.textLink:hover > svg { transform: translateX(3px); }
+.textLink:focus-visible, .primaryButton:focus-visible { outline: 2px solid #b697f4; outline-offset: 5px; }
+.incidentSection { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); align-items: center; gap: clamp(40px, 7vw, 90px); }
+.incidentCopy { min-width: 0; }
+.incidentSteps { display: grid; gap: 7px; max-width: 365px; margin-top: 30px; }
+.incidentStep { display: flex; width: 100%; min-height: 76px; min-width: 0; align-items: center; gap: 15px; border: 1px solid transparent; border-radius: 12px; padding: 13px 15px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background-color 160ms, border-color 160ms; }
+.incidentStep:hover { background: #141414; }
+.incidentStep[aria-selected="true"] { border-color: #353535; background: #191919; }
+.incidentStep:focus-visible { outline: 2px solid #b697f4; outline-offset: 3px; }
+.stepIcon { display: grid; width: 37px; height: 37px; flex-shrink: 0; place-items: center; border-radius: 10px; background: #ffffff06; }
+.incidentStep > span:nth-child(2) { display: grid; min-width: 0; gap: 6px; }
+.incidentStep strong { color: #d7d7da; font-size: 14px; font-weight: 500; }
+.incidentStep > span:nth-child(2) > span { color: #8e8e94; font-size: 11px; line-height: 1.5; }
+.stepArrow { margin-left: auto; color: #a7a7af; opacity: 0; transition: opacity 160ms, transform 160ms; transform: translateX(-4px); }
+.incidentStep[aria-selected="true"] .stepArrow { opacity: 1; transform: translateX(0); }
+.incidentVisual { min-width: 0; overflow: hidden; border: 1px solid #343436; border-radius: 23px; background: #101011; box-shadow: 0 25px 70px #0005; }
+.incidentVisual:focus-visible { outline: 2px solid #b697f4; outline-offset: 5px; }
+.incidentTopline { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 25px; background: #19191a; }
+.incidentTopline > span:first-child { display: flex; min-width: 0; align-items: center; gap: 9px; color: #c7c7cc; font-size: 11px; }
+.incidentTopline svg { flex-shrink: 0; color: #edb96d; }
+.incidentTopline > span:last-child { flex-shrink: 0; color: #818187; font-size: 10px; }
+.updateContent { min-height: 356px; padding: 29px 29px 25px; animation: update-enter 200ms ease-out; }
+.updateTopline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.stagePill { display: inline-flex; align-items: center; gap: 7px; border-radius: 7px; padding: 7px 9px; font-size: 10px; }
+.stagePill > i { width: 5px; height: 5px; border-radius: 50%; }
+.updateTopline > time { color: #85858e; font: 9px/1.5 monospace; }
+.updateContent > h3 { margin-top: 24px; color: #eeeef1; font-size: 23px; font-weight: 520; line-height: 1.4; letter-spacing: -.03em; }
+.updateMessage { min-height: 74px; margin-top: 13px; color: #a2a2ac; font-size: 12px; line-height: 1.85; }
+.affectedComponent { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 19px; color: #83838e; font-size: 10px; }
+.affectedComponent > span:last-child { display: flex; align-items: center; gap: 6px; color: #b8b8c2; }
+.affectedComponent i { width: 4px; height: 4px; border-radius: 50%; }
+.evidenceCard { display: flex; min-width: 0; align-items: center; gap: 12px; margin-top: 23px; border-radius: 12px; padding: 17px 15px; background: #1b1b1e; }
+.evidenceIcon { display: grid; width: 30px; height: 30px; flex-shrink: 0; place-items: center; }
+.evidenceCard > div { display: grid; min-width: 0; gap: 7px; }
+.evidenceCard > div > span { color: #8f8f9b; font-size: 9px; }
+.evidenceCard strong { color: #cfcfd8; font-size: 11px; font-weight: 500; }
+.evidenceCard code { color: #8d8d9a; font: 9px/1.7 monospace; overflow-wrap: anywhere; }
+.monitorState { align-self: start; margin: 2px 0 0 auto; border-radius: 5px; font: 9px/1.5 monospace; }
+.updateFooter { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; padding: 0 29px 25px; color: #9c9ca5; font-size: 10px; }
+.teamMark { display: grid; width: 23px; height: 23px; place-items: center; border-radius: 7px; background: #28282e; color: #d1d1d7; font-size: 17px; font-weight: 600; }
+.updateFooter > span:last-child { display: flex; align-items: center; gap: 5px; margin-left: auto; color: #74747f; font-size: 9px; }
+
+.statusSection { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); align-items: center; gap: clamp(40px, 7vw, 90px); }
+.statusPreview { min-width: 0; margin: 0; overflow: hidden; border: 1px solid #343737; border-radius: 23px; background: #101313; box-shadow: 0 25px 70px #0005; }
+.domainBar { display: flex; min-width: 0; align-items: center; gap: 8px; padding: 15px 22px; background: #191d1b; color: #9eaaa3; font: 10px/1.5 monospace; }
+.domainBar > svg { flex-shrink: 0; color: #7f9688; }
+.domainBar > span:first-of-type { min-width: 0; overflow-wrap: anywhere; }
+.domainConnected { display: flex; flex-shrink: 0; align-items: center; gap: 4px; margin-left: auto; color: #79988a; font: 9px/1.5 sans-serif; }
+.publicPage { padding: 28px 26px 25px; }
+.publicBrand { display: flex; align-items: center; gap: 10px; color: #d6ded9; font-size: 13px; font-weight: 500; }
+.publicBrand > span:first-child { display: grid; width: 31px; height: 31px; place-items: center; border-radius: 9px; background: #273c32; color: #98d8b5; font-size: 24px; font-weight: 600; }
+.operationalBanner { display: flex; align-items: center; gap: 13px; margin-top: 30px; border-radius: 12px; padding: 19px 16px; background: #70d7b30a; }
+.operationalIcon { display: grid; flex-shrink: 0; place-items: center; color: #70d7b3; }
+.operationalBanner h3 { color: #cce8d9; font-size: 16px; font-weight: 500; line-height: 1.5; letter-spacing: -.015em; }
+.operationalBanner p { margin-top: 5px; color: #829e8e; font-size: 10px; line-height: 1.7; }
+.publicComponents { display: grid; gap: 24px; margin-top: 32px; }
+.publicComponent { min-width: 0; }
+.componentTopline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: #b7c3bc; font-size: 11px; }
+.componentTopline > span:last-child { display: flex; align-items: center; gap: 5px; color: #70bc98; font-size: 9px; }
+.componentTopline i { width: 4px; height: 4px; border-radius: 50%; background: #70d7b3; }
+.historyBars { display: flex; min-width: 0; height: 25px; gap: 2px; margin-top: 11px; }
+.historyBars > i { flex: 1; min-width: 0; border-radius: 2px; }
+.historyBars > i[data-state="operational"], .historyLegend i[data-state="operational"] { background: #65bd96; }
+.historyBars > i[data-state="incident"], .historyLegend i[data-state="incident"] { background: #e3b369; }
+.historyBars > i[data-state="unknown"], .historyLegend i[data-state="unknown"] { background: #333a36; }
+.historyRange { display: flex; justify-content: space-between; margin-top: 11px; color: #75877a; font-size: 8px; }
+.historyLegend { display: flex; flex-wrap: wrap; gap: 13px; margin-top: 22px; color: #889d90; font-size: 8px; }
+.historyLegend > span { display: flex; align-items: center; gap: 5px; }
+.historyLegend i { width: 5px; height: 5px; border-radius: 2px; }
+.publicSubscriptions { display: flex; align-items: center; gap: 8px; margin-top: 27px; color: #91a799; font-size: 9px; line-height: 1.7; }
+.publicSubscriptions > svg { flex-shrink: 0; }
+.statusCopy { min-width: 0; }
+.statusDetails { display: grid; gap: 17px; margin-top: 30px; }
+.statusDetails > span { display: flex; align-items: center; gap: 12px; color: #b5b5be; font-size: 13px; }
+.statusDetails svg { flex-shrink: 0; color: #80c7a7; }
+
+.notificationsSection { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); align-items: center; gap: clamp(40px, 7vw, 90px); }
+.notificationPreview { min-width: 0; overflow: hidden; border: 1px solid #343436; border-radius: 21px; background: #111112; box-shadow: 0 25px 65px #0005; }
+.notificationHeader { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; padding: 19px 25px; background: #19191b; }
+.notificationHeader > span:first-child { display: flex; align-items: center; gap: 9px; color: #c2c2cb; font-size: 11px; }
+.notificationHeader svg { flex-shrink: 0; color: #b697f4; }
+.notificationHeader > span:last-child { color: #7f7f8b; font-size: 9px; }
+.notificationBody { display: flex; min-width: 0; align-items: start; gap: 16px; padding: 29px 25px 23px; }
+.notificationAlert { display: grid; width: 44px; height: 44px; flex-shrink: 0; place-items: center; border-radius: 13px; background: #edb96d0b; color: #edb96d; }
+.notificationBody > div { min-width: 0; padding-top: 3px; }
+.notificationBody h3 { color: #dfdfe4; font-size: 18px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; }
+.notificationBody p { margin-top: 10px; color: #92929f; font-size: 12px; line-height: 1.7; }
+.notificationBody code { display: block; margin-top: 10px; color: #81818f; font: 10px/1.7 monospace; overflow-wrap: anywhere; }
+.notificationRecovery { display: flex; align-items: center; gap: 7px; padding: 0 25px; color: #8eaaa0; font-size: 10px; }
+.notificationRecovery svg { flex-shrink: 0; color: #70d7b3; }
+.channelDestinations { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 25px; padding: 0 25px 25px; }
+.channelDestinations > span { border-radius: 7px; padding: 8px 12px; background: #242326; color: #aaa6b3; font-size: 10px; }
+.startSection { padding: 110px 0 70px; text-align: center; }
+.startSection > h2 { color: #f4f4f4; font-size: clamp(43px, 5.3vw, 66px); font-weight: 530; line-height: 1.12; letter-spacing: -.05em; }
+.startSection > p { margin-top: 24px; color: #9f9fa5; font-size: 15px; line-height: 1.8; }
+.startActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 28px; margin-top: 30px; }
+.startActions .textLink { margin: 0; }
+.primaryButton { display: inline-flex; min-height: 49px; align-items: center; justify-content: center; gap: 9px; border-radius: 11px; padding: 13px 21px; background: #f5f5f5; color: #111; font-size: 13px; font-weight: 600; transition: background-color 160ms; }
+.primaryButton:hover { background: #dddde2; }
+.primaryButton > svg { flex-shrink: 0; }
+
+@keyframes update-enter { from { opacity: .6; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 1050px) {
+  .incidentSection, .statusSection, .notificationsSection { gap: 38px; }
+  .title { font-size: 37px; }
+  .lead { font-size: 14px; }
+  .updateContent { min-height: 385px; padding: 25px 22px; }
+  .updateContent > h3 { font-size: 21px; }
+  .updateMessage { min-height: 89px; }
+  .incidentTopline { padding-inline: 22px; }
+  .updateFooter { padding-inline: 22px; }
+  .publicPage { padding-inline: 22px; }
+  .operationalBanner { gap: 11px; padding: 17px 13px; }
+  .operationalBanner h3 { font-size: 14px; }
+  .historyBars { gap: 1px; }
+  .notificationHeader, .notificationBody { padding-inline: 22px; }
+  .notificationBody { gap: 12px; }
+  .notificationBody h3 { font-size: 16px; }
+}
+
+@media (max-width: 760px) {
+  .section { padding: 76px 0; }
+  .incidentSection, .statusSection, .notificationsSection { grid-template-columns: 1fr; gap: 36px; }
+  .title { font-size: clamp(34px, 6vw, 45px); }
+  .lead { max-width: 520px; font-size: 15px; }
+  .incidentSteps { max-width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .incidentStep { min-height: 112px; align-items: start; flex-direction: column; gap: 11px; padding: 15px 13px; }
+  .stepIcon { width: 30px; height: 30px; }
+  .incidentStep strong { font-size: 12px; }
+  .incidentStep > span:nth-child(2) > span { font-size: 10px; }
+  .stepArrow { display: none; }
+  .incidentVisual, .statusPreview, .notificationPreview { width: min(600px, 100%); justify-self: center; }
+  .updateContent { min-height: 350px; padding: 27px; }
+  .updateMessage { min-height: 67px; }
+  .incidentTopline { padding-inline: 27px; }
+  .updateFooter { padding-inline: 27px; }
+  .statusCopy { grid-row: 1; }
+  .publicPage { padding: 27px; }
+  .historyBars { gap: 2px; }
+  .operationalBanner h3 { font-size: 16px; }
+  .statusDetails { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+  .statusDetails > span { font-size: 12px; }
+  .notificationHeader, .notificationBody { padding-inline: 27px; }
+  .notificationBody h3 { font-size: 18px; }
+  .notificationRecovery { padding-inline: 27px; }
+  .channelDestinations { padding-inline: 27px; }
+  .startSection { padding: 78px 0 50px; }
+}
+
+@media (max-width: 440px) {
+  .section { padding: 58px 0; }
+  .title { font-size: 33px; }
+  .lead { margin-top: 20px; font-size: 13px; }
+  .supportingCopy { font-size: 12px; }
+  .incidentSteps { gap: 6px; margin-top: 25px; }
+  .incidentStep { min-height: 122px; gap: 9px; border-radius: 10px; padding: 12px 9px; }
+  .incidentStep strong { font-size: 10px; }
+  .incidentStep > span:nth-child(2) > span { font-size: 9px; line-height: 1.6; }
+  .incidentVisual, .statusPreview { border-radius: 17px; }
+  .incidentTopline { gap: 8px; padding: 17px 17px; }
+  .incidentTopline > span:first-child { gap: 6px; font-size: 9px; }
+  .incidentTopline > span:last-child { font-size: 8px; }
+  .updateContent { min-height: 390px; padding: 22px 19px; }
+  .updateContent > h3 { font-size: 21px; }
+  .updateMessage { min-height: 90px; font-size: 11px; }
+  .stagePill { padding: 6px 7px; font-size: 9px; }
+  .updateTopline > time { font-size: 8px; }
+  .evidenceCard { gap: 8px; padding: 15px 11px; }
+  .evidenceIcon { width: 23px; }
+  .evidenceCard strong { font-size: 10px; }
+  .evidenceCard > div > span, .evidenceCard code, .monitorState { font-size: 8px; }
+  .updateFooter { padding: 0 19px 22px; }
+  .updateFooter > span:last-child { font-size: 8px; }
+  .domainBar { gap: 6px; padding: 14px 16px; font-size: 9px; }
+  .domainConnected { font-size: 7px; }
+  .domainConnected > svg { display: none; }
+  .publicPage { padding: 22px 17px; }
+  .operationalBanner { gap: 10px; margin-top: 25px; padding: 16px 12px; }
+  .operationalBanner h3 { font-size: 13px; }
+  .operationalBanner p { font-size: 9px; }
+  .operationalIcon > svg { width: 23px; height: 23px; }
+  .publicComponents { margin-top: 27px; gap: 22px; }
+  .componentTopline { font-size: 10px; }
+  .componentTopline > span:last-child { font-size: 8px; }
+  .historyBars { height: 23px; gap: 1px; }
+  .historyLegend { gap: 11px; }
+  .publicSubscriptions { margin-top: 23px; font-size: 8px; }
+  .statusDetails { grid-template-columns: 1fr; gap: 17px; margin-top: 24px; }
+  .notificationPreview { border-radius: 17px; }
+  .notificationHeader { gap: 8px; padding: 17px; }
+  .notificationHeader > span:first-child { gap: 6px; font-size: 10px; }
+  .notificationHeader > span:last-child { font-size: 8px; }
+  .notificationBody { gap: 12px; padding: 24px 17px 21px; }
+  .notificationAlert { width: 35px; height: 35px; border-radius: 10px; }
+  .notificationBody h3 { font-size: 15px; }
+  .notificationBody p { font-size: 10px; }
+  .notificationBody code { font-size: 9px; }
+  .notificationRecovery { padding-inline: 17px; font-size: 9px; }
+  .channelDestinations { padding: 0 17px 21px; }
+  .channelDestinations > span { padding: 7px 10px; font-size: 9px; }
+  .startSection { padding: 61px 0 40px; }
+  .startSection > h2 { font-size: 40px; }
+  .startSection > p { font-size: 13px; }
+  .startActions { gap: 21px; }
+  .primaryButton { min-height: 47px; padding: 12px 18px; font-size: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .updateContent { animation: none; }
+  .incidentStep, .stepArrow, .textLink, .textLink > svg, .primaryButton { transition: none; }
+  .textLink:hover > svg { transform: none; }
+}
