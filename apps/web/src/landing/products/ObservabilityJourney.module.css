@@ -1,0 +1,155 @@
+.section { position: relative; min-width: 0; padding: 104px 0; }
+.heading { display: flex; align-items: end; justify-content: space-between; gap: 32px; }
+.heading h2 { margin: 0; color: #f4f4f4; font-size: clamp(38px, 4.1vw, 54px); font-weight: 530; line-height: 1.12; letter-spacing: -.047em; }
+.heading p { margin: 0 3px 4px 0; color: #aaaab1; font-size: 16px; line-height: 1.85; }
+.journey { display: grid; min-width: 0; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: center; gap: clamp(42px, 6vw, 82px); margin-top: 66px; }
+.map { min-width: 0; }
+.graph { --node-gap: 24px; position: relative; min-width: 0; }
+.connections { position: absolute; left: 0; top: calc((100% - var(--node-gap) * 2) / 6); width: 100%; height: calc(100% - (100% - var(--node-gap) * 2) / 3); overflow: visible; pointer-events: none; }
+.connection { fill: none; stroke: #333339; stroke-width: 1.5; transition: stroke 220ms; }
+.connections g[data-active="true"] .connection { stroke: color-mix(in srgb, var(--stage-color) 65%, #333339); }
+.packet { fill: none; stroke: var(--stage-color); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: .16 .84; stroke-dashoffset: 1; opacity: 0; }
+.connections g[data-active="true"] .packet { animation: follow-request 1350ms cubic-bezier(.25, .6, .35, 1) both; }
+.stages { position: relative; display: grid; grid-template-columns: minmax(0, 36%) minmax(0, 54%); grid-template-rows: repeat(3, 1fr); gap: var(--node-gap) 10%; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.stages > li { min-width: 0; }
+.rootStage { grid-column: 1; grid-row: 1 / 4; align-self: center; }
+.dependencyStage { grid-column: 2; }
+.stage { position: relative; display: grid; width: 100%; min-width: 0; grid-template-columns: 39px minmax(0, 1fr); gap: 11px; align-items: center; border: 1px solid #2a2a30; border-radius: 14px; padding: 17px 16px; background: #101012; color: #b9b9c2; font: inherit; text-align: left; cursor: pointer; transition: border-color 180ms, background-color 180ms, box-shadow 180ms, transform 180ms; }
+.stage:hover { background: #151517; }
+.stage[data-active="true"] { border-color: color-mix(in srgb, var(--stage-color) 65%, #28282d); background: #141416; box-shadow: 0 0 0 4px color-mix(in srgb, var(--stage-color) 7%, transparent); }
+.stage:focus-visible { outline: 2px solid var(--stage-color); outline-offset: 6px; }
+.stageIcon { display: grid; width: 39px; height: 39px; place-items: center; border: 1px solid color-mix(in srgb, var(--stage-color) 25%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--stage-color) 8%, #101012); color: var(--stage-color); }
+.stageName { display: grid; min-width: 0; gap: 6px; }
+.stageName strong { color: #e2e2e8; font-size: 13px; line-height: 1.4; font-weight: 500; letter-spacing: -.015em; }
+.stageName code { color: #8b8b96; font-family: monospace; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.stageTime { grid-column: 2; color: var(--stage-color); font-family: monospace; font-size: 11px; font-variant-numeric: tabular-nums; line-height: 1; }
+.stageTime > span { color: #858590; font-size: 10px; }
+.stagePort { position: absolute; top: 50%; left: -4px; width: 7px; height: 7px; border: 2px solid #101012; border-radius: 50%; background: #53535d; transform: translateY(-50%); }
+.stage[data-active="true"] .stagePort { background: var(--stage-color); }
+.rootStage .stage { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 16px; padding: 27px 12px 23px; text-align: center; }
+.rootStage .stageIcon { width: 65px; height: 65px; border-radius: 20px; }
+.rootStage .stageIcon svg { width: 32px; height: 32px; }
+.rootStage .stageName { gap: 8px; }
+.rootStage .stageName strong { font-size: 14px; }
+.rootStage .stageName code { font-size: 10px; }
+.rootStage .stageTime { grid-column: 1; font-size: 19px; }
+.rootStage .stageTime > span { font-size: 11px; }
+.rootStage .stagePort { left: auto; right: -4px; }
+.mapCaption { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 28px; color: #82828c; font-size: 10px; line-height: 1.6; }
+.mapCaption > span { display: inline-flex; align-items: center; gap: 8px; }
+.mapCaption i { width: 5px; height: 5px; border-radius: 50%; background: #a9a9b4; }
+.mapCaption code { color: #858590; font-family: monospace; font-size: 10px; }
+.detail { min-width: 0; }
+.detailHeading { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.detailHeading > div { min-width: 0; }
+.kind { color: var(--stage-color); font-size: 11px; line-height: 1.6; }
+.detailHeading h3 { margin: 8px 0 0; color: #ededf1; font-size: 24px; font-weight: 500; line-height: 1.25; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.duration { flex-shrink: 0; color: #f4f4f5; font-size: 34px; font-weight: 450; letter-spacing: -.045em; }
+.duration::part(suffix) { margin-left: 1px; color: #85858e; font-size: 14px; letter-spacing: -.02em; }
+.operation { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 9px; align-items: center; margin-top: 19px; }
+.operation > code { min-width: 0; color: #a8a8b3; font-family: monospace; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+.operation > span { display: inline-flex; align-items: center; gap: 4px; color: #75d8a7; font-size: 10px; }
+.description { min-height: 40px; margin: 12px 0 0; max-width: 340px; color: #8f8f9b; font-size: 12px; line-height: 1.8; }
+.timing { margin-top: 16px; }
+.timingTrack { height: 5px; overflow: hidden; border-radius: 3px; background: #222227; }
+.timingTrack > span { display: block; height: 100%; border-radius: inherit; background: var(--stage-color); transition: width 380ms cubic-bezier(.22, 1, .36, 1), margin-left 380ms cubic-bezier(.22, 1, .36, 1), background-color 180ms; }
+.timing > div:last-child { display: flex; justify-content: space-between; gap: 12px; margin-top: 9px; color: #777783; font-family: monospace; font-size: 9px; }
+.evidence { margin-top: 24px; border-radius: 13px; padding: 17px 18px; background: #111113; }
+.evidenceLabel { display: flex; align-items: center; gap: 6px; color: #8d8d99; font-size: 10px; line-height: 1.6; }
+.evidenceLabel svg { color: #8d8d99; }
+.logs ol { display: grid; min-height: 42px; align-content: start; gap: 9px; margin: 13px 0 0; padding: 0; list-style: none; }
+.logs li { display: flex; align-items: center; gap: 10px; color: #c6c6d0; font-size: 11px; line-height: 1.5; }
+.logs time { flex-shrink: 0; width: 44px; color: #858590; font-family: monospace; font-size: 9px; }
+.logs .logLevel { margin-left: auto; color: #858590; font-family: monospace; font-size: 9px; }
+.payload { margin-top: 19px; }
+.payload pre { margin: 12px 0 0; border-radius: 4px; color: #8a8a97; font-family: monospace; font-size: 11px; line-height: 1.9; overflow-x: auto; }
+.payload pre:focus-visible { outline: 2px solid var(--stage-color); outline-offset: 5px; }
+.payload pre code { font: inherit; }
+.codeLine { display: block; }
+.codeKey { color: #9898a5; }
+.codeValue { color: #92d6c2; }
+.redacted { color: #bd97f6; }
+
+@keyframes follow-request {
+  0% { opacity: 0; stroke-dashoffset: 1; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; stroke-dashoffset: 0; }
+}
+
+@media (max-width: 1100px) {
+  .journey { gap: 38px; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+  .stage { padding: 16px 12px; gap: 10px; grid-template-columns: 32px minmax(0, 1fr); }
+  .stageIcon { width: 32px; height: 32px; }
+  .stageIcon svg { width: 19px; height: 19px; }
+  .stageName strong { font-size: 11px; }
+  .stageName code { font-size: 8px; }
+  .rootStage .stageName strong { font-size: 12px; }
+  .rootStage .stage { padding: 24px 8px; }
+  .rootStage .stageIcon { width: 55px; height: 55px; border-radius: 17px; }
+  .detailHeading h3 { font-size: 22px; }
+  .duration { font-size: 30px; }
+}
+
+@media (max-width: 820px) {
+  .section { padding: 76px 0; }
+  .heading { gap: 25px; }
+  .heading h2 { font-size: clamp(35px, 5.4vw, 45px); }
+  .heading p { font-size: 13px; }
+  .journey { grid-template-columns: minmax(0, 1fr); gap: 43px; margin-top: 43px; }
+  .map { max-width: 580px; width: 100%; margin: 0 auto; }
+  .graph { --node-gap: 20px; }
+  .stage { min-height: 96px; padding: 15px 18px; grid-template-columns: 39px minmax(0, 1fr); }
+  .stageIcon { width: 39px; height: 39px; }
+  .stageName strong { font-size: 12px; }
+  .stageName code { font-size: 9px; }
+  .rootStage .stage { min-height: 0; padding: 28px 12px; }
+  .rootStage .stageName strong { font-size: 14px; }
+  .rootStage .stageIcon { width: 65px; height: 65px; border-radius: 20px; }
+  .detail { max-width: 580px; width: 100%; margin: 0 auto; }
+  .detailHeading h3 { font-size: 24px; }
+  .duration { font-size: 34px; }
+  .description { min-height: 0; max-width: none; }
+  .evidence { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 23px; padding: 20px; }
+  .payload { min-width: 0; margin-top: 0; }
+  .logs .logLevel { display: none; }
+}
+
+@media (max-width: 480px) {
+  .section { padding: 58px 0; }
+  .heading { display: block; text-align: center; }
+  .heading h2 { font-size: 36px; }
+  .heading p { margin: 19px 0 0; font-size: 13px; line-height: 1.8; }
+  .heading p br { display: none; }
+  .journey { margin-top: 35px; gap: 36px; }
+  .graph { --node-gap: 16px; }
+  .stages { grid-template-columns: minmax(0, 34%) minmax(0, 56%); }
+  .connections { left: -2%; width: 100%; }
+  .stage { min-height: 92px; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; border-radius: 11px; padding: 12px 10px; }
+  .stageIcon { width: 32px; height: 32px; border-radius: 8px; }
+  .stageIcon svg { width: 16px; height: 16px; }
+  .stageName { gap: 4px; }
+  .stageName strong { font-size: 12px; }
+  .stageName code { font-size: 9px; }
+  .stageTime { font-size: 11px; }
+  .stageTime > span { font-size: 9px; }
+  .rootStage .stage { gap: 13px; padding: 22px 6px 18px; }
+  .rootStage .stageIcon { width: 47px; height: 47px; border-radius: 15px; }
+  .rootStage .stageIcon svg { width: 25px; height: 25px; }
+  .rootStage .stageName strong { font-size: 11px; }
+  .rootStage .stageName code { font-size: 8px; }
+  .rootStage .stageTime { font-size: 18px; }
+  .mapCaption { margin-top: 22px; gap: 7px; font-size: 9px; }
+  .mapCaption code { font-size: 9px; }
+  .detailHeading h3 { font-size: 23px; }
+  .duration { font-size: 32px; }
+  .evidence { display: block; padding: 18px; }
+  .payload { margin-top: 19px; }
+  .logs .logLevel { display: initial; }
+  .logs ol { min-height: 43px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connections g[data-active="true"] .packet { animation: none; }
+  .connection, .stage, .timingTrack > span { transition: none; }
+}
