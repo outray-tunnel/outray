@@ -20,6 +20,8 @@ import { SecretsHero } from "../src/landing/products/SecretsHero";
 import { SecretsEnvironmentSection } from "../src/landing/products/SecretsEnvironmentSection";
 import { SecretsProblemSection } from "../src/landing/products/SecretsProblemSection";
 import { SecretsFeatureSections } from "../src/landing/products/SecretsFeatureSections";
+import { UptimeHero } from "../src/landing/products/UptimeHero";
+import { UptimeFeatureSections } from "../src/landing/products/UptimeFeatureSections";
 import { CopyButton } from "../src/components/arc/copy-button/copy-button";
 import { productIds, products, type ProductId } from "../src/landing/products/content";
 import { productPageHead } from "../src/landing/products/meta";
@@ -54,6 +56,11 @@ function productPage(product: ProductId) {
       hero: React.createElement(SecretsHero),
       workflow: React.createElement(React.Fragment, null, React.createElement(SecretsProblemSection), React.createElement(SecretsEnvironmentSection)),
       sections: React.createElement(SecretsFeatureSections),
+    } : product === "uptime" ? {
+      className: "[--accent:#888] [--accent-deep:#444] [--accent-light:#d4d4d4] [--accent-rgb:160_160_160]",
+      hero: React.createElement(UptimeHero),
+      workflow: React.createElement(React.Fragment),
+      sections: React.createElement(UptimeFeatureSections),
     } : {}),
   });
 }
@@ -231,21 +238,22 @@ test("every product page renders its own content and direct documentation withou
       if (product === "tunnels") assert.match(html, /Localhost,.*meet the world\./);
       else if (product === "observability") assert.match(html, /Know what.*happened\..*And why\./);
       else if (product === "secrets") assert.match(html, /Your app needs.*secrets\..*Your codebase.*doesn[’']t\./);
+      else if (product === "uptime") assert.match(html, /Catch downtime\..*Keep their.*trust\./);
       else assert.ok(html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").includes(products[product].title));
       assert.ok(html.includes(`href="/docs/${product}"`));
       assert.doesNotMatch(html, /aria-label="Product pages"|pd-product-nav/);
       assert.ok(html.includes('href="/signup"'));
       assert.match(html, /Get started/);
-      if (product === "uptime") assert.match(html, /Illustrative interface · sample data/);
-      if (product === "uptime") assert.match(html, /<pre\b[^>]*tabindex="0"[^>]*aria-label=/);
+      if (product === "uptime") assert.doesNotMatch(html, /Illustrative interface · sample data|id="workflow-title"|id="capabilities-title"|id="use-cases-title"/);
       assert.equal(products[product].workflow.steps.length, 3);
       assert.equal(products[product].capabilities.length, 4);
       assert.equal(products[product].useCases.length, 3);
       if (product === "uptime") {
+        const fallback = renderToStaticMarkup(React.createElement(ProductPage, { product }));
         const next = products[product].next;
-        assert.ok(html.includes(`href="/products/${next}"`));
-        assert.ok(html.includes(`Explore ${products[next].name}`));
-        assert.equal((html.match(/href="\/products\/[^"]+"/g) ?? []).length, 1, "only the connected-product content link remains");
+        assert.ok(fallback.includes(`href="/products/${next}"`));
+        assert.ok(fallback.includes(`Explore ${products[next].name}`));
+        assert.equal((fallback.match(/href="\/products\/[^"]+"/g) ?? []).length, 1, "the generic fallback keeps its connected-product content link");
       }
       for (const other of productIds.filter((id) => id !== product)) assert.ok(!html.includes(products[other].title));
     }
@@ -318,9 +326,10 @@ test("the dedicated tunnel hero is isolated from the other product heroes and ov
     const html = renderToStaticMarkup(productPage(product));
     if (product === "observability") assert.match(html, /Know what.*happened\..*And why\./);
     else if (product === "secrets") assert.match(html, /Your app needs.*secrets\..*Your codebase.*doesn[’']t\./);
+    else if (product === "uptime") assert.match(html, /Catch downtime\..*Keep their.*trust\./);
     else assert.ok(html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").includes(products[product].title));
     assert.doesNotMatch(html, /Localhost,.*meet the world\.|Start tunneling/);
-    if (product === "uptime") assert.match(html, /Illustrative interface · sample data/);
+    if (product === "uptime") assert.doesNotMatch(html, /Illustrative interface · sample data/);
   }
   const overview = renderToStaticMarkup(React.createElement(ProductsIndex));
   assert.doesNotMatch(overview, /Localhost,.*meet the world\.|Start tunneling/);
@@ -410,7 +419,7 @@ test("Tunnels removes section eyebrows, including the hero product label, withou
     "YOUR ADDRESS. YOUR NAME.", "BEYOND YOUR BROWSER", "NOT JUST WEBSITES", "OPEN SOURCE. NOT A BLACK BOX.", "LOCAL APP. PUBLIC POSSIBILITIES.",
   ]) assert.ok(!html.includes(label), `Removed section eyebrow: ${label}`);
   for (const product of productIds.filter((id) => id === "uptime")) {
-    const other = renderToStaticMarkup(productPage(product));
+    const other = renderToStaticMarkup(React.createElement(ProductPage, { product }));
     assert.ok(other.includes(`OUTRAY ${products[product].name.toUpperCase()}`));
   }
 });
@@ -425,7 +434,7 @@ test("the Tunnels page removes demo disclaimers without changing addresses or ot
   assert.match(html, /preview\.example\.com/, "domain examples are not mistaken for removable UI labels");
   assert.match(html, /demo(?:<[^>]+>)*\.outray\.app/, "the public address remains part of the portal and terminal");
   for (const product of productIds.filter((id) => id === "uptime")) {
-    const other = renderToStaticMarkup(productPage(product));
+    const other = renderToStaticMarkup(React.createElement(ProductPage, { product }));
     assert.match(other, /Illustrative interface · sample data/, "sample captions on untouched product pages remain");
   }
   const overview = renderToStaticMarkup(React.createElement(ProductsIndex));
@@ -491,7 +500,7 @@ test("the request stream removes its outer divider without removing the terminal
 
 test("the new request stream does not replace untouched product workflows or overview previews", () => {
   for (const product of productIds.filter((id) => id === "uptime")) {
-    const html = renderToStaticMarkup(productPage(product));
+    const html = renderToStaticMarkup(React.createElement(ProductPage, { product }));
     assert.ok(html.includes(products[product].workflow.title));
     assert.match(html, /<pre\b[^>]*tabindex="0"[^>]*aria-label=/);
     assert.match(html, /id="capabilities-title"|id="use-cases-title"/);
