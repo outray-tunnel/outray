@@ -1,6 +1,6 @@
 // One guarded lifecycle for every standard Compose installation. No instance-specific names.
 import { createHash, randomUUID } from "node:crypto";
-import { existsSync, lstatSync, readFileSync, writeFileSync, renameSync, unlinkSync } from "node:fs";
+import { constants, closeSync, existsSync, lstatSync, openSync, readFileSync, readlinkSync, writeFileSync, renameSync, unlinkSync } from "node:fs";
 import { isIP } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -70,6 +70,9 @@ export function probePolicyConfiguration(config, postgresIp, interfaces, routes)
     if (address.family === "inet" && isIP(address.local) === 4) blocked.push(address.local);
   }
   for (const route of routes) {
+    // Exact local addresses are already included above. Broadcast/unreachable
+    // routes can reject sockets before OUTPUT and cannot prove a DROP counter.
+    if (route.type && route.type !== "unicast") continue;
     if (route.dst && route.dst !== "default" && !route.dst.includes(":")) blocked.push(route.dst.includes("/") ? route.dst : `${route.dst}/32`);
   }
   blocked.push(...(config.OUTRAY_PROBE_BLOCKED_CIDRS || "").split(",").map((value) => value.trim()).filter(Boolean));
@@ -131,15 +134,21 @@ function dockerContext(options) {
   return { spawn, endpoint, docker, required, inspect, service, hostJson };
 }
 
-const readyAudit = `const fs=require('node:fs');try{const r=JSON.parse(fs.readFileSync('/tmp/outray-probe-ready'));if(r.activation!==process.env.OUTRAY_PROBE_ACTIVATION_ID||!Number.isInteger(r.pid)||r.pid<2)process.exit(1);process.kill(r.pid,0);process.stdout.write('ready')}catch{process.exit(1)}`;
+const readyAudit = `const fs=require('node:fs');try{const r=JSON.parse(fs.readFileSync('/tmp/outray-probe-ready'));const ns=fs.readlinkSync('/proc/self/ns/net');if(r.activation!==process.env.OUTRAY_PROBE_ACTIVATION_ID||r.namespace!==ns||!Number.isInteger(r.pid)||r.pid<2||fs.readlinkSync('/proc/'+r.pid+'/ns/net')!==ns)process.exit(1);process.kill(r.pid,0);process.stdout.write('ready')}catch{process.exit(1)}`;
 const inertAudit = `const fs=require('node:fs');if(fs.existsSync('/tmp/outray-probe-activate')||fs.existsSync('/tmp/outray-probe-ready'))process.exit(1);process.stdout.write('inert')`;
+
+export function standardProbeMarkerCode(namespace) {
+  if (!/^net:\[\d+\]$/.test(namespace || "")) fail("A verified pinned network namespace is required.");
+  return `const fs=require('node:fs');const namespace=${JSON.stringify(namespace)};if(fs.readlinkSync('/proc/self/ns/net')!==namespace)process.exit(1);fs.writeFileSync('/tmp/outray-probe-activate',JSON.stringify({activation:process.env.OUTRAY_PROBE_ACTIVATION_ID,namespace}),{mode:0o600,flag:'wx'});`;
+}
 
 export async function activateStandardProbe(options = {}) {
   (options.assertHost || assertHost)();
   const root = resolve(options.root || defaultRoot), envFile = resolve(options.envFile || join(root, ".env.self-hosted"));
   if (!options.allowUpdateLock && (existsSync(join(root, ".self-hosted-state/update.lock")) || existsSync(join(root, ".self-hosted-state/maintenance.lock")))) fail("Probe activation is paused during installation maintenance.");
-  const config = privateConfiguration(envFile), context = dockerContext(options);
-  let ownedId, interrupted = false;
+  const context = dockerContext(options);
+  let ownedId, namespaceFd, retainedNamespace = false, interrupted = false;
+  const releaseNamespace = () => { if (namespaceFd !== undefined) { closeSync(namespaceFd); namespaceFd = undefined; } };
   const stopOwned = () => {
     if (!ownedId) return;
     const current = context.inspect("container", ownedId);
@@ -150,6 +159,7 @@ export async function activateStandardProbe(options = {}) {
   try {
     let probe = context.service("uptime-probe");
     ownedId = probe.Id;
+    const config = privateConfiguration(envFile);
     const pg = context.service("postgres"), pgEnv = containerEnv(pg), networks = pg.NetworkSettings?.Networks || {}, databaseNetwork = `${standardProbeProject}_database`;
     if (!pg.State?.Running || pg.State.Health?.Status !== "healthy" || pg.HostConfig?.Privileged || Object.keys(pg.HostConfig?.PortBindings || {}).length || Object.keys(networks).length !== 1 || !networks[databaseNetwork]) fail("The isolated standard PostgreSQL service must be healthy.");
     for (const key of ["POSTGRES_USER", "POSTGRES_DB", "POSTGRES_PASSWORD"]) if (pgEnv[key] !== config[key]) fail("PostgreSQL configuration differs from the installation.");
@@ -172,7 +182,14 @@ export async function activateStandardProbe(options = {}) {
       assertStandardProbe(probe, config, policy, postgresIp);
     }
     if (!probe.State.Running || !Number.isSafeInteger(probe.State.Pid) || probe.State.Pid < 2) fail("Inert probe namespace did not start.");
-    const namespace = { ...policyOptions, pid: probe.State.Pid };
+    // Keep the verified namespace alive. Firewall commands use the held FD,
+    // never a PID that might now refer to a different/restarted namespace.
+    namespaceFd = openSync(`/proc/${probe.State.Pid}/ns/net`, constants.O_RDONLY);
+    const namespacePath = `/proc/${process.pid}/fd/${namespaceFd}`;
+    const namespaceIdentity = readlinkSync(namespacePath);
+    if (!/^net:\[\d+\]$/.test(namespaceIdentity) || namespaceIdentity === readlinkSync("/proc/self/ns/net") || readlinkSync(`/proc/${probe.State.Pid}/ns/net`) !== namespaceIdentity) fail("Probe network namespace changed while being pinned.");
+    if (context.required(["exec", probe.Id, "node", "-e", "process.stdout.write(require('node:fs').readlinkSync('/proc/self/ns/net'))"]) !== namespaceIdentity) fail("Pinned namespace does not belong to the exact probe container.");
+    const namespace = { ...policyOptions, pid: probe.State.Pid, namespacePath };
     const alreadyReady = context.docker(["exec", probe.Id, "node", "-e", readyAudit]);
     if (alreadyReady.status === 0 && String(alreadyReady.stdout) === "ready") {
       policy.verifyProbeHostPolicy(policyOptions);
@@ -187,26 +204,27 @@ export async function activateStandardProbe(options = {}) {
       if (interrupted) fail("Probe activation was interrupted before authorization.");
       const current = context.inspect("container", probe.Id);
       assertStandardProbe(current, config, policy, postgresIp);
-      if (current.State?.Pid !== probe.State.Pid || !current.State?.Running) fail("Probe namespace changed during verification.");
-      context.required(["exec", probe.Id, "node", "-e", "require('node:fs').writeFileSync('/tmp/outray-probe-activate',process.env.OUTRAY_PROBE_ACTIVATION_ID,{mode:0o600,flag:'wx'})"]);
+      if (current.State?.Pid !== probe.State.Pid || !current.State?.Running || readlinkSync(`/proc/${probe.State.Pid}/ns/net`) !== namespaceIdentity) fail("Probe namespace changed during verification.");
+      context.required(["exec", probe.Id, "node", "-e", standardProbeMarkerCode(namespaceIdentity)]);
       let ready = false;
       for (let attempt = 0; attempt < 75; attempt++) {
         if (interrupted) fail("Probe activation was interrupted during readiness.");
         const current = context.inspect("container", probe.Id);
         assertStandardProbe(current, config, policy, postgresIp);
-        if (current.State?.Pid !== probe.State.Pid || !current.State?.Running) fail("Probe exited during activation.");
+        if (current.State?.Pid !== probe.State.Pid || !current.State?.Running || readlinkSync(`/proc/${probe.State.Pid}/ns/net`) !== namespaceIdentity) fail("Probe exited during activation.");
         if (context.docker(["exec", probe.Id, "node", "-e", readyAudit]).status === 0) { ready = true; break; }
         await (options.delay || delay)(1000);
       }
       if (!ready) fail("Probe readiness deadline expired.");
     }
+    retainedNamespace = options.holdNamespace === true;
     return {
-      id: probe.Id, pid: probe.State.Pid, endpoint: context.endpoint,
-      stop: stopOwned,
+      id: probe.Id, pid: probe.State.Pid, namespace: namespaceIdentity, endpoint: context.endpoint,
+      stop: () => { try { stopOwned(); } finally { releaseNamespace(); } },
       verify: () => {
         const current = context.service("uptime-probe"), currentPg = context.service("postgres");
         assertStandardProbe(current, config, policy, postgresIp);
-        if (current.Id !== probe.Id || current.State?.Pid !== probe.State.Pid || !current.State?.Running || currentPg.Id !== pg.Id || currentPg.NetworkSettings?.Networks?.[databaseNetwork]?.IPAddress !== postgresIp) fail("Probe/database identity changed; activation must be repeated.");
+        if (namespaceFd === undefined || current.Id !== probe.Id || current.State?.Pid !== probe.State.Pid || !current.State?.Running || readlinkSync(`/proc/${probe.State.Pid}/ns/net`) !== namespaceIdentity || currentPg.Id !== pg.Id || currentPg.NetworkSettings?.Networks?.[databaseNetwork]?.IPAddress !== postgresIp) fail("Probe/database identity changed; activation must be repeated.");
         const currentInterfaces = context.hostJson(["-j", "-4", "address", "show"]), currentRoutes = context.hostJson(["-j", "-4", "route", "show", "table", "all"]);
         if (JSON.stringify(probePolicyConfiguration(config, postgresIp, currentInterfaces, currentRoutes)) !== JSON.stringify(probePolicyConfiguration(config, postgresIp, interfaces, routes))) fail("Host routing changed; probe isolation must be reverified.");
         if (context.docker(["exec", probe.Id, "node", "-e", readyAudit]).status !== 0) fail("Probe readiness was lost.");
@@ -215,13 +233,13 @@ export async function activateStandardProbe(options = {}) {
       },
     };
   } catch (error) { try { stopOwned(); } catch { fail("Probe verification failed and its exact container needs operator stop/review."); } throw error; }
-  finally { process.removeListener("SIGTERM", interrupt); process.removeListener("SIGINT", interrupt); }
+  finally { if (!retainedNamespace) releaseNamespace(); process.removeListener("SIGTERM", interrupt); process.removeListener("SIGINT", interrupt); }
 }
 
 export function standardProbeUnitText({ root = defaultRoot, envFile = join(root, ".env.self-hosted"), node = process.execPath } = {}) {
   const script = join(resolve(root), "scripts/self-hosted-probe-lifecycle.mjs");
   for (const path of [resolve(root), resolve(envFile), node, script]) if (!/^\/[A-Za-z0-9_./-]+$/.test(path)) fail("Probe supervisor paths must be absolute and contain no shell/systemd escapes.");
-  return `${unitMarker}[Unit]\nDescription=OutRay self-hosted guarded Uptime probe\nRequires=docker.service\nAfter=docker.service network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nWorkingDirectory=${resolve(root)}\nExecStart=${node} ${script} supervise --root ${resolve(root)} --file ${resolve(envFile)}\nRestart=on-failure\nRestartSec=10\nTimeoutStopSec=45\nUser=root\nGroup=root\nNoNewPrivileges=yes\nProtectSystem=full\nProtectHome=yes\nPrivateTmp=yes\n\n[Install]\nWantedBy=multi-user.target\n`;
+  return `${unitMarker}[Unit]\nDescription=OutRay self-hosted guarded Uptime probe\nRequires=docker.service\nAfter=docker.service network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nWorkingDirectory=${resolve(root)}\nExecStart=${node} ${script} supervise --root ${resolve(root)} --file ${resolve(envFile)}\nRestart=on-failure\nRestartSec=10\nTimeoutStopSec=45\nUser=root\nGroup=root\nNoNewPrivileges=yes\nProtectSystem=full\nProtectHome=read-only\nPrivateTmp=yes\n\n[Install]\nWantedBy=multi-user.target\n`;
 }
 
 export function manageProbeSupervisor(action, options = {}) {
@@ -253,7 +271,7 @@ export async function superviseStandardProbe(options = {}) {
     const root = resolve(options.root || defaultRoot);
     while (!stopping && (existsSync(join(root, ".self-hosted-state/update.lock")) || existsSync(join(root, ".self-hosted-state/maintenance.lock")))) await (options.delay || delay)(1000);
     if (stopping) return;
-    active = await activateStandardProbe(options);
+    active = await activateStandardProbe({ ...options, holdNamespace: true });
     if (stopping) { active.stop(); return; }
     while (!stopping) {
       await (options.delay || delay)(15_000);
