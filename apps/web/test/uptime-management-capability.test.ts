@@ -89,6 +89,7 @@ async function routeHarness(path: string, role: string, denied = false) {
     if (specifier === "@/lib/uptime/validation") return { UPTIME_LIMITS: { monitors: 10, checkHistoryDays: 30 } };
     if (specifier === "@/lib/organization-entitlements.server") return { getOrganizationLimits: async (organizationId: string) => { scopes.push(organizationId); return { maxUptimeMonitors: 10 }; } };
     if (specifier === "@/lib/observability/alert-access" || specifier === "@/lib/secrets/database" || specifier === "@/lib/secrets/crypto") return {};
+    if (specifier === "@/lib/uptime/status-domain-provider.server") return {};
     throw new Error(`Unexpected capability route dependency: ${specifier}`);
   } });
   const get = (monitorId = "monitor-url") => module.exports.Route.server.handlers.GET({ request: new Request("https://example.test/api/url-workspace/uptime"), params: { orgSlug: "url-workspace", monitorId } });
