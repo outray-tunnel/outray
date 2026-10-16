@@ -1,5 +1,28 @@
 # OutRay web
 
+## Platform admin access
+
+`/admin` uses the regular GitHub/Google sign-in, followed by a server-side check
+of `users.is_admin`. Workspace owners/admins are not platform admins. New users
+default to `false`; clients and OAuth profile data cannot grant this privilege.
+The old admin passphrase and Redis bearer tokens no longer grant access.
+
+Migration `0035_platform_admin_profile.sql` adds the flag. Deploy it through the
+existing migration pipeline before releasing the web app. Nobody is automatically
+promoted. After the intended account has signed in, an operator can preview a
+grant against the installation's `DATABASE_URL`:
+
+```sh
+npm run admin:profile -- --email you@example.com --grant
+```
+
+Add `--apply` to save it. Use `--revoke` to remove access, or `--user-id` instead
+of email. The command does not load `.env`/`.env.prod` automatically; export the
+intended database configuration first (or explicitly use `dotenv -e .env --`).
+It only updates an existing profile, and grants require a linked GitHub/Google
+account. Every admin API request rechecks the live session and database flag, so
+revocation takes effect without waiting for the browser session to expire.
+
 ## Internal Ops observability
 
 The server entry sends request traces, HTTP metrics, bounded request/response
