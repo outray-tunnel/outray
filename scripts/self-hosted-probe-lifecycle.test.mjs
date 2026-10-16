@@ -59,6 +59,19 @@ test("all host addresses and nondefault routes enter the denial policy", () => {
   assert.doesNotThrow(() => createProbePolicy(result));
 });
 
+test("DHCP public resolver transit routes do not become local denial ranges", () => {
+  const result = probePolicyConfiguration(config, postgresIp,
+    [{ addr_info: [{ family: "inet", local: "209.74.86.89" }] }],
+    [{ dst: "1.1.1.1", gateway: "209.74.86.1", dev: "ens4", protocol: "dhcp" },
+      { dst: "209.74.86.0/24", dev: "ens4", scope: "link" },
+      { dst: "198.18.0.0/15", dev: "tun0" }]);
+  assert.deepEqual(result.blockedHostAddresses, ["198.18.0.0/15", "209.74.86.0/24", "209.74.86.89"]);
+  const guarded = createProbePolicy(result);
+  assert.ok(guarded.deniedProbeRanges.includes("10.0.0.0/8"));
+  assert.ok(guarded.deniedProbeRanges.includes("209.74.86.0/24"));
+  assert.ok(!guarded.deniedProbeRanges.includes("1.1.1.1/32"));
+});
+
 test("only inert isolated standard service metadata passes", () => {
   assert.doesNotThrow(() => assertStandardProbe(metadata(), config, policy, postgresIp));
   for (const change of [
