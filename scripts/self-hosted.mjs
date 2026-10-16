@@ -162,7 +162,7 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
     let probe;
     if (managedHost || workerEnabled || existsSync("/etc/systemd/system/outray-self-hosted-probe.service")) {
       probe = dependencies.probe || await import("./self-hosted-probe-lifecycle.mjs");
-      await probe.manageProbeSupervisor("stop", { root: checkout, envFile: file });
+      await probe.manageProbeSupervisor("stop", { root: checkout, envFile: file, endpoint });
     }
     if (!workerEnabled) {
       const found = docker(["ps", "-aq", "--filter", "label=com.docker.compose.project=outray-self-hosted", "--filter", "label=com.docker.compose.service=uptime-probe"], { encoding: "utf8", timeout: 30_000 });
@@ -195,7 +195,7 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
     if (result.status !== 0) throw new Error("Docker Compose did not complete successfully; inspect its service logs");
     if (workerEnabled) {
       await probe.activateStandardProbe({ root: checkout, envFile: file, endpoint, allowUpdateLock: true });
-      await probe.manageProbeSupervisor("start", { root: checkout, envFile: file });
+      await probe.manageProbeSupervisor("start", { root: checkout, envFile: file, endpoint });
     }
   } finally { await release(); }
 }
