@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { adminJson, requireAdminAccess } from "../../../lib/admin-access.server";
 import { db } from "../../../db";
 import { users, organizations, tunnels, subscriptions } from "../../../db/schema";
-import { redis } from "../../../lib/redis";
-import { hashToken } from "../../../lib/hash";
 import { sql, count, gte, desc, eq } from "drizzle-orm";
 import { queryTinybird } from "../../../lib/tinybird";
 
@@ -10,20 +9,8 @@ export const Route = createFileRoute("/api/admin/charts")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ")
-          ? authHeader.slice("Bearer ".length)
-          : "";
-
-        if (!token) {
-          return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists) {
-          return Response.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         try {
           const now = new Date();
@@ -150,7 +137,7 @@ export const Route = createFileRoute("/api/admin/charts")({
             return { date: row.date, total: cumulative };
           });
 
-          return Response.json({
+          return adminJson({
             userSignups,
             orgGrowth,
             subChanges,
@@ -164,7 +151,7 @@ export const Route = createFileRoute("/api/admin/charts")({
           });
         } catch (error) {
           console.error("Admin charts error:", error);
-          return Response.json({ error: "Failed to fetch chart data" }, { status: 500 });
+          return adminJson({ error: "Failed to fetch chart data" }, { status: 500 });
         }
       },
     },
