@@ -119,6 +119,14 @@ test("automatic instrumentation remains the default and can be disabled explicit
   assert.equal(resolveOutrayObservabilityOptions({ apiKey: "token", serviceName: "api", autoInstrumentations: false }, {}).autoInstrumentations, false);
 });
 
+test("additional log redaction fields are copied and remain compatible with legacy resolved options", () => {
+  const fields = ["value", "body"];
+  const resolved = resolveOutrayObservabilityOptions({ apiKey: "token", serviceName: "api", redactedLogFields: fields }, {});
+  fields.push("later");
+  assert.deepEqual(resolved.redactedLogFields, ["value", "body"]);
+  assert.deepEqual(resolveOutrayObservabilityOptions(legacyResolvedOptions, {}).redactedLogFields, []);
+});
+
 test("legacy resolved configs retain default-on instrumentation when reused", () => {
   assert.equal(
     resolveOutrayObservabilityOptions(legacyResolvedOptions, {}).autoInstrumentations,
