@@ -38,6 +38,18 @@ never removed. Unlabelled/mismatched resources or a shared egress network are
 refused. Switching maintenance/proxy replaces only the exact owned gateway
 container by inspected ID, preserving all volumes and application containers.
 
+Status-page logos use the separate labelled local volume
+`outray-ops-rehearsal-status-page-logos`, mounted only into the public console at
+`/var/lib/outray/status-page-logos`. The console serves those public images from
+`https://ops.outray.dev/status-page-logos/`; the renderer needs no disk mount.
+The web runner refuses an unlabelled, foreign or driver-configured volume and
+checks non-root write/read/remove access without network or credentials before
+replacing an old console. A fresh volume inherits `node` ownership from the
+image. Incompatible existing ownership is refused, never automatically changed.
+Logo files and their volume are retained during replacement, maintenance and
+rollback; back them up with PostgreSQL. Upgrading an older no-volume console
+requires the same explicit `--replace-owned` maintenance sequence below.
+
 ## Operator sequence
 
 Run from the repository root on the authorized host. `PRIVATE_FRESH_CONFIG` below
