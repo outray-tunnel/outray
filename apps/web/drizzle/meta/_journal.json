@@ -239,6 +239,13 @@
       "when": 1792151019712,
       "tag": "0033_status_cloudflare_hostnames",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792165907456,
+      "tag": "0034_product_email_outbox",
+      "breakpoints": true
     }
   ]
 }
