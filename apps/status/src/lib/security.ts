@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { isIP } from "node:net";
 import { getStatusConfig } from "./config";
+import { getStatusRuntime, isStatusProduction, statusEnvironment } from "./runtime";
 
 export function newToken(): string {
   return randomBytes(32).toString("base64url");
@@ -12,7 +13,7 @@ export function tokenHash(token: string): string {
 
 export function hashRateKey(kind: "ip" | "email", value: string): string {
   const secret = getStatusConfig().rateLimitSecret;
-  if (!secret && process.env.NODE_ENV === "production") {
+  if (!secret && isStatusProduction()) {
     throw new Error("UPTIME_RATE_LIMIT_SECRET is required");
   }
   return createHmac("sha256", secret || "local-development-only")
@@ -48,7 +49,7 @@ export function verifyUnsubscribeToken(token: string): { subscriberId: string; p
 
 function signUnsubscribe(payload: string): string {
   const secret = getStatusConfig().unsubscribeSecret;
-  if (!secret && process.env.NODE_ENV === "production") {
+  if (!secret && isStatusProduction()) {
     throw new Error("UPTIME_UNSUBSCRIBE_SECRET is required");
   }
   return createHmac("sha256", secret || "local-development-only")
@@ -63,14 +64,22 @@ export function normalizeEmail(value: string): string | null {
 }
 
 export function safeClientIp(request: Request, clientAddress?: string): string {
+  const runtime = getStatusRuntime();
+  if (runtime) {
+    // The adapter/Worker entry establishes this scope. Public X-Outray headers
+    // never establish Worker trust or override Cloudflare's connection address.
+    const address = runtime.request.headers.get("cf-connecting-ip")?.trim() || "";
+    if (isIP(address)) return address;
+    throw new Error("Trusted client IP unavailable");
+  }
   // Only trust an address constructed by the edge, never client-supplied X-Forwarded-For.
-  const configured = process.env.STATUS_EDGE_SECRET;
+  const configured = statusEnvironment().STATUS_EDGE_SECRET;
   const supplied = request.headers.get("x-outray-edge-secret");
   if (configured && supplied === configured) {
     const edgeIp = request.headers.get("x-outray-client-ip")?.trim() || "";
     if (isIP(edgeIp)) return edgeIp;
   }
-  if (process.env.NODE_ENV === "production") {
+  if (isStatusProduction()) {
     throw new Error("Trusted client IP unavailable");
   }
   return clientAddress || "unknown";
@@ -83,7 +92,7 @@ export function isSameOrigin(request: Request): boolean {
     const expectedHost = request.headers.get("host") || new URL(request.url).host;
     const parsedOrigin = new URL(origin);
     return parsedOrigin.host.toLowerCase() === expectedHost.toLowerCase() &&
-      (parsedOrigin.protocol === "https:" || process.env.NODE_ENV !== "production");
+      (parsedOrigin.protocol === "https:" || !isStatusProduction());
   } catch {
     return false;
   }
