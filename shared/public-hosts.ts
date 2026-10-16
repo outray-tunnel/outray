@@ -89,4 +89,4 @@ export function tunnelRootRedirect(host: string, base: string, path: string, env
 }
 
 // Node workers also consume these helpers through CommonJS in development.
-export default { canonicalStatusHostname, statusPublicOrigin, tunnelBaseDomain, infrastructureHostnames, tunnelRootRedirect, normalizePublicHostname, isTunnelControlHost, isReservedStatusCustomDomain, tunnelDnsHostname };
+export default { publicOrigin, canonicalStatusHostname, statusPublicOrigin, tunnelBaseDomain, infrastructureHostnames, tunnelRootRedirect, normalizePublicHostname, isTunnelControlHost, isReservedStatusCustomDomain, tunnelDnsHostname };
