@@ -7,14 +7,6 @@
     "observability",
     "secrets",
     "uptime",
-    "platform",
-    "---Tunnel quickstart---",
-    "...(getting-started)",
-    "---Tunnel features---",
-    "...(platform-features)",
-    "---SDKs & integrations---",
-    "...(plugins-and-sdks)",
-    "---Tunnel reference---",
-    "...(reference)"
+    "platform"
   ]
 }
