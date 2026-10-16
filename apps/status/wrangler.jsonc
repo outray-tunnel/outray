@@ -1,0 +1,25 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "outray-status-worker",
+  "account_id": "c24bce6c7c75dad3f96b41f09a1f00d5",
+  "main": "dist-worker/_worker.js/index.js",
+  "compatibility_date": "2026-10-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": "./dist-worker", "binding": "ASSETS" },
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  // Production routes are deliberately separate from code deployment. Never
+  // claim *.outray.app: that wildcard also carries live customer tunnels.
+  "vars": {
+    "OUTRAY_DEPLOYMENT_MODE": "hosted",
+    "OUTRAY_PRODUCTS": "tunnels,observability,secrets,uptime",
+    "OUTRAY_STATUS_URL": "https://status.outray.app",
+    "UPTIME_ENABLED": "true",
+  },
+  "hyperdrive": [
+    { "binding": "HYPERDRIVE", "id": "dbad19c888b34b9bbcad5da9e30b66a2" },
+  ],
+  // Enable STATUS_SNAPSHOTS only after publication/domain revocation purges
+  // are wired. The private bucket alone must not prolong revoked pages.
+}
