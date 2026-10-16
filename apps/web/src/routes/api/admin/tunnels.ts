@@ -1,29 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { adminJson, requireAdminAccess } from "../../../lib/admin-access.server";
 import { db } from "../../../db";
 import { tunnels, users, organizations } from "../../../db/schema";
 import { redis } from "../../../lib/redis";
-import { hashToken } from "../../../lib/hash";
 import { sql, count, desc, like, or, eq, inArray } from "drizzle-orm";
 
 export const Route = createFileRoute("/api/admin/tunnels")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        // Admin token check
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ")
-          ? authHeader.slice("Bearer ".length)
-          : "";
-
-        if (!token) {
-          return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists) {
-          return Response.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         try {
           const url = new URL(request.url);
@@ -69,7 +56,7 @@ export const Route = createFileRoute("/api/admin/tunnels")({
           if (activeOnly) {
             if (onlineTunnelIds.size === 0) {
               // No online tunnels, return empty
-              return Response.json({
+              return adminJson({
                 tunnels: [],
                 total: 0,
                 page,
@@ -143,7 +130,7 @@ export const Route = createFileRoute("/api/admin/tunnels")({
             .from(tunnels)
             .groupBy(tunnels.protocol);
 
-          return Response.json({
+          return adminJson({
             tunnels: tunnelsWithStatus,
             total: totalResult.count,
             page,
@@ -158,7 +145,7 @@ export const Route = createFileRoute("/api/admin/tunnels")({
           });
         } catch (error) {
           console.error("Admin tunnels error:", error);
-          return Response.json(
+          return adminJson(
             { error: "Failed to fetch tunnels" },
             { status: 500 },
           );
@@ -167,27 +154,14 @@ export const Route = createFileRoute("/api/admin/tunnels")({
 
       // POST endpoint for cleanup of stale tunnels
       POST: async ({ request }) => {
-        // Admin token check
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ")
-          ? authHeader.slice("Bearer ".length)
-          : "";
-
-        if (!token) {
-          return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists) {
-          return Response.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         try {
           const body = (await request.json()) as { action?: string };
 
           if (body.action !== "cleanup") {
-            return Response.json({ error: "Invalid action" }, { status: 400 });
+            return adminJson({ error: "Invalid action" }, { status: 400 });
           }
 
           console.log("[ADMIN] Starting stale tunnel cleanup...");
@@ -256,7 +230,7 @@ export const Route = createFileRoute("/api/admin/tunnels")({
             `[ADMIN] Cleanup complete: checked ${totalChecked} entries, removed ${totalRemoved} stale entries`,
           );
 
-          return Response.json({
+          return adminJson({
             success: true,
             checked: totalChecked,
             removed: totalRemoved,
@@ -264,7 +238,7 @@ export const Route = createFileRoute("/api/admin/tunnels")({
           });
         } catch (error) {
           console.error("Admin tunnel cleanup error:", error);
-          return Response.json(
+          return adminJson(
             { error: "Failed to cleanup tunnels" },
             { status: 500 },
           );
