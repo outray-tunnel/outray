@@ -417,7 +417,7 @@ export function startOutrayObservability(
 
   if (!config.enabled) {
     const logger = logs.getLogger(config.serviceName, config.serviceVersion);
-    const logMethods = createOutrayLogMethods(logger, console, config.shouldCaptureLog);
+    const logMethods = createOutrayLogMethods(logger, console, config.shouldCaptureLog, config.redactedLogFields);
     const disabled: OutrayObservability = {
       ...logMethods,
       config,
@@ -474,9 +474,9 @@ export function startOutrayObservability(
   sdk.start();
 
   const logger = logs.getLogger(config.serviceName, config.serviceVersion);
-  const logMethods = createOutrayLogMethods(logger, console, config.shouldCaptureLog);
+  const logMethods = createOutrayLogMethods(logger, console, config.shouldCaptureLog, config.redactedLogFields);
   const restoreConsole = config.captureConsole
-    ? captureConsoleLogs(logger, console, config.shouldCaptureLog)
+    ? captureConsoleLogs(logger, console, config.shouldCaptureLog, config.redactedLogFields)
     : () => {};
   let consoleRestored = false;
   const restoreConsoleOnce = () => {
