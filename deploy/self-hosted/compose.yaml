@@ -176,7 +176,6 @@ services:
       OUTRAY_DISCORD_CLIENT_SECRET: ${OUTRAY_DISCORD_CLIENT_SECRET:-}
       XAI_API_KEY: ${XAI_API_KEY:-}
       AGENT_GROK_MODEL: ${AGENT_GROK_MODEL:-grok-4.7}
-      ADMIN_PASSPHRASE: ${ADMIN_PASSPHRASE:?Run the self-hosted initializer}
     volumes:
       - status-page-logos:/var/lib/outray/status-page-logos
     depends_on: *dependencies
