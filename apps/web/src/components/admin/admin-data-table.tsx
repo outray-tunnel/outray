@@ -1,5 +1,8 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import ArrowLeft01Icon from "@outray/icons/stroke/ArrowLeft01Icon";
+import ArrowRight01Icon from "@outray/icons/stroke/ArrowRight01Icon";
 import type { ReactNode } from "react";
+import { Button } from "@/components/arc/button/button";
 
 export interface Column<T> {
   key: string;
@@ -28,36 +31,39 @@ export function AdminDataTable<T extends { id: string }>({
   emptyMessage = "No data found",
 }: AdminDataTableProps<T>) {
   return (
-    <div className="bg-white/2 border border-white/5 rounded-2xl overflow-hidden">
+    <div className="overflow-hidden rounded-xl border border-white/[.08] bg-[#101010]">
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" aria-busy={isLoading || undefined}>
           <thead>
-            <tr className="border-b border-white/5">
+            <tr className="border-b border-white/[.06] bg-white/[.015]">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${col.className || ""}`}
+                  scope="col"
+                  className={`px-4 py-3 text-left text-xs font-medium text-zinc-500 ${col.className || ""}`}
                 >
                   {col.header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
-            {isLoading ? (
-              <tr>
-                <td
-                  colSpan={columns.length}
-                  className="px-6 py-12 text-center text-gray-500"
-                >
-                  Loading...
-                </td>
-              </tr>
+          <tbody className="divide-y divide-white/[.06]">
+            {isLoading && data.length === 0 ? (
+              Array.from({ length: 5 }, (_, row) => (
+                <tr key={`loading-${row}`}>
+                  {columns.map((col, index) => (
+                    <td key={col.key} className={`px-4 py-4 ${col.className || ""}`}>
+                      {row === 0 && index === 0 ? <span className="sr-only">Loading records…</span> : null}
+                      <div aria-hidden="true" className={`h-3.5 rounded bg-white/[.05] motion-safe:animate-pulse ${index === 0 ? "w-28" : "w-16"}`} />
+                    </td>
+                  ))}
+                </tr>
+              ))
             ) : data.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-6 py-12 text-center text-gray-500"
+                  className="px-4 py-14 text-center text-[13px] text-zinc-500"
                 >
                   {emptyMessage}
                 </td>
@@ -66,16 +72,16 @@ export function AdminDataTable<T extends { id: string }>({
               data.map((item) => (
                 <tr
                   key={item.id}
-                  className="hover:bg-white/2 transition-colors"
+                  className="transition-colors hover:bg-white/[.025]"
                 >
                   {columns.map((col) => (
                     <td
                       key={col.key}
-                      className={`px-6 py-4 text-sm text-gray-300 ${col.className || ""}`}
+                      className={`px-4 py-3 text-[13px] text-zinc-300 ${col.className || ""}`}
                     >
                       {col.render
                         ? col.render(item)
-                        : (item as any)[col.key]?.toString() || "-"}
+                        : cellValue(item, col.key)}
                     </td>
                   ))}
                 </tr>
@@ -86,28 +92,41 @@ export function AdminDataTable<T extends { id: string }>({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-6 py-4 border-t border-white/5">
-          <span className="text-sm text-gray-500">
+        <div className="flex items-center justify-between gap-3 border-t border-white/[.06] px-4 py-3">
+          <span className="text-xs text-zinc-500" aria-live="polite">
             Page {page} of {totalPages}
           </span>
-          <div className="flex gap-2">
-            <button
+          <nav aria-label="Table pagination" className="flex gap-1.5">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1}
-              className="p-2 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              disabled={isLoading || page <= 1}
+              aria-label="Previous page"
+              className="w-8 min-w-8 px-0!"
             >
-              <ChevronLeft size={16} />
-            </button>
-            <button
+              <HugeiconsIcon icon={ArrowLeft01Icon} size={15} strokeWidth={1.7} aria-hidden="true" />
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => onPageChange(page + 1)}
-              disabled={page >= totalPages}
-              className="p-2 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              disabled={isLoading || page >= totalPages}
+              aria-label="Next page"
+              className="w-8 min-w-8 px-0!"
             >
-              <ChevronRight size={16} />
-            </button>
-          </div>
+              <HugeiconsIcon icon={ArrowRight01Icon} size={15} strokeWidth={1.7} aria-hidden="true" />
+            </Button>
+          </nav>
         </div>
       )}
     </div>
   );
+}
+
+function cellValue(item: object, key: string) {
+  const value: unknown = Reflect.get(item, key);
+  return value == null || value === "" ? "—" : String(value);
 }
