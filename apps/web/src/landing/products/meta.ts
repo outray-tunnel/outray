@@ -1,10 +1,10 @@
 import { products, type ProductId } from "./content";
 
-export function productPageHead(product?: ProductId, siteUrl = import.meta.env.PUBLIC_SITE_URL?.trim()) {
-  const content = product ? products[product] : undefined;
-  const title = content ? `${content.name} — OutRay` : "Products — OutRay";
-  const description = content?.description ?? "Explore OutRay Tunnels, Observability, Secrets, and Uptime: connected developer tools from a local service to a running application.";
-  const path = product ? `/products/${product}` : "/products";
+export function productPageHead(product: ProductId, siteUrl = import.meta.env.PUBLIC_SITE_URL?.trim()) {
+  const content = products[product];
+  const title = `${content.name} — OutRay`;
+  const description = content.description;
+  const path = `/products/${product}`;
   const canonical = siteUrl ? new URL(path, siteUrl).toString() : undefined;
   const image = siteUrl ? new URL("/og-image.png", siteUrl).toString() : "/og-image.png";
 
