@@ -5,9 +5,11 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { resolveOutrayObservabilityOptions } from "../src/config";
 
-async function sdkConfiguration(autoInstrumentations?: boolean) {
+async function sdkConfiguration(autoInstrumentations?: boolean, logOptions: { captureConsole?: boolean; redactedLogFields?: readonly string[]; enabled?: boolean } = {}) {
   let captured: { instrumentations: unknown[] } | undefined;
   let started = false;
+  const logCalls: unknown[][] = [];
+  const consoleCalls: unknown[][] = [];
   class Component {
     forceFlush = async () => {};
   }
@@ -25,7 +27,10 @@ async function sdkConfiguration(autoInstrumentations?: boolean) {
     require: (specifier: string) => {
       if (specifier === "../package.json") return { version: "test" };
       if (specifier === "./config") return { resolveOutrayObservabilityOptions: (options: Parameters<typeof resolveOutrayObservabilityOptions>[0]) => resolveOutrayObservabilityOptions(options, {}), signalEndpoint: (endpoint: string, signal: string) => `${endpoint}/v1/${signal}` };
-      if (specifier === "./logging") return { createOutrayLogMethods: () => ({}), captureConsoleLogs: () => { throw new Error("console capture must remain off"); } };
+      if (specifier === "./logging") return {
+        createOutrayLogMethods: (...args: unknown[]) => { logCalls.push(args); return {}; },
+        captureConsoleLogs: (...args: unknown[]) => { consoleCalls.push(args); return () => {}; },
+      };
       if (specifier === "@opentelemetry/api") return { trace: { getTracer: () => ({}) }, metrics: { getMeter: () => ({}) } };
       if (specifier === "@opentelemetry/api-logs") return { logs: { getLogger: () => ({}) } };
       if (specifier === "@opentelemetry/sdk-node") return { NodeSDK: SDK };
@@ -33,8 +38,8 @@ async function sdkConfiguration(autoInstrumentations?: boolean) {
       return new Proxy({}, { get: () => Component });
     },
   });
-  const instance = module.exports.startOutrayObservability({ apiKey: "test-token", serviceName: "test", autoInstrumentations });
-  return { captured, started, instance };
+  const instance = module.exports.startOutrayObservability({ apiKey: "test-token", serviceName: "test", autoInstrumentations, ...logOptions });
+  return { captured, started, instance, logCalls, consoleCalls };
 }
 
 test("ordinary SDK startup retains all nine automatic instrumentations", async () => {
@@ -42,6 +47,7 @@ test("ordinary SDK startup retains all nine automatic instrumentations", async (
   assert.equal(result.started, true);
   assert.equal(result.instance.started, true);
   assert.equal(result.captured?.instrumentations.length, 9);
+  assert.equal(result.consoleCalls.length, 0);
 });
 
 test("framework-only SDK starts exporters without automatic instrumentation", async () => {
@@ -49,4 +55,13 @@ test("framework-only SDK starts exporters without automatic instrumentation", as
   assert.equal(result.started, true);
   assert.equal(result.instance.started, true);
   assert.equal(result.captured?.instrumentations.length, 0);
+});
+
+test("SDK startup forwards additional log redaction fields to captured console and explicit methods", async () => {
+  const result = await sdkConfiguration(false, { captureConsole: true, redactedLogFields: ["value", "body"] });
+  assert.deepEqual(result.logCalls[0]?.[3], ["value", "body"]);
+  assert.deepEqual(result.consoleCalls[0]?.[3], ["value", "body"]);
+  const disabled = await sdkConfiguration(false, { enabled: false, redactedLogFields: ["value"] });
+  assert.deepEqual(disabled.logCalls[0]?.[3], ["value"]);
+  assert.equal(disabled.consoleCalls.length, 0);
 });
