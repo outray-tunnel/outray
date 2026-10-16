@@ -165,7 +165,7 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
       await probe.manageProbeSupervisor("stop", { root: checkout, envFile: file, endpoint });
     }
     if (!workerEnabled) {
-      const found = docker(["ps", "-aq", "--filter", "label=com.docker.compose.project=outray-self-hosted", "--filter", "label=com.docker.compose.service=uptime-probe"], { encoding: "utf8", timeout: 30_000 });
+      const found = docker(["ps", "-aq", "--no-trunc", "--filter", "label=com.docker.compose.project=outray-self-hosted", "--filter", "label=com.docker.compose.service=uptime-probe"], { encoding: "utf8", timeout: 30_000 });
       if (found.status !== 0) throw new Error("Cannot inspect the disabled standard Uptime worker.");
       const ids = String(found.stdout).trim().split(/\s+/).filter(Boolean);
       if (ids.length > 1 || ids.some((id) => !/^[a-f0-9]{64}$/.test(id))) throw new Error("Disabled Uptime worker identity is ambiguous; no unrelated containers were stopped.");
@@ -177,10 +177,12 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
         if (inspected.status !== 0 || !Array.isArray(containers) || containers.length !== 1 || worker?.Id !== ids[0] || worker.Config?.Labels?.["com.docker.compose.project"] !== "outray-self-hosted" || worker.Config?.Labels?.["com.docker.compose.service"] !== "uptime-probe") throw new Error("Disabled Uptime worker ownership changed; no unrelated containers were stopped.");
         if (worker.State?.Running && docker(["stop", "--time", "30", worker.Id], { timeout: 60_000, stdio: ["ignore", "pipe", "pipe"] }).status !== 0) throw new Error("Could not stop the disabled standard Uptime worker.");
       }
-    } else {
-      dockerArgs.push("--profile", "uptime-worker");
-      const infrastructure = docker([...dockerArgs, "up", "--detach", "--wait", "postgres", "redis"], { stdio: ["ignore", "pipe", "pipe"], timeout: 180_000 });
-      if (infrastructure.status !== 0) throw new Error("Database/Redis startup failed; no Uptime worker was activated.");
+    } else dockerArgs.push("--profile", "uptime-worker");
+    const built = docker([...dockerArgs, "build", "web"], { stdio: "inherit", timeout: 60 * 60_000 });
+    if (built.error || built.status !== 0) throw new Error("Docker Compose did not complete the shared image build; applications were not started.");
+    const infrastructure = docker([...dockerArgs, "up", "--detach", "--wait", "postgres", "redis"], { stdio: ["ignore", "pipe", "pipe"], timeout: 180_000 });
+    if (infrastructure.status !== 0) throw new Error("Database/Redis startup failed; applications were not started.");
+    if (workerEnabled) {
       const id = docker([...dockerArgs, "ps", "--quiet", "postgres"], { encoding: "utf8", timeout: 30_000 });
       if (id.status !== 0 || !/^[a-f0-9]{64}$/.test(id.stdout.trim())) throw new Error("Cannot identify the standard PostgreSQL service.");
       const inspected = docker(["container", "inspect", id.stdout.trim()], { encoding: "utf8", timeout: 30_000 });
@@ -189,8 +191,14 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
       if (pg.Config?.Labels?.["com.docker.compose.project"] !== "outray-self-hosted" || pg.Config.Labels["com.docker.compose.service"] !== "postgres") throw new Error("Unexpected database ownership; Uptime worker was not activated.");
       Object.assign(env, probe.probeComposeEnvironment(env, pg.NetworkSettings?.Networks?.["outray-self-hosted_database"]?.IPAddress));
     }
-    dockerArgs.push("up", "--detach", "--build");
-    const result = docker(dockerArgs, { stdio: "inherit" });
+    const migrated = docker([...dockerArgs, "run", "-T", "--rm", "--no-deps", "migrate"], { stdio: ["ignore", "pipe", "pipe"], timeout: 45 * 60_000 });
+    if (migrated.status !== 0) throw new Error("Committed migration/bootstrap did not complete; applications were not started and private diagnostics were suppressed.");
+    // Claim the fixed proxy IP before any dynamic application endpoint exists.
+    // --no-deps bypasses Caddy's normal health dependencies until apps start.
+    const gateway = docker([...dockerArgs, "up", "--detach", "--no-deps", "--wait", "--wait-timeout", "180", "caddy"], { stdio: ["ignore", "pipe", "pipe"], timeout: 210_000 });
+    if (gateway.status !== 0) throw new Error("Gateway startup failed; application startup was refused to preserve the fixed proxy address.");
+    const applicationServices = ["web", "internal-check", "tunnel", "ingest", "cron", "status", "secrets-share", ...(workerEnabled ? ["uptime-probe"] : [])];
+    const result = docker([...dockerArgs, "up", "--detach", "--no-deps", "--no-build", ...applicationServices], { stdio: "inherit" });
     if (result.error) throw new Error("Could not start Docker Compose. Install Docker Engine/Compose and check its daemon.");
     if (result.status !== 0) throw new Error("Docker Compose did not complete successfully; inspect its service logs");
     if (workerEnabled) {
