@@ -43,17 +43,52 @@ steps:
       - tb --cloud --host "$TINYBIRD_HOST" --token "$TINYBIRD_TOKEN" deploy --check
       - tb --cloud --host "$TINYBIRD_HOST" --token "$TINYBIRD_TOKEN" deploy
 
-  # The status renderer must be healthy before the edge route is switched.
+  # Keep the working VPS deployment until Cloudflare account/hostname setup is
+  # complete. To cut over: add cloudflare_api_token, enable its binding below,
+  # and deliberately change STATUS_DEPLOY_TARGET to cloudflare. A missing new
+  # secret cannot break the default VPS pipeline because it is not requested.
+  # The Node artifact is still built above for self-hosting and rollback.
   - name: deploy-status
     image: node:20-bookworm
     environment:
+      STATUS_DEPLOY_TARGET: vps
+      # CLOUDFLARE_API_TOKEN:
+      #   from_secret: cloudflare_api_token
       EDGE_SSH_KEY:
         from_secret: edge_ssh_key
       UNBE_TOKEN:
         from_secret: unbe_token
     commands:
       - apt-get update -qq && apt-get install -y -qq openssh-client
-      - bash deploy/woodpecker/deploy-service.sh status
+      - |
+        set +x
+        set -e
+        case "$STATUS_DEPLOY_TARGET" in
+          vps)
+            bash deploy/woodpecker/deploy-service.sh status
+            ;;
+          cloudflare)
+            if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+              echo "Configure cloudflare_api_token and enable its CI binding before selecting cloudflare." >&2
+              exit 1
+            fi
+            if [ -z "$EDGE_SSH_KEY" ]; then
+              echo "edge_ssh_key is required to read the existing Status configuration." >&2
+              exit 1
+            fi
+            status_deploy_temp_dir="$(mktemp -d)"
+            trap 'rm -f "$status_deploy_temp_dir/id_ed25519"; rmdir "$status_deploy_temp_dir"' EXIT
+            umask 077
+            printf '%s\n' "$EDGE_SSH_KEY" > "$status_deploy_temp_dir/id_ed25519"
+            install -d -m 700 /root/.ssh
+            printf '%s\n' '[209.74.86.123]:22022 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMVzpFu9vNmrf14y8P/fPcKFxftQkUmMVZjTV4+aHkv4' >> /root/.ssh/known_hosts
+            node apps/status/scripts/deploy-worker.mjs --source-ssh root@209.74.86.123 --ssh-port 22022 --ssh-key "$status_deploy_temp_dir/id_ed25519"
+            ;;
+          *)
+            echo "STATUS_DEPLOY_TARGET must be vps or cloudflare." >&2
+            exit 1
+            ;;
+        esac
 
   - name: deploy-edge
     image: node:20-bookworm
