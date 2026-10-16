@@ -232,6 +232,13 @@
       "when": 1791905582154,
       "tag": "0032_uptime_subscriber_management",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792151019712,
+      "tag": "0033_status_cloudflare_hostnames",
+      "breakpoints": true
     }
   ]
 }
