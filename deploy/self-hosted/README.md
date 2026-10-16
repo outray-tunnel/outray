@@ -86,6 +86,35 @@ Persist Caddy's certificate volumes. Repeated certificate issuance or many new t
 
 For custom domains, use the TXT challenge supplied in the console and its configured CNAME target: tunnel domains point to the edge hostname; status domains point to the canonical status hostname. Public status domains also need the tenant's published status-page binding. Internal infrastructure and the status/tunnel namespaces cannot be claimed as customer status domains.
 
+### Status-page logos
+
+Self-hosted uploads stay on your own disk, not Cloudflare. Compose mounts the
+`status-page-logos` named volume into **web only** at
+`/var/lib/outray/status-page-logos` and sets `STATUS_PAGE_LOGOS_DIR` to that path.
+The image creates the mount point with the non-root `node` user's ownership;
+the rest of the container filesystem remains read-only. Keep this volume when
+replacing containers and include it in backups.
+
+The console serves the images publicly at
+`https://ops.example.com/status-page-logos/<random-id>.png` (or `.webp`), using
+the installation's configured console origin. The status renderer reads that
+URL from PostgreSQL; it does not need a disk mount. Uploads accept PNG/WebP up
+to 256 KiB. For a bare Node deployment, create a persistent directory writable
+by the web process and set `STATUS_PAGE_LOGOS_DIR` yourself.
+
+Only the URL is stored in PostgreSQL for new uploads. Existing base64 data-URL
+logos still render; they are not automatically copied to disk. Replacing a logo
+creates a new immutable filename. Old objects are retained until ownership and
+references can be tracked for safe cleanup, so include retained files in your
+disk-capacity planning.
+
+Hosted OutRay instead stores logos under `uptime-logos/` in the existing
+Cloudflare R2 bucket `outray` and serves them through
+`https://delivery.outray.co/uptime-logos/<random-id>.<extension>`. Its web
+runtime uses `DELIVERY_PUBLIC_URL` and a server-only `DELIVERY_UPLOAD_TOKEN`
+to reach the delivery Worker's authenticated upload API. Self-hosters do not
+need those credentials or an R2 account.
+
 ## 3. Validate, build, and start
 
 ```bash
@@ -208,7 +237,7 @@ This isolates Ops from routine hosted edge/database deployments; it does not eli
 
 ## Upgrades, backups, and limits
 
-- Back up PostgreSQL, persistent Redis data, `.env.self-hosted`/master keys, and Caddy certificate state. Test restoration before using real vault values. Losing the last master-key copy makes wrapped vault keys unrecoverable.
+- Back up PostgreSQL, persistent Redis data, the `status-page-logos` volume, `.env.self-hosted`/master keys, and Caddy certificate state. Test restoration before using real vault values. Losing the last master-key copy makes wrapped vault keys unrecoverable.
 - Review committed migrations before upgrading; back up first, then run `self-host:up`. For an explicit migration retry after a failed job, use `docker compose --project-name outray-self-hosted --env-file .env.self-hosted -f deploy/self-hosted/compose.yaml run --rm migrate`. This modifies only the installation DB selected by that env file.
 - Do not use `down --volumes` during upgrades. It deletes persistent data; ordinary container replacement retains named volumes.
 - Keep old encryption keys in `OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS` during a documented key rotation. Do not rerun initialization to rotate an existing database's credentials.
