@@ -5,6 +5,7 @@ export function getRouter() {
   const router = createRouter({
     routeTree,
     scrollRestoration: true,
+    scrollRestorationBehavior: "instant",
     getScrollRestorationKey: (location) => /\/uptime\/incidents\/?$/.test(location.pathname)
       ? location.href
       : location.state.__TSR_key || location.href,
