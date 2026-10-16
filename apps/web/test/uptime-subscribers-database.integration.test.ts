@@ -7,6 +7,7 @@ import ts from "typescript";
 import * as drizzleOperators from "drizzle-orm";
 import * as subscriberApi from "../src/lib/uptime/subscriber-api";
 import { publishUptimeUpdate } from "../src/lib/uptime/incident-api";
+import emailDesign from "../../../shared/email-template";
 
 const enabled = process.env.OUTRAY_RUN_DB_INTEGRATION === "1";
 
@@ -140,6 +141,7 @@ test("real subscriber API and delivery preserve consent, isolate tenants, and se
         if (specifier === "./config") return { config: { zeptoApiKey: "fake-test-token", statusPublicUrl: "https://status.integration.invalid", unsubscribeSecret: "fake-test-signing-key" } };
         if (specifier === "@outray/incident-content") return { renderIncidentHtml: () => "Approved stored note" };
         if (specifier === "../../../shared/email-sender") return { emailSender: () => ({ address: "no-reply@integration.invalid", name: "Status" }) };
+        if (specifier === "../../../shared/email-template") return emailDesign;
         return {};
       } });
     await module.exports.pollUptimeNotifications(pool);
