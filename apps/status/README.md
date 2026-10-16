@@ -25,7 +25,7 @@ Required in production:
 - `STATUS_EDGE_SECRET` (private header value set by the edge for trusted client IP forwarding)
 - `ZEPTO_API_KEY` for confirmation email delivery
 
-Optional: `ZEPTO_FROM_EMAIL` (defaults to `no-reply@outray.dev`), `DATABASE_SSL_REJECT_UNAUTHORIZED=false` only for a trusted private database connection, `UPTIME_ENABLED=false` to disable public pages and signups.
+Optional: `ZEPTO_FROM_EMAIL` (defaults to `no-reply@outray.co`), `DATABASE_SSL_REJECT_UNAUTHORIZED=false` only for a trusted private database connection, `UPTIME_ENABLED=false` to disable public pages and signups.
 
 The edge must set `Host` to the original external hostname, strip any incoming `X-Outray-Edge-Secret` and `X-Outray-Client-IP`, and set its own `X-Outray-Edge-Secret` plus `X-Outray-Client-IP` containing a validated client address. Do not derive the client address from an untrusted incoming `X-Forwarded-For`. Do not expose the standalone service port to the public network. Canonical pages live at `https://<page-slug>.status.outray.app/`; an active status-purpose domain bound to a published page also serves that page at `/`. The base `OUTRAY_STATUS_URL` host handles health and subscription confirmation/unsubscribe routes, but has no default customer page. Legacy `/<page-slug>` links redirect to the page's subdomain.
 
