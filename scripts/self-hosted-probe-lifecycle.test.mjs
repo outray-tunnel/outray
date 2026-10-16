@@ -35,6 +35,9 @@ test("probe lifecycle options remain generic and reject unknown flags", () => {
   assert.deepEqual(standardProbeOptions(["supervise", "--file", "/opt/outray/config/instance.env"], "/opt/outray/source"), { command: "supervise", root: "/opt/outray/source", envFile: "/opt/outray/config/instance.env" });
   assert.throws(() => standardProbeOptions(["--image", "unverified-image"]));
   assert.throws(() => standardProbeOptions(["--file", "one", "--file", "two"]));
+  assert.equal(standardProbeOptions(["--endpoint", "unix:///run/docker.sock"]).endpoint, "unix:///run/docker.sock");
+  assert.throws(() => standardProbeOptions(["--endpoint", "tcp://remote.example.com:2375"]));
+  assert.throws(() => standardProbeOptions(["--endpoint", "unix:///run/docker.sock%inject"]));
 });
 
 test("notification credentials are stripped unless delivery is enabled", () => {
@@ -70,18 +73,21 @@ test("only inert isolated standard service metadata passes", () => {
 });
 
 test("unit uses generic service and rejects systemd path injection", () => {
-  const content = standardProbeUnitText({ root: "/opt/outray/source", envFile: "/opt/outray/config/instance.env", node: "/usr/local/bin/node" });
+  const content = standardProbeUnitText({ root: "/opt/outray/source", envFile: "/opt/outray/config/instance.env", node: "/usr/local/bin/node", endpoint: "unix:///run/pinned-docker.sock" });
   assert.match(content, /outray.*self-hosted.*probe/i);
   assert.match(content, /supervise --root \/opt\/outray\/source --file \/opt\/outray\/config\/instance.env/);
   assert.match(content, /Restart=on-failure/);
   assert.match(content, /ProtectHome=read-only/);
+  assert.match(content, /--endpoint unix:\/\/\/run\/pinned-docker.sock/);
   assert.doesNotMatch(content, /outray-ops|ops\.outray/);
-  assert.throws(() => standardProbeUnitText({ root: "/opt/unsafe %n" }));
+  assert.throws(() => standardProbeUnitText({ root: "/opt/unsafe %n", endpoint: "unix:///run/docker.sock" }));
+  assert.throws(() => standardProbeUnitText({ root: "/opt/outray/source", endpoint: "unix:///run/docker.sock\nEnvironment=INJECT" }));
 });
 
 test("marker writer cannot arm a replacement unverified namespace", () => {
   const writes = [];
-  const context = (namespace) => ({ require: () => ({ readlinkSync: () => namespace, writeFileSync: (...args) => writes.push(args) }), process: { env: { OUTRAY_PROBE_ACTIVATION_ID: standardProbeActivation }, exit: () => { throw new Error("namespace refused"); } } });
+  const events = [];
+  const context = (namespace) => ({ require: (name) => name === "node:crypto" ? { randomUUID: () => "test-uuid" } : ({ readlinkSync: () => namespace, writeFileSync: (...args) => { writes.push(args); events.push("write"); }, linkSync: (source, target) => { assert.equal(source, "/tmp/outray-probe-activate-test-uuid"); assert.equal(target, "/tmp/outray-probe-activate"); events.push("publish"); }, unlinkSync: () => events.push("unlink") }), process: { env: { OUTRAY_PROBE_ACTIVATION_ID: standardProbeActivation }, exit: () => { throw new Error("namespace refused"); } } });
   const code = standardProbeMarkerCode("net:[123]");
   assert.throws(() => runInNewContext(code, context("net:[999]")), /namespace refused/);
   assert.equal(writes.length, 0);
@@ -89,5 +95,6 @@ test("marker writer cannot arm a replacement unverified namespace", () => {
   assert.equal(writes.length, 1);
   assert.deepEqual(JSON.parse(writes[0][1]), { activation: standardProbeActivation, namespace: "net:[123]" });
   assert.equal(writes[0][2].flag, "wx");
+  assert.deepEqual(events, ["write", "publish", "unlink"]);
   assert.throws(() => standardProbeMarkerCode("/proc/unsafe"));
 });
