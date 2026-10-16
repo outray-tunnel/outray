@@ -1,11 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Building2, Users, Network } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import Search01Icon from "@outray/icons/stroke/Search01Icon";
+import Building03Icon from "@outray/icons/stroke/Building03Icon";
+import UserGroupIcon from "@outray/icons/stroke/UserGroupIcon";
+import Route03Icon from "@outray/icons/stroke/Route03Icon";
 import { appClient } from "@/lib/app-client";
 import { AdminDataTable, type Column } from "@/components/admin/admin-data-table";
 import { UsersSkeleton } from "@/components/admin/admin-skeleton";
-import { useAdminStore } from "@/lib/admin-store";
+import { WorkspacePageHeader } from "@/components/workspace-page-header";
+import { WorkspaceInput } from "@/components/ui/workspace-input";
+import { Button } from "@/components/arc/button/button";
+import { WorkspaceNotice } from "@/components/workspace/workspace-ui";
 
 export const Route = createFileRoute("/admin/organizations/")({
   head: () => ({
@@ -28,29 +35,27 @@ interface Organization {
 }
 
 const planColors: Record<string, string> = {
-  free: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+  free: "bg-gray-500/10 text-zinc-400 border-gray-500/20",
   ray: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   beam: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   pulse: "bg-amber-500/10 text-amber-400 border-amber-500/20",
 };
 
 function AdminOrganizationsPage() {
-  const token = useAdminStore((s) => s.token);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["admin", "organizations", page, search],
     queryFn: async () => {
-      const res = await appClient.admin.organizations(token!, { page, search });
+      const res = await appClient.admin.organizations({ page, search });
       if ("error" in res) throw new Error(res.error);
       return res;
     },
-    enabled: !!token,
   });
 
-  if (!token || (isLoading && !data)) {
+  if (isLoading && !data) {
     return <UsersSkeleton />;
   }
 
@@ -91,12 +96,12 @@ function AdminOrganizationsPage() {
             />
           ) : (
             <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-              <Building2 size={14} className="text-gray-400" />
+              <HugeiconsIcon icon={Building03Icon} size={14} className="text-zinc-400" />
             </div>
           )}
           <div>
-            <div className="font-medium text-white hover:text-accent">{org.name}</div>
-            <div className="text-xs text-gray-500">/{org.slug}</div>
+            <div className="font-normal text-zinc-200 hover:text-white">{org.name}</div>
+            <div className="text-xs text-zinc-500">/{org.slug}</div>
           </div>
         </Link>
       ),
@@ -106,7 +111,7 @@ function AdminOrganizationsPage() {
       header: "Plan",
       render: (org) => (
         <span
-          className={`px-2 py-1 rounded-lg text-xs font-medium border capitalize ${
+          className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-normal border capitalize ${
             planColors[org.subscription.plan] || planColors.free
           }`}
         >
@@ -118,19 +123,19 @@ function AdminOrganizationsPage() {
       key: "memberCount",
       header: "Members",
       render: (org) => (
-        <div className="flex items-center gap-2 text-gray-400">
-          <Users size={14} />
+        <div className="flex items-center gap-2 text-zinc-400">
+          <HugeiconsIcon icon={UserGroupIcon} size={14} />
           {org.memberCount}
         </div>
       ),
     },
     {
       key: "activeTunnels",
-      header: "Active Tunnels",
+      header: "Active tunnels",
       render: (org) => (
         <div className="flex items-center gap-2">
-          <Network size={14} className={org.activeTunnels > 0 ? "text-green-400" : "text-gray-500"} />
-          <span className={org.activeTunnels > 0 ? "text-green-400" : "text-gray-400"}>
+          <HugeiconsIcon icon={Route03Icon} size={14} className={org.activeTunnels > 0 ? "text-green-400" : "text-zinc-500"} />
+          <span className={org.activeTunnels > 0 ? "text-green-400" : "text-zinc-400"}>
             {org.activeTunnels}
           </span>
         </div>
@@ -140,47 +145,41 @@ function AdminOrganizationsPage() {
       key: "createdAt",
       header: "Created",
       render: (org) => (
-        <span className="text-gray-400">{formatDate(org.createdAt)}</span>
+        <span className="text-zinc-400">{formatDate(org.createdAt)}</span>
       ),
     },
   ];
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Organizations
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {total.toLocaleString()} total organizations
-          </p>
-        </div>
-
-        <form onSubmit={handleSearch} className="flex gap-2">
-          <div className="relative">
-            <Search
+    <div className="mx-auto max-w-[1440px] space-y-5">
+      <WorkspacePageHeader appearance="compact" title="Organizations" description={data ? `${total.toLocaleString()} workspaces and their subscriptions.` : "Manage workspaces and their subscriptions."} />
+      <form onSubmit={handleSearch} className="flex flex-wrap gap-2">
+          <div className="relative w-full max-w-[320px]">
+            <HugeiconsIcon icon={Search01Icon}
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
             />
-            <input
+            <WorkspaceInput
+              size="compact"
               type="text"
-              placeholder="Search by name or slug..."
+              aria-label="Search organizations by name or slug"
+              placeholder="Search by name or slug…"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 w-64"
+              className="[--workspace-input-padding-left:36px]"
             />
           </div>
-          <button
+          <Button
             type="submit"
-            className="px-4 py-2 bg-white/10 text-white rounded-xl text-sm font-medium hover:bg-white/20 transition-all"
+            variant="secondary"
+            size="md"
           >
             Search
-          </button>
+          </Button>
         </form>
-      </div>
 
-      <AdminDataTable
+      {error ? <WorkspaceNotice message={`Could not load organizations. ${error.message}`} action={<Button type="button" variant="secondary" size="sm" loading={isFetching} onClick={() => void refetch()}>Try again</Button>} /> : null}
+      {data ? <AdminDataTable
         columns={columns}
         data={organizations}
         page={page}
@@ -188,7 +187,7 @@ function AdminOrganizationsPage() {
         onPageChange={setPage}
         isLoading={isFetching}
         emptyMessage="No organizations found"
-      />
+      /> : null}
     </div>
   );
 }
