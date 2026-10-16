@@ -29,7 +29,6 @@ import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as OrgSlugRouteImport } from './routes/$orgSlug'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProductsIndexRouteImport } from './routes/products.index'
 import { Route as OrgSlugIndexRouteImport } from './routes/$orgSlug/index'
 import { Route as ProductsUptimeRouteImport } from './routes/products.uptime'
 import { Route as ProductsTunnelsRouteImport } from './routes/products.tunnels'
@@ -334,11 +333,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const ProductsIndexRoute = ProductsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ProductsRoute,
 } as any)
 const OrgSlugIndexRoute = OrgSlugIndexRouteImport.update({
   id: '/',
@@ -1554,7 +1548,6 @@ export interface FileRoutesByFullPath {
   '/products/tunnels': typeof ProductsTunnelsRoute
   '/products/uptime': typeof ProductsUptimeRoute
   '/$orgSlug/': typeof OrgSlugIndexRoute
-  '/products/': typeof ProductsIndexRoute
   '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
@@ -1746,6 +1739,7 @@ export interface FileRoutesByTo {
   '/plugins': typeof PluginsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/products': typeof ProductsRouteWithChildren
   '/report-bug': typeof ReportBugRoute
   '/select': typeof SelectRoute
   '/signup': typeof SignupRoute
@@ -1774,7 +1768,6 @@ export interface FileRoutesByTo {
   '/products/tunnels': typeof ProductsTunnelsRoute
   '/products/uptime': typeof ProductsUptimeRoute
   '/$orgSlug': typeof OrgSlugIndexRoute
-  '/products': typeof ProductsIndexRoute
   '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
@@ -2000,7 +1993,6 @@ export interface FileRoutesById {
   '/products/tunnels': typeof ProductsTunnelsRoute
   '/products/uptime': typeof ProductsUptimeRoute
   '/$orgSlug/': typeof OrgSlugIndexRoute
-  '/products/': typeof ProductsIndexRoute
   '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
@@ -2229,7 +2221,6 @@ export interface FileRouteTypes {
     | '/products/tunnels'
     | '/products/uptime'
     | '/$orgSlug/'
-    | '/products/'
     | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
@@ -2421,6 +2412,7 @@ export interface FileRouteTypes {
     | '/plugins'
     | '/pricing'
     | '/privacy'
+    | '/products'
     | '/report-bug'
     | '/select'
     | '/signup'
@@ -2449,7 +2441,6 @@ export interface FileRouteTypes {
     | '/products/tunnels'
     | '/products/uptime'
     | '/$orgSlug'
-    | '/products'
     | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
@@ -2674,7 +2665,6 @@ export interface FileRouteTypes {
     | '/products/tunnels'
     | '/products/uptime'
     | '/$orgSlug/'
-    | '/products/'
     | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
@@ -3109,13 +3099,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/products/': {
-      id: '/products/'
-      path: '/'
-      fullPath: '/products/'
-      preLoaderRoute: typeof ProductsIndexRouteImport
-      parentRoute: typeof ProductsRoute
     }
     '/$orgSlug/': {
       id: '/$orgSlug/'
@@ -4817,7 +4800,6 @@ interface ProductsRouteChildren {
   ProductsSecretsRoute: typeof ProductsSecretsRoute
   ProductsTunnelsRoute: typeof ProductsTunnelsRoute
   ProductsUptimeRoute: typeof ProductsUptimeRoute
-  ProductsIndexRoute: typeof ProductsIndexRoute
 }
 
 const ProductsRouteChildren: ProductsRouteChildren = {
@@ -4825,7 +4807,6 @@ const ProductsRouteChildren: ProductsRouteChildren = {
   ProductsSecretsRoute: ProductsSecretsRoute,
   ProductsTunnelsRoute: ProductsTunnelsRoute,
   ProductsUptimeRoute: ProductsUptimeRoute,
-  ProductsIndexRoute: ProductsIndexRoute,
 }
 
 const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
