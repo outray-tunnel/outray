@@ -25,6 +25,7 @@ COPY --from=dependencies --chown=node:node /app/apps ./apps
 COPY --from=dependencies --chown=node:node /app/packages ./packages
 COPY --from=dependencies --chown=node:node /app/shared ./shared
 COPY --from=dependencies --chown=node:node /app/scripts/self-hosted-share-role.mjs ./scripts/self-hosted-share-role.mjs
+COPY --from=dependencies --chown=node:node /app/deploy/self-hosted/probe-boot.mjs ./probe-boot.mjs
 # Preserve Nitro's exact audited JS-only nested trace, not host workspace dependencies.
 COPY --from=dependencies --chown=node:node /app/.self-hosted-artifacts/apps ./apps
 COPY --from=dependencies --chown=node:node /app/.self-hosted-artifacts/packages ./packages
