@@ -573,6 +573,175 @@ test("Fetch capture preserves literal redaction markers for form fields", async 
   );
 });
 
+test("OAuth bodies redact exchange credentials without hiding normal error codes and states", async () => {
+  const span = new AttributeSpan();
+  const body = {
+    exchange: { grant_type: "authorization_code", code: "private-oauth-code", state: "private-oauth-state", redirect_uri: "https://console.example/callback", codeVerifier: "private-pkce", codeChallenge: "private-challenge", nonce: "private-nonce" },
+    callback: { code: "private-callback-code", state: "private-callback-state" },
+    oauthCode: "private-explicit-code", verificationCode: "private-otp", credentials: { username: "private-user", password: "private-pass" },
+    error: { code: "INVALID_CREDENTIALS", message: "The provider rejected this callback." },
+    monitor: { code: 503, state: "down" },
+  };
+  const original = JSON.stringify(body);
+  await withSpan(span, () => captureFetchResponse(new Response(original, { headers: { "content-type": "application/json" } }), true));
+  const captured = span.attributes.get(attributes.responseBody) as string;
+  assert.doesNotMatch(captured, /private-/);
+  const parsed = JSON.parse(captured);
+  assert.equal(parsed.exchange.code, "[REDACTED]");
+  assert.equal(parsed.exchange.state, "[REDACTED]");
+  assert.equal(parsed.exchange.grant_type, "authorization_code");
+  assert.equal(parsed.exchange.redirect_uri, "https://console.example/callback");
+  assert.deepEqual(parsed.error, body.error);
+  assert.deepEqual(parsed.monitor, body.monitor);
+  assert.equal(JSON.stringify(body), original, "application payloads are never mutated");
+});
+
+test("auth redirect headers retain useful error reasons but redact relative, absolute and nested OAuth URLs", async () => {
+  const span = new AttributeSpan();
+  const nested = encodeURIComponent("https://app.example/callback?code=private-nested-code&state=private-nested-state&error=access_denied");
+  await withSpan(span, () => captureFetchResponse(new Response(null, {
+    status: 302,
+    headers: {
+      location: `/api/auth/callback?code=private-code&state=private-state&error=access_denied&error_description=Provider%20rejected%20callback&redirect=${nested}`,
+      "x-auth-help": "https://provider.example/callback?%63ode=private-encoded-code&nonce=private-nonce&error=invalid_grant",
+      "x-correlation-id": "callback-123",
+    },
+  }), true));
+  const captured = span.attributes.get(attributes.responseHeaders) as string;
+  assert.doesNotMatch(captured, /private-/);
+  const headers = JSON.parse(captured);
+  const location = new URL(headers.location, "https://app.example");
+  assert.equal(location.searchParams.get("code"), "[REDACTED]");
+  assert.equal(location.searchParams.get("state"), "[REDACTED]");
+  assert.equal(location.searchParams.get("error"), "access_denied");
+  assert.equal(location.searchParams.get("error_description"), "Provider rejected callback");
+  const callback = new URL(location.searchParams.get("redirect")!);
+  assert.equal(callback.searchParams.get("code"), "[REDACTED]");
+  assert.equal(callback.searchParams.get("error"), "access_denied");
+  assert.equal(headers["x-correlation-id"], "callback-123");
+});
+
+test("safe-name JSON values and inline diagnostics scrub credentials but preserve failures", async () => {
+  const span = new AttributeSpan();
+  await withSpan(span, () => captureFetchResponse(new Response(JSON.stringify({
+    message: 'Provider failed code=INVALID_CREDENTIALS password="private-pass with spaces" access_token=private-access retryable=false',
+    cause: "connect failed for postgres://private-db-user:private-db-pass@db.example:5432/app?sslmode=require",
+    auth: "Bearer private-bearer; Basic cHJpdmF0ZTpwYXNz; outray_private_key; eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJwcml2YXRlIn0.c2lnbmF0dXJl",
+    detail: "https://share.example/view#private-fragment",
+    callback: "https://app.example/api/auth/callback?code=private-code&state=private-state&error=invalid_grant",
+    pem: "-----BEGIN RSA PRIVATE KEY-----\nprivate-pem\n-----END RSA PRIVATE KEY-----",
+    cookieMessage: "Cookie: first=private-cookie; second=private-cookie-two",
+    stack: "Error: invalid_grant\n at callback (/app/auth.ts:42:5)",
+  }), { headers: { "content-type": "application/json" } }), true));
+  const captured = span.attributes.get(attributes.responseBody) as string;
+  assert.doesNotMatch(captured, /private-|cHJpdmF0ZT|eyJhbGci/);
+  const body = JSON.parse(captured);
+  assert.match(body.message, /code=INVALID_CREDENTIALS/);
+  assert.match(body.message, /retryable=false/);
+  assert.match(body.cause, /db\.example:5432\/app\?sslmode=require/);
+  assert.match(body.stack, /invalid_grant\n at callback \(\/app\/auth\.ts:42:5\)/);
+});
+
+test("OAuth forms and URL-valued custom fields share credential protection", async () => {
+  const span = new AttributeSpan();
+  const form = new URLSearchParams({ code: "private-form-code", state: "private-form-state", code_verifier: "private-form-pkce", callback: "/callback?code=private-url-code&error=access_denied", privateField: "private-custom-value", message: "code=INVALID_CREDENTIALS" });
+  await withSpan(span, () => captureFetchRequest(new Request("https://app.example/oauth", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: form }), { redactedFields: ["privateField"] }));
+  const captured = span.attributes.get(attributes.requestBody) as string;
+  assert.doesNotMatch(captured, /private-/);
+  const body = new URLSearchParams(captured);
+  assert.equal(body.get("code"), "[REDACTED]");
+  assert.equal(body.get("state"), "[REDACTED]");
+  assert.equal(body.get("privateField"), "[REDACTED]");
+  assert.equal(body.get("message"), "code=INVALID_CREDENTIALS");
+  assert.match(body.get("callback")!, /error=access_denied/);
+});
+
+test("encoded and deeply nested redirects fail closed at the bounded parsing depth", async () => {
+  const span = new AttributeSpan();
+  let redirect = "https://app.example/callback?code=private-deep-code&state=private-deep-state";
+  for (let index = 0; index < 6; index++) redirect = `https://provider.example/authorize?redirect=${encodeURIComponent(redirect)}`;
+  await withSpan(span, () => captureFetchResponse(new Response(JSON.stringify({
+    redirect,
+    callback: encodeURIComponent("/api/auth/callback?code=private-encoded-code&state=private-encoded-state&error=invalid_grant"),
+  }), { headers: { "content-type": "application/json" } }), true));
+  const captured = span.attributes.get(attributes.responseBody) as string;
+  assert.doesNotMatch(captured, /private-/);
+  assert.match(decodeURIComponent(JSON.parse(captured).callback), /error=invalid_grant/);
+});
+
+test("Node HTTP capture applies the same protection to inline errors and redirect headers", () => {
+  const span = new AttributeSpan();
+  const request = { headers: { "content-type": "application/json" }, body: { codeVerifier: "private-node-pkce", message: "Bearer private-node-request" } };
+  const response = new FakeResponse();
+  response.headers["content-type"] = "application/json";
+  response.headers.location = "/callback?code=private-node-code&state=private-node-state&error=invalid_grant";
+  withSpan(span, () => createNodeHttpPayloadCaptureMiddleware(true)(request as unknown as IncomingMessage, response as unknown as ServerResponse, () => response.end(JSON.stringify({ code: "INVALID_CREDENTIALS", message: "client_secret=private-node-response" }))));
+  assert.doesNotMatch(JSON.stringify(Object.fromEntries(span.attributes)), /private-node/);
+  assert.equal(JSON.parse(span.attributes.get(attributes.responseBody) as string).code, "INVALID_CREDENTIALS");
+  assert.match(JSON.parse(span.attributes.get(attributes.responseHeaders) as string).location, /error=invalid_grant/);
+});
+
+test("request-only field redaction applies to Node and Fetch JSON/forms without masking response diagnostics", async () => {
+  const requestBody = {
+    code: "a".repeat(64), state: "pending", nonce: "request-nonce", challenge: "request-challenge",
+    password: "request-password", shared: "shared-request", message: "code=INVALID_CREDENTIALS",
+  };
+  const responseBody = {
+    code: "INVALID_CREDENTIALS", state: "failed", nonce: "response-nonce", challenge: "response-challenge",
+    password: "response-password", shared: "shared-response", message: "The credential is not valid.",
+  };
+  const originalRequest = JSON.stringify(requestBody);
+  const cases: Array<{ setting: HttpPayloadCaptureSetting; requestFields: string[]; responseFields: string[] }> = [
+    { setting: true, requestFields: ["password"], responseFields: ["password"] },
+    {
+      setting: { redactedFields: ["shared"], redactedRequestFields: ["code", "state", "nonce", "challenge"] },
+      requestFields: ["password", "shared", "code", "state", "nonce", "challenge"], responseFields: ["password", "shared"],
+    },
+    {
+      setting: { redactedFields: ["code"], redactedRequestFields: ["state"] },
+      requestFields: ["password", "code", "state"], responseFields: ["password", "code"],
+    },
+  ];
+  for (const adapter of ["Node", "Fetch"]) {
+    for (const contentType of ["application/json", "application/x-www-form-urlencoded"]) {
+      const serialize = (body: Record<string, string>) => contentType === "application/json" ? JSON.stringify(body) : new URLSearchParams(body).toString();
+      const parse = (raw: string): Record<string, string> => contentType === "application/json" ? JSON.parse(raw) : Object.fromEntries(new URLSearchParams(raw));
+      for (const { setting, requestFields, responseFields } of cases) {
+        const span = new AttributeSpan();
+        await withSpan(span, async () => {
+          if (adapter === "Fetch") {
+            await captureFetchRequest(new Request("https://app.example/api/cli/complete", { method: "POST", headers: { "content-type": contentType }, body: serialize(requestBody) }), setting);
+            await captureFetchResponse(new Response(serialize(responseBody), { headers: { "content-type": contentType } }), setting);
+          } else {
+            const response = new FakeResponse();
+            response.headers["content-type"] = contentType;
+            const request = { headers: { "content-type": contentType }, body: { ...requestBody } };
+            createNodeHttpPayloadCaptureMiddleware(setting)(request as unknown as IncomingMessage, response as unknown as ServerResponse, () => response.end(serialize(responseBody)));
+          }
+        });
+        const capturedRequest = parse(span.attributes.get(attributes.requestBody) as string);
+        const capturedResponse = parse(span.attributes.get(attributes.responseBody) as string);
+        for (const [field, value] of Object.entries(requestBody)) {
+          assert.equal(capturedRequest[field], requestFields.includes(field) ? "[REDACTED]" : field === "message" && requestFields.includes("code") ? "code=[REDACTED]" : value, `${adapter} ${contentType} request ${field}`);
+        }
+        for (const [field, value] of Object.entries(responseBody)) {
+          assert.equal(capturedResponse[field], responseFields.includes(field) ? "[REDACTED]" : value, `${adapter} ${contentType} response ${field}`);
+        }
+      }
+    }
+  }
+  assert.equal(JSON.stringify(requestBody), originalRequest);
+});
+
+test("request-only redaction protects lone CLI completion and OTP codes", async () => {
+  for (const code of ["a".repeat(64), "123456"]) {
+    const span = new AttributeSpan();
+    await withSpan(span, () => captureFetchRequest(new Request("https://app.example/api/auth/otp", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code }) }), { redactedRequestFields: ["code"] }));
+    assert.deepEqual(JSON.parse(span.attributes.get(attributes.requestBody) as string), { code: "[REDACTED]" });
+    assert.doesNotMatch(span.attributes.get(attributes.requestBody) as string, new RegExp(code));
+  }
+});
+
 test("oversized cloned Fetch responses do not wait for the original branch", async () => {
   const span = new AttributeSpan();
   const response = new Response(
