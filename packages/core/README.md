@@ -122,6 +122,13 @@ Framework plugins use the opt-in payload capture helpers in this package to add
 bounded values to the active OpenTelemetry server span. Bodies and headers are
 serialized as strings because OpenTelemetry attributes cannot contain objects.
 
+`HttpPayloadCaptureOptions.redactedFields` adds application-owned field names to
+the default credential policy. `redactedRequestFields` adds fields only for
+request JSON/form bodies (for example `code`, `state`, `nonce`, `challenge`), so
+login inputs can be hidden while response error codes stay readable. These
+options are shared by Node HTTP and Fetch adapters. Credential URLs and inline
+credential assignments in captured strings are sanitized as well.
+
 | Attribute | Type |
 |---|---|
 | `outray.http.capture.version` | string (`"1"`) |
