@@ -44,13 +44,14 @@ test("private rehearsal requires an explicit fresh file/image and a local Docker
 });
 
 test("private rehearsal configuration excludes all external and owner-supplied database URLs", () => {
-  const env = { ...source(), DATABASE_URL: "postgresql://production/never-use", REDIS_URL: "redis://production", HUGEICONS_LICENSE_KEY: "private-build-key", TINYBIRD_INGEST_TOKEN: "private-append-key", TINYBIRD_QUERY_TOKEN: "private-read-key", GITHUB_CLIENT_SECRET: "private-oauth-key", ZEPTO_API_KEY: "private-email-key", XAI_API_KEY: "private-agent-key" };
+  const env = { ...source(), ADMIN_PASSPHRASE: "retired-value", DATABASE_URL: "postgresql://production/never-use", REDIS_URL: "redis://production", HUGEICONS_LICENSE_KEY: "private-build-key", TINYBIRD_INGEST_TOKEN: "private-append-key", TINYBIRD_QUERY_TOKEN: "private-read-key", GITHUB_CLIENT_SECRET: "private-oauth-key", ZEPTO_API_KEY: "private-email-key", XAI_API_KEY: "private-agent-key" };
   const config = configurationFrom(env);
-  for (const key of ["DATABASE_URL", "REDIS_URL", "HUGEICONS_LICENSE_KEY", "TINYBIRD_INGEST_TOKEN", "TINYBIRD_QUERY_TOKEN", "GITHUB_CLIENT_SECRET", "ZEPTO_API_KEY", "XAI_API_KEY"]) assert.equal(config[key], undefined, key);
+  for (const key of ["ADMIN_PASSPHRASE", "DATABASE_URL", "REDIS_URL", "HUGEICONS_LICENSE_KEY", "TINYBIRD_INGEST_TOKEN", "TINYBIRD_QUERY_TOKEN", "GITHUB_CLIENT_SECRET", "ZEPTO_API_KEY", "XAI_API_KEY"]) assert.equal(config[key], undefined, key);
   const services = serviceDefinitions(config);
   for (const definition of Object.values(services)) {
     for (const credential of ["private-build-key", "private-append-key", "private-read-key", "private-oauth-key", "private-email-key", "private-agent-key", "postgresql://production/never-use", "redis://production"]) assert.ok(!JSON.stringify(definition).includes(credential));
     assert.equal(definition.env.HUGEICONS_LICENSE_KEY, undefined);
+    assert.equal(definition.env.ADMIN_PASSPHRASE, undefined);
   }
   assert.equal(services.ingest.env.TINYBIRD_INGEST_TOKEN, "");
   assert.equal(services.ingest.expectedMissingTinybird, true);
