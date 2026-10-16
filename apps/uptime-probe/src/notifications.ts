@@ -4,6 +4,7 @@ import { renderIncidentHtml } from "@outray/incident-content";
 import { config } from "./config";
 import { decryptIntegrationWebhook, type EncryptedPayload } from "./crypto";
 import emailConfig from "../../../shared/email-sender";
+import emailDesign from "../../../shared/email-template";
 
 type Channel = "email" | "slack" | "discord";
 type TeamPayload = {
@@ -304,7 +305,39 @@ async function sendSubscriberEmail(recipient: string, payload: SubscriberPayload
 }
 
 export function subscriberEmailHtml(payload: Pick<SubscriberPayload, "title" | "status" | "note">, body: unknown, storedNote: string, pageUrl: string, unsubscribeUrl: string) {
-  return `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#090909;color:#fff;padding:32px"><h1>${escapeHtml(payload.title)}</h1><p>Status: ${escapeHtml(payload.status)}</p><div style="line-height:1.6">${renderIncidentHtml(body, storedNote || payload.note)}</div><p><a href="${escapeHtml(pageUrl)}" style="color:#a78bfa">View status page</a></p><p style="font-size:12px"><a href="${escapeHtml(unsubscribeUrl)}" style="color:#a1a1aa">Unsubscribe</a></p></body></html>`;
+  const status = subscriberStatus(payload.status);
+  return emailDesign.renderEmail({
+    title: payload.title,
+    preheader: `${status.label}: ${payload.title}`,
+    label: status.label,
+    tone: status.tone,
+    bodyHtml: `<div class="rich-content" style="color:#aaaab3;font-size:15px;line-height:1.75">${renderIncidentHtml(body, storedNote || payload.note)}</div>`,
+    action: { label: "View status page", url: pageUrl },
+    meta: "A new update from a status page you follow.",
+    footerHtml: `You’re receiving this email because you subscribed to this status page. ${emailDesign.link("Unsubscribe", unsubscribeUrl)}`,
+    assetBaseUrl: subscriberAssetBaseUrl(pageUrl),
+    logoPath: "/outray-mark.png",
+    attribution: "Status updates by",
+  });
+}
+
+function subscriberStatus(status: string): { label: string; tone: "neutral" | "accent" | "danger" | "success" } {
+  switch (status) {
+    case "investigating": return { label: "Investigating", tone: "danger" };
+    case "identified": return { label: "Identified", tone: "danger" };
+    case "monitoring": return { label: "Monitoring", tone: "accent" };
+    case "resolved": return { label: "Resolved", tone: "success" };
+    default: return { label: status, tone: "neutral" };
+  }
+}
+
+function subscriberAssetBaseUrl(pageUrl: string): string {
+  if (config.statusPublicUrl) return config.statusPublicUrl;
+  try {
+    return new URL(pageUrl).origin;
+  } catch {
+    return "https://status.outray.co";
+  }
 }
 
 export function publicStatusPageUrl(slug: string, baseUrl: string): string {
@@ -339,9 +372,15 @@ async function sendEmail(recipient: string, payload: TeamPayload) {
   const url = dashboardLink(payload);
   const firing = payload.state === "firing";
   const subject = `${firing ? "[Down]" : "[Recovered]"} ${payload.monitorName}`;
-  const text = firing
-    ? `${payload.monitorName} is down after ${payload.failureThreshold ?? 2} failed checks. Review the detected issue and decide whether to publish a public incident.\n\nReview issue: ${url}`
-    : `${payload.monitorName} is back up.\n\nReview issue: ${url}`;
+  const detailRows: Array<[string, string]> = [["Monitor", payload.monitorName]];
+  if (typeof payload.statusCode === "number" && Number.isInteger(payload.statusCode) &&
+      payload.statusCode >= 100 && payload.statusCode <= 599) {
+    detailRows.push(["Status code", String(payload.statusCode)]);
+  }
+  const failedChecks = payload.failureThreshold ?? 2;
+  if (firing && Number.isInteger(failedChecks) && failedChecks > 0) {
+    detailRows.push(["Failed checks", String(failedChecks)]);
+  }
   const response = await fetch("https://api.zeptomail.com/v1.1/email", {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json",
@@ -350,7 +389,18 @@ async function sendEmail(recipient: string, payload: TeamPayload) {
       from: emailConfig.emailSender("OutRay Uptime"),
       to: [{ email_address: { address: recipient, name: recipient.split("@")[0] } }],
       subject,
-      htmlbody: `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#090909;color:#fff;padding:32px"><h1>${escapeHtml(subject)}</h1><p>${escapeHtml(text).replace(/\n/g, "<br>")}</p><a href="${escapeHtml(url)}" style="color:#a78bfa">Review issue</a></body></html>`,
+      htmlbody: emailDesign.renderEmail({
+        title: firing ? "Your monitor\nis down." : "Your monitor\nis back up.",
+        preheader: `${payload.monitorName} ${firing ? "is down" : "has recovered"}.`,
+        label: firing ? "Monitor down" : "Recovered",
+        tone: firing ? "danger" : "success",
+        bodyHtml: emailDesign.paragraph(firing
+          ? "An outage has been detected. Review the issue and decide whether to publish a public incident."
+          : "The monitor is responding successfully again. Review the issue for the latest details.") + emailDesign.details(detailRows),
+        action: { label: "Review issue", url },
+        meta: "Uptime monitoring · OutRay",
+        assetBaseUrl: config.dashboardUrl || undefined,
+      }),
     }),
     redirect: "manual",
     signal: AbortSignal.timeout(10_000),
@@ -398,12 +448,6 @@ export function validWebhookUrl(value: string, channel: "slack" | "discord"): st
 
 function escapeSlack(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/@/g, "＠");
-}
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
-  })[character] ?? character);
 }
 
 function safeErrorCode(error: unknown): string {
