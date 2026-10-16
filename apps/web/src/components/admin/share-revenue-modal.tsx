@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Copy, Download, Check } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import Copy01Icon from "@outray/icons/stroke/Copy01Icon";
+import Download01Icon from "@outray/icons/stroke/Download01Icon";
+import Tick02Icon from "@outray/icons/stroke/Tick02Icon";
 import {
   AreaChart,
   Area,
@@ -10,6 +12,8 @@ import {
 } from "recharts";
 import { appClient } from "@/lib/app-client";
 import { toPng } from "html-to-image";
+import { Button } from "@/components/arc/button/button";
+import { WorkspaceDialog } from "@/components/workspace/workspace-ui";
 
 // Background options - exported for preloading
 export const REVENUE_BACKGROUNDS = [
@@ -50,7 +54,6 @@ export async function preloadRevenueBackgrounds(): Promise<Record<number, string
 interface ShareRevenueModalProps {
   isOpen: boolean;
   onClose: () => void;
-  token: string;
   currentMrr: number;
   bgDataUrls: Record<number, string>;
 }
@@ -58,7 +61,6 @@ interface ShareRevenueModalProps {
 export function ShareRevenueModal({
   isOpen,
   onClose,
-  token,
   currentMrr,
   bgDataUrls,
 }: ShareRevenueModalProps) {
@@ -77,15 +79,15 @@ export function ShareRevenueModal({
   const backgrounds = REVENUE_BACKGROUNDS;
 
   useEffect(() => {
-    if (isOpen && token) {
+    if (isOpen) {
       fetchRevenueData();
     }
-  }, [isOpen, token]);
+  }, [isOpen]);
 
   const fetchRevenueData = async () => {
     setLoading(true);
     try {
-      const res = await appClient.admin.revenueHistory(token, "30d");
+      const res = await appClient.admin.revenueHistory("30d");
       if (!("error" in res)) {
         setRevenueData(res.data);
         setPeriodStart(res.periodStart);
@@ -186,43 +188,62 @@ export function ShareRevenueModal({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-          />
-          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-3xl bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto"
+    <WorkspaceDialog
+      open={isOpen}
+      onClose={onClose}
+      title="Share revenue"
+      description="Choose a background, then copy or download your revenue card."
+      size="lg"
+      footer={
+        <div className="flex w-full flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-2" role="group" aria-label="Revenue card background">
+            {backgrounds.map((bg, index) => (
+              <button
+                key={bg.value}
+                type="button"
+                onClick={() => setSelectedBg(index)}
+                aria-label={index === 0 ? "Dark background" : `Photo background ${index}`}
+                aria-pressed={selectedBg === index}
+                className={`size-7 shrink-0 overflow-hidden rounded-lg border transition-[border-color,box-shadow] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#8367c7] ${
+                  selectedBg === index
+                    ? "border-zinc-300 ring-2 ring-white/15 ring-offset-2 ring-offset-[#101010]"
+                    : "border-white/15 hover:border-white/40"
+                }`}
+                style={bg.type === "image" ? {
+                  backgroundImage: `url(${bgDataUrls[index] || `/api/admin/proxy-image?url=${encodeURIComponent(bg.value)}`})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                } : undefined}
+              >
+                {bg.type === "solid" ? <span className="block size-full bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d]" /> : null}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleCopy}
+              disabled={loading || downloading}
+              aria-label={copied ? "Revenue image copied" : "Copy revenue image"}
+              title={copied ? "Revenue image copied" : "Copy revenue image"}
+              className="w-8 min-w-8 px-0!"
             >
-              {/* Header */}
-              <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">
-                  Share Revenue Metric
-                </h2>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  aria-label="Close revenue sharing"
-                  className="rounded-lg border-0 bg-transparent p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
-                >
-                  <X size={20} aria-hidden="true" />
-                </button>
-              </div>
-
-              {/* Card Preview */}
-              <div className="p-8">
+              <HugeiconsIcon icon={copied ? Tick02Icon : Copy01Icon} size={15} strokeWidth={1.7} className={copied ? "text-emerald-300" : undefined} aria-hidden="true" />
+            </Button>
+            <span className="sr-only" role="status" aria-live="polite">{copied ? "Revenue image copied." : ""}</span>
+            <Button type="button" size="sm" onClick={handleDownload} disabled={loading} loading={downloading}>
+              <HugeiconsIcon icon={Download01Icon} size={15} strokeWidth={1.7} aria-hidden="true" />
+              {downloading ? "Downloading…" : "Download"}
+            </Button>
+          </div>
+        </div>
+      }
+    >
                 <div
                   ref={cardRef}
-                  className="relative rounded-2xl p-10 border border-white/10 overflow-hidden min-h-[420px]"
+                  className="relative min-h-[420px] overflow-hidden rounded-xl border border-white/10 p-6 max-[480px]:p-4"
                 >
                   {/* Background image element for proper export */}
                   {backgrounds[selectedBg].type === "image" && (
@@ -343,69 +364,6 @@ export function ShareRevenueModal({
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="p-6 pt-0 flex items-center justify-between">
-                {/* Background Selectors */}
-                <div className="flex items-center gap-2">
-                  {backgrounds.map((bg, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedBg(index)}
-                      className={`w-8 h-8 rounded-full border-2 overflow-hidden transition-all ${
-                        selectedBg === index
-                          ? "border-blue-500 ring-2 ring-blue-500/30"
-                          : "border-white/20 hover:border-white/40"
-                      }`}
-                      style={
-                        bg.type === "image"
-                          ? { 
-                              backgroundImage: `url(${bgDataUrls[index] || `/api/admin/proxy-image?url=${encodeURIComponent(bg.value)}`})`, 
-                              backgroundSize: "cover", 
-                              backgroundPosition: "center" 
-                            }
-                          : undefined
-                      }
-                    >
-                      {bg.type === "solid" && (
-                        <div className="w-full h-full bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d]" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    disabled={loading}
-                    aria-label={copied ? "Revenue image copied" : "Copy revenue image"}
-                    title={copied ? "Revenue image copied" : "Copy revenue image"}
-                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-transparent text-gray-300 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400 disabled:opacity-50"
-                  >
-                    {copied ? (
-                      <Check size={16} className="text-green-400" aria-hidden="true" />
-                    ) : (
-                      <Copy size={16} aria-hidden="true" />
-                    )}
-                  </button>
-                  <span className="sr-only" role="status" aria-live="polite">{copied ? "Revenue image copied." : ""}</span>
-                  <button
-                    onClick={handleDownload}
-                    disabled={loading || downloading}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-colors disabled:opacity-50"
-                  >
-                    <Download size={16} />
-                    {downloading ? "Downloading..." : "Download"}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </>
-      )}
-    </AnimatePresence>
+    </WorkspaceDialog>
   );
 }
