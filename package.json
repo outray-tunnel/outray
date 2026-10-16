@@ -52,6 +52,7 @@
     "packages:publish:test": "node --test scripts/publish-packages.test.mjs",
     "db:migrate": "dotenv -e .env -- npm run db:migrate --workspace=outray-web",
     "db:migrate:ci": "npm run db:migrate:ci --workspace=outray-web",
+    "admin:profile": "npm run admin:profile --workspace=outray-web --",
     "db:generate-auth": "dotenv -e .env -- npm run db:generate-auth --workspace=outray-web",
     "tokens:backfill": "dotenv -e .env -- npm run tokens:backfill --workspace=outray-web",
     "secrets:rewrap": "dotenv -e .env -- npm run secrets:rewrap --workspace=outray-web --",
