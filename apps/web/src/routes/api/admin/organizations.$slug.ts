@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { adminJson, requireAdminAccess } from "../../../lib/admin-access.server";
 import { db } from "../../../db";
 import { organizations, members, subscriptions, tunnels, subdomains, domains, users } from "../../../db/schema";
 import { redis } from "../../../lib/redis";
-import { hashToken } from "../../../lib/hash";
 import { eq, count, gte, and, desc } from "drizzle-orm";
 import { generateEmail } from "../../../email/templates";
 import { sendViaZepto } from "../../../lib/send-email";
@@ -11,18 +11,13 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
   server: {
     handlers: {
       GET: async ({ request, params }) => {
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-        if (!token) return Response.json({ error: "Unauthorized" }, { status: 401 });
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists) return Response.json({ error: "Forbidden" }, { status: 403 });
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         try {
           const { slug } = params;
           const [org] = await db.select().from(organizations).where(eq(organizations.slug, slug)).limit(1);
-          if (!org) return Response.json({ error: "Organization not found" }, { status: 404 });
+          if (!org) return adminJson({ error: "Organization not found" }, { status: 404 });
 
           const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.organizationId, org.id)).limit(1);
           const [memberCount] = await db.select({ count: count() }).from(members).where(eq(members.organizationId, org.id));
@@ -93,7 +88,7 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
             .where(eq(domains.organizationId, org.id))
             .orderBy(desc(domains.createdAt));
 
-          return Response.json({
+          return adminJson({
             organization: org,
             subscription: sub || { plan: "free", status: "active" },
             owner: owner ? {
@@ -116,24 +111,19 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
           });
         } catch (error) {
           console.error("Admin org detail error:", error);
-          return Response.json({ error: "Failed to fetch organization" }, { status: 500 });
+          return adminJson({ error: "Failed to fetch organization" }, { status: 500 });
         }
       },
 
       PATCH: async ({ request, params }) => {
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-        if (!token) return Response.json({ error: "Unauthorized" }, { status: 401 });
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists) return Response.json({ error: "Forbidden" }, { status: 403 });
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         try {
           const { slug } = params;
           const body = await request.json();
           const [org] = await db.select().from(organizations).where(eq(organizations.slug, slug)).limit(1);
-          if (!org) return Response.json({ error: "Organization not found" }, { status: 404 });
+          if (!org) return adminJson({ error: "Organization not found" }, { status: 404 });
 
           // Update organization fields
           if (body.name || body.slug) {
@@ -171,21 +161,16 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
             }
           }
 
-          return Response.json({ success: true });
+          return adminJson({ success: true });
         } catch (error) {
           console.error("Admin org update error:", error);
-          return Response.json({ error: "Failed to update organization" }, { status: 500 });
+          return adminJson({ error: "Failed to update organization" }, { status: 500 });
         }
       },
 
       POST: async ({ request, params }) => {
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-        if (!token) return Response.json({ error: "Unauthorized" }, { status: 401 });
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists) return Response.json({ error: "Forbidden" }, { status: 403 });
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         try {
           const { slug } = params;
@@ -193,7 +178,7 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
           
           if (body.action === "reset_to_free") {
             const [org] = await db.select().from(organizations).where(eq(organizations.slug, slug)).limit(1);
-            if (!org) return Response.json({ error: "Organization not found" }, { status: 404 });
+            if (!org) return adminJson({ error: "Organization not found" }, { status: 404 });
 
             // Get the current subscription to know the previous plan
             const [currentSub] = await db.select().from(subscriptions).where(eq(subscriptions.organizationId, org.id)).limit(1);
@@ -290,7 +275,7 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
               }
             }
 
-            return Response.json({ 
+            return adminJson({
               success: true, 
               message: "Organization reset to free plan",
               deleted: {
@@ -301,10 +286,10 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
             });
           }
 
-          return Response.json({ error: "Unknown action" }, { status: 400 });
+          return adminJson({ error: "Unknown action" }, { status: 400 });
         } catch (error) {
           console.error("Admin org action error:", error);
-          return Response.json({ error: "Failed to perform action" }, { status: 500 });
+          return adminJson({ error: "Failed to perform action" }, { status: 500 });
         }
       },
     },
