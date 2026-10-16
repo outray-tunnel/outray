@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
 import ts from "typescript";
+import emailDesign from "../../../shared/email-template";
 
 async function workerHarness(options: { enabled?: boolean; status?: string; inactive?: boolean; source?: string } = {}) {
   const source = await readFile(resolve(__dirname, "../src/notifications.ts"), "utf8");
@@ -33,6 +34,7 @@ async function workerHarness(options: { enabled?: boolean; status?: string; inac
       if (specifier === "./config") return { config: { zeptoApiKey: "fake-test-token", statusPublicUrl: "https://status.example.test", unsubscribeSecret: "fake-test-signing-key" } };
       if (specifier === "@outray/incident-content") return { renderIncidentHtml: () => "Approved stored note" };
       if (specifier === "../../../shared/email-sender") return { emailSender: () => ({ address: "no-reply@example.test", name: "Status" }) };
+      if (specifier === "../../../shared/email-template") return emailDesign;
       return {};
     } });
   await module.exports.pollUptimeNotifications(pool);
