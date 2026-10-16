@@ -21,10 +21,15 @@ function checkedLabels(labels) {
   return labels;
 }
 
-function executor({ spawn = spawnSync, env = hostEnvironment, pid } = {}) {
+function executor({ spawn = spawnSync, env = hostEnvironment, pid, namespacePath } = {}) {
   if (typeof spawn !== "function" || pid !== undefined && (!Number.isSafeInteger(pid) || pid <= 1)) failure();
+  if (namespacePath !== undefined) {
+    if (typeof namespacePath !== "string") failure();
+    const match = /^\/proc\/([1-9]\d*)\/fd\/(0|[1-9]\d*)$/.exec(namespacePath);
+    if (!match || !Number.isSafeInteger(Number(match[1])) || !Number.isSafeInteger(Number(match[2]))) failure();
+  }
   return (binary, args, optional = false) => {
-    const command = pid ? ["nsenter", ["--target", String(pid), "--net", "--", binary, ...args]] : [binary, args];
+    const command = namespacePath !== undefined ? ["nsenter", [`--net=${namespacePath}`, "--", binary, ...args]] : pid ? ["nsenter", ["--target", String(pid), "--net", "--", binary, ...args]] : [binary, args];
     const result = spawn(command[0], command[1], { env: { ...env, ...hostEnvironment }, encoding: "utf8", timeout: 10_000, maxBuffer: 500_000 });
     if (!result || typeof result.status !== "number" || result.status !== 0 && !optional) failure();
     return result;
@@ -133,12 +138,13 @@ export function createProbePolicy(config) {
     }
     if (!own && interfaces.some((item) => item.ifname === bridgeName)) failure();
   };
-  const installProbeHostPolicy = (options) => { const policy = hostProbePolicy(); applyPolicy(executor({ ...options, pid: undefined }), [policy[1], policy[2], policy[3], policy[0]]); };
-  const verifyProbeHostPolicy = (options) => assertPolicy(executor({ ...options, pid: undefined }), hostProbePolicy());
-  const installProbeNamespace = (options) => { if (!options?.pid) failure(); applyPolicy(executor(options), namespaceProbePolicy()); };
-  const verifyProbeNamespace = (options) => { if (!options?.pid) failure(); assertPolicy(executor(options), namespaceProbePolicy()); };
+  const hasNamespace = (options) => options?.namespacePath !== undefined || options?.pid !== undefined;
+  const installProbeHostPolicy = (options) => { const policy = hostProbePolicy(); applyPolicy(executor({ ...options, pid: undefined, namespacePath: undefined }), [policy[1], policy[2], policy[3], policy[0]]); };
+  const verifyProbeHostPolicy = (options) => assertPolicy(executor({ ...options, pid: undefined, namespacePath: undefined }), hostProbePolicy());
+  const installProbeNamespace = (options) => { if (!hasNamespace(options)) failure(); applyPolicy(executor(options), namespaceProbePolicy()); };
+  const verifyProbeNamespace = (options) => { if (!hasNamespace(options)) failure(); assertPolicy(executor(options), namespaceProbePolicy()); };
   const probeDropCount = (options, ipv6 = false) => {
-    if (!options?.pid) failure();
+    if (!hasNamespace(options)) failure();
     const result = executor(options)(ipv6 ? "ip6tables" : "iptables", ["-w", "5", "-n", "-v", "-x", "-L", ipv6 ? chains.NS6 : chains.NS]);
     const rows = result.stdout.trim().split("\n").map((line) => line.trim().split(/\s+/)).filter((values) => values[2] === "DROP");
     if (!rows.length || rows.some((values) => !/^\d+$/.test(values[0]))) failure();
@@ -165,8 +171,8 @@ const tcp=(host,port)=>new Promise(resolve=>{const socket=net.connect({host,port
  process.stdout.write('allowed-network-ok');process.exit(0);
 })().catch(()=>process.exit(1));`;
   const verifyProbeConnectivity = async (options) => {
-    const { containerId, required, pid } = options || {};
-    if (!/^[a-f0-9]{64}$/.test(containerId || "") || typeof required !== "function" || !Number.isSafeInteger(pid) || pid <= 1) failure();
+    const { containerId, required } = options || {};
+    if (!/^[a-f0-9]{64}$/.test(containerId || "") || typeof required !== "function" || !hasNamespace(options)) failure();
     verifyProbeHostPolicy(options); verifyProbeNamespace(options);
     if (String(await required(["exec", containerId, "node", "-e", connectivityAuditCode()])).trim() !== "allowed-network-ok") failure();
     for (const [host, port] of blockedProbeChecks) {
