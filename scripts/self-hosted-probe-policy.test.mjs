@@ -63,6 +63,17 @@ test("dedicated bridge ownership and subnet collisions fail closed", async () =>
   assert.throws(() => p.probeNetworkArguments({ "bad_label": "value" }));
 });
 
+test("Compose-normalized IPv6-disabled network metadata remains strict", () => {
+  const p = createProbePolicy(config), actual = network(p);
+  delete actual.Options["com.docker.network.enable_ipv6"];
+  assert.equal(p.safeProbeNetwork(actual, labels), true);
+  assert.equal(p.safeProbeNetwork({ ...actual, EnableIPv6: true }, labels), false);
+  assert.equal(p.safeProbeNetwork({ ...actual, EnableIPv6: undefined }, labels), false);
+  assert.equal(p.safeProbeNetwork({ ...actual, Options: { ...actual.Options, "com.docker.network.enable_ipv6": "true" } }, labels), false);
+  assert.equal(p.safeProbeNetwork({ ...actual, Internal: true }, labels), false);
+  assert.equal(p.safeProbeNetwork({ ...actual, Options: {} }, labels), false);
+});
+
 test("host policy admits only exact Pg, resolver DNS, and public web traffic", () => {
   const p = createProbePolicy(config), policy = p.hostProbePolicy(), rules = policy[0].rules;
   assert.ok(rules[0].includes("!")); assert.ok(rules[1].includes(`${config.postgresIp}/32`)); assert.ok(rules[1].includes("5432"));
