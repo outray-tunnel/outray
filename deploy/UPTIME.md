@@ -56,3 +56,27 @@ emergency with `OUTRAY_UPTIME_DISABLED=true`.
 No production URLs, provider secrets, DNS records, or server egress firewall
 are created by the source build. Do not mark the release complete until a real
 hosted page and verified custom-domain page have passed the checks above.
+
+## Worker database recovery
+
+The worker bounds database connection/pool checkout, query, lock, idle transaction,
+and persistence-transaction waits. Timed-out or failed persistence clients are
+discarded rather than reused. Database failures leave monitor evidence stale;
+they must not be recorded as a target outage or recovery. Logs include only a
+safe database code and fixed category, never SQL parameters or connection strings.
+
+Defaults are 5 seconds for connection acquisition, 10 seconds for client query
+reads, 8 seconds for server statements, 3 seconds for locks, 20 seconds for idle
+transactions, and 15 seconds for the entire persistence transaction. Subscriber
+delivery transactions have a 20-second deadline that also aborts an in-flight
+provider request before discarding the client. The optional
+`UPTIME_DB_*_TIMEOUT_MS` settings in `apps/uptime-probe/src/config.ts` are bounded.
+Shutdown waits at most 5 seconds for the pool; systemd has a 20-second stop limit.
+Monitor leases default to 60 seconds and increase with configured timeouts so a
+bounded slow check cannot outlive its lease and be claimed by another worker.
+
+A running process alone is not a successful monitoring check. After recovery,
+verify that every enabled monitor's `last_checked_at` advances over multiple
+one-minute cycles and remains within the 3-minute freshness window. Self-hosted
+probes must be restarted through the guarded standard supervisor, never directly
+with `docker start`, so every new network namespace is verified before probing.
