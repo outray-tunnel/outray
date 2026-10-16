@@ -213,8 +213,12 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
             // 1. Delete subscription
             await db.delete(subscriptions).where(eq(subscriptions.organizationId, org.id));
 
-            // 2. Delete all custom domains
-            await db.delete(domains).where(eq(domains.organizationId, org.id));
+            // 2. Remove paid tunnel domains only. Status-page domains have an
+            // independent lifecycle and may own external provider resources.
+            await db.delete(domains).where(and(
+              eq(domains.organizationId, org.id),
+              eq(domains.purpose, "tunnel"),
+            ));
 
             // 3. Get all subdomains and keep only the oldest one
             const orgSubdomains = await db.select()
