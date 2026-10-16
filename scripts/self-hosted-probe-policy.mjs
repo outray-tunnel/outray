@@ -113,7 +113,10 @@ export function createProbePolicy(config) {
   const probeNetworkArguments = (labels) => ["network", "create", "--driver", "bridge", "--subnet", subnet, "--gateway", gateway, "--opt", `com.docker.network.bridge.name=${bridgeName}`, "--opt", "com.docker.network.enable_ipv6=false", ...Object.entries(checkedLabels(labels)).flatMap(([key, value]) => ["--label", `${key}=${value}`]), networkName];
   const safeProbeNetwork = (metadata, labels, allowedContainerId = null) => {
     checkedLabels(labels);
-    return Boolean(metadata?.Driver === "bridge" && metadata.Internal === false && metadata.EnableIPv6 === false && metadata.Options?.["com.docker.network.bridge.name"] === bridgeName && metadata.Options?.["com.docker.network.enable_ipv6"] === "false" && metadata.IPAM?.Config?.length === 1 && metadata.IPAM.Config[0].Subnet === subnet && metadata.IPAM.Config[0].Gateway === gateway && Object.entries(labels).every(([key, value]) => metadata.Labels?.[key] === value) && Object.entries(metadata.Containers || {}).every(([id, member]) => id === allowedContainerId && member.IPv4Address === `${address}/${range.prefix}`));
+    // Compose/Docker can omit the redundant driver option when EnableIPv6 is
+    // explicitly false. The authoritative network flag must still be false.
+    const ipv6Option = metadata?.Options?.["com.docker.network.enable_ipv6"];
+    return Boolean(metadata?.Driver === "bridge" && metadata.Internal === false && metadata.EnableIPv6 === false && metadata.Options?.["com.docker.network.bridge.name"] === bridgeName && (ipv6Option === undefined || ipv6Option === "false") && metadata.IPAM?.Config?.length === 1 && metadata.IPAM.Config[0].Subnet === subnet && metadata.IPAM.Config[0].Gateway === gateway && Object.entries(labels).every(([key, value]) => metadata.Labels?.[key] === value) && Object.entries(metadata.Containers || {}).every(([id, member]) => id === allowedContainerId && member.IPv4Address === `${address}/${range.prefix}`));
   };
   const ensureProbeNetwork = async ({ required, inspect, labels }) => {
     if (typeof required !== "function" || typeof inspect !== "function") failure();
