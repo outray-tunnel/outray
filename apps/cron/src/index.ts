@@ -1,4 +1,5 @@
 import { redis } from "./lib/redis";
+import { config } from "./config";
 import { activeTunnelSnapshot, createSnapshotLogger } from "./lib/tinybird-tunnels";
 import { chargePaystackSubscriptions } from "./lib/paystack";
 import { startAlertWorkers } from "./lib/alerts";
@@ -8,6 +9,8 @@ import {
   TELEMETRY_RECEIPT_CLEANUP_INTERVAL_MS,
 } from "./lib/telemetry-receipts";
 import { instanceConfig } from "../../../shared/instance-config";
+import { createProductEmailWorker, PRODUCT_EMAIL_POLL_INTERVAL_MS } from "./lib/product-emails";
+import { createUsageEmailScanner, USAGE_EMAIL_SCAN_INTERVAL_MS } from "./lib/usage-emails";
 
 async function connectRedis() {
   await redis.connect();
@@ -17,6 +20,8 @@ async function connectRedis() {
 const { logger: snapshots, configured: tinybirdConfigured } = createSnapshotLogger();
 const timers: NodeJS.Timeout[] = [];
 const telemetryReceiptCleanup = createTelemetryReceiptCleanup(databasePool);
+const productEmailWorker = createProductEmailWorker(databasePool);
+const usageEmailScanner = createUsageEmailScanner(databasePool, redis);
 
 let isSampling = false;
 let isCleaning = false;
@@ -225,6 +230,11 @@ async function start() {
     }
   }
   if (instance.billingEnabled) {
+    void usageEmailScanner.run();
+    void productEmailWorker.run();
+    timers.push(setInterval(() => void usageEmailScanner.run(), USAGE_EMAIL_SCAN_INTERVAL_MS));
+    timers.push(setInterval(() => void productEmailWorker.run(), PRODUCT_EMAIL_POLL_INTERVAL_MS));
+    if (!config.zeptoApiKey) console.warn("[Product emails] ZEPTO_API_KEY is missing; account emails will remain queued");
     try {
       await chargePaystackSubscriptions();
       timers.push(setInterval(chargePaystackSubscriptions, 24 * 60 * 60_000));
@@ -238,6 +248,7 @@ start();
 
 async function shutdown() {
   timers.forEach(clearInterval);
+  await Promise.all([usageEmailScanner.shutdown(), productEmailWorker.shutdown()]);
   await telemetryReceiptCleanup.shutdown();
   try { await snapshots.shutdown(); }
   catch { console.error("Could not persist buffered tunnel snapshots before shutdown"); }
