@@ -1,0 +1,16 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "outray-delivery",
+  "main": "src/index.ts",
+  "account_id": "c24bce6c7c75dad3f96b41f09a1f00d5",
+  "compatibility_date": "2026-10-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "delivery.outray.co", "custom_domain": true }],
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "vars": { "PUBLIC_DELIVERY_URL": "https://delivery.outray.co" },
+  "r2_buckets": [
+    { "binding": "STATUS_PAGE_LOGOS", "bucket_name": "outray" }
+  ]
+}
