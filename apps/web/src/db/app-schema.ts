@@ -83,6 +83,11 @@ export const domains = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     status: text("status").notNull().default("pending"), // pending, active, failed
     purpose: text("purpose").notNull().default("tunnel"), // tunnel or status
+    // Hosted status domains use these nullable fields to reconcile the exact
+    // Cloudflare for SaaS resource. Tunnel domains and self-hosted installs do
+    // not depend on them.
+    providerId: text("provider_id"),
+    providerStatus: text("provider_status"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .$onUpdate(() => new Date())
