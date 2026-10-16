@@ -1,21 +1,23 @@
 import { randomUUID } from "node:crypto";
 import { isIP } from "node:net";
-import pg, { type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { config } from "./config";
 import { decryptMonitorHeaders, type EncryptedPayload } from "./crypto";
 import { probeHttp, type ProbeMethod, type ProbeResult } from "./probe";
 import { transitionMonitor, type MonitorState } from "./state";
 import { pollUptimeNotifications } from "./notifications";
-import { postgresSsl } from "../../../shared/postgres-ssl";
+import { databasePool, safeDatabaseError, withDatabaseTransaction } from "./database";
+
+export { databasePool } from "./database";
 
 const workerId = `uptime-probe-${randomUUID()}`;
-const { Pool } = pg;
-
-export const databasePool = new Pool({
-  connectionString: config.databaseUrl || undefined,
-  ssl: config.databaseUrl ? postgresSsl(config.databaseUrl, config.sslRejectUnauthorized) : false,
-  max: Math.max(3, config.concurrency + 2),
-});
+// Cover claim response latency, header-key checkout/read, the 10s HTTP probe,
+// persistence checkout/transaction, and 5s scheduling margin. A 30s lease can
+// expire during a bounded (but slow) check and let another worker duplicate it.
+export const monitorLeaseSeconds = Math.max(60, Math.ceil((
+  2 * config.databaseConnectionTimeoutMs + 2 * config.databaseQueryTimeoutMs +
+  10_000 + config.databaseTransactionTimeoutMs + 5_000
+) / 1_000));
 
 type MonitorRow = {
   id: string;
@@ -95,14 +97,14 @@ export function validDashboardUrl(value: string): boolean {
   }
 }
 
-async function pollMonitors() {
+export async function pollMonitors() {
   if (polling) return;
   polling = true;
   try {
     const monitors = await claimDueMonitors();
     await mapConcurrent(monitors, config.concurrency, checkMonitor);
   } catch (error) {
-    console.error("[Uptime] Monitor poll failed", safeErrorCode(error));
+    console.error("[Uptime] Monitor poll failed", safeDatabaseError(error));
   } finally {
     polling = false;
   }
@@ -120,12 +122,12 @@ async function claimDueMonitors(): Promise<MonitorRow[]> {
        LIMIT $1
      )
      UPDATE uptime_monitors AS monitor
-     SET lease_owner = $2, lease_until = NOW() + INTERVAL '30 seconds',
+     SET lease_owner = $2, lease_until = NOW() + ($3 * INTERVAL '1 second'),
          next_check_at = NOW() + INTERVAL '1 minute', updated_at = NOW()
      FROM due, organizations AS organization
      WHERE monitor.id = due.id AND organization.id = monitor.organization_id
      RETURNING monitor.*, organization.slug AS organization_slug`,
-    [Math.min(config.batchSize, config.concurrency), workerId],
+    [Math.min(config.batchSize, config.concurrency), workerId, monitorLeaseSeconds],
   );
   return result.rows;
 }
@@ -153,7 +155,7 @@ async function checkMonitor(monitor: MonitorRow) {
     await persistCheck(monitor, result);
   } catch (error) {
     // No URL, header, response body, or thrown network message is logged.
-    console.error(`[Uptime] Could not persist check ${monitor.id}`, safeErrorCode(error));
+    console.error(`[Uptime] Could not persist check ${monitor.id}`, safeDatabaseError(error));
   }
 }
 
@@ -166,9 +168,7 @@ async function releaseLease(monitorId: string) {
 }
 
 async function persistCheck(claimed: MonitorRow, result: ProbeResult) {
-  const client = await databasePool.connect();
-  try {
-    await client.query("BEGIN");
+  await withDatabaseTransaction(databasePool, async (client) => {
     const currentResult = await client.query<MonitorRow>(
       `SELECT monitor.*, organization.slug AS organization_slug
        FROM uptime_monitors AS monitor
@@ -180,7 +180,6 @@ async function persistCheck(claimed: MonitorRow, result: ProbeResult) {
     );
     const current = currentResult.rows[0];
     if (!current) {
-      await client.query("ROLLBACK");
       return;
     }
     const checkedAt = new Date();
@@ -234,13 +233,7 @@ async function persistCheck(claimed: MonitorRow, result: ProbeResult) {
       await attachCurrentComponentsToOpenIncident(client, current);
     }
     if (transition.state === "down") await publishConfirmedIncident(client, current, checkedAt);
-    await client.query("COMMIT");
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    client.release();
-  }
+  });
 }
 
 type Incident = { id: string; started_at: Date };
@@ -425,7 +418,7 @@ async function cleanupHistory() {
       10,
     );
   } catch (error) {
-    console.error("[Uptime] Retention cleanup failed", safeErrorCode(error));
+    console.error("[Uptime] Retention cleanup failed", safeDatabaseError(error));
   } finally {
     retaining = false;
   }
@@ -436,12 +429,6 @@ async function deleteExpiredInBatches(sql: string, maxBatches: number) {
     const result = await databasePool.query(sql);
     if ((result.rowCount ?? 0) < 10_000) break;
   }
-}
-
-function safeErrorCode(error: unknown) {
-  // Never serialize DB/network exception messages: they may contain query/URL data.
-  return error && typeof error === "object" && "code" in error && typeof error.code === "string"
-    ? error.code : "internal_error";
 }
 
 async function mapConcurrent<T>(items: T[], concurrency: number, task: (item: T) => Promise<void>) {
