@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { ProductIcon } from "../ProductIcon";
 import { ProductPreview } from "./ProductPreview";
-import { productIds, products, type ProductId } from "./content";
+import { products, type ProductId } from "./content";
 
 const pageShell = "mx-auto w-[min(calc(100%_-_48px),1240px)] pb-[84px] max-[620px]:w-[min(calc(100%_-_28px),1240px)] max-[540px]:pb-[58px]";
 const eyebrow = "mb-[19px] flex items-center gap-[9px] font-mono text-[.64rem] leading-[1.5] font-medium tracking-[.11em] text-[#a58acb] [&_.product-icon]:size-[19px]";
@@ -62,15 +62,5 @@ export function ProductPage({ product, hero, workflow, sections, className = "" 
       <section className="flex items-center justify-between gap-[35px] pt-[69px] max-[1050px]:items-start max-[540px]:flex-col max-[540px]:gap-6 max-[540px]:pt-[49px]" aria-labelledby="start-title"><div><p className={`${eyebrow} mb-3`}>YOUR NEXT STEP</p><h2 className={`${h2} text-[1.65rem]`} id="start-title">Start with {content.name.toLowerCase()}.</h2><p className="mt-[11px] text-[.85rem] text-[#9494a0]">Create a workspace and connect your first service.</p></div><div className={`${actions} m-0 max-[1050px]:shrink-0 max-[1050px]:flex-col max-[1050px]:items-start max-[1050px]:gap-2 max-[540px]:flex-row max-[540px]:items-center max-[540px]:gap-5`}><Link className={primaryButton} to="/signup" data-track="cta" data-track-label={`${product}-bottom-get-started`}>Get started<Arrow /></Link><Link className={textLink} to="/docs/$" params={{ _splat: product }}>Documentation<Arrow /></Link></div></section>
       </>}
     </article>
-  );
-}
-
-export function ProductsIndex() {
-  return (
-    <div className={pageShell}>
-      <section className="py-[70px_62px] max-[820px]:py-[49px]" aria-labelledby="products-title"><p className={eyebrow}>THE OUTRAY TOOLKIT</p><h1 className={h1} id="products-title">Four tools. One workspace.<br />Start where you need them.</h1><p className={`${lead} max-w-[660px]`}>Expose a local service, understand its requests, manage its configuration, and keep an eye on its public endpoint. Each product works on its own, with the same place to return to.</p><div className={actions}><Link className={primaryButton} to="/signup" data-track="cta" data-track-label="products-get-started">Get started<Arrow /></Link><Link className={textLink} to="/docs/$" params={{ _splat: "" }}>Browse the docs<Arrow /></Link></div></section>
-      <div>{productIds.map((id) => <section className="grid grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)] items-center gap-[clamp(40px,5vw,76px)] border-t border-[var(--line)] py-[61px] max-[1050px]:gap-[35px] max-[820px]:grid-cols-1 max-[820px]:py-[45px]" key={id} aria-labelledby={`${id}-title`}><div className="max-[820px]:max-w-[590px]"><p className={eyebrow}>{products[id].number} / {products[id].name.toUpperCase()}</p><h2 className="max-w-[390px] text-[clamp(1.65rem,2.6vw,2.15rem)] leading-[1.17] font-[520] tracking-[-.035em] text-balance text-[#efeff2]" id={`${id}-title`}>{products[id].summary}</h2><p className="mt-5 text-[.9rem] leading-[1.75] text-[#9494a0]">{products[id].description}</p><ul className={`${tags} mt-[21px]`} aria-label={`${products[id].name} highlights`}>{products[id].tags.map((tag) => <li key={tag}>{tag}</li>)}</ul><Link className={`${textLink} mt-[23px]`} to={`/products/${id}`} data-track="navigation" data-track-label={`products-explore-${id}`}>Explore {products[id].name}<Arrow /></Link></div><ProductPreview product={id} /></section>)}</div>
-      <section className="flex items-center justify-between gap-[35px] border-t border-[var(--line)] pt-[69px] max-[1050px]:items-start max-[540px]:flex-col max-[540px]:gap-6 max-[540px]:pt-[49px]" aria-labelledby="start-title"><div><p className={`${eyebrow} mb-3`}>ONE PLACE TO START</p><h2 className={`${h2} text-[1.65rem]`} id="start-title">Make a little room in your toolkit.</h2><p className="mt-[11px] text-[.85rem] text-[#9494a0]">Create a workspace, then connect the product you need.</p></div><Link className={primaryButton} to="/signup" data-track="cta" data-track-label="products-bottom-get-started">Get started<Arrow /></Link></section>
-    </div>
   );
 }
