@@ -1,12 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CreditCard, Building2, Calendar, DollarSign, TrendingUp } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import WalletCardsIcon from "@outray/icons/stroke/WalletCardsIcon";
+import Activity03Icon from "@outray/icons/stroke/Activity03Icon";
+import Clock01Icon from "@outray/icons/stroke/Clock01Icon";
+import ArrowUpRight01Icon from "@outray/icons/stroke/ArrowUpRight01Icon";
+import { Button } from "@/components/arc/button/button";
+import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
+import { WorkspacePageHeader } from "@/components/workspace-page-header";
+import { WorkspaceNotice } from "@/components/workspace/workspace-ui";
 import { appClient } from "@/lib/app-client";
 import { AdminDataTable, type Column } from "@/components/admin/admin-data-table";
 import { AdminStatsCard } from "@/components/admin/admin-stats-card";
 import { SubscriptionsSkeleton } from "@/components/admin/admin-skeleton";
-import { useAdminStore } from "@/lib/admin-store";
 
 export const Route = createFileRoute("/admin/subscriptions")({
   head: () => ({
@@ -31,7 +38,7 @@ interface Subscription {
 }
 
 const planColors: Record<string, string> = {
-  free: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+  free: "bg-gray-500/10 text-zinc-400 border-gray-500/20",
   ray: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   beam: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   pulse: "bg-amber-500/10 text-amber-400 border-amber-500/20",
@@ -43,27 +50,24 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-500/10 text-red-400 border-red-500/20",
   canceled: "bg-red-500/10 text-red-400 border-red-500/20",
   past_due: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  paused: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+  paused: "bg-gray-500/10 text-zinc-400 border-gray-500/20",
 };
 
 function AdminSubscriptionsPage() {
-  const token = useAdminStore((s) => s.token);
   const [page, setPage] = useState(1);
   const [planFilter, setPlanFilter] = useState("");
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["admin", "subscriptions", page, planFilter],
     queryFn: async () => {
-      const res = await appClient.admin.subscriptions(token!, { page, plan: planFilter });
+      const res = await appClient.admin.subscriptions({ page, plan: planFilter });
       if ("error" in res) throw new Error(res.error);
       return res;
     },
-    enabled: !!token,
   });
 
-  if (!token || (isLoading && !data)) {
-    return <SubscriptionsSkeleton />;
-  }
+  if (isLoading && !data) return <SubscriptionsSkeleton />;
+  if (error && !data) return <div className="mx-auto max-w-[1440px] space-y-5"><WorkspacePageHeader appearance="compact" title="Subscriptions" description="Plans, renewals, and recurring revenue across the platform." /><WorkspaceNotice message={error.message} action={<Button size="sm" variant="ghost" onClick={() => void refetch()} loading={isFetching}>Try again</Button>} /></div>;
 
   const subscriptions = data?.subscriptions ?? [];
   const stats = data?.stats;
@@ -83,28 +87,17 @@ function AdminSubscriptionsPage() {
     {
       key: "orgName",
       header: "Organization",
-      render: (sub) => (
-        <Link
-          to="/admin/organizations/$slug"
-          params={{ slug: sub.orgSlug || "" }}
-          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-        >
-          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-            <Building2 size={14} className="text-gray-400" />
-          </div>
-          <div>
-            <div className="font-medium text-white hover:text-accent">{sub.orgName || "Unknown"}</div>
-            <div className="text-xs text-gray-500">/{sub.orgSlug || "-"}</div>
-          </div>
-        </Link>
-      ),
+      render: (sub) => {
+        const content = <><span className="grid size-8 shrink-0 place-items-center rounded-lg border border-white/[.07] bg-white/[.03] text-[12px] text-zinc-400">{(sub.orgName || "?").charAt(0).toUpperCase()}</span><div className="min-w-0"><div className="truncate text-[13px] text-zinc-200">{sub.orgName || "Unknown organization"}</div><div className="mt-0.5 text-[11px] text-zinc-500">/{sub.orgSlug || "—"}</div></div></>;
+        return sub.orgSlug ? <Link to="/admin/organizations/$slug" params={{ slug: sub.orgSlug }} className="group flex items-center gap-3 transition-opacity hover:opacity-80">{content}</Link> : <div className="flex items-center gap-3">{content}</div>;
+      },
     },
     {
       key: "plan",
       header: "Plan",
       render: (sub) => (
         <span
-          className={`px-2 py-1 rounded-lg text-xs font-medium border capitalize ${
+          className={`rounded-md border px-2 py-0.5 text-[11px] font-normal capitalize ${
             planColors[sub.plan] || planColors.free
           }`}
         >
@@ -118,14 +111,14 @@ function AdminSubscriptionsPage() {
       render: (sub) => (
         <div className="flex items-center gap-2">
           <span
-            className={`px-2 py-1 rounded-lg text-xs font-medium border capitalize ${
-              statusColors[sub.status] || statusColors.active
+            className={`rounded-md border px-2 py-0.5 text-[11px] font-normal capitalize ${
+              statusColors[sub.status] || statusColors.paused
             }`}
           >
-            {sub.status}
+            {sub.status.replaceAll("_", " ")}
           </span>
           {sub.cancelAtPeriodEnd && (
-            <span className="text-xs text-yellow-400">(cancelling)</span>
+            <span className="text-[11px] text-amber-400">(cancelling)</span>
           )}
         </div>
       ),
@@ -134,80 +127,54 @@ function AdminSubscriptionsPage() {
       key: "currentPeriodEnd",
       header: "Renews",
       render: (sub) => (
-        <div className="flex items-center gap-2 text-gray-400">
-          <Calendar size={14} />
+        <div className="flex items-center gap-2 text-zinc-400">
+          <HugeiconsIcon icon={Clock01Icon} size={13} className="text-zinc-600" aria-hidden="true" />
           {formatDate(sub.currentPeriodEnd)}
         </div>
       ),
     },
     {
       key: "updatedAt",
-      header: "Last Updated",
+      header: "Updated",
       render: (sub) => (
-        <span className="text-gray-400">{formatDate(sub.updatedAt)}</span>
+        <span className="text-zinc-400">{formatDate(sub.updatedAt)}</span>
       ),
     },
   ];
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white tracking-tight">
-          Subscriptions
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Revenue and subscription analytics
-        </p>
-      </div>
+    <div className="mx-auto max-w-[1440px] space-y-5">
+      <WorkspacePageHeader appearance="compact" title="Subscriptions" description="Plans, renewals, and recurring revenue across the platform." />
+      {error && <WorkspaceNotice message={error.message} action={<Button size="sm" variant="ghost" onClick={() => void refetch()} loading={isFetching}>Try again</Button>} />}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <AdminStatsCard
-          title="Monthly Revenue"
-          value={`${stats?.mrr?.toLocaleString() || "0"}`}
-          icon={<DollarSign size={20} />}
+          title="Monthly revenue"
+          value={stats?.mrr?.toLocaleString() ?? "—"}
+          icon={<HugeiconsIcon icon={WalletCardsIcon} size={17} aria-hidden="true" />}
         />
         <AdminStatsCard
-          title="Annual Revenue"
-          value={`${stats?.arr?.toLocaleString() || "0"}`}
-          icon={<TrendingUp size={20} />}
+          title="Annual revenue"
+          value={stats?.arr?.toLocaleString() ?? "—"}
+          icon={<HugeiconsIcon icon={ArrowUpRight01Icon} size={17} aria-hidden="true" />}
         />
         <AdminStatsCard
-          title="Active Subscriptions"
-          value={stats?.totalActive?.toLocaleString() || "0"}
-          icon={<CreditCard size={20} />}
+          title="Active subscriptions"
+          value={stats?.totalActive?.toLocaleString() ?? "—"}
+          icon={<HugeiconsIcon icon={Activity03Icon} size={17} aria-hidden="true" />}
         />
         <AdminStatsCard
-          title="Recent Changes"
-          value={stats?.recentChanges?.toLocaleString() || "0"}
-          icon={<Calendar size={20} />}
+          title="Recent changes"
+          value={stats?.recentChanges?.toLocaleString() ?? "—"}
+          icon={<HugeiconsIcon icon={Clock01Icon} size={17} aria-hidden="true" />}
           subtitle="Last 30 days"
         />
       </div>
 
-      {/* Plan Filter */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="text-sm text-gray-500">
-          {total.toLocaleString()} total subscriptions
-        </div>
-        <div className="flex gap-2">
-          {["", "free", "ray", "beam", "pulse", "unlimited"].map((plan) => (
-            <button
-              key={plan}
-              onClick={() => {
-                setPlanFilter(plan);
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                planFilter === plan
-                  ? "bg-white/10 text-white"
-                  : "text-gray-500 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              {plan === "" ? "All" : plan.charAt(0).toUpperCase() + plan.slice(1)}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[12px] text-zinc-500">{total.toLocaleString()} {total === 1 ? "subscription" : "subscriptions"}</p>
+        <SegmentedControl label="Filter subscriptions by plan" options={["", "free", "ray", "beam", "pulse", "unlimited"].map((plan) => ({ value: plan, label: plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : "All plans" }))} value={planFilter} onValueChange={(plan) => { setPlanFilter(plan); setPage(1); }} />
       </div>
 
       <AdminDataTable
