@@ -26,12 +26,13 @@ async function fixture(options = {}) {
     assert.ok(existsSync(lock), "every Docker operation must be serialized");
     for (const key of ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH"]) assert.equal(settings.env[key], undefined);
     const argv = args.slice(2);
-    if (argv[0] === "ps") return { status: 0, stdout: workerId };
+    if (argv[0] === "ps") { assert.ok(argv.includes("--no-trunc")); return { status: 0, stdout: workerId }; }
     if (argv[0] === "container") {
       const postgres = argv.at(-1) === postgresId;
       return { status: 0, stdout: JSON.stringify([{ Id: postgres ? postgresId : workerId, State: { Running: true }, Config: { Labels: { "com.docker.compose.project": options.foreign ? "unrelated" : "outray-self-hosted", "com.docker.compose.service": postgres ? "postgres" : "uptime-probe" } }, NetworkSettings: { Networks: { "outray-self-hosted_database": { IPAddress: "172.30.42.2" } } } }]) };
     }
     if (argv[0] === "compose" && argv.includes("ps")) return { status: 0, stdout: postgresId };
+    if (argv[0] === "compose" && (options.migrationFails && argv.includes("run") || options.gatewayFails && argv.includes("up") && argv.at(-1) === "caddy")) return { status: 1, stdout: "private diagnostics" };
     if (argv[0] === "compose" && options.composeFails) return { status: 1, stdout: "" };
     return { status: 0, stdout: "" };
   };
@@ -72,8 +73,22 @@ test("enabled worker setup pins all Docker calls and authorizes activation under
     assert.deepEqual(f.calls.filter((call) => call.supervisor).map((call) => call.supervisor), ["stop", "start"]);
     assert.equal(f.calls.filter((call) => call.activate).length, 1);
     assert.ok(f.calls.some((call) => call.args?.includes("--profile") && call.args.includes("uptime-worker")));
+    const stage = (predicate) => f.calls.findIndex((call) => call.args?.[2] === "compose" && predicate(call.args));
+    const build = stage((args) => args.includes("build")), migration = stage((args) => args.includes("run") && args.at(-1) === "migrate");
+    const gateway = stage((args) => args.includes("up") && args.at(-1) === "caddy"), applications = stage((args) => args.includes("up") && args.includes("web"));
+    assert.ok(build < migration && migration < gateway && gateway < applications);
+    for (const index of [gateway, applications]) assert.ok(f.calls[index].args.includes("--no-deps"));
+    assert.ok(f.calls[applications].args.includes("--no-build"));
     assert.ok(!existsSync(f.lock));
   } finally { await f.cleanup(); }
+});
+
+test("migration or fixed-IP gateway failures never launch dynamic application services", async () => {
+  for (const options of [{ migrationFails: true }, { gatewayFails: true }]) {
+    const f = await fixture(options);
+    try { await assert.rejects(f.run(), options.migrationFails ? /migration\/bootstrap/ : /Gateway startup/); assert.ok(!f.calls.some((call) => call.args?.[2] === "compose" && call.args.includes("up") && call.args.includes("web"))); assert.ok(!existsSync(f.lock)); }
+    finally { await f.cleanup(); }
+  }
 });
 
 test("setup cannot overlap an update or stop a worker with changed ownership, and releases failed-operation locks", async () => {
