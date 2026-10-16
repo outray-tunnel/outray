@@ -30,6 +30,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as OrgSlugRouteImport } from './routes/$orgSlug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrgSlugIndexRouteImport } from './routes/$orgSlug/index'
+import { Route as StatusPageLogosFileNameRouteImport } from './routes/status-page-logos/$fileName'
 import { Route as ProductsUptimeRouteImport } from './routes/products.uptime'
 import { Route as ProductsTunnelsRouteImport } from './routes/products.tunnels'
 import { Route as ProductsSecretsRouteImport } from './routes/products.secrets'
@@ -338,6 +339,11 @@ const OrgSlugIndexRoute = OrgSlugIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => OrgSlugRoute,
+} as any)
+const StatusPageLogosFileNameRoute = StatusPageLogosFileNameRouteImport.update({
+  id: '/status-page-logos/$fileName',
+  path: '/status-page-logos/$fileName',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsUptimeRoute = ProductsUptimeRouteImport.update({
   id: '/uptime',
@@ -1547,6 +1553,7 @@ export interface FileRoutesByFullPath {
   '/products/secrets': typeof ProductsSecretsRoute
   '/products/tunnels': typeof ProductsTunnelsRoute
   '/products/uptime': typeof ProductsUptimeRoute
+  '/status-page-logos/$fileName': typeof StatusPageLogosFileNameRoute
   '/$orgSlug/': typeof OrgSlugIndexRoute
   '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
@@ -1767,6 +1774,7 @@ export interface FileRoutesByTo {
   '/products/secrets': typeof ProductsSecretsRoute
   '/products/tunnels': typeof ProductsTunnelsRoute
   '/products/uptime': typeof ProductsUptimeRoute
+  '/status-page-logos/$fileName': typeof StatusPageLogosFileNameRoute
   '/$orgSlug': typeof OrgSlugIndexRoute
   '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
@@ -1992,6 +2000,7 @@ export interface FileRoutesById {
   '/products/secrets': typeof ProductsSecretsRoute
   '/products/tunnels': typeof ProductsTunnelsRoute
   '/products/uptime': typeof ProductsUptimeRoute
+  '/status-page-logos/$fileName': typeof StatusPageLogosFileNameRoute
   '/$orgSlug/': typeof OrgSlugIndexRoute
   '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
@@ -2220,6 +2229,7 @@ export interface FileRouteTypes {
     | '/products/secrets'
     | '/products/tunnels'
     | '/products/uptime'
+    | '/status-page-logos/$fileName'
     | '/$orgSlug/'
     | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
@@ -2440,6 +2450,7 @@ export interface FileRouteTypes {
     | '/products/secrets'
     | '/products/tunnels'
     | '/products/uptime'
+    | '/status-page-logos/$fileName'
     | '/$orgSlug'
     | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
@@ -2664,6 +2675,7 @@ export interface FileRouteTypes {
     | '/products/secrets'
     | '/products/tunnels'
     | '/products/uptime'
+    | '/status-page-logos/$fileName'
     | '/$orgSlug/'
     | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
@@ -2870,6 +2882,7 @@ export interface RootRouteChildren {
   DocsSplatRoute: typeof DocsSplatRoute
   InternalDomainCheckRoute: typeof InternalDomainCheckRoute
   InvitationsAcceptRoute: typeof InvitationsAcceptRoute
+  StatusPageLogosFileNameRoute: typeof StatusPageLogosFileNameRoute
   ApiOrgSlugAuthTokensRoute: typeof ApiOrgSlugAuthTokensRoute
   ApiOrgSlugRequestsRoute: typeof ApiOrgSlugRequestsRouteWithChildren
   ApiOrgSlugSettingsRoute: typeof ApiOrgSlugSettingsRoute
@@ -3106,6 +3119,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$orgSlug/'
       preLoaderRoute: typeof OrgSlugIndexRouteImport
       parentRoute: typeof OrgSlugRoute
+    }
+    '/status-page-logos/$fileName': {
+      id: '/status-page-logos/$fileName'
+      path: '/status-page-logos/$fileName'
+      fullPath: '/status-page-logos/$fileName'
+      preLoaderRoute: typeof StatusPageLogosFileNameRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/products/uptime': {
       id: '/products/uptime'
@@ -5158,6 +5178,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocsSplatRoute: DocsSplatRoute,
   InternalDomainCheckRoute: InternalDomainCheckRoute,
   InvitationsAcceptRoute: InvitationsAcceptRoute,
+  StatusPageLogosFileNameRoute: StatusPageLogosFileNameRoute,
   ApiOrgSlugAuthTokensRoute: ApiOrgSlugAuthTokensRoute,
   ApiOrgSlugRequestsRoute: ApiOrgSlugRequestsRouteWithChildren,
   ApiOrgSlugSettingsRoute: ApiOrgSlugSettingsRoute,
