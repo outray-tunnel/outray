@@ -12,6 +12,7 @@ EnvironmentFile=/etc/outray/uptime-probe.env
 ExecStart=/usr/bin/env node dist/index.js
 Restart=always
 RestartSec=5
+TimeoutStopSec=20
 NoNewPrivileges=yes
 PrivateDevices=yes
 PrivateTmp=yes
