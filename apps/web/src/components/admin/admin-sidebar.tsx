@@ -1,81 +1,64 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  Users,
-  Building2,
-  CreditCard,
-  Network,
-  LogOut,
-  BarChart3,
-  Wrench,
-} from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import DashboardSquare01Icon from "@outray/icons/stroke/DashboardSquare01Icon";
+import UserGroupIcon from "@outray/icons/stroke/UserGroupIcon";
+import Building03Icon from "@outray/icons/stroke/Building03Icon";
+import WalletCardsIcon from "@outray/icons/stroke/WalletCardsIcon";
+import Cone01Icon from "@outray/icons/stroke/Cone01Icon";
+import ChartLineData01Icon from "@outray/icons/stroke/ChartLineData01Icon";
+import Settings02Icon from "@outray/icons/stroke/Settings02Icon";
+import Analytics01Icon from "@outray/icons/stroke/Analytics01Icon";
+import DashboardSquare01SolidIcon from "@outray/icons/solid/DashboardSquare01Icon";
+import UserGroupSolidIcon from "@outray/icons/solid/UserGroupIcon";
+import Building03SolidIcon from "@outray/icons/solid/Building03Icon";
+import WalletCardsSolidIcon from "@outray/icons/solid/WalletCardsIcon";
+import Cone01SolidIcon from "@outray/icons/solid/Cone01Icon";
+import ChartLineData01SolidIcon from "@outray/icons/solid/ChartLineData01Icon";
+import Settings02SolidIcon from "@outray/icons/solid/Settings02Icon";
+import Analytics01SolidIcon from "@outray/icons/solid/Analytics01Icon";
+import Logout02Icon from "@outray/icons/stroke/Logout02Icon";
+import ArrowUpRight01Icon from "@outray/icons/stroke/ArrowUpRight01Icon";
+import { Button } from "../arc/button/button";
+import { NavItem } from "../sidebar/nav-item";
+import { workspaceScopeClassName } from "../ui/workspace-scope";
 
 interface AdminSidebarProps {
   onLogout: () => void;
+  user?: { name: string; email: string; image?: string | null };
 }
 
 const navItems = [
-  { path: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
-  { path: "/admin/users", label: "Users", icon: Users },
-  { path: "/admin/organizations", label: "Organizations", icon: Building2 },
-  { path: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
-  { path: "/admin/tunnels", label: "Tunnels", icon: Network },
-  { path: "/admin/charts", label: "Charts", icon: BarChart3 },
-  { path: "/admin/actions", label: "Actions", icon: Wrench },
+  { path: "/admin", label: "Overview", icon: DashboardSquare01Icon, activeIcon: DashboardSquare01SolidIcon, exact: true },
+  { path: "/admin/usage", label: "Product usage", icon: Analytics01Icon, activeIcon: Analytics01SolidIcon },
+  { path: "/admin/users", label: "Users", icon: UserGroupIcon, activeIcon: UserGroupSolidIcon },
+  { path: "/admin/organizations", label: "Organizations", icon: Building03Icon, activeIcon: Building03SolidIcon },
+  { path: "/admin/subscriptions", label: "Subscriptions", icon: WalletCardsIcon, activeIcon: WalletCardsSolidIcon },
+  { path: "/admin/tunnels", label: "Tunnels", icon: Cone01Icon, activeIcon: Cone01SolidIcon },
+  { path: "/admin/charts", label: "Analytics", icon: ChartLineData01Icon, activeIcon: ChartLineData01SolidIcon },
+  { path: "/admin/actions", label: "Maintenance", icon: Settings02Icon, activeIcon: Settings02SolidIcon },
 ];
 
-export function AdminSidebar({ onLogout }: AdminSidebarProps) {
+export function AdminSidebar({ onLogout, user }: AdminSidebarProps) {
   const location = useLocation();
+  const links = navItems.map((item) => {
+    const active = item.exact ? location.pathname === item.path || location.pathname === `${item.path}/` : location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+    return <NavItem key={item.path} to={item.path} label={item.label} icon={item.icon} activeIcon={item.activeIcon} isActive={active} activeOptions={{ exact: !!item.exact }} compact isCollapsed={false} />;
+  });
+  const brand = <Link to="/admin" aria-label="OutRay administration" className="flex w-fit items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"><img src="/logo.png" alt="" className="size-8 object-contain" /><span className="text-[17px] font-semibold tracking-[-.03em] text-zinc-100">OutRay</span><span className="ml-1 rounded-md border border-white/[.08] px-1.5 py-0.5 text-[10px] leading-4 text-zinc-500">Admin</span></Link>;
 
-  const isActive = (path: string, exact?: boolean) => {
-    if (exact) return location.pathname === path;
-    return location.pathname.startsWith(path);
-  };
-
-  return (
-    <div className="w-64 h-screen bg-[#0A0A0A] border-r border-white/5 flex flex-col fixed left-0 top-0">
-      <div className="p-6 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="OutRay" className="w-8 h-8" />
-          <div>
-            <span className="font-bold text-white text-lg">OutRay</span>
-            <span className="ml-2 text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
-              Admin
-            </span>
-          </div>
+  return <>
+    <aside className={`${workspaceScopeClassName} fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-white/[.07] bg-[#090909] md:flex`}>
+      <div className="flex h-16 shrink-0 items-center px-3">{brand}</div>
+      <nav aria-label="Administration" className="flex-1 overflow-y-auto px-3 pt-6"><p className="mb-3 px-3 text-[11px] text-zinc-600">Platform</p><div className="space-y-0.5">{links}</div></nav>
+      <div className="space-y-4 px-3 pb-4">
+        <Link to="/select" className="flex h-9 items-center justify-between rounded-lg px-3 text-[12px] text-zinc-500 transition-colors hover:bg-white/[.035] hover:text-zinc-200 focus-visible:outline-2 focus-visible:outline-accent">Back to console<HugeiconsIcon icon={ArrowUpRight01Icon} size={15} aria-hidden="true" /></Link>
+        <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-white/[.07] bg-white/[.015] p-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/[.06] text-[12px] text-zinc-400">{user?.image ? <img src={user.image} alt="" referrerPolicy="no-referrer" className="size-full object-cover" /> : (user?.name || "A").charAt(0).toUpperCase()}</span>
+          <div className="min-w-0 flex-1"><p className="truncate text-[12px] text-zinc-200">{user?.name || "Administrator"}</p><p className="mt-0.5 truncate text-[10px] text-zinc-500" title={user?.email}>{user?.email || "Platform admin"}</p></div>
+          <Button type="button" variant="ghost" size="sm" onClick={onLogout} aria-label="Sign out" title="Sign out" className="w-7 min-w-7! px-0!"><HugeiconsIcon icon={Logout02Icon} size={16} aria-hidden="true" /></Button>
         </div>
       </div>
-
-      <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.path, item.exact);
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                active
-                  ? "bg-white/10 text-white"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Icon size={18} className={active ? "text-accent" : ""} />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="p-4 border-t border-white/5">
-        <button
-          onClick={onLogout}
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all w-full"
-        >
-          <LogOut size={18} />
-          Logout
-        </button>
-      </div>
-    </div>
-  );
+    </aside>
+    <div className={`${workspaceScopeClassName} border-b border-white/[.07] bg-[#090909] md:hidden`}><div className="flex h-16 items-center justify-between gap-4 px-3">{brand}<Button type="button" variant="ghost" size="sm" onClick={onLogout}>Sign out</Button></div><nav aria-label="Administration" className="flex gap-0.5 overflow-x-auto px-3 pb-3 [scrollbar-width:none] [&_a]:w-auto [&_a]:shrink-0">{links}</nav></div>
+  </>;
 }
