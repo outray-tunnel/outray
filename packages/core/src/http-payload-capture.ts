@@ -73,6 +73,26 @@ const DEFAULT_SENSITIVE_FIELDS = [
   "passcode",
   "pin",
   "otp",
+  "auth-key",
+  "credentials",
+  "credential",
+  "authorization-code",
+  "oauth-code",
+  "oauth-state",
+  "oauth-nonce",
+  "code-verifier",
+  "code-challenge",
+  "verification-code",
+  "confirmation-code",
+  "recovery-code",
+  "recovery-codes",
+  "backup-codes",
+  "one-time-code",
+  "assertion",
+  "client-assertion",
+  "attestation-object",
+  "authenticator-data",
+  "client-data-json",
 ] as const;
 
 export const OUTRAY_HTTP_CAPTURE_ATTRIBUTES = {
@@ -112,6 +132,8 @@ export interface HttpPayloadCaptureOptions {
   redactedHeaders?: readonly string[];
   /** Additional JSON/form field names to redact. Defaults can only be extended. */
   redactedFields?: readonly string[];
+  /** Additional request-body-only JSON/form fields to redact, extending redactedFields. */
+  redactedRequestFields?: readonly string[];
 }
 
 export type HttpPayloadCaptureSetting = boolean | HttpPayloadCaptureOptions;
@@ -137,6 +159,7 @@ interface NormalizedCaptureOptions {
   maxHeaderBytes: number;
   redactedHeaders: Set<string>;
   redactedFields: Set<string>;
+  redactedRequestFields: Set<string>;
 }
 
 interface BodyCapture {
@@ -149,6 +172,7 @@ interface BodyCapture {
 interface StructureState {
   truncated: boolean;
   seen: WeakSet<object>;
+  maxStringBytes: number;
 }
 
 interface ByteCollector {
@@ -211,6 +235,10 @@ function normalizeOptions(
         normalizeName,
       ),
     );
+    const redactedRequestFields = new Set([
+      ...redactedFields,
+      ...(options.redactedRequestFields ?? []).map(normalizeName),
+    ]);
 
     return {
       requestHeaders: options.requestHeaders !== false,
@@ -229,6 +257,7 @@ function normalizeOptions(
       ),
       redactedHeaders,
       redactedFields,
+      redactedRequestFields,
     };
   } catch {
     return null;
@@ -247,6 +276,12 @@ function isSensitive(name: string, names: Set<string>): boolean {
     normalized.includes("secret") ||
     normalized.includes("token") ||
     normalized.includes("apikey") ||
+    normalized.includes("authkey") ||
+    normalized.includes("codeverifier") ||
+    normalized.includes("codechallenge") ||
+    normalized.includes("authorizationcode") ||
+    normalized.includes("oauthcode") ||
+    normalized.includes("oauthstate") ||
     normalized.includes("privatekey") ||
     normalized.includes("cardnumber") ||
     normalized.includes("creditcard") ||
@@ -254,6 +289,89 @@ function isSensitive(name: string, names: Set<string>): boolean {
     normalized.includes("authorization") ||
     normalized.includes("cookie")
   );
+}
+
+function decodeComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+// OAuth uses generic names that are useful diagnostics elsewhere (notably
+// error.code and monitor.state). Only treat them as credentials in URLs or
+// structures that carry the OAuth exchange, not every object with a code.
+function isOAuthStructure(entries: Iterable<[string, unknown]>): boolean {
+  const normalized = new Map<string, unknown>();
+  let count = 0;
+  for (const [name, value] of entries) {
+    normalized.set(normalizeName(name), value);
+    if (++count >= MAX_COLLECTION_ENTRIES) break;
+  }
+  const state = normalized.get("state");
+  return (
+    ["granttype", "redirecturi", "codeverifier", "codechallenge", "oauthstate", "authorizationcode"]
+      .some((name) => normalized.has(name)) ||
+    (typeof normalized.get("code") === "string" && typeof state === "string" &&
+      !["up", "down", "unknown", "pending", "error", "failed", "success", "ok", "active", "inactive", "completed"].includes(state.toLowerCase()))
+  );
+}
+
+function isOAuthCredential(name: string): boolean {
+  return ["code", "state", "nonce", "challenge"].includes(normalizeName(name));
+}
+
+/** Best-effort defense for credentials embedded in otherwise useful messages/URLs. */
+function redactCredentialText(value: string, fields: Set<string>, depth = 0): string {
+  if (/^(?:[a-z][a-z0-9+.-]*%3a%2f%2f|%2f)/i.test(value)) {
+    if (depth >= 3) return REDACTED;
+    const decoded = decodeComponent(value);
+    const redacted = redactCredentialText(decoded, fields, depth + 1);
+    return decoded === redacted ? value : encodeURIComponent(redacted);
+  }
+  let sanitized = value
+    .replace(/-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]*?(?:-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----|$)/g, REDACTED)
+    .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi, `$1 ${REDACTED}`)
+    .replace(/\boutray_[A-Za-z0-9_-]+\b/g, `outray_${REDACTED}`)
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, REDACTED)
+    .replace(/\b((?:set[._-]?)?cookie)\s*[:=]\s*[^\r\n]+/gi, `$1: ${REDACTED}`)
+    .replace(/(\b[a-z][a-z0-9+.-]*:\/\/)[^\s/?#]*@/gi, `$1${REDACTED}@`)
+    // Fragments can contain a share decryption key or an implicit-flow token.
+    .replace(/((?:\b[a-z][a-z0-9+.-]*:\/\/|\/)[^\s<>"'`#]*)#[^\s<>"'`]+/gi, `$1#${REDACTED}`);
+
+  sanitized = sanitized.replace(/([?&#])([^?&#=\s]+)=([^&#\s<>"'`]*)/g,
+    (match, prefix: string, name: string, assignedValue: string) => {
+      const decodedName = decodeComponent(name);
+      if (isSensitive(decodedName, fields) || isOAuthCredential(decodedName)) {
+        return `${prefix}${name}=${REDACTED}`;
+      }
+      // Redirect/callback query values may themselves contain encoded URLs.
+      const decodedValue = decodeComponent(assignedValue);
+      if (depth >= 3) {
+        // Do not recurse without bounds or export an opaque, further-encoded
+        // redirect that may still carry credentials beyond that bound.
+        return decodedValue !== assignedValue || /[?&#]/.test(decodedValue)
+          ? `${prefix}${name}=${REDACTED}`
+          : match;
+      }
+      const redactedValue = redactCredentialText(decodedValue, fields, depth + 1);
+      return redactedValue === decodedValue
+        ? match
+        : `${prefix}${name}=${encodeURIComponent(redactedValue)}`;
+    });
+
+  // Handles JSON embedded in error messages and key=value diagnostics. The
+  // outer body is still parsed and serialized normally; raw bodies never opt in.
+  return sanitized.replace(/(["']?)([a-z][a-z0-9_.-]{0,100})\1(\s*[:=]\s*)("[^"\r\n]*(?:"|$)|'[^'\r\n]*(?:'|$)|[^\s,;&}\]]+)/gi,
+    (match, quote: string, name: string, separator: string) =>
+      isSensitive(name, fields) ? `${quote}${name}${quote}${separator}${REDACTED}` : match);
+}
+
+function sanitizeString(value: string, fields: Set<string>, state: StructureState): string {
+  const bounded = truncateUtf8(value, state.maxStringBytes);
+  if (bounded !== value) state.truncated = true;
+  return redactCredentialText(bounded, fields);
 }
 
 function byteLength(value: string): number {
@@ -365,16 +483,20 @@ function serializeHeaders(
         Math.floor(options.maxHeaderBytes / Math.max(1, values.length)),
       );
       value = values.map((item) => {
-        const stringValue = String(item);
+        const raw = String(item);
+        const retained = truncateUtf8(raw, perValueLimit);
+        const stringValue = redactCredentialText(retained, options.redactedFields);
         const bounded = truncateUtf8(stringValue, perValueLimit);
-        if (bounded !== stringValue) truncated = true;
+        if (retained !== raw || bounded !== stringValue) truncated = true;
         return bounded;
       });
       if (rawValue.length > values.length) truncated = true;
     } else {
-      const stringValue = String(rawValue);
+      const raw = String(rawValue);
+      const retained = truncateUtf8(raw, options.maxHeaderBytes);
+      const stringValue = redactCredentialText(retained, options.redactedFields);
       value = truncateUtf8(stringValue, options.maxHeaderBytes);
-      if (value !== stringValue) truncated = true;
+      if (retained !== raw || value !== stringValue) truncated = true;
     }
     const candidate = JSON.stringify({ ...captured, [name]: value });
 
@@ -401,6 +523,7 @@ function sanitizeStructure(
   }
 
   if (value === null || typeof value !== "object") {
+    if (typeof value === "string") return sanitizeString(value, fields, state);
     if (typeof value === "bigint") {
       return value.toString();
     }
@@ -408,7 +531,7 @@ function sanitizeStructure(
   }
 
   if (Buffer.isBuffer(value)) {
-    return value.toString("utf8");
+    return sanitizeString(value.toString("utf8"), fields, state);
   }
 
   if (value instanceof Date) {
@@ -432,12 +555,13 @@ function sanitizeStructure(
 
   const result: Record<string, unknown> = Object.create(null);
   const entries = Object.entries(value as Record<string, unknown>);
+  const oauth = isOAuthStructure(entries);
   if (entries.length > MAX_COLLECTION_ENTRIES) {
     state.truncated = true;
   }
 
   for (const [name, entryValue] of entries.slice(0, MAX_COLLECTION_ENTRIES)) {
-    result[name] = isSensitive(name, fields)
+    result[sanitizeString(name, fields, state)] = isSensitive(name, fields) || (oauth && isOAuthCredential(name))
       ? REDACTED
       : sanitizeStructure(entryValue, fields, state, depth + 1);
   }
@@ -532,7 +656,7 @@ function serializeStructuredBody(
   value: unknown,
   options: NormalizedCaptureOptions,
 ): { value?: string; truncated: boolean } {
-  const state: StructureState = { truncated: false, seen: new WeakSet() };
+  const state: StructureState = { truncated: false, seen: new WeakSet(), maxStringBytes: options.maxBodyBytes };
 
   try {
     const sanitized = sanitizeStructure(value, options.redactedFields, state);
@@ -558,6 +682,7 @@ function serializeFormBody(
   const parts: string[] = [];
   let truncated = false;
   let count = 0;
+  const oauth = isOAuthStructure(form.entries());
 
   for (const [name, rawValue] of form) {
     count += 1;
@@ -573,9 +698,9 @@ function serializeFormBody(
     const encodedName = encodeURIComponent(name);
     const boundedRawValue = truncateUtf8(rawValue, options.maxBodyBytes);
     if (boundedRawValue !== rawValue) truncated = true;
-    const value = isSensitive(name, options.redactedFields)
+    const value = isSensitive(name, options.redactedFields) || (oauth && isOAuthCredential(name))
       ? REDACTED
-      : encodeURIComponent(boundedRawValue);
+      : encodeURIComponent(redactCredentialText(boundedRawValue, options.redactedFields));
     const part = `${encodedName}=${value}`;
     const candidate = [...parts, part].join("&");
 
@@ -592,9 +717,13 @@ function serializeFormBody(
 function captureParsedBody(
   body: unknown,
   contentType: string,
-  options: NormalizedCaptureOptions,
-  observedSize?: number,
+  captureOptions: NormalizedCaptureOptions,
+  observedSize: number | undefined,
+  side: "request" | "response",
 ): BodyCapture | null {
+  const options = side === "request"
+    ? { ...captureOptions, redactedFields: captureOptions.redactedRequestFields }
+    : captureOptions;
   if (!isAllowedBodyContentType(contentType) || body === undefined) {
     return null;
   }
@@ -925,6 +1054,7 @@ export function createNodeHttpPayloadCaptureMiddleware(
                 requestContentType,
                 options,
                 numericContentLength(request.headers["content-length"]),
+                "request",
               );
               if (requestBody) {
                 writeBodyAttributes(span, "request", requestBody);
@@ -964,6 +1094,7 @@ export function createNodeHttpPayloadCaptureMiddleware(
                   responseContentType,
                   options,
                   collector.totalBytes,
+                  "response",
                 );
                 if (responseBody) {
                   responseBody.truncated ||= collector.truncated;
@@ -1067,6 +1198,7 @@ export async function captureFetchRequest(
     contentType,
     options,
     declaredSize ?? collector.totalBytes,
+    "request",
   );
   if (captured) {
     captured.truncated ||= collector.truncated;
@@ -1117,6 +1249,7 @@ export async function captureFetchResponse(
     contentType,
     options,
     declaredSize ?? collector.totalBytes,
+    "response",
   );
   if (captured) {
     captured.truncated ||= collector.truncated;
