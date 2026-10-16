@@ -55,6 +55,7 @@ function subscriptionFixture(options: { enabled?: boolean; lockedEnabled?: boole
     "./config": { getStatusConfig: () => config },
     "./db": { getPool: () => ({ connect: async () => ({ query: execute, release: () => { released = true; } }) }), query: async (sql: string) => (await execute(sql)).rows },
     "./status-data": { findPublishedPageById: async () => ({ ...page, subscriptions_enabled: options.enabled !== false }) },
+    "./runtime": { statusEnvironment: () => ({}) },
     "./security": {
       normalizeEmail: (email: string) => email.trim().toLowerCase(),
       hashRateKey: (kind: string, value: string) => `${kind}:${value}`,
@@ -143,6 +144,7 @@ function routeFixture(options: { enabled?: boolean; result?: string; origin?: bo
     "../../lib/subscriptions": { requestSubscription: async () => { requests++; if (options.failure) throw new Error(options.failure); return options.result || "sent"; } },
     "../../lib/security": { isSameOrigin: () => options.origin !== false, safeClientIp: () => "127.0.0.1" },
     "../../lib/status-data": { findPublishedPageById: async () => ({ ...page, subscriptions_enabled: options.enabled !== false }), findPageForRequest: async () => page },
+    "../../lib/runtime": { getStatusRuntime: () => undefined, isStatusProduction: () => options.production === true },
   }, {
     process: { env: { NODE_ENV: options.production ? "production" : "development" } },
     console: { error() {} },
@@ -231,5 +233,5 @@ test("public subscription control uses a gated Motion modal with accessible inpu
   assert.doesNotMatch(component, /animate-in|animate-out|@keyframes/);
   const config = readFileSync(new URL("../astro.config.mjs", import.meta.url), "utf8");
   assert.match(config, /dedupe: \["react", "react-dom"\]/);
-  assert.match(config, /noExternal: \["motion", "framer-motion"\]/);
+  assert.match(config, /noExternal: \["motion", "framer-motion", "motion-dom", "motion-utils"\]/);
 });
