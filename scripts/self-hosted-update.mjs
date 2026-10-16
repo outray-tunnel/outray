@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { constants, createReadStream, createWriteStream, readFileSync } from "node:fs";
-import { lstat, mkdir, open, readFile, unlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
@@ -183,7 +183,7 @@ export async function runUpdate(args = process.argv.slice(2), dependencies = {})
   const recordFile = join(state, `${id}.json`);
   const saveRecord = async () => { await writeFile(recordFile, JSON.stringify(record, null, 2) + "\n", { mode: 0o600 }); };
   let stopped = false, migrationAttempted = false, migrationUncertain = false, beforeSchema, oldCompose, oldApps, backup, oldContainers;
-  let docker, candidateCompose, waitForHealth, frozen = [];
+  let docker, dockerEndpoint, candidateCompose, waitForHealth, frozen = [];
   let previousProbeLifecycle, targetProbeLifecycle, probeSupervisorStopped = false;
   const resumeInfrastructure = async () => {
     for (const container of [...frozen].reverse()) {
@@ -196,6 +196,7 @@ export async function runUpdate(args = process.argv.slice(2), dependencies = {})
     if (process.env.DOCKER_HOST && !process.env.DOCKER_HOST.startsWith("unix:///")) fail("Updates require a local Unix Docker daemon, not a remote Docker host.");
     const context = await required("docker", ["context", "inspect", "--format", "{{.Endpoints.docker.Host}}"], "Cannot inspect the local Docker context.", { env: { ...hostEnv, ...(process.env.DOCKER_CONTEXT ? { DOCKER_CONTEXT: process.env.DOCKER_CONTEXT } : {}) } });
     if (!/^unix:\/\/\/[^\r\n\0]+$/.test(context)) fail("Updates require a local Unix Docker socket.");
+    dockerEndpoint = context;
     docker = (argv, settings = {}) => invoke("docker", ["--host", context, ...argv], settings);
     const mustDocker = async (argv, message, settings) => { const result = await docker(argv, settings); if (result.status !== 0) fail(message); return String(result.stdout).trim(); };
     const inspect = async (kind, names) => JSON.parse(await mustDocker([kind, "inspect", ...names], "Could not inspect installation metadata; no unsafe adoption is attempted."));
@@ -338,7 +339,7 @@ export async function runUpdate(args = process.argv.slice(2), dependencies = {})
     console.log("Stopping application writers for a consistent backup and migration; persistent services are retained.");
     stopped = true;
     if (previousProbeLifecycle) {
-      await previousProbeLifecycle.manageProbeSupervisor("stop", { root, envFile: options.file });
+      await previousProbeLifecycle.manageProbeSupervisor("stop", { root, envFile: options.file, endpoint: dockerEndpoint });
       probeSupervisorStopped = true;
     }
     await mustDocker(["stop", "--time", "30", ...oldApps.map((name) => oldContainers.get(name).Id)], "Could not stop application writers safely.", { timeout: 5 * 60_000 });
@@ -367,12 +368,12 @@ export async function runUpdate(args = process.argv.slice(2), dependencies = {})
     record.stage = "replace";
     await saveRecord();
     if ((await candidateCompose(["up", "--detach", "--no-build", "--no-deps", "--pull", "never", ...oldApps])).status !== 0) fail("Application replacement failed.");
-    if (targetProbeLifecycle) await targetProbeLifecycle.activateStandardProbe({ root, envFile: options.file, allowUpdateLock: true });
+    if (targetProbeLifecycle) await targetProbeLifecycle.activateStandardProbe({ root, envFile: options.file, endpoint: dockerEndpoint, allowUpdateLock: true });
     record.stage = "health";
     await saveRecord();
     if (!await waitForHealth(Object.fromEntries(oldApps.map((name) => [name, image.Id])))) fail("Application health deadline expired.");
     if (targetProbeLifecycle) {
-      await targetProbeLifecycle.manageProbeSupervisor("start", { root, envFile: options.file });
+      await targetProbeLifecycle.manageProbeSupervisor("start", { root, envFile: options.file, endpoint: dockerEndpoint });
       probeSupervisorStopped = false;
     }
     stopped = false;
@@ -417,7 +418,7 @@ export async function runUpdate(args = process.argv.slice(2), dependencies = {})
         record.rollback = restart.status === 0 ? "previous-containers-restarted" : "manual-recovery-required";
         if (restart.status === 0 && waitForHealth) {
           try {
-            if (previousProbeLifecycle) await previousProbeLifecycle.activateStandardProbe({ root, envFile: options.file, allowUpdateLock: true });
+            if (previousProbeLifecycle) await previousProbeLifecycle.activateStandardProbe({ root, envFile: options.file, endpoint: dockerEndpoint, allowUpdateLock: true });
             record.rollbackHealthy = await waitForHealth(Object.fromEntries(oldApps.map((name) => [name, oldContainers.get(name).Image])));
           }
           catch { record.rollbackHealthy = false; }
@@ -427,7 +428,7 @@ export async function runUpdate(args = process.argv.slice(2), dependencies = {})
         record.rollback = result.status === 0 ? "previous-images-restored-check-health" : "manual-recovery-required";
         if (result.status === 0 && waitForHealth) {
           try {
-            if (previousProbeLifecycle) await previousProbeLifecycle.activateStandardProbe({ root, envFile: options.file, allowUpdateLock: true });
+            if (previousProbeLifecycle) await previousProbeLifecycle.activateStandardProbe({ root, envFile: options.file, endpoint: dockerEndpoint, allowUpdateLock: true });
             record.rollbackHealthy = await waitForHealth(Object.fromEntries(oldApps.map((name) => [name, oldContainers.get(name).Image])));
           }
           catch { record.rollbackHealthy = false; }
@@ -437,7 +438,7 @@ export async function runUpdate(args = process.argv.slice(2), dependencies = {})
         record.rollback = "schema-changed-or-unknown-apps-stopped-review-backup";
       }
       if (record.rollbackHealthy && previousProbeLifecycle && probeSupervisorStopped) {
-        try { await previousProbeLifecycle.manageProbeSupervisor("start", { root, envFile: options.file }); probeSupervisorStopped = false; }
+        try { await previousProbeLifecycle.manageProbeSupervisor("start", { root, envFile: options.file, endpoint: dockerEndpoint }); probeSupervisorStopped = false; }
         catch { record.rollbackHealthy = false; record.rollback = "previous-images-restored-probe-supervisor-needs-review"; }
       }
     }
