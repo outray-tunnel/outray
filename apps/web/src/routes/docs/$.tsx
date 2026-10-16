@@ -127,7 +127,6 @@ function Page() {
         tabs: false,
         defaultOpenLevel: 0,
         banner: <p className="mt-px mb-2 text-xs text-[#92929f]">Your services, from local to live.</p>,
-        footer: <a className="block px-0 py-1 text-xs text-[#92929d] hover:text-zinc-200" href="/products">Explore the products <span aria-hidden="true">↗</span></a>,
       }}
     >
       {content}
