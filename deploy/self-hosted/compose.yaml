@@ -157,6 +157,7 @@ services:
       INGEST_PUBLIC_URL: https://${OUTRAY_INGEST_HOST}
       SHARE_PUBLIC_URL: https://${OUTRAY_SHARE_HOST}
       BETTER_AUTH_URL: https://${OUTRAY_APP_HOST}
+      STATUS_PAGE_LOGOS_DIR: /var/lib/outray/status-page-logos
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Run the self-hosted initializer}
       BASE_DOMAIN: ${OUTRAY_TUNNEL_DOMAIN:?Set OUTRAY_TUNNEL_DOMAIN}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:?Run the self-hosted initializer}
@@ -176,6 +177,8 @@ services:
       XAI_API_KEY: ${XAI_API_KEY:-}
       AGENT_GROK_MODEL: ${AGENT_GROK_MODEL:-grok-4.7}
       ADMIN_PASSPHRASE: ${ADMIN_PASSPHRASE:?Run the self-hosted initializer}
+    volumes:
+      - status-page-logos:/var/lib/outray/status-page-logos
     depends_on: *dependencies
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:6767/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -376,5 +379,6 @@ networks:
 volumes:
   postgres-data:
   redis-data:
+  status-page-logos:
   caddy-data:
   caddy-config:
