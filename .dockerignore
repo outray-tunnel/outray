@@ -1,5 +1,6 @@
 .git
 .self-hosted-artifacts
+.self-hosted-state
 **/node_modules
 packages/icons/generated
 **/dist
