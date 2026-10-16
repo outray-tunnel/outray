@@ -1,7 +1,6 @@
-import { useEffect, useId, useRef, useState } from "react";
-import type { MouseEvent as ReactMouseEvent, RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, RefObject } from "react";
 import { createPortal } from "react-dom";
-import { Bar, BarChart, Cell, ResponsiveContainer, XAxis } from "recharts";
 import type { PublicComponentHistoryDay, PublicState } from "../lib/status-data";
 import { formatDuration } from "../lib/format-duration";
 
@@ -11,11 +10,9 @@ interface Props {
   incidentBasePath: string;
 }
 
-type ChartDay = PublicComponentHistoryDay & { height: number };
 type FloatingTooltip = { index: number; left: number; top?: number; bottom?: number; maxHeight: number };
 
 const TOOLTIP_EVENT = "outray:component-history-tooltip";
-let activeTooltipOwner: string | null = null;
 
 const colors: Record<PublicState, string> = {
   operational: "#10b981",
@@ -29,13 +26,6 @@ const iconColors: Record<PublicState, string> = {
   degraded: "text-[#fbbf24]",
   outage: "text-[#fb7185]",
   unknown: "text-[#a1a5b3]",
-};
-
-const placeholderColors: Record<PublicState, string> = {
-  operational: "bg-[#10b981]",
-  degraded: "bg-[#fbbf24]",
-  outage: "bg-[#fb7185]",
-  unknown: "bg-[#3f3f46]",
 };
 
 const dateLabel = (date: string) => new Intl.DateTimeFormat("en-US", {
@@ -84,36 +74,44 @@ function HistoryTooltip({ day, incidentBasePath, position, tooltipRef }: {
 }
 
 export default function ComponentHistoryChart({ name, history, incidentBasePath }: Props) {
-  const [mounted, setMounted] = useState(false);
   const [tooltip, setTooltip] = useState<FloatingTooltip | null>(null);
-  const owner = useId();
+  // These charts are separate Astro React roots. A component ref is unique
+  // across roots and survives dev Fast Refresh without module-global state.
+  const owner = useRef(Symbol("component-history-tooltip")).current;
+  const openRef = useRef(false);
   const plotRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     const dismiss = () => {
+      openRef.current = false;
       setTooltip(null);
-      if (activeTooltipOwner === owner) activeTooltipOwner = null;
     };
+    // Fast Refresh keeps React state but reinstalls effects. Do not leave an
+    // old visible portal behind with a reset ownership ref after a hot update.
+    dismiss();
     const closeOtherTooltip = (event: Event) => {
-      if ((event as CustomEvent<string>).detail === owner) return;
-      setTooltip(null);
+      if ((event as CustomEvent<symbol>).detail === owner) return;
+      dismiss();
     };
     const onPointerMove = (event: PointerEvent) => {
-      if (activeTooltipOwner !== owner) return;
+      if (!openRef.current) return;
       const target = event.target;
       if (target instanceof Node && (plotRef.current?.contains(target) || tooltipRef.current?.contains(target))) return;
       dismiss();
     };
     const onPointerDown = (event: PointerEvent) => {
-      if (activeTooltipOwner !== owner) return;
+      if (!openRef.current) return;
       const target = event.target;
       if (target instanceof Node && (plotRef.current?.contains(target) || tooltipRef.current?.contains(target))) return;
       dismiss();
     };
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Node && tooltipRef.current?.contains(event.target)) return;
+      dismiss();
+    };
     window.addEventListener(TOOLTIP_EVENT, closeOtherTooltip);
-    window.addEventListener("scroll", dismiss, true);
+    window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", dismiss);
     window.addEventListener("blur", dismiss);
     document.addEventListener("pointermove", onPointerMove);
@@ -122,59 +120,75 @@ export default function ComponentHistoryChart({ name, history, incidentBasePath 
     document.addEventListener("visibilitychange", dismiss);
     return () => {
       window.removeEventListener(TOOLTIP_EVENT, closeOtherTooltip);
-      window.removeEventListener("scroll", dismiss, true);
+      window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", dismiss);
       window.removeEventListener("blur", dismiss);
       document.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("pointerleave", dismiss);
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("visibilitychange", dismiss);
-      if (activeTooltipOwner === owner) activeTooltipOwner = null;
+      openRef.current = false;
     };
   }, [owner]);
 
-  const showTooltip = (event: ReactMouseEvent) => {
+  const showTooltipAt = (clientX: number) => {
     const rect = plotRef.current?.getBoundingClientRect();
     if (!rect || rect.width <= 0 || history.length === 0) return;
     const index = Math.max(0, Math.min(history.length - 1,
-      Math.floor((event.clientX - rect.left) / rect.width * history.length)));
+      Math.floor((clientX - rect.left) / rect.width * history.length)));
     const day = history[index];
     if (!day) return;
-    if (activeTooltipOwner !== owner) {
-      activeTooltipOwner = owner;
+    if (!openRef.current) {
+      openRef.current = true;
       window.dispatchEvent(new CustomEvent(TOOLTIP_EVENT, { detail: owner }));
     }
     const width = Math.min(400, window.innerWidth - 32);
-    const left = Math.max(16, Math.min(event.clientX - width / 2, window.innerWidth - width - 16));
+    const left = Math.max(16, Math.min(clientX - width / 2, window.innerWidth - width - 16));
     const gap = 12;
     const spaceBelow = window.innerHeight - rect.bottom - gap;
     const spaceAbove = rect.top - gap;
     const placeBelow = spaceBelow >= 160 || spaceBelow >= spaceAbove;
-    setTooltip({
+    const next: FloatingTooltip = {
       index,
       left,
       top: placeBelow ? rect.bottom + gap : undefined,
       bottom: placeBelow ? undefined : window.innerHeight - rect.top + gap,
       maxHeight: Math.max(0, (placeBelow ? spaceBelow : spaceAbove) - gap),
-    });
+    };
+    setTooltip((previous) => previous && previous.index === next.index && previous.left === next.left
+      && previous.top === next.top && previous.bottom === next.bottom && previous.maxHeight === next.maxHeight
+      ? previous : next);
   };
-  const data: ChartDay[] = history.map((day) => ({ ...day, height: 1 }));
+  const showTooltip = (event: ReactPointerEvent<HTMLDivElement>) => showTooltipAt(event.clientX);
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      openRef.current = false;
+      setTooltip(null);
+      return;
+    }
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key) || history.length === 0) return;
+    event.preventDefault();
+    const index = event.key === "Home" ? 0 : event.key === "End" ? history.length - 1
+      : Math.max(0, Math.min(history.length - 1, (tooltip?.index ?? history.length - 1) + (event.key === "ArrowLeft" ? -1 : 1)));
+    const rect = plotRef.current?.getBoundingClientRect();
+    if (rect) showTooltipAt(rect.left + (index + 0.5) / history.length * rect.width);
+  };
 
   return <div className="mt-3" aria-label={`${name}: 90-day component status history`}>
-    <div className="h-8 w-full [&_.recharts-rectangle]:transition-opacity [&_.recharts-rectangle]:duration-[120ms] [&_.recharts-surface:focus:not(:focus-visible)]:outline-none motion-reduce:[&_.recharts-rectangle]:transition-none" ref={plotRef} onMouseMove={showTooltip}>
-      {mounted ? <ResponsiveContainer width="100%" height={32}>
-        <BarChart data={data} barCategoryGap={0.5} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-          <XAxis dataKey="date" hide />
-          <Bar dataKey="height" radius={[1, 1, 1, 1]} isAnimationActive={false}>
-            {data.map((day, index) => <Cell key={day.date} fill={colors[day.state]} opacity={tooltip?.index === index ? 0.62 : 1} />)}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer> : <div className="flex h-8 w-full gap-px" aria-hidden="true">
-        {data.map((day) => <span key={day.date} className={`h-8 min-w-0 rounded-[1px] [flex:1_1_0] ${placeholderColors[day.state]}`} />)}
-      </div>}
+    <div className="flex h-8 w-full gap-px outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#a1a5b3]"
+      ref={plotRef} onPointerEnter={showTooltip} onPointerMove={showTooltip} onKeyDown={onKeyDown}
+      tabIndex={0} role="group" aria-label="Daily status history. Use arrow keys to explore days."
+      onBlur={(event) => {
+        if (event.relatedTarget instanceof Node && tooltipRef.current?.contains(event.relatedTarget)) return;
+        openRef.current = false;
+        setTooltip(null);
+      }}>
+      {history.map((day, index) => <span key={day.date} aria-hidden="true"
+        className="h-8 min-w-0 rounded-[1px] [flex:1_1_0] transition-opacity duration-[120ms] motion-reduce:transition-none"
+        style={{ backgroundColor: colors[day.state], opacity: tooltip?.index === index ? 0.62 : 1 }} />)}
     </div>
-    {mounted && tooltip && data[tooltip.index] && createPortal(
-      <HistoryTooltip day={data[tooltip.index]} incidentBasePath={incidentBasePath}
+    {tooltip && history[tooltip.index] && createPortal(
+      <HistoryTooltip day={history[tooltip.index]} incidentBasePath={incidentBasePath}
         position={tooltip} tooltipRef={tooltipRef} />,
       document.body,
     )}
