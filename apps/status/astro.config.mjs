@@ -20,6 +20,14 @@ export default defineConfig({
     // renderer, islands and Motion on this app's pinned React runtime in dev
     // and bundle Motion for SSR so Node cannot resolve the hoisted peer itself.
     resolve: { dedupe: ["react", "react-dom"] },
+    // Dependency prebundling is for the dev server. Keep React's prebundled
+    // runtime in development too: TSX uses jsxDEV here, which the production
+    // react/jsx-dev-runtime intentionally does not export.
+    optimizeDeps: {
+      esbuildOptions: {
+        define: { "process.env.NODE_ENV": JSON.stringify("development") },
+      },
+    },
     // Bundle the whole Motion family: standalone installs must not pair a
     // bundled framer-motion with a different external motion-dom version.
     ssr: { noExternal: ["motion", "framer-motion", "motion-dom", "motion-utils"] },
