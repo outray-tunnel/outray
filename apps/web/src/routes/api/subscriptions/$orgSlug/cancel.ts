@@ -4,6 +4,8 @@ import { db } from "../../../../db";
 import { subscriptions } from "../../../../db/subscription-schema";
 import { organizations, members } from "../../../../db/auth-schema";
 import { eq, and } from "drizzle-orm";
+import { enqueueSubscriptionChanges, withBillingEmailTransaction } from "../../../../lib/billing-emails.server";
+import { billingPeriodKey, nextBillingUpdatedAt } from "../../../../lib/billing-email-policy";
 
 export const Route = createFileRoute("/api/subscriptions/$orgSlug/cancel")({
   server: {
@@ -76,15 +78,25 @@ export const Route = createFileRoute("/api/subscriptions/$orgSlug/cancel")({
             );
           }
 
-          // Set cancelAtPeriodEnd to true
-          await db
-            .update(subscriptions)
-            .set({
-              cancelAtPeriodEnd: true,
-              canceledAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .where(eq(subscriptions.organizationId, org.id));
+          // Read again under the same lock used by checkout and commit the
+          // scheduled cancellation together with its notification.
+          const cancelAt = await withBillingEmailTransaction(`billing:organization:${org.id}`, async (database, client) => {
+            const [previous] = await database.select().from(subscriptions)
+              .where(eq(subscriptions.organizationId, org.id)).limit(1).for("update");
+            if (!previous || previous.paymentProvider !== "paystack") {
+              throw new Error("Subscription changed. Please refresh billing and try again.");
+            }
+            const next = { ...previous, cancelAtPeriodEnd: true, canceledAt: new Date(), updatedAt: nextBillingUpdatedAt(previous.updatedAt) };
+            await database.update(subscriptions).set({
+              cancelAtPeriodEnd: next.cancelAtPeriodEnd,
+              canceledAt: next.canceledAt,
+              updatedAt: next.updatedAt,
+            }).where(eq(subscriptions.organizationId, org.id));
+            await enqueueSubscriptionChanges(client, org.id,
+              `paystack:subscription:${previous.id}:${billingPeriodKey(previous.currentPeriodEnd)}:revision:${billingPeriodKey(previous.updatedAt)}`,
+              previous, next);
+            return previous.currentPeriodEnd;
+          });
 
           console.log(
             `[Subscription] Cancelled Paystack subscription for org ${org.id} at period end`,
@@ -93,7 +105,7 @@ export const Route = createFileRoute("/api/subscriptions/$orgSlug/cancel")({
           return Response.json({
             success: true,
             message: "Subscription will be cancelled at the end of the billing period.",
-            cancelAt: subscription.currentPeriodEnd,
+            cancelAt,
           });
         } catch (error) {
           console.error("[Subscription Cancel] Error:", error);
