@@ -12,8 +12,12 @@ function firewall() {
   const ok = (stdout = "") => ({ status: 0, stdout, stderr: "" });
   const spawn = (binary, args, options) => {
     assert.equal(options.timeout, 10000);
-    if (binary === "nsenter") { assert.deepEqual(args.slice(0, 4), ["--target", "4321", "--net", "--"]); binary = args[4]; args = args.slice(5); }
-    calls.push({ binary, args });
+    const namespace = binary === "nsenter";
+    if (binary === "nsenter") {
+      if (args[0].startsWith("--net=")) { assert.equal(args[0], "--net=/proc/4321/fd/9"); assert.equal(args[1], "--"); binary = args[2]; args = args.slice(3); }
+      else { assert.deepEqual(args.slice(0, 4), ["--target", "4321", "--net", "--"]); binary = args[4]; args = args.slice(5); }
+    }
+    calls.push({ binary, args, namespace });
     assert.ok(["iptables", "ip6tables"].includes(binary));
     assert.deepEqual(args.slice(0, 2), ["-w", "5"]); args = args.slice(2);
     const [operation, chain, ...values] = args, key = `${binary}:${chain}`;
@@ -86,9 +90,18 @@ test("installation is idempotent and never flushes or modifies unrelated chains"
   assert.throws(() => p.verifyProbeNamespace({ pid: 4321, spawn: f.spawn }));
 });
 
+test("pinned namespace descriptors avoid mutable PID lookup and cannot redirect host policy", () => {
+  const p = createProbePolicy(config), f = firewall(), options = { namespacePath: "/proc/4321/fd/9", spawn: f.spawn };
+  p.installProbeNamespace(options); p.verifyProbeNamespace(options); assert.equal(p.probeDropCount(options), 0);
+  const namespaceCalls = f.calls.length; assert.ok(f.calls.every((call) => call.namespace));
+  p.installProbeHostPolicy(options); p.verifyProbeHostPolicy(options);
+  assert.ok(f.calls.slice(namespaceCalls).every((call) => !call.namespace));
+  for (const namespacePath of ["/proc/0/fd/9", "/proc/4321/fd/-1", "/proc/4321/ns/net", "/proc/4321/fd/9/../8", "/proc/4321/fd/9 --user", "relative", "/proc/04321/fd/9"]) assert.throws(() => p.installProbeNamespace({ namespacePath, spawn: () => assert.fail("must not execute") }));
+});
+
 test("connectivity acceptance requires allowed access AND actual IPv4/IPv6 DROP increments", async () => {
   const p = createProbePolicy(config), f = firewall(); p.installProbeHostPolicy({ spawn: f.spawn }); p.installProbeNamespace({ pid: 4321, spawn: f.spawn });
-  const options = { containerId: "a".repeat(64), pid: 4321, spawn: f.spawn, required: async (args) => {
+  const options = { containerId: "a".repeat(64), namespacePath: "/proc/4321/fd/9", spawn: f.spawn, required: async (args) => {
     const code = args.at(-1); if (code.includes("allowed-network-ok")) return "allowed-network-ok";
     f.drops[code.includes('host:"::1"') ? "v6" : "v4"]++; return "";
   } };
