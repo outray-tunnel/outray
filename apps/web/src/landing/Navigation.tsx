@@ -63,7 +63,7 @@ export function Navigation({ loginUrl, signupUrl, githubUrl }: { loginUrl: "/log
             <div className="absolute top-full left-1/2 z-[2] w-[min(720px,calc(100vw-48px))] -translate-x-1/2 pt-[17px]">
               <div className="grid min-h-[390px] grid-cols-[.95fr_1.05fr] gap-3 rounded-2xl border border-white/[.11] bg-[#0d0d0f] p-2.5 shadow-[0_30px_70px_rgb(0_0_0_/.48)] animate-products-menu motion-reduce:animate-none">
                 <div className="py-[5px]">
-                  <Link className={`mx-3 mt-[5px] mb-[9px] inline-flex font-mono text-[.69rem] font-semibold tracking-[.12em] text-[#74747e] uppercase transition-colors hover:text-white ${focusClass}`} to="/products" data-track="navigation" data-track-label="all-products">All products →</Link>
+                  <p className="mx-3 mt-[5px] mb-[9px] font-mono text-[.69rem] font-semibold tracking-[.12em] text-[#74747e] uppercase">Products</p>
                   {productLinks.map(({ id, label, to, description }) => (
                     <Link
                       key={id}
@@ -124,7 +124,7 @@ export function Navigation({ loginUrl, signupUrl, githubUrl }: { loginUrl: "/log
               </div>
             </div>
           </details>
-          <ul className="flex list-none items-center gap-[clamp(17px,2vw,27px)] p-0 [&_a]:inline-flex [&_a]:min-h-[42px] [&_a]:items-center [&_a]:text-[.91rem] [&_a]:font-[520] [&_a]:text-[#81818b] [&_a]:transition-colors [&_a]:duration-200 hover:[&_a]:text-white [&_a:focus-visible]:outline-2 [&_a:focus-visible]:outline-offset-4 [&_a:focus-visible]:outline-accent-light">
+          <ul className="flex list-none items-center gap-[clamp(17px,2vw,27px)] p-0 [&_a]:inline-flex [&_a]:min-h-[42px] [&_a]:items-center [&_a]:text-[.91rem] [&_a]:font-[520] [&_a]:text-[#81818b] [&_a]:transition-colors [&_a]:duration-200 [&_a:hover]:text-white [&_a:focus-visible]:outline-2 [&_a:focus-visible]:outline-offset-4 [&_a:focus-visible]:outline-accent-light">
             <li><Link to="/docs/$" params={{ _splat: "" }} data-track="navigation" data-track-label="docs">Docs</Link></li>
             <li><a href={githubUrl} target="_blank" rel="noreferrer" data-track="github" data-track-label="navigation">GitHub</a></li>
           </ul>
@@ -158,7 +158,6 @@ export function Navigation({ loginUrl, signupUrl, githubUrl }: { loginUrl: "/log
               </ul>
               <p className="mx-2.5 mt-2 mb-1.5 font-mono text-[.69rem] font-semibold tracking-[.12em] text-[#73737e] uppercase">Explore</p>
               <ul className="grid list-none grid-cols-1 p-0">
-                <li><Link className={`flex min-h-12 items-center rounded-[10px] px-3 text-[.93rem] text-[#d1d1d7] hover:bg-white/5 hover:text-white ${focusClass}`} to="/products" data-track="navigation" data-track-label="mobile-all-products">All products</Link></li>
                 <li><Link className={`flex min-h-12 items-center rounded-[10px] px-3 text-[.93rem] text-[#d1d1d7] hover:bg-white/5 hover:text-white ${focusClass}`} to="/docs/$" params={{ _splat: "" }} data-track="navigation" data-track-label="mobile-docs">Docs</Link></li>
                 <li><a className={`flex min-h-12 items-center rounded-[10px] px-3 text-[.93rem] text-[#d1d1d7] hover:bg-white/5 hover:text-white ${focusClass}`} href={githubUrl} target="_blank" rel="noreferrer" data-track="github" data-track-label="mobile-navigation">GitHub</a></li>
               </ul>
