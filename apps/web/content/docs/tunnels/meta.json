@@ -1,5 +1,23 @@
 {
   "title": "Tunnels",
   "icon": "TbBuildingTunnel",
-  "pages": ["index"]
+  "pages": [
+    "index",
+    "---Getting started---",
+    "../(getting-started)/installation",
+    "../(getting-started)/authentication",
+    "../(getting-started)/opening-a-tunnel",
+    "---Features---",
+    "../(platform-features)/reserved-subdomains",
+    "../(platform-features)/password-protection",
+    "../(platform-features)/custom-domains",
+    "../(platform-features)/teams",
+    "../(platform-features)/ci-cd",
+    "---Integrations---",
+    "../(plugins-and-sdks)/vite-plugin",
+    "---Reference---",
+    "../(reference)/protocols",
+    "../(reference)/cli-reference",
+    "../(reference)/architecture"
+  ]
 }
