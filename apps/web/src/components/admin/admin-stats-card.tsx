@@ -1,4 +1,5 @@
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import ArrowUpRight01Icon from "@outray/icons/stroke/ArrowUpRight01Icon";
 import type { ReactNode } from "react";
 
 interface AdminStatsCardProps {
@@ -18,50 +19,16 @@ export function AdminStatsCard({
   subtitle,
   onClick,
 }: AdminStatsCardProps) {
-  const isPositive = change !== undefined && change >= 0;
-  const changeColor = isPositive
-    ? "text-green-400 bg-green-500/10 border-green-500/20"
-    : "text-red-400 bg-red-500/10 border-red-500/20";
-
-  const cardClasses = `group bg-white/2 border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-all${
-    onClick ? " cursor-pointer" : ""
-  }`;
-
-  return (
-    <div className={cardClasses} onClick={onClick} role={onClick ? "button" : undefined}>
-      <div className="flex items-start justify-between mb-4">
-        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-300 border border-white/5 group-hover:border-accent/20 group-hover:text-accent transition-colors">
-          {icon}
-        </div>
-        {change !== undefined && (
-          <div
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium ${changeColor}`}
-          >
-            {isPositive ? (
-              <ArrowUpRight size={12} />
-            ) : (
-              <ArrowDownRight size={12} />
-            )}
-            {isPositive ? "+" : ""}
-            {change.toFixed(1)}%
-          </div>
-        )}
-      </div>
-
-      <div className="text-3xl font-bold text-white mb-1 tracking-tight">
-        {value}
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="text-xs text-gray-500 uppercase tracking-wider font-medium">
-          {title}
-        </div>
-        {subtitle && (
-          <>
-            <span className="text-gray-700">•</span>
-            <span className="text-xs text-gray-500">{subtitle}</span>
-          </>
-        )}
-      </div>
-    </div>
-  );
+  const finiteChange = change !== undefined && Number.isFinite(change) ? change : undefined;
+  const content = <>
+    <span className="flex items-center justify-between gap-3 text-zinc-500"><span className="text-[12px] font-normal">{title}</span><span aria-hidden="true" className="[&_svg]:size-4">{icon}</span></span>
+    <span className="mt-4 block text-[28px] font-normal leading-none tracking-[-.055em] text-zinc-100 tabular-nums">{value}</span>
+    <span className="mt-3 flex min-h-4 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-normal text-zinc-500">
+      {finiteChange !== undefined && <span className={`tabular-nums ${finiteChange > 0 ? "text-emerald-400" : finiteChange < 0 ? "text-rose-400" : "text-zinc-500"}`}>{finiteChange > 0 ? "+" : ""}{finiteChange.toFixed(1)}%</span>}
+      {subtitle ? <span>{subtitle}</span> : finiteChange !== undefined ? <span>growth</span> : <span>{onClick ? "View revenue card" : "Across the platform"}</span>}
+      {onClick ? <HugeiconsIcon icon={ArrowUpRight01Icon} size={13} className="ml-auto text-zinc-600 transition-colors group-hover:text-zinc-300" aria-hidden="true" /> : null}
+    </span>
+  </>;
+  const classes = `group block min-w-0 rounded-xl border border-white/[.08] bg-[#101010] p-5 text-left ${onClick ? "w-full transition-colors hover:border-white/[.14] hover:bg-[#131313] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none" : ""}`;
+  return onClick ? <button type="button" onClick={onClick} className={classes} aria-label={`${title}: ${value}. View revenue card`}>{content}</button> : <div className={classes}>{content}</div>;
 }
