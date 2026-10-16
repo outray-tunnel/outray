@@ -1,11 +1,18 @@
 import { defineConfig } from "astro/config";
 import node from "@astrojs/node";
+import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
 
+const worker = process.env.OUTRAY_STATUS_RUNTIME === "cloudflare";
+
 export default defineConfig({
   output: "server",
-  adapter: node({ mode: "standalone" }),
+  outDir: worker ? "./dist-worker" : "./dist",
+  adapter: worker ? cloudflare({
+    workerEntryPoint: { path: "src/worker.ts" },
+    imageService: "compile",
+  }) : node({ mode: "standalone" }),
   integrations: [react()],
   vite: {
     plugins: [tailwindcss()],
@@ -13,7 +20,9 @@ export default defineConfig({
     // renderer, islands and Motion on this app's pinned React runtime in dev
     // and bundle Motion for SSR so Node cannot resolve the hoisted peer itself.
     resolve: { dedupe: ["react", "react-dom"] },
-    ssr: { noExternal: ["motion", "framer-motion"] },
+    // Bundle the whole Motion family: standalone installs must not pair a
+    // bundled framer-motion with a different external motion-dom version.
+    ssr: { noExternal: ["motion", "framer-motion", "motion-dom", "motion-utils"] },
   },
   experimental: {
     // Astro's CSP hash generation runs during builds, not the Vite dev server.
