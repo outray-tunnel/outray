@@ -16,6 +16,7 @@ const defaultRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const networkEnvironment = { PATH: "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin", LANG: "C" };
 const unitMarker = "# Managed by OutRay standard self-hosted probe lifecycle\n";
 const fail = (message) => { throw new Error(message); };
+const localEndpoint = (value) => typeof value === "string" && /^unix:\/\/\/[A-Za-z0-9_./-]+$/.test(value);
 const containerEnv = (metadata) => Object.fromEntries((metadata?.Config?.Env || []).map((item) => { const index = item.indexOf("="); return [item.slice(0, index), item.slice(index + 1)]; }));
 const labelsFor = (service) => ({ "com.docker.compose.project": standardProbeProject, "com.docker.compose.service": service });
 const owns = (metadata, service) => Object.entries(labelsFor(service)).every(([key, value]) => metadata?.Config?.Labels?.[key] === value);
@@ -42,8 +43,10 @@ export function standardProbeOptions(args, root = defaultRoot) {
     if (seen.has(key)) fail("Duplicate probe lifecycle option.");
     seen.add(key);
     if (key === "--supervise") { options.command = "supervise"; continue; }
-    if (!["--file", "--root"].includes(key) || !input[index + 1] || input[index + 1].startsWith("--")) fail("Use activate|supervise --file PRIVATE_ENV [--root CHECKOUT].");
-    options[key === "--file" ? "envFile" : "root"] = resolve(root, input[++index]);
+    if (!["--file", "--root", "--endpoint"].includes(key) || !input[index + 1] || input[index + 1].startsWith("--")) fail("Use activate|supervise --file PRIVATE_ENV [--root CHECKOUT] [--endpoint unix:///LOCAL_SOCKET].");
+    const value = input[++index];
+    if (key === "--endpoint") { if (!localEndpoint(value)) fail("Probe lifecycle requires a local Unix Docker socket."); options.endpoint = value; }
+    else options[key === "--file" ? "envFile" : "root"] = resolve(root, value);
   }
   if (!seen.has("--file")) options.envFile = join(options.root, ".env.self-hosted");
   return options;
@@ -115,11 +118,11 @@ function dockerContext(options) {
   const run = (binary, args, selectedEnv = env) => spawn(binary, args, { env: selectedEnv, encoding: "utf8", timeout: 30_000, maxBuffer: 4 * 1024 * 1024 });
   let endpoint = options.endpoint;
   if (!endpoint) {
-    const context = run("docker", ["context", "inspect", "--format", "{{.Endpoints.docker.Host}}"]);
+    const context = run("docker", ["context", "inspect", "--format", "{{.Endpoints.docker.Host}}"], { ...env, ...(process.env.DOCKER_CONTEXT ? { DOCKER_CONTEXT: process.env.DOCKER_CONTEXT } : {}) });
     if (context.status !== 0) fail("Cannot inspect the local Docker context.");
     endpoint = String(context.stdout).trim();
   }
-  if (!/^unix:\/\/\/[^\r\n\0]+$/.test(endpoint) || process.env.DOCKER_HOST && !process.env.DOCKER_HOST.startsWith("unix:///")) fail("Probe lifecycle requires a local Unix Docker daemon.");
+  if (!localEndpoint(endpoint) || process.env.DOCKER_HOST && !localEndpoint(process.env.DOCKER_HOST)) fail("Probe lifecycle requires a local Unix Docker daemon.");
   const docker = (args) => run("docker", ["--host", endpoint, ...args]);
   const required = (args) => { const result = docker(args); if (result.status !== 0) fail("Probe Docker operation failed; private diagnostics suppressed."); return String(result.stdout).trim(); };
   const inspect = (kind, name) => { const result = JSON.parse(required([kind, "inspect", name])); if (!Array.isArray(result) || result.length !== 1) fail("Cannot inspect exact probe resources."); return result[0]; };
@@ -139,7 +142,7 @@ const inertAudit = `const fs=require('node:fs');if(fs.existsSync('/tmp/outray-pr
 
 export function standardProbeMarkerCode(namespace) {
   if (!/^net:\[\d+\]$/.test(namespace || "")) fail("A verified pinned network namespace is required.");
-  return `const fs=require('node:fs');const namespace=${JSON.stringify(namespace)};if(fs.readlinkSync('/proc/self/ns/net')!==namespace)process.exit(1);fs.writeFileSync('/tmp/outray-probe-activate',JSON.stringify({activation:process.env.OUTRAY_PROBE_ACTIVATION_ID,namespace}),{mode:0o600,flag:'wx'});`;
+  return `const fs=require('node:fs'),crypto=require('node:crypto');const namespace=${JSON.stringify(namespace)};if(fs.readlinkSync('/proc/self/ns/net')!==namespace)process.exit(1);const temporary='/tmp/outray-probe-activate-'+crypto.randomUUID();try{fs.writeFileSync(temporary,JSON.stringify({activation:process.env.OUTRAY_PROBE_ACTIVATION_ID,namespace}),{mode:0o600,flag:'wx'});fs.linkSync(temporary,'/tmp/outray-probe-activate');}finally{try{fs.unlinkSync(temporary)}catch{}}`;
 }
 
 export async function activateStandardProbe(options = {}) {
@@ -236,10 +239,11 @@ export async function activateStandardProbe(options = {}) {
   finally { if (!retainedNamespace) releaseNamespace(); process.removeListener("SIGTERM", interrupt); process.removeListener("SIGINT", interrupt); }
 }
 
-export function standardProbeUnitText({ root = defaultRoot, envFile = join(root, ".env.self-hosted"), node = process.execPath } = {}) {
+export function standardProbeUnitText({ root = defaultRoot, envFile = join(root, ".env.self-hosted"), node = process.execPath, endpoint } = {}) {
   const script = join(resolve(root), "scripts/self-hosted-probe-lifecycle.mjs");
+  if (!localEndpoint(endpoint)) fail("Probe supervisor requires a pinned local Unix Docker endpoint.");
   for (const path of [resolve(root), resolve(envFile), node, script]) if (!/^\/[A-Za-z0-9_./-]+$/.test(path)) fail("Probe supervisor paths must be absolute and contain no shell/systemd escapes.");
-  return `${unitMarker}[Unit]\nDescription=OutRay self-hosted guarded Uptime probe\nRequires=docker.service\nAfter=docker.service network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nWorkingDirectory=${resolve(root)}\nExecStart=${node} ${script} supervise --root ${resolve(root)} --file ${resolve(envFile)}\nRestart=on-failure\nRestartSec=10\nTimeoutStopSec=45\nUser=root\nGroup=root\nNoNewPrivileges=yes\nProtectSystem=full\nProtectHome=read-only\nPrivateTmp=yes\n\n[Install]\nWantedBy=multi-user.target\n`;
+  return `${unitMarker}[Unit]\nDescription=OutRay self-hosted guarded Uptime probe\nRequires=docker.service\nAfter=docker.service network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nWorkingDirectory=${resolve(root)}\nExecStart=${node} ${script} supervise --root ${resolve(root)} --file ${resolve(envFile)} --endpoint ${endpoint}\nRestart=on-failure\nRestartSec=10\nTimeoutStopSec=45\nUser=root\nGroup=root\nNoNewPrivileges=yes\nProtectSystem=full\nProtectHome=read-only\nPrivateTmp=yes\n\n[Install]\nWantedBy=multi-user.target\n`;
 }
 
 export function manageProbeSupervisor(action, options = {}) {
@@ -252,7 +256,7 @@ export function manageProbeSupervisor(action, options = {}) {
     if (!info.isFile() || info.isSymbolicLink() || info.uid !== 0 || (info.mode & 0o022) || !readFileSync(path, "utf8").startsWith(unitMarker)) fail("The existing probe unit is not an owned managed unit.");
   } else if (action === "stop") return { installed: false };
   if (action === "stop") { systemctl(["stop", standardProbeUnit]); return { installed: true, stopped: true }; }
-  const content = standardProbeUnitText(options);
+  const content = standardProbeUnitText({ ...options, endpoint: options.endpoint || dockerContext(options).endpoint });
   if (!existsSync(path) || readFileSync(path, "utf8") !== content) {
     const temporary = `${path}.${randomUUID()}`;
     writeFileSync(temporary, content, { mode: 0o644, flag: "wx" });
