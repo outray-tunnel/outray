@@ -61,11 +61,13 @@ async function renderHead(selfHosted: boolean, pathname: string, configError?: E
   const root = await loadRoute("__root.tsx", selfHosted, configError);
   const home = await loadRoute("index.tsx", selfHosted);
   const products = await loadRoute("products.tsx", selfHosted);
+  const productLayout = createRoute({ ...products.options, getParentRoute: () => root, path: "products" });
+  const tunnelPage = createRoute({ getParentRoute: () => productLayout, path: "tunnels", head: () => ({ meta: [{ title: "Tunnels — OutRay" }] }) });
   const children = [
     createRoute({ ...home.options, getParentRoute: () => root, path: "/" }),
     createRoute({ getParentRoute: () => root, path: "login", head: () => ({ meta: [{ title: "Sign in — OutRay" }] }) }),
     createRoute({ getParentRoute: () => root, path: "acme/tunnel", head: () => ({ meta: [{ title: "Overview — OutRay" }] }) }),
-    createRoute({ ...products.options, getParentRoute: () => root, path: "products" }),
+    productLayout.addChildren([tunnelPage]),
   ];
   const router = createRouter({
     routeTree: root.addChildren(children), isServer: true,
@@ -73,7 +75,7 @@ async function renderHead(selfHosted: boolean, pathname: string, configError?: E
   });
   await router.load();
   assert.equal(router.state.redirect, undefined);
-  assert.equal(router.state.matches.length, 2, "root and child are both loaded");
+  assert.equal(router.state.matches.length, pathname.startsWith("/products/") ? 3 : 2, "root, public layout and requested page are loaded");
   if (!configError) for (const match of router.state.matches) assert.equal(match.status, "success");
   const html = renderToStaticMarkup(React.createElement(RouterContextProvider, {
     router, children: React.createElement(HeadContent),
@@ -85,7 +87,7 @@ function icons(html: string) {
   return html.match(/<link\b[^>]*\brel="icon"[^>]*>/g) ?? [];
 }
 
-for (const pathname of ["/login", "/acme/tunnel", "/products"]) {
+for (const pathname of ["/login", "/acme/tunnel", "/products/tunnels"]) {
   test(`self-hosted ${pathname} renders exactly one metallic gold favicon`, async () => {
     const { html } = await renderHead(true, pathname);
     assert.equal(icons(html).length, 1);
@@ -95,7 +97,7 @@ for (const pathname of ["/login", "/acme/tunnel", "/products"]) {
     assert.match(html, /href="\/app\.css"/);
     assert.match(html, /name="viewport" content="width=device-width, initial-scale=1"/);
     assert.match(html, /<meta charSet="utf-8"\/>/i);
-    if (pathname === "/products") {
+    if (pathname === "/products/tunnels") {
       assert.doesNotMatch(html, /href="\/(?:landing|products)\.css"/);
       assert.match(html, /name="theme-color" content="#050505"/);
     } else {
@@ -114,7 +116,7 @@ test("hosted console root keeps its implicit existing favicon and metadata", asy
   assert.match(html, /<title>Sign in — OutRay<\/title>/);
 });
 
-for (const pathname of ["/", "/products"]) {
+for (const pathname of ["/", "/products/tunnels"]) {
   test(`hosted ${pathname} keeps its original SVG favicon and page head`, async () => {
     const { html } = await renderHead(false, pathname);
     assert.equal(icons(html).length, 1);
@@ -137,7 +139,7 @@ test("a failed instance-config lookup does not remove root metadata/styles or ca
   const originalError = console.error;
   console.error = (...args: unknown[]) => { errors.push(args); };
   t.after(() => { console.error = originalError; });
-  for (const pathname of ["/login", "/", "/products"]) {
+  for (const pathname of ["/login", "/", "/products/tunnels"]) {
     const { html, matches } = await renderHead(true, pathname, new Error("Instance config unavailable"));
     assert.equal(matches[0].status, "error");
     assert.match(html, /href="\/app\.css"/);
