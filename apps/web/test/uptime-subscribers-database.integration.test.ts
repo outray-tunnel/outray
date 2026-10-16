@@ -8,6 +8,7 @@ import * as drizzleOperators from "drizzle-orm";
 import * as subscriberApi from "../src/lib/uptime/subscriber-api";
 import { publishUptimeUpdate } from "../src/lib/uptime/incident-api";
 import emailDesign from "../../../shared/email-template";
+import databaseSafety from "../../uptime-probe/src/database";
 
 const enabled = process.env.OUTRAY_RUN_DB_INTEGRATION === "1";
 
@@ -138,6 +139,7 @@ test("real subscriber API and delivery preserve consent, isolate tenants, and se
     runInNewContext(compiled, { Buffer, Date, URL, AbortSignal, process: { env: {} }, console, module, exports: module.exports,
       fetch: async () => { externalSends++; await delivery?.(); return { ok: true }; }, require: (specifier: string) => {
         if (specifier === "node:crypto") return nodeCrypto;
+        if (specifier === "./database") return databaseSafety;
         if (specifier === "./config") return { config: { zeptoApiKey: "fake-test-token", statusPublicUrl: "https://status.integration.invalid", unsubscribeSecret: "fake-test-signing-key" } };
         if (specifier === "@outray/incident-content") return { renderIncidentHtml: () => "Approved stored note" };
         if (specifier === "../../../shared/email-sender") return { emailSender: () => ({ address: "no-reply@integration.invalid", name: "Status" }) };
