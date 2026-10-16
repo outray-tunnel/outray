@@ -1,8 +1,5 @@
 import type { RequestHandler } from "@tanstack/react-start/server";
-import {
-  resolveInternalObservabilityOptions,
-  runWithInternalObservabilityRequest,
-} from "./lib/internal-observability.server";
+import { resolveInternalObservabilityOptions } from "./lib/internal-observability.server";
 
 const observabilityOptions = resolveInternalObservabilityOptions(process.env);
 
@@ -15,12 +12,4 @@ const server: { fetch: RequestHandler<unknown> } = observabilityOptions
     return { fetch: createStartHandler(defaultStreamHandler) };
   })();
 
-const entry: { fetch: RequestHandler<unknown> } = observabilityOptions
-  ? {
-    fetch(request, requestOptions) {
-      return runWithInternalObservabilityRequest(request, () => server.fetch(request, requestOptions));
-    },
-  }
-  : server;
-
-export default entry;
+export default server;
