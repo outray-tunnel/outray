@@ -117,7 +117,7 @@ function option(args, key, fallback) {
   return args[index + 1];
 }
 
-export function main(args = process.argv.slice(2)) {
+export async function main(args = process.argv.slice(2)) {
   const command = args[0];
   const file = resolve(root, option(args, "--file", ".env.self-hosted"));
   if (command === "init") {
@@ -136,15 +136,35 @@ export function main(args = process.argv.slice(2)) {
   if (env.OUTRAY_ICON_MODE !== "free" && env.HUGEICONS_LICENSE_KEY?.trim() && !/^(?:your_|replace_|CHANGE_ME)/i.test(env.HUGEICONS_LICENSE_KEY)) {
     dockerArgs.push("--file", resolve(root, "deploy/self-hosted/compose.pro-icons.yaml"));
   }
-  if (env.UPTIME_PROBES_ENABLED === "true" || env.UPTIME_NOTIFICATIONS_ENABLED === "true") dockerArgs.push("--profile", "uptime-worker");
+  const workerEnabled = env.UPTIME_PROBES_ENABLED === "true" || env.UPTIME_NOTIFICATIONS_ENABLED === "true";
+  let probe;
+  if (workerEnabled) {
+    if (process.platform !== "linux" || process.getuid?.() !== 0) throw new Error("The isolated Uptime worker requires a root-managed Linux Docker host.");
+    probe = await import("./self-hosted-probe-lifecycle.mjs");
+    dockerArgs.push("--profile", "uptime-worker");
+    await probe.manageProbeSupervisor("stop", { root, envFile: file });
+    const infrastructure = spawnSync("docker", [...dockerArgs, "up", "--detach", "--wait", "postgres", "redis"], { cwd: root, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"], timeout: 180_000 });
+    if (infrastructure.status !== 0) throw new Error("Database/Redis startup failed; no Uptime worker was activated.");
+    const id = spawnSync("docker", [...dockerArgs, "ps", "--quiet", "postgres"], { cwd: root, env: { ...process.env, ...env }, encoding: "utf8" });
+    if (id.status !== 0 || !/^[a-f0-9]{64}$/.test(id.stdout.trim())) throw new Error("Cannot identify the standard PostgreSQL service.");
+    const inspected = spawnSync("docker", ["inspect", id.stdout.trim()], { encoding: "utf8" });
+    if (inspected.status !== 0) throw new Error("Cannot inspect the standard PostgreSQL service.");
+    const [pg] = JSON.parse(inspected.stdout);
+    if (pg.Config?.Labels?.["com.docker.compose.project"] !== "outray-self-hosted" || pg.Config.Labels["com.docker.compose.service"] !== "postgres") throw new Error("Unexpected database ownership; Uptime worker was not activated.");
+    Object.assign(env, probe.probeComposeEnvironment(env, pg.NetworkSettings?.Networks?.["outray-self-hosted_database"]?.IPAddress));
+  }
   dockerArgs.push("up", "--detach", "--build");
   const result = spawnSync("docker", dockerArgs, { cwd: root, env: { ...process.env, ...env }, stdio: "inherit" });
   if (result.error) throw new Error("Could not start Docker Compose. Install Docker Engine/Compose and check its daemon.");
   if (result.status !== 0) throw new Error("Docker Compose did not complete successfully; inspect its service logs");
+  if (probe) {
+    await probe.activateStandardProbe({ root, envFile: file });
+    await probe.manageProbeSupervisor("start", { root, envFile: file });
+  }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  try { main(); } catch (error) {
+  try { await main(); } catch (error) {
     // Only our fixed validation messages are safe. Native filesystem errors can contain filenames but not file contents.
     console.error(error?.code === "EEXIST" ? "Configuration already exists; refusing to replace installation keys." : error?.code === "ENOENT" ? "Configuration not found; run self-host:init first." : error.message);
     process.exitCode = 1;
