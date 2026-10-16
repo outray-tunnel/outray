@@ -1,8 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Webhooks } from "@polar-sh/tanstack-start";
-import { db } from "../../../db";
 import { subscriptions } from "../../../db/subscription-schema";
 import { eq } from "drizzle-orm";
+import {
+  enqueueSubscriptionChanges,
+  withBillingEmailTransaction,
+} from "../../../lib/billing-emails.server";
+import {
+  billingPeriodKey,
+  billingTransitionRevision,
+  nextBillingUpdatedAt,
+} from "../../../lib/billing-email-policy";
+import { enqueueProductEmail } from "../../../../../../shared/product-email-outbox";
 
 export const Route = createFileRoute("/api/webhooks/polar")({
   server: {
@@ -58,7 +67,7 @@ async function handleSubscriptionCreated(subscription: any) {
   const { plan, interval } = mapPolarProductToPlan(subscription.productId);
 
   try {
-    await db.insert(subscriptions).values({
+    await applyPolarSubscriptionChange(subscription, {
       id: crypto.randomUUID(),
       organizationId: subscription.metadata?.organizationId as string,
       plan,
@@ -71,7 +80,7 @@ async function handleSubscriptionCreated(subscription: any) {
         ? new Date(subscription.currentPeriodEnd)
         : null,
       cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
-    });
+    }, true);
 
     console.log(
       "[Polar Webhook] Created subscription:",
@@ -93,18 +102,15 @@ async function handleSubscriptionActive(subscription: any) {
   const { plan, interval } = mapPolarProductToPlan(subscription.productId);
 
   try {
-    await db
-      .update(subscriptions)
-      .set({
-        plan,
-        status: "active",
-        billingInterval: interval,
-        currentPeriodEnd: subscription.currentPeriodEnd
-          ? new Date(subscription.currentPeriodEnd)
-          : null,
-        updatedAt: new Date(),
-      })
-      .where(eq(subscriptions.polarSubscriptionId, subscription.id));
+    await applyPolarSubscriptionChange(subscription, {
+      plan,
+      status: "active",
+      billingInterval: interval,
+      currentPeriodEnd: subscription.currentPeriodEnd
+        ? new Date(subscription.currentPeriodEnd)
+        : null,
+      updatedAt: new Date(),
+    });
 
     console.log("[Polar Webhook] Activated subscription:", subscription.id);
   } catch (error) {
@@ -124,19 +130,16 @@ async function handleSubscriptionUpdated(subscription: any) {
     (subscription.status === "canceled" && !subscription.cancelAtPeriodEnd);
 
   try {
-    await db
-      .update(subscriptions)
-      .set({
-        plan: accessEnded ? "free" : plan,
-        status: subscription.status,
-        billingInterval: interval,
-        currentPeriodEnd: subscription.currentPeriodEnd
-          ? new Date(subscription.currentPeriodEnd)
-          : null,
-        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
-        updatedAt: new Date(),
-      })
-      .where(eq(subscriptions.polarSubscriptionId, subscription.id));
+    await applyPolarSubscriptionChange(subscription, {
+      plan: accessEnded ? "free" : plan,
+      status: subscription.status,
+      billingInterval: interval,
+      currentPeriodEnd: subscription.currentPeriodEnd
+        ? new Date(subscription.currentPeriodEnd)
+        : null,
+      cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
+      updatedAt: new Date(),
+    });
 
     console.log("[Polar Webhook] Updated subscription:", subscription.id);
   } catch (error) {
@@ -147,15 +150,12 @@ async function handleSubscriptionUpdated(subscription: any) {
 
 async function handleSubscriptionCanceled(subscription: any) {
   try {
-    await db
-      .update(subscriptions)
-      .set({
-        status: subscription.status,
-        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
-        canceledAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(subscriptions.polarSubscriptionId, subscription.id));
+    await applyPolarSubscriptionChange(subscription, {
+      status: subscription.status,
+      cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
+      canceledAt: new Date(),
+      updatedAt: new Date(),
+    });
 
     console.log("[Polar Webhook] Canceled subscription:", subscription.id);
   } catch (error) {
@@ -166,15 +166,12 @@ async function handleSubscriptionCanceled(subscription: any) {
 
 async function handleSubscriptionUncanceled(subscription: any) {
   try {
-    await db
-      .update(subscriptions)
-      .set({
-        status: "active",
-        cancelAtPeriodEnd: false,
-        canceledAt: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(subscriptions.polarSubscriptionId, subscription.id));
+    await applyPolarSubscriptionChange(subscription, {
+      status: "active",
+      cancelAtPeriodEnd: false,
+      canceledAt: null,
+      updatedAt: new Date(),
+    });
 
     console.log("[Polar Webhook] Uncanceled subscription:", subscription.id);
   } catch (error) {
@@ -188,21 +185,66 @@ async function handleSubscriptionRevoked(subscription: any) {
   // This handles new events only: historical revoked rows need explicit
   // reconciliation and are not automatically repaired by deploying this code.
   try {
-    await db
-      .update(subscriptions)
-      .set({
-        plan: "free",
-        status: "cancelled",
-        cancelAtPeriodEnd: false,
-        updatedAt: new Date(),
-      })
-      .where(eq(subscriptions.polarSubscriptionId, subscription.id));
+    await applyPolarSubscriptionChange(subscription, {
+      plan: "free",
+      status: "cancelled",
+      cancelAtPeriodEnd: false,
+      updatedAt: new Date(),
+    });
 
     console.log("[Polar Webhook] Revoked subscription:", subscription.id);
   } catch (error) {
     console.error("[Polar Webhook] Error revoking subscription:", error);
     throw error;
   }
+}
+
+async function applyPolarSubscriptionChange(
+  subscription: any,
+  values: Partial<typeof subscriptions.$inferInsert>,
+  create = false,
+): Promise<void> {
+  await withBillingEmailTransaction(`billing:polar:${subscription.id}`, async (database, client) => {
+    const [previous] = await database.select().from(subscriptions)
+      .where(eq(subscriptions.polarSubscriptionId, subscription.id)).limit(1).for("update");
+    // created/active can both arrive for the same initial purchase. A replay of
+    // created must not reset a subscription changed by a later lifecycle event.
+    if (create && previous) return;
+    if (!create && !previous) return;
+    let next: typeof subscriptions.$inferSelect;
+    if (create) {
+      const [inserted] = await database.insert(subscriptions)
+        .values(values as typeof subscriptions.$inferInsert).returning();
+      next = inserted;
+    } else {
+      const [updated] = await database.update(subscriptions).set({
+        ...values,
+        updatedAt: nextBillingUpdatedAt(previous.updatedAt),
+      })
+        .where(eq(subscriptions.polarSubscriptionId, subscription.id)).returning();
+      next = updated;
+    }
+    // Polar normally sends its own billing emails. Opt in only after disabling
+    // equivalent provider emails to avoid duplicate customer notifications.
+    if (process.env.POLAR_OUTRAY_EMAILS !== "true") return;
+    const revision = billingTransitionRevision(subscription.modifiedAt, previous?.updatedAt, next);
+    const eventKey = `polar:subscription:${subscription.id}:${billingPeriodKey(subscription.currentPeriodStart ?? subscription.currentPeriodEnd ?? null)}:${revision}`;
+    await enqueueSubscriptionChanges(client, next.organizationId, eventKey,
+      previous ?? null, next, subscription.endedAt ?? null);
+    if (next.status === "past_due" && previous?.status !== "past_due" &&
+        Number.isSafeInteger(subscription.amount) && subscription.amount >= 0 &&
+        typeof subscription.currency === "string") {
+      await enqueueProductEmail(client, {
+        organizationId: next.organizationId,
+        eventKey: `${eventKey}:payment-failed`,
+        event: {
+          kind: "payment-failed", plan: next.plan, amountMinor: subscription.amount,
+          currency: subscription.currency.toUpperCase(), provider: "polar",
+          periodEnd: next.currentPeriodEnd?.toISOString() ?? null,
+        },
+      });
+    }
+  });
 }
 
 function mapPolarProductToPlan(productId: string): {
