@@ -31,6 +31,7 @@ import {
 
 import { subscriptions, subscriptionsRelations } from "./subscription-schema";
 export { organizationMonthlyUsage, organizationTelemetryReceipts } from "./usage-schema";
+export { productEmailOutbox } from "./product-email-schema";
 
 import {
   observabilityAlerts,
