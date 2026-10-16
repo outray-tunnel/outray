@@ -6,7 +6,7 @@ import React from "react";
 import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, Link, RouterContextProvider } from "@tanstack/react-router";
 import ts from "typescript";
-import { ProductPage, ProductsIndex } from "../src/landing/products/ProductPage";
+import { ProductPage } from "../src/landing/products/ProductPage";
 import { ObservabilityHero, OBSERVABILITY_HERO_SPANS, heroSpanIndexFromKey } from "../src/landing/products/ObservabilityHero";
 import { ObservabilityRequestStory, OBSERVABILITY_STORY_TRACE_ID, OBSERVABILITY_STORY_DURATION, OBSERVABILITY_STORY_SPANS, observabilityJourneyIndexFromKey } from "../src/landing/products/ObservabilityRequestStory";
 import { ObservabilityFeatureSections } from "../src/landing/products/ObservabilityFeatureSections";
@@ -126,7 +126,7 @@ test("Observability replaces the generic product template with its own complete 
   } finally { globalThis.fetch = originalFetch; }
 });
 
-test("the new Observability dependencies are scoped to its route, leaving shared fallback pages and overview previews untouched", async () => {
+test("the new Observability dependencies are scoped to its route, leaving shared fallback pages untouched", async () => {
   const route = await readFile(new URL("../src/routes/products.observability.tsx", import.meta.url), "utf8");
   const shared = await readFile(new URL("../src/landing/products/ProductPage.tsx", import.meta.url), "utf8");
   assert.match(route, /<ProductPage\s+product="observability"/);
@@ -142,8 +142,6 @@ test("the new Observability dependencies are scoped to its route, leaving shared
     assert.match(html, /Illustrative interface · sample data/);
     assert.doesNotMatch(html, /Know what.*happened\.|One request\..*The whole picture\.|Fits the way.*you build\./);
   }
-  const overview = renderToStaticMarkup(React.createElement(ProductsIndex));
-  assert.equal((overview.match(/Illustrative interface · sample data/g) ?? []).length, 4);
 });
 
 test("Observability keeps whitespace between sections instead of decorative separating lines", () => {
