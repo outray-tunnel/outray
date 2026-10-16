@@ -29,5 +29,7 @@ COPY --from=dependencies --chown=node:node /app/scripts/self-hosted-share-role.m
 COPY --from=dependencies --chown=node:node /app/.self-hosted-artifacts/apps ./apps
 COPY --from=dependencies --chown=node:node /app/.self-hosted-artifacts/packages ./packages
 COPY --from=dependencies --chown=node:node /app/.self-hosted-artifacts/manifest.json ./self-hosted-artifact-manifest.json
+RUN mkdir -p /var/lib/outray/status-page-logos \
+    && chown node:node /var/lib/outray/status-page-logos
 USER node
 CMD ["node", "apps/web/.output/server/index.mjs"]
