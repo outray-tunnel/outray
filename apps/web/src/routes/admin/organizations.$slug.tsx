@@ -1,16 +1,28 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "motion/react";
-import { ArrowLeft, Building2, Users, Network, Globe, Crown, Save, Loader2, X, User, AlertTriangle } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import ArrowLeft01Icon from "@outray/icons/stroke/ArrowLeft01Icon";
+import Building03Icon from "@outray/icons/stroke/Building03Icon";
+import UserGroupIcon from "@outray/icons/stroke/UserGroupIcon";
+import Route03Icon from "@outray/icons/stroke/Route03Icon";
+import Globe02Icon from "@outray/icons/stroke/Globe02Icon";
+import CrownIcon from "@outray/icons/stroke/CrownIcon";
+import FloppyDiskIcon from "@outray/icons/stroke/FloppyDiskIcon";
+import UserIcon from "@outray/icons/stroke/UserIcon";
+import Alert02Icon from "@outray/icons/stroke/Alert02Icon";
 import { appClient } from "@/lib/app-client";
-import { useAdminStore } from "@/lib/admin-store";
 import { Select } from "@/components/ui/select";
+import { Button } from "@/components/arc/button/button";
+import { WorkspacePageHeader } from "@/components/workspace-page-header";
+import { WorkspaceInput } from "@/components/ui/workspace-input";
+import { WorkspaceDialog, WorkspaceNotice } from "@/components/workspace/workspace-ui";
+import { AdminOrganizationProductUsage } from "@/components/admin/admin-product-usage";
 
 export const Route = createFileRoute("/admin/organizations/$slug")({
   head: () => ({
     meta: [
-      { title: "Organization Details - OutRay" },
+      { title: "Organization details - OutRay" },
     ],
   }),
   component: AdminOrganizationDetailPage,
@@ -20,7 +32,7 @@ const PLANS = ["free", "ray", "beam", "pulse", "unlimited"] as const;
 const STATUSES = ["active", "cancelled", "past_due", "paused"] as const;
 
 const planColors: Record<string, string> = {
-  free: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+  free: "bg-gray-500/10 text-zinc-400 border-gray-500/20",
   ray: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   beam: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   pulse: "bg-amber-500/10 text-amber-400 border-amber-500/20",
@@ -32,7 +44,6 @@ type ModalType = "members" | "activeTunnels" | "totalTunnels" | "subdomains" | "
 function AdminOrganizationDetailPage() {
   const { slug } = Route.useParams();
   const navigate = useNavigate();
-  const token = useAdminStore((s) => s.token);
   const queryClient = useQueryClient();
 
   const [name, setName] = useState("");
@@ -43,14 +54,13 @@ function AdminOrganizationDetailPage() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [showResetModal, setShowResetModal] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["admin", "organization", slug],
     queryFn: async () => {
-      const res = await appClient.admin.organization(token!, slug);
+      const res = await appClient.admin.organization(slug);
       if ("error" in res) throw new Error(res.error);
       return res;
     },
-    enabled: !!token,
   });
 
   // Initialize form when data loads
@@ -64,7 +74,7 @@ function AdminOrganizationDetailPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (updates: { name?: string; slug?: string; plan?: string; status?: string }) => {
-      const res = await appClient.admin.updateOrganization(token!, slug, updates);
+      const res = await appClient.admin.updateOrganization(slug, updates);
       if ("error" in res) throw new Error(res.error);
       return res;
     },
@@ -79,7 +89,7 @@ function AdminOrganizationDetailPage() {
 
   const resetToFreeMutation = useMutation({
     mutationFn: async () => {
-      const res = await appClient.admin.resetToFree(token!, slug);
+      const res = await appClient.admin.resetToFree(slug);
       if ("error" in res) throw new Error(res.error);
       return res;
     },
@@ -119,9 +129,9 @@ function AdminOrganizationDetailPage() {
     status !== data.subscription.status
   );
 
-  if (!token || isLoading) {
+  if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto animate-pulse">
+      <div className="mx-auto max-w-[1100px] space-y-5 animate-pulse">
         <div className="h-8 w-48 bg-white/5 rounded mb-8" />
         <div className="space-y-6">
           <div className="h-32 bg-white/5 rounded-2xl" />
@@ -133,8 +143,10 @@ function AdminOrganizationDetailPage() {
 
   if (!data) {
     return (
-      <div className="max-w-4xl mx-auto text-center py-12">
-        <p className="text-gray-400">Organization not found</p>
+      <div className="mx-auto max-w-[1100px] space-y-5">
+        <WorkspacePageHeader appearance="compact" title="Organization details" description="Manage this workspace and its subscription." />
+        <WorkspaceNotice message={error ? `Could not load this organization. ${error.message}` : "Organization not found."} action={<Button type="button" variant="secondary" size="sm" loading={isFetching} onClick={() => void refetch()}>Try again</Button>} />
+        <Button type="button" variant="ghost" size="sm" onClick={() => navigate({ to: "/admin/organizations" })}><HugeiconsIcon icon={ArrowLeft01Icon} size={14} />All organizations</Button>
       </div>
     );
   }
@@ -147,107 +159,108 @@ function AdminOrganizationDetailPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <button
+    <div className="mx-auto max-w-[1100px] space-y-5 text-[13px]">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => navigate({ to: "/admin/organizations" })}
-        className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
+        className="-ml-3"
       >
-        <ArrowLeft size={16} />
-        Back to Organizations
-      </button>
+        <HugeiconsIcon icon={ArrowLeft01Icon} size={16} />
+        All organizations
+      </Button>
 
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           {data.organization.logo ? (
-            <img src={data.organization.logo} alt={data.organization.name} className="w-12 h-12 rounded-xl" />
+            <img src={data.organization.logo} alt={data.organization.name} className="size-10 rounded-xl object-cover" />
           ) : (
-            <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-              <Building2 size={24} className="text-gray-400" />
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/[.08] bg-white/[.035]">
+              <HugeiconsIcon icon={Building03Icon} size={18} className="text-zinc-400" />
             </div>
           )}
-          <div>
-            <h1 className="text-2xl font-bold text-white">{data.organization.name}</h1>
-            <p className="text-sm text-gray-500">/{data.organization.slug}</p>
-          </div>
+          <WorkspacePageHeader appearance="compact" title={data.organization.name} description={`/${data.organization.slug}`} />
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           {data.owner && (
             <Link
               to="/admin/users/$userId"
               params={{ userId: data.owner.id }}
-              className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
+              className="flex items-center gap-2 rounded-xl border border-white/[.08] bg-[#101010] px-3 py-2 transition-colors hover:bg-white/[.04]"
             >
               {data.owner.image ? (
                 <img src={data.owner.image} alt={data.owner.name} className="w-6 h-6 rounded-full" />
               ) : (
                 <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
-                  <User size={12} className="text-gray-400" />
+                  <HugeiconsIcon icon={UserIcon} size={12} className="text-zinc-400" />
                 </div>
               )}
               <div className="text-left">
-                <div className="text-xs text-gray-500">Owner</div>
-                <div className="text-sm text-white font-medium">{data.owner.name}</div>
+                <div className="text-xs text-zinc-500">Owner</div>
+                <div className="text-[12px] text-zinc-300">{data.owner.name}</div>
               </div>
             </Link>
           )}
-          <span className={`px-3 py-1.5 rounded-lg text-sm font-medium border capitalize ${planColors[data.subscription.plan] || planColors.free}`}>
+          <span className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-normal border capitalize ${planColors[data.subscription.plan] || planColors.free}`}>
             {data.subscription.plan}
           </span>
+          <Button type="button" size="md" disabled={!hasChanges} loading={updateMutation.isPending} onClick={handleSave}><HugeiconsIcon icon={FloppyDiskIcon} size={15} />Save changes</Button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         {[
-          { label: "Members", value: data.stats.members, icon: Users, modalKey: "members" as const },
-          { label: "Active Tunnels", value: data.stats.activeTunnels, icon: Network, modalKey: "activeTunnels" as const },
-          { label: "Total Tunnels", value: data.stats.totalTunnels, icon: Network, modalKey: "totalTunnels" as const },
-          { label: "Subdomains", value: data.stats.subdomains, icon: Globe, modalKey: "subdomains" as const },
-          { label: "Domains", value: data.stats.domains, icon: Globe, modalKey: "domains" as const },
+          { label: "Members", value: data.stats.members, icon: UserGroupIcon, modalKey: "members" as const },
+          { label: "Active tunnels", value: data.stats.activeTunnels, icon: Route03Icon, modalKey: "activeTunnels" as const },
+          { label: "Total tunnels", value: data.stats.totalTunnels, icon: Route03Icon, modalKey: "totalTunnels" as const },
+          { label: "Subdomains", value: data.stats.subdomains, icon: Globe02Icon, modalKey: "subdomains" as const },
+          { label: "Domains", value: data.stats.domains, icon: Globe02Icon, modalKey: "domains" as const },
         ].map((stat) => (
           <button
             key={stat.label}
             onClick={() => setActiveModal(stat.modalKey)}
-            className="bg-white/2 border border-white/5 rounded-xl p-4 text-left hover:bg-white/5 hover:border-white/10 transition-all cursor-pointer group"
+            className="group rounded-xl border border-white/[.08] bg-[#101010] p-4 text-left transition-colors hover:border-white/15 hover:bg-white/[.025] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500"
           >
-            <div className="flex items-center gap-2 text-gray-500 mb-1 group-hover:text-gray-400">
-              <stat.icon size={14} />
+            <div className="flex items-center gap-2 text-zinc-500 mb-1 group-hover:text-zinc-400">
+              <HugeiconsIcon icon={stat.icon} size={14} />
               <span className="text-xs">{stat.label}</span>
             </div>
-            <div className="text-xl font-semibold text-white">{stat.value}</div>
+            <div className="text-[23px] font-normal tabular-nums text-white">{stat.value}</div>
           </button>
         ))}
       </div>
 
+      <AdminOrganizationProductUsage organizationId={data.organization.id} />
+
       {/* Edit Form */}
-      <div className="bg-white/2 border border-white/5 rounded-2xl p-6 mb-6">
-        <h2 className="text-lg font-medium text-white mb-6 flex items-center gap-2">
-          <Building2 size={18} />
-          Organization Details
+      <div className="rounded-xl border border-white/[.08] bg-[#101010] p-5">
+        <h2 className="text-[13px] font-normal text-zinc-200 mb-5 flex items-center gap-2">
+          <HugeiconsIcon icon={Building03Icon} size={18} />
+          Organization details
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid max-w-2xl grid-cols-1 gap-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20" />
+            <label htmlFor="admin-organization-name" className="mb-2 block text-[12px] text-zinc-400">Name</label>
+            <WorkspaceInput id="admin-organization-name" size="compact" type="text" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Slug</label>
-            <input type="text" value={orgSlug} onChange={(e) => setOrgSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20" />
+            <label htmlFor="admin-organization-slug" className="mb-2 block text-[12px] text-zinc-400">Slug</label>
+            <WorkspaceInput id="admin-organization-slug" size="compact" type="text" value={orgSlug} onChange={(e) => setOrgSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} />
           </div>
         </div>
       </div>
 
       {/* Subscription */}
-      <div className="bg-white/2 border border-white/5 rounded-2xl p-6 mb-6">
-        <h2 className="text-lg font-medium text-white mb-6 flex items-center gap-2">
-          <Crown size={18} />
+      <div className="rounded-xl border border-white/[.08] bg-[#101010] p-5">
+        <h2 className="text-[13px] font-normal text-zinc-200 mb-5 flex items-center gap-2">
+          <HugeiconsIcon icon={CrownIcon} size={18} />
           Subscription
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid max-w-2xl grid-cols-1 gap-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Plan</label>
+            <label className="mb-2 block text-[12px] text-zinc-400">Plan</label>
             <Select
               value={plan}
               onChange={setPlan}
@@ -256,11 +269,11 @@ function AdminOrganizationDetailPage() {
                 label: planOption.charAt(0).toUpperCase() + planOption.slice(1),
               }))}
               ariaLabel="Subscription plan"
-              triggerClassName="h-[42px] rounded-xl bg-white/5 px-4 text-sm"
+              triggerClassName="h-9 min-h-9 rounded-2xl bg-[#0b0b0b] px-3.5 text-[13px]"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Status</label>
+            <label className="mb-2 block text-[12px] text-zinc-400">Status</label>
             <Select
               value={status}
               onChange={setStatus}
@@ -269,78 +282,57 @@ function AdminOrganizationDetailPage() {
                 label: statusOption.charAt(0).toUpperCase() + statusOption.slice(1).replace("_", " "),
               }))}
               ariaLabel="Subscription status"
-              triggerClassName="h-[42px] rounded-xl bg-white/5 px-4 text-sm"
+              triggerClassName="h-9 min-h-9 rounded-2xl bg-[#0b0b0b] px-3.5 text-[13px]"
             />
           </div>
         </div>
         {data.subscription.polarSubscriptionId && (
           <div className="mt-4 pt-4 border-t border-white/5">
-            <p className="text-xs text-gray-500">Polar Subscription: <span className="text-gray-400">{data.subscription.polarSubscriptionId}</span></p>
+            <p className="text-xs text-zinc-500">Polar Subscription: <span className="text-zinc-400">{data.subscription.polarSubscriptionId}</span></p>
             {data.subscription.currentPeriodEnd && (
-              <p className="text-xs text-gray-500 mt-1">Current Period Ends: <span className="text-gray-400">{formatDate(data.subscription.currentPeriodEnd)}</span></p>
+              <p className="text-xs text-zinc-500 mt-1">Current Period Ends: <span className="text-zinc-400">{formatDate(data.subscription.currentPeriodEnd)}</span></p>
             )}
           </div>
         )}
 
-        {/* Reset to Free Button */}
+        {/* Reset to free Button */}
         {data.subscription.plan !== "free" && (
           <div className="mt-6 pt-6 border-t border-white/5">
-            <button
+            <Button
+              type="button"
+              variant="danger"
+              size="md"
               onClick={handleResetToFree}
-              disabled={resetToFreeMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm font-medium hover:bg-red-500/20 transition-all disabled:opacity-50"
+              loading={resetToFreeMutation.isPending}
             >
-              {resetToFreeMutation.isPending ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <AlertTriangle size={14} />
-              )}
-              Reset to Free Plan
-            </button>
-            <p className="text-xs text-gray-600 mt-2">
+              <HugeiconsIcon icon={Alert02Icon} size={14} />
+              Reset to free plan
+            </Button>
+            <p className="text-xs text-zinc-600 mt-2">
               Removes subscription, domains, extra subdomains, and tunnels.
             </p>
           </div>
         )}
 
         {resetToFreeMutation.isSuccess && (
-          <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm">
-            Organization reset to free plan successfully
-          </div>
+          <WorkspaceNotice tone="success" message="Organization reset to free plan successfully." />
         )}
 
         {resetToFreeMutation.isError && (
-          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-            Failed to reset organization
-          </div>
+          <WorkspaceNotice message={resetToFreeMutation.error.message} />
         )}
       </div>
 
-      {/* Save Button */}
-      {hasChanges && (
-        <div className="flex justify-end">
-          <button onClick={handleSave} disabled={updateMutation.isPending}
-            className="flex items-center gap-2 px-6 py-2.5 bg-accent text-black rounded-xl font-medium hover:bg-accent/90 transition-all disabled:opacity-50">
-            {updateMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            Save Changes
-          </button>
-        </div>
-      )}
-
       {updateMutation.isSuccess && (
-        <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm">
-          Organization updated successfully
-        </div>
+        <WorkspaceNotice tone="success" message="Organization updated successfully." />
       )}
 
       {updateMutation.isError && (
-        <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-          Failed to update organization
-        </div>
+        <WorkspaceNotice message={updateMutation.error.message} />
       )}
 
       {/* Meta Info */}
-      <div className="mt-8 pt-6 border-t border-white/5 text-xs text-gray-600">
+      <div className="space-y-1 text-[11px] text-zinc-600">
         <p>Created: {formatDate(data.organization.createdAt)}</p>
         <p>Organization ID: {data.organization.id}</p>
       </div>
@@ -349,11 +341,11 @@ function AdminOrganizationDetailPage() {
       {activeModal === "members" && (
         <StatsModal
           title="Members"
-          icon={Users}
+          icon={UserGroupIcon}
           onClose={() => setActiveModal(null)}
         >
           {data.members.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No members found</p>
+            <p className="text-zinc-500 text-center py-8">No members found</p>
           ) : (
             <div className="space-y-2">
               {data.members.map((member) => (
@@ -361,27 +353,27 @@ function AdminOrganizationDetailPage() {
                   key={member.id}
                   to="/admin/users/$userId"
                   params={{ userId: member.userId }}
-                  className="flex items-center justify-between p-3 bg-white/2 rounded-xl hover:bg-white/5 transition-colors"
+                  className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white/[.02] rounded-lg hover:bg-white/5 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     {member.userImage ? (
                       <img src={member.userImage} alt={member.userName} className="w-8 h-8 rounded-full" />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                        <User size={14} className="text-gray-400" />
+                        <HugeiconsIcon icon={UserIcon} size={14} className="text-zinc-400" />
                       </div>
                     )}
                     <div>
-                      <div className="font-medium text-white">{member.userName}</div>
-                      <div className="text-xs text-gray-500">{member.userEmail}</div>
+                      <div className="font-normal text-zinc-200">{member.userName}</div>
+                      <div className="text-xs text-zinc-500">{member.userEmail}</div>
                     </div>
                   </div>
-                  <span className={`px-2 py-1 rounded-lg text-xs font-medium border capitalize ${
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-normal border capitalize ${
                     member.role === "owner"
                       ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                       : member.role === "admin"
                       ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                      : "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                      : "bg-gray-500/10 text-zinc-400 border-gray-500/20"
                   }`}>
                     {member.role}
                   </span>
@@ -392,18 +384,18 @@ function AdminOrganizationDetailPage() {
         </StatsModal>
       )}
 
-      {/* Active Tunnels Modal */}
+      {/* Active tunnels Modal */}
       {activeModal === "activeTunnels" && (
         <StatsModal
-          title="Active Tunnels"
-          icon={Network}
+          title="Active tunnels"
+          icon={Route03Icon}
           onClose={() => setActiveModal(null)}
         >
           {(() => {
             const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
             const activeTunnels = data.tunnels.filter(t => t.lastSeenAt && new Date(t.lastSeenAt) >= fiveMinutesAgo);
             if (activeTunnels.length === 0) {
-              return <p className="text-gray-500 text-center py-8">No active tunnels</p>;
+              return <p className="text-zinc-500 text-center py-8">No active tunnels</p>;
             }
             return (
               <div className="space-y-2">
@@ -416,15 +408,15 @@ function AdminOrganizationDetailPage() {
         </StatsModal>
       )}
 
-      {/* Total Tunnels Modal */}
+      {/* Total tunnels Modal */}
       {activeModal === "totalTunnels" && (
         <StatsModal
-          title="All Tunnels"
-          icon={Network}
+          title="All tunnels"
+          icon={Route03Icon}
           onClose={() => setActiveModal(null)}
         >
           {data.tunnels.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No tunnels found</p>
+            <p className="text-zinc-500 text-center py-8">No tunnels found</p>
           ) : (
             <div className="space-y-2">
               {data.tunnels.map((tunnel) => (
@@ -439,28 +431,28 @@ function AdminOrganizationDetailPage() {
       {activeModal === "subdomains" && (
         <StatsModal
           title="Subdomains"
-          icon={Globe}
+          icon={Globe02Icon}
           onClose={() => setActiveModal(null)}
         >
           {data.subdomains.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No subdomains found</p>
+            <p className="text-zinc-500 text-center py-8">No subdomains found</p>
           ) : (
             <div className="space-y-2">
               {data.subdomains.map((subdomain) => (
                 <div
                   key={subdomain.id}
-                  className="flex items-center justify-between p-3 bg-white/2 rounded-xl"
+                  className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white/[.02] rounded-lg"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                      <Globe size={14} className="text-gray-400" />
+                      <HugeiconsIcon icon={Globe02Icon} size={14} className="text-zinc-400" />
                     </div>
                     <div>
-                      <div className="font-medium text-white font-mono">{subdomain.subdomain}.outray.io</div>
-                      <div className="text-xs text-gray-500">by {subdomain.userName}</div>
+                      <div className="font-normal text-zinc-200 font-mono">{subdomain.subdomain}.outray.io</div>
+                      <div className="text-xs text-zinc-500">by {subdomain.userName}</div>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-500">{formatDate(subdomain.createdAt)}</span>
+                  <span className="text-xs text-zinc-500">{formatDate(subdomain.createdAt)}</span>
                 </div>
               ))}
             </div>
@@ -471,30 +463,30 @@ function AdminOrganizationDetailPage() {
       {/* Domains Modal */}
       {activeModal === "domains" && (
         <StatsModal
-          title="Custom Domains"
-          icon={Globe}
+          title="Custom domains"
+          icon={Globe02Icon}
           onClose={() => setActiveModal(null)}
         >
           {data.domains.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No custom domains found</p>
+            <p className="text-zinc-500 text-center py-8">No custom domains found</p>
           ) : (
             <div className="space-y-2">
               {data.domains.map((domain) => (
                 <div
                   key={domain.id}
-                  className="flex items-center justify-between p-3 bg-white/2 rounded-xl"
+                  className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white/[.02] rounded-lg"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                      <Globe size={14} className="text-gray-400" />
+                      <HugeiconsIcon icon={Globe02Icon} size={14} className="text-zinc-400" />
                     </div>
                     <div>
-                      <div className="font-medium text-white font-mono">{domain.domain}</div>
-                      <div className="text-xs text-gray-500">by {domain.userName}</div>
+                      <div className="font-normal text-zinc-200 font-mono">{domain.domain}</div>
+                      <div className="text-xs text-zinc-500">by {domain.userName}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-medium border capitalize ${
+                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-normal border capitalize ${
                       domain.status === "active"
                         ? "bg-green-500/10 text-green-400 border-green-500/20"
                         : domain.status === "pending"
@@ -511,124 +503,35 @@ function AdminOrganizationDetailPage() {
         </StatsModal>
       )}
 
-      {/* Reset to Free Confirmation Modal */}
-      {showResetModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            onClick={() => setShowResetModal(false)}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="relative bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden"
-          >
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
-                  <AlertTriangle size={20} className="text-red-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">Reset to Free Plan</h3>
-              </div>
-              
-              <p className="text-gray-400 text-sm mb-4">
-                Are you sure you want to reset this organization to the free plan?
-              </p>
-              
-              <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 mb-6">
-                <p className="text-sm text-red-400 font-medium mb-2">This will:</p>
-                <ul className="text-sm text-gray-400 space-y-1">
-                  <li>• Delete all custom domains</li>
-                  <li>• Remove their subscription</li>
-                  <li>• Delete all subdomains except one</li>
-                  <li>• Close all tunnels except two</li>
-                </ul>
-                <p className="text-xs text-red-400 mt-3">This action cannot be undone.</p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowResetModal(false)}
-                  className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 text-white rounded-xl text-sm font-medium hover:bg-white/10 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmResetToFree}
-                  disabled={resetToFreeMutation.isPending}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition-all disabled:opacity-50"
-                >
-                  {resetToFreeMutation.isPending ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <AlertTriangle size={14} />
-                  )}
-                  Reset to Free
-                </button>
-              </div>
-            </div>
-          </motion.div>
+      <WorkspaceDialog open={showResetModal} onClose={() => setShowResetModal(false)} title="Reset to free plan" description={`Reset ${data.organization.name} and remove paid-plan resources.`} busy={resetToFreeMutation.isPending} size="sm" footer={<>
+        <Button type="button" variant="secondary" size="sm" disabled={resetToFreeMutation.isPending} onClick={() => setShowResetModal(false)}>Cancel</Button>
+        <Button type="button" variant="danger" size="sm" loading={resetToFreeMutation.isPending} onClick={confirmResetToFree}><HugeiconsIcon icon={Alert02Icon} size={14} />Reset to free</Button>
+      </>}>
+        <div className="space-y-3 text-[13px] leading-6 text-zinc-400">
+          <p>This action cannot be undone. It will:</p>
+          <ul className="list-disc space-y-1 pl-4">
+            <li>Delete all custom domains.</li>
+            <li>Remove the current subscription.</li>
+            <li>Keep one subdomain and delete the rest.</li>
+            <li>Keep two tunnels and close the rest.</li>
+          </ul>
         </div>
-      )}
+      </WorkspaceDialog>
     </div>
   );
 }
 
-// Stats Modal Component
-function StatsModal({
-  title,
-  icon: Icon,
-  onClose,
-  children,
-}: {
+// All resource lists share the workspace dialog's focus and keyboard handling.
+function StatsModal({ title, icon, onClose, children }: {
   title: string;
-  icon: React.ElementType;
+  icon: typeof UserGroupIcon;
   onClose: () => void;
   children: React.ReactNode;
 }) {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.15 }}
-        onClick={onClose}
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-      />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 10 }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
-        className="bg-[#0A0A0A] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col relative z-10 shadow-2xl"
-      >
-        <div className="flex items-center justify-between p-6 border-b border-white/5">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <Icon size={20} />
-            {title}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={`Close ${title}`}
-            className="rounded-lg border-0 bg-transparent p-2 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8367c7]"
-          >
-            <X size={18} className="text-gray-400" aria-hidden="true" />
-          </button>
-        </div>
-        <div className="p-6 overflow-y-auto flex-1">
-          {children}
-        </div>
-      </motion.div>
-    </div>
-  );
+  return <WorkspaceDialog open onClose={onClose} title={title} size="lg">
+    <div className="mb-4 flex items-center gap-2 text-[12px] text-zinc-500"><HugeiconsIcon icon={icon} size={15} />Organization resources</div>
+    {children}
+  </WorkspaceDialog>;
 }
 
 // Tunnel Item Component
@@ -654,15 +557,15 @@ function TunnelItem({
   const isActive = tunnel.lastSeenAt && new Date(tunnel.lastSeenAt) >= fiveMinutesAgo;
 
   return (
-    <div className="flex items-center justify-between p-3 bg-white/2 rounded-xl">
+    <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white/[.02] rounded-lg">
       <div className="flex items-center gap-3">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
           isActive ? "bg-green-500/10" : "bg-white/10"
         }`}>
-          <Network size={14} className={isActive ? "text-green-400" : "text-gray-400"} />
+          <HugeiconsIcon icon={Route03Icon} size={14} className={isActive ? "text-green-400" : "text-zinc-400"} />
         </div>
         <div>
-          <div className="font-medium text-white flex items-center gap-2">
+          <div className="font-normal text-zinc-200 flex items-center gap-2">
             {tunnel.name || tunnel.url}
             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${
               tunnel.protocol === "http"
@@ -674,16 +577,16 @@ function TunnelItem({
               {tunnel.protocol}
             </span>
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-zinc-500">
             by {tunnel.userName} • {tunnel.remotePort ? `Port ${tunnel.remotePort}` : tunnel.url}
           </div>
         </div>
       </div>
       <div className="text-right">
-        <div className={`text-xs font-medium ${isActive ? "text-green-400" : "text-gray-500"}`}>
+        <div className={`text-xs font-medium ${isActive ? "text-green-400" : "text-zinc-500"}`}>
           {isActive ? "Online" : "Offline"}
         </div>
-        <div className="text-xs text-gray-600">{formatDate(tunnel.lastSeenAt)}</div>
+        <div className="text-xs text-zinc-600">{formatDate(tunnel.lastSeenAt)}</div>
       </div>
     </div>
   );
