@@ -3,6 +3,7 @@ import { verifyWebhookSignature } from "../../../lib/paystack";
 import { db } from "../../../db";
 import { subscriptions } from "../../../db/subscription-schema";
 import { eq, and } from "drizzle-orm";
+import { applyPaystackCheckout } from "../../../lib/billing-emails.server";
 
 export const Route = createFileRoute("/api/webhooks/paystack")({
   server: {
@@ -140,45 +141,16 @@ async function handleChargeSuccess(data: unknown) {
     );
   } else {
     // Initial payment - update or create subscription
-    const existingSubscription = await db
-      .select()
-      .from(subscriptions)
-      .where(eq(subscriptions.organizationId, organizationId))
-      .limit(1);
-
-    if (existingSubscription.length > 0) {
-      await db
-        .update(subscriptions)
-        .set({
-          plan: plan || existingSubscription[0].plan,
-          status: "active",
-          paymentProvider: "paystack",
-          paystackCustomerCode: chargeData.customer.customer_code,
-          paystackAuthorizationCode:
-            chargeData.authorization.authorization_code,
-          paystackEmail: chargeData.customer.email,
-          billingInterval: interval,
-          currentPeriodEnd,
-          cancelAtPeriodEnd: false,
-          canceledAt: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(subscriptions.organizationId, organizationId));
-    } else if (plan) {
-      await db.insert(subscriptions).values({
-        id: crypto.randomUUID(),
-        organizationId,
-        plan,
-        status: "active",
-        paymentProvider: "paystack",
-        paystackCustomerCode: chargeData.customer.customer_code,
-        paystackAuthorizationCode: chargeData.authorization.authorization_code,
-        paystackEmail: chargeData.customer.email,
-        billingInterval: interval,
-        currentPeriodEnd,
-        cancelAtPeriodEnd: false,
-      });
-    }
+    await applyPaystackCheckout({
+      organizationId,
+      reference: chargeData.reference,
+      plan,
+      interval,
+      customerCode: chargeData.customer.customer_code,
+      authorizationCode: chargeData.authorization.authorization_code,
+      customerEmail: chargeData.customer.email,
+      currentPeriodEnd,
+    });
 
     console.log(
       `[Paystack Webhook] Initial payment processed for org ${organizationId}, plan: ${plan}, interval: ${interval}`,
