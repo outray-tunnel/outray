@@ -10,7 +10,7 @@ Public-launch gate: the current checkout's production Seroval dependency needs a
 
 ## 1. Prepare an independent installation
 
-Use a fresh checkout on a different host from the hosted OutRay edge for an internal Ops instance. Install Node.js 22+, Docker Engine with BuildKit, and the Docker Compose plugin. Reserve a public domain and enough disk/memory for your expected telemetry, Redis backlog, PostgreSQL data, and application builds. This package has not been load-tested to establish hardware sizing guarantees.
+Use a fresh checkout on your installation's host. Install Node.js 22+, Docker Engine with BuildKit, and the Docker Compose plugin. Reserve a public domain and enough disk/memory for your expected telemetry, Redis backlog, PostgreSQL data, and application builds. If using OutRay to monitor another OutRay installation, keep the two hosts, databases, credentials and Tinybird workspaces independent. This package has not been load-tested to establish hardware sizing guarantees.
 
 From the repository root:
 
@@ -207,16 +207,32 @@ Public browser origins are build-time settings. If you change hostnames, update 
 
 All Uptime routes and status publishing are included, but the probe/delivery worker starts only when enabled. The default configuration has both features disabled.
 
-Before enabling checks, establish and test a worker-specific outbound policy that blocks loopback, private/VPC networks, link-local/metadata services, and other special-use destinations. Keep required database, DNS, and provider access separate from arbitrary monitored targets. Application URL/DNS validation and pinned lookup remain enabled; they are not a replacement for network isolation. Do not run public probes next to unprotected internal control-plane endpoints.
+The standard worker requires a root-managed Linux Docker host with `iptables`,
+`ip6tables`, `nsenter`, `ip` and systemd. It uses its own bridge and starts behind
+an inert activation gate. The generic lifecycle installs bridge-scoped host and
+namespace rules, allows only the inspected PostgreSQL endpoint, resolver DNS and
+public IPv4 HTTP(S), and tests actual denied-packet counters before activation.
+Loopback, private/link-local/metadata destinations, host addresses and locally
+routed networks are blocked; IPv6 egress is denied. No global firewall tables are
+flushed. Add any other infrastructure ranges to `OUTRAY_PROBE_BLOCKED_CIDRS` and
+review subnet conflicts before enabling it. Application URL/DNS validation stays
+enabled too.
 
-Only after verifying that policy, set:
+After reviewing that policy for your server, set:
 
 ```dotenv
 UPTIME_PROBES_ENABLED=true
 UPTIME_EGRESS_POLICY_READY=true
 ```
 
-For email delivery, configure the Zepto sender first, then set `UPTIME_NOTIFICATIONS_ENABLED=true`. Rerun `self-host:check` and `self-host:up`; the helper selects the `uptime-worker` profile. A readiness flag does not install or verify a firewall. Do not simply set it to bypass startup protection.
+For email delivery, configure the Zepto sender first, then set
+`UPTIME_NOTIFICATIONS_ENABLED=true`. Rerun `self-host:check` and `self-host:up`;
+the helper selects the `uptime-worker` profile, verifies isolation, and installs
+the generic `outray-self-hosted-probe.service` supervisor. Every restart must
+repeat namespace verification; the container itself has `restart: no`. Updates
+stop the supervisor before backups and reverify the replacement worker. A
+readiness flag alone cannot release the activation gate. If networking changes,
+the worker fails closed and needs a reviewed `self-host:up` reconciliation.
 
 Existing Slack/Discord flows can use your own provider apps. Configure the callback URLs on this console:
 
@@ -229,16 +245,65 @@ https://ops.example.com/api/observability/alerts/integrations/discord/callback
 
 Before relying on the deployment, test a real public monitor's failure/recovery, acknowledgement/publication, subscriber confirmation/delivery, and a rejected private-network target. Keep public monitor state distinct from published incidents.
 
-## Internal OutRay Ops
+## Updates
 
-Give the Ops installation its own host, OAuth apps, PostgreSQL/Redis volumes, Tinybird workspace, encryption/signing keys, and email credentials. Monitor hosted OutRay's public console, ingestion, edge, and status endpoints from there. Instrument hosted services to send telemetry to the Ops ingest hostname when deliberately configured to do so.
+Run the same command on every standard self-hosted installation, including an
+installation used for internal monitoring:
 
-This isolates Ops from routine hosted edge/database deployments; it does not eliminate common DNS, OAuth, cloud-provider, or Tinybird outages. The bundled public status renderer shares the Ops host. For a public OutRay status page that must survive failure of that Ops host too, place its serving/monitoring path in a separate failure domain rather than claiming this single-host Compose deployment is highly available.
+```bash
+npm run self-host:update -- --dry-run
+npm run self-host:update
+```
 
-## Upgrades, backups, and limits
+The dry run only inspects the local update plan: it does not fetch code, build,
+write backups or replace containers. Normal updates fetch the selected remote
+and fast-forward the current tracked branch. The default target is
+`OUTRAY_UPDATE_REF` when configured, otherwise the branch's upstream. To select
+a target explicitly, use `--ref <branch-or-tag>` and optionally
+`--remote <remote-name>`. A clean checkout is required, including untracked
+files; the updater never resets, force-checks-out or discards your work.
+
+Use `--file /absolute/path/private.env` for a non-default configuration and
+`--timeout <seconds>` to change the health-check deadline (default 240 seconds;
+allowed range 10–3600). Only the local Unix
+Docker daemon and an existing `outray-self-hosted` Compose installation are
+supported. [Migrate older manual/preview installations first](MIGRATION.md);
+the updater does not create a second stack or adopt containers automatically.
+
+Before interrupting apps, the updater validates configuration and builds one
+immutable image containing all services and committed migrations. It then
+pauses the application services, creates a PostgreSQL dump, copies the private
+environment, and archives Redis, logos and Caddy state. It runs only committed
+Drizzle migrations and Share-role bootstrap, replaces the application
+containers, and checks their health. PostgreSQL, Redis, Caddy, installation
+credentials and persistent volumes are retained; there is a brief application
+outage. Worker health checks indicate process liveness, not successful jobs.
+
+Private update records and backups are kept under `.self-hosted-state/` and are
+excluded from Git and Docker build contexts. Copy backups securely off-host,
+monitor their disk usage, and test restoration. The command does not deploy
+Tinybird resources, update DNS/OAuth settings, upgrade PostgreSQL/Redis/Caddy,
+or schedule recurring updates.
+
+Builds require spare memory and disk; existing services continue running while
+the image builds. Interrupted updates retain their private record and lock:
+inspect recovery state before removing a stale `update.lock`. Never delete
+state/release directories that still back a running deployment.
+
+If replacement fails, automatic image rollback is allowed only when both the
+migration ledger and Share bootstrap state are unchanged. Otherwise apps stay
+stopped for reviewed recovery; the updater never automatically restores a
+database or assumes an older image supports a changed schema. Preserve the
+reported backup and inspect the failed stage before retrying. If previous images
+are restored, the updater checks their health again and records the result.
+A migration timeout or interruption leaves rollback blocked for review, even
+after the exact migration container has been stopped. No database is restored
+automatically.
+
+## Backups and limits
 
 - Back up PostgreSQL, persistent Redis data, the `status-page-logos` volume, `.env.self-hosted`/master keys, and Caddy certificate state. Test restoration before using real vault values. Losing the last master-key copy makes wrapped vault keys unrecoverable.
-- Review committed migrations before upgrading; back up first, then run `self-host:up`. For an explicit migration retry after a failed job, use `docker compose --project-name outray-self-hosted --env-file .env.self-hosted -f deploy/self-hosted/compose.yaml run --rm migrate`. This modifies only the installation DB selected by that env file.
+- Review release notes and committed migrations before running `self-host:update`. Do not retry migrations or restart older images after a failed schema-changing update until you have reviewed the backup and recovery plan.
 - Do not use `down --volumes` during upgrades. It deletes persistent data; ordinary container replacement retains named volumes.
 - Keep old encryption keys in `OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS` during a documented key rotation. Do not rerun initialization to rotate an existing database's credentials.
 - Redis uses AOF and `noeviction`; monitor disk/memory pressure and queue/dead-letter health. Capacity exhaustion must not silently discard ingestion queues.
