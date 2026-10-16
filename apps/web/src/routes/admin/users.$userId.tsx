@@ -1,28 +1,28 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  User,
-  Network,
-  Globe,
-  Building2,
-  Mail,
-  Calendar,
-  Shield,
-  Monitor,
-  Key,
-  Save,
-  Loader2,
-  Trash2,
-} from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import ArrowLeft01Icon from "@outray/icons/stroke/ArrowLeft01Icon";
+import UserIcon from "@outray/icons/stroke/UserIcon";
+import Route03Icon from "@outray/icons/stroke/Route03Icon";
+import Globe02Icon from "@outray/icons/stroke/Globe02Icon";
+import Building03Icon from "@outray/icons/stroke/Building03Icon";
+import Calendar03Icon from "@outray/icons/stroke/Calendar03Icon";
+import Shield01Icon from "@outray/icons/stroke/Shield01Icon";
+import ComputerIcon from "@outray/icons/stroke/ComputerIcon";
+import Key01Icon from "@outray/icons/stroke/Key01Icon";
+import FloppyDiskIcon from "@outray/icons/stroke/FloppyDiskIcon";
+import Delete02Icon from "@outray/icons/stroke/Delete02Icon";
 import { appClient } from "@/lib/app-client";
-import { useAdminStore } from "@/lib/admin-store";
+import { Button } from "@/components/arc/button/button";
+import { WorkspacePageHeader } from "@/components/workspace-page-header";
+import { WorkspaceInput } from "@/components/ui/workspace-input";
+import { WorkspaceDialog, WorkspaceNotice } from "@/components/workspace/workspace-ui";
 
 export const Route = createFileRoute("/admin/users/$userId")({
   head: () => ({
     meta: [
-      { title: "User Details - OutRay" },
+      { title: "User details - OutRay" },
     ],
   }),
   component: AdminUserDetailPage,
@@ -31,7 +31,6 @@ export const Route = createFileRoute("/admin/users/$userId")({
 function AdminUserDetailPage() {
   const { userId } = Route.useParams();
   const navigate = useNavigate();
-  const token = useAdminStore((s) => s.token);
   const queryClient = useQueryClient();
 
   const [name, setName] = useState("");
@@ -40,14 +39,13 @@ function AdminUserDetailPage() {
   const [initialized, setInitialized] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["admin", "user", userId],
     queryFn: async () => {
-      const res = await appClient.admin.user(token!, userId);
+      const res = await appClient.admin.user(userId);
       if ("error" in res) throw new Error(res.error);
       return res;
     },
-    enabled: !!token,
   });
 
   // Initialize form when data loads
@@ -64,7 +62,7 @@ function AdminUserDetailPage() {
       email?: string;
       emailVerified?: boolean;
     }) => {
-      const res = await appClient.admin.updateUser(token!, userId, updates);
+      const res = await appClient.admin.updateUser(userId, updates);
       if ("error" in res) throw new Error(res.error);
       return res;
     },
@@ -76,7 +74,7 @@ function AdminUserDetailPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const res = await appClient.admin.deleteUser(token!, userId);
+      const res = await appClient.admin.deleteUser(userId);
       if ("error" in res) throw new Error(res.error);
       return res;
     },
@@ -103,9 +101,9 @@ function AdminUserDetailPage() {
       email !== data.user.email ||
       emailVerified !== data.user.emailVerified);
 
-  if (!token || isLoading) {
+  if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto animate-pulse">
+      <div className="mx-auto max-w-[1100px] space-y-5 animate-pulse">
         <div className="h-8 w-48 bg-white/5 rounded mb-8" />
         <div className="space-y-6">
           <div className="h-32 bg-white/5 rounded-2xl" />
@@ -117,8 +115,10 @@ function AdminUserDetailPage() {
 
   if (!data) {
     return (
-      <div className="max-w-4xl mx-auto text-center py-12">
-        <p className="text-gray-400">User not found</p>
+      <div className="mx-auto max-w-[1100px] space-y-5">
+        <WorkspacePageHeader appearance="compact" title="User details" description="Manage this account and its workspace memberships." />
+        <WorkspaceNotice message={error ? `Could not load this user. ${error.message}` : "User not found."} action={<Button type="button" variant="secondary" size="sm" loading={isFetching} onClick={() => void refetch()}>Try again</Button>} />
+        <Button type="button" variant="ghost" size="sm" onClick={() => navigate({ to: "/admin/users" })}><HugeiconsIcon icon={ArrowLeft01Icon} size={14} />All users</Button>
       </div>
     );
   }
@@ -151,126 +151,122 @@ function AdminUserDetailPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <button
+    <div className="mx-auto max-w-[1100px] space-y-5 text-[13px]">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => navigate({ to: "/admin/users" })}
-        className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
+        className="-ml-3"
       >
-        <ArrowLeft size={16} />
-        Back to Users
-      </button>
+        <HugeiconsIcon icon={ArrowLeft01Icon} size={16} />
+        All users
+      </Button>
 
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           {data.user.image ? (
             <img
               src={data.user.image}
               alt={data.user.name}
-              className="w-14 h-14 rounded-full"
+              className="size-10 rounded-full object-cover"
             />
           ) : (
-            <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center">
-              <User size={28} className="text-gray-400" />
+            <div className="grid size-10 shrink-0 place-items-center rounded-full border border-white/[.08] bg-white/[.035]">
+              <HugeiconsIcon icon={UserIcon} size={18} className="text-zinc-400" />
             </div>
           )}
-          <div>
-            <h1 className="text-2xl font-bold text-white">{data.user.name}</h1>
-            <p className="text-sm text-gray-500 flex items-center gap-1">
-              <Mail size={12} />
-              {data.user.email}
-            </p>
-          </div>
+          <WorkspacePageHeader appearance="compact" title={data.user.name} description={data.user.email} />
         </div>
-        <span
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
-            data.user.emailVerified
-              ? "bg-green-500/10 text-green-400 border-green-500/20"
-              : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-          }`}
-        >
-          {data.user.emailVerified ? "Verified" : "Pending Verification"}
-        </span>
+        <Button type="button" size="md" loading={updateMutation.isPending} disabled={!hasChanges} onClick={handleSave}>
+          <HugeiconsIcon icon={FloppyDiskIcon} size={15} /> Save changes
+        </Button>
       </div>
 
+      {updateMutation.isSuccess ? <WorkspaceNotice tone="success" message="User details updated." /> : null}
+      {updateMutation.isError ? <WorkspaceNotice message={updateMutation.error.message} /> : null}
+
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         {[
-          { label: "Organizations", value: data.stats.organizations, icon: Building2 },
-          { label: "Active Tunnels", value: data.stats.activeTunnels, icon: Network },
-          { label: "Total Tunnels", value: data.stats.totalTunnels, icon: Network },
-          { label: "Subdomains", value: data.stats.subdomains, icon: Globe },
-          { label: "Domains", value: data.stats.domains, icon: Globe },
+          { label: "Organizations", value: data.stats.organizations, icon: Building03Icon },
+          { label: "Active tunnels", value: data.stats.activeTunnels, icon: Route03Icon },
+          { label: "Total tunnels", value: data.stats.totalTunnels, icon: Route03Icon },
+          { label: "Subdomains", value: data.stats.subdomains, icon: Globe02Icon },
+          { label: "Domains", value: data.stats.domains, icon: Globe02Icon },
         ].map((stat) => (
           <div
             key={stat.label}
-            className="bg-white/2 border border-white/5 rounded-xl p-4"
+            className="rounded-xl border border-white/[.08] bg-[#101010] p-4"
           >
-            <div className="flex items-center gap-2 text-gray-500 mb-1">
-              <stat.icon size={14} />
+            <div className="flex items-center gap-2 text-zinc-500 mb-1">
+              <HugeiconsIcon icon={stat.icon} size={14} />
               <span className="text-xs">{stat.label}</span>
             </div>
-            <div className="text-xl font-semibold text-white">{stat.value}</div>
+            <div className="text-[23px] font-normal tabular-nums text-white">{stat.value}</div>
           </div>
         ))}
       </div>
 
       {/* Edit Form */}
-      <div className="bg-white/2 border border-white/5 rounded-2xl p-6 mb-6">
-        <h2 className="text-lg font-medium text-white mb-6 flex items-center gap-2">
-          <User size={18} />
-          User Details
+      <div className="rounded-xl border border-white/[.08] bg-[#101010] p-5">
+        <h2 className="text-[13px] font-normal text-zinc-200 mb-5 flex items-center gap-2">
+          <HugeiconsIcon icon={UserIcon} size={18} />
+          User details
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid max-w-2xl grid-cols-1 gap-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Name</label>
-            <input
+            <label htmlFor="admin-user-name" className="mb-2 block text-[12px] text-zinc-400">Name</label>
+            <WorkspaceInput
+              id="admin-user-name"
+              size="compact"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Email</label>
-            <input
+            <label htmlFor="admin-user-email" className="mb-2 block text-[12px] text-zinc-400">Email</label>
+            <WorkspaceInput
+              id="admin-user-email"
+              size="compact"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/20"
             />
           </div>
-          <div className="md:col-span-2">
+          <div>
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={emailVerified}
                 onChange={(e) => setEmailVerified(e.target.checked)}
-                className="w-5 h-5 rounded border-white/10 bg-white/5 text-accent focus:ring-0 focus:ring-offset-0"
+                className="size-3.5 rounded border-white/15 bg-white/5 accent-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2"
               />
-              <span className="text-gray-300">Email Verified</span>
+              <span className="text-[13px] text-zinc-300">Email verified</span>
             </label>
           </div>
         </div>
       </div>
 
       {/* Timestamps & Meta */}
-      <div className="bg-white/2 border border-white/5 rounded-2xl p-6 mb-6">
-        <h2 className="text-lg font-medium text-white mb-6 flex items-center gap-2">
-          <Calendar size={18} />
+      <div className="rounded-xl border border-white/[.08] bg-[#101010] p-5">
+        <h2 className="text-[13px] font-normal text-zinc-200 mb-5 flex items-center gap-2">
+          <HugeiconsIcon icon={Calendar03Icon} size={18} />
           Activity
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <span className="text-xs text-gray-500">Joined</span>
-            <p className="text-white mt-1">{formatDate(data.user.createdAt)}</p>
+            <span className="text-xs text-zinc-500">Joined</span>
+            <p className="mt-1 text-[13px] text-zinc-300">{formatDate(data.user.createdAt)}</p>
           </div>
           <div>
-            <span className="text-xs text-gray-500">Last Updated</span>
-            <p className="text-white mt-1">{formatDate(data.user.updatedAt)}</p>
+            <span className="text-xs text-zinc-500">Last updated</span>
+            <p className="mt-1 text-[13px] text-zinc-300">{formatDate(data.user.updatedAt)}</p>
           </div>
           <div>
-            <span className="text-xs text-gray-500">Last Active</span>
-            <p className="text-white mt-1">
+            <span className="text-xs text-zinc-500">Last active</span>
+            <p className="mt-1 text-[13px] text-zinc-300">
               {formatRelativeTime(data.stats.lastActive)}
             </p>
           </div>
@@ -279,9 +275,9 @@ function AdminUserDetailPage() {
 
       {/* Organizations */}
       {data.memberships.length > 0 && (
-        <div className="bg-white/2 border border-white/5 rounded-2xl p-6 mb-6">
-          <h2 className="text-lg font-medium text-white mb-6 flex items-center gap-2">
-            <Building2 size={18} />
+        <div className="rounded-xl border border-white/[.08] bg-[#101010] p-5">
+          <h2 className="text-[13px] font-normal text-zinc-200 mb-5 flex items-center gap-2">
+            <HugeiconsIcon icon={Building03Icon} size={18} />
             Organizations ({data.memberships.length})
           </h2>
           <div className="space-y-3">
@@ -290,7 +286,7 @@ function AdminUserDetailPage() {
                 key={membership.id}
                 to="/admin/organizations/$slug"
                 params={{ slug: membership.organizationSlug }}
-                className="flex items-center justify-between p-3 bg-white/2 rounded-xl hover:bg-white/5 transition-colors"
+                className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white/[.02] rounded-lg hover:bg-white/5 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   {membership.organizationLogo ? (
@@ -301,25 +297,25 @@ function AdminUserDetailPage() {
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                      <Building2 size={14} className="text-gray-400" />
+                      <HugeiconsIcon icon={Building03Icon} size={14} className="text-zinc-400" />
                     </div>
                   )}
                   <div>
-                    <div className="font-medium text-white">
+                    <div className="font-normal text-zinc-200">
                       {membership.organizationName}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-zinc-500">
                       /{membership.organizationSlug}
                     </div>
                   </div>
                 </div>
                 <span
-                  className={`px-2 py-1 rounded-lg text-xs font-medium border capitalize ${
+                  className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-normal border capitalize ${
                     membership.role === "owner"
                       ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                       : membership.role === "admin"
                       ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                      : "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                      : "bg-gray-500/10 text-zinc-400 border-gray-500/20"
                   }`}
                 >
                   {membership.role}
@@ -330,28 +326,28 @@ function AdminUserDetailPage() {
         </div>
       )}
 
-      {/* Linked Accounts */}
+      {/* Linked accounts */}
       {data.accounts.length > 0 && (
-        <div className="bg-white/2 border border-white/5 rounded-2xl p-6 mb-6">
-          <h2 className="text-lg font-medium text-white mb-6 flex items-center gap-2">
-            <Key size={18} />
-            Linked Accounts ({data.accounts.length})
+        <div className="rounded-xl border border-white/[.08] bg-[#101010] p-5">
+          <h2 className="text-[13px] font-normal text-zinc-200 mb-5 flex items-center gap-2">
+            <HugeiconsIcon icon={Key01Icon} size={18} />
+            Linked accounts ({data.accounts.length})
           </h2>
           <div className="space-y-3">
             {data.accounts.map((account) => (
               <div
                 key={account.id}
-                className="flex items-center justify-between p-3 bg-white/2 rounded-xl"
+                className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white/[.02] rounded-lg"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                    <Shield size={14} className="text-gray-400" />
+                    <HugeiconsIcon icon={Shield01Icon} size={14} className="text-zinc-400" />
                   </div>
                   <span className="text-white capitalize">
                     {account.providerId}
                   </span>
                 </div>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-zinc-500">
                   {formatDate(account.createdAt)}
                 </span>
               </div>
@@ -360,28 +356,28 @@ function AdminUserDetailPage() {
         </div>
       )}
 
-      {/* Recent Sessions */}
+      {/* Recent sessions */}
       {data.sessions.length > 0 && (
-        <div className="bg-white/2 border border-white/5 rounded-2xl p-6 mb-6">
-          <h2 className="text-lg font-medium text-white mb-6 flex items-center gap-2">
-            <Monitor size={18} />
-            Recent Sessions ({data.sessions.length})
+        <div className="rounded-xl border border-white/[.08] bg-[#101010] p-5">
+          <h2 className="text-[13px] font-normal text-zinc-200 mb-5 flex items-center gap-2">
+            <HugeiconsIcon icon={ComputerIcon} size={18} />
+            Recent sessions ({data.sessions.length})
           </h2>
           <div className="space-y-3">
             {data.sessions.map((session) => (
               <div
                 key={session.id}
-                className="flex items-center justify-between p-3 bg-white/2 rounded-xl"
+                className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white/[.02] rounded-lg"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                    <Monitor size={14} className="text-gray-400" />
+                    <HugeiconsIcon icon={ComputerIcon} size={14} className="text-zinc-400" />
                   </div>
                   <div>
                     <div className="text-sm text-white font-mono">
                       {session.ipAddress || "Unknown IP"}
                     </div>
-                    <div className="text-xs text-gray-500 truncate max-w-xs">
+                    <div className="text-xs text-zinc-500 truncate max-w-xs">
                       {session.userAgent
                         ? session.userAgent.substring(0, 50) + "..."
                         : "Unknown device"}
@@ -389,7 +385,7 @@ function AdminUserDetailPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-zinc-400">
                     {formatRelativeTime(session.updatedAt)}
                   </div>
                   <div
@@ -411,66 +407,30 @@ function AdminUserDetailPage() {
       )}
 
       {/* Actions */}
-      <div className="flex items-center justify-between">
-        <button
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-rose-400/15 bg-rose-400/[.025] p-5">
+        <div>
+          <h2 className="text-[13px] text-zinc-200">Delete user</h2>
+          <p className="mt-1 text-[12px] text-zinc-500">Permanently remove this account and its memberships.</p>
+        </div>
+        <Button
+          type="button"
+          variant="danger"
+          size="md"
           onClick={() => setShowDeleteModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors"
         >
-          <Trash2 size={16} />
-          Delete User
-        </button>
-
-        <button
-          onClick={handleSave}
-          disabled={!hasChanges || updateMutation.isPending}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-all ${
-            hasChanges
-              ? "bg-white text-black hover:bg-gray-200"
-              : "bg-white/10 text-gray-500 cursor-not-allowed"
-          }`}
-        >
-          {updateMutation.isPending ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <Save size={16} />
-          )}
-          Save Changes
-        </button>
+          <HugeiconsIcon icon={Delete02Icon} size={16} />
+          Delete user
+        </Button>
       </div>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold text-white mb-2">Delete User</h3>
-            <p className="text-gray-400 mb-6">
-              Are you sure you want to delete <strong>{data.user.name}</strong>?
-              This action cannot be undone and will remove all their data
-              including sessions and organization memberships.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => deleteMutation.mutate()}
-                disabled={deleteMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
-              >
-                {deleteMutation.isPending ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Trash2 size={16} />
-                )}
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <WorkspaceDialog open={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete user" description={`Permanently delete ${data.user.name}.`} busy={deleteMutation.isPending} size="sm" footer={<>
+        <Button type="button" variant="secondary" size="sm" disabled={deleteMutation.isPending} onClick={() => setShowDeleteModal(false)}>Cancel</Button>
+        <Button type="button" variant="danger" size="sm" loading={deleteMutation.isPending} onClick={() => deleteMutation.mutate()}><HugeiconsIcon icon={Delete02Icon} size={14} />Delete user</Button>
+      </>}>
+        <p className="text-[13px] leading-6 text-zinc-400">This removes their sessions, organization memberships, and account data. This action cannot be undone.</p>
+        {deleteMutation.isError ? <div className="mt-4"><WorkspaceNotice message={deleteMutation.error.message} /></div> : null}
+      </WorkspaceDialog>
     </div>
   );
 }
