@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { adminJson, requireAdminAccess } from "../../../lib/admin-access.server";
 import { db } from "../../../db";
 import {
   users,
@@ -7,7 +8,6 @@ import {
   subscriptions,
 } from "../../../db/schema";
 import { redis } from "../../../lib/redis";
-import { hashToken } from "../../../lib/hash";
 import { SUBSCRIPTION_PLANS } from "../../../lib/subscription-plans";
 import { sql, count, gte, and } from "drizzle-orm";
 
@@ -15,21 +15,8 @@ export const Route = createFileRoute("/api/admin/overview")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        // Admin token check
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ")
-          ? authHeader.slice("Bearer ".length)
-          : "";
-
-        if (!token) {
-          return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists) {
-          return Response.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         try {
           const now = new Date();
@@ -144,7 +131,7 @@ export const Route = createFileRoute("/api/admin/overview")({
             0,
           );
 
-          return Response.json({
+          return adminJson({
             users: {
               total: totalUsers.count,
               growth: Math.round(userGrowth * 10) / 10,
@@ -165,7 +152,7 @@ export const Route = createFileRoute("/api/admin/overview")({
           });
         } catch (error) {
           console.error("Admin overview error:", error);
-          return Response.json(
+          return adminJson(
             { error: "Failed to fetch overview" },
             { status: 500 },
           );
