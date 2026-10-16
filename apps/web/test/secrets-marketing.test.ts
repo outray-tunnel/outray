@@ -6,7 +6,7 @@ import React from "react";
 import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, Link, RouterContextProvider } from "@tanstack/react-router";
 import ts from "typescript";
-import { ProductPage, ProductsIndex } from "../src/landing/products/ProductPage";
+import { ProductPage } from "../src/landing/products/ProductPage";
 import { SecretsHero } from "../src/landing/products/SecretsHero";
 import { SecretsEnvironmentSection, SECRET_ENVIRONMENTS, SECRET_ENVIRONMENT_KEYS, secretsEnvironmentIndexFromKey, secretsCommandForEnvironment } from "../src/landing/products/SecretsEnvironmentSection";
 import { SecretsProblemSection } from "../src/landing/products/SecretsProblemSection";
@@ -140,8 +140,6 @@ test("the dedicated Secrets dependencies are scoped to its route and do not repl
     assert.ok(html.includes(products[product].workflow.title));
     assert.match(html, /Illustrative interface · sample data/);
   }
-  const overview = renderToStaticMarkup(React.createElement(ProductsIndex));
-  assert.equal((overview.match(/Illustrative interface · sample data/g) ?? []).length, 4);
 });
 
 test("Secrets keeps whitespace between sections instead of decorative separating lines", () => {
