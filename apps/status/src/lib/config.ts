@@ -30,7 +30,7 @@ export function getStatusConfig(): StatusConfig {
     canonicalHost: publicUrl.hostname.toLowerCase().replace(/\.$/, ""),
     databaseUrl: getStatusRuntime()?.env.HYPERDRIVE?.connectionString || environment.DATABASE_URL || "",
     zeptoApiKey: environment.ZEPTO_API_KEY || "",
-    fromEmail: environment.ZEPTO_FROM_EMAIL || (policy.selfHosted ? "" : "no-reply@outray.dev"),
+    fromEmail: environment.ZEPTO_FROM_EMAIL || (policy.selfHosted ? "" : "no-reply@outray.co"),
     rateLimitSecret: environment.UPTIME_RATE_LIMIT_SECRET || "",
     unsubscribeSecret: environment.UPTIME_UNSUBSCRIBE_SECRET || "",
     edgeSecret: environment.STATUS_EDGE_SECRET || "",
