@@ -92,7 +92,7 @@ async function fixture(options = {}) {
     await mkdir(join(root, ".self-hosted-state"), { mode: 0o700 });
     await writeFile(join(root, ".self-hosted-state/current.json"), JSON.stringify({ commit: nextCommit, imageId: oldImage, configHash: createHash("sha256").update(configuration).digest("hex") }), { mode: 0o600 });
   }
-  return { root, calls, output, execute, async run() {
+  return { root, calls, output, execute, ids, async run() {
     const original = { log: console.log, error: console.error }, dockerEnvironment = Object.fromEntries(["DOCKER_HOST", "DOCKER_CONTEXT"].map((key) => [key, process.env[key]]));
     for (const key of Object.keys(dockerEnvironment)) delete process.env[key];
     console.log = console.error = (...messages) => output.push(messages.join(" "));
@@ -207,7 +207,7 @@ test("failed builds leave old apps running and never disclose provider diagnosti
 
 test("backup failure unpauses infrastructure and restarts existing application IDs", async () => {
   const f = await fixture({ backupFail: true });
-  try { await assert.rejects(f.run()); const record = await f.record(); assert.equal(record.rollback, "previous-containers-restarted"); assert.equal(record.rollbackHealthy, true); assert.equal(f.calls.filter((call) => dockerAction(call, "unpause")).length, 2); assert.ok(f.calls.some((call) => dockerAction(call, "start"))); assert.ok(!f.calls.some((call) => composeAction(call, "run"))); assert.ok(!f.output.join("\n").includes(password)); }
+  try { await assert.rejects(f.run()); const record = await f.record(); assert.equal(record.rollback, "previous-containers-restarted"); assert.equal(record.rollbackHealthy, true); const resumed = f.calls.filter((call) => dockerAction(call, "unpause")); assert.deepEqual(resumed.map((call) => call.args.at(-1)), [f.ids.caddy, f.ids.redis]); assert.ok(f.calls.findIndex((call) => dockerAction(call, "start")) > f.calls.indexOf(resumed[0])); assert.ok(!f.calls.some((call) => composeAction(call, "run"))); assert.ok(!f.output.join("\n").includes(password)); }
   finally { await f.cleanup(); }
 });
 
@@ -237,7 +237,7 @@ test("failed replacement with unchanged schema restores pinned old images only",
 
 test("successful standard update uses one immutable image without recreating infrastructure", async () => {
   const f = await fixture();
-  try { assert.equal((await f.run()).stage, "complete"); assert.equal(f.calls.filter((call) => composeAction(call, "build")).length, 1); const replace = f.calls.find((call) => composeAction(call, "up")); assert.equal(replace.settings.env.OUTRAY_IMAGE, nextImage); assert.ok(["postgres", "redis", "caddy"].every((role) => !replace.args.includes(role))); assert.equal(f.calls.filter((call) => dockerAction(call, "pause")).length, 2); }
+  try { assert.equal((await f.run()).stage, "complete"); assert.equal(f.calls.filter((call) => composeAction(call, "build")).length, 1); const replace = f.calls.find((call) => composeAction(call, "up")); assert.equal(replace.settings.env.OUTRAY_IMAGE, nextImage); assert.ok(["postgres", "redis", "caddy"].every((role) => !replace.args.includes(role))); const resumed = f.calls.filter((call) => dockerAction(call, "unpause")); assert.deepEqual(resumed.map((call) => call.args.at(-1)), [f.ids.caddy, f.ids.redis]); assert.ok(f.calls.indexOf(replace) > f.calls.indexOf(resumed[0])); assert.equal(f.calls.filter((call) => dockerAction(call, "pause")).length, 2); }
   finally { await f.cleanup(); }
 });
 
