@@ -1,29 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { adminJson, requireAdminAccess } from "../../../lib/admin-access.server";
 import { db } from "../../../db";
 import { users, members, sessions } from "../../../db/schema";
-import { redis } from "../../../lib/redis";
-import { hashToken } from "../../../lib/hash";
-import { sql, count, desc, like, or, inArray } from "drizzle-orm";
+import { sql, desc, like, or, inArray } from "drizzle-orm";
 
 export const Route = createFileRoute("/api/admin/users")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        // Admin token check
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ")
-          ? authHeader.slice("Bearer ".length)
-          : "";
-
-        if (!token) {
-          return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists) {
-          return Response.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         try {
           const url = new URL(request.url);
@@ -105,7 +91,7 @@ export const Route = createFileRoute("/api/admin/users")({
             lastActive: lastActiveMap.get(user.id) || null,
           }));
 
-          return Response.json({
+          return adminJson({
             users: usersWithMeta,
             total: totalResult.count,
             page,
@@ -113,7 +99,7 @@ export const Route = createFileRoute("/api/admin/users")({
           });
         } catch (error) {
           console.error("Admin users error:", error);
-          return Response.json({ error: "Failed to fetch users" }, { status: 500 });
+          return adminJson({ error: "Failed to fetch users" }, { status: 500 });
         }
       },
     },
