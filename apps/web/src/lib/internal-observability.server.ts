@@ -1,4 +1,3 @@
-import { AsyncLocalStorage } from "node:async_hooks";
 import type { OutrayTanStackServerOptions } from "@outray/tanstack-start/server";
 
 const PRIVATE_PATH_SEGMENTS = new Set([
@@ -7,7 +6,18 @@ const PRIVATE_PATH_SEGMENTS = new Set([
   "webhooks", "checkout", "portal", "admin", "_serverfn",
 ]);
 
-const logCaptureScope = new AsyncLocalStorage<boolean>();
+// Application-owned opaque values must not be forwarded into another telemetry
+// store. Shared credential/URL redaction is applied by the SDK as well.
+export const INTERNAL_OBSERVABILITY_REDACTED_FIELDS = [
+  "requestBody", "responseBody", "requestHeaders", "responseHeaders", "body",
+  "params", "parameters", "query", "value", "values", "envText", "plaintext",
+  "rawBody", "connectionString", "credentials", "assertion", "signature",
+] as const;
+
+export const INTERNAL_OBSERVABILITY_REDACTED_LOG_FIELDS = [
+  ...INTERNAL_OBSERVABILITY_REDACTED_FIELDS,
+  "data", "result", "content", "contents", "env", "environmentVariables",
+] as const;
 
 function decodedPathname(pathname: string): string | null {
   if (!pathname.startsWith("/") || pathname.length > 8192) return null;
@@ -23,11 +33,10 @@ function decodedPathname(pathname: string): string | null {
   return decoded.includes("%") ? null : decoded;
 }
 
-/** Sensitive requests still emit metadata; only their content capture is disabled. */
+/** Sensitive paths need stable route names, not a telemetry exclusion. */
 export function isSensitiveInternalObservabilityRequest({ pathname }: { pathname: string }): boolean {
   const decoded = decodedPathname(pathname)?.toLowerCase();
-  // Ambiguous paths remain visible, but never get payload or log capture.
-  if (decoded === undefined) return true;
+  if (decoded === undefined || decoded === null) return true;
   const segments = decoded.split("/").filter(Boolean);
   return segments.some((segment) =>
     PRIVATE_PATH_SEGMENTS.has(segment)
@@ -105,24 +114,6 @@ export function resolveInternalObservabilityRoute({ pathname }: { pathname: stri
   return "/:sensitive-route";
 }
 
-/** Keep global console capture out of sensitive requests, including async work. */
-export function shouldCaptureInternalObservabilityLog(): boolean {
-  return logCaptureScope.getStore() !== false;
-}
-
-export function runWithInternalObservabilityRequest<TResult>(
-  request: Request,
-  next: () => TResult,
-): TResult {
-  let allowed = false;
-  try {
-    allowed = !isSensitiveInternalObservabilityRequest({ pathname: new URL(request.url).pathname });
-  } catch {
-    // A malformed capture context cannot export logs or block the application.
-  }
-  return logCaptureScope.run(allowed, next);
-}
-
 /**
  * A dedicated, server-only credential opts the console into internal Ops.
  * Generic tunnel/SDK environment variables never enable this integration.
@@ -157,19 +148,18 @@ export function resolveInternalObservabilityOptions(
     capturePayloads: {
       maxBodyBytes: 16 * 1024,
       maxHeaderBytes: 8 * 1024,
-      redactedHeaders: ["location"],
-      // These routes can return another user's already-captured payload as an
-      // opaque string. Never forward those nested bodies/headers to Ops.
-      redactedFields: ["requestBody", "responseBody", "requestHeaders", "responseHeaders", "body", "params"],
+      redactedFields: INTERNAL_OBSERVABILITY_REDACTED_FIELDS,
+      // Login/OTP inputs use generic `code`; response error codes are useful.
+      redactedRequestFields: ["code", "state", "nonce", "challenge"],
     },
     captureConsole: true,
-    shouldCaptureLog: shouldCaptureInternalObservabilityLog,
+    redactedLogFields: INTERNAL_OBSERVABILITY_REDACTED_LOG_FIELDS,
     recordExceptions: false,
     autoInstrumentations: false,
     diagnostics: "none",
-    // Include every request. Sensitive endpoints differ only in content policy.
+    // Include every route, including auth, callbacks, Secrets and assets. Capture
+    // supported content after redaction instead of suppressing entire requests.
     ignoreDefaultPaths: false,
-    shouldCapturePayloads: ({ pathname }) => !isSensitiveInternalObservabilityRequest({ pathname }),
     routeResolver: resolveInternalObservabilityRoute,
   };
 }
