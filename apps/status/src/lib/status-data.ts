@@ -1,6 +1,7 @@
 import { query } from "./db";
 import type { IncidentDocument } from "@outray/incident-content";
 import { getStatusConfig, STATUS_PAGE_SLUG, statusPageUrl } from "./config";
+import { isStatusProduction, statusEnvironment } from "./runtime";
 
 export type PublicState = "operational" | "degraded" | "outage" | "unknown";
 export type PublicIncidentImpact = "degraded" | "outage";
@@ -196,11 +197,11 @@ export async function findPageForRequest(
   if (!host) return null;
   // The hosted OutRay ops page is external to tenant status pages. A
   // self-hosted installation has no hard-coded OutRay domain reservation.
-  if (process.env.OUTRAY_DEPLOYMENT_MODE !== "self-hosted" && host === "status.outray.dev" && host !== config.canonicalHost) return null;
+  if (statusEnvironment().OUTRAY_DEPLOYMENT_MODE !== "self-hosted" && host === "status.outray.dev" && host !== config.canonicalHost) return null;
   const local = host === "localhost" || host === "127.0.0.1";
   const canonicalSubdomainSlug = slugFromStatusHost(host, config.canonicalHost);
   if (host === config.canonicalHost || canonicalSubdomainSlug ||
-      (local && process.env.NODE_ENV !== "production")) {
+      (local && !isStatusProduction())) {
     const pageSlug = canonicalSubdomainSlug || slug;
     if (canonicalSubdomainSlug && slug) return null;
     if (!pageSlug || !STATUS_PAGE_SLUG.test(pageSlug)) return null;
