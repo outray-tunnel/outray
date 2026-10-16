@@ -4,7 +4,11 @@ import type { ParsedMetricPoint } from "./metrics.js";
 import type { AttributeValue, ParsedSpan } from "./otlp.js";
 
 const SENSITIVE_KEY =
-  /authorization|cookie|setcookie|password|passwd|secret|token|apikey|privatekey|clientsecret|accesstoken|refreshtoken/i;
+  /authorization|cookie|password|passwd|secret|token|apikey|authkey|privatekey|session|credential|csrf|xsrf|assertion|codeverifier|codechallenge|passcode|onetimecode/i;
+
+// `code` and `state` are useful diagnostic fields outside URLs. Only treat
+// them as credentials in URLs, not as blanket-redacted diagnostic fields.
+const AUTH_QUERY_KEY = /^(?:code|state|nonce|ticket|otp|sig|signature)$/i;
 
 const CAPTURE_HEADER_ATTRIBUTES = new Set([
   "outray.http.request.headers",
@@ -22,8 +26,22 @@ function sensitiveKey(key: string) {
   return SENSITIVE_KEY.test(key.toLowerCase().replace(/[^a-z0-9]/g, ""));
 }
 
+function sensitiveQueryKey(key: string) {
+  let decoded = key;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const next = decodeURIComponent(decoded.replaceAll("+", " "));
+      if (next === decoded) break;
+      decoded = next;
+    } catch {
+      break;
+    }
+  }
+  return sensitiveKey(decoded) || AUTH_QUERY_KEY.test(decoded);
+}
+
 function sanitizedValue(value: AttributeValue, depth = 0): AttributeValue {
-  if (typeof value === "string") return value.slice(0, MAX_ATTRIBUTE_LENGTH);
+  if (typeof value === "string") return sanitizedTextCapture(value);
   if (
     value === null ||
     typeof value === "number" ||
@@ -59,14 +77,82 @@ function parsedJson(value: string): AttributeValue | null {
   }
 }
 
-function sanitizedTextCapture(value: string) {
-  return value
-    .replace(/\b(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, "$1[REDACTED]")
+function sanitizedTextCapture(
+  value: string,
+  depth = 0,
+  maxLength = MAX_ATTRIBUTE_LENGTH,
+): string {
+  // A redirect URL may itself contain an encoded callback URL. Decode only via
+  // URLSearchParams, then bound recursion so nested redirects cannot loop.
+  const urls = value.replace(
+    /\b[a-z][a-z0-9+.-]*:\/\/[^\s<>"'`]+/gi,
+    (candidate) => {
+      try {
+        const url = new URL(candidate);
+        if (url.username) url.username = "[REDACTED]";
+        if (url.password) url.password = "[REDACTED]";
+        for (const [key, item] of [...url.searchParams]) {
+          if (sensitiveQueryKey(key)) {
+            url.searchParams.set(key, "[REDACTED]");
+          } else if (depth < 3) {
+            const safe = sanitizedTextCapture(item, depth + 1);
+            if (safe !== item) url.searchParams.set(key, safe);
+          } else if (/[?&#]|%[0-9a-f]{2}/i.test(item)) {
+            url.searchParams.set(key, "[REDACTED]");
+          }
+        }
+        if (url.hash) {
+          // Share-link decryption keys can be opaque fragments, not key=value.
+          url.hash = depth < 3 && url.hash.includes("=")
+            ? sanitizedTextCapture(url.hash, depth + 1)
+            : "[REDACTED]";
+        }
+        return url.toString();
+      } catch {
+        return candidate;
+      }
+    },
+  );
+  return urls
+    // Also cover malformed connection URLs that URL() cannot parse.
+    .replace(/\b([a-z][a-z0-9+.-]*:\/\/)([^/\s<>]+)@/gi, "$1[REDACTED]@")
+    .replace(/((?:^|[\s"'(])\/[^\s"'`<>#]*)#([^\s"'`<>]*)/g, "$1#[REDACTED]")
     .replace(
-      /\b(authorization|cookie|set-cookie|password|passwd|secret|token|api[-_ ]?key|private[-_ ]?key|client[-_ ]?secret|access[-_ ]?token|refresh[-_ ]?token)(\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;&]+)/gi,
+      /([?&#])([^\s?&#=]+)=([^\s&#<>"'`]*)/g,
+      (match, separator: string, key: string, item: string) => {
+        if (sensitiveQueryKey(key)) return `${separator}${key}=[REDACTED]`;
+        if (depth >= 3) {
+          return /%[0-9a-f]{2}/i.test(item)
+            ? `${separator}${key}=[REDACTED]`
+            : match;
+        }
+        try {
+          const decoded = decodeURIComponent(item);
+          const safe = sanitizedTextCapture(decoded, depth + 1);
+          return safe === decoded ? match : `${separator}${key}=${encodeURIComponent(safe)}`;
+        } catch {
+          return match;
+        }
+      },
+    )
+    .replace(/-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----[\s\S]*?(?:-----END (?:[A-Z]+ )?PRIVATE KEY-----|$)/g, "[REDACTED]")
+    .replace(/\b((?:Bearer|Basic)\s+)[A-Za-z0-9._~+/=-]+/gi, "$1[REDACTED]")
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[REDACTED]")
+    // Header lines can contain several cookie pairs or a Basic auth scheme;
+    // redacting a single whitespace-delimited word is not sufficient.
+    .replace(
+      /\b((?:proxy-)?authorization|cookie|set-cookie)([ \t]*:[ \t]*)([^\r\n]*)/gi,
       "$1$2[REDACTED]",
     )
-    .slice(0, MAX_ATTRIBUTE_LENGTH);
+    .replace(
+      /(?<![a-z0-9_.-])(["']?)([a-z0-9_.-]*(?:authorization|cookie|password|passwd|secret|token|api[._-]?key|auth[._-]?key|private[._-]?key|session|credential|csrf|xsrf|assertion|code[._-]?verifier|code[._-]?challenge|passcode|one[._-]?time[._-]?code)[a-z0-9_.-]*)(["']?\s*[:=]\s*)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;&}\]]+)/gi,
+      (match, openingQuote: string, key: string, separator: string, item: string) => {
+        if (!sensitiveKey(key)) return match;
+        const quote = item[0] === '"' || item[0] === "'" ? item[0] : "";
+        return `${openingQuote}${key}${separator}${quote}[REDACTED]${quote}`;
+      },
+    )
+    .slice(0, maxLength);
 }
 
 function bodyContentType(
@@ -99,7 +185,7 @@ function safeCaptureAttributeValue(
     return jsonAttribute(parsed, '"[TRUNCATED]"');
   }
 
-  if (contentType === "application/x-www-form-urlencoded") {
+  if (contentType.split(";", 1)[0]?.trim() === "application/x-www-form-urlencoded") {
     const result = new URLSearchParams();
     for (const [name, item] of new URLSearchParams(value)) {
       result.append(
@@ -145,35 +231,32 @@ function sanitizedAttributes(attributes: Record<string, AttributeValue>) {
   );
 }
 
-function sanitizedOtlpRecords(records: unknown[]) {
-  return records.slice(0, 128).map((candidate) => {
-    if (
-      !candidate ||
-      typeof candidate !== "object" ||
-      Array.isArray(candidate)
-    ) {
-      return candidate;
-    }
+function sanitizedOtlpValue(candidate: unknown, depth = 0): unknown {
+  if (typeof candidate === "string") return sanitizedTextCapture(candidate, 0, 262_144);
+  if (candidate === null || typeof candidate === "boolean" || typeof candidate === "number") {
+    return candidate;
+  }
+  if (depth >= 12) return "[TRUNCATED]";
+  if (Array.isArray(candidate)) {
+    return candidate.slice(0, 256).map((item) => sanitizedOtlpValue(item, depth + 1));
+  }
+  if (!candidate || typeof candidate !== "object") return null;
+  const record = candidate as Record<string, unknown>;
+  // OTLP encodes nested objects as kvlistValue.values arrays of KeyValue
+  // records. Redact those just like decoded span/log attributes.
+  const sensitiveEntry = typeof record.key === "string" && sensitiveKey(record.key);
+  return Object.fromEntries(
+    Object.entries(record).slice(0, 256).map(([key, value]) => [
+      key.slice(0, 256),
+      key === "value" && sensitiveEntry
+        ? { stringValue: "[REDACTED]" }
+        : sensitiveKey(key) ? "[REDACTED]" : sanitizedOtlpValue(value, depth + 1),
+    ]),
+  );
+}
 
-    const item = { ...(candidate as Record<string, unknown>) };
-    if (Array.isArray(item.attributes)) {
-      item.attributes = item.attributes.slice(0, 256).map((attribute) => {
-        if (
-          !attribute ||
-          typeof attribute !== "object" ||
-          Array.isArray(attribute)
-        ) {
-          return attribute;
-        }
-        const entry = { ...(attribute as Record<string, unknown>) };
-        if (typeof entry.key === "string" && sensitiveKey(entry.key)) {
-          entry.value = { stringValue: "[REDACTED]" };
-        }
-        return entry;
-      });
-    }
-    return item;
-  });
+function sanitizedOtlpRecords(records: unknown[]) {
+  return records.slice(0, 128).map((candidate) => sanitizedOtlpValue(candidate));
 }
 
 export interface TinybirdSpanRecord {
@@ -292,19 +375,19 @@ export function toTinybirdSpan(
     trace_id: span.traceId,
     span_id: span.spanId,
     parent_span_id: span.parentSpanId,
-    trace_state: span.traceState,
-    span_name: span.name,
+    trace_state: sanitizedTextCapture(span.traceState),
+    span_name: sanitizedTextCapture(span.name),
     span_kind: span.kind,
-    service_name: span.serviceName,
-    service_namespace: span.serviceNamespace,
-    service_version: span.serviceVersion,
-    environment: span.environment,
-    region: span.region,
-    scope_name: span.scopeName,
-    scope_version: span.scopeVersion,
+    service_name: sanitizedTextCapture(span.serviceName).slice(0, 512),
+    service_namespace: sanitizedTextCapture(span.serviceNamespace).slice(0, 512),
+    service_version: sanitizedTextCapture(span.serviceVersion).slice(0, 256),
+    environment: sanitizedTextCapture(span.environment).slice(0, 256),
+    region: sanitizedTextCapture(span.region).slice(0, 256),
+    scope_name: sanitizedTextCapture(span.scopeName).slice(0, 512),
+    scope_version: sanitizedTextCapture(span.scopeVersion).slice(0, 256),
     duration_nano: Number(span.durationNano),
     status_code: span.statusCode,
-    status_message: span.statusMessage,
+    status_message: sanitizedTextCapture(span.statusMessage),
     http_method: span.httpMethod,
     resource_attributes: sanitizedAttributes(span.resourceAttributes),
     span_attributes: sanitizedAttributes(span.spanAttributes),
@@ -335,20 +418,20 @@ export function toTinybirdLog(
     timestamp_nano: log.timestampNano,
     observed_timestamp_nano: log.observedTimestampNano,
     severity_number: log.severityNumber,
-    severity_text: log.severityText.slice(0, 256),
+    severity_text: sanitizedTextCapture(log.severityText).slice(0, 256),
     severity_level: log.severityLevel,
     body,
-    event_name: log.eventName.slice(0, 256),
+    event_name: sanitizedTextCapture(log.eventName).slice(0, 256),
     trace_id: log.traceId,
     span_id: log.spanId,
     flags: log.flags,
-    service_name: log.serviceName.slice(0, 512),
-    service_namespace: log.serviceNamespace.slice(0, 512),
-    service_version: log.serviceVersion.slice(0, 256),
-    environment: log.environment.slice(0, 256),
-    region: log.region.slice(0, 256),
-    scope_name: log.scopeName.slice(0, 512),
-    scope_version: log.scopeVersion.slice(0, 256),
+    service_name: sanitizedTextCapture(log.serviceName).slice(0, 512),
+    service_namespace: sanitizedTextCapture(log.serviceNamespace).slice(0, 512),
+    service_version: sanitizedTextCapture(log.serviceVersion).slice(0, 256),
+    environment: sanitizedTextCapture(log.environment).slice(0, 256),
+    region: sanitizedTextCapture(log.region).slice(0, 256),
+    scope_name: sanitizedTextCapture(log.scopeName).slice(0, 512),
+    scope_version: sanitizedTextCapture(log.scopeVersion).slice(0, 256),
     resource_attributes: resourceAttributes,
     log_attributes: logAttributes,
     scope_attributes: scopeAttributes,
@@ -383,9 +466,9 @@ export function toTinybirdMetric(
     start_timestamp: point.startTimestamp,
     timestamp_nano: point.timestampNano,
     start_timestamp_nano: point.startTimestampNano,
-    metric_name: point.metricName.slice(0, 1_024),
-    metric_description: point.metricDescription.slice(0, 4_096),
-    metric_unit: point.metricUnit.slice(0, 256),
+    metric_name: sanitizedTextCapture(point.metricName).slice(0, 1_024),
+    metric_description: sanitizedTextCapture(point.metricDescription).slice(0, 4_096),
+    metric_unit: sanitizedTextCapture(point.metricUnit).slice(0, 256),
     metric_type: point.metricType,
     aggregation_temporality: point.aggregationTemporality,
     is_monotonic: point.isMonotonic ? 1 : 0,
@@ -407,15 +490,15 @@ export function toTinybirdMetric(
     quantiles: point.quantiles.slice(0, 256),
     quantile_values: point.quantileValues.slice(0, 256),
     flags: point.flags,
-    service_name: point.serviceName.slice(0, 512),
-    service_namespace: point.serviceNamespace.slice(0, 512),
-    service_version: point.serviceVersion.slice(0, 256),
-    environment: point.environment.slice(0, 256),
-    region: point.region.slice(0, 256),
-    scope_name: point.scopeName.slice(0, 512),
-    scope_version: point.scopeVersion.slice(0, 256),
-    resource_schema_url: point.resourceSchemaUrl.slice(0, 2_048),
-    scope_schema_url: point.scopeSchemaUrl.slice(0, 2_048),
+    service_name: sanitizedTextCapture(point.serviceName).slice(0, 512),
+    service_namespace: sanitizedTextCapture(point.serviceNamespace).slice(0, 512),
+    service_version: sanitizedTextCapture(point.serviceVersion).slice(0, 256),
+    environment: sanitizedTextCapture(point.environment).slice(0, 256),
+    region: sanitizedTextCapture(point.region).slice(0, 256),
+    scope_name: sanitizedTextCapture(point.scopeName).slice(0, 512),
+    scope_version: sanitizedTextCapture(point.scopeVersion).slice(0, 256),
+    resource_schema_url: sanitizedTextCapture(point.resourceSchemaUrl).slice(0, 2_048),
+    scope_schema_url: sanitizedTextCapture(point.scopeSchemaUrl).slice(0, 2_048),
     resource_attributes: sanitizedAttributes(point.resourceAttributes),
     attributes: sanitizedAttributes(point.metricAttributes),
     scope_attributes: sanitizedAttributes(point.scopeAttributes),
