@@ -1,6 +1,7 @@
 import axios from "axios";
 import type { TunnelStatsRange } from "./tunnel-stats-range";
 import type { getPlanLimits } from "./subscription-plans";
+import type { AdminUsageParams, AdminUsageResponse } from "./admin-usage";
 
 const apiClient = axios.create({
   baseURL: typeof window !== "undefined" ? window.location.origin : "",
@@ -145,20 +146,20 @@ async function apiCall<T = any>(
 
 export const appClient = {
   admin: {
-    stats: async (period: string, token: string) =>
+    usage: async (params: AdminUsageParams = {}) =>
+      apiCall<AdminUsageResponse>("get", "/api/admin/usage", { params }),
+
+    stats: async (period: string) =>
       apiCall<any[]>("get", `/api/admin/stats`, {
         params: { period },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       }),
 
-    login: async (phrase: string) =>
-      apiCall<{ token: string }>("post", `/api/admin/login`, {
-        data: { phrase },
-      }),
+    session: async () =>
+      apiCall<{ user: { id: string; name: string; email: string; isAdmin: true } }>(
+        "get", `/api/admin/login`,
+      ),
 
-    revenueHistory: async (token: string, period: string = "30d") =>
+    revenueHistory: async (period: string = "30d") =>
       apiCall<{
         data: Array<{ date: string; revenue: number }>;
         currentMrr: number;
@@ -167,10 +168,9 @@ export const appClient = {
         periodEnd: string;
       }>("get", `/api/admin/revenue-history`, {
         params: { period },
-        headers: { Authorization: `Bearer ${token}` },
       }),
 
-    overview: async (token: string) =>
+    overview: async () =>
       apiCall<{
         users: { total: number; growth: number; newToday: number };
         organizations: { total: number; growth: number };
@@ -179,12 +179,9 @@ export const appClient = {
           byPlan: Record<string, number>;
           mrr: number;
         };
-      }>("get", `/api/admin/overview`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
+      }>("get", `/api/admin/overview`),
 
     users: async (
-      token: string,
       params: { page?: number; limit?: number; search?: string },
     ) =>
       apiCall<{
@@ -203,10 +200,9 @@ export const appClient = {
         totalPages: number;
       }>("get", `/api/admin/users`, {
         params,
-        headers: { Authorization: `Bearer ${token}` },
       }),
 
-    user: async (token: string, userId: string) =>
+    user: async (userId: string) =>
       apiCall<{
         user: {
           id: string;
@@ -248,27 +244,20 @@ export const appClient = {
           providerId: string;
           createdAt: Date;
         }>;
-      }>("get", `/api/admin/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
+      }>("get", `/api/admin/users/${userId}`),
 
     updateUser: async (
-      token: string,
       userId: string,
       data: { name?: string; email?: string; emailVerified?: boolean },
     ) =>
       apiCall<{ success: boolean }>("patch", `/api/admin/users/${userId}`, {
         data,
-        headers: { Authorization: `Bearer ${token}` },
       }),
 
-    deleteUser: async (token: string, userId: string) =>
-      apiCall<{ success: boolean }>("delete", `/api/admin/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
+    deleteUser: async (userId: string) =>
+      apiCall<{ success: boolean }>("delete", `/api/admin/users/${userId}`),
 
     organizations: async (
-      token: string,
       params: { page?: number; limit?: number; search?: string },
     ) =>
       apiCall<{
@@ -287,11 +276,9 @@ export const appClient = {
         totalPages: number;
       }>("get", `/api/admin/organizations`, {
         params,
-        headers: { Authorization: `Bearer ${token}` },
       }),
 
     subscriptions: async (
-      token: string,
       params: { page?: number; limit?: number; plan?: string },
     ) =>
       apiCall<{
@@ -320,11 +307,9 @@ export const appClient = {
         };
       }>("get", `/api/admin/subscriptions`, {
         params,
-        headers: { Authorization: `Bearer ${token}` },
       }),
 
     tunnels: async (
-      token: string,
       params: {
         page?: number;
         limit?: number;
@@ -358,10 +343,9 @@ export const appClient = {
         };
       }>("get", `/api/admin/tunnels`, {
         params,
-        headers: { Authorization: `Bearer ${token}` },
       }),
 
-    charts: async (token: string) =>
+    charts: async () =>
       apiCall<{
         userSignups: Array<{ date: string; count: number }>;
         orgGrowth: Array<{ date: string; count: number }>;
@@ -377,11 +361,9 @@ export const appClient = {
         }>;
         weeklyTunnelTrend: Array<{ day: string; avg: number; max: number }>;
         cumulativeGrowth: Array<{ date: string; total: number }>;
-      }>("get", `/api/admin/charts`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
+      }>("get", `/api/admin/charts`),
 
-    organization: async (token: string, slug: string) =>
+    organization: async (slug: string) =>
       apiCall<{
         organization: {
           id: string;
@@ -451,12 +433,9 @@ export const appClient = {
           userName: string;
           userEmail: string;
         }>;
-      }>("get", `/api/admin/organizations/${slug}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
+      }>("get", `/api/admin/organizations/${slug}`),
 
     updateOrganization: async (
-      token: string,
       slug: string,
       data: { name?: string; slug?: string; plan?: string; status?: string },
     ) =>
@@ -465,17 +444,15 @@ export const appClient = {
         `/api/admin/organizations/${slug}`,
         {
           data,
-          headers: { Authorization: `Bearer ${token}` },
         },
       ),
 
-    resetToFree: async (token: string, slug: string) =>
+    resetToFree: async (slug: string) =>
       apiCall<{ success: boolean; message: string; deleted: { domains: string; subdomains: number } }>(
         "post",
         `/api/admin/organizations/${slug}`,
         {
           data: { action: "reset_to_free" },
-          headers: { Authorization: `Bearer ${token}` },
         },
       ),
   },
