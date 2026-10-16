@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Subscription confirmation · OutRay</title>
+    <style>
+      @font-face {
+        font-family: "Geom";
+        src: url("/fonts/geom-latin.woff2") format("woff2");
+        font-style: normal;
+        font-weight: 300 900;
+        font-display: swap;
+      }
+
+      html, body { margin: 0; padding: 0; background: #080808; }
+      body, table, td, a { font-family: "Geom", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+      body { -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; }
+      table { border-collapse: separate; border-spacing: 0; }
+      a { text-decoration: none; }
+      .confirm:hover { background: #dedee2 !important; }
+      a:focus-visible { outline: 2px solid #a78bfa; outline-offset: 5px; }
+      @media (max-width: 600px) {
+        .page { padding: 36px 20px 40px !important; }
+        .brand { padding: 0 4px 28px !important; }
+        .content { padding: 32px 28px 30px !important; }
+        .heading { font-size: 32px !important; }
+        .footer { padding: 26px 8px 0 !important; }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .confirm { transition: background 150ms ease; }
+      }
+    </style>
+  </head>
+  <body style="margin:0;padding:0;background:#080808;color:#f7f7f8;">
+    <!-- Standalone design preview only. No real confirmation token or email integration. -->
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">
+      Confirm your email to receive incident updates from Cencori Status.
+    </div>
+    <table role="presentation" width="100%" style="width:100%;background:#080808;">
+      <tr>
+        <td class="page" align="center" style="padding:64px 24px 56px;">
+          <table role="presentation" width="544" style="width:100%;max-width:544px;">
+            <tr>
+              <td class="brand" style="padding:0 4px 32px;">
+                <table role="presentation">
+                  <tr>
+                    <td width="32" style="width:32px;vertical-align:middle;">
+                      <img src="/logo.png" width="31" height="31" alt="" style="display:block;width:31px;height:31px;border:0;" />
+                    </td>
+                    <td style="padding-left:10px;vertical-align:middle;font-size:23px;line-height:32px;font-weight:700;letter-spacing:-0.9px;color:#f7f7f8;">
+                      OutRay
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#101012;border:1px solid #29292d;border-radius:20px;">
+                <table role="presentation" width="100%" style="width:100%;">
+                  <tr>
+                    <td class="content" style="padding:40px 40px 36px;">
+                      <table role="presentation" style="margin-bottom:29px;">
+                        <tr>
+                          <td style="padding:7px 11px;background:#1b1724;border:1px solid #352b46;border-radius:7px;color:#c2adee;font-size:12px;line-height:16px;font-weight:550;">
+                            Cencori Status
+                          </td>
+                        </tr>
+                      </table>
+
+                      <h1 class="heading" style="margin:0;color:#f7f7f8;font-size:36px;line-height:1.18;letter-spacing:-1.4px;font-weight:600;">
+                        Confirm your<br />subscription.
+                      </h1>
+                      <p style="margin:21px 0 0;color:#aaaab3;font-size:16px;line-height:1.75;font-weight:400;">
+                        One last step. Confirm your email to receive incident updates published by the Cencori team.
+                      </p>
+
+                      <table role="presentation" width="100%" style="width:100%;margin-top:30px;">
+                        <tr>
+                          <td align="center" style="background:#f7f7f8;border-radius:10px;">
+                            <a class="confirm" href="#preview-confirmation" style="display:block;padding:14px 20px;background:#f7f7f8;border:1px solid #f7f7f8;border-radius:10px;color:#101012;font-size:15px;line-height:20px;font-weight:600;letter-spacing:-0.15px;text-align:center;">
+                              Confirm subscription&nbsp;&nbsp; <span aria-hidden="true">&rarr;</span>
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                      <p style="margin:15px 0 0;text-align:center;color:#85858f;font-size:12px;line-height:20px;">
+                        This link expires in 24 hours.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="footer" style="padding:27px 16px 0;">
+                <p style="margin:0;color:#85858f;font-size:13px;line-height:1.75;">
+                  Didn’t request this? You can ignore this email.<br />
+                  You won’t be subscribed unless you confirm.
+                </p>
+                <p style="margin:22px 0 0;color:#7d7d87;font-size:12px;line-height:20px;">
+                  Status updates, delivered by <a href="https://outray.co" target="_blank" rel="noopener noreferrer" style="color:#aaaab3;text-decoration:underline;text-underline-offset:3px;">OutRay</a>.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    <script>
+      // The preview cannot create or confirm a real subscription.
+      document.querySelector('.confirm').addEventListener('click', function (event) {
+        event.preventDefault();
+        this.textContent = 'Preview only — no subscription changed';
+        setTimeout(() => { this.innerHTML = 'Confirm subscription&nbsp;&nbsp; <span aria-hidden="true">&rarr;</span>'; }, 2200);
+      });
+    </script>
+  </body>
+</html>
