@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
+import { renderSubscriptionConfirmationEmail } from "../src/lib/subscription-email";
 
 function loadModule<T>(path: string, imports: Record<string, unknown>, globals: Record<string, unknown> = {}): T {
   const module = { exports: {} };
@@ -56,6 +57,7 @@ function subscriptionFixture(options: { enabled?: boolean; lockedEnabled?: boole
     "./db": { getPool: () => ({ connect: async () => ({ query: execute, release: () => { released = true; } }) }), query: async (sql: string) => (await execute(sql)).rows },
     "./status-data": { findPublishedPageById: async () => ({ ...page, subscriptions_enabled: options.enabled !== false }) },
     "./runtime": { statusEnvironment: () => ({}) },
+    "./subscription-email": { renderSubscriptionConfirmationEmail },
     "./security": {
       normalizeEmail: (email: string) => email.trim().toLowerCase(),
       hashRateKey: (kind: string, value: string) => `${kind}:${value}`,
