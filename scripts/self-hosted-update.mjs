@@ -9,6 +9,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { parseEnv } from "node:util";
 import { checkEnvironment } from "./self-hosted.mjs";
 import { backupInstallation } from "./self-hosted-update-backup.mjs";
+import { acquireInstallationLock } from "./self-hosted-operation-lock.mjs";
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const project = "outray-self-hosted";
@@ -173,10 +174,7 @@ export async function runUpdate(args = process.argv.slice(2), dependencies = {})
 
   const state = join(root, ".self-hosted-state");
   await privateDirectory(state);
-  let lock;
-  try { lock = await open(join(state, "update.lock"), constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW, 0o600); }
-  catch { fail("Another update is running, or update.lock needs manual inspection after an interrupted update."); }
-  await lock.writeFile(String(process.pid));
+  const releaseLock = await acquireInstallationLock(root);
   const interrupted = () => abort.abort();
   process.on("SIGINT", interrupted);
   process.on("SIGTERM", interrupted);
@@ -452,7 +450,7 @@ export async function runUpdate(args = process.argv.slice(2), dependencies = {})
   } finally {
     process.removeListener("SIGINT", interrupted);
     process.removeListener("SIGTERM", interrupted);
-    await lock.close(); await unlink(join(state, "update.lock"));
+    await releaseLock();
   }
 }
 
