@@ -3,8 +3,8 @@ import { eq, and } from "drizzle-orm";
 import { auth } from "../../../lib/auth";
 import { verifyTransaction } from "../../../lib/paystack";
 import { db } from "../../../db";
-import { subscriptions } from "../../../db/subscription-schema";
 import { members } from "../../../db/schema";
+import { applyPaystackCheckout } from "../../../lib/billing-emails.server";
 
 export const Route = createFileRoute("/api/checkout/paystack-verify")({
   server: {
@@ -125,47 +125,16 @@ export const Route = createFileRoute("/api/checkout/paystack-verify")({
             currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
           }
 
-          // Check if subscription exists
-          const existingSubscription = await db
-            .select()
-            .from(subscriptions)
-            .where(eq(subscriptions.organizationId, organizationId))
-            .limit(1);
-
-          if (existingSubscription.length > 0) {
-            // Update existing subscription
-            await db
-              .update(subscriptions)
-              .set({
-                plan,
-                status: "active",
-                paymentProvider: "paystack",
-                paystackCustomerCode: customerCode,
-                paystackAuthorizationCode: authorization.authorization_code,
-                paystackEmail: customerEmail,
-                billingInterval: interval,
-                currentPeriodEnd,
-                cancelAtPeriodEnd: false,
-                canceledAt: null,
-                updatedAt: new Date(),
-              })
-              .where(eq(subscriptions.organizationId, organizationId));
-          } else {
-            // Create new subscription
-            await db.insert(subscriptions).values({
-              id: crypto.randomUUID(),
-              organizationId,
-              plan,
-              status: "active",
-              paymentProvider: "paystack",
-              paystackCustomerCode: customerCode,
-              paystackAuthorizationCode: authorization.authorization_code,
-              paystackEmail: customerEmail,
-              billingInterval: interval,
-              currentPeriodEnd,
-              cancelAtPeriodEnd: false,
-            });
-          }
+          await applyPaystackCheckout({
+            organizationId,
+            reference,
+            plan,
+            interval,
+            customerCode,
+            authorizationCode: authorization.authorization_code,
+            customerEmail,
+            currentPeriodEnd,
+          });
 
           console.log(
             `[Paystack Verify] Subscription activated for org ${organizationId}, plan: ${plan}`,
