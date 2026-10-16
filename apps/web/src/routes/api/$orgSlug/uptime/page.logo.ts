@@ -1,32 +1,63 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { uptimeStatusPages } from "@/db/uptime-schema";
 import { badInput, notFound, requireUptimeManager } from "@/lib/uptime/api";
 
-const MAX_LOGO_BYTES = 256 * 1024;
+import {
+  deleteNewStatusPageLogo,
+  InvalidStatusPageLogo,
+  readStatusPageLogoUpload,
+  storeStatusPageLogo,
+  type StoredStatusPageLogo,
+} from "@/lib/uptime/status-logo-storage.server";
+
+async function rollbackUnreferencedLogo(logo: StoredStatusPageLogo) {
+  try {
+    // A transport error can make the commit outcome uncertain. Do not delete
+    // the object unless a primary-database read confirms it is unused.
+    const references = await db.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
+      .where(eq(uptimeStatusPages.logoUrl, logo.url)).limit(1);
+    if (!references.length) await deleteNewStatusPageLogo(logo);
+  } catch {
+    console.error("Could not confirm cleanup of an unreferenced status-page logo; retaining the object");
+  }
+}
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/page/logo")({
   server: { handlers: {
     POST: async ({ request, params }) => {
       const access = await requireUptimeManager(request, params.orgSlug);
       if ("error" in access) return access.error;
-      let logo: FormDataEntryValue | null;
-      try { logo = (await request.formData()).get("logo"); }
-      catch { return badInput("Upload a PNG or WebP logo", "logo"); }
-      if (!(logo instanceof File) || logo.size <= 0 || logo.size > MAX_LOGO_BYTES) {
-        return badInput("Logo must be a PNG or WebP under 256 KiB", "logo");
+      const [existing] = await db.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
+        .where(eq(uptimeStatusPages.organizationId, access.organization.id)).limit(1);
+      if (!existing) return notFound("Status page");
+
+      let uploaded: StoredStatusPageLogo;
+      try {
+        const logo = await readStatusPageLogoUpload(request);
+        uploaded = await storeStatusPageLogo(logo.bytes, logo.contentType);
+      } catch (error) {
+        if (error instanceof InvalidStatusPageLogo) return badInput(error.message, "logo");
+        console.error("Status-page logo upload failed");
+        return Response.json({ error: "Logo storage is temporarily unavailable" }, { status: 503 });
       }
-      const bytes = Buffer.from(await logo.arrayBuffer());
-      const png = bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-      const webp = bytes.length >= 12 && bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP";
-      if (!png && !webp) return badInput("Only genuine PNG and WebP images are accepted", "logo");
-      const data = `data:image/${png ? "png" : "webp"};base64,${bytes.toString("base64")}`;
-      const [page] = await db.update(uptimeStatusPages).set({ logoUrl: data, updatedAt: new Date() })
-        .where(eq(uptimeStatusPages.organizationId, access.organization.id))
-        .returning({ id: uptimeStatusPages.id, logoUrl: uptimeStatusPages.logoUrl });
-      if (!page) return notFound("Status page");
-      return Response.json({ logoUrl: page.logoUrl });
+
+      try {
+        const [page] = await db.update(uptimeStatusPages).set({ logoUrl: uploaded.url, updatedAt: new Date() })
+          .where(and(eq(uptimeStatusPages.id, existing.id), eq(uptimeStatusPages.organizationId, access.organization.id)))
+          .returning({ id: uptimeStatusPages.id, logoUrl: uptimeStatusPages.logoUrl });
+        if (!page) {
+          await rollbackUnreferencedLogo(uploaded);
+          return notFound("Status page");
+        }
+        // Retain previous immutable logos: cached pages or another page with a
+        // manually assigned URL may still reference the same object.
+        return Response.json({ logoUrl: page.logoUrl });
+      } catch (error) {
+        await rollbackUnreferencedLogo(uploaded);
+        throw error;
+      }
     },
     DELETE: async ({ request, params }) => {
       const access = await requireUptimeManager(request, params.orgSlug);
@@ -35,6 +66,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page/logo")({
         .where(eq(uptimeStatusPages.organizationId, access.organization.id))
         .returning({ id: uptimeStatusPages.id });
       if (!page) return notFound("Status page");
+      // Unlink the logo from this page without deleting possibly shared URLs.
       return Response.json({ success: true });
     },
   } },
