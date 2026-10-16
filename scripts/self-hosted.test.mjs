@@ -22,7 +22,8 @@ test("initializer generates independent instance keys and a narrow email allowli
   assert.equal(first.OUTRAY_SIGNUP_ALLOWED_EMAILS, "owner@example.net");
   assert.equal(first.OUTRAY_SIGNUP_ALLOWED_DOMAINS, "");
   assert.equal(first.TINYBIRD_INGEST_TOKEN, "");
-  const keys = ["POSTGRES_PASSWORD", "SHARE_DATABASE_PASSWORD", "BETTER_AUTH_SECRET", "ADMIN_PASSPHRASE", "INTERNAL_API_SECRET", "STATUS_EDGE_SECRET", "UPTIME_RATE_LIMIT_SECRET", "UPTIME_UNSUBSCRIBE_SECRET", "SHARE_RATE_LIMIT_SECRET"];
+  const keys = ["POSTGRES_PASSWORD", "SHARE_DATABASE_PASSWORD", "BETTER_AUTH_SECRET", "INTERNAL_API_SECRET", "STATUS_EDGE_SECRET", "UPTIME_RATE_LIMIT_SECRET", "UPTIME_UNSUBSCRIBE_SECRET", "SHARE_RATE_LIMIT_SECRET"];
+  assert.equal(first.ADMIN_PASSPHRASE, undefined);
   assert.equal(new Set(keys.map((key) => first[key])).size, keys.length);
   for (const key of keys) { assert.match(first[key], /^[a-f0-9]{64}$/); assert.notEqual(first[key], second[key]); }
   assert.equal(Buffer.from(first.OUTRAY_SECRETS_ACTIVE_MASTER_KEY, "base64").length, 32);
@@ -44,6 +45,8 @@ test("preflight passes configured OAuth/Tinybird installation without connecting
   const result = checkEnvironment(configured());
   assert.deepEqual(result.errors, []);
   assert.ok(result.warnings.some((warning) => warning.includes("disabled")));
+  // Existing private env files may retain the retired key; it has no effect.
+  assert.deepEqual(checkEnvironment({ ...configured(), ADMIN_PASSPHRASE: "retired-value" }).errors, []);
 });
 
 test("quota preflight accepts legacy installations and validates new administrator overrides", () => {
