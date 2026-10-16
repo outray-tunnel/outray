@@ -12,7 +12,7 @@ const managedLabel = "com.outray.rehearsal.managed";
 const instanceLabel = "com.outray.rehearsal.instance";
 const configurationLabel = "com.outray.rehearsal.configuration";
 const hostKeys = ["OUTRAY_APP_HOST", "OUTRAY_TUNNEL_DOMAIN", "OUTRAY_EDGE_HOST", "OUTRAY_INGEST_HOST", "OUTRAY_STATUS_HOST", "OUTRAY_SHARE_HOST"];
-const secretKeys = ["POSTGRES_PASSWORD", "SHARE_DATABASE_PASSWORD", "BETTER_AUTH_SECRET", "ADMIN_PASSPHRASE", "INTERNAL_API_SECRET", "STATUS_EDGE_SECRET", "UPTIME_RATE_LIMIT_SECRET", "UPTIME_UNSUBSCRIBE_SECRET", "SHARE_RATE_LIMIT_SECRET"];
+const secretKeys = ["POSTGRES_PASSWORD", "SHARE_DATABASE_PASSWORD", "BETTER_AUTH_SECRET", "INTERNAL_API_SECRET", "STATUS_EDGE_SECRET", "UPTIME_RATE_LIMIT_SECRET", "UPTIME_UNSUBSCRIBE_SECRET", "SHARE_RATE_LIMIT_SECRET"];
 
 class RehearsalError extends Error {}
 const fail = (message) => { throw new RehearsalError(message); };
@@ -78,7 +78,7 @@ export function serviceDefinitions(config) {
     migrate: { env: { ...policy, ...database, SHARE_DATABASE_URL: shareUrl }, command: ["sh", "-ec", "node /app/node_modules/drizzle-kit/bin.cjs migrate && node /app/scripts/self-hosted-share-role.mjs"], workingDirectory: "/app/apps/web" },
     bootstrap: { env: { ...policy, ...database, SHARE_DATABASE_URL: shareUrl }, command: ["node", "/app/scripts/self-hosted-share-role.mjs"] },
     sanity: { env: { SHARE_DATABASE_URL: shareUrl }, command: ["node", "-e", restrictedRoleCheck] },
-    web: { env: { ...policy, ...database, ...redis, ...publicUrls, ...uptime, ...crypto, ...tinybird, ...external, PORT: "6767", DASHBOARD_DB_POOL_MAX: "10", BETTER_AUTH_URL: origin("OUTRAY_APP_HOST"), BETTER_AUTH_SECRET: config.BETTER_AUTH_SECRET, ADMIN_PASSPHRASE: config.ADMIN_PASSPHRASE, INTERNAL_API_SECRET: config.INTERNAL_API_SECRET, OUTRAY_SIGNUP_ALLOWED_EMAILS: "", OUTRAY_SIGNUP_ALLOWED_DOMAINS: "" }, command: ["node", "apps/web/.output/server/index.mjs"], healthUrl: "http://127.0.0.1:6767/api/health?deep=true" },
+    web: { env: { ...policy, ...database, ...redis, ...publicUrls, ...uptime, ...crypto, ...tinybird, ...external, PORT: "6767", DASHBOARD_DB_POOL_MAX: "10", BETTER_AUTH_URL: origin("OUTRAY_APP_HOST"), BETTER_AUTH_SECRET: config.BETTER_AUTH_SECRET, INTERNAL_API_SECRET: config.INTERNAL_API_SECRET, OUTRAY_SIGNUP_ALLOWED_EMAILS: "", OUTRAY_SIGNUP_ALLOWED_DOMAINS: "" }, command: ["node", "apps/web/.output/server/index.mjs"], healthUrl: "http://127.0.0.1:6767/api/health?deep=true" },
     "internal-check": { env: { ...policy, ...database, ...publicUrls, ...uptime, INTERNAL_CHECK_PORT: "3344", OUTRAY_EDGE_HOST: config.OUTRAY_EDGE_HOST, OUTRAY_INGEST_HOST: config.OUTRAY_INGEST_HOST }, command: ["node", "apps/internal-check/dist/index.js"], healthUrl: "http://127.0.0.1:3344/health" },
     tunnel: { env: { ...policy, ...database, ...redis, ...publicUrls, ...uptime, ...tinybird, TUNNEL_PORT: "3547", TUNNEL_BIND_HOST: "0.0.0.0", STATUS_UPSTREAM_URL: `http://${project}-status:4323`, STATUS_TRUSTED_PROXY_IPS: "", WEB_API_URL: `http://${project}-web:6767/api`, INTERNAL_API_SECRET: config.INTERNAL_API_SECRET, TCP_PORT_RANGE_MIN: "20000", TCP_PORT_RANGE_MAX: "20009", UDP_PORT_RANGE_MIN: "30000", UDP_PORT_RANGE_MAX: "30009" }, command: ["node", "apps/tunnel/dist/server.js"], healthUrl: "http://127.0.0.1:3547/health", healthHost: config.OUTRAY_TUNNEL_DOMAIN },
     ingest: { env: { ...policy, ...database, ...redis, ...tinybird, INGEST_PORT: "4318" }, command: ["node", "apps/ingest/dist/server.js"], healthUrl: "http://127.0.0.1:4318/health", expectedMissingTinybird: true },
