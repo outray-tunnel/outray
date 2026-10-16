@@ -18,5 +18,7 @@ ENV NODE_ENV=production HOST=0.0.0.0 PORT=6767
 # source, license, package-manager config, environment file or migration runner.
 COPY --from=verified --chown=node:node /app/.self-hosted-artifacts/apps/web/.output ./apps/web/.output
 COPY --from=verified --chown=node:node /app/.self-hosted-artifacts/manifest.json ./self-hosted-artifact-manifest.json
+RUN mkdir -p /var/lib/outray/status-page-logos \
+    && chown node:node /var/lib/outray/status-page-logos
 USER node
 CMD ["node", "apps/web/.output/server/index.mjs"]
