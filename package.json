@@ -25,6 +25,7 @@
     "self-host:init": "node scripts/self-hosted.mjs init",
     "self-host:check": "node scripts/self-hosted.mjs check",
     "self-host:up": "node scripts/self-hosted.mjs up",
+    "self-host:update": "node scripts/self-hosted-update.mjs",
     "self-host:test": "node --test scripts/self-hosted*.test.mjs deploy/self-hosted/packaging.test.mjs",
     "dev": "dotenv -e .env -- node scripts/with-tinybird.mjs turbo run dev --env-mode=loose --filter='./apps/*' --filter='!outray' --filter='!outray-website'",
     "dev:website": "npm run dev:web",
