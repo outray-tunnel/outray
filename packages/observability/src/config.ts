@@ -35,6 +35,8 @@ export interface OutrayObservabilityOptions {
    * not a substitute for avoiding sensitive values in application logs.
    */
   shouldCaptureLog?: () => boolean;
+  /** Additional structured/embedded log field names to redact. Defaults can only be extended. */
+  redactedLogFields?: readonly string[];
   /**
    * Automatically instrument HTTP clients, database clients, and loggers.
    * Disable this for framework-only telemetry on applications handling secrets.
@@ -57,6 +59,7 @@ export interface ResolvedOutrayObservabilityOptions {
   diagnostics: NonNullable<OutrayObservabilityOptions["diagnostics"]>;
   captureConsole: boolean;
   shouldCaptureLog?: () => boolean;
+  redactedLogFields?: readonly string[];
   /** Always resolved by the SDK; optional for existing consumer config objects. */
   autoInstrumentations?: boolean;
 }
@@ -171,6 +174,7 @@ export function resolveOutrayObservabilityOptions(
     captureConsole:
       options.captureConsole ?? parseBoolean(env.OUTRAY_CAPTURE_CONSOLE, false),
     shouldCaptureLog: options.shouldCaptureLog,
+    redactedLogFields: [...(options.redactedLogFields ?? [])],
     autoInstrumentations: options.autoInstrumentations ?? true,
   };
 }
