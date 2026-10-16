@@ -153,7 +153,7 @@ For bare `docker build` with licensed icons, supply both
 `--secret id=hugeicons_license_key,env=HUGEICONS_LICENSE_KEY`; never put the key in
 a build argument. Docker rejects `auto` to keep free/Pro cache identity explicit.
 
-The check validates only local configuration; it does not authenticate to OAuth/Tinybird or test DNS/firewalls. It prints variable names and fixed messages, not credential values. `up` repeats preflight, builds the shared image, and starts Compose with that private env file.
+The check validates only local configuration; it does not authenticate to OAuth/Tinybird or test DNS/firewalls. It prints variable names and fixed messages, not credential values. `up` repeats preflight, builds the shared image, starts PostgreSQL/Redis, runs committed migrations/bootstrap, then starts Caddy before the application services. Claiming the fixed proxy address first prevents a dynamically addressed app from taking it. Everything uses the same private environment file; no network recreation or volume deletion is needed. Updates keep Caddy attached during backup and resume it before application recovery/replacement.
 
 ### Small-host rehearsal
 
