@@ -7,7 +7,7 @@ import { parseEnv } from "node:util";
 import { initialEnvironment } from "./self-hosted.mjs";
 import { configurationFrom, serviceDefinitions, labelsFor, project } from "./self-hosted-rehearsal.mjs";
 import { assertPreviewEnvironment, caddyImage, egressNetwork, gatewayArguments, previewOptions, safeGatewayContainer, safeWebContainer } from "./self-hosted-preview.mjs";
-import { approvedConsoleEmails, approvedTinybirdReadConfiguration, consoleContainerArguments, consoleDefinition, consoleEgressArguments, consoleLabels, consoleModesFromContainer, consoleOptions, containerEnvironment, githubLabel, previewConfigurationLabel, safeMaintenanceGateway, tinybirdLabel, webEgressNetwork } from "./self-hosted-preview-web.mjs";
+import { approvedConsoleEmails, approvedTinybirdReadConfiguration, consoleContainerArguments, consoleDefinition, consoleEgressArguments, consoleLabels, consoleLogoVolumeLabels, consoleModesFromContainer, consoleOptions, containerEnvironment, githubLabel, previewConfigurationLabel, safeConsoleLogoVolume, safeMaintenanceGateway, statusPageLogosDirectory, statusPageLogosVolume, tinybirdLabel, webEgressNetwork } from "./self-hosted-preview-web.mjs";
 import { createHash } from "node:crypto";
 
 const config = () => configurationFrom(parseEnv(initialEnvironment("ops.outray.dev", "owner@example.net")));
@@ -26,7 +26,7 @@ const tinybirdSource = () => ({ TINYBIRD_API_HOST: "https://api.example.net", TI
 const consoleMetadata = (configuration, definition, modes) => ({
   Image: "sha256:expected", Config: { User: "node", Cmd: definition.command, Labels: consoleLabels(configuration, "sha256:expected", definition, modes), Env: Object.entries(definition.env).map(([key, value]) => `${key}=${value}`) },
   HostConfig: { ReadonlyRootfs: true, NetworkMode: project, PortBindings: {}, CapDrop: ["ALL"], SecurityOpt: ["no-new-privileges:true"] },
-  NetworkSettings: { Networks: { [project]: {}, ...(modes.enableGithub || modes.enableTinybird ? { [webEgressNetwork]: {} } : {}) } }, Mounts: [{ Type: "tmpfs" }],
+  NetworkSettings: { Networks: { [project]: {}, ...(modes.enableGithub || modes.enableTinybird ? { [webEgressNetwork]: {} } : {}) } }, Mounts: [{ Type: "tmpfs" }, ...(definition.volume ? [{ Type: "volume", Name: statusPageLogosVolume, Destination: statusPageLogosDirectory, RW: true }] : [])],
 });
 
 test("GitHub-only console requires explicit flags and exactly two normalized emails", () => {
@@ -39,7 +39,8 @@ test("GitHub-only console requires explicit flags and exactly two normalized ema
   for (const value of ["", "one@example.net", "one@example.net,ONE@example.net", "one@example.net,two@example.net,three@example.net", "one@example.net,bad", "one@example.net,", "one@example.net,two@example.net,"]) assert.throws(() => approvedConsoleEmails(value));
   const source = { ...githubSource(), DATABASE_URL: "postgresql://not-authorized/db", GOOGLE_CLIENT_SECRET: "do-not-copy-google", TINYBIRD_INGEST_TOKEN: "do-not-copy-tinybird", ZEPTO_API_KEY: "do-not-copy-email", HUGEICONS_LICENSE_KEY: "do-not-copy-license", POLAR_WEBHOOK_SECRET: "do-not-copy-webhook" };
   const configuration = config(), closed = consoleDefinition(configuration, source), signed = consoleDefinition(configuration, source, { enableGithub: true });
-  assert.deepEqual(closed, serviceDefinitions(configuration).web);
+  const baseDefinition = serviceDefinitions(configuration).web;
+  assert.deepEqual(closed, { ...baseDefinition, env: { ...baseDefinition.env, STATUS_PAGE_LOGOS_DIR: statusPageLogosDirectory }, volume: `${statusPageLogosVolume}:${statusPageLogosDirectory}` });
   assert.equal(closed.env.GITHUB_CLIENT_SECRET, "");
   assert.equal(closed.env.OUTRAY_SIGNUP_ALLOWED_EMAILS, "");
   assert.equal(signed.env.GITHUB_CLIENT_SECRET, "test-client-secret");
@@ -56,7 +57,7 @@ test("GitHub console adds only a separate web egress and passes secrets by envir
   const configuration = config(), definition = consoleDefinition(configuration, githubSource(), { enableGithub: true });
   const labels = consoleLabels(configuration, "sha256:expected", definition, { enableGithub: true });
   assert.equal(labels[githubLabel], "true");
-  const metadata = { Image: "sha256:expected", Config: { User: "node", Cmd: definition.command, Labels: labels, Env: Object.entries(definition.env).map(([key, value]) => `${key}=${value}`) }, HostConfig: { ReadonlyRootfs: true, NetworkMode: project, PortBindings: {}, CapDrop: ["ALL"], SecurityOpt: ["no-new-privileges:true"] }, NetworkSettings: { Networks: { [project]: {}, [webEgressNetwork]: {} } }, Mounts: [{ Type: "tmpfs" }] };
+  const metadata = consoleMetadata(configuration, definition, { enableGithub: true });
   assert.equal(safeWebContainer(metadata, "sha256:expected", labels, definition.env, { enableGithub: true }), true);
   assert.equal(safeWebContainer(metadata, "sha256:expected", labels, definition.env), false);
   for (const networks of [{ [project]: {} }, { [project]: {}, [egressNetwork]: {} }, { [project]: {}, [webEgressNetwork]: {}, [egressNetwork]: {} }]) assert.equal(safeWebContainer({ ...metadata, NetworkSettings: { Networks: networks } }, "sha256:expected", labels, definition.env, { enableGithub: true }), false);
@@ -67,6 +68,13 @@ test("GitHub console adds only a separate web egress and passes secrets by envir
   assert.ok(!args.includes("--detach"));
   assert.equal(args[args.indexOf("--network") + 1], project);
   assert.equal(args[args.indexOf("--restart") + 1], "unless-stopped");
+  assert.equal(definition.env.STATUS_PAGE_LOGOS_DIR, statusPageLogosDirectory);
+  assert.deepEqual(args.flatMap((value, index) => value === "--mount" ? [args[index + 1]] : []), [`type=volume,source=${statusPageLogosVolume},target=${statusPageLogosDirectory}`]);
+  for (const mounts of [metadata.Mounts.slice(0, 1), [...metadata.Mounts, metadata.Mounts[1]], [...metadata.Mounts, { Type: "volume", Name: "other", Destination: "/data", RW: true }], ...[
+    { Name: "foreign" }, { Destination: "/app" }, { RW: false }, { Type: "bind" },
+  ].map((change) => [metadata.Mounts[0], { ...metadata.Mounts[1], ...change }])]) {
+    assert.equal(safeWebContainer({ ...metadata, Mounts: mounts }, metadata.Image, labels, definition.env, { enableGithub: true }), false);
+  }
   assert.deepEqual(consoleEgressArguments("exact-container-id"), ["network", "connect", "--gw-priority", "1", webEgressNetwork, "exact-container-id"]);
   for (const value of ["test-client-secret", "one@example.net", configuration.POSTGRES_PASSWORD]) assert.ok(!args.join(" ").includes(value));
   for (const forbidden of ["--publish", "--publish-all", "--privileged", "--env-file", "--volumes-from"]) assert.ok(!args.includes(forbidden));
@@ -151,6 +159,12 @@ test("owned replacement reconstructs prior independent modes and credentials, no
       assert.notEqual(consoleLabels(configuration, metadata.Image, newDefinition, modes)[previewConfigurationLabel], previousLabels[previewConfigurationLabel]);
       assert.equal(safeWebContainer(metadata, metadata.Image, consoleLabels(configuration, metadata.Image, newDefinition, modes), newDefinition.env, modes), false);
     }
+    const legacyDefinition = structuredClone(definition);
+    delete legacyDefinition.env.STATUS_PAGE_LOGOS_DIR;
+    delete legacyDefinition.volume;
+    const legacyMetadata = consoleMetadata(configuration, legacyDefinition, modes);
+    assert.equal(safeWebContainer(legacyMetadata, legacyMetadata.Image, legacyMetadata.Config.Labels, legacyDefinition.env, modes), true);
+    assert.equal(safeWebContainer(legacyMetadata, legacyMetadata.Image, metadata.Config.Labels, definition.env, modes), false, "A pre-storage console requires an explicit owned replacement");
   }
   const webCode = readFileSync(new URL("./self-hosted-preview-web.mjs", import.meta.url), "utf8");
   assert.match(webCode, /const previousModes = consoleModesFromContainer\(existing\)/);
@@ -172,6 +186,15 @@ test("owned console upgrades require the exact running maintenance config and ne
   assert.ok(code.indexOf('options.image, "node", "-e", previewRuntimeAudit') < code.indexOf('required(["stop", "--time", "10", existing.Id])'));
   assert.match(code, /required\(\["rm", existing\.Id\]\)/);
   assert.ok(!code.includes('"--volumes"'));
+  const volumeLabels = consoleLogoVolumeLabels(configuration);
+  const volume = { Name: statusPageLogosVolume, Driver: "local", Scope: "local", Labels: volumeLabels, Options: null };
+  assert.equal(safeConsoleLogoVolume(volume, volumeLabels), true);
+  for (const changed of [{ Name: "unrelated" }, { Driver: "plugin" }, { Scope: "global" }, { Labels: {} }, { Options: { type: "none", o: "bind", device: "/host/path" } }]) {
+    assert.equal(safeConsoleLogoVolume({ ...volume, ...changed }, volumeLabels), false);
+  }
+  assert.ok(code.indexOf("safeConsoleLogoVolume(logoVolume") < code.indexOf('required(["stop", "--time", "10", existing.Id])'));
+  assert.ok(code.indexOf('options.image, "node", "-e", consoleLogoVolumeAudit') < code.indexOf('required(["stop", "--time", "10", existing.Id])'));
+  assert.doesNotMatch(code, /\["volume", "rm"/);
 });
 
 test("gateway publishes only TCP80/443 and grants egress only to itself", () => {
