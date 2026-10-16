@@ -110,6 +110,7 @@ test("the actual creation hook uses the same policy before persistence, without 
       if (specifier === "./member-quota-adapter.server") return { memberQuotaAdapter: () => ({}) };
       if (specifier === "better-auth/plugins") return { createAuthMiddleware: (handler: unknown) => handler, organization: (options: unknown) => options };
       if (specifier === "better-auth/api") return { APIError };
+      if (specifier === "./auth-profile") return { adminProfileFields: {} };
       if (specifier === "../db") return { db: new Proxy({}, { get() { persistence++; throw new Error("Policy must run before persistence"); } }) };
       if (specifier === "../../../../shared/instance-config") return { instanceConfig: () => ({ ...instanceConfig({}), selfHosted }), instanceSignupAllowed };
       if (specifier === "../../../../shared/workspace-slugs") return workspaceSlugPolicy;
