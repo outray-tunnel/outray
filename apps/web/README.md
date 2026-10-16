@@ -22,16 +22,27 @@ Payload capture is enabled for JSON (including `+json`) and URL-encoded forms:
 redaction. Binary, HTML, SSE and compressed bodies are not captured. Opaque nested
 `body`, `requestBody`, `responseBody`, `requestHeaders`, `responseHeaders` and
 `params` fields are additionally redacted so another customer's already-captured
-payload is not forwarded as an unparsed string. Normal fields remain useful;
+payload is not forwarded as an unparsed string. Secret `value`/`values`, `.env`
+text, plaintext and SQL parameter fields are also redacted. Request-only
+`code`/`state`/`nonce`/`challenge` fields hide CLI, OAuth and OTP inputs without
+hiding diagnostic response codes. Redirect headers retain useful error reasons
+while credentials in their URLs are redacted. Normal fields remain useful;
 capture does not consume or modify the application's request/response body.
 
 `console.debug/info/log/warn/error` are exported with severity and active trace
 correlation, while preserving local console output. Auth, Secrets, token, CLI,
-webhook, checkout and server-function requests bypass traces, payloads **and log
-export**, including their async work. Background console logs outside a request
-are captured. Automatic HTTP/database/logger instrumentation remains disabled;
+webhook, checkout, server-function and asset requests are all recorded; none of
+these route families suppresses supported payloads or log export. Sensitive
+routes use stable templates rather than raw identifiers. Background console logs
+outside a request are captured too. Error messages, stacks, nested causes and
+database error codes are retained after redaction, not raw SQL/parameters or
+opaque customer captures. Automatic HTTP/database/logger instrumentation remains disabled;
 the adapter does not record exception messages/stacks on spans. Console error
 logs can contain redacted error messages/stacks. Query values are not collected.
+
+The ingest service repeats credential redaction before writing traces and logs
+to Tinybird. Existing retention, ingestion quotas, exporter buffer limits and
+body/log size limits still apply; this is not a lossless audit-log system.
 
 Redaction is best-effort, **not a DLP guarantee**: do not log arbitrary plaintext
 secrets or personal data. Body capture waits for a bounded clone to be read, so
