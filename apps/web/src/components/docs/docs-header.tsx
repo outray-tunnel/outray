@@ -25,7 +25,6 @@ export function DocsHeader() {
       <span className="text-[21px] font-light text-[#46464f]" aria-hidden="true">/</span>
       <a className="text-sm text-zinc-400 hover:text-zinc-50" href="/docs">Docs</a>
       <nav className="ml-8 flex gap-[22px] text-[13px] text-zinc-400 [&_a:hover]:text-zinc-50 max-[1000px]:hidden" aria-label="Documentation resources">
-        <a href="/products">Products</a>
         <a href="https://github.com/outray-tunnel/outray" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
       </nav>
       <div className="ml-auto flex items-center gap-3.5 max-md:gap-2">
