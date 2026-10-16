@@ -307,18 +307,52 @@ services:
   uptime-probe:
     <<: *app
     profiles: ["uptime-worker"]
-    command: ["node", "apps/uptime-probe/dist/index.js"]
+    # A root host-side runner installs and tests the actual namespace firewall
+    # before releasing this inert gate. Never auto-restart an unverified namespace.
+    restart: "no"
+    entrypoint: []
+    command: ["node", "/app/probe-boot.mjs"]
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    mem_limit: 256m
+    memswap_limit: 256m
+    pids_limit: 64
+    dns: ["${OUTRAY_PROBE_RESOLVER:-1.1.1.1}"]
+    networks:
+      probe:
+        ipv4_address: ${OUTRAY_PROBE_ADDRESS:-172.30.41.2}
     environment:
-      <<: [*policy, *database-environment, *crypto-environment, *uptime-environment]
+      <<: *crypto-environment
+      NODE_ENV: production
+      OUTRAY_DEPLOYMENT_MODE: self-hosted
+      OUTRAY_PRODUCTS: uptime
+      UPTIME_ENABLED: "true"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-outray}:${POSTGRES_PASSWORD}@${OUTRAY_PROBE_DATABASE_HOST:-postgres}:5432/${POSTGRES_DB:-outray}?sslmode=disable
+      DATABASE_SSL_REJECT_UNAUTHORIZED: "true"
       UPTIME_PROBES_ENABLED: ${UPTIME_PROBES_ENABLED:-false}
       UPTIME_NOTIFICATIONS_ENABLED: ${UPTIME_NOTIFICATIONS_ENABLED:-false}
       UPTIME_EGRESS_POLICY_READY: ${UPTIME_EGRESS_POLICY_READY:-false}
+      UPTIME_PROBE_CONCURRENCY: ${UPTIME_PROBE_CONCURRENCY:-5}
+      UPTIME_PROBE_BATCH_SIZE: ${UPTIME_PROBE_BATCH_SIZE:-5}
+      UPTIME_PROBE_POLL_MS: ${UPTIME_PROBE_POLL_MS:-5000}
+      OUTRAY_DASHBOARD_URL: https://${OUTRAY_APP_HOST}
+      OUTRAY_STATUS_URL: https://${OUTRAY_STATUS_HOST}
+      STATUS_PUBLIC_URL: https://${OUTRAY_STATUS_HOST}
+      # The host lifecycle injects these only when delivery is enabled.
+      ZEPTO_API_KEY: ${OUTRAY_PROBE_NOTIFY_ZEPTO_API_KEY:-}
+      ZEPTO_FROM_EMAIL: ${OUTRAY_PROBE_NOTIFY_ZEPTO_FROM_EMAIL:-}
+      ZEPTO_FROM_NAME: ${OUTRAY_PROBE_NOTIFY_ZEPTO_FROM_NAME:-}
+      STATUS_EDGE_SECRET: ${OUTRAY_PROBE_NOTIFY_STATUS_EDGE_SECRET:-}
+      UPTIME_RATE_LIMIT_SECRET: ${OUTRAY_PROBE_NOTIFY_UPTIME_RATE_LIMIT_SECRET:-}
+      UPTIME_UNSUBSCRIBE_SECRET: ${OUTRAY_PROBE_NOTIFY_UPTIME_UNSUBSCRIBE_SECRET:-}
+      # Gate protocol marker, not an authentication/signing credential.
+      OUTRAY_PROBE_ACTIVATION_ID: a35e3063844100c6c7425512fbad3b530c954afd996729109efd0924a4f0c552
     depends_on: *dependencies
     healthcheck:
-      test: ["CMD", "node", "-e", "process.kill(1,0)"]
-      interval: 30s
-      timeout: 5s
+      test: ["CMD", "node", "-e", "try{const r=JSON.parse(require('node:fs').readFileSync('/tmp/outray-probe-ready'));if(r.activation!==process.env.OUTRAY_PROBE_ACTIVATION_ID||!Number.isInteger(r.pid)||r.pid<2)process.exit(1);process.kill(r.pid,0)}catch{process.exit(1)}"]
+      interval: 10s
+      timeout: 3s
       retries: 3
+      start_period: 120s
 
   caddy:
     image: caddy:2-alpine
@@ -375,10 +409,30 @@ networks:
         - subnet: ${OUTRAY_DOCKER_SUBNET:-172.30.40.0/24}
   database:
     internal: true
+  probe:
+    name: outray-self-hosted_probe
+    enable_ipv6: false
+    driver_opts:
+      com.docker.network.bridge.name: ${OUTRAY_PROBE_BRIDGE:-br-outray-prb}
+      com.docker.network.enable_ipv6: "false"
+    ipam:
+      config:
+        - subnet: ${OUTRAY_PROBE_SUBNET:-172.30.41.0/29}
+          gateway: ${OUTRAY_PROBE_GATEWAY:-172.30.41.1}
 
 volumes:
   postgres-data:
+    name: ${POSTGRES_VOLUME_NAME:-${COMPOSE_PROJECT_NAME:-outray-self-hosted}_postgres-data}
+    external: ${POSTGRES_VOLUME_EXTERNAL:-false}
   redis-data:
+    name: ${REDIS_VOLUME_NAME:-${COMPOSE_PROJECT_NAME:-outray-self-hosted}_redis-data}
+    external: ${REDIS_VOLUME_EXTERNAL:-false}
   status-page-logos:
+    name: ${STATUS_PAGE_LOGOS_VOLUME_NAME:-${COMPOSE_PROJECT_NAME:-outray-self-hosted}_status-page-logos}
+    external: ${STATUS_PAGE_LOGOS_VOLUME_EXTERNAL:-false}
   caddy-data:
+    name: ${CADDY_DATA_VOLUME_NAME:-${COMPOSE_PROJECT_NAME:-outray-self-hosted}_caddy-data}
+    external: ${CADDY_DATA_VOLUME_EXTERNAL:-false}
   caddy-config:
+    name: ${CADDY_CONFIG_VOLUME_NAME:-${COMPOSE_PROJECT_NAME:-outray-self-hosted}_caddy-config}
+    external: ${CADDY_CONFIG_VOLUME_EXTERNAL:-false}
