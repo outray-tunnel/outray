@@ -1,29 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { adminJson, requireAdminAccess } from "../../../lib/admin-access.server";
 import { db } from "../../../db";
 import { organizations, members, tunnels, subscriptions } from "../../../db/schema";
-import { redis } from "../../../lib/redis";
-import { hashToken } from "../../../lib/hash";
 import { count, desc, like, or, inArray, gte, and } from "drizzle-orm";
 
 export const Route = createFileRoute("/api/admin/organizations")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        // Admin token check
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ")
-          ? authHeader.slice("Bearer ".length)
-          : "";
-
-        if (!token) {
-          return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists) {
-          return Response.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         try {
           const url = new URL(request.url);
@@ -135,7 +121,7 @@ export const Route = createFileRoute("/api/admin/organizations")({
             },
           }));
 
-          return Response.json({
+          return adminJson({
             organizations: orgsWithMeta,
             total: totalResult.count,
             page,
@@ -143,7 +129,7 @@ export const Route = createFileRoute("/api/admin/organizations")({
           });
         } catch (error) {
           console.error("Admin organizations error:", error);
-          return Response.json(
+          return adminJson(
             { error: "Failed to fetch organizations" },
             { status: 500 }
           );
