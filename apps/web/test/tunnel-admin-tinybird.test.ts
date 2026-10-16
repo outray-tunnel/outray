@@ -10,8 +10,14 @@ async function fixture(authorized = true, rows: unknown[] = [], fail = false) {
   const { GET } = await loadRouteHandlers<{ GET: GET }>({
     path: new URL("../src/routes/api/admin/stats.ts", import.meta.url),
     modules: {
-      "../../../lib/redis": { redis: { get: async () => authorized ? "exists" : null } },
-      "../../../lib/hash": { hashToken: () => "synthetic-hash" },
+      "../../../lib/admin-access.server": {
+        requireAdminAccess: async (request: Request) => !request.headers.get("cookie")
+          ? Response.json({ error: "Unauthorized" }, { status: 401 })
+          : authorized ? null : Response.json({ error: "Forbidden" }, { status: 403 }),
+        adminJson: (data: unknown, init?: ResponseInit) => Response.json(data, {
+          ...init, headers: { "Cache-Control": "private, no-store" },
+        }),
+      },
       "../../../lib/tinybird": { queryTinybird: async (endpoint: string, parameters: Parameters) => {
         calls.push({ endpoint, parameters });
         if (fail) throw new Error("Unavailable");
@@ -20,13 +26,13 @@ async function fixture(authorized = true, rows: unknown[] = [], fail = false) {
     },
     logger: { log() {}, warn() {}, error() {} },
   });
-  const request = (period = "24h", token = true) => new Request(`http://test.invalid/api/admin/stats?period=${period}`, {
-    headers: token ? { Authorization: "Bearer synthetic-token" } : {},
+  const request = (period = "24h", session = true) => new Request(`http://test.invalid/api/admin/stats?period=${period}`, {
+    headers: session ? { Cookie: "better-auth.session_token=synthetic-session" } : { Authorization: "Bearer legacy-token" },
   });
   return { GET, calls, request };
 }
 
-test("admin stats rejects absent/invalid authorization before Tinybird reads", async () => {
+test("admin stats rejects missing cookie sessions and non-admin profiles before Tinybird reads", async () => {
   const f = await fixture(false);
   assert.equal((await f.GET({ request: f.request("24h", false) })).status, 401);
   assert.equal((await f.GET({ request: f.request() })).status, 403);
@@ -38,6 +44,7 @@ for (const [period, interval, points] of [["1h", 1, 60], ["24h", 15, 96], ["7d",
     const f = await fixture();
     const result = await f.GET({ request: f.request(period) });
     assert.equal(result.status, 200);
+    assert.equal(result.headers.get("cache-control"), "private, no-store");
     const rows = await result.json() as { time: string; active_tunnels: number }[];
     assert.equal(rows.length, points + 1);
     assert.equal(f.calls[0].endpoint, "tunnel_admin_active_series");
