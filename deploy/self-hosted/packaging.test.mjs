@@ -177,15 +177,18 @@ test("Tinybird reader and append scopes are separated and Timescale is absent", 
 });
 
 test("installation quotas, domain-only signup and email sender settings reach runtime", () => {
-  for (const name of appNames.filter((name) => name !== "secrets-share")) {
+  for (const name of appNames.filter((name) => !["secrets-share", "uptime-probe"].includes(name))) {
     assert.equal(services[name].environment.OUTRAY_MAX_UPTIME_MONITORS, "${OUTRAY_MAX_UPTIME_MONITORS:-1000}");
     assert.equal(services[name].environment.OUTRAY_MAX_OBSERVABILITY_ALERTS, "${OUTRAY_MAX_OBSERVABILITY_ALERTS:-1000}");
   }
   assert.equal(services.web.environment.OUTRAY_SIGNUP_ALLOWED_EMAILS, "${OUTRAY_SIGNUP_ALLOWED_EMAILS:-}");
   assert.equal(services.web.environment.OUTRAY_SIGNUP_ALLOWED_DOMAINS, "${OUTRAY_SIGNUP_ALLOWED_DOMAINS:-}");
-  for (const name of ["web", "cron", "status", "uptime-probe"]) {
+  for (const name of ["web", "cron", "status"]) {
     assert.equal(services[name].environment.ZEPTO_FROM_NAME, "${ZEPTO_FROM_NAME:-OutRay}");
   }
+  assert.equal(services["uptime-probe"].environment.ZEPTO_FROM_NAME, "${OUTRAY_PROBE_NOTIFY_ZEPTO_FROM_NAME:-}");
+  assert.equal(services["uptime-probe"].environment.ZEPTO_API_KEY, "${OUTRAY_PROBE_NOTIFY_ZEPTO_API_KEY:-}");
+  assert.equal(services["uptime-probe"].environment.OUTRAY_PRODUCTS, "uptime");
   for (const variable of ["TUNNEL_PUBLIC_URL", "INGEST_PUBLIC_URL", "SHARE_PUBLIC_URL"]) {
     assert.ok(services.web.environment[variable]);
     assert.equal(services.web.environment[variable], services["internal-check"].environment[variable]);
