@@ -348,7 +348,7 @@ services:
       OUTRAY_PROBE_ACTIVATION_ID: a35e3063844100c6c7425512fbad3b530c954afd996729109efd0924a4f0c552
     depends_on: *dependencies
     healthcheck:
-      test: ["CMD", "node", "-e", "try{const r=JSON.parse(require('node:fs').readFileSync('/tmp/outray-probe-ready'));if(r.activation!==process.env.OUTRAY_PROBE_ACTIVATION_ID||!Number.isInteger(r.pid)||r.pid<2)process.exit(1);process.kill(r.pid,0)}catch{process.exit(1)}"]
+      test: ["CMD", "node", "-e", "try{const fs=require('node:fs'),r=JSON.parse(fs.readFileSync('/tmp/outray-probe-ready'));if(r.activation!==process.env.OUTRAY_PROBE_ACTIVATION_ID||r.namespace!==fs.readlinkSync('/proc/self/ns/net')||!Number.isInteger(r.pid)||r.pid<2)process.exit(1);process.kill(r.pid,0)}catch{process.exit(1)}"]
       interval: 10s
       timeout: 3s
       retries: 3
