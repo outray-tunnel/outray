@@ -5,6 +5,7 @@ import { config } from "./config";
 import { decryptIntegrationWebhook, type EncryptedPayload } from "./crypto";
 import emailConfig from "../../../shared/email-sender";
 import emailDesign from "../../../shared/email-template";
+import { safeDatabaseError, withDatabaseTransaction } from "./database";
 
 type Channel = "email" | "slack" | "discord";
 type TeamPayload = {
@@ -77,7 +78,7 @@ export async function pollUptimeNotifications(pool: pg.Pool): Promise<void> {
     );
     await Promise.all(result.rows.map((notification) => deliverNotification(pool, notification)));
   } catch (error) {
-    console.error("[Uptime] Notification poll failed", safeErrorCode(error));
+    console.error("[Uptime] Notification poll failed", safeDatabaseError(error));
   } finally {
     polling = false;
   }
@@ -159,20 +160,12 @@ async function deliverSubscriberNotification(pool: pg.Pool, notification: Notifi
     await finish(pool, notification.id, "suppressed", "invalid_payload");
     return;
   }
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    await deliverLockedSubscriberNotification(client, notification, payload);
-    await client.query("COMMIT");
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    client.release();
-  }
+  await withDatabaseTransaction(pool, async (client, signal) => {
+    await deliverLockedSubscriberNotification(client, notification, payload, signal);
+  }, { transactionTimeoutMs: 20_000 });
 }
 
-async function deliverLockedSubscriberNotification(client: pg.PoolClient, notification: Notification, payload: SubscriberPayload) {
+async function deliverLockedSubscriberNotification(client: pg.PoolClient, notification: Notification, payload: SubscriberPayload, signal: AbortSignal) {
   // Lock order is page, then subscriber, matching consent/settings mutations.
   // An exclusive subscriber lock also prevents parallel updates from racing
   // the per-subscriber burst and daily send limits.
@@ -249,7 +242,7 @@ async function deliverLockedSubscriberNotification(client: pg.PoolClient, notifi
     );
     return;
   }
-  await sendSubscriberEmail(notification.recipient, payload, detail.body_json, detail.note);
+  await sendSubscriberEmail(notification.recipient, payload, detail.body_json, detail.note, signal);
   await client.query(
     `UPDATE uptime_subscribers SET last_sent_at = NOW(), updated_at = NOW()
      WHERE id = $1 AND page_id = $2 AND organization_id = $3 AND status = 'confirmed'`,
@@ -279,7 +272,7 @@ export function makeUnsubscribeToken(subscriberId: string, pageId: string, expir
   return `${Buffer.from(payload).toString("base64url")}.${signature}`;
 }
 
-async function sendSubscriberEmail(recipient: string, payload: SubscriberPayload, body: unknown, storedNote: string) {
+async function sendSubscriberEmail(recipient: string, payload: SubscriberPayload, body: unknown, storedNote: string, signal: AbortSignal) {
   const pageUrl = publicStatusPageUrl(payload.pageSlug, config.statusPublicUrl);
   const unsubscribe = new URL("/unsubscribe", config.statusPublicUrl);
   unsubscribe.searchParams.set("token", makeUnsubscribeToken(
@@ -298,7 +291,7 @@ async function sendSubscriberEmail(recipient: string, payload: SubscriberPayload
       htmlbody: subscriberEmailHtml(payload, body, storedNote, pageUrl, unsubscribe.toString()),
     }),
     redirect: "manual",
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
   });
   if (!response.ok) throw new DeliveryError(`subscriber_email_http_${response.status}`,
     response.status < 500 && response.status !== 429);
@@ -452,6 +445,7 @@ function escapeSlack(value: string) {
 
 function safeErrorCode(error: unknown): string {
   if (error instanceof DeliveryError) return error.code;
-  return error && typeof error === "object" && "code" in error && typeof error.code === "string"
-    ? error.code : "delivery_error";
+  const diagnostic = safeDatabaseError(error);
+  return diagnostic.code !== "internal_error" ? diagnostic.code
+    : diagnostic.category !== "database_error" ? diagnostic.category : "delivery_error";
 }
