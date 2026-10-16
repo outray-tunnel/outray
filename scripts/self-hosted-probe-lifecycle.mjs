@@ -76,6 +76,9 @@ export function probePolicyConfiguration(config, postgresIp, interfaces, routes)
     // Exact local addresses are already included above. Broadcast/unreachable
     // routes can reject sockets before OUTPUT and cannot prove a DROP counter.
     if (route.type && route.type !== "unicast") continue;
+    // DHCP can install public resolver host routes through the uplink gateway.
+    // Those remote transit destinations are not this host's on-link networks.
+    if (route.gateway && route.scope !== "link") continue;
     if (route.dst && route.dst !== "default" && !route.dst.includes(":")) blocked.push(route.dst.includes("/") ? route.dst : `${route.dst}/32`);
   }
   blocked.push(...(config.OUTRAY_PROBE_BLOCKED_CIDRS || "").split(",").map((value) => value.trim()).filter(Boolean));
