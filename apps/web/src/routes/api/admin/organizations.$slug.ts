@@ -283,8 +283,6 @@ export const Route = createFileRoute("/api/admin/organizations/$slug")({
                   recipientEmail: owner.userEmail,
                   subject,
                   htmlString: html,
-                  senderEmail: "akinkunmi@outray.dev",
-                  senderName: "Akinkunmi from OutRay",
                 });
                 console.log(`[Subscription Reset Email] Sent to: ${owner.userEmail}`);
               } catch (emailError) {
