@@ -111,6 +111,35 @@ Secrets Share. The uptime worker honors the existing `UPTIME_PROBES_ENABLED`
 and `UPTIME_NOTIFICATIONS_ENABLED` flags; starting it does not enable these
 features automatically.
 
+### Account notification emails
+
+Hosted usage and billing notices use the shared OutRay email design and a
+PostgreSQL outbox. Deploy migration `0034_product_email_outbox` through the normal
+migration pipeline before updating **web and cron**. No manual production
+migration is needed when CI already runs migrations.
+
+Give cron the same hosted `DATABASE_URL`, `REDIS_URL`, public console `APP_URL`,
+`ZEPTO_API_KEY`, and optional verified `ZEPTO_FROM_EMAIL` / `ZEPTO_FROM_NAME` as web.
+The default sender is `OutRay <no-reply@outray.co>`. Usage is checked every five
+minutes; queued emails are polled every 15 seconds. Missing provider configuration
+leaves messages queued. Delivery retries back off, up to five attempts.
+
+Verified owners and admins receive 80%/100% monthly bandwidth and telemetry
+warnings, local payment-failure notices, and subscription lifecycle changes.
+Monthly warnings deduplicate per organization, recipient, allowance, metric, and
+UTC month threshold, so an upgrade re-arms warnings for the new allowance.
+Billing events enqueue in the same transaction as the state change;
+membership is checked again at delivery. Provider requests are timed out and
+errors are redacted. Delivery is at-least-once: an ambiguous provider acceptance
+or crash after sending can still cause a retry to be delivered twice.
+
+Polar's customer emails remain provider-managed by default. Set
+`POLAR_OUTRAY_EMAILS=true` on **web** only after disabling the equivalent Polar
+subscription confirmation/update/cancellation/past-due/revocation emails. Leave
+provider receipts and invoices enabled. This avoids sending the same notice from
+both Polar and OutRay. These hosted billing/usage jobs stay disabled in
+self-hosted installations; existing invitations and monitoring emails are unchanged.
+
 ### Secrets development
 
 Secrets are encrypted with a per-organization data key. Before using the
