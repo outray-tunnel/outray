@@ -45,6 +45,12 @@ environment-variable name is required.
 local output. Capture is off by default. Values are bounded and common secret,
 credential, cookie, and authorization fields are redacted before export.
 
+Extend this policy with `redactedLogFields: ["value", "envText", "body"]` for
+application-owned opaque values. It applies recursively to structured arguments,
+inline assignments and formatted messages, and cannot remove the default
+protections. Error messages/stacks, bounded nested causes and diagnostic
+code/status fields remain available; raw SQL and parameter fields are redacted.
+
 Use `shouldCaptureLog: () => boolean` to suppress console capture and OutRay
 logging methods in sensitive application contexts. Returning `false` or throwing
 skips export without changing local output. Redaction is best-effort: avoid
