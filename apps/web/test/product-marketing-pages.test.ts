@@ -6,7 +6,7 @@ import React from "react";
 import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, Link, RouterContextProvider } from "@tanstack/react-router";
 import ts from "typescript";
-import { ProductPage, ProductsIndex } from "../src/landing/products/ProductPage";
+import { ProductPage } from "../src/landing/products/ProductPage";
 import { TunnelHero } from "../src/landing/products/TunnelHero";
 import { TunnelTerminalSection, SAMPLE_TUNNEL_LOGS, createInitialTunnelLogs, advanceTunnelLogs } from "../src/landing/products/TunnelTerminal";
 import { TunnelFeatureSections } from "../src/landing/products/TunnelFeatureSections";
@@ -263,18 +263,6 @@ test("every product page renders its own content and direct documentation withou
   }
 });
 
-test("the overview links all four products and labels each preview as sample data", () => {
-  const html = renderToStaticMarkup(React.createElement(ProductsIndex));
-  assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
-  assert.equal((html.match(/<figure\b/g) ?? []).length, 4);
-  assert.equal((html.match(/Illustrative interface · sample data/g) ?? []).length, 4);
-  assert.doesNotMatch(html, /aria-label="Product pages"|pd-product-nav/);
-  for (const product of productIds) {
-    assert.ok(html.includes(`Explore ${products[product].name}`));
-    assert.ok(html.includes(`href="/products/${product}"`));
-  }
-});
-
 test("the tunnels hero has its new headline, real destinations and copyable example command", () => {
   const html = renderToStaticMarkup(productPage("tunnels"));
   const hero = html.match(/<section\b[^>]*aria-labelledby="product-title"[^>]*>([\s\S]*?)<\/section>/)?.[1];
@@ -321,7 +309,7 @@ test("the tunnel hero centers its command row and places Learn more underneath w
   assert.match(source, /justify-self-center justify-items-center/, "the full-width quick start row is centered");
 });
 
-test("the dedicated tunnel hero is isolated from the other product heroes and overview", () => {
+test("the dedicated tunnel hero is isolated from the other product heroes", () => {
   for (const product of productIds.filter((id) => id !== "tunnels")) {
     const html = renderToStaticMarkup(productPage(product));
     if (product === "observability") assert.match(html, /Know what.*happened\..*And why\./);
@@ -331,8 +319,6 @@ test("the dedicated tunnel hero is isolated from the other product heroes and ov
     assert.doesNotMatch(html, /Localhost,.*meet the world\.|Start tunneling/);
     if (product === "uptime") assert.doesNotMatch(html, /Illustrative interface · sample data/);
   }
-  const overview = renderToStaticMarkup(React.createElement(ProductsIndex));
-  assert.doesNotMatch(overview, /Localhost,.*meet the world\.|Start tunneling/);
 });
 
 test("the tunnel illustration is decorative and its SVG definitions are unique across instances", () => {
@@ -437,8 +423,6 @@ test("the Tunnels page removes demo disclaimers without changing addresses or ot
     const other = renderToStaticMarkup(React.createElement(ProductPage, { product }));
     assert.match(other, /Illustrative interface · sample data/, "sample captions on untouched product pages remain");
   }
-  const overview = renderToStaticMarkup(React.createElement(ProductsIndex));
-  assert.equal((overview.match(/Illustrative interface · sample data/g) ?? []).length, 4);
 });
 
 test("the Tunnels UI uses resolvable Hugeicons wrappers while retaining only decorative custom SVGs", async () => {
@@ -498,7 +482,7 @@ test("the request stream removes its outer divider without removing the terminal
   assert.match(html, /aria-label="Pause request stream"/, "only the separate connection-animation controls are removed");
 });
 
-test("the new request stream does not replace untouched product workflows or overview previews", () => {
+test("the new request stream does not replace untouched product fallback workflows", () => {
   for (const product of productIds.filter((id) => id === "uptime")) {
     const html = renderToStaticMarkup(React.createElement(ProductPage, { product }));
     assert.ok(html.includes(products[product].workflow.title));
@@ -508,9 +492,6 @@ test("the new request stream does not replace untouched product workflows or ove
     assert.doesNotMatch(html, /tunnel-developer-title|tunnel-domain-title|tunnel-local-title|tunnel-protocols-title|tunnel-open-source-title|tunnel-start-title/);
     assert.doesNotMatch(html, /Every request\. As it arrives\.|aria-label="Tunnel terminal"|Pause request stream/);
   }
-  const overview = renderToStaticMarkup(React.createElement(ProductsIndex));
-  assert.doesNotMatch(overview, /Every request\. As it arrives\.|aria-label="Tunnel terminal"|Pause request stream/);
-  assert.equal((overview.match(/Illustrative interface · sample data/g) ?? []).length, 4);
 });
 
 test("the full Tunnels page presents its new feature sections in order and retains real action destinations", () => {
@@ -1071,10 +1052,10 @@ test("product workflows retain actual CLI, server-only instrumentation, and moni
 });
 
 test("product metadata replaces inherited tunnel-only social text and uses a product canonical", () => {
-  for (const product of [undefined, ...productIds]) {
+  for (const product of productIds) {
     const head = productPageHead(product, "https://outray.dev");
-    const expectedTitle = product ? `${products[product].name} — OutRay` : "Products — OutRay";
-    const expectedUrl = product ? `https://outray.dev/products/${product}` : "https://outray.dev/products";
+    const expectedTitle = `${products[product].name} — OutRay`;
+    const expectedUrl = `https://outray.dev/products/${product}`;
     assert.ok(head.meta.some((meta) => "title" in meta && meta.title === expectedTitle));
     assert.ok(head.meta.some((meta) => "property" in meta && meta.property === "og:title" && meta.content === expectedTitle));
     assert.ok(head.meta.some((meta) => "name" in meta && meta.name === "twitter:title" && meta.content === expectedTitle));
@@ -1096,7 +1077,7 @@ test("shared navigation and footer use real product destinations while retaining
   for (const source of [navigation, footer]) {
     assert.ok(source.includes('to="/"'));
     assert.match(source, /aria-label="OutRay home"/);
-    assert.ok(source.includes('to="/products"'));
+    assert.doesNotMatch(source, /to=["']\/products["']/);
     for (const product of productIds) assert.ok(source.includes(`/products/${product}`));
   }
   for (const product of productIds) {
