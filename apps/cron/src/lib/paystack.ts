@@ -7,6 +7,7 @@
 
 import { Pool } from "pg";
 import { config } from "../config";
+import { enqueueProductEmail } from "../../../../shared/product-email-outbox";
 
 // Kobo pricing (same as web app)
 const PAYSTACK_PRICES_KOBO: Record<string, number> = {
@@ -44,6 +45,8 @@ interface Subscription {
 interface ExpiredCanceledSubscription {
   id: string;
   organization_id: string;
+  plan: string;
+  current_period_end: Date;
 }
 
 /**
@@ -153,19 +156,37 @@ async function getDueSubscriptions(): Promise<Subscription[]> {
 async function downgradeExpiredCanceledSubscriptions(): Promise<void> {
   const client = await dbPool.connect();
   try {
+    await client.query("BEGIN");
     const result = await client.query<ExpiredCanceledSubscription>(
       `DELETE FROM subscriptions
        WHERE payment_provider = 'paystack'
          AND cancel_at_period_end = true
          AND current_period_end <= NOW()
-       RETURNING id, organization_id`,
+       RETURNING id, organization_id, plan, current_period_end`,
     );
+
+    for (const subscription of result.rows) {
+      if (subscription.plan === "free") continue;
+      const periodEnd = subscription.current_period_end.toISOString();
+      await enqueueProductEmail(client, {
+        organizationId: subscription.organization_id,
+        eventKey: `paystack:subscription:${subscription.id}:${periodEnd}:ended`,
+        event: {
+          kind: "subscription-change", change: "ended", plan: subscription.plan,
+          effectiveAt: periodEnd,
+        },
+      });
+    }
+    await client.query("COMMIT");
 
     if (result.rowCount) {
       console.log(
         `[Paystack] Downgraded ${result.rowCount} canceled subscription(s) to free plan`,
       );
     }
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
   } finally {
     client.release();
   }
@@ -202,20 +223,40 @@ async function updateSubscriptionSuccess(
  * Update subscription after failed charge
  */
 async function updateSubscriptionFailed(
-  subscriptionId: string,
+  subscription: Subscription,
+  amount: number,
   reason: string,
 ): Promise<void> {
   const client = await dbPool.connect();
   try {
-    await client.query(
+    await client.query("BEGIN");
+    const result = await client.query(
       `UPDATE subscriptions
        SET status = 'past_due', updated_at = NOW()
-       WHERE id = $1`,
-      [subscriptionId],
+       WHERE id = $1 AND current_period_end = $2
+       RETURNING organization_id`,
+      [subscription.id, subscription.current_period_end],
     );
-    console.log(
-      `[Paystack] Subscription ${subscriptionId} marked as past_due: ${reason}`,
-    );
+    if (result.rowCount) {
+      const periodEnd = subscription.current_period_end.toISOString();
+      await enqueueProductEmail(client, {
+        organizationId: subscription.organization_id,
+        eventKey: `paystack:subscription:${subscription.id}:${periodEnd}:payment-failed`,
+        event: {
+          kind: "payment-failed", plan: subscription.plan, amountMinor: amount,
+          currency: "NGN", provider: "paystack", periodEnd,
+        },
+      });
+    }
+    await client.query("COMMIT");
+    if (result.rowCount) {
+      console.log(
+        `[Paystack] Subscription ${subscription.id} marked as past_due: ${reason}`,
+      );
+    }
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
   } finally {
     client.release();
   }
@@ -281,10 +322,10 @@ export async function chargePaystackSubscriptions(): Promise<void> {
         );
       } else {
         await updateSubscriptionFailed(
-          subscription.id,
+          subscription,
+          amount,
           result.error || "Unknown error",
         );
-        // TODO: Send failed payment email to user
       }
 
       // Small delay between charges to avoid rate limiting
