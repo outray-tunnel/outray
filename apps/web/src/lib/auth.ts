@@ -9,9 +9,13 @@ import { assertOrganizationMemberCapacity } from "./member-limits.server";
 import { BETTER_AUTH_MEMBERSHIP_CEILING } from "./member-limit-policy";
 import { APIError } from "better-auth/api";
 import { instanceConfig, instanceSignupAllowed } from "../../../../shared/instance-config";
+import { adminProfileFields } from "./auth-profile";
 
 export const auth = betterAuth({
   database: memberQuotaAdapter(),
+  user: {
+    additionalFields: adminProfileFields,
+  },
   socialProviders: {
     ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET ? { github: {
       clientId: process.env.GITHUB_CLIENT_ID as string,
@@ -27,7 +31,7 @@ export const auth = betterAuth({
       if (!instanceSignupAllowed(user)) {
         throw new APIError("FORBIDDEN", { message: "Signup is restricted on this installation. Contact your administrator." });
       }
-      return { data: user };
+      return { data: { ...user, isAdmin: false } };
     } } },
   },
   plugins: [
