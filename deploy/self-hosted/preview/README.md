@@ -1,5 +1,10 @@
 # Restricted Ops public preview
 
+> Legacy deployment tooling, retained for existing installations and recovery.
+> New installations should use the [standard self-hosted setup](../README.md).
+> Migrate existing manual deployments using the [generic migration guide](../MIGRATION.md),
+> then use `npm run self-host:update` like any other installation.
+
 By default this explicit trial exposes only `https://ops.outray.dev`. The separate
 `--enable-status` opt-in below also serves published status pages through two
 private status-only services. Neither mode is normal full public
