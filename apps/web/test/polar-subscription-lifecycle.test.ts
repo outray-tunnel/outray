@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import hostedPlans from "../../../shared/hosted-plan-limits";
 import { loadRouteHandlers } from "./helpers/load-route";
+import { billingPeriodKey, billingTransitionRevision, nextBillingUpdatedAt, subscriptionChangeEvents } from "../src/lib/billing-email-policy";
+import type { ProductEmailEvent } from "../../../shared/product-email";
 
 const { HOSTED_PLAN_LIMITS } = hostedPlans;
 const routePath = new URL(
@@ -39,14 +41,17 @@ type PolarSubscription = {
   cancelAtPeriodEnd: boolean;
   metadata: { organizationId: string };
   endedAt?: string | null;
+  amount?: number;
+  currency?: string;
+  modifiedAt?: Date | null;
 };
 
 type Callbacks = Record<
   string,
-  (payload: { data: PolarSubscription }) => Promise<void>
+  (payload: { data: PolarSubscription; type?: string }) => Promise<void>
 >;
 
-async function lifecycleHarness() {
+async function lifecycleHarness(ownEmails = false) {
   const rows: SubscriptionRow[] = [
     {
       organizationId: "org-target",
@@ -79,7 +84,41 @@ async function lifecycleHarness() {
   const subscriptionTable = { polarSubscriptionId: "polarSubscriptionId" };
   let callbacks: Callbacks | undefined;
   const mutations: Array<{ field: string; value: string }> = [];
-  const source = `const process = ${JSON.stringify({ env: productEnvironment })};\n${await readFile(routePath, "utf8")}`;
+  const queued: Array<{ eventKey: string; event: ProductEmailEvent }> = [];
+  const queue = (input: typeof queued[number]) => {
+    if (!queued.some(({ eventKey }) => eventKey === input.eventKey)) queued.push(input);
+  };
+  const source = `const process = ${JSON.stringify({ env: { ...productEnvironment, ...(ownEmails ? { POLAR_OUTRAY_EMAILS: "true" } : {}) } })};\nconst crypto = { randomUUID: () => "test-subscription-id" };\n${await readFile(routePath, "utf8")}`;
+  const database = {
+    select() {
+      return { from() { return { where(condition: { field: string; value: string }) {
+        return { limit() { return { async for() {
+          return rows.filter((row) => row.polarSubscriptionId === condition.value).map((row) => ({ ...row }));
+        } }; } };
+      } }; } };
+    },
+    insert() {
+      return { values(values: SubscriptionRow) { return { async returning() {
+        const row = { updatedAt: new Date("2026-10-01T00:00:00Z"), ...values };
+        rows.push(row);
+        return [row];
+      } }; } };
+    },
+    update(table: unknown) {
+      assert.equal(table, subscriptionTable);
+      return { set(values: Partial<SubscriptionRow>) {
+        return { where(condition: { field: string; value: string }) {
+          assert.equal(condition.field, "polarSubscriptionId");
+          mutations.push(condition);
+          return { async returning() {
+            const matching = rows.filter((row) => row.polarSubscriptionId === condition.value);
+            for (const row of matching) Object.assign(row, values);
+            return matching.map((row) => ({ ...row }));
+          } };
+        } };
+      } };
+    },
+  };
 
   await loadRouteHandlers({
     path: routePath,
@@ -93,28 +132,19 @@ async function lifecycleHarness() {
           return async () => new Response(null, { status: 200 });
         },
       },
-      "../../../db": {
-        db: {
-          update(table: unknown) {
-            assert.equal(table, subscriptionTable);
-            return {
-              set(values: Partial<SubscriptionRow>) {
-                return {
-                  async where(condition: { field: string; value: string }) {
-                    assert.equal(condition.field, "polarSubscriptionId");
-                    mutations.push(condition);
-                    for (const row of rows) {
-                      if (row.polarSubscriptionId === condition.value) {
-                        Object.assign(row, values);
-                      }
-                    }
-                  },
-                };
-              },
-            };
-          },
+      "../../../lib/billing-emails.server": {
+        withBillingEmailTransaction: async (_key: string, work: (db: unknown, client: unknown) => Promise<void>) => work(database, {}),
+        enqueueSubscriptionChanges: async (_client: unknown, _organizationId: string, eventKey: string, previous: SubscriptionRow | null, next: SubscriptionRow) => {
+          for (const event of subscriptionChangeEvents(previous, next)) {
+            if (event.kind === "subscription-change") queue({
+              eventKey: `${eventKey}:${event.change}`,
+              event,
+            });
+          }
         },
       },
+      "../../../lib/billing-email-policy": { billingPeriodKey, billingTransitionRevision, nextBillingUpdatedAt },
+      "../../../../../../shared/product-email-outbox": { enqueueProductEmail: async (_client: unknown, input: { eventKey: string; event: ProductEmailEvent }) => { queue(input); } },
       "../../../db/subscription-schema": { subscriptions: subscriptionTable },
       "drizzle-orm": {
         eq: (field: string, value: string) => ({ field, value }),
@@ -131,7 +161,7 @@ async function lifecycleHarness() {
     cancelAtPeriodEnd: false,
     metadata: { organizationId: "org-target" },
   };
-  return { rows, callbacks, subscription, mutations };
+  return { rows, callbacks, subscription, mutations, queued };
 }
 
 test("Polar revocation immediately changes paid capacity to Free", async () => {
@@ -257,6 +287,105 @@ for (const status of ["canceled", "unpaid"]) {
       assert.deepEqual(rows.slice(1), unrelated);
     });
   }
+}
+
+test("Polar billing notifications remain provider-managed unless explicitly enabled", async () => {
+  const { callbacks, subscription, queued } = await lifecycleHarness();
+  await callbacks.onSubscriptionCanceled({ data: { ...subscription, status: "canceled", cancelAtPeriodEnd: true } });
+  await callbacks.onSubscriptionRevoked({ data: subscription });
+  assert.equal(queued.length, 0);
+});
+
+test("Polar cancellation, reversal, plan changes and ending each notify only on transition", async () => {
+  const { callbacks, subscription, queued } = await lifecycleHarness(true);
+  const canceled = { ...subscription, status: "canceled", cancelAtPeriodEnd: true };
+  await callbacks.onSubscriptionCanceled({ data: canceled });
+  await callbacks.onSubscriptionCanceled({ data: canceled });
+  await callbacks.onSubscriptionUpdated({ data: canceled });
+  await callbacks.onSubscriptionUncanceled({ data: subscription });
+  await callbacks.onSubscriptionUncanceled({ data: subscription });
+  const upgrade = { ...subscription, productId: "pulse-year" };
+  await callbacks.onSubscriptionUpdated({ data: upgrade });
+  await callbacks.onSubscriptionActive({ data: upgrade });
+  await callbacks.onSubscriptionRevoked({ data: upgrade });
+  await callbacks.onSubscriptionUpdated({ data: { ...upgrade, status: "unpaid" } });
+  assert.deepEqual(queued.map(({ event }) => event.kind === "subscription-change" ? event.change : event.kind),
+    ["cancellation-scheduled", "cancellation-reversed", "plan-changed", "ended"]);
+});
+
+test("Polar created and active callbacks share one initial activation", async () => {
+  const { rows, callbacks, subscription, queued } = await lifecycleHarness(true);
+  rows.shift();
+  await callbacks.onSubscriptionCreated({ data: subscription });
+  await callbacks.onSubscriptionCreated({ data: subscription });
+  await callbacks.onSubscriptionActive({ data: subscription });
+  assert.equal(queued.length, 1);
+  assert.equal(queued[0].event.kind, "subscription-change");
+  if (queued[0].event.kind === "subscription-change") assert.equal(queued[0].event.change, "activated");
+  assert.equal(rows.filter((row) => row.polarSubscriptionId === subscription.id).length, 1);
+});
+
+test("Polar incomplete creation waits until activation to send confirmation", async () => {
+  const { rows, callbacks, subscription, queued } = await lifecycleHarness(true);
+  rows.shift();
+  await callbacks.onSubscriptionCreated({ data: { ...subscription, status: "incomplete" } });
+  assert.equal(queued.length, 0);
+  await callbacks.onSubscriptionActive({ data: subscription });
+  assert.equal(queued.length, 1);
+});
+
+test("Polar past-due updates queue one safe payment-failed notice", async () => {
+  const { rows, callbacks, subscription, queued } = await lifecycleHarness(true);
+  const pastDue = { ...subscription, status: "past_due", amount: 21000, currency: "usd" };
+  await callbacks.onSubscriptionUpdated({ data: pastDue });
+  await callbacks.onSubscriptionUpdated({ data: pastDue });
+  assert.equal(rows[0].status, "past_due");
+  assert.equal(rows[0].plan, "beam");
+  assert.equal(queued.length, 1);
+  assert.equal(queued[0].event.kind, "payment-failed");
+  if (queued[0].event.kind === "payment-failed") assert.equal(queued[0].event.currency, "USD");
+  assert.match(queued[0].eventKey, /polar-target/);
+  assert.doesNotMatch(JSON.stringify(queued), /authorization|card|customer/);
+});
+
+for (const providerRevision of [true, false]) {
+  test(`Polar same-period repeated transitions have distinct identities (${providerRevision ? "modifiedAt" : "stored revision"})`, async () => {
+    const { callbacks, subscription, queued } = await lifecycleHarness(true);
+    const payload = (revision: number, overrides: Partial<PolarSubscription>) => ({
+      ...subscription,
+      ...(providerRevision ? { modifiedAt: new Date(`2026-10-16T10:00:0${revision}.000Z`) } : {}),
+      ...overrides,
+    });
+    const canceled = payload(1, { status: "canceled", cancelAtPeriodEnd: true });
+    await callbacks.onSubscriptionCanceled({ data: canceled });
+    await callbacks.onSubscriptionCanceled({ data: canceled });
+    const uncanceled = payload(2, {});
+    await callbacks.onSubscriptionUncanceled({ data: uncanceled });
+    await callbacks.onSubscriptionUncanceled({ data: uncanceled });
+    const canceledAgain = payload(3, { status: "canceled", cancelAtPeriodEnd: true });
+    await callbacks.onSubscriptionCanceled({ data: canceledAgain });
+    await callbacks.onSubscriptionCanceled({ data: canceledAgain });
+    const schedules = queued.filter(({ event }) => event.kind === "subscription-change" && event.change === "cancellation-scheduled");
+    assert.equal(schedules.length, 2);
+    assert.notEqual(schedules[0].eventKey, schedules[1].eventKey);
+    // Return to an uncanceled state before testing A -> B -> A -> B.
+    await callbacks.onSubscriptionUncanceled({ data: payload(4, {}) });
+    for (const [revision, productId] of [[5, "pulse-year"], [6, "beam-year"], [7, "pulse-year"]] as const) {
+      const changed = payload(revision, { productId });
+      await callbacks.onSubscriptionUpdated({ data: changed });
+      await callbacks.onSubscriptionUpdated({ data: changed });
+    }
+    const upgrades = queued.filter(({ event }) => event.kind === "subscription-change" && event.change === "plan-changed" && event.plan === "pulse");
+    assert.equal(upgrades.length, 2);
+    assert.notEqual(upgrades[0].eventKey, upgrades[1].eventKey);
+    assert.equal(queued.length, 7);
+    if (providerRevision) {
+      // Replaying an old canceled callback after later changes must retain its
+      // provider identity, even though the local plan has since changed.
+      await callbacks.onSubscriptionCanceled({ data: canceled });
+      assert.equal(queued.length, 7);
+    }
+  });
 }
 
 for (const status of ["active", "canceled", "past_due"]) {
