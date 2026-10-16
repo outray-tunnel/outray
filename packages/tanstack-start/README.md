@@ -89,6 +89,23 @@ Payload capture is disabled unless `capturePayloads` is set. Only JSON,
 and fields are always redacted, bodies are bounded, and request/response streams
 used by handlers are never consumed.
 
+To capture auth failures without dropping the endpoint, extend redaction rather
+than adding a route exclusion:
+
+```ts
+capturePayloads: {
+  redactedFields: ["value", "values", "envText", "requestBody", "responseBody"],
+  redactedRequestFields: ["code", "state", "nonce", "challenge"],
+},
+captureConsole: true,
+redactedLogFields: ["value", "values", "envText", "body"],
+```
+
+`redactedRequestFields` extends the shared core policy only for request bodies;
+response diagnostic fields such as `code: "INVALID_CREDENTIALS"` remain visible.
+Credential headers and embedded auth URLs are redacted by default. These controls
+do not modify the application's original headers, bodies or console arguments.
+
 The default route normalizer replaces UUIDs, numeric IDs, long hexadecimal
 IDs, and ULIDs with `:id`. Use `routeResolver` for application-specific slugs or
 to provide exact TanStack route templates. Vite internals and common static
