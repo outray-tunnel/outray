@@ -1,3 +1,7 @@
+import emailDesign from "../../../../shared/email-template";
+
+const { renderEmail, paragraph, footnote, details, list, link } = emailDesign;
+
 // Email template parameter types
 type WelcomeParams = {
   name: string;
@@ -61,66 +65,23 @@ export const emailTemplates: EmailTemplates = {
     params: ["name", "dashboardUrl"],
     previewParams: {
       name: "John Doe",
-      dashboardUrl: "https://outray.dev/select",
+      dashboardUrl: "https://outray.co/select",
     },
-    html: ({ name, dashboardUrl }) => `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Outray</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #ffffff;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #ffffff; padding: 40px 20px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px;">
-          <tr>
-            <td style="padding: 0 0 20px 0;">
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                Hi ${name},
-              </p>
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                I'm Akinkunmi, the creator of OutRay. I'm happy to have you onboard! <br/> <br/> OutRay makes it easy to expose your local development servers to the internet securely.
-              </p>
-              <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                Get started by installing the CLI and creating your first tunnel.
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 30px 0;">
-              <a href="${dashboardUrl}" style="display: inline-block; padding: 14px 32px; background-color: #18181b; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px;">
-                Go to Dashboard
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 30px 0;">
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                If you have any questions or feedback, just reply to this email – I personally read every one.
-              </p>
-              <p style="margin: 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                Cheers,<br>
-                Akinkunmi
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 20px 0 0 0; border-top: 1px solid #e4e4e7;">
-              <p style="margin: 0; font-size: 14px; color: #71717a;">
-                © 2026 Outray. All rights reserved.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`,
+    html: ({ name, dashboardUrl }) =>
+      renderEmail({
+        title: "Welcome to\nOutRay.",
+        preheader: "Welcome to OutRay. Let's build something great.",
+        label: "Getting started",
+        tone: "accent",
+        bodyHtml:
+          paragraph(`Hi ${name},`) +
+          paragraph("I'm Akinkunmi, the creator of OutRay. I'm happy to have you onboard!") +
+          paragraph("Explore OutRay's tools for development, monitoring, and collaboration, and choose where you'd like to start."),
+        action: { label: "Go to Dashboard", url: dashboardUrl },
+        footerHtml:
+          footnote("If you have any questions or feedback, just reply to this email – I personally read every one.") +
+          footnote("Cheers,\nAkinkunmi"),
+      }),
   },
 
   "password-reset": {
@@ -129,68 +90,22 @@ export const emailTemplates: EmailTemplates = {
     params: ["name", "resetUrl"],
     previewParams: {
       name: "John Doe",
-      resetUrl: "https://outray.dev/reset-password?token=abc123",
+      resetUrl: "https://outray.co/reset-password?token=abc123",
     },
-    html: ({ name, resetUrl }) => `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reset Your Password</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #ffffff;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #ffffff; padding: 40px 20px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px;">
-          <tr>
-            <td style="padding: 0 0 20px 0;">
-              <h1 style="margin: 0 0 20px 0; font-size: 28px; font-weight: 700; color: #18181b;">Reset Your Password 🔐</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 20px 0;">
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                Hi ${name},
-              </p>
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                We received a request to reset your password. Click the button below to create a new password.
-              </p>
-              <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                This link will expire in 1 hour. If you didn't request this, you can safely ignore this email.
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 20px 0;">
-              <a href="${resetUrl}" style="display: inline-block; padding: 14px 32px; background-color: #dc2626; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px;">
-                Reset Password
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 30px 0;">
-              <p style="margin: 0; font-size: 14px; line-height: 20px; color: #71717a;">
-                Or copy and paste this link into your browser:<br>
-                <a href="${resetUrl}" style="color: #2563eb; word-break: break-all;">${resetUrl}</a>
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 20px 0 0 0; border-top: 1px solid #e4e4e7;">
-              <p style="margin: 0; font-size: 14px; color: #71717a;">
-                © 2026 Outray. All rights reserved.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`,
+    html: ({ name, resetUrl }) =>
+      renderEmail({
+        title: "Reset your\npassword.",
+        preheader: "Create a new password for your OutRay account. This link expires in 1 hour.",
+        label: "Account security",
+        bodyHtml:
+          paragraph(`Hi ${name},`) +
+          paragraph("We received a request to reset your password. Use the button below to create a new password.") +
+          paragraph("This link will expire in 1 hour. If you didn't request this, you can safely ignore this email."),
+        action: { label: "Reset Password", url: resetUrl },
+        footerHtml:
+          footnote("Or copy and paste this link into your browser:") +
+          link(resetUrl, resetUrl),
+      }),
   },
 
   "organization-invite": {
@@ -202,75 +117,27 @@ export const emailTemplates: EmailTemplates = {
       inviterName: "Jane Smith",
       organizationName: "Acme Corp",
       role: "member",
-      invitationLink: "https://outray.dev/invitations/accept?token=abc123",
+      invitationLink: "https://outray.co/invitations/accept?token=abc123",
     },
-    html: ({ inviterName, organizationName, role, invitationLink }) => `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>You're Invited to Join ${organizationName}</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #ffffff;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #ffffff; padding: 40px 20px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px;">
-          <tr>
-            <td style="padding: 0 0 20px 0;">
-              <h1 style="margin: 0 0 20px 0; font-size: 28px; font-weight: 700; color: #18181b;">You're Invited! 🎉</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 20px 0;">
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                Hi,
-              </p>
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                <strong>${inviterName}</strong> has invited you to join the organization <strong>${organizationName}</strong> on OutRay with the role of <strong>${role}</strong>.
-              </p>
-              <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                Click the button below to accept the invitation and get started.
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 20px 0;">
-              <a href="${invitationLink}" style="display: inline-block; padding: 14px 32px; background-color: #18181b; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px;">
-                Accept Invitation
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 30px 0;">
-              <p style="margin: 0; font-size: 14px; line-height: 20px; color: #71717a;">
-                Or copy and paste this link into your browser:<br>
-                <a href="${invitationLink}" style="color: #2563eb; word-break: break-all;">${invitationLink}</a>
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 30px 0;">
-              <p style="margin: 0; font-size: 14px; line-height: 20px; color: #71717a;">
-                If you did not expect this invitation, you can safely ignore this email.
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 20px 0 0 0; border-top: 1px solid #e4e4e7;">
-              <p style="margin: 0; font-size: 14px; color: #71717a;">
-                © 2026 Outray. All rights reserved.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`,
+    html: ({ inviterName, organizationName, role, invitationLink }) =>
+      renderEmail({
+        title: "You're invited\nto collaborate.",
+        preheader: `${inviterName} invited you to join ${organizationName} on OutRay.`,
+        label: "Organization invitation",
+        tone: "accent",
+        bodyHtml:
+          paragraph(`${inviterName} has invited you to join their organization on OutRay.`) +
+          details([
+            ["Organization", organizationName],
+            ["Your role", role],
+          ]) +
+          paragraph("Accept the invitation to join your team and get started."),
+        action: { label: "Accept Invitation", url: invitationLink },
+        footerHtml:
+          footnote("If you did not expect this invitation, you can safely ignore this email.") +
+          footnote("Or copy and paste this link into your browser:") +
+          link(invitationLink, invitationLink),
+      }),
   },
 
   "payment-failed": {
@@ -281,86 +148,33 @@ export const emailTemplates: EmailTemplates = {
       name: "John Doe",
       planName: "Beam",
       amount: "₦21,000",
-      billingUrl: "https://outray.dev/acme/billing",
+      billingUrl: "https://outray.co/acme/billing",
       attemptsRemaining: 2,
     },
-    html: ({ name, planName, amount, billingUrl, attemptsRemaining }) => `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Payment Failed</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #ffffff;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #ffffff; padding: 40px 20px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px;">
-          <tr>
-            <td style="padding: 0 0 20px 0;">
-              <h1 style="margin: 0 0 20px 0; font-size: 28px; font-weight: 700; color: #dc2626;">Payment Failed ⚠️</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 20px 0;">
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                Hi ${name},
-              </p>
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                We couldn't process your payment of <strong>${amount}</strong> for the <strong>${planName}</strong> plan on OutRay.
-              </p>
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                ${attemptsRemaining > 0
-                  ? `We'll retry your payment automatically. You have <strong>${attemptsRemaining} attempt${attemptsRemaining === 1 ? '' : 's'}</strong> remaining before your subscription is cancelled.`
-                  : `This was our final attempt. Your subscription has been cancelled and downgraded to the free plan.`
-                }
-              </p>
-              <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                To update your payment method, visit your billing page:
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 20px 0;">
-              <a href="${billingUrl}" style="display: inline-block; padding: 14px 32px; background-color: #18181b; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px;">
-                Update Payment Method
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 30px 0;">
-              <p style="margin: 0; font-size: 14px; line-height: 20px; color: #71717a;">
-                Common reasons for payment failures include:
-              </p>
-              <ul style="margin: 10px 0; padding-left: 20px; font-size: 14px; line-height: 24px; color: #71717a;">
-                <li>Insufficient funds</li>
-                <li>Expired card</li>
-                <li>Card declined by your bank</li>
-              </ul>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 30px 0;">
-              <p style="margin: 0; font-size: 14px; line-height: 20px; color: #71717a;">
-                If you have any questions, just reply to this email.
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 20px 0 0 0; border-top: 1px solid #e4e4e7;">
-              <p style="margin: 0; font-size: 14px; color: #71717a;">
-                © 2026 Outray. All rights reserved.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`,
+    html: ({ name, planName, amount, billingUrl, attemptsRemaining }) =>
+      renderEmail({
+        title: "Your payment\ndidn't go through.",
+        preheader: "We couldn't process your OutRay payment. Review your payment method.",
+        label: "Payment failed",
+        tone: "danger",
+        bodyHtml:
+          paragraph(`Hi ${name},`) +
+          paragraph("We couldn't process your payment for your OutRay subscription.") +
+          details([
+            ["Plan", planName],
+            ["Amount", amount],
+          ]) +
+          paragraph(
+            attemptsRemaining > 0
+              ? `We'll retry your payment automatically. You have ${attemptsRemaining} attempt${attemptsRemaining === 1 ? "" : "s"} remaining before your subscription is cancelled.`
+              : "This was our final attempt. Your subscription has been cancelled and downgraded to the free plan.",
+          ) +
+          paragraph("Visit your billing page to update your payment method."),
+        action: { label: "Update Payment Method", url: billingUrl },
+        footerHtml:
+          footnote("Common reasons for payment failures include insufficient funds, an expired card, or a card declined by your bank.") +
+          footnote("If you have any questions, just reply to this email."),
+      }),
   },
 
   "subscription-reset": {
@@ -371,71 +185,27 @@ export const emailTemplates: EmailTemplates = {
       name: "John Doe",
       organizationName: "Acme Inc",
       previousPlan: "Ray",
-      dashboardUrl: "https://outray.dev/acme/settings",
+      dashboardUrl: "https://outray.co/acme/settings",
     },
-    html: ({ name, organizationName, previousPlan, dashboardUrl }) => `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Subscription Reset</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #ffffff;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #ffffff; padding: 40px 20px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px;">
-          <tr>
-            <td style="padding: 0 0 20px 0;">
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                Hi ${name},
-              </p>
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                Your organization <strong>${organizationName}</strong> has been reset from the <strong>${previousPlan}</strong> plan to the <strong>Free</strong> plan.
-              </p>
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                As part of this change, the following adjustments were made to fit within the Free plan limits:
-              </p>
-              <ul style="margin: 0 0 24px 0; padding-left: 20px; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                <li>Custom domains have been removed</li>
-                <li>Reserved subdomains reduced to 1</li>
-                <li>Tunnels reduced to 2</li>
-              </ul>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 30px 0;">
-              <a href="${dashboardUrl}" style="display: inline-block; padding: 14px 32px; background-color: #18181b; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px;">
-                View Dashboard
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 0 30px 0;">
-              <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                If you believe this was done in error or have any questions, please reply to this email.
-              </p>
-              <p style="margin: 0; font-size: 16px; line-height: 24px; color: #3f3f46;">
-                Thanks,<br>
-                The OutRay Team
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 20px 0 0 0; border-top: 1px solid #e4e4e7;">
-              <p style="margin: 0; font-size: 14px; color: #71717a;">
-                © 2026 Outray. All rights reserved.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`,
+    html: ({ name, organizationName, previousPlan, dashboardUrl }) =>
+      renderEmail({
+        title: "Your plan has\nbeen reset.",
+        preheader: `${organizationName} has moved from the ${previousPlan} plan to the Free plan.`,
+        label: "Subscription update",
+        bodyHtml:
+          paragraph(`Hi ${name},`) +
+          paragraph(`Your organization ${organizationName} has been reset from the ${previousPlan} plan to the Free plan.`) +
+          paragraph("As part of this change, the following adjustments were made to fit within the Free plan limits:") +
+          list([
+            "Custom domains have been removed",
+            "Reserved subdomains reduced to 1",
+            "Tunnels reduced to 2",
+          ]),
+        action: { label: "View Dashboard", url: dashboardUrl },
+        footerHtml:
+          footnote("If you believe this was done in error or have any questions, please reply to this email.") +
+          footnote("Thanks,\nThe OutRay Team"),
+      }),
   },
 };
 
