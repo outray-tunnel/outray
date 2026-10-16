@@ -1,27 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { redis } from "../../../lib/redis";
-import { hashToken } from "../../../lib/hash";
+import { adminJson, requireAdminAccess } from "../../../lib/admin-access.server";
 import { queryTinybird } from "../../../lib/tinybird";
 
 export const Route = createFileRoute("/api/admin/stats")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        // Admin token check
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ")
-          ? authHeader.slice("Bearer ".length)
-          : "";
-
-        if (!token) {
-          return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists) {
-          return Response.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         const url = new URL(request.url);
         const period = url.searchParams.get("period") || "24h";
@@ -60,13 +46,13 @@ export const Route = createFileRoute("/api/admin/stats")({
             Date.parse(row.time.endsWith("Z") ? row.time : `${row.time.replace(" ", "T")}Z`),
             Number(row.active_tunnels),
           ]));
-          return Response.json(Array.from({ length: points + 1 }, (_, index) => {
+          return adminJson(Array.from({ length: points + 1 }, (_, index) => {
             const time = start + index * bucketMs;
             return { time: new Date(time).toISOString(), active_tunnels: values.get(time) || 0 };
           }));
         } catch (error) {
           console.error("Tunnel analytics query failed:", error);
-          return Response.json({ error: "Failed to fetch stats" }, { status: 500 });
+          return adminJson({ error: "Failed to fetch stats" }, { status: 500 });
         }
       },
     },
