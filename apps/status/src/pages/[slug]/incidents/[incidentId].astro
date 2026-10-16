@@ -1,7 +1,7 @@
 ---
 import IncidentReport from "../../../components/IncidentReport.astro";
 import { statusPageUrl } from "../../../lib/config";
-import { findPageForRequest, loadPublicIncident } from "../../../lib/status-data";
+import { findPageForRequest, loadPublicIncident, safeLogoUrl } from "../../../lib/status-data";
 
 Astro.response.headers.set("Cache-Control", "public, max-age=15, s-maxage=15");
 const row = await findPageForRequest(Astro.request, Astro.params.slug || null);
@@ -11,4 +11,4 @@ const canonical = new URL(`incidents/${incident.id}`, statusPageUrl(row.slug)).t
 if (import.meta.env.PROD) return Astro.redirect(canonical, 308);
 const pageHref = `/${row.slug}`;
 ---
-<IncidentReport pageName={row.name} pageHref={pageHref} accent={row.accent_color} canonical={canonical} incident={incident} />
+<IncidentReport pageName={row.name} pageHref={pageHref} accent={row.accent_color} canonical={canonical} logoUrl={safeLogoUrl(row.logo_url)} incident={incident} />
