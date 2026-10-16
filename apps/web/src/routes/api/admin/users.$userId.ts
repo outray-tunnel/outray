@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { adminJson, requireAdminAccess } from "../../../lib/admin-access.server";
 import { db } from "../../../db";
 import {
   users,
@@ -10,25 +11,14 @@ import {
   subdomains,
   domains,
 } from "../../../db/schema";
-import { redis } from "../../../lib/redis";
-import { hashToken } from "../../../lib/hash";
 import { eq, count, desc, and, gte, inArray } from "drizzle-orm";
 
 export const Route = createFileRoute("/api/admin/users/$userId")({
   server: {
     handlers: {
       GET: async ({ request, params }) => {
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ")
-          ? authHeader.slice(7)
-          : "";
-        if (!token)
-          return Response.json({ error: "Unauthorized" }, { status: 401 });
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists)
-          return Response.json({ error: "Forbidden" }, { status: 403 });
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         try {
           const { userId } = params;
@@ -41,7 +31,7 @@ export const Route = createFileRoute("/api/admin/users/$userId")({
             .limit(1);
 
           if (!user)
-            return Response.json({ error: "User not found" }, { status: 404 });
+            return adminJson({ error: "User not found" }, { status: 404 });
 
           // Get user's memberships with organization details
           const membershipList = await db
@@ -130,7 +120,7 @@ export const Route = createFileRoute("/api/admin/users/$userId")({
           const lastSession = sessionList[0];
           const lastActive = lastSession?.updatedAt || null;
 
-          return Response.json({
+          return adminJson({
             user: {
               id: user.id,
               name: user.name,
@@ -155,7 +145,7 @@ export const Route = createFileRoute("/api/admin/users/$userId")({
           });
         } catch (error) {
           console.error("Admin user detail error:", error);
-          return Response.json(
+          return adminJson(
             { error: "Failed to fetch user" },
             { status: 500 }
           );
@@ -163,17 +153,8 @@ export const Route = createFileRoute("/api/admin/users/$userId")({
       },
 
       PATCH: async ({ request, params }) => {
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ")
-          ? authHeader.slice(7)
-          : "";
-        if (!token)
-          return Response.json({ error: "Unauthorized" }, { status: 401 });
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists)
-          return Response.json({ error: "Forbidden" }, { status: 403 });
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         try {
           const { userId } = params;
@@ -186,7 +167,7 @@ export const Route = createFileRoute("/api/admin/users/$userId")({
             .limit(1);
 
           if (!user)
-            return Response.json({ error: "User not found" }, { status: 404 });
+            return adminJson({ error: "User not found" }, { status: 404 });
 
           // Update user fields
           const updates: Record<string, any> = {};
@@ -200,10 +181,10 @@ export const Route = createFileRoute("/api/admin/users/$userId")({
             await db.update(users).set(updates).where(eq(users.id, userId));
           }
 
-          return Response.json({ success: true });
+          return adminJson({ success: true });
         } catch (error) {
           console.error("Admin user update error:", error);
-          return Response.json(
+          return adminJson(
             { error: "Failed to update user" },
             { status: 500 }
           );
@@ -211,17 +192,8 @@ export const Route = createFileRoute("/api/admin/users/$userId")({
       },
 
       DELETE: async ({ request, params }) => {
-        const authHeader = request.headers.get("authorization") || "";
-        const token = authHeader.startsWith("Bearer ")
-          ? authHeader.slice(7)
-          : "";
-        if (!token)
-          return Response.json({ error: "Unauthorized" }, { status: 401 });
-
-        const tokenKey = `admin:token:${hashToken(token)}`;
-        const exists = await redis.get(tokenKey);
-        if (!exists)
-          return Response.json({ error: "Forbidden" }, { status: 403 });
+        const denied = await requireAdminAccess(request);
+        if (denied) return denied;
 
         try {
           const { userId } = params;
@@ -233,15 +205,15 @@ export const Route = createFileRoute("/api/admin/users/$userId")({
             .limit(1);
 
           if (!user)
-            return Response.json({ error: "User not found" }, { status: 404 });
+            return adminJson({ error: "User not found" }, { status: 404 });
 
           // Delete user (cascades to sessions, accounts, members due to foreign keys)
           await db.delete(users).where(eq(users.id, userId));
 
-          return Response.json({ success: true });
+          return adminJson({ success: true });
         } catch (error) {
           console.error("Admin user delete error:", error);
-          return Response.json(
+          return adminJson(
             { error: "Failed to delete user" },
             { status: 500 }
           );
