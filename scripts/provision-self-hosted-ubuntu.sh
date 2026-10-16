@@ -11,25 +11,25 @@ source /etc/os-release
 # A small-host build trial can use disk-backed swap; this is not extra RAM or a
 # guarantee that every service will fit. Preserve any existing active swap.
 if ! swapon --noheadings --show=NAME | grep -q .; then
-  if [[ -e /swap-outray-ops ]]; then
-    echo '/swap-outray-ops already exists but is inactive; inspect it manually.' >&2
+  if [[ -e /swap-outray ]]; then
+    echo '/swap-outray already exists but is inactive; inspect it manually.' >&2
     exit 1
   fi
   available_kib=$(df --output=avail / | tail -n 1 | tr -d ' ')
   (( available_kib > 8 * 1024 * 1024 )) || { echo 'At least 8 GiB free disk is required before allocating trial swap.' >&2; exit 1; }
   umask 077
-  fallocate -l 4G /swap-outray-ops
-  chmod 600 /swap-outray-ops
-  mkswap /swap-outray-ops
-  swapon /swap-outray-ops
-  if ! grep -q '^/swap-outray-ops ' /etc/fstab; then
-    printf '/swap-outray-ops none swap sw 0 0\n' >> /etc/fstab
+  fallocate -l 4G /swap-outray
+  chmod 600 /swap-outray
+  mkswap /swap-outray
+  swapon /swap-outray
+  if ! grep -q '^/swap-outray ' /etc/fstab; then
+    printf '/swap-outray none swap sw 0 0\n' >> /etc/fstab
   fi
 fi
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y --no-install-recommends ca-certificates curl xz-utils rsync
+apt-get install -y --no-install-recommends ca-certificates curl git xz-utils rsync
 
 if ! command -v docker >/dev/null; then
   for existing_file in /etc/apt/keyrings/docker.asc /etc/apt/sources.list.d/docker.sources; do
@@ -70,6 +70,6 @@ else
 fi
 node --version
 npm --version
-install -m 0700 -d /opt/outray-ops /opt/outray-ops/config /opt/outray-ops/source
+install -m 0700 -d /opt/outray /opt/outray/config /opt/outray/source
 free -h
 df -h /
