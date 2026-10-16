@@ -110,8 +110,9 @@ export const auth = betterAuth({
                 recipientEmail: newSession.user.email,
                 subject,
                 htmlString: html,
-                senderEmail: "akinkunmi@outray.dev",
+                senderEmail: "akinkunmi@outray.co",
                 senderName: "Akinkunmi from OutRay",
+                replyToEmail: "akinkunmi@outray.co",
               });
               console.log("[Welcome Email] Sent to:", newSession.user.email);
             } catch (error) {
