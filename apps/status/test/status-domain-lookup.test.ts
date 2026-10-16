@@ -15,6 +15,10 @@ function customDomainLookup(pages: PageFixture[], domains: DomainFixture[]) {
   runInNewContext(compiled, {
     module, exports: module.exports, URL, Date, process: { env: { NODE_ENV: "production", OUTRAY_DEPLOYMENT_MODE: "self-hosted" } },
     require(specifier: string) {
+      if (specifier === "./runtime") return {
+        statusEnvironment: () => ({ NODE_ENV: "production", OUTRAY_DEPLOYMENT_MODE: "self-hosted" }),
+        isStatusProduction: () => true,
+      };
       if (specifier === "./config") return {
         getStatusConfig: () => ({ enabled: true, canonicalHost: "status.ops.example.net" }),
         STATUS_PAGE_SLUG: /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/,
