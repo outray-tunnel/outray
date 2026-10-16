@@ -3,6 +3,7 @@ import { requestSubscription } from "../../lib/subscriptions";
 import { getStatusConfig, statusPageUrl } from "../../lib/config";
 import { isSameOrigin, safeClientIp } from "../../lib/security";
 import { findPageForRequest, findPublishedPageById } from "../../lib/status-data";
+import { getStatusRuntime, isStatusProduction } from "../../lib/runtime";
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   const wantsJson = request.headers.get("accept")?.includes("application/json") ?? false;
@@ -11,7 +12,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     : new Response(message, { status, headers: { "Cache-Control": "no-store" } });
   const config = getStatusConfig();
   if (!config.enabled) return failure("Unavailable", 503);
-  if (process.env.NODE_ENV === "production" &&
+  if (isStatusProduction() && !getStatusRuntime() &&
       request.headers.get("x-outray-edge-secret") !== config.edgeSecret) {
     return failure("Unavailable", 503);
   }
@@ -32,7 +33,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   }
   const page = await findPublishedPageById(pageId);
   if (!page) return failure("Page not found", 404);
-  if (process.env.NODE_ENV === "production") {
+  if (isStatusProduction()) {
     const hostPage = await findPageForRequest(request, null);
     if (hostPage?.id !== page.id) return failure("Page not found", 404);
   }
@@ -54,7 +55,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   if (wantsJson) return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   const target = statusPageUrl(page.slug, config);
   // Keep the progressive-enhancement fallback on the same local renderer too.
-  if (process.env.NODE_ENV !== "production") {
+  if (!isStatusProduction()) {
     const current = new URL(request.url);
     if (current.hostname === "localhost" || current.hostname === "127.0.0.1") {
       target.host = current.host;
