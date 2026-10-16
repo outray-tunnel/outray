@@ -1,5 +1,6 @@
 import publicHosts from "../../../../shared/public-hosts";
 import instancePolicy from "../../../../shared/instance-config";
+import { getStatusRuntime, isStatusProduction, statusEnvironment } from "./runtime";
 export const STATUS_PAGE_SLUG = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 export interface StatusConfig {
@@ -15,23 +16,25 @@ export interface StatusConfig {
 }
 
 export function getStatusConfig(): StatusConfig {
-  const publicUrl = publicHosts.statusPublicOrigin();
-  if (publicUrl.protocol !== "https:" && process.env.NODE_ENV === "production") {
+  const environment = statusEnvironment();
+  const policy = instancePolicy.instanceConfig(environment);
+  const publicUrl = publicHosts.statusPublicOrigin(environment);
+  if (publicUrl.protocol !== "https:" && isStatusProduction()) {
     throw new Error("STATUS_PUBLIC_URL or OUTRAY_STATUS_URL must use HTTPS in production");
   }
-  if (process.env.NODE_ENV === "production" && !process.env.OUTRAY_STATUS_URL && !process.env.STATUS_PUBLIC_URL) {
+  if (isStatusProduction() && !environment.OUTRAY_STATUS_URL && !environment.STATUS_PUBLIC_URL) {
     throw new Error("STATUS_PUBLIC_URL or OUTRAY_STATUS_URL is required in production");
   }
   return {
     publicUrl,
     canonicalHost: publicUrl.hostname.toLowerCase().replace(/\.$/, ""),
-    databaseUrl: process.env.DATABASE_URL || "",
-    zeptoApiKey: process.env.ZEPTO_API_KEY || "",
-    fromEmail: process.env.ZEPTO_FROM_EMAIL || (instancePolicy.instanceConfig().selfHosted ? "" : "no-reply@outray.dev"),
-    rateLimitSecret: process.env.UPTIME_RATE_LIMIT_SECRET || "",
-    unsubscribeSecret: process.env.UPTIME_UNSUBSCRIBE_SECRET || "",
-    edgeSecret: process.env.STATUS_EDGE_SECRET || "",
-    enabled: process.env.UPTIME_ENABLED !== "false" && instancePolicy.instanceConfig().products.includes("uptime"),
+    databaseUrl: getStatusRuntime()?.env.HYPERDRIVE?.connectionString || environment.DATABASE_URL || "",
+    zeptoApiKey: environment.ZEPTO_API_KEY || "",
+    fromEmail: environment.ZEPTO_FROM_EMAIL || (policy.selfHosted ? "" : "no-reply@outray.dev"),
+    rateLimitSecret: environment.UPTIME_RATE_LIMIT_SECRET || "",
+    unsubscribeSecret: environment.UPTIME_UNSUBSCRIBE_SECRET || "",
+    edgeSecret: environment.STATUS_EDGE_SECRET || "",
+    enabled: environment.UPTIME_ENABLED !== "false" && policy.products.includes("uptime"),
   };
 }
 
@@ -47,13 +50,13 @@ export function statusPageUrl(
 
 export function requireProductionSecrets(config: StatusConfig): void {
   if (!config.databaseUrl) throw new Error("DATABASE_URL is required");
-  if (process.env.NODE_ENV === "production" && !config.rateLimitSecret) {
+  if (isStatusProduction() && !config.rateLimitSecret) {
     throw new Error("UPTIME_RATE_LIMIT_SECRET is required in production");
   }
-  if (process.env.NODE_ENV === "production" && !config.unsubscribeSecret) {
+  if (isStatusProduction() && !config.unsubscribeSecret) {
     throw new Error("UPTIME_UNSUBSCRIBE_SECRET is required in production");
   }
-  if (process.env.NODE_ENV === "production" && !config.edgeSecret) {
+  if (isStatusProduction() && !getStatusRuntime() && !config.edgeSecret) {
     throw new Error("STATUS_EDGE_SECRET is required in production");
   }
 }
