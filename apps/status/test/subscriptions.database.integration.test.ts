@@ -6,6 +6,7 @@ import { runInNewContext } from "node:vm";
 import pg from "pg";
 import ts from "typescript";
 import * as security from "../src/lib/security";
+import { renderSubscriptionConfirmationEmail } from "../src/lib/subscription-email";
 
 function loadModule<T>(path: string, imports: Record<string, unknown>, globals: Record<string, unknown> = {}): T {
   const module = { exports: {} };
@@ -86,6 +87,7 @@ test("actual public subscription SQL respects pauses, consent preservation, conf
     "node:crypto": crypto, "./config": { getStatusConfig: () => config }, "./db": db,
     "./status-data": reader, "./security": security,
     "./runtime": { statusEnvironment: () => ({}) },
+    "./subscription-email": { renderSubscriptionConfirmationEmail },
   }, { fetch: async () => { mailCount++; return new Response("{}", { status: mailFails ? 503 : 200 }); } });
   const state = async () => (await pool.query("SELECT id,status,token_hash,token_expires_at,confirmed_at FROM uptime_subscribers WHERE page_id=$1 ORDER BY id", [pageId])).rows;
   const pause = (enabled: boolean) => pool.query("UPDATE uptime_status_pages SET subscriptions_enabled=$2 WHERE id=$1", [pageId, enabled]);
