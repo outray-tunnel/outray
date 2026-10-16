@@ -3,6 +3,7 @@ import { getStatusConfig } from "./config";
 import { getPool, query } from "./db";
 import { hashRateKey, makeUnsubscribeToken, newToken, normalizeEmail, tokenHash, verifyUnsubscribeToken } from "./security";
 import { findPublishedPageById } from "./status-data";
+import { statusEnvironment } from "./runtime";
 
 interface SubscriberRow {
   id: string;
@@ -245,7 +246,7 @@ async function sendConfirmationEmail(email: string, pageName: string, token: str
       Authorization: `Zoho-enczapikey ${config.zeptoApiKey}`,
     },
     body: JSON.stringify({
-      from: { address: config.fromEmail, name: process.env.ZEPTO_FROM_NAME || "OutRay Status" },
+      from: { address: config.fromEmail, name: statusEnvironment().ZEPTO_FROM_NAME || "OutRay Status" },
       to: [{ email_address: { address: email, name: email.split("@")[0] } }],
       subject: `Confirm your subscription to ${pageName}`,
       htmlbody: `<!doctype html><html><body style="background:#09090b;color:#f4f4f5;font-family:Arial,sans-serif;padding:32px"><div style="max-width:560px;margin:auto"><h1 style="font-size:24px">Confirm your subscription</h1><p>You'll receive team-published incident updates for ${escapeHtml(pageName)} after confirming your email.</p><p><a href="${escapeHtml(url.toString())}" style="display:inline-block;background:#8367c7;color:white;text-decoration:none;border-radius:8px;padding:12px 18px">Confirm email</a></p><p style="color:#a1a1aa;font-size:13px">This link expires in ${CONFIRMATION_HOURS} hours. If you did not request this, ignore this email.</p></div></body></html>`,
