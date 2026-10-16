@@ -16,6 +16,9 @@ export const previewConfigurationLabel = "com.outray.preview.configuration";
 export const previewImageLabel = "com.outray.console-preview";
 export const gatewayStatusLabel = "com.outray.preview.status";
 export const gatewayIngestLabel = "com.outray.preview.ingest";
+export const statusPageLogosVolume = `${project}-status-page-logos`;
+export const statusPageLogosDirectory = "/var/lib/outray/status-page-logos";
+const statusPageLogosLabel = "com.outray.console-preview.status-page-logos";
 export const pinnedCaddyImage = "caddy:2.11.7-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f";
 const gateway = "outray-ops-preview-caddy", gatewayEgress = "outray-ops-preview-egress";
 const configDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../deploy/self-hosted/preview");
@@ -48,7 +51,7 @@ export function approvedTinybirdReadConfiguration(values) {
 }
 
 export function assertConsoleEnvironment(values, { enableGithub = false, enableTinybird = false } = {}) {
-  const forbidden = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "TINYBIRD_INGEST_TOKEN", "TINYBIRD_TUNNEL_INGEST_TOKEN", "OUTRAY_SIGNUP_ALLOWED_DOMAINS", "ZEPTO_API_KEY", "ZEPTO_FROM_EMAIL", "PLUNK_API_KEY", "XAI_API_KEY", "PAYSTACK_SECRET_KEY", "POLAR_ACCESS_TOKEN", "POLAR_WEBHOOK_SECRET", "HUGEICONS_LICENSE_KEY"];
+  const forbidden = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "TINYBIRD_INGEST_TOKEN", "TINYBIRD_TUNNEL_INGEST_TOKEN", "OUTRAY_SIGNUP_ALLOWED_DOMAINS", "ZEPTO_API_KEY", "ZEPTO_FROM_EMAIL", "PLUNK_API_KEY", "XAI_API_KEY", "PAYSTACK_SECRET_KEY", "POLAR_ACCESS_TOKEN", "POLAR_WEBHOOK_SECRET", "HUGEICONS_LICENSE_KEY", "DELIVERY_UPLOAD_TOKEN"];
   if (!enableGithub) forbidden.push("GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "OUTRAY_SIGNUP_ALLOWED_EMAILS");
   if (!enableTinybird) forbidden.push("TINYBIRD_API_HOST", "TINYBIRD_QUERY_TOKEN");
   for (const key of forbidden) if (values[key]) fail("Console preview requires other providers, telemetry ingestion, email, billing, license and domain-wide signup to remain disabled.");
@@ -58,11 +61,16 @@ export function assertConsoleEnvironment(values, { enableGithub = false, enableT
     if (approvedConsoleEmails(values.OUTRAY_SIGNUP_ALLOWED_EMAILS) !== values.OUTRAY_SIGNUP_ALLOWED_EMAILS) fail("GitHub console email policy must be normalized and explicit.");
   }
   for (const key of ["APP_URL", "CONSOLE_PUBLIC_URL", "BETTER_AUTH_URL"]) if (values[key] !== "https://ops.outray.dev") fail("Console preview is restricted to the authorized dashboard origin.");
+  // A missing path is accepted only for validating a pre-storage container
+  // during an explicit owned replacement. New definitions always set it.
+  if (values.STATUS_PAGE_LOGOS_DIR !== undefined && values.STATUS_PAGE_LOGOS_DIR !== statusPageLogosDirectory) fail("Console logos require their dedicated persistent directory.");
   if (values.OUTRAY_DEPLOYMENT_MODE !== "self-hosted" || values.OUTRAY_ENABLED !== "false" || values.UPTIME_PROBES_ENABLED !== "false" || values.UPTIME_NOTIFICATIONS_ENABLED !== "false" || values.UPTIME_EGRESS_POLICY_READY !== "false") fail("Console preview must retain the self-hosted trial and disabled public worker policy.");
 }
 
 export function consoleDefinition(config, rawSource = {}, { enableGithub = false, enableTinybird = false } = {}) {
   const definition = serviceDefinitions(config).web;
+  definition.env.STATUS_PAGE_LOGOS_DIR = statusPageLogosDirectory;
+  definition.volume = `${statusPageLogosVolume}:${statusPageLogosDirectory}`;
   // These explicit assignments are the complete external credential whitelist;
   // never spread rawSource or send APPEND credentials to the public dashboard.
   if (enableTinybird) Object.assign(definition.env, approvedTinybirdReadConfiguration(rawSource));
@@ -88,16 +96,29 @@ export function containerEnvironment(metadata) {
   return Object.fromEntries((metadata?.Config?.Env || []).map((item) => { const index = item.indexOf("="); return [item.slice(0, index), item.slice(index + 1)]; }));
 }
 
+export function consoleLogoVolumeLabels(config) {
+  return { ...labelsFor(config), [previewImageLabel]: "true", [statusPageLogosLabel]: "true" };
+}
+
+export function safeConsoleLogoVolume(metadata, labels) {
+  return metadata?.Name === statusPageLogosVolume && metadata.Driver === "local" && metadata.Scope === "local"
+    && !Object.keys(metadata.Options || {}).length && ownedResource(metadata, labels);
+}
+
 export function safeConsoleContainer(metadata, expectedImage, labels, expectedEnvironment, { enableGithub = false, enableTinybird = false } = {}) {
   const values = containerEnvironment(metadata);
   try { assertConsoleEnvironment(values, { enableGithub, enableTinybird }); } catch { return false; }
   const host = metadata?.HostConfig || {}, networks = [project, ...(enableGithub || enableTinybird ? [webEgressNetwork] : [])].sort();
+  const mounts = metadata?.Mounts || [], withLogos = values.STATUS_PAGE_LOGOS_DIR === statusPageLogosDirectory;
+  const logoMount = (mount) => mount.Type === "volume" && mount.Name === statusPageLogosVolume
+    && mount.Destination === statusPageLogosDirectory && mount.RW === true;
   return ownedResource({ Labels: metadata?.Config?.Labels }, labels) && metadata.Image === expectedImage && metadata.Config?.User === "node"
     && metadata.Config.Labels?.[githubLabel] === (enableGithub ? "true" : undefined) && metadata.Config.Labels?.[tinybirdLabel] === (enableTinybird ? "true" : undefined)
     && JSON.stringify(metadata.Config.Cmd) === JSON.stringify(["node", "apps/web/.output/server/index.mjs"])
     && host.ReadonlyRootfs && !host.Privileged && !host.PublishAllPorts && !Object.keys(host.PortBindings || {}).length
     && host.CapDrop?.includes("ALL") && !host.CapAdd?.length && host.SecurityOpt?.includes("no-new-privileges:true")
-    && (metadata.Mounts || []).every((mount) => mount.Type === "tmpfs")
+    && mounts.every((mount) => mount.Type === "tmpfs" || (withLogos && logoMount(mount)))
+    && mounts.filter(logoMount).length === (withLogos ? 1 : 0)
     && (!expectedEnvironment || Object.entries(expectedEnvironment).every(([key, value]) => values[key] === value))
     && host.NetworkMode === project && JSON.stringify(Object.keys(metadata.NetworkSettings?.Networks || {}).sort()) === JSON.stringify(networks);
 }
@@ -152,6 +173,8 @@ export function safeMaintenanceGateway(metadata, caddyId, rehearsalLabels, direc
 
 export const previewRuntimeAudit = "const fs=require('node:fs');const m=JSON.parse(fs.readFileSync('/app/self-hosted-artifact-manifest.json'));const v=JSON.parse(fs.readFileSync('/app/apps/web/.output/server/node_modules/seroval/package.json')).version;const p=v.split('.').map(Number);if(m.iconMode!=='free'||m.deploymentMode!=='self-hosted'||m.targetNodeMajor!==22||process.versions.node.split('.')[0]!=='22'||fs.existsSync('/app/node_modules')||fs.existsSync('/app/packages')||!/^\\d+\\.\\d+\\.\\d+$/.test(v)||p[0]<1||(p[0]===1&&(p[1]<6||(p[1]===6&&p[2]<3))))process.exit(1)";
 
+export const consoleLogoVolumeAudit = `const fs=require('node:fs');const crypto=require('node:crypto');const dir=${JSON.stringify(statusPageLogosDirectory)};const info=fs.lstatSync(dir);if(!info.isDirectory()||info.isSymbolicLink()||info.uid!==process.getuid())process.exit(1);const path=dir+'/.write-check-'+crypto.randomUUID();let descriptor,created=false;try{descriptor=fs.openSync(path,'wx',0o600);created=true;fs.writeFileSync(descriptor,'logo-storage-ready');fs.closeSync(descriptor);descriptor=undefined;if(fs.readFileSync(path,'utf8')!=='logo-storage-ready')process.exitCode=1;}finally{if(descriptor!==undefined)fs.closeSync(descriptor);if(created)fs.unlinkSync(path);}`;
+
 export async function runConsolePreview(argv = process.argv.slice(2)) {
   const options = consoleOptions(argv), info = lstatSync(options.file);
   const requiresWebEgress = options.enableGithub || options.enableTinybird;
@@ -183,12 +206,21 @@ export async function runConsolePreview(argv = process.argv.slice(2)) {
   const labels = consoleLabels(config, imageMetadata.Id, definition, options);
   const egressLabels = { ...rehearsalLabels, [previewImageLabel]: "true" }, egress = inspect("network", webEgressNetwork);
   if (egress && (!ownedResource(egress, egressLabels) || egress.Internal || egress.Driver !== "bridge" || Object.values(egress.Containers || {}).some((member) => member.Name !== publicWeb))) fail("Console web-only egress network is unlabelled, mismatched or shared; refusing to reuse it.");
+  const logoVolumeLabels = consoleLogoVolumeLabels(config), logoVolume = inspect("volume", statusPageLogosVolume);
+  if (logoVolume && !safeConsoleLogoVolume(logoVolume, logoVolumeLabels)) fail("Console logo volume is unlabelled, mismatched or not a plain local volume; refusing to attach it.");
   let existing = inspect("container", publicWeb);
   const exact = existing && safeConsoleContainer(existing, imageMetadata.Id, labels, definition.env, options);
   if (existing && !exact) {
     if (!options.replaceOwned) fail("Existing console preview differs; use explicit --replace-owned only after putting the owned gateway into maintenance.");
     const previousModes = consoleModesFromContainer(existing);
-    const previousDefinition = consoleDefinition(config, containerEnvironment(existing), previousModes);
+    const previousEnvironment = containerEnvironment(existing);
+    const previousDefinition = consoleDefinition(config, previousEnvironment, previousModes);
+    if (previousEnvironment.STATUS_PAGE_LOGOS_DIR === undefined) {
+      // Reconstruct the exact legacy fingerprint; never add a volume to an
+      // existing container or accept an unowned container as an upgrade source.
+      delete previousDefinition.env.STATUS_PAGE_LOGOS_DIR;
+      delete previousDefinition.volume;
+    }
     const previousLabels = consoleLabels(config, existing.Image, previousDefinition, previousModes);
     const previousImage = inspect("image", existing.Image);
     if (!previousImage || previousImage.Config?.User !== "node" || previousImage.Config?.Labels?.[previewImageLabel] !== "true" || !safeConsoleContainer(existing, existing.Image, previousLabels, previousDefinition.env, previousModes)) fail("Previous console preview is unlabelled or unsafe; refusing to replace it.");
@@ -199,10 +231,15 @@ export async function runConsolePreview(argv = process.argv.slice(2)) {
   }
   // Check the new runtime before stopping any old console; no runtime credentials.
   required(["run", "--rm", "--name", `${publicWeb}-audit-${randomUUID()}`, "--network", "none", "--read-only", "--user", "node", "--cap-drop", "ALL", "--security-opt", "no-new-privileges:true", options.image, "node", "-e", previewRuntimeAudit]);
+  if (!logoVolume) required(["volume", "create", "--driver", "local", ...Object.entries(logoVolumeLabels).flatMap(([key, value]) => ["--label", `${key}=${value}`]), statusPageLogosVolume]);
+  if (!safeConsoleLogoVolume(inspect("volume", statusPageLogosVolume), logoVolumeLabels)) fail("Console logo volume ownership changed; existing console is retained.");
+  // This probe has no network or credentials. Fresh volumes inherit the image's
+  // node ownership; incompatible existing data is never automatically chowned.
+  required(["run", "--rm", "--name", `${publicWeb}-logo-audit-${randomUUID()}`, "--network", "none", "--read-only", "--user", "node", "--cap-drop", "ALL", "--security-opt", "no-new-privileges:true", "--mount", `type=volume,source=${statusPageLogosVolume},target=${statusPageLogosDirectory}`, options.image, "node", "-e", consoleLogoVolumeAudit]);
   if (existing && !exact) {
     required(["stop", "--time", "10", existing.Id]);
     required(["rm", existing.Id]); // Exact owned container only, never --volumes.
-    console.log("Replaced the exact owned console container; database, Redis, certificate volumes and other apps are retained.");
+    console.log("Replaced the exact owned console container; database, Redis, logo and certificate volumes and other apps are retained.");
     existing = null;
   }
   if (requiresWebEgress && !egress) required(["network", "create", "--driver", "bridge", ...Object.entries(egressLabels).flatMap(([key, value]) => ["--label", `${key}=${value}`]), webEgressNetwork]);
