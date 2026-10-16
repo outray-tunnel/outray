@@ -8,9 +8,10 @@ interface Props {
   pageHref: string;
   accent: string;
   canonical: string;
+  logoUrl?: string | null;
   incident: PublicIncident;
 }
-const { pageName, pageHref, accent, canonical, incident } = Astro.props;
+const { pageName, pageHref, accent, canonical, logoUrl, incident } = Astro.props;
 const backLabel = /\bstatus$/i.test(pageName.trim()) ? pageName : `${pageName} status`;
 const formatDate = (date: Date) => new Intl.DateTimeFormat("en", {
   dateStyle: "long", timeStyle: "short", timeZone: "UTC",
@@ -27,7 +28,7 @@ const badgeClasses = stage === "resolved" || stage === "recovered"
       ? "border-[#245886] text-[#93c5fd]"
       : "border-[#7f343f] text-[#fda4af]";
 ---
-<BaseLayout title={`${incident.title} · ${pageName}`} description={`Incident report for ${incident.title} on ${pageName}.`} accent={accent} canonical={canonical}>
+<BaseLayout title={`${incident.title} · ${pageName}`} description={`Incident report for ${incident.title} on ${pageName}.`} accent={accent} canonical={canonical} faviconUrl={logoUrl}>
   <main class="mx-auto min-h-[calc(100dvh_-_73px)] w-[min(100%_-_48px,800px)] pt-11 pb-24 max-[600px]:w-[min(100%_-_32px,800px)]">
     <a class="mb-[30px] inline-flex items-center gap-[6px] text-[13px] text-[#a1a1aa] no-underline hover:text-white" href={pageHref}><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m12.5 4.5-5.5 5.5 5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>{backLabel}</a>
     <div class="rounded-[14px] border border-[#303036] bg-[#101012] p-[clamp(20px,5vw,36px)]">
