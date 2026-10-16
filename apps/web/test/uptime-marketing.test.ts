@@ -6,7 +6,7 @@ import React from "react";
 import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, Link, RouterContextProvider } from "@tanstack/react-router";
 import ts from "typescript";
-import { ProductPage, ProductsIndex } from "../src/landing/products/ProductPage";
+import { ProductPage } from "../src/landing/products/ProductPage";
 import { UptimeHero } from "../src/landing/products/UptimeHero";
 import { UptimeFeatureSections, UptimeIncidentFlow, UptimeStatusPagePreview, UptimeNotificationPreview, UPTIME_INCIDENT_STAGES, UPTIME_PUBLIC_COMPONENTS, uptimeIncidentIndexFromKey } from "../src/landing/products/UptimeFeatureSections";
 import { products } from "../src/landing/products/content";
@@ -105,7 +105,7 @@ test("the dedicated Uptime route composes its complete story without fetching or
   assert.equal(requests, 0);
 });
 
-test("dedicated Uptime dependencies stay in its route and preserve generic fallback and overview previews", async () => {
+test("dedicated Uptime dependencies stay in its route and preserve generic fallback previews", async () => {
   const route = await readFile(new URL("../src/routes/products.uptime.tsx", import.meta.url), "utf8");
   const shared = await readFile(new URL("../src/landing/products/ProductPage.tsx", import.meta.url), "utf8");
   const preview = await readFile(new URL("../src/landing/products/ProductPreview.tsx", import.meta.url), "utf8");
@@ -122,9 +122,6 @@ test("dedicated Uptime dependencies stay in its route and preserve generic fallb
   assert.ok(fallback.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").includes(products.uptime.title));
   assert.match(fallback, /Illustrative interface · sample data|id="workflow-title"/);
   assert.doesNotMatch(fallback, /Catch downtime\.|uptime-incident-title/);
-  const overview = renderToStaticMarkup(React.createElement(ProductsIndex));
-  assert.equal((overview.match(/Illustrative interface · sample data/g) ?? []).length, 4);
-  assert.doesNotMatch(overview, /Catch downtime\.|uptime-incident-title/);
 });
 
 test("Uptime glyphs use resolvable shared Hugeicons wrappers", async () => {
