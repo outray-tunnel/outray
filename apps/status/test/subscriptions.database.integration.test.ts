@@ -76,7 +76,7 @@ test("actual public subscription SQL respects pauses, consent preservation, conf
   };
   const reader = loadModule<{
     findPublishedPageById: (id: string) => Promise<{ subscriptions_enabled: boolean }>;
-  }>("../src/lib/status-data.ts", { "./db": db, "./config": { statusPageUrl: () => new URL("https://fixture.status.example.test/") } });
+  }>("../src/lib/status-data.ts", { "./db": db, "./config": { statusPageUrl: () => new URL("https://fixture.status.example.test/") }, "./runtime": { statusEnvironment: () => ({}), isStatusProduction: () => false } });
   const api = loadModule<{
     requestSubscription: (pageId: string, email: string, ip: string) => Promise<string>;
     inspectConfirmation: (token: string) => Promise<unknown>;
@@ -85,6 +85,7 @@ test("actual public subscription SQL respects pauses, consent preservation, conf
   }>("../src/lib/subscriptions.ts", {
     "node:crypto": crypto, "./config": { getStatusConfig: () => config }, "./db": db,
     "./status-data": reader, "./security": security,
+    "./runtime": { statusEnvironment: () => ({}) },
   }, { fetch: async () => { mailCount++; return new Response("{}", { status: mailFails ? 503 : 200 }); } });
   const state = async () => (await pool.query("SELECT id,status,token_hash,token_expires_at,confirmed_at FROM uptime_subscribers WHERE page_id=$1 ORDER BY id", [pageId])).rows;
   const pause = (enabled: boolean) => pool.query("UPDATE uptime_status_pages SET subscriptions_enabled=$2 WHERE id=$1", [pageId, enabled]);
