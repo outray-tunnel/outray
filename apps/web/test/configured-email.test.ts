@@ -44,5 +44,5 @@ test("hosted email defaults and explicit sender overrides remain compatible", as
     await sendViaZepto(message);
     await sendViaZepto({ ...message, senderEmail: "Support <support@example.net>", senderName: "Support" });
   });
-  assert.deepEqual(senders, [{ address: "no-reply@outray.dev", name: "OutRay" }, { address: "support@example.net", name: "Support" }]);
+  assert.deepEqual(senders, [{ address: "no-reply@outray.co", name: "OutRay" }, { address: "support@example.net", name: "Support" }]);
 });
