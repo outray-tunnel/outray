@@ -186,7 +186,11 @@ export async function runUpdate(args = process.argv.slice(2), dependencies = {})
   let docker, dockerEndpoint, candidateCompose, waitForHealth, frozen = [];
   let previousProbeLifecycle, targetProbeLifecycle, probeSupervisorStopped = false;
   const resumeInfrastructure = async () => {
-    for (const container of [...frozen].reverse()) {
+    // Caddy stays attached while paused, retaining its fixed trusted-proxy IP.
+    // Resume it first before any recovery/replacement can start dynamic apps.
+    const caddyId = oldContainers?.get("caddy")?.Id;
+    const gatewayFirst = [...frozen.filter((id) => id === caddyId), ...frozen.filter((id) => id !== caddyId).reverse()];
+    for (const container of gatewayFirst) {
       const result = await docker(["unpause", container]);
       if (result.status !== 0) fail("Could not unpause infrastructure; inspect the update record before retrying.");
       frozen = frozen.filter((value) => value !== container);
