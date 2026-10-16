@@ -1,10 +1,11 @@
 import { randomBytes } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { isIP } from "node:net";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { parseEnv } from "node:util";
+import { acquireInstallationLock } from "./self-hosted-operation-lock.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const template = resolve(root, "deploy/self-hosted/.env.example");
@@ -117,9 +118,11 @@ function option(args, key, fallback) {
   return args[index + 1];
 }
 
-export async function main(args = process.argv.slice(2)) {
+export async function main(args = process.argv.slice(2), dependencies = {}) {
+  const checkout = dependencies.root || root, spawn = dependencies.spawn || spawnSync;
+  const ambient = dependencies.env || process.env;
   const command = args[0];
-  const file = resolve(root, option(args, "--file", ".env.self-hosted"));
+  const file = resolve(checkout, option(args, "--file", ".env.self-hosted"));
   if (command === "init") {
     initialize(file, option(args, "--domain"), option(args, "--email"));
     console.log("Created private self-hosted configuration. Fill OAuth/Tinybird credentials, back up the master key, then run npm run self-host:check. Free icons need no build credential. No services were started.");
@@ -132,35 +135,69 @@ export async function main(args = process.argv.slice(2)) {
   if (errors.length) throw new Error(`Configuration incomplete:\n${errors.map((error) => `- ${error}`).join("\n")}`);
   console.log("Self-hosted configuration passes local checks. No credential values were printed.");
   if (command === "check") return;
-  const dockerArgs = ["compose", "--project-name", "outray-self-hosted", "--env-file", file, "--file", resolve(root, "deploy/self-hosted/compose.yaml")];
-  if (env.OUTRAY_ICON_MODE !== "free" && env.HUGEICONS_LICENSE_KEY?.trim() && !/^(?:your_|replace_|CHANGE_ME)/i.test(env.HUGEICONS_LICENSE_KEY)) {
-    dockerArgs.push("--file", resolve(root, "deploy/self-hosted/compose.pro-icons.yaml"));
+  const localEndpoint = /^unix:\/\/\/[^\r\n\0]+$/;
+  if (ambient.DOCKER_HOST && !localEndpoint.test(ambient.DOCKER_HOST)) throw new Error("Self-hosted setup requires a local Unix Docker daemon, not a remote Docker host.");
+  const hostEnv = Object.fromEntries(["PATH", "HOME", "SSH_AUTH_SOCK", "XDG_RUNTIME_DIR", "DOCKER_CONFIG"].filter((key) => ambient[key] !== undefined).map((key) => [key, ambient[key]]));
+  let endpoint = ambient.DOCKER_HOST;
+  if (!endpoint) {
+    const context = spawn("docker", ["context", "inspect", "--format", "{{.Endpoints.docker.Host}}"], { env: { ...hostEnv, ...(ambient.DOCKER_CONTEXT ? { DOCKER_CONTEXT: ambient.DOCKER_CONTEXT } : {}) }, encoding: "utf8", timeout: 30_000 });
+    if (context.status !== 0) throw new Error("Cannot inspect the local Docker context.");
+    endpoint = String(context.stdout).trim();
   }
-  const workerEnabled = env.UPTIME_PROBES_ENABLED === "true" || env.UPTIME_NOTIFICATIONS_ENABLED === "true";
-  let probe;
-  if (workerEnabled) {
-    if (process.platform !== "linux" || process.getuid?.() !== 0) throw new Error("The isolated Uptime worker requires a root-managed Linux Docker host.");
-    probe = await import("./self-hosted-probe-lifecycle.mjs");
-    dockerArgs.push("--profile", "uptime-worker");
-    await probe.manageProbeSupervisor("stop", { root, envFile: file });
-    const infrastructure = spawnSync("docker", [...dockerArgs, "up", "--detach", "--wait", "postgres", "redis"], { cwd: root, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"], timeout: 180_000 });
-    if (infrastructure.status !== 0) throw new Error("Database/Redis startup failed; no Uptime worker was activated.");
-    const id = spawnSync("docker", [...dockerArgs, "ps", "--quiet", "postgres"], { cwd: root, env: { ...process.env, ...env }, encoding: "utf8" });
-    if (id.status !== 0 || !/^[a-f0-9]{64}$/.test(id.stdout.trim())) throw new Error("Cannot identify the standard PostgreSQL service.");
-    const inspected = spawnSync("docker", ["inspect", id.stdout.trim()], { encoding: "utf8" });
-    if (inspected.status !== 0) throw new Error("Cannot inspect the standard PostgreSQL service.");
-    const [pg] = JSON.parse(inspected.stdout);
-    if (pg.Config?.Labels?.["com.docker.compose.project"] !== "outray-self-hosted" || pg.Config.Labels["com.docker.compose.service"] !== "postgres") throw new Error("Unexpected database ownership; Uptime worker was not activated.");
-    Object.assign(env, probe.probeComposeEnvironment(env, pg.NetworkSettings?.Networks?.["outray-self-hosted_database"]?.IPAddress));
-  }
-  dockerArgs.push("up", "--detach", "--build");
-  const result = spawnSync("docker", dockerArgs, { cwd: root, env: { ...process.env, ...env }, stdio: "inherit" });
-  if (result.error) throw new Error("Could not start Docker Compose. Install Docker Engine/Compose and check its daemon.");
-  if (result.status !== 0) throw new Error("Docker Compose did not complete successfully; inspect its service logs");
-  if (probe) {
-    await probe.activateStandardProbe({ root, envFile: file });
-    await probe.manageProbeSupervisor("start", { root, envFile: file });
-  }
+  if (!localEndpoint.test(endpoint)) throw new Error("Self-hosted setup requires a local Unix Docker daemon, not a remote Docker context.");
+  const docker = (args, settings = {}) => {
+    const environment = { ...hostEnv, ...env };
+    for (const key of ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH"]) delete environment[key];
+    return spawn("docker", ["--host", endpoint, ...args], { cwd: checkout, env: environment, ...settings });
+  };
+  const release = await acquireInstallationLock(checkout);
+  try {
+    const dockerArgs = ["compose", "--project-name", "outray-self-hosted", "--env-file", file, "--file", resolve(checkout, "deploy/self-hosted/compose.yaml")];
+    if (env.OUTRAY_ICON_MODE !== "free" && env.HUGEICONS_LICENSE_KEY?.trim() && !/^(?:your_|replace_|CHANGE_ME)/i.test(env.HUGEICONS_LICENSE_KEY)) {
+      dockerArgs.push("--file", resolve(checkout, "deploy/self-hosted/compose.pro-icons.yaml"));
+    }
+    const workerEnabled = env.UPTIME_PROBES_ENABLED === "true" || env.UPTIME_NOTIFICATIONS_ENABLED === "true";
+    const managedHost = (dependencies.platform || process.platform) === "linux" && (dependencies.uid ?? process.getuid?.()) === 0;
+    if (workerEnabled && !managedHost) throw new Error("The isolated Uptime worker requires a root-managed Linux Docker host.");
+    let probe;
+    if (managedHost || workerEnabled || existsSync("/etc/systemd/system/outray-self-hosted-probe.service")) {
+      probe = dependencies.probe || await import("./self-hosted-probe-lifecycle.mjs");
+      await probe.manageProbeSupervisor("stop", { root: checkout, envFile: file });
+    }
+    if (!workerEnabled) {
+      const found = docker(["ps", "-aq", "--filter", "label=com.docker.compose.project=outray-self-hosted", "--filter", "label=com.docker.compose.service=uptime-probe"], { encoding: "utf8", timeout: 30_000 });
+      if (found.status !== 0) throw new Error("Cannot inspect the disabled standard Uptime worker.");
+      const ids = String(found.stdout).trim().split(/\s+/).filter(Boolean);
+      if (ids.length > 1 || ids.some((id) => !/^[a-f0-9]{64}$/.test(id))) throw new Error("Disabled Uptime worker identity is ambiguous; no unrelated containers were stopped.");
+      if (ids.length) {
+        const inspected = docker(["container", "inspect", ids[0]], { encoding: "utf8", timeout: 30_000 });
+        let containers;
+        try { containers = JSON.parse(inspected.stdout); } catch { throw new Error("Cannot verify the disabled standard Uptime worker."); }
+        const worker = containers?.[0];
+        if (inspected.status !== 0 || !Array.isArray(containers) || containers.length !== 1 || worker?.Id !== ids[0] || worker.Config?.Labels?.["com.docker.compose.project"] !== "outray-self-hosted" || worker.Config?.Labels?.["com.docker.compose.service"] !== "uptime-probe") throw new Error("Disabled Uptime worker ownership changed; no unrelated containers were stopped.");
+        if (worker.State?.Running && docker(["stop", "--time", "30", worker.Id], { timeout: 60_000, stdio: ["ignore", "pipe", "pipe"] }).status !== 0) throw new Error("Could not stop the disabled standard Uptime worker.");
+      }
+    } else {
+      dockerArgs.push("--profile", "uptime-worker");
+      const infrastructure = docker([...dockerArgs, "up", "--detach", "--wait", "postgres", "redis"], { stdio: ["ignore", "pipe", "pipe"], timeout: 180_000 });
+      if (infrastructure.status !== 0) throw new Error("Database/Redis startup failed; no Uptime worker was activated.");
+      const id = docker([...dockerArgs, "ps", "--quiet", "postgres"], { encoding: "utf8", timeout: 30_000 });
+      if (id.status !== 0 || !/^[a-f0-9]{64}$/.test(id.stdout.trim())) throw new Error("Cannot identify the standard PostgreSQL service.");
+      const inspected = docker(["container", "inspect", id.stdout.trim()], { encoding: "utf8", timeout: 30_000 });
+      if (inspected.status !== 0) throw new Error("Cannot inspect the standard PostgreSQL service.");
+      const [pg] = JSON.parse(inspected.stdout);
+      if (pg.Config?.Labels?.["com.docker.compose.project"] !== "outray-self-hosted" || pg.Config.Labels["com.docker.compose.service"] !== "postgres") throw new Error("Unexpected database ownership; Uptime worker was not activated.");
+      Object.assign(env, probe.probeComposeEnvironment(env, pg.NetworkSettings?.Networks?.["outray-self-hosted_database"]?.IPAddress));
+    }
+    dockerArgs.push("up", "--detach", "--build");
+    const result = docker(dockerArgs, { stdio: "inherit" });
+    if (result.error) throw new Error("Could not start Docker Compose. Install Docker Engine/Compose and check its daemon.");
+    if (result.status !== 0) throw new Error("Docker Compose did not complete successfully; inspect its service logs");
+    if (workerEnabled) {
+      await probe.activateStandardProbe({ root: checkout, envFile: file, endpoint, allowUpdateLock: true });
+      await probe.manageProbeSupervisor("start", { root: checkout, envFile: file });
+    }
+  } finally { await release(); }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
