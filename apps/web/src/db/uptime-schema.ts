@@ -113,6 +113,10 @@ export const uptimeStatusPages = pgTable(
     published: boolean("published").notNull().default(false),
     subscriptionsEnabled: boolean("subscriptions_enabled").notNull().default(true),
     domainId: text("domain_id").unique().references(() => domains.id, { onDelete: "set null" }),
+    // Hosted deployments persist the exact provider resource used to issue the
+    // canonical page hostname certificate. Self-hosted pages leave these null.
+    providerId: text("provider_id"),
+    providerStatus: text("provider_status"),
     createdAt: timestamptz("created_at").notNull().defaultNow(),
     updatedAt: timestamptz("updated_at").notNull().defaultNow().$onUpdate(() => new Date()),
   },
