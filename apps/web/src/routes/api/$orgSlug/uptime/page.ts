@@ -6,6 +6,10 @@ import { uptimeStatusGroups, uptimeStatusPages } from "@/db/uptime-schema";
 import { badInput, jsonBody, loadPage, notFound, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
 import { safeUptimeSlug, textField } from "@/lib/uptime/validation";
 import { isAlertManagerRole } from "@/lib/observability/alert-validation";
+import {
+  ensureCanonicalStatusHostname,
+  statusDomainProviderResponse,
+} from "@/lib/uptime/status-domain-provider.server";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
   server: {
@@ -88,6 +92,50 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
         if (Object.hasOwn(body, "published")) {
           if (typeof body.published !== "boolean") return badInput("Published must be true or false", "published");
           update.published = body.published;
+        }
+
+        if (body.published === true) {
+          const [current] = await db.select().from(uptimeStatusPages)
+            .where(eq(uptimeStatusPages.organizationId, access.organization.id)).limit(1);
+          if (!current) return notFound("Status page");
+
+          let provisioning;
+          try {
+            provisioning = await ensureCanonicalStatusHostname({
+              slug: current.slug,
+              pageId: current.id,
+              providerId: current.providerId,
+              persistProviderResource: async (resource) => {
+                await db.update(uptimeStatusPages).set({
+                  providerId: resource.providerId,
+                  providerStatus: resource.providerStatus,
+                  updatedAt: new Date(),
+                }).where(eq(uptimeStatusPages.id, current.id));
+              },
+            });
+          } catch (error) {
+            return statusDomainProviderResponse(error);
+          }
+
+          if (provisioning) {
+            update.providerId = provisioning.providerId;
+            update.providerStatus = provisioning.providerStatus;
+            if (!provisioning.ready) {
+              // Apply any harmless settings in the same request but never make
+              // a page public until both hostname and certificate are active.
+              update.published = current.published;
+              const [pendingPage] = await db.update(uptimeStatusPages).set(update)
+                .where(eq(uptimeStatusPages.organizationId, access.organization.id)).returning();
+              if (provisioning.failed) {
+                return Response.json({ error: "Status page address provisioning failed" }, { status: 503 });
+              }
+              return Response.json({
+                page: pendingPage,
+                provisioning: true,
+                hostname: provisioning.hostname,
+              }, { status: 202 });
+            }
+          }
         }
         const [page] = await db.update(uptimeStatusPages).set(update)
           .where(eq(uptimeStatusPages.organizationId, access.organization.id)).returning();
