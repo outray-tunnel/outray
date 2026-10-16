@@ -3,7 +3,7 @@ import test from "node:test";
 import emailConfig from "../../../shared/email-sender";
 
 test("hosted email preserves its existing sender and per-product name", () => {
-  assert.deepEqual(emailConfig.emailSender("OutRay Uptime", {}), { address: "no-reply@outray.dev", name: "OutRay Uptime" });
+  assert.deepEqual(emailConfig.emailSender("OutRay Uptime", {}), { address: "no-reply@outray.co", name: "OutRay Uptime" });
 });
 
 test("a self-hosted delivery requires its own verified sender configuration", () => {
