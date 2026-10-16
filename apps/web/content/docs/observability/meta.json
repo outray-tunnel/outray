@@ -1,5 +1,20 @@
 {
   "title": "Observability",
   "icon": "Activity",
-  "pages": ["index", "getting-started", "sdk-setup", "services", "requests-and-traces", "logs-and-metrics", "alerts"]
+  "pages": [
+    "index",
+    "getting-started",
+    "sdk-setup",
+    "services",
+    "requests-and-traces",
+    "logs-and-metrics",
+    "alerts",
+    "---SDKs & integrations---",
+    "../(plugins-and-sdks)/node-sdk",
+    "../(plugins-and-sdks)/tanstack-start-sdk",
+    "../(plugins-and-sdks)/nextjs-plugin",
+    "../(plugins-and-sdks)/express-plugin",
+    "../(plugins-and-sdks)/nestjs-plugin",
+    "../(plugins-and-sdks)/hono-sdk"
+  ]
 }
