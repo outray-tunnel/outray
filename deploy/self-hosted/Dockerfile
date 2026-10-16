@@ -69,5 +69,8 @@ COPY --from=builder --chown=node:node /app/apps ./apps
 COPY --from=builder --chown=node:node /app/packages ./packages
 COPY --from=builder --chown=node:node /app/shared ./shared
 COPY --from=builder --chown=node:node /app/scripts/self-hosted-share-role.mjs ./scripts/self-hosted-share-role.mjs
+# Docker initializes the persistent logo volume with this non-root ownership.
+RUN mkdir -p /var/lib/outray/status-page-logos \
+    && chown node:node /var/lib/outray/status-page-logos
 USER node
 CMD ["node", "apps/web/.output/server/index.mjs"]
