@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Current email templates · OutRay</title>
+  <style>
+    @font-face{font-family:Geom;src:url('/fonts/geom-latin.woff2') format('woff2');font-weight:300 900;font-display:swap}
+    *{box-sizing:border-box}body{margin:0;background:#080808;color:#f7f7f8;font-family:Geom,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a78bfa;outline-offset:3px}.layout{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}.sidebar{padding:28px 14px 24px;background:#0c0c0e}.brand{display:flex;align-items:center;gap:9px;padding:0 12px 32px;font-size:22px;letter-spacing:-.7px;font-weight:650}.brand img{width:28px;height:28px}.group{margin:0 0 21px}.group h2{margin:0 12px 7px;color:#777782;font-size:11px;letter-spacing:.03em;font-weight:500}.option{display:block;width:100%;border:0;border-radius:8px;padding:10px 12px;color:#a1a1ab;background:transparent;text-align:left;font-size:13px;line-height:18px}.option:hover{background:#18181c;color:#eee}.option[aria-pressed=true]{background:#242329;color:#f7f7f8}.note{margin:26px 12px 0;color:#73737d;font-size:11px;line-height:1.8}.main{min-width:0;padding:32px 36px}.eyeline{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:29px}.eyeline h1{font-size:21px;letter-spacing:-.6px;font-weight:550;margin:0}.count{font-size:12px;color:#85858f}.meta{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:24px}.meta h2{font-size:17px;line-height:1.5;font-weight:550;margin:0 0 7px}.subject{font-size:13px;line-height:1.6;color:#a1a1ab;margin:0}.usage{font-size:11px;color:#a48acb;margin:9px 0 0}.view-controls{display:flex;gap:3px;flex-shrink:0;padding:3px;background:#161618;border-radius:8px}.view-controls button{border:0;background:none;color:#92929c;font-size:11px;padding:7px 11px;border-radius:5px}.view-controls button[aria-pressed=true]{background:#303036;color:white}.preview-well{display:flex;justify-content:center;min-width:0}.email-frame{display:block;background:white;width:100%;height:calc(100vh - 235px);min-height:560px;border:1px solid #29292e;border-radius:12px;transition:width 180ms ease}.email-frame.mobile{width:390px;max-width:100%}.source{font-size:10px;line-height:1.6;color:#73737d;margin:12px 2px 0;overflow-wrap:anywhere}.error{padding:30px;color:#fb7185}@media(max-width:760px){.layout{grid-template-columns:190px minmax(0,1fr)}.sidebar{padding:22px 9px}.brand{font-size:20px}.main{padding:25px 18px}.meta{flex-direction:column}.eyeline{align-items:flex-start;flex-direction:column;gap:5px}.email-frame{min-height:650px}.option{font-size:12px}}@media(max-width:520px){.layout{display:block}.sidebar{padding:20px 16px 10px}.brand{padding-bottom:18px}.navigation{display:flex;overflow:auto;gap:20px;padding-bottom:9px}.group{margin:0;min-width:165px}.note{display:none}.main{padding-top:24px}.eyeline{margin-bottom:20px}.email-frame{min-height:640px}}@media(prefers-reduced-motion:reduce){.email-frame{transition:none}}
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand"><img src="/logo.png" alt="" />OutRay</div>
+      <nav class="navigation" id="navigation" aria-label="Email templates"></nav>
+      <p class="note">Current templates, unchanged.<br />Sample data. Email actions disabled.</p>
+    </aside>
+    <main class="main">
+      <header class="eyeline"><h1>Current email templates</h1><span class="count" id="count"></span></header>
+      <div class="meta">
+        <div><h2 id="name"></h2><p class="subject" id="subject"></p><p class="usage" id="usage"></p></div>
+        <div class="view-controls" role="group" aria-label="Preview width"><button type="button" data-width="desktop" aria-pressed="true">Desktop</button><button type="button" data-width="mobile" aria-pressed="false">Mobile</button></div>
+      </div>
+      <div class="preview-well"><iframe class="email-frame" id="email" sandbox="allow-same-origin" title="Email preview"></iframe></div>
+      <p class="source" id="source"></p>
+    </main>
+  </div>
+  <script>
+    async function start(){
+      const response=await fetch('/email-previews.json');if(!response.ok)throw new Error('Could not load the current templates.');
+      const templates=await response.json(),navigation=document.getElementById('navigation'),frame=document.getElementById('email');
+      document.getElementById('count').textContent=templates.length+' previews';
+      for(const group of [...new Set(templates.map(item=>item.group))]){
+        const section=document.createElement('section');section.className='group';const heading=document.createElement('h2');heading.textContent=group;section.append(heading);
+        for(const item of templates.filter(item=>item.group===group)){const button=document.createElement('button');button.className='option';button.type='button';button.dataset.id=item.id;button.textContent=item.name;button.setAttribute('aria-pressed','false');button.addEventListener('click',()=>show(item));section.append(button);}navigation.append(section);
+      }
+      function show(item){
+        document.getElementById('name').textContent=item.name;document.getElementById('subject').textContent='Subject: '+item.subject;document.getElementById('usage').textContent=item.usage;document.getElementById('source').textContent=item.source;
+        for(const button of navigation.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.id===item.id));
+        const doc=new DOMParser().parseFromString(item.html,'text/html');
+        for(const link of doc.querySelectorAll('a')){link.removeAttribute('href');link.removeAttribute('target');}
+        for(const script of doc.querySelectorAll('script'))script.remove();
+        const csp=doc.createElement('meta');csp.httpEquiv='Content-Security-Policy';csp.content="default-src 'none'; style-src 'unsafe-inline'; img-src http://localhost:6767 data:; font-src http://localhost:6767; form-action 'none'; base-uri 'none'";doc.head.prepend(csp);
+        frame.title=item.name+' email preview';frame.srcdoc='<!doctype html>'+doc.documentElement.outerHTML;history.replaceState(null,'','#'+item.id);
+      }
+      for(const button of document.querySelectorAll('[data-width]'))button.addEventListener('click',()=>{for(const sibling of document.querySelectorAll('[data-width]'))sibling.setAttribute('aria-pressed',String(sibling===button));frame.classList.toggle('mobile',button.dataset.width==='mobile');});
+      show(templates.find(item=>item.id===location.hash.slice(1))||templates[0]);
+    }
+    start().catch(error=>{document.getElementById('source').textContent=error.message;document.getElementById('source').className='error';});
+  </script>
+</body>
+</html>
