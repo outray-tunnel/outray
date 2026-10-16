@@ -31,7 +31,7 @@ function textContent(node: React.ReactNode): string {
 
 function renderFooter() {
   const root = createRootRoute();
-  const routes = ["products", "products/$", "docs/$", "login", "privacy", "terms"].map((path) => createRoute({ getParentRoute: () => root, path }));
+  const routes = ["products/$", "docs/$", "login", "privacy", "terms"].map((path) => createRoute({ getParentRoute: () => root, path }));
   const router = createRouter({ routeTree: root.addChildren(routes), history: createMemoryHistory({ initialEntries: ["/"] }), isServer: true });
   return renderToStaticMarkup(React.createElement(RouterContextProvider, { router, children: React.createElement(Footer, props) }));
 }
@@ -39,15 +39,17 @@ function renderFooter() {
 test("footer hover belongs to each text link rather than its list or surrounding whitespace", () => {
   const footer = Footer(props);
   const nav = elements(footer).find((element) => element.type === "nav" && element.props["aria-label"] === "Footer navigation")!;
-  const list = elements(nav).find((element) => element.type === "ul")!;
-  assert.ok(list);
-  const classes = list.props.className;
-  assert.match(classes, /\[&_a:hover\]:text-white/, "only the hovered anchor receives its hover color");
-  assert.doesNotMatch(classes, /hover:\[&_a\]:|group-hover/, "hovering list whitespace must not highlight every link");
-  assert.match(classes, /(?:^|\s)justify-items-start(?:\s|$)/);
-  assert.match(classes, /\[&_a\]:w-fit/, "link hitboxes stay fitted to their own content");
-  assert.match(classes, /\[&_a:focus-visible\]:outline-/);
-  assert.match(classes, /motion-reduce:\[&_a\]:transition-none/);
+  const lists = elements(nav).filter((element) => element.type === "ul");
+  assert.equal(lists.length, 3);
+  for (const list of lists) {
+    const classes = list.props.className;
+    assert.match(classes, /\[&_a:hover\]:text-white/, "only the hovered anchor receives its hover color");
+    assert.doesNotMatch(classes, /hover:\[&_a\]:|group-hover/, "hovering list whitespace must not highlight every link");
+    assert.match(classes, /(?:^|\s)justify-items-start(?:\s|$)/);
+    assert.match(classes, /\[&_a\]:w-fit/, "link hitboxes stay fitted to their own content");
+    assert.match(classes, /\[&_a:focus-visible\]:outline-/);
+    assert.match(classes, /motion-reduce:\[&_a\]:transition-none/);
+  }
   for (const container of elements(footer).filter((element) => ["footer", "div", "nav", "ul", "li"].includes(String(element.type)))) {
     assert.notEqual(container.props.role, "link");
     assert.equal(container.props.onClick, undefined);
@@ -62,11 +64,31 @@ test("footer navigation retains real destinations without a duplicate text GitHu
   const navigation = html.match(/<nav aria-label="Footer navigation"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
   assert.ok(navigation);
   const destinations = [...navigation.matchAll(/<a\b[^>]*href="([^"]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(destinations, ["/products", "/products/tunnels", "/products/observability", "/products/secrets", "/products/uptime", "/docs", props.statusUrl, "/login", "/privacy", "/terms"]);
+  assert.deepEqual(destinations, ["/products/tunnels", "/products/observability", "/products/secrets", "/products/uptime", "/docs", props.statusUrl, "/login", "/privacy", "/terms"]);
   assert.match(html, /aria-label="OutRay home"/);
   assert.match(html, /Developer infrastructure for exposing, observing, and securing your services\./);
   assert.doesNotMatch(navigation, /GitHub|Twitter/);
+  assert.doesNotMatch(html, /href="\/products\/?"/);
   assert.equal(requests, 0);
+});
+
+test("footer groups have plain text headings and correctly labelled link-list membership", () => {
+  const footer = Footer(props);
+  const nav = elements(footer).find((element) => element.type === "nav" && element.props["aria-label"] === "Footer navigation")!;
+  const headings = elements(nav).filter((element) => element.type === "h3");
+  assert.deepEqual(headings.map(textContent), ["Products", "Resources", "Company"]);
+  const expectedMembers = [["Tunnels", "Observability", "Secrets", "Uptime"], ["Docs", "Status"], ["Log in", "Privacy", "Terms"]];
+  headings.forEach((heading, index) => {
+    assert.equal(typeof heading.props.children, "string", "group headings are plain text, not links or controls");
+    assert.equal(heading.props.onClick, undefined);
+    const list = elements(nav).find((element) => element.type === "ul" && element.props["aria-labelledby"] === heading.props.id);
+    assert.ok(list);
+    const links = elements(list).filter((element) => element.type === "a" || element.type === Link);
+    assert.deepEqual(links.map(textContent), expectedMembers[index]);
+  });
+  for (const link of elements(nav).filter((element) => element.type === "a" || element.type === Link)) {
+    assert.ok(!["Products", "Resources", "Company"].includes(textContent(link)));
+  }
 });
 
 test("accessible GitHub and Twitter logo links replace the slogan while retaining copyright", () => {
