@@ -7,8 +7,8 @@ import {
   isSensitiveInternalObservabilityRequest,
   resolveInternalObservabilityRoute,
   resolveInternalObservabilityOptions,
-  runWithInternalObservabilityRequest,
-  shouldCaptureInternalObservabilityLog,
+  INTERNAL_OBSERVABILITY_REDACTED_FIELDS,
+  INTERNAL_OBSERVABILITY_REDACTED_LOG_FIELDS,
 } from "../src/lib/internal-observability.server";
 
 const configured = {
@@ -36,15 +36,16 @@ test("internal Ops configuration enables bounded payload and console capture wit
   assert.deepEqual(options.capturePayloads, {
     maxBodyBytes: 16 * 1024,
     maxHeaderBytes: 8 * 1024,
-    redactedHeaders: ["location"],
-    redactedFields: ["requestBody", "responseBody", "requestHeaders", "responseHeaders", "body", "params"],
+    redactedFields: INTERNAL_OBSERVABILITY_REDACTED_FIELDS,
+    redactedRequestFields: ["code", "state", "nonce", "challenge"],
   });
   assert.equal(options.captureConsole, true);
-  assert.equal(options.shouldCaptureLog, shouldCaptureInternalObservabilityLog);
+  assert.equal(options.shouldCaptureLog, undefined);
+  assert.deepEqual(options.redactedLogFields, INTERNAL_OBSERVABILITY_REDACTED_LOG_FIELDS);
   assert.equal(options.ignoreDefaultPaths, false, "internal request metadata includes the adapter's usual asset exclusions");
   assert.equal(options.ignore, undefined, "sensitive requests must not disappear from telemetry");
   assert.equal(options.routeResolver, resolveInternalObservabilityRoute);
-  assert.equal(typeof options.shouldCapturePayloads, "function");
+  assert.equal(options.shouldCapturePayloads, undefined);
   assert.equal(options.autoInstrumentations, false);
   assert.equal(options.recordExceptions, false);
   assert.equal(options.diagnostics, "none");
@@ -53,42 +54,6 @@ test("internal Ops configuration enables bounded payload and console capture wit
   });
   assert.equal(custom?.serviceName, "my-web");
   assert.equal(custom?.environment, "staging");
-});
-
-test("sensitive-request log suppression survives awaits and cannot affect simultaneous allowed requests", async () => {
-  const configuredOptions = resolveInternalObservabilityOptions(configured)!;
-  const seen: boolean[] = [];
-  let release!: () => void;
-  const barrier = new Promise<void>((resolve) => { release = resolve; });
-  const secretRequest = runWithInternalObservabilityRequest(new Request("https://console.example.test/api/acme/secrets/reveal"), async () => {
-    seen.push(configuredOptions.shouldCaptureLog!());
-    await barrier;
-    seen.push(configuredOptions.shouldCaptureLog!());
-  });
-  const allowedRequest = runWithInternalObservabilityRequest(new Request("https://console.example.test/api/acme/tunnels"), async () => {
-    assert.equal(configuredOptions.shouldCaptureLog!(), true);
-    await Promise.resolve();
-    assert.equal(configuredOptions.shouldCaptureLog!(), true);
-    release();
-  });
-  await Promise.all([secretRequest, allowedRequest]);
-  assert.deepEqual(seen, [false, false]);
-  assert.equal(configuredOptions.shouldCaptureLog!(), true, "background logs remain captured outside request scopes");
-});
-
-test("all sensitive requests suppress log export while preserving results and thrown errors", async () => {
-  for (const path of ["/api/auth/session", "/api/acme/%73ecrets/entries", "/api/cli/exchange", "/api/webhooks/polar", "/_serverFn/key", "/v1/logs"]) {
-    const response = new Response("still handled");
-    assert.equal(runWithInternalObservabilityRequest(new Request(`https://console.example.test${path}`), () => {
-      assert.equal(shouldCaptureInternalObservabilityLog(), false);
-      return response;
-    }), response);
-  }
-  const failure = new Error("application failure");
-  await assert.rejects(runWithInternalObservabilityRequest(new Request("https://console.example.test/api/auth/session"), async () => {
-    throw failure;
-  }), failure);
-  assert.equal(shouldCaptureInternalObservabilityLog(), true);
 });
 
 test("an opted-in console rejects ambiguous or insecure telemetry destinations without echoing them", () => {
@@ -103,8 +68,7 @@ test("an opted-in console rejects ambiguous or insecure telemetry destinations w
   }
 });
 
-test("credential, secret, server-function and ingest routes use metadata-only capture, including encoded paths", () => {
-  const options = resolveInternalObservabilityOptions(configured)!;
+test("credential, secret, server-function and ingest routes remain observable, including encoded paths", () => {
   for (const pathname of [
     "/login", "/logout", "/signup", "/register", "/api/auth/callback/github", "/acme/secrets/vaults/one",
     "/api/acme/secrets/projects/vault/environments/production/secrets/secret-key/reveal",
@@ -116,11 +80,9 @@ test("credential, secret, server-function and ingest routes use metadata-only ca
     "/api/acme/%252573ecrets/entries", "/API/AUTH/session", "/api/bad%encoding",
   ]) {
     assert.equal(isSensitiveInternalObservabilityRequest({ pathname }), true, pathname);
-    assert.equal(options.shouldCapturePayloads!({ pathname, request: new Request(`https://console.example.test${pathname}`) }), false, pathname);
   }
   for (const pathname of ["/", "/api/health", "/acme/tunnel", "/api/acme/observability/requests", "/api/acme/uptime/monitors", "/assets/app.js", "/favicon.ico", "/robots.txt"]) {
     assert.equal(isSensitiveInternalObservabilityRequest({ pathname }), false, pathname);
-    assert.equal(options.shouldCapturePayloads!({ pathname, request: new Request(`https://console.example.test${pathname}`) }), true, pathname);
   }
 });
 
@@ -152,18 +114,16 @@ test("sensitive route templates hide names and identifiers instead of exporting 
   const encoded = "/api/private-org/%2573ecrets/projects/private-project/environments/private-environment/secrets/private-secret/reveal";
   assert.equal(resolveInternalObservabilityRoute({ pathname: encoded }), cases[0][1]);
   for (const pathname of ["", "not-an-absolute-path", "/api/%25252573ecrets/value", `/api/${"x".repeat(8192)}`]) {
-    assert.equal(isSensitiveInternalObservabilityRequest({ pathname }), true, "ambiguous routes fail closed for content capture");
+    assert.equal(isSensitiveInternalObservabilityRequest({ pathname }), true, "ambiguous paths get a safe route label");
     assert.equal(resolveInternalObservabilityRoute({ pathname }), "/:invalid-path");
   }
 });
 
 async function loadServer(env: Record<string, string | undefined>) {
   const calls: string[] = [];
-  const logScopes: boolean[] = [];
   const response = new Response("application response");
   const fetch = () => {
     calls.push("application-handler");
-    logScopes.push(shouldCaptureInternalObservabilityLog());
     return response;
   };
   const source = await readFile(new URL("../src/server.ts", import.meta.url), "utf8");
@@ -175,23 +135,16 @@ async function loadServer(env: Record<string, string | undefined>) {
     module, exports: module.exports, process: { env },
     require: (specifier: string) => {
       calls.push(`import:${specifier}`);
-      if (specifier === "./lib/internal-observability.server") return { resolveInternalObservabilityOptions, runWithInternalObservabilityRequest };
+      if (specifier === "./lib/internal-observability.server") return { resolveInternalObservabilityOptions };
       if (specifier === "@tanstack/react-start/server") return { createStartHandler: () => fetch, defaultStreamHandler: {} };
       if (specifier === "@outray/tanstack-start/server") return { createOutrayTanStackServerEntry: (options: unknown) => {
-        const { shouldCapturePayloads: gate, ...actual } = options as NonNullable<ReturnType<typeof resolveInternalObservabilityOptions>>;
-        const { shouldCapturePayloads: expectedGate, ...expected } = resolveInternalObservabilityOptions(env)!;
-        assert.deepEqual(actual, expected);
-        assert.equal(typeof gate, "function");
-        for (const pathname of ["/api/acme/secrets/reveal", "/api/acme/uptime/monitors"]) {
-          const context = { pathname, request: new Request(`https://console.example.test${pathname}`) };
-          assert.equal(gate!(context), expectedGate!(context));
-        }
+        assert.deepEqual(options, resolveInternalObservabilityOptions(env));
         calls.push("sdk-initialized"); return { fetch };
       } };
       throw new Error(`Unexpected server dependency: ${specifier}`);
     },
   });
-  return { entry: module.exports.default, calls, response, logScopes };
+  return { entry: module.exports.default, calls, response };
 }
 
 test("disabled server entry does not import or initialize the SDK and preserves application responses", async () => {
@@ -211,9 +164,8 @@ test("opted-in server initializes the adapter before handling requests without r
   assert.match(startSource, /requestMiddleware: \[instancePolicy\]/);
 });
 
-test("the opted-in server fetch scopes sensitive-route logging without replacing its response", async () => {
+test("the opted-in server handles auth and other routes without a log suppression wrapper", async () => {
   const result = await loadServer(configured);
   assert.equal(await result.entry.fetch(new Request("https://console.example.test/api/auth/session")), result.response);
   assert.equal(await result.entry.fetch(new Request("https://console.example.test/api/acme/uptime/monitors")), result.response);
-  assert.deepEqual(result.logScopes, [false, true]);
 });
