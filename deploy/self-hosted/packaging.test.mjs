@@ -31,7 +31,6 @@ const fixtureEnvironment = {
   BETTER_AUTH_SECRET: "fixture-auth-key",
   INTERNAL_API_SECRET: "fixture-internal-key",
   SHARE_RATE_LIMIT_SECRET: "fixture-share-rate-key",
-  ADMIN_PASSPHRASE: "fixture-admin-key",
   OUTRAY_SIGNUP_ALLOWED_EMAILS: "operator@example.com",
   TINYBIRD_API_HOST: "https://api.example.com",
   TINYBIRD_QUERY_TOKEN: "fixture-read-token",
@@ -177,6 +176,8 @@ test("Tinybird reader and append scopes are separated and Timescale is absent", 
 });
 
 test("installation quotas, domain-only signup and email sender settings reach runtime", () => {
+  assert.equal(services.web.environment.ADMIN_PASSPHRASE, undefined);
+  assert.doesNotMatch(readFileSync(new URL("./.env.example", import.meta.url), "utf8"), /^ADMIN_PASSPHRASE=/m);
   for (const name of appNames.filter((name) => !["secrets-share", "uptime-probe"].includes(name))) {
     assert.equal(services[name].environment.OUTRAY_MAX_UPTIME_MONITORS, "${OUTRAY_MAX_UPTIME_MONITORS:-1000}");
     assert.equal(services[name].environment.OUTRAY_MAX_OBSERVABILITY_ALERTS, "${OUTRAY_MAX_OBSERVABILITY_ALERTS:-1000}");
