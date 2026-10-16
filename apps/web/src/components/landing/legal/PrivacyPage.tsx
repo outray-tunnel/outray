@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Navbar } from "../navbar";
-import { Footer } from "../shared";
+import { Footer } from "@/landing/Footer";
 
 export const PrivacyPage = () => {
   return (
@@ -245,7 +245,7 @@ export const PrivacyPage = () => {
         </div>
       </section>
 
-      <Footer />
+      <Footer statusUrl="https://status.outray.dev" loginUrl="/login" privacyUrl="/privacy" termsUrl="/terms" githubUrl="https://github.com/outray-tunnel/outray" />
     </div>
   );
 };
