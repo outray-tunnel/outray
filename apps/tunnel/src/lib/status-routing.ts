@@ -19,6 +19,7 @@ const statusEnabled = instancePolicy.instanceConfig().products.includes("uptime"
 );
 const edgeSecret = process.env.STATUS_EDGE_SECRET || "";
 const databaseUrl = process.env.DATABASE_URL || "";
+const infrastructureHosts = new Set(publicHosts.infrastructureHostnames());
 
 let pool: pg.Pool | undefined;
 
@@ -56,6 +57,9 @@ export function isStatusPlatformHost(host: string | null): boolean {
 /** Status domains never share a tunnel binding. No positive cache: a domain change takes effect immediately. */
 export async function isActiveStatusCustomDomain(host: string, baseDomain: string): Promise<boolean> {
   if (!statusEnabled || isStatusPlatformHost(host) || host === baseDomain || host.endsWith(`.${baseDomain}`)) return false;
+  // Exact infrastructure hosts must not depend on the status-domain database.
+  // Do not use isTunnelControlHost: its legacy api.* match includes customer domains.
+  if (host === "localhost" || infrastructureHosts.has(host)) return false;
   const result = await statusDomainPool().query(
     `SELECT 1 FROM domains d
      JOIN uptime_status_pages p ON p.domain_id = d.id
