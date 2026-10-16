@@ -6,12 +6,14 @@ export async function sendViaZepto({
   subject,
   senderEmail,
   senderName,
+  replyToEmail,
 }: {
   recipientEmail: string;
   htmlString: string;
   subject: string;
   senderEmail?: string;
   senderName?: string;
+  replyToEmail?: string;
 }): Promise<void> {
   const url = "https://api.zeptomail.com/v1.1/email";
   const token = process.env.ZEPTO_API_KEY;
@@ -35,6 +37,7 @@ export async function sendViaZepto({
         address: senderAddress,
         name: senderName || defaults.name,
       },
+      ...(replyToEmail ? { reply_to: [{ address: replyToEmail }] } : {}),
       to: [
         {
           email_address: {
