@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "astro dev --host 0.0.0.0",
     "build": "astro build",
+    "build:worker": "OUTRAY_STATUS_RUNTIME=cloudflare astro build",
+    "deploy:worker": "node scripts/deploy-worker.mjs",
+    "preview:worker": "wrangler dev",
     "check": "astro check",
     "lint": "astro check",
     "test": "tsx --test test/*.test.ts",
@@ -26,8 +29,9 @@
     "unifont": "0.7.4"
   },
   "devDependencies": {
-    "@outray/incident-content": "file:../../packages/incident-content",
     "@astrojs/check": "^0.9.10",
+    "@astrojs/cloudflare": "12.6.13",
+    "@outray/incident-content": "file:../../packages/incident-content",
     "@tailwindcss/vite": "4.1.18",
     "@types/node": "^22.15.30",
     "@types/pg": "^8.15.4",
@@ -35,6 +39,7 @@
     "@types/react-dom": "19.2.2",
     "tailwindcss": "4.1.18",
     "tsx": "^4.20.3",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "wrangler": "4.88.0"
   }
 }
