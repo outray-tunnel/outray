@@ -61,6 +61,7 @@ function publicReaderFixture(options: {
     module, exports: module.exports, URL, Date, Buffer,
     process: { env: {} },
     require(specifier: string) {
+      if (specifier === "./runtime") return { statusEnvironment: () => ({}), isStatusProduction: () => false };
       if (specifier === "./config") return { statusPageUrl: () => new URL("https://acme.status.example.net/") };
       if (specifier === "./db") return {
         async query(statement: string, parameters: unknown[]) {
