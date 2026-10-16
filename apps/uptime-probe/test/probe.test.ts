@@ -24,9 +24,19 @@ test("subscriber email renders the stored published body with safe links", () =>
     "stored text", "https://status.outray.app", "https://status.outray.app/unsubscribe?token=test");
   assert.match(html, /API &lt;issue&gt;/);
   assert.match(html, /href="https:\/\/outray.dev\/help"/);
+  assert.match(html, /Monitoring/);
+  assert.match(html, /href="https:\/\/status.outray.app\/unsubscribe\?token=test"[^>]*>Unsubscribe<\/a>/);
+  assert.match(html, /\/outray-mark.png/);
   assert.doesNotMatch(html, /payload fallback/);
   const legacy = subscriberEmailHtml({ title: "Legacy", status: "investigating", note: "payload" }, null, "Stored <text>", "https://status.outray.app", "https://status.outray.app/unsubscribe");
   assert.match(legacy, /Stored &lt;text&gt;/);
+  assert.match(legacy, /Investigating/);
+  for (const [status, label] of [["identified", "Identified"], ["resolved", "Resolved"], ["<unknown>", "&lt;unknown&gt;"]]) {
+    const html = subscriberEmailHtml({ title: "API incident", status, note: "Public update" },
+      null, "Public update", "https://status.outray.app", "https://status.outray.app/unsubscribe");
+    assert.ok(html.includes(label));
+    assert.doesNotMatch(html, /<unknown>/);
+  }
 });
 import type pg from "pg";
 
