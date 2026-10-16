@@ -112,6 +112,7 @@ test("the actual authentication creation hook rejects before persisting user/acc
       if (specifier === "./member-quota-adapter.server") return { memberQuotaAdapter: () => ({}) };
       if (specifier === "better-auth/plugins") return { createAuthMiddleware: (handler: unknown) => handler, organization: (options: unknown) => options };
       if (specifier === "better-auth/api") return { APIError };
+      if (specifier === "./auth-profile") return { adminProfileFields: {} };
       if (specifier === "../db") return { db: new Proxy({}, { get() { sideEffects++; throw new Error("User hook must run before persistence"); } }) };
       if (specifier === "./send-email") return { sendViaZepto: () => { sideEffects++; } };
       if (specifier === "../../../../shared/instance-config") return { instanceConfig, instanceSignupAllowed };
@@ -125,7 +126,8 @@ test("the actual authentication creation hook rejects before persisting user/acc
     await assert.rejects(before({ email: "stranger@example.com", emailVerified: true }), APIError);
     await assert.rejects(before({ email: "ada@example.com", emailVerified: false }), APIError);
     const allowed = { email: "ada@example.com", emailVerified: true };
-    assert.equal((await before(allowed)).data, allowed);
+    assert.deepEqual(JSON.parse(JSON.stringify((await before(allowed)).data)), { ...allowed, isAdmin: false });
+    assert.equal("isAdmin" in allowed, false, "the caller-owned signup profile is not mutated");
     await module.exports.auth.hooks.after({ path: "/callback/github", context: { newSession: { user: { ...allowed, createdAt: new Date() } } } });
     assert.equal(sideEffects, 0);
   });
