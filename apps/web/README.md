@@ -23,6 +23,45 @@ It only updates an existing profile, and grants require a linked GitHub/Google
 account. Every admin API request rechecks the live session and database flag, so
 revocation takes effect without waiting for the browser session to expire.
 
+### Product usage insights
+
+`/admin/usage` brings Tunnels, Observability, Secrets, Uptime, and Agent usage
+together, with organization search, product filters, and organization-level
+drill-downs. These read-only aggregates use existing product records; they do
+not collect page views or introduce a new tracking database.
+
+Configuration/adoption and recorded activity are separate measures. Live vaults
+and monitors describe current configuration, not historical retention. Secrets
+operations count successful audit events; Uptime checks use compact daily
+evidence; Agent activity uses saved run counts and observed tokens, not prompts
+or estimated billing. Observability volume is accepted normalized telemetry
+bytes for the UTC calendar month, independently of the selected 7/30/90-day
+activity window. Daily activity uses UTC calendar dates. Deleted records and
+product retention policies limit historical completeness.
+
+The endpoint uses the same fresh platform-admin authorization as the rest of
+admin. Responses contain aggregates and workspace identifiers, never secret
+values, capture payloads, private chat text, or subscriber addresses.
+
+### Product operations
+
+The Products section provides dedicated reports with search, status filters,
+pagination, trend charts, and record detail panels:
+
+| Page | Records and insights |
+| --- | --- |
+| `/admin/tunnels` | Protocol adoption, custom domains, and reserved subdomains. Live Redis connection state remains available at `/admin/tunnels/connections`. |
+| `/admin/observability` | Monthly accepted telemetry by workspace and configured alert health. |
+| `/admin/secrets` | Vault and environment coverage, share lifecycle, and access activity. |
+| `/admin/uptime` | Monitor health, published status pages, subscriber totals, and incidents. |
+| `/admin/agent` | Run outcomes, input/output tokens, execution duration, and workspace usage. |
+
+Tab and filter selections are stored in the URL. Summary metrics describe the
+product across the platform; search and status filters apply to the records
+table. Date descriptions distinguish current inventory and calendar-month
+telemetry from activity in the selected period. Product reports require the
+same fresh admin authorization and contain operational metadata only.
+
 ## Internal Ops observability
 
 The server entry sends request traces, HTTP metrics, bounded request/response
