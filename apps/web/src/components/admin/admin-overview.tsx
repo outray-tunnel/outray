@@ -11,6 +11,7 @@ import Cone01Icon from "@outray/icons/stroke/Cone01Icon";
 import RefreshIcon from "@outray/icons/stroke/RefreshIcon";
 import ArrowUpRight01Icon from "@outray/icons/stroke/ArrowUpRight01Icon";
 import Share08Icon from "@outray/icons/stroke/Share08Icon";
+import Analytics01Icon from "@outray/icons/stroke/Analytics01Icon";
 import { appClient } from "@/lib/app-client";
 import { Button } from "../arc/button/button";
 import { WorkspacePageHeader } from "../workspace-page-header";
@@ -19,6 +20,7 @@ import { SegmentedControl } from "../ui/segmented-control";
 import { AdminStatsCard } from "./admin-stats-card";
 import { OverviewSkeleton } from "./admin-skeleton";
 import { ShareRevenueModal, preloadRevenueBackgrounds } from "./share-revenue-modal";
+import { AdminProductAdoptionSummary } from "./admin-product-usage";
 
 const periods = [{ value: "1h", label: "1h" }, { value: "24h", label: "24h" }, { value: "7d", label: "7d" }, { value: "30d", label: "30d" }] as const;
 type Period = typeof periods[number]["value"];
@@ -58,7 +60,7 @@ export function AdminOverview() {
   });
   const overview = overviewQuery.data;
   const refreshing = overviewQuery.isFetching || activityQuery.isFetching;
-  const refresh = () => { void overviewQuery.refetch(); void activityQuery.refetch(); };
+  const refresh = () => { void overviewQuery.refetch(); void activityQuery.refetch(); void queryClient.invalidateQueries({ queryKey: ["admin", "usage"] }); };
 
   async function openRevenueCard() {
     setShowRevenueModal(true);
@@ -84,6 +86,8 @@ export function AdminOverview() {
         <AdminStatsCard title="Monthly revenue" value={overview.subscriptions.mrr.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 })} subtitle="Monthly recurring revenue" icon={<HugeiconsIcon icon={WalletCardsIcon} size={16} />} onClick={() => void openRevenueCard()} />
       </div>
 
+      <AdminProductAdoptionSummary />
+
       <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.9fr)_minmax(290px,1fr)]">
         <section className="min-w-0 rounded-xl border border-white/[.08] bg-[#101010] p-5" aria-label="Tunnel activity">
           <header className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-[13px] font-medium text-zinc-200">Tunnel activity</h2><p className="mt-1 text-[11px] text-zinc-500">Active connections over time</p></div><SegmentedControl label="Tunnel activity period" value={period} options={periods} onValueChange={setPeriod} /></header>
@@ -102,7 +106,7 @@ export function AdminOverview() {
       <div className="grid gap-3 sm:grid-cols-3">{[
         { to: "/admin/users", title: "People", detail: "Accounts and access", icon: UserGroupIcon },
         { to: "/admin/organizations", title: "Organizations", detail: "Workspaces across the platform", icon: Building03Icon },
-        { to: "/admin/tunnels", title: "Connections", detail: "Inspect and manage tunnels", icon: Cone01Icon },
+        { to: "/admin/usage", title: "Product insights", detail: "Adoption and activity across products", icon: Analytics01Icon },
       ].map((item) => <Link key={item.to} to={item.to} className="group flex min-w-0 items-center gap-3 rounded-xl border border-white/[.07] px-4 py-4 transition-colors hover:border-white/[.12] hover:bg-white/[.015] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[.035] text-zinc-500"><HugeiconsIcon icon={item.icon} size={16} aria-hidden="true" /></span><div className="min-w-0 flex-1"><p className="text-[12px] text-zinc-300">{item.title}</p><p className="mt-0.5 truncate text-[11px] text-zinc-600">{item.detail}</p></div><HugeiconsIcon icon={ArrowUpRight01Icon} size={14} className="text-zinc-600 transition-colors group-hover:text-zinc-300" aria-hidden="true" /></Link>)}</div>
       <p className="text-[10px] text-zinc-600">Refreshes every minute{overviewQuery.dataUpdatedAt > 0 && <> · Updated {new Date(overviewQuery.dataUpdatedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</>}</p>
       <ShareRevenueModal isOpen={showRevenueModal} onClose={() => setShowRevenueModal(false)} currentMrr={overview.subscriptions.mrr} bgDataUrls={bgDataUrls} />
