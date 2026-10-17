@@ -95,7 +95,7 @@ function AdminLayout() {
   // Check if we're on the root /admin path (not a child route)
   const isRootAdmin = location.pathname === "/admin" || location.pathname === "/admin/";
   const section = location.pathname.split("/")[2];
-  const sectionLabel = ({ usage: "Product usage", users: "Users", organizations: "Organizations", subscriptions: "Subscriptions", tunnels: "Tunnels", charts: "Analytics", actions: "Maintenance" } as Record<string, string>)[section] || "Overview";
+  const sectionLabel = ({ usage: "Product usage", users: "Users", organizations: "Organizations", subscriptions: "Subscriptions", tunnels: "Tunnels", observability: "Observability", secrets: "Secrets", uptime: "Uptime", agent: "Agent", charts: "Analytics", actions: "Maintenance" } as Record<string, string>)[section] || "Overview";
 
   return (
     <div className="min-h-screen bg-[#080808] font-sans text-zinc-200">
