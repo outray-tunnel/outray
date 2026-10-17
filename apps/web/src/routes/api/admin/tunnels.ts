@@ -32,9 +32,15 @@ export const Route = createFileRoute("/api/admin/tunnels")({
           const orgIds = await redis.smembers(
             "global:orgs_with_online_tunnels",
           );
-          for (const orgId of orgIds) {
-            const ids = await redis.smembers(`org:${orgId}:online_tunnels`);
-            ids.forEach((id) => onlineTunnelIds.add(id));
+          for (let start = 0; start < orgIds.length; start += 250) {
+            const batch = redis.pipeline();
+            orgIds.slice(start, start + 250).forEach((orgId) => batch.smembers(`org:${orgId}:online_tunnels`));
+            const results = await batch.exec();
+            if (!results) throw new Error("Connection state is unavailable");
+            for (const [error, ids] of results) {
+              if (error || !Array.isArray(ids)) throw new Error("Connection state is unavailable");
+              ids.forEach((id: string) => onlineTunnelIds.add(id));
+            }
           }
 
           // Build conditions
@@ -54,21 +60,7 @@ export const Route = createFileRoute("/api/admin/tunnels")({
           }
 
           if (activeOnly) {
-            if (onlineTunnelIds.size === 0) {
-              // No online tunnels, return empty
-              return adminJson({
-                tunnels: [],
-                total: 0,
-                page,
-                totalPages: 0,
-                stats: {
-                  total: 0,
-                  active: 0,
-                  byProtocol: {},
-                },
-              });
-            }
-            conditions.push(inArray(tunnels.id, Array.from(onlineTunnelIds)));
+            conditions.push(onlineTunnelIds.size ? inArray(tunnels.id, Array.from(onlineTunnelIds)) : sql`false`);
           }
 
           const whereClause =
@@ -121,14 +113,18 @@ export const Route = createFileRoute("/api/admin/tunnels")({
             isOnline: onlineTunnelIds.has(tunnel.id),
           }));
 
-          // Get protocol distribution (all tunnels)
-          const protocolStats = await db
+          // Header statistics describe the platform, independently of table filters.
+          const [protocolStats, activeResult] = await Promise.all([db
             .select({
               protocol: tunnels.protocol,
               count: count(),
             })
             .from(tunnels)
-            .groupBy(tunnels.protocol);
+            .groupBy(tunnels.protocol),
+            onlineTunnelIds.size
+              ? db.select({ count: count() }).from(tunnels).where(inArray(tunnels.id, Array.from(onlineTunnelIds)))
+              : Promise.resolve([{ count: 0 }]),
+          ]);
 
           return adminJson({
             tunnels: tunnelsWithStatus,
@@ -136,8 +132,8 @@ export const Route = createFileRoute("/api/admin/tunnels")({
             page,
             totalPages: Math.ceil(totalResult.count / limit),
             stats: {
-              total: totalResult.count,
-              active: onlineTunnelIds.size,
+              total: protocolStats.reduce((total, row) => total + row.count, 0),
+              active: activeResult[0].count,
               byProtocol: Object.fromEntries(
                 protocolStats.map((p) => [p.protocol, p.count]),
               ),
