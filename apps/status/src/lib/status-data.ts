@@ -358,7 +358,9 @@ export async function loadPublicPage(page: PageRow): Promise<PublicStatusPage> {
                ORDER BY u.published_at DESC LIMIT 1) AS latest_note_at
        FROM incidents i
        WHERE i.organization_id = $2
-         AND ((i.source_type = 'uptime_manual' AND NOT EXISTS (
+         AND ((i.source_type = 'uptime_manual' AND (i.source_snapshot->>'statusPageId' = $1 OR
+           (i.source_snapshot->>'statusPageId' IS NULL AND $1 = (
+             SELECT p.id FROM uptime_status_pages p WHERE p.organization_id = $2 ORDER BY p.created_at, p.id LIMIT 1))) AND NOT EXISTS (
            SELECT 1 FROM uptime_incident_components ic WHERE ic.incident_id = i.id
          )) OR EXISTS (
            SELECT 1 FROM uptime_incident_components ic
@@ -535,7 +537,9 @@ export async function loadPublicIncident(page: PageRow, incidentId: string): Pro
      FROM incidents i
      WHERE i.id = $3 AND i.organization_id = $2
        AND i.source_type IN ('uptime_monitor', 'uptime_manual', 'observability_alert')
-       AND ((i.source_type = 'uptime_manual' AND NOT EXISTS (
+       AND ((i.source_type = 'uptime_manual' AND (i.source_snapshot->>'statusPageId' = $1 OR
+         (i.source_snapshot->>'statusPageId' IS NULL AND $1 = (
+           SELECT p.id FROM uptime_status_pages p WHERE p.organization_id = $2 ORDER BY p.created_at, p.id LIMIT 1))) AND NOT EXISTS (
          SELECT 1 FROM uptime_incident_components ic WHERE ic.incident_id = i.id
        )) OR EXISTS (
          SELECT 1 FROM uptime_incident_components ic
