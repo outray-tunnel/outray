@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { incidents } from "@/db/alerts-schema";
-import { uptimeIncidentComponents, uptimeIncidentUpdates, uptimeStatusComponents, uptimeStatusPages } from "@/db/uptime-schema";
-import { badInput, canManageUptime, jsonBody, notFound, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
+import { uptimeIncidentComponents, uptimeIncidentUpdates, uptimeStatusComponents } from "@/db/uptime-schema";
+import { badInput, canManageUptime, findStatusPage, jsonBody, notFound, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
 import { lockUptimeOrganization, parseComponentIds, parseInitialIncidentUpdate, PublishError, publishUptimeUpdate } from "@/lib/uptime/incident-api";
 import { loadIncidentList, parseIncidentListQuery } from "@/lib/uptime/incident-query";
 
@@ -31,8 +31,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/")({
       if (!componentIds) return badInput("Invalid affected components", "componentIds");
       const parsed = parseInitialIncidentUpdate(body);
       if (!parsed.success) return badInput(parsed.error, parsed.field);
-      const [page] = await db.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
-        .where(eq(uptimeStatusPages.organizationId, access.organization.id)).limit(1);
+      const page = await findStatusPage(access.organization.id, request);
       if (!page) return notFound("Status page");
       const components = componentIds.length ? await db.select({ id: uptimeStatusComponents.id, name: uptimeStatusComponents.name })
         .from(uptimeStatusComponents).where(and(
@@ -50,7 +49,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/")({
             id: incidentId, organizationId: access.organization.id,
             sourceType: "uptime_manual", sourceId: incidentId,
             title: title.trim(), status: "open",
-            sourceSnapshot: { affectedComponents: components },
+            sourceSnapshot: { affectedComponents: components, statusPageId: page.id },
             startedAt: now,
           }).returning();
           if (componentIds.length) {
@@ -68,6 +67,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/incidents/")({
             const result = await publishUptimeUpdate(tx, {
               organizationId: access.organization.id, incidentId, updateId,
               title: title.trim(), affectedComponentIds: componentIds,
+              pageId: page.id,
               note: parsed.data.note, status: parsed.data.status,
               componentStates: parsed.data.componentStates, applyManualLifecycle: true, now,
             });
