@@ -95,6 +95,11 @@ reuse the narrower deployment token. Canonical owned hostnames use exact proxied
 CNAME records; external customer CNAME records must remain DNS-only. Each exact
 Worker route has more-specific **None** routes for `/.well-known/acme-challenge/*`
 and `/.well-known/pki-validation/*`, allowing Cloudflare certificate validation.
+These are account-owned API tokens; verify one at
+`GET /client/v4/accounts/{account_id}/tokens/verify`, not the user-token endpoint.
+The hosted production console fails closed if this provider is not configured:
+publishing must not report success while its public DNS, route, and certificate
+cannot be provisioned. Self-hosted installations continue to use Caddy.
 
 Domains remain pending until both the hostname and its certificate are active.
 The UI offers “Check provisioning” rather than treating DNS proof alone as a live
