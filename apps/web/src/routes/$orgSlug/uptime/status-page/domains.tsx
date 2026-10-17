@@ -3,7 +3,7 @@ import { ExternalLink, Globe2, Info, RefreshCw, Trash2 } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
 import { Button } from "@/components/arc/button/button";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
-import { uptimeRequest, useUptimeResource } from "@/components/uptime/uptime-client";
+import { statusPagePath, uptimeRequest, useUptimeResource } from "@/components/uptime/uptime-client";
 import { useStatusPageEditor } from "@/components/uptime/status-page-editor-context";
 import { UptimeDialog } from "@/components/uptime/uptime-dialog";
 import { UptimeSkeleton } from "@/components/uptime/uptime-skeleton";
@@ -29,7 +29,7 @@ const cnameTarget = publicHosts.canonicalStatusHostname({ OUTRAY_STATUS_URL: sta
 
 function StatusPageDomains() {
   const { orgSlug, page, canManage, reload: reloadPage } = useStatusPageEditor();
-  const { data, loading, error: loadError, reload } = useUptimeResource<{ domain: StatusDomain | null }>(orgSlug, "/domains");
+  const { data, loading, error: loadError, reload } = useUptimeResource<{ domain: StatusDomain | null }>(orgSlug, statusPagePath("/domains", page.id));
   const [hostname, setHostname] = useState("");
   const [working, setWorking] = useState<"add" | "verify" | "remove" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +46,7 @@ function StatusPageDomains() {
     event.preventDefault();
     if (!canManage || pending.current) return;
     pending.current = true; setWorking("add"); setError(null); setNotice(null);
-    try { await uptimeRequest(orgSlug, "/domains", { method: "POST", body: JSON.stringify({ domain: hostname.trim() }) }); setHostname(""); reload(); reloadPage(); }
+    try { await uptimeRequest(orgSlug, statusPagePath("/domains", page.id), { method: "POST", body: JSON.stringify({ domain: hostname.trim() }) }); setHostname(""); reload(); reloadPage(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not add the domain."); }
     finally { pending.current = false; setWorking(null); }
   };
@@ -54,7 +54,7 @@ function StatusPageDomains() {
     if (!domain || !canManage || pending.current) return;
     pending.current = true; setWorking("verify"); setError(null); setNotice(null);
     try {
-      const result = await uptimeRequest<{ provisioning?: boolean }>(orgSlug, "/domains/" + encodeURIComponent(domain.id) + "/verify", { method: "POST" });
+      const result = await uptimeRequest<{ provisioning?: boolean }>(orgSlug, statusPagePath("/domains/" + encodeURIComponent(domain.id) + "/verify", page.id), { method: "POST" });
       setNotice(result.provisioning
         ? "DNS is verified. OutRay is provisioning the secure connection; check again shortly."
         : "DNS verified. Your domain connection has been updated.");
@@ -66,7 +66,7 @@ function StatusPageDomains() {
   const removeDomain = async () => {
     if (!domain || !canManage || pending.current) return;
     pending.current = true; setWorking("remove"); setError(null); setNotice(null);
-    try { await uptimeRequest(orgSlug, "/domains/" + encodeURIComponent(domain.id), { method: "DELETE" }); setConfirmRemove(false); setNotice("Custom domain removed. Your OutRay address is unchanged."); reload(); reloadPage(); }
+    try { await uptimeRequest(orgSlug, statusPagePath("/domains/" + encodeURIComponent(domain.id), page.id), { method: "DELETE" }); setConfirmRemove(false); setNotice("Custom domain removed. Your OutRay address is unchanged."); reload(); reloadPage(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not remove the domain."); }
     finally { pending.current = false; setWorking(null); }
   };
