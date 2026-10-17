@@ -23,6 +23,7 @@ function database(selectRows: unknown[][]) {
       let table = "";
       const selection = {
         from(value: PgTable) { table = getTableName(value); calls.push(`select:${table}`); return selection; },
+        innerJoin() { return selection; },
         leftJoin() { return selection; },
         where(value: SQL) { predicates.push(new PgDialect().sqlToQuery(value)); return selection; },
         orderBy() { return selection; }, limit() { return selection; },
@@ -118,8 +119,8 @@ test("missing and other-tenant alerts stop before any mapping reads or writes", 
 test("mapping read reports grouped visibility without exposing the raw alert configuration", async () => {
   const mock = database([
     [{ id: "alert-a", publicTitle: config.publicTitle, impact: "outage" }], [{ id: "page-a", name: "Services", slug: "services", published: true }],
+    [{ componentId: "component-a", pageId: "page-a" }], [{ id: episode.id }],
     [{ id: "component-a", name: "API", visible: true, groupId: "group-a", groupName: "Production services", groupVisible: false }],
-    [{ componentId: "component-a" }], [{ id: episode.id }],
   ]);
   const result = await bridge.loadAlertStatusPage(mock.tx, "tenant-a", "alert-a");
   assert.deepEqual(result?.link, { publicTitle: config.publicTitle, impact: "outage", componentIds: ["component-a"] });
