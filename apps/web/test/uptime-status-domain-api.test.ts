@@ -36,6 +36,7 @@ async function loadPageHarness(options: { page?: typeof page | null; domain?: Ro
       const selection = {
         from(value: { table: string }) { selectedTable = value; return selection; },
         where(value: Predicate) { conditions = value; return selection; },
+        orderBy() { return selection; },
         limit(value: number) { limit = value; return selection; },
         then(resolve: (value: Row[]) => unknown, reject?: (reason: unknown) => unknown) {
           queries.push({ table: selectedTable.table, conditions, fields, limit });
@@ -52,7 +53,8 @@ async function loadPageHarness(options: { page?: typeof page | null; domain?: Ro
     module, exports: module.exports, Date, Map, Set, Promise,
     require: (specifier: string) => {
       if (specifier === "drizzle-orm") return {
-        and: (...conditions: Predicate[]): Predicate => ({ type: "and", conditions }),
+        and: (...conditions: Array<Predicate | undefined>): Predicate => ({ type: "and", conditions: conditions.filter((condition): condition is Predicate => Boolean(condition)) }),
+        asc: (field: string) => field,
         eq: (field: string, value: unknown): Predicate => ({ type: "eq", field, value }),
       };
       if (specifier === "@/db") return { db };
