@@ -104,7 +104,7 @@ export const uptimeStatusPages = pgTable(
   "uptime_status_pages",
   {
     id: text("id").primaryKey(),
-    organizationId: text("organization_id").notNull().unique().references(() => organizations.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
     slug: text("slug").notNull().unique(),
     name: text("name").notNull(),
     description: text("description"),
