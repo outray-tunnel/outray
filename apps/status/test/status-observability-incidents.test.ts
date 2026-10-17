@@ -66,7 +66,8 @@ function publicReaderFixture(options: {
       if (specifier === "./db") return {
         async query(statement: string, parameters: unknown[]) {
           assert.doesNotMatch(statement, /(?:UPDATE|INSERT|DELETE)\s/i);
-          assert.doesNotMatch(statement, /observability_alerts|source_snapshot|log_query|trigger_value|last_value/);
+          assert.doesNotMatch(statement, /observability_alerts|log_query|trigger_value|last_value/);
+          assert.doesNotMatch(statement.split("FROM incidents i")[0], /source_snapshot/);
           if (statement.includes("FROM incidents i")) {
             const sql = statement.replace(/\s+/g, " ");
             assert.match(sql, /CASE WHEN i.source_type = 'observability_alert' THEN i.public_title ELSE i.title END AS title/);
@@ -80,7 +81,8 @@ function publicReaderFixture(options: {
             if (statement.includes("WITH public_incidents AS")) return hasVisibleAssociation ? [{
               component_id: component.id, ...publicRow, public_impact: impact, updated_at: startedAt,
             }] : [];
-            assert.match(sql, /AND \(\(i.source_type = 'uptime_manual' AND NOT EXISTS \( SELECT 1 FROM uptime_incident_components ic WHERE ic.incident_id = i.id \)\) OR EXISTS \(/);
+            assert.match(sql, /i.source_type = 'uptime_manual' AND \(i.source_snapshot->>'statusPageId' = \$1 OR/);
+            assert.match(sql, /AND NOT EXISTS \( SELECT 1 FROM uptime_incident_components ic WHERE ic.incident_id = i.id \)/);
             assert.match(sql, /i.source_type = 'observability_alert' AND \(i.status <> 'resolved' OR NOT i.recovery_confirmed\) THEN 'open' ELSE i.status END AS status/);
             if (statement.includes("WHERE i.id = $3") && parameters[2] !== incidentId) return [];
             return [publicRow];
