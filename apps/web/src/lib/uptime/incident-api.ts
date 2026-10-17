@@ -117,6 +117,7 @@ export async function createUptimeIncidentUpdate(tx: SecretsTransaction, input: 
       organizationId: input.organizationId, incidentId: incident.id, updateId: update.id,
       title: incident.sourceType === "observability_alert" ? data.publicTitle ?? incident.publicTitle! : incident.title,
       affectedComponentIds: associations.map((link) => link.componentId),
+      pageId: typeof incident.sourceSnapshot.statusPageId === "string" ? incident.sourceSnapshot.statusPageId : undefined,
       ...data, applyManualLifecycle: incident.sourceType === "uptime_manual",
       publishMonitorIncident: incident.uptimePublicationState === "detected",
       incidentSourceType: incident.sourceType, now,
@@ -174,6 +175,7 @@ export async function editUptimeIncidentDraft(tx: SecretsTransaction, input: {
       organizationId: input.organizationId, incidentId: incident.id, updateId: draft.id,
       title: incident.sourceType === "observability_alert" ? data.publicTitle ?? incident.publicTitle! : incident.title,
       affectedComponentIds: associations.map((link) => link.componentId),
+      pageId: typeof incident.sourceSnapshot.statusPageId === "string" ? incident.sourceSnapshot.statusPageId : undefined,
       ...data, applyManualLifecycle: incident.sourceType === "uptime_manual",
       publishMonitorIncident: incident.uptimePublicationState === "detected",
       incidentSourceType: incident.sourceType, now,
@@ -266,6 +268,7 @@ export async function publishUptimeUpdate(
     componentStates: UpdateInput["componentStates"];
     applyManualLifecycle: boolean;
     publishMonitorIncident?: boolean;
+    pageId?: string;
     incidentSourceType?: string;
     acknowledgeRecovery?: boolean;
     now: Date;
@@ -273,9 +276,18 @@ export async function publishUptimeUpdate(
 ): Promise<{ success: true; recipients: number } | { success: false; error: string; status: number }> {
   // Serialize the daily publish quota and state application within this organization.
   await lockUptimeOrganization(tx, input.organizationId);
-  const [page] = await tx.select().from(uptimeStatusPages)
-    .where(eq(uptimeStatusPages.organizationId, input.organizationId)).for("share").limit(1);
-  if (!page?.published) return { success: false, error: "Publish the status page before sending an incident update", status: 409 };
+  const linkedPages = !input.pageId && input.affectedComponentIds.length ? await tx.selectDistinct({ pageId: uptimeStatusComponents.pageId })
+    .from(uptimeStatusComponents).where(and(eq(uptimeStatusComponents.organizationId, input.organizationId),
+      inArray(uptimeStatusComponents.id, input.affectedComponentIds))) : [];
+  const legacyPage = !input.pageId && !linkedPages.length ? await tx.select({ id: uptimeStatusPages.id })
+    .from(uptimeStatusPages).where(eq(uptimeStatusPages.organizationId, input.organizationId))
+    .orderBy(uptimeStatusPages.createdAt, uptimeStatusPages.id).limit(1) : [];
+  const pageIds = input.pageId ? [input.pageId] : linkedPages.map((row) => row.pageId).concat(legacyPage.map((row) => row.id));
+  const pages = pageIds.length ? await tx.select().from(uptimeStatusPages)
+    .where(and(eq(uptimeStatusPages.organizationId, input.organizationId), inArray(uptimeStatusPages.id, pageIds),
+      eq(uptimeStatusPages.published, true))).for("share") : [];
+  const publishedPages = pages.filter((page) => page.published);
+  if (!publishedPages.length) return { success: false, error: "Publish the status page before sending an incident update", status: 409 };
   if (input.publishMonitorIncident) {
     if (!input.affectedComponentIds.length) {
       return { success: false, error: "Link this source to a visible status-page component before publishing", status: 409 };
@@ -285,11 +297,11 @@ export async function publishUptimeUpdate(
       .leftJoin(uptimeStatusGroups, and(
         eq(uptimeStatusGroups.id, uptimeStatusComponents.groupId),
         eq(uptimeStatusGroups.organizationId, input.organizationId),
-        eq(uptimeStatusGroups.pageId, page.id),
+        eq(uptimeStatusGroups.pageId, uptimeStatusComponents.pageId),
       ))
       .where(and(
         eq(uptimeStatusComponents.organizationId, input.organizationId),
-        eq(uptimeStatusComponents.pageId, page.id),
+        inArray(uptimeStatusComponents.pageId, publishedPages.map((page) => page.id)),
         eq(uptimeStatusComponents.visible, true),
         inArray(uptimeStatusComponents.id, input.affectedComponentIds),
         or(isNull(uptimeStatusComponents.groupId), eq(uptimeStatusGroups.visible, true)),
@@ -328,11 +340,15 @@ export async function publishUptimeUpdate(
       eq(incidents.organizationId, input.organizationId), eq(incidents.sourceType, input.incidentSourceType ?? "uptime_monitor"),
       eq(incidents.uptimePublicationState, "detected")));
   }
-  const recipients = page.subscriptionsEnabled !== false ? await tx.select({ id: uptimeSubscribers.id, email: uptimeSubscribers.email })
-    .from(uptimeSubscribers).where(and(eq(uptimeSubscribers.pageId, page.id),
-      eq(uptimeSubscribers.organizationId, input.organizationId), eq(uptimeSubscribers.status, "confirmed")))
-    .limit(1_000) : [];
-  if (recipients.length) {
+  let recipientCount = 0;
+  for (const page of publishedPages) {
+    if (page.subscriptionsEnabled === false) continue;
+    const recipients = await tx.select({ id: uptimeSubscribers.id, email: uptimeSubscribers.email })
+      .from(uptimeSubscribers).where(and(eq(uptimeSubscribers.pageId, page.id),
+        eq(uptimeSubscribers.organizationId, input.organizationId), eq(uptimeSubscribers.status, "confirmed")))
+      .limit(1_000);
+    recipientCount += recipients.length;
+    if (!recipients.length) continue;
     await tx.insert(notifications).values(recipients.map((subscriber) => ({
       id: crypto.randomUUID(), organizationId: input.organizationId,
       incidentId: input.incidentId, sourceType: "uptime_incident_update",
@@ -347,5 +363,5 @@ export async function publishUptimeUpdate(
       },
     }))).onConflictDoNothing({ target: notifications.idempotencyKey });
   }
-  return { success: true, recipients: recipients.length };
+  return { success: true, recipients: recipientCount };
 }
