@@ -3,8 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { domains } from "@/db/app-schema";
-import { uptimeStatusPages } from "@/db/uptime-schema";
-import { badInput, notFound, requireUptimeManager } from "@/lib/uptime/api";
+import { badInput, findStatusPage, notFound, requireUptimeManager } from "@/lib/uptime/api";
 import { statusDnsTarget } from "@/lib/uptime/domain-config";
 import {
   ensureCustomStatusHostname,
@@ -21,10 +20,8 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/domains/$domainId/ver
         eq(domains.purpose, "status"),
       )).limit(1);
       if (!domain) return notFound("Status domain");
-      const [page] = await db.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
-        .where(and(eq(uptimeStatusPages.organizationId, access.organization.id),
-          eq(uptimeStatusPages.domainId, domain.id))).limit(1);
-      if (!page) return notFound("Status page binding");
+      const page = await findStatusPage(access.organization.id, request);
+      if (!page || page.domainId !== domain.id) return notFound("Status page binding");
       try {
         const [txt, cname] = await Promise.all([
           resolveTxt(`_outray-challenge.${domain.domain}`),
