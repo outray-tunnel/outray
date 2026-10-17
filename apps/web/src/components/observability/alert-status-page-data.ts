@@ -9,17 +9,19 @@ export interface AlertStatusPageLink {
 export interface AlertStatusPageResponse {
   link: AlertStatusPageLink | null;
   page: { id: string; name: string; slug: string; published: boolean } | null;
+  pages: Array<{ id: string; name: string; slug: string; published: boolean }>;
   components: Array<{ id: string; name: string; visible: boolean; groupId: string | null; groupName?: string | null }>;
   incidentId: string | null;
   canManage: boolean;
 }
 
-export function alertStatusPagePath(orgSlug: string, alertId: string) {
-  return `/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alertId)}/status-page`;
+export function alertStatusPagePath(orgSlug: string, alertId: string, pageId?: string | null) {
+  const path = `/api/${encodeURIComponent(orgSlug)}/observability/alerts/${encodeURIComponent(alertId)}/status-page`;
+  return pageId ? `${path}?pageId=${encodeURIComponent(pageId)}` : path;
 }
 
-export async function requestAlertStatusPage(orgSlug: string, alertId: string, init?: RequestInit): Promise<AlertStatusPageResponse> {
-  const response = await fetch(alertStatusPagePath(orgSlug, alertId), {
+export async function requestAlertStatusPage(orgSlug: string, alertId: string, init?: RequestInit, pageId?: string | null): Promise<AlertStatusPageResponse> {
+  const response = await fetch(alertStatusPagePath(orgSlug, alertId, pageId), {
     credentials: "same-origin", cache: "no-store", ...init,
     headers: { ...(init?.body ? { "content-type": "application/json" } : {}), ...init?.headers },
   });
