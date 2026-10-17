@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { organizations } from "@/db/auth-schema";
 import { uptimeStatusGroups, uptimeStatusPages } from "@/db/uptime-schema";
-import { badInput, jsonBody, loadPage, notFound, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
+import { badInput, findStatusPage, jsonBody, loadPage, notFound, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
 import { safeUptimeSlug, textField } from "@/lib/uptime/validation";
 import { isAlertManagerRole } from "@/lib/observability/alert-validation";
+import { getOrganizationLimits, withOrganizationQuotaLock } from "@/lib/organization-entitlements.server";
 import {
   ensureCanonicalStatusHostname,
   statusDomainProviderResponse,
@@ -17,8 +17,17 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
       GET: async ({ request, params }) => {
         const access = await requireUptimeRead(request, params.orgSlug);
         if ("error" in access) return access.error;
-        const data = await loadPage(access.organization.id);
-        return Response.json({ ...(data ?? { page: null, groups: [], standaloneComponents: [] }), canManage: isAlertManagerRole(access.membership.role) });
+        const [data, pages, limits] = await Promise.all([
+          loadPage(access.organization.id, request),
+          db.select({ id: uptimeStatusPages.id, name: uptimeStatusPages.name,
+            slug: uptimeStatusPages.slug, published: uptimeStatusPages.published,
+            createdAt: uptimeStatusPages.createdAt }).from(uptimeStatusPages)
+            .where(eq(uptimeStatusPages.organizationId, access.organization.id))
+            .orderBy(asc(uptimeStatusPages.createdAt), asc(uptimeStatusPages.id)),
+          getOrganizationLimits(access.organization.id),
+        ]);
+        return Response.json({ ...(data ?? { page: null, groups: [], standaloneComponents: [] }),
+          pages, limit: limits.maxStatusPages, canManage: isAlertManagerRole(access.membership.role) });
       },
       POST: async ({ request, params }) => {
         const access = await requireUptimeManager(request, params.orgSlug);
@@ -34,11 +43,11 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
         if (!slug) return badInput("Slug must be 3–63 lowercase letters, numbers, or hyphens", "slug");
         try {
           const result = await db.transaction(async (tx) => {
-            await tx.select({ id: organizations.id }).from(organizations)
-              .where(eq(organizations.id, access.organization.id)).for("update");
-            const [existing] = await tx.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
-              .where(eq(uptimeStatusPages.organizationId, access.organization.id)).limit(1);
-            if (existing) return false;
+            await withOrganizationQuotaLock(tx, access.organization.id);
+            const { maxStatusPages: limit } = await getOrganizationLimits(access.organization.id, tx);
+            const [existing] = await tx.select({ count: sql<number>`count(*)::int` }).from(uptimeStatusPages)
+              .where(eq(uptimeStatusPages.organizationId, access.organization.id));
+            if (existing.count >= limit) return { limitReached: true, limit } as const;
             const [page] = await tx.insert(uptimeStatusPages).values({
               id: crypto.randomUUID(), organizationId: access.organization.id,
               slug, name: name!, description,
@@ -47,9 +56,9 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
               id: crypto.randomUUID(), organizationId: access.organization.id,
               pageId: page.id, name: "Services", sortOrder: 0,
             }).returning();
-            return { page, group };
+            return { page, group } as const;
           });
-          if (!result) return Response.json({ error: "This organization already has its beta status page" }, { status: 409 });
+          if ("limitReached" in result) return Response.json({ error: `Status page limit reached: ${result.limit} ${result.limit === 1 ? "page" : "pages"} per organization`, limit: result.limit }, { status: 403 });
           return Response.json({ page: result.page, groups: [{ ...result.group, components: [] }], standaloneComponents: [] }, { status: 201 });
         } catch (error) {
           if ((error as { code?: string })?.code === "23505") return Response.json({ error: "Status-page slug is already in use" }, { status: 409 });
@@ -95,8 +104,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
         }
 
         if (body.published === true) {
-          const [current] = await db.select().from(uptimeStatusPages)
-            .where(eq(uptimeStatusPages.organizationId, access.organization.id)).limit(1);
+          const current = await findStatusPage(access.organization.id, request);
           if (!current) return notFound("Status page");
 
           let provisioning;
@@ -125,7 +133,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
               // a page public until both hostname and certificate are active.
               update.published = current.published;
               const [pendingPage] = await db.update(uptimeStatusPages).set(update)
-                .where(eq(uptimeStatusPages.organizationId, access.organization.id)).returning();
+                .where(eq(uptimeStatusPages.id, current.id)).returning();
               if (provisioning.failed) {
                 return Response.json({ error: "Status page address provisioning failed" }, { status: 503 });
               }
@@ -137,8 +145,10 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
             }
           }
         }
+        const selected = await findStatusPage(access.organization.id, request);
+        if (!selected) return notFound("Status page");
         const [page] = await db.update(uptimeStatusPages).set(update)
-          .where(eq(uptimeStatusPages.organizationId, access.organization.id)).returning();
+          .where(eq(uptimeStatusPages.id, selected.id)).returning();
         if (!page) return notFound("Status page");
         return Response.json({ page });
       },
