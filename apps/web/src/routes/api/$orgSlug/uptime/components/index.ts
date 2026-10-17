@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { uptimeComponentMonitors, uptimeMonitors, uptimeStatusComponents, uptimeStatusGroups, uptimeStatusPages } from "@/db/uptime-schema";
-import { badInput, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
+import { uptimeComponentMonitors, uptimeMonitors, uptimeStatusComponents, uptimeStatusGroups } from "@/db/uptime-schema";
+import { badInput, findStatusPage, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
 import { textField } from "@/lib/uptime/validation";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/components/")({
@@ -19,8 +19,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/components/")({
       if (body.groupId !== undefined && body.groupId !== null && typeof body.groupId !== "string") return badInput("Invalid group", "groupId");
       const monitorIds = parseMonitorIds(body.monitorIds ?? []);
       if (!monitorIds) return badInput("Choose valid monitor IDs", "monitorIds");
-      const [page] = await db.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
-        .where(eq(uptimeStatusPages.organizationId, access.organization.id)).limit(1);
+      const page = await findStatusPage(access.organization.id, request);
       if (!page) return notFound("Status page");
       let groupId: string | null = null;
       if (typeof body.groupId === "string") {
