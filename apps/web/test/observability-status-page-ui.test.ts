@@ -99,7 +99,7 @@ test("saving a mapping sends a safe title, explicit impact, and selected compone
   assert.doesNotMatch(runtime.html(), /No visible components are available/);
   nodes.find((node) => node.type === "form")!.props.onSubmit({ preventDefault() {} });
   await new Promise<void>((resolve) => setImmediate(resolve));
-  assert.deepEqual(runtime.requests, [{ publicTitle: "Checkout is degraded", impact: "outage", componentIds: ["checkout"] }]);
+  assert.deepEqual(runtime.requests, [{ publicTitle: "Checkout is degraded", impact: "outage", componentIds: ["checkout"], pageId: "page" }]);
   assert.match(runtime.html(), /Detections stay private until your team publishes/);
 });
 
