@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { uptimeStatusComponents, uptimeStatusGroups } from "@/db/uptime-schema";
-import { badInput, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
+import { badInput, findStatusPage, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
 import { textField } from "@/lib/uptime/validation";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/groups/$groupId")({
@@ -10,6 +10,8 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/groups/$groupId")({
     PATCH: async ({ request, params }) => {
       const access = await requireUptimeManager(request, params.orgSlug);
       if ("error" in access) return access.error;
+      const page = await findStatusPage(access.organization.id, request);
+      if (!page) return notFound("Status page");
       const body = await jsonBody(request);
       if (body instanceof Response) return body;
       const allowed = new Set(["name", "sortOrder", "visible"]);
@@ -29,7 +31,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/groups/$groupId")({
         values.visible = body.visible;
       }
       const [group] = await db.update(uptimeStatusGroups).set(values).where(and(
-        eq(uptimeStatusGroups.id, params.groupId), eq(uptimeStatusGroups.organizationId, access.organization.id),
+        eq(uptimeStatusGroups.id, params.groupId), eq(uptimeStatusGroups.organizationId, access.organization.id), eq(uptimeStatusGroups.pageId, page.id),
       )).returning();
       if (!group) return notFound("Group");
       return Response.json({ group });
@@ -37,9 +39,11 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/groups/$groupId")({
     DELETE: async ({ request, params }) => {
       const access = await requireUptimeManager(request, params.orgSlug);
       if ("error" in access) return access.error;
+      const page = await findStatusPage(access.organization.id, request);
+      if (!page) return notFound("Status page");
       const [group] = await db.select({ id: uptimeStatusGroups.id, pageId: uptimeStatusGroups.pageId })
         .from(uptimeStatusGroups).where(and(eq(uptimeStatusGroups.id, params.groupId),
-          eq(uptimeStatusGroups.organizationId, access.organization.id))).limit(1);
+          eq(uptimeStatusGroups.organizationId, access.organization.id), eq(uptimeStatusGroups.pageId, page.id))).limit(1);
       if (!group) return notFound("Group");
       const [components] = await db.select({ count: sql<number>`count(*)::int` }).from(uptimeStatusComponents)
         .where(and(eq(uptimeStatusComponents.groupId, group.id), eq(uptimeStatusComponents.organizationId, access.organization.id)));
