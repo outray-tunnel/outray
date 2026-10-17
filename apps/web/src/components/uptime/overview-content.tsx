@@ -34,11 +34,12 @@ export function UptimeOverviewContent({ orgSlug, monitors, incidents, page, onRe
   const health = healthDetails[summary.health as keyof typeof healthDetails];
   const HealthIcon = health.icon;
   const publicPage = page.data?.page;
+  const statusPages = page.data?.pages ?? (publicPage ? [publicPage] : []);
   const refreshing = [monitors, incidents, page].some((resource) => resource.loading && resource.data);
   const canManage = monitors.data?.canManage === true;
 
   return <div className="mx-auto w-full max-w-[1440px] space-y-5">
-    <UptimePageHeading title="Overview" description="Service health, detected issues, and your public status page."
+    <UptimePageHeading title="Overview" description="Service health, detected issues, and your public status pages."
       action={<div className="flex items-center gap-2"><Button variant="ghost" size="sm" type="button" aria-label="Refresh Uptime overview" title="Refresh overview" disabled={refreshing} onClick={onRefresh}><RefreshCw size={14} aria-hidden="true" /></Button>{canManage && <Link className={primaryButton} to="/$orgSlug/uptime/monitors" params={{ orgSlug }}><Plus size={14} aria-hidden="true" />Add monitor</Link>}</div>} />
     {refreshing && <span role="status" className="sr-only">Refreshing Uptime overview</span>}
 
@@ -85,13 +86,13 @@ export function UptimeOverviewContent({ orgSlug, monitors, incidents, page, onRe
 
     <section aria-label="Uptime settings" className="grid gap-3 lg:grid-cols-2">
       <UptimePanel className="flex items-start gap-3 p-4 sm:p-5"><Globe2 size={17} className="mt-0.5 shrink-0 text-zinc-500" aria-hidden="true" /><div className="min-w-0 flex-1">
-        <h2 className="text-[13px] font-medium text-zinc-200">Public status page</h2>
+        <h2 className="text-[13px] font-medium text-zinc-200">Status pages</h2>
         {!page.data ? page.loading ? <UptimeSkeleton label="Loading status page"><div className="mt-2 h-3 w-44 rounded bg-white/[0.05]" /></UptimeSkeleton> : <div className="mt-2"><LoadError message={page.error} onRetry={onRefresh} /></div> : <>
-          <p className="mt-1 text-[12px] leading-5 text-zinc-500">{publicPage ? publicPage.published ? `${publicPage.name} is published for your customers.` : `${publicPage.name} is a private draft.` : "Give customers one place to check service availability."}</p>
-          <Link to="/$orgSlug/uptime/status-page" params={{ orgSlug }} className="mt-3 inline-flex min-h-8 items-center gap-1.5 text-[12px] text-zinc-300 hover:text-white focus-visible:outline-2 focus-visible:outline-zinc-500">{publicPage ? "View status page settings" : page.data.canManage ? "Set up a status page" : "View status page"}<ArrowRight size={13} aria-hidden="true" /></Link>
+          <p className="mt-1 text-[12px] leading-5 text-zinc-500">{statusPages.length > 1 ? `${statusPages.length} pages for your customers.` : publicPage ? publicPage.published ? `${publicPage.name} is published for your customers.` : `${publicPage.name} is a private draft.` : "Give customers one place to check service availability."}</p>
+          <Link to="/$orgSlug/uptime/status-page" params={{ orgSlug }} className="mt-3 inline-flex min-h-8 items-center gap-1.5 text-[12px] text-zinc-300 hover:text-white focus-visible:outline-2 focus-visible:outline-zinc-500">{statusPages.length ? "View status pages" : page.data.canManage ? "Set up a status page" : "View status pages"}<ArrowRight size={13} aria-hidden="true" /></Link>
           {page.error && <RefreshError onRetry={onRefresh} />}
         </>}
-      </div>{publicPage && <span className={`rounded-md px-2 py-0.5 text-[11px] ${publicPage.published ? "bg-emerald-400/[0.06] text-emerald-400" : "bg-white/[0.04] text-zinc-500"}`}>{publicPage.published ? "Published" : "Draft"}</span>}</UptimePanel>
+      </div>{statusPages.length === 1 && publicPage && <span className={`rounded-md px-2 py-0.5 text-[11px] ${publicPage.published ? "bg-emerald-400/[0.06] text-emerald-400" : "bg-white/[0.04] text-zinc-500"}`}>{publicPage.published ? "Published" : "Draft"}</span>}</UptimePanel>
       <UptimePanel className="flex items-start gap-3 p-4 sm:p-5"><Bell size={17} className="mt-0.5 shrink-0 text-zinc-500" aria-hidden="true" /><div className="min-w-0"><h2 className="text-[13px] font-medium text-zinc-200">Team notifications</h2><p className="mt-1 text-[12px] leading-5 text-zinc-500">Connect Slack or Discord. Email recipients are chosen per monitor.</p><Link to="/$orgSlug/uptime/notifications" params={{ orgSlug }} className="mt-3 inline-flex min-h-8 items-center gap-1.5 text-[12px] text-zinc-300 hover:text-white focus-visible:outline-2 focus-visible:outline-zinc-500">View notifications<ArrowRight size={13} aria-hidden="true" /></Link></div></UptimePanel>
     </section>
     <p className="flex items-start gap-1.5 text-[11px] leading-5 text-zinc-500"><Info size={12} className="mt-1 shrink-0" aria-hidden="true" /><span>Monitor state is private monitoring evidence. Incident publishing follows each monitor’s settings.</span></p>
