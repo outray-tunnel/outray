@@ -115,6 +115,8 @@ export interface UptimeIncidentUpdate {
 
 export interface UptimePageResponse {
   page: UptimePage | null;
+  pages?: Array<Pick<UptimePage, "id" | "name" | "slug" | "published">>;
+  limit?: number;
   groups: UptimeGroup[];
   standaloneComponents: UptimeComponent[];
   canManage?: boolean;
@@ -162,6 +164,13 @@ export class UptimeRequestError extends Error {
 
 export function uptimeApiPath(orgSlug: string, path = "") {
   return `/api/${encodeURIComponent(orgSlug)}/uptime${path}`;
+}
+
+export function statusPagePath(path: string, pageId: string) {
+  const [pathname, search] = path.split("?", 2);
+  const params = new URLSearchParams(search || "");
+  params.set("pageId", pageId);
+  return `${pathname}?${params.toString()}`;
 }
 
 export async function uptimeRequest<T>(orgSlug: string, path: string, init?: RequestInit): Promise<T> {
