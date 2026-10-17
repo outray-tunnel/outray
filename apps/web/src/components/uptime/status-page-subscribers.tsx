@@ -6,7 +6,7 @@ import { Button } from "@/components/arc/button/button";
 import { SearchField } from "@/components/arc/search-field/search-field";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
 import { useStatusPageEditor } from "./status-page-editor-context";
-import { formatTime, uptimeRequest, UptimeRequestError, type UptimeSubscriber, type UptimeSubscribersResponse } from "./uptime-client";
+import { formatTime, statusPagePath, uptimeRequest, UptimeRequestError, type UptimeSubscriber, type UptimeSubscribersResponse } from "./uptime-client";
 import { UptimeDialog } from "./uptime-dialog";
 import { UptimeRowsSkeleton, UptimeSkeleton } from "./uptime-skeleton";
 import { UptimeError, UptimePanel } from "./uptime-ui";
@@ -24,7 +24,7 @@ export function StatusPageSubscribers() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const pending = useRef(false);
-  const queryPrefix = ["uptime", orgSlug, "subscribers"];
+  const queryPrefix = ["uptime", orgSlug, "subscribers", page.id];
   const resource = useQuery({
     queryKey: [...queryPrefix, search.trim(), status, cursor],
     enabled: canManage,
@@ -33,7 +33,7 @@ export function StatusPageSubscribers() {
       if (search.trim()) params.set("q", search.trim());
       if (status !== "all") params.set("status", status);
       if (cursor) params.set("cursor", cursor);
-      return uptimeRequest<UptimeSubscribersResponse>(orgSlug, `/subscribers?${params}`, { signal });
+      return uptimeRequest<UptimeSubscribersResponse>(orgSlug, statusPagePath(`/subscribers?${params}`, page.id), { signal });
     },
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
@@ -51,7 +51,7 @@ export function StatusPageSubscribers() {
     if (!canManage || forbidden || pending.current) return;
     pending.current = true; setBusy(true); setError(null); setNotice(null);
     try {
-      const result = await uptimeRequest<{ subscriptionsEnabled: boolean }>(orgSlug, "/subscribers/settings", {
+      const result = await uptimeRequest<{ subscriptionsEnabled: boolean }>(orgSlug, statusPagePath("/subscribers/settings", page.id), {
         method: "PATCH", body: JSON.stringify({ subscriptionsEnabled }),
       });
       queryClient.setQueriesData<UptimeSubscribersResponse>({ queryKey: queryPrefix }, (current) => current ? { ...current, subscriptionsEnabled: result.subscriptionsEnabled } : current);
@@ -66,7 +66,7 @@ export function StatusPageSubscribers() {
     if (!canManage || forbidden || pending.current) return;
     pending.current = true; setBusy(true); setError(null); setNotice(null);
     try {
-      await uptimeRequest(orgSlug, `/subscribers/${encodeURIComponent(subscriber.id)}`, {
+      await uptimeRequest(orgSlug, statusPagePath(`/subscribers/${encodeURIComponent(subscriber.id)}`, page.id), {
         method: "PATCH", body: JSON.stringify({ status: "unsubscribed" }),
       });
       setConfirmation(null);
