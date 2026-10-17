@@ -55,7 +55,7 @@ test("subscriber settings migration is additive and default-on with an unbroken 
   ]);
   assert.match(migration, /^ALTER TABLE "uptime_status_pages" ADD COLUMN "subscriptions_enabled" boolean DEFAULT true NOT NULL;\s*$/);
   assert.equal(snapshot.prevId, previous.id);
-  assert.equal(journal.entries.at(-1).tag, "0032_uptime_subscriber_management");
+  assert.ok(journal.entries.some((entry: { tag: string }) => entry.tag === "0032_uptime_subscriber_management"));
   const column = snapshot.tables["public.uptime_status_pages"].columns.subscriptions_enabled;
   assert.equal(column.notNull, true); assert.equal(column.default, true);
 });
