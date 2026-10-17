@@ -10,7 +10,7 @@ export const Route = createFileRoute("/api/$orgSlug/observability/alerts/$alertI
       const access = await requireUptimeRead(request, params.orgSlug);
       if ("error" in access) return access.error;
       const [result, canManage] = await Promise.all([
-        loadAlertStatusPage(db, access.organization.id, params.alertId),
+        loadAlertStatusPage(db, access.organization.id, params.alertId, new URL(request.url).searchParams.get("pageId")),
         canManageUptime(access.organization.id, access.session?.user.id),
       ]);
       if (!result) return notFound("Alert");
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/api/$orgSlug/observability/alerts/$alertI
           const saved = await saveAlertStatusPage(tx, {
             organizationId: access.organization.id, alertId: params.alertId, data: parsed.data,
           });
-          return saved ? loadAlertStatusPage(tx, access.organization.id, params.alertId) : null;
+          return saved ? loadAlertStatusPage(tx, access.organization.id, params.alertId, parsed.data.pageId) : null;
         });
         if (!result) return notFound("Alert");
         return Response.json({ ...result, canManage: true });
