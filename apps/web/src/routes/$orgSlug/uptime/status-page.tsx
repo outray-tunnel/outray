@@ -3,8 +3,8 @@ import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import { isSortable, useSortable } from "@dnd-kit/react/sortable";
 import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable";
 import { Activity, ArrowUpRight, Check, ChevronDown, Eye, ExternalLink, Folder, Globe2, GripVertical, Layers3, Mail, Palette, Plus, Radio, ShieldCheck } from "lucide-react";
-import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { type UptimeComponent, type UptimeGroup, type UptimeMonitor, type UptimePage, uptimeApiPath, uptimeRequest, useUptimeResource } from "@/components/uptime/uptime-client";
+import { type FormEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
+import { type UptimeComponent, type UptimeGroup, type UptimeMonitor, type UptimePage, uptimeApiPath, uptimeRequest, useUptimeResource, statusPagePath } from "@/components/uptime/uptime-client";
 import { UptimeHeaderSkeleton, UptimeSkeleton, UptimeSummarySkeleton } from "@/components/uptime/uptime-skeleton";
 import { useStatusPageEditor } from "@/components/uptime/status-page-editor-context";
 import { StatusPageEditorProvider } from "@/components/uptime/status-page-editor-provider";
@@ -19,10 +19,12 @@ import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
 import { workspaceScopeClassName } from "@/components/ui/workspace-scope";
 import { UptimeDialog } from "@/components/uptime/uptime-dialog";
+import { UptimeSideSheet } from "@/components/uptime/uptime-side-sheet";
 import { StatusPageRowMenu } from "@/components/uptime/status-page-row-menu";
 
 export const Route = createFileRoute("/$orgSlug/uptime/status-page")({
   head: () => ({ meta: [{ title: "Status page - OutRay Uptime" }] }),
+  validateSearch: (search: Record<string, unknown>): { pageId?: string } => typeof search.pageId === "string" ? { pageId: search.pageId } : {},
   component: StatusPageLayout,
 });
 
@@ -43,7 +45,9 @@ function StatusPageLayout() {
 }
 
 function WorkspaceStatusPage({ orgSlug }: { orgSlug: string }) {
-  const pageData = useUptimeResource<{ page: UptimePage | null; groups: UptimeGroup[]; standaloneComponents: UptimeComponent[]; canManage: boolean }>(orgSlug, "/page");
+  const { pageId } = Route.useSearch();
+  const [createOpen, setCreateOpen] = useState(false);
+  const pageData = useUptimeResource<{ page: UptimePage | null; pages: Array<Pick<UptimePage, "id" | "name" | "slug" | "published">>; limit: number; groups: UptimeGroup[]; standaloneComponents: UptimeComponent[]; canManage: boolean }>(orgSlug, pageId ? statusPagePath("/page", pageId) : "/page");
   const monitorData = useUptimeResource<{ monitors: UptimeMonitor[] }>(orgSlug, "/monitors");
   const navigate = Route.useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -52,6 +56,8 @@ function WorkspaceStatusPage({ orgSlug }: { orgSlug: string }) {
   const standaloneComponents = pageData.data?.standaloneComponents || [];
   const monitors = monitorData.data?.monitors || [];
   const canManage = pageData.data?.canManage === true;
+  const pages = pageData.data?.pages || [];
+  const limit = pageData.data?.limit ?? 1;
   const selectedTab = editorTabs.find((tab) => pathname.replace(/\/$/, "") === tab.to.replace("$orgSlug", orgSlug))?.label || "Overview";
 
   return <div className={`${workspaceScopeClassName} mx-auto max-w-[1440px] pb-8`}>
@@ -62,16 +68,23 @@ function WorkspaceStatusPage({ orgSlug }: { orgSlug: string }) {
       <UptimeSummarySkeleton cards={3} />
       <div className="h-44 rounded-xl border border-white/[0.08] bg-white/[0.015]" />
     </UptimeSkeleton>}
-    {!pageData.loading && !pageData.error && !page && <><UptimePageHeading title="Status page" description="A clear home for your service health and incident updates." />{canManage ? <CreatePage orgSlug={orgSlug} onCreated={pageData.reload} /> : <UptimePanel className="p-8 text-center"><Globe2 className="mx-auto mb-3 text-zinc-600" size={23} aria-hidden="true" /><h2 className="text-[14px] font-medium text-zinc-200">No status page yet</h2><p className="mt-2 text-[12px] text-zinc-500">An organization owner or admin can create one.</p></UptimePanel>}</>}
-    {page && <StatusPageEditorProvider key={page.id} orgSlug={orgSlug} page={page} groups={groups} standaloneComponents={standaloneComponents} monitors={monitors} monitorsLoaded={Boolean(monitorData.data)} reload={pageData.reload} canManage={canManage}>
+    {!pageData.loading && !pageData.error && !pageId && <><UptimePageHeading title="Status pages" description="Public service health and incident updates for each audience."
+      action={canManage && pages.length < limit ? <Button type="button" size="md" onClick={() => setCreateOpen(true)}><Plus size={15} aria-hidden="true" />Create status page</Button> : undefined} />
+      {pages.length > 0 ? <div className="grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-3">{pages.map((item) => <Link key={item.id} to="/$orgSlug/uptime/status-page" params={{ orgSlug }} search={{ pageId: item.id }} className="group flex min-w-0 items-center gap-3 rounded-xl border border-white/[0.08] bg-[#111112] px-4 py-3.5 transition-colors hover:bg-white/[0.035] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.025] text-zinc-400"><Globe2 size={16} aria-hidden="true" /></span><span className="min-w-0 flex-1"><span className="block truncate text-[13px] text-zinc-100">{item.name}</span><span className="mt-0.5 block truncate font-mono text-[11px] text-zinc-500">/{item.slug}</span></span><span className={item.published ? "shrink-0 text-[11px] text-emerald-300" : "shrink-0 text-[11px] text-zinc-500"}>{item.published ? "Published" : "Draft"}</span><ArrowUpRight size={14} className="shrink-0 text-zinc-600 transition-colors group-hover:text-zinc-300" aria-hidden="true" /></Link>)}</div> : <UptimePanel className="max-w-md p-8 text-center"><Globe2 className="mx-auto mb-3 text-zinc-600" size={23} aria-hidden="true" /><h2 className="text-[14px] font-medium text-zinc-200">No status pages yet</h2><p className="mt-2 text-[12px] text-zinc-500">{canManage ? "Create a page to share service health and incident updates." : "An organization owner or admin can create one."}</p></UptimePanel>}
+      {pages.length >= limit && <p className="mt-4 text-[12px] text-zinc-500">Your plan includes {limit} status {limit === 1 ? "page" : "pages"}.</p>}
+      {canManage && pages.length < limit && <CreatePage open={createOpen} onClose={() => setCreateOpen(false)} orgSlug={orgSlug} pageNumber={pages.length + 1} onCreated={(createdId) => void navigate({ to: "/$orgSlug/uptime/status-page", params: { orgSlug }, search: { pageId: createdId } })} />}
+    </>}
+    {!pageData.loading && !pageData.error && pageId && !page && <UptimeError message="This status page could not be found in your workspace." />}
+    {page && pageId && <StatusPageEditorProvider key={page.id} orgSlug={orgSlug} page={page} groups={groups} standaloneComponents={standaloneComponents} monitors={monitors} monitorsLoaded={Boolean(monitorData.data)} reload={pageData.reload} canManage={canManage}>
       <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
+          <Link to="/$orgSlug/uptime/status-page" params={{ orgSlug }} search={{ pageId: undefined }} className="mb-2 inline-block text-[12px] text-zinc-500 hover:text-zinc-200">← All status pages</Link>
           <div className="flex flex-wrap items-center gap-2.5"><h1 className="min-w-0 break-words text-[20px] font-normal tracking-[-0.035em] text-zinc-100">{page.name}</h1><span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] ${page.published ? "border-emerald-400/15 bg-emerald-400/[0.06] text-emerald-300" : "border-white/[0.08] bg-white/[0.025] text-zinc-400"}`}><span className="size-1.5 rounded-full bg-current" aria-hidden="true" />{page.published ? "Published" : "Draft"}</span></div>
           <p className="mt-1 text-[12px] leading-5 text-zinc-500">Components, branding, and a home for your public updates.</p>
         </div>
         {page.published && <a className={`${secondaryButton} gap-2`} href={statusPagePreviewUrl(statusPageOrigin(import.meta.env.VITE_OUTRAY_STATUS_URL, import.meta.env.DEV), page)} target="_blank" rel="noopener noreferrer">View page <ExternalLink size={14} aria-hidden="true" /></a>}
       </header>
-      <nav aria-label="Status page sections" className="mb-6 border-b border-white/[0.07] pb-4"><SegmentedControl label="Status page section" options={editorTabs.map(({ label }) => ({ value: label, label }))} value={selectedTab} onValueChange={(label) => { const tab = editorTabs.find((item) => item.label === label); if (tab) void navigate({ to: tab.to, params: { orgSlug } }); }} /></nav>
+      <nav aria-label="Status page sections" className="mb-6 border-b border-white/[0.07] pb-4"><SegmentedControl label="Status page section" options={editorTabs.map(({ label }) => ({ value: label, label }))} value={selectedTab} onValueChange={(label) => { const tab = editorTabs.find((item) => item.label === label); if (tab) void navigate({ to: tab.to, params: { orgSlug }, search: { pageId: page.id } }); }} /></nav>
       {monitorData.error && ["Components", "Overview"].includes(selectedTab) && <div className="mb-4 space-y-2"><UptimeError message={monitorData.error} /><Button type="button" variant="secondary" size="sm" onClick={monitorData.reload}>Retry monitors</Button></div>}
       {selectedTab === "Components" && !monitorData.data ? monitorData.loading ? <UptimeSkeleton label="Loading status page components" className="space-y-4"><div className="h-12 rounded-lg bg-white/[0.025]" /><div className="h-56 rounded-xl border border-white/[0.08] bg-white/[0.015]" /></UptimeSkeleton> : null : <Outlet />}
     </StatusPageEditorProvider>}
@@ -90,15 +103,15 @@ export function StatusPageOverview() {
     <div className="grid gap-3 sm:grid-cols-3">
       {[{ label: "Visible components", value: visible.length, detail: `${standaloneComponents.filter((component) => component.visible).length} standalone · ${groups.filter((group) => group.visible).length} groups` }, { label: "Connected monitors", value: new Set(linked.flatMap((component) => component.monitorIds)).size, detail: monitorsLoaded ? `of ${monitors.length} monitors` : "Linked to visible components" }, { label: "Page visibility", value: page.published ? "Live" : "Draft", detail: page.published ? "Available to visitors" : "Not publicly available" }].map((item) => <UptimePanel key={item.label} className="p-4"><p className="text-[12px] text-zinc-500">{item.label}</p><p className="mt-2 text-[24px] font-normal tracking-tight text-zinc-100">{item.value}</p><p className="mt-1 text-[11px] text-zinc-600">{item.detail}</p></UptimePanel>)}
     </div>
-    <UptimePanel className="overflow-hidden"><div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-3.5"><Globe2 size={16} className="text-zinc-500" aria-hidden="true" /><h2 className="text-[14px] font-medium text-zinc-200">Public address</h2></div><div className="flex flex-wrap items-center gap-3 p-4"><div className="min-w-0 flex-1"><a href={publicUrl} target="_blank" rel="noopener noreferrer" className="break-all rounded-sm font-mono text-[12px] text-zinc-300 underline-offset-4 hover:text-zinc-100 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-zinc-400">{publicUrl}</a><p className="mt-1.5 text-[12px] text-zinc-500">{page.published ? "Share this link with your customers." : "This address is reserved. Publish when you're ready."}</p></div><CopyButton value={publicUrl} label="Copy status page address" iconOnly variant="plain" /><Link to="/$orgSlug/uptime/status-page/publishing" params={{ orgSlug }} className={secondaryButton}>{page.published ? "Publishing settings" : "Review and publish"}<ArrowUpRight size={13} aria-hidden="true" /></Link></div></UptimePanel>
+    <UptimePanel className="overflow-hidden"><div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-3.5"><Globe2 size={16} className="text-zinc-500" aria-hidden="true" /><h2 className="text-[14px] font-medium text-zinc-200">Public address</h2></div><div className="flex flex-wrap items-center gap-3 p-4"><div className="min-w-0 flex-1"><a href={publicUrl} target="_blank" rel="noopener noreferrer" className="break-all rounded-sm font-mono text-[12px] text-zinc-300 underline-offset-4 hover:text-zinc-100 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-zinc-400">{publicUrl}</a><p className="mt-1.5 text-[12px] text-zinc-500">{page.published ? "Share this link with your customers." : "This address is reserved. Publish when you're ready."}</p></div><CopyButton value={publicUrl} label="Copy status page address" iconOnly variant="plain" /><Link to="/$orgSlug/uptime/status-page/publishing" params={{ orgSlug }} search={{ pageId: page.id }} className={secondaryButton}>{page.published ? "Publishing settings" : "Review and publish"}<ArrowUpRight size={13} aria-hidden="true" /></Link></div></UptimePanel>
     <UptimePanel className="overflow-hidden divide-y divide-white/[0.06]">
-      {[{ to: "/$orgSlug/uptime/status-page/components" as const, title: "Components", detail: "Organize services and connect their monitors.", icon: Layers3 }, { to: "/$orgSlug/uptime/status-page/subscribers" as const, title: "Subscribers", detail: "Manage email subscriptions and customer updates.", icon: Mail }, { to: "/$orgSlug/uptime/status-page/appearance" as const, title: "Appearance", detail: "Make the page feel like part of your product.", icon: Palette }, { to: "/$orgSlug/uptime/status-page/domains" as const, title: "Custom domain", detail: "Use an address your customers recognize.", icon: Globe2 }].map(({ to, title, detail, icon: Icon }) => <Link key={to} to={to} params={{ orgSlug }} className="group flex items-center gap-3 px-4 py-4 transition-colors hover:bg-white/[0.025] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-zinc-400"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.06] text-zinc-500"><Icon size={16} aria-hidden="true" /></span><div className="min-w-0 flex-1"><h2 className="text-[13px] text-zinc-200">{title}</h2><p className="mt-1 text-[12px] text-zinc-500">{detail}</p></div><ArrowUpRight size={15} className="text-zinc-600 group-hover:text-zinc-300" aria-hidden="true" /></Link>)}
+      {[{ to: "/$orgSlug/uptime/status-page/components" as const, title: "Components", detail: "Organize services and connect their monitors.", icon: Layers3 }, { to: "/$orgSlug/uptime/status-page/subscribers" as const, title: "Subscribers", detail: "Manage email subscriptions and customer updates.", icon: Mail }, { to: "/$orgSlug/uptime/status-page/appearance" as const, title: "Appearance", detail: "Make the page feel like part of your product.", icon: Palette }, { to: "/$orgSlug/uptime/status-page/domains" as const, title: "Custom domain", detail: "Use an address your customers recognize.", icon: Globe2 }].map(({ to, title, detail, icon: Icon }) => <Link key={to} to={to} params={{ orgSlug }} search={{ pageId: page.id }} className="group flex items-center gap-3 px-4 py-4 transition-colors hover:bg-white/[0.025] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-zinc-400"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.06] text-zinc-500"><Icon size={16} aria-hidden="true" /></span><div className="min-w-0 flex-1"><h2 className="text-[13px] text-zinc-200">{title}</h2><p className="mt-1 text-[12px] text-zinc-500">{detail}</p></div><ArrowUpRight size={15} className="text-zinc-600 group-hover:text-zinc-300" aria-hidden="true" /></Link>)}
     </UptimePanel>
   </div>;
 }
 
 export function StatusPageComponents() {
-  const { orgSlug, groups, standaloneComponents, monitors, reload, canManage } = useStatusPageEditor();
+  const { orgSlug, page, groups, standaloneComponents, monitors, reload, canManage } = useStatusPageEditor();
   const [error, setError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [newGroup, setNewGroup] = useState("");
@@ -121,7 +134,7 @@ export function StatusPageComponents() {
     if (!canManage || pending.current) return false;
     pending.current = true;
     setWorking(true); setError(null);
-    try { await uptimeRequest(orgSlug, path, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }); reload(); return true; }
+    try { await uptimeRequest(orgSlug, statusPagePath(path, page.id), { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }); reload(); return true; }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save changes."); return false; }
     finally { pending.current = false; setWorking(false); }
   };
@@ -130,7 +143,7 @@ export function StatusPageComponents() {
     if (!canManage || pending.current) return;
     pending.current = true;
     setWorking(true); setError(null); setLayout(next);
-    try { await uptimeRequest(orgSlug, "/page/layout", { method: "PATCH", body: JSON.stringify(next) }); reload(); }
+    try { await uptimeRequest(orgSlug, statusPagePath("/page/layout", page.id), { method: "PATCH", body: JSON.stringify(next) }); reload(); }
     catch (cause) { setLayout(layout); setError(cause instanceof Error ? cause.message : "Could not reorder items."); }
     finally { pending.current = false; setWorking(false); }
   };
@@ -198,28 +211,40 @@ export function StatusPagePublishing() {
   const [notice, setNotice] = useState<string | null>(null);
   const pending = useRef(false);
   const publicUrl = statusPageUrl(statusBase, page.slug);
-  const publish = async () => { if (!canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); setNotice(null); try { const result = await uptimeRequest<{ provisioning?: boolean }>(orgSlug, "/page", { method: "PATCH", body: JSON.stringify({ published: !page.published }) }); setNotice(page.published ? "Page unpublished. Visitors can no longer view it." : result.provisioning ? "Your public address is provisioning. Check again shortly, then publish." : "Page published. It is now available to visitors."); reload(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not change publishing state."); } finally { pending.current = false; setSaving(false); } };
+  const publish = async () => { if (!canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); setNotice(null); try { const result = await uptimeRequest<{ provisioning?: boolean }>(orgSlug, statusPagePath("/page", page.id), { method: "PATCH", body: JSON.stringify({ published: !page.published }) }); setNotice(page.published ? "Page unpublished. Visitors can no longer view it." : result.provisioning ? "Your public address is provisioning. Check again shortly, then publish." : "Page published. It is now available to visitors."); reload(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not change publishing state."); } finally { pending.current = false; setSaving(false); } };
   return <div className="max-w-4xl space-y-4"><div><h2 className="text-[14px] font-medium text-zinc-200">Publishing</h2><p className="mt-1 text-[12px] leading-5 text-zinc-500">Choose when customers can see your page.</p></div>{error && <UptimeError message={error} />}{notice && <p role="status" className="flex items-center gap-2 text-[12px] text-emerald-300"><Check size={13} aria-hidden="true" />{notice}</p>}
     <UptimePanel className="overflow-hidden"><div className="flex flex-wrap items-center justify-between gap-4 p-4"><div className="flex min-w-0 items-start gap-3"><span className={`flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.06] ${page.published ? "text-emerald-400" : "text-zinc-500"}`}>{page.published ? <Eye size={17} aria-hidden="true" /> : <Globe2 size={17} aria-hidden="true" />}</span><div><h3 className="text-[14px] font-medium text-zinc-200">{page.published ? "Your page is public" : "Your page is private"}</h3><p className="mt-1 max-w-lg text-[12px] leading-5 text-zinc-500">{page.published ? "Visitors can see component health and published incident updates." : "Review your components and branding before making the page public."}</p></div></div>{canManage && <Button type="button" variant={page.published ? "secondary" : "primary"} size="md" loading={saving} disabled={saving} onClick={() => void publish()}>{page.published ? "Unpublish page" : "Publish page"}</Button>}</div><p className="border-t border-white/[0.06] px-4 py-3 text-[12px] leading-5 text-zinc-500">Publishing this page does not publish incident drafts. Updates are published separately from the Incidents page.</p></UptimePanel>
     <UptimePanel className="p-4"><h3 className="text-[14px] font-medium text-zinc-200">OutRay address</h3><p className="mt-1 text-[12px] text-zinc-500">Reserved for your page, including while it is private.</p><div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.06] bg-black/15 py-2 pl-3 pr-2"><code className="min-w-0 flex-1 break-all text-[12px] text-zinc-300">{publicUrl}</code><CopyButton value={publicUrl} label="Copy status page address" iconOnly variant="plain" />{page.published && <a className={secondaryButton} href={publicUrl} target="_blank" rel="noopener noreferrer">Open <ExternalLink size={13} aria-hidden="true" /></a>}</div></UptimePanel>
-    <div className="flex items-start gap-2 px-1 text-[12px] leading-5 text-zinc-500"><ShieldCheck size={14} className="mt-0.5 shrink-0 text-zinc-600" aria-hidden="true" /><p>{page.subscriptionsEnabled === false ? "Subscriptions are off. New signups and subscriber emails are paused; the public page and incident updates remain available." : "Visitors can subscribe on a published page. Only confirmed subscribers are queued for published incident emails."} <Link to="/$orgSlug/uptime/status-page/subscribers" params={{ orgSlug }} className="text-zinc-300 hover:text-white underline underline-offset-4">Manage subscriptions</Link></p></div>
+    <div className="flex items-start gap-2 px-1 text-[12px] leading-5 text-zinc-500"><ShieldCheck size={14} className="mt-0.5 shrink-0 text-zinc-600" aria-hidden="true" /><p>{page.subscriptionsEnabled === false ? "Subscriptions are off. New signups and subscriber emails are paused; the public page and incident updates remain available." : "Visitors can subscribe on a published page. Only confirmed subscribers are queued for published incident emails."} <Link to="/$orgSlug/uptime/status-page/subscribers" params={{ orgSlug }} search={{ pageId: page.id }} className="text-zinc-300 hover:text-white underline underline-offset-4">Manage subscriptions</Link></p></div>
   </div>;
 }
 
-function CreatePage({ orgSlug, onCreated }: { orgSlug: string; onCreated: () => void }) {
+function CreatePage({ open, onClose, orgSlug, pageNumber, onCreated }: { open: boolean; onClose: () => void; orgSlug: string; pageNumber: number; onCreated: (id: string) => void }) {
+  const formId = useId();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [slug, setSlug] = useState(orgSlug.toLowerCase());
+  const [slug, setSlug] = useState(pageNumber === 1 ? orgSlug.toLowerCase() : `${orgSlug.toLowerCase()}-${pageNumber}`);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pending = useRef(false);
   const submit = async (event: FormEvent) => {
     event.preventDefault(); if (pending.current) return; pending.current = true; setSaving(true); setError(null);
-    try { await uptimeRequest(orgSlug, "/page", { method: "POST", body: JSON.stringify({ name, description, slug }) }); onCreated(); }
+    try { const result = await uptimeRequest<{ page: UptimePage }>(orgSlug, "/page", { method: "POST", body: JSON.stringify({ name, description, slug }) }); onCreated(result.page.id); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not create page."); }
     finally { pending.current = false; setSaving(false); }
   };
-  return <UptimePanel className="max-w-xl overflow-hidden"><div className="border-b border-white/[0.06] p-4"><h2 className="text-[14px] font-medium text-zinc-200">Create your status page</h2><p className="mt-1 text-[12px] leading-5 text-zinc-500">One page per organization. Start with a name and your public address.</p></div><form onSubmit={(event) => void submit(event)} className="space-y-4 p-4"><label className={labelClass}>Page name<WorkspaceInput className="mt-2" value={name} onChange={(event) => setName(event.target.value)} required maxLength={120} placeholder="Acme status" disabled={saving} /></label><label className={labelClass}>Description <span className="text-zinc-600">· Optional</span><WorkspaceTextarea className="mt-2 min-h-20" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} placeholder="Current availability and incident updates" disabled={saving} /></label><label className={labelClass}>Public slug<WorkspaceInput className="mt-2" value={slug} onChange={(event) => setSlug(event.target.value.toLowerCase())} required pattern="[a-z0-9][a-z0-9-]{1,61}[a-z0-9]" disabled={saving} /><span className="mt-1.5 block break-all text-[11px] text-zinc-600">{statusPageUrl(statusBase, slug || "your-slug")}</span></label>{error && <UptimeError message={error} />}<div className="flex items-center justify-between gap-3 border-t border-white/[0.06] pt-4"><p className="text-[11px] text-zinc-600">Your page starts as a private draft.</p><Button type="submit" size="sm" loading={saving} disabled={saving}>Create page</Button></div></form></UptimePanel>;
+  return <UptimeSideSheet open={open} onClose={onClose} busy={saving} title="Create status page" description="Give this page a name and its own public address." footer={<>
+    <Button type="button" variant="secondary" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+    <Button type="submit" form={formId} size="sm" loading={saving} disabled={saving}>Create page</Button>
+  </>}>
+    <form id={formId} onSubmit={(event) => void submit(event)} className="space-y-5">
+      <label className={labelClass}>Page name<WorkspaceInput data-autofocus className="mt-2" value={name} onChange={(event) => setName(event.target.value)} required maxLength={120} placeholder="Acme status" disabled={saving} /></label>
+      <label className={labelClass}>Description <span className="text-zinc-600">· Optional</span><WorkspaceTextarea className="mt-2 min-h-24" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} placeholder="Current availability and incident updates" disabled={saving} /></label>
+      <label className={labelClass}>Public slug<WorkspaceInput className="mt-2" value={slug} onChange={(event) => setSlug(event.target.value.toLowerCase())} required pattern="[a-z0-9][a-z0-9-]{1,61}[a-z0-9]" disabled={saving} /><span className="mt-1.5 block break-all text-[11px] text-zinc-600">{statusPageUrl(statusBase, slug || "your-slug")}</span></label>
+      <p className="text-[12px] text-zinc-500">Your page starts as a private draft.</p>
+      {error && <UptimeError message={error} />}
+    </form>
+  </UptimeSideSheet>;
 }
 
 function PageSettings({ page, orgSlug, onSaved }: { page: UptimePage; orgSlug: string; onSaved: () => void }) {
@@ -232,9 +257,9 @@ function PageSettings({ page, orgSlug, onSaved }: { page: UptimePage; orgSlug: s
   const fileInput = useRef<HTMLInputElement>(null);
   const previewColor = /^#[0-9a-fA-F]{6}$/.test(accentColor) ? accentColor : page.accentColor;
   const updateDraft = (key: "name" | "description" | "accentColor", value: string) => { setAppearanceDraft((draft) => ({ ...draft, [key]: value })); setSaved(false); };
-  const save = async (event: FormEvent) => { event.preventDefault(); if (!canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); setSaved(false); try { await uptimeRequest(orgSlug, "/page", { method: "PATCH", body: JSON.stringify({ name, description: description || null, accentColor }) }); commitAppearance(appearanceDraft); setSaved(true); onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save page."); } finally { pending.current = false; setSaving(false); } };
-  const uploadLogo = async () => { if (!logoFile || !canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); try { const body = new FormData(); body.set("logo", logoFile); const response = await fetch(uptimeApiPath(orgSlug, "/page/logo"), { method: "POST", credentials: "same-origin", body }); const payload = await response.json().catch(() => null) as { error?: string } | null; if (!response.ok) throw new Error(payload?.error || "Logo upload failed."); setLogoFile(null); if (fileInput.current) fileInput.current.value = ""; onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not upload logo."); } finally { pending.current = false; setSaving(false); } };
-  const removeLogo = async () => { if (!canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); try { await uptimeRequest(orgSlug, "/page/logo", { method: "DELETE" }); onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not remove logo."); } finally { pending.current = false; setSaving(false); } };
+  const save = async (event: FormEvent) => { event.preventDefault(); if (!canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); setSaved(false); try { await uptimeRequest(orgSlug, statusPagePath("/page", page.id), { method: "PATCH", body: JSON.stringify({ name, description: description || null, accentColor }) }); commitAppearance(appearanceDraft); setSaved(true); onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save page."); } finally { pending.current = false; setSaving(false); } };
+  const uploadLogo = async () => { if (!logoFile || !canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); try { const body = new FormData(); body.set("logo", logoFile); const response = await fetch(uptimeApiPath(orgSlug, statusPagePath("/page/logo", page.id)), { method: "POST", credentials: "same-origin", body }); const payload = await response.json().catch(() => null) as { error?: string } | null; if (!response.ok) throw new Error(payload?.error || "Logo upload failed."); setLogoFile(null); if (fileInput.current) fileInput.current.value = ""; onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not upload logo."); } finally { pending.current = false; setSaving(false); } };
+  const removeLogo = async () => { if (!canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); try { await uptimeRequest(orgSlug, statusPagePath("/page/logo", page.id), { method: "DELETE" }); onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not remove logo."); } finally { pending.current = false; setSaving(false); } };
   return <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(260px,1fr)]">
     <UptimePanel className="overflow-hidden">
       <div className="border-b border-white/[0.06] p-4"><h3 className="text-[14px] font-medium text-zinc-200">Page details</h3><p className="mt-1 text-[12px] text-zinc-500">The first things visitors see.</p></div>
@@ -313,7 +338,7 @@ function RowAction({ label, onClick, disabled, children, controls, expanded }: {
 }
 
 function ComponentForm({ orgSlug, groupId, groups, monitors, onSaved, onCancel, component }: { orgSlug: string; groupId: string | null; groups: UptimeGroup[]; monitors: UptimeMonitor[]; onSaved: () => void; onCancel: () => void; component?: UptimeComponent }) {
-  const { canManage } = useStatusPageEditor();
+  const { canManage, page } = useStatusPageEditor();
   const [name, setName] = useState(component?.name || "");
   const [description, setDescription] = useState(component?.description || "");
   const [selectedGroupId, setSelectedGroupId] = useState(groupId);
@@ -323,7 +348,7 @@ function ComponentForm({ orgSlug, groupId, groups, monitors, onSaved, onCancel, 
   const [search, setSearch] = useState("");
   const pending = useRef(false);
   const shownMonitors = monitors.filter((monitor) => monitor.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
-  const submit = async (event: FormEvent) => { event.preventDefault(); if (!canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); try { await uptimeRequest(orgSlug, component ? `/components/${encodeURIComponent(component.id)}` : "/components", { method: component ? "PATCH" : "POST", body: JSON.stringify({ groupId: selectedGroupId, name, description: description || null, monitorIds }) }); onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save component."); } finally { pending.current = false; setSaving(false); } };
+  const submit = async (event: FormEvent) => { event.preventDefault(); if (!canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); try { await uptimeRequest(orgSlug, statusPagePath(component ? `/components/${encodeURIComponent(component.id)}` : "/components", page.id), { method: component ? "PATCH" : "POST", body: JSON.stringify({ groupId: selectedGroupId, name, description: description || null, monitorIds }) }); onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save component."); } finally { pending.current = false; setSaving(false); } };
   return <form className="mt-3 space-y-4 rounded-xl border border-white/[0.08] bg-[#141415] p-4" onSubmit={(event) => void submit(event)}>
     <div><h3 className="text-[14px] font-medium text-zinc-200">{component ? "Edit component" : "New component"}</h3><p className="mt-1 text-[12px] text-zinc-500">Give customers a recognizable service name.</p></div>
     <label className={labelClass}>Component name<WorkspaceInput className="mt-2" required maxLength={120} value={name} onChange={(event) => setName(event.target.value)} placeholder="API" disabled={saving} autoFocus /></label>
@@ -348,7 +373,7 @@ function ComponentEditor({ component, index, container, groups, orgSlug, monitor
   const [saving, setSaving] = useState(false);
   const pending = useRef(false);
   const { ref: sortableRef, handleRef, isDragging, isDropTarget } = useSortable({ id: `component:${component.id}`, index, group: container, type: "component", accept: "component", disabled: working || saving, plugins: [SortableKeyboardPlugin] });
-  const changeManualState = async (publish: boolean) => { if (!canManage || pending.current || (publish && !page.published)) return; pending.current = true; setSaving(true); setManualError(null); try { await uptimeRequest(orgSlug, "/incidents", { method: "POST", body: JSON.stringify({ title: `${component.name} status update`, componentIds: [component.id], note, status: manualState === "operational" ? "resolved" : "investigating", componentStates: { [component.id]: manualState }, publish }) }); setNote(""); setManualOpen(false); reload(); } catch (cause) { setManualError(cause instanceof Error ? cause.message : "Could not save update."); } finally { pending.current = false; setSaving(false); } };
+  const changeManualState = async (publish: boolean) => { if (!canManage || pending.current || (publish && !page.published)) return; pending.current = true; setSaving(true); setManualError(null); try { await uptimeRequest(orgSlug, statusPagePath("/incidents", page.id), { method: "POST", body: JSON.stringify({ title: `${component.name} status update`, componentIds: [component.id], note, status: manualState === "operational" ? "resolved" : "investigating", componentStates: { [component.id]: manualState }, publish }) }); setNote(""); setManualOpen(false); reload(); } catch (cause) { setManualError(cause instanceof Error ? cause.message : "Could not save update."); } finally { pending.current = false; setSaving(false); } };
   return <div ref={sortableRef} className={`min-w-0 px-3 py-2 transition-colors hover:bg-white/[0.02] motion-reduce:transition-none md:px-4 ${isDragging ? "z-10 opacity-60" : ""} ${isDropTarget ? "bg-white/[0.035]" : ""}`}>
     <div className="flex min-h-11 items-center gap-2">
       {canManage && <DragHandle refCallback={handleRef} label={`Drag ${component.name} component`} disabled={working || saving} />}
