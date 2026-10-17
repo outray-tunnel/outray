@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { domains } from "@/db/app-schema";
 import { uptimeStatusPages } from "@/db/uptime-schema";
-import { notFound, requireUptimeManager } from "@/lib/uptime/api";
+import { findStatusPage, notFound, requireUptimeManager } from "@/lib/uptime/api";
 import {
   removeCustomStatusHostname,
   statusDomainProviderEnabled,
@@ -20,6 +20,8 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/domains/$domainId")({
         eq(domains.purpose, "status"),
       )).limit(1);
       if (!domain) return notFound("Status domain");
+      const page = await findStatusPage(access.organization.id, request);
+      if (!page || page.domainId !== domain.id) return notFound("Status domain");
 
       let providerEnabled: boolean;
       try {
@@ -31,7 +33,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/domains/$domainId")({
       if (!providerEnabled) {
         await db.transaction(async (tx) => {
           await tx.update(uptimeStatusPages).set({ domainId: null, updatedAt: new Date() })
-            .where(and(eq(uptimeStatusPages.organizationId, access.organization.id),
+            .where(and(eq(uptimeStatusPages.id, page.id), eq(uptimeStatusPages.organizationId, access.organization.id),
               eq(uptimeStatusPages.domainId, domain.id)));
           await tx.delete(domains).where(and(eq(domains.id, domain.id),
             eq(domains.organizationId, access.organization.id), eq(domains.purpose, "status")));
@@ -59,7 +61,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/domains/$domainId")({
         }
         await db.transaction(async (tx) => {
           await tx.update(uptimeStatusPages).set({ domainId: null, updatedAt: new Date() })
-            .where(and(eq(uptimeStatusPages.organizationId, access.organization.id),
+            .where(and(eq(uptimeStatusPages.id, page.id), eq(uptimeStatusPages.organizationId, access.organization.id),
               eq(uptimeStatusPages.domainId, domain.id)));
           await tx.delete(domains).where(and(eq(domains.id, domain.id),
             eq(domains.organizationId, access.organization.id), eq(domains.purpose, "status")));
