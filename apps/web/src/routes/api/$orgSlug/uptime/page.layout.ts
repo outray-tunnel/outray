@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { uptimeStatusComponents, uptimeStatusGroups, uptimeStatusPages } from "@/db/uptime-schema";
-import { badInput, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
+import { uptimeStatusComponents, uptimeStatusGroups } from "@/db/uptime-schema";
+import { badInput, findStatusPage, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
 import { planStatusLayout } from "@/lib/uptime/status-layout";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/page/layout")({
@@ -14,8 +14,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page/layout")({
       if (body instanceof Response) return body;
 
       const result = await db.transaction(async (tx) => {
-        const [page] = await tx.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
-          .where(eq(uptimeStatusPages.organizationId, access.organization.id)).for("update").limit(1);
+        const page = await findStatusPage(access.organization.id, request, tx);
         if (!page) return "missing" as const;
         const groups = await tx.select({ id: uptimeStatusGroups.id }).from(uptimeStatusGroups).where(and(
           eq(uptimeStatusGroups.organizationId, access.organization.id), eq(uptimeStatusGroups.pageId, page.id),
