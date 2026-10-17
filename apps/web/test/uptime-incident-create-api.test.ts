@@ -82,6 +82,7 @@ async function harness(selections: Selection[], options: { denied?: boolean; fol
       if (specifier === "@/lib/uptime/incident-api") return incidentApi;
       if (specifier === "@/lib/uptime/incident-query") return {};
       if (specifier === "@/lib/uptime/api") return {
+        findStatusPage: async () => (await db.select().from(uptimeSchema.uptimeStatusPages).where(drizzle.eq(uptimeSchema.uptimeStatusPages.organizationId, organizationId)).limit(1))[0] ?? null,
         requireUptimeManager: async (_request: Request, slug: string) => {
           assert.equal(slug, "url-workspace");
           return options.denied ? { error: Response.json({ error: "Forbidden" }, { status: 403 }) } : access;
