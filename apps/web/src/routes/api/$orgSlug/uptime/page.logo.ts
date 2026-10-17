@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { uptimeStatusPages } from "@/db/uptime-schema";
-import { badInput, notFound, requireUptimeManager } from "@/lib/uptime/api";
+import { badInput, findStatusPage, notFound, requireUptimeManager } from "@/lib/uptime/api";
 
 import {
   deleteNewStatusPageLogo,
@@ -29,8 +29,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page/logo")({
     POST: async ({ request, params }) => {
       const access = await requireUptimeManager(request, params.orgSlug);
       if ("error" in access) return access.error;
-      const [existing] = await db.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
-        .where(eq(uptimeStatusPages.organizationId, access.organization.id)).limit(1);
+      const existing = await findStatusPage(access.organization.id, request);
       if (!existing) return notFound("Status page");
 
       let uploaded: StoredStatusPageLogo;
@@ -62,8 +61,10 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page/logo")({
     DELETE: async ({ request, params }) => {
       const access = await requireUptimeManager(request, params.orgSlug);
       if ("error" in access) return access.error;
+      const selected = await findStatusPage(access.organization.id, request);
+      if (!selected) return notFound("Status page");
       const [page] = await db.update(uptimeStatusPages).set({ logoUrl: null, updatedAt: new Date() })
-        .where(eq(uptimeStatusPages.organizationId, access.organization.id))
+        .where(and(eq(uptimeStatusPages.id, selected.id), eq(uptimeStatusPages.organizationId, access.organization.id)))
         .returning({ id: uptimeStatusPages.id });
       if (!page) return notFound("Status page");
       // Unlink the logo from this page without deleting possibly shared URLs.
