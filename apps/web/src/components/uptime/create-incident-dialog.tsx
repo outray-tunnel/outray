@@ -6,13 +6,14 @@ import { useCallback, useId, useMemo, useRef, useState } from "react";
 import { pageComponents } from "@/lib/uptime/incident-display";
 import { WorkspaceInput } from "@/components/ui/workspace-input";
 import { Button } from "@/components/arc/button/button";
+import { Select } from "@/components/arc/select/select";
 import { IncidentStatusSelect } from "./incident-ui";
 import { IncidentRichEditor } from "./incident-rich-editor";
 import { IncidentComponentPicker } from "./incident-component-picker";
 import { UptimeDialog } from "./uptime-dialog";
 import { UptimeSideSheet } from "./uptime-side-sheet";
 import { useUptimeUnsavedChanges } from "./use-uptime-unsaved-changes";
-import { uptimeRequest, UptimeRequestError, type UptimeIncidentStatus, type UptimePageResponse } from "./uptime-client";
+import { statusPagePath, uptimeRequest, UptimeRequestError, type UptimeIncidentStatus, type UptimePageResponse } from "./uptime-client";
 import { UptimeSkeleton } from "./uptime-skeleton";
 import { labelClass, secondaryButton, UptimeError } from "./uptime-ui";
 
@@ -21,7 +22,8 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
-  const page = useQuery({ queryKey: ["uptime", orgSlug, "page"], queryFn: ({ signal }) => uptimeRequest<UptimePageResponse>(orgSlug, "/page", { signal }) });
+  const [pageId, setPageId] = useState<string | null>(null);
+  const page = useQuery({ queryKey: ["uptime", orgSlug, "page", pageId], queryFn: ({ signal }) => uptimeRequest<UptimePageResponse>(orgSlug, pageId ? statusPagePath("/page", pageId) : "/page", { signal }) });
   const [title, setTitle] = useState("");
   const [body, setBody] = useState<IncidentDocument>(() => legacyIncidentDocument(""));
   const [status, setStatus] = useState<UptimeIncidentStatus>("investigating");
@@ -57,7 +59,7 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
     submitting.current = true;
     setSaving(publish ? "publish" : "draft"); setErrors({});
     try {
-      const result = await uptimeRequest<{ incident: { id: string } }>(orgSlug, "/incidents", {
+      const result = await uptimeRequest<{ incident: { id: string } }>(orgSlug, statusPagePath("/incidents", page.data!.page!.id), {
         method: "POST", body: JSON.stringify({ title: title.trim(), ...(incidentPlainText(body) ? { body } : {}), status, componentIds: selected, publish }),
       });
       setTitle(""); setBody(legacyIncidentDocument("")); setStatus("investigating"); setSelected([]);
@@ -74,8 +76,9 @@ export function CreateIncidentDialog({ orgSlug, onClose, onCreated }: {
       <Button type="submit" variant="secondary" size="sm" form={formId} loading={saving === "draft"} disabled={saving === "publish" || !page.data?.page}>Save draft</Button>
       <Button type="button" size="sm" onClick={() => void create(true)} loading={saving === "publish"} disabled={saving === "draft" || !page.data?.page?.published}>Declear incident</Button>
     </>}>
-      {page.isPending ? <UptimeSkeleton label="Loading components" className="space-y-4"><div className="h-9 rounded-lg bg-white/[0.04]" /><div className="h-32 rounded-xl bg-white/[0.04]" /><div className="h-24 rounded-xl bg-white/[0.04]" /></UptimeSkeleton> : page.isError && !page.data ? <div className="space-y-3"><UptimeError message="Could not load your status page and components." /><Button type="button" variant="secondary" size="sm" onClick={() => void page.refetch()}>Try again</Button></div> : !page.data?.page ? <div className="py-5 text-sm leading-6 text-zinc-400"><p>Create a status page before reporting an incident.</p><Link to="/$orgSlug/uptime/status-page/components" params={{ orgSlug }} className={`${secondaryButton} mt-4`}>Set up status page</Link></div> : <form id={formId} ref={formRef} aria-busy={saving !== null} onSubmit={(event) => { event.preventDefault(); void create(false); }} className="space-y-4">
+      {page.isPending ? <UptimeSkeleton label="Loading components" className="space-y-4"><div className="h-9 rounded-lg bg-white/[0.04]" /><div className="h-32 rounded-xl bg-white/[0.04]" /><div className="h-24 rounded-xl bg-white/[0.04]" /></UptimeSkeleton> : page.isError && !page.data ? <div className="space-y-3"><UptimeError message="Could not load your status page and components." /><Button type="button" variant="secondary" size="sm" onClick={() => void page.refetch()}>Try again</Button></div> : !page.data?.page ? <div className="py-5 text-sm leading-6 text-zinc-400"><p>Create a status page before reporting an incident.</p><Link to="/$orgSlug/uptime/status-page" params={{ orgSlug }} className={`${secondaryButton} mt-4`}>Set up status page</Link></div> : <form id={formId} ref={formRef} aria-busy={saving !== null} onSubmit={(event) => { event.preventDefault(); void create(false); }} className="space-y-4">
         <fieldset disabled={saving !== null} className="min-w-0 space-y-4">
+        {(page.data.pages?.length ?? 0) > 1 && <div className="max-w-xs"><Select label="Status page" value={page.data.page.id} onValueChange={(id) => { setPageId(id); setSelected([]); }} options={page.data.pages!.map((item) => ({ value: item.id, label: item.name }))} /></div>}
         <label className={labelClass} htmlFor={`${formId}-title`}>Incident title
           <WorkspaceInput id={`${formId}-title`} data-autofocus size="compact" className="mt-1.5" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={160} required placeholder="Elevated errors during checkout" aria-invalid={!!errors.title} aria-describedby={errors.title ? `${formId}-title-error` : undefined} />
           {errors.title && <span role="alert" id={`${formId}-title-error`} className="mt-1.5 block text-xs font-normal text-rose-300">{errors.title}</span>}
