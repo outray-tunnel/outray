@@ -1,0 +1,1 @@
+ALTER TABLE "uptime_status_pages" DROP CONSTRAINT "uptime_status_pages_organization_id_unique";
