@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { and, desc, eq, ilike, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { uptimeStatusPages, uptimeSubscribers } from "@/db/uptime-schema";
-import { badInput, notFound, requireUptimeManager } from "@/lib/uptime/api";
+import { uptimeSubscribers } from "@/db/uptime-schema";
+import { badInput, findStatusPage, notFound, requireUptimeManager } from "@/lib/uptime/api";
 import { parseSubscriberQuery, serializeSubscriber, subscriberCursor, subscriberSearchPattern } from "@/lib/uptime/subscriber-api";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/subscribers/")({
@@ -15,8 +15,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/subscribers/")({
         const input = parseSubscriberQuery(new URL(request.url).searchParams);
         if ("error" in input) return badInput(input.error);
         const organizationId = access.organization.id;
-        const [page] = await db.select({ id: uptimeStatusPages.id, subscriptionsEnabled: uptimeStatusPages.subscriptionsEnabled })
-          .from(uptimeStatusPages).where(eq(uptimeStatusPages.organizationId, organizationId)).limit(1);
+        const page = await findStatusPage(organizationId, request);
         if (!page) return notFound("Status page");
         const scope = and(eq(uptimeSubscribers.organizationId, organizationId), eq(uptimeSubscribers.pageId, page.id));
         const [rows, [counts]] = await Promise.all([
