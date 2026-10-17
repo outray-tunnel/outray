@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { uptimeStatusPages, uptimeSubscribers } from "@/db/uptime-schema";
-import { badInput, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
+import { badInput, findStatusPage, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
 import { serializeSubscriber } from "@/lib/uptime/subscriber-api";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/subscribers/$subscriberId")({
@@ -17,9 +17,10 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/subscribers/$subscrib
           return badInput("Subscribers may only be unsubscribed", "status");
         }
         const result = await db.transaction(async (tx) => {
-          const [page] = await tx.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
-            .where(eq(uptimeStatusPages.organizationId, access.organization.id)).for("update").limit(1);
+          const page = await findStatusPage(access.organization.id, request, tx);
           if (!page) return null;
+          await tx.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
+            .where(eq(uptimeStatusPages.id, page.id)).for("update");
           const scope = and(eq(uptimeSubscribers.id, params.subscriberId),
             eq(uptimeSubscribers.pageId, page.id), eq(uptimeSubscribers.organizationId, access.organization.id));
           const [subscriber] = await tx.select().from(uptimeSubscribers).where(scope).limit(1);
