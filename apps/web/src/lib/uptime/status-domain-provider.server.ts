@@ -86,7 +86,15 @@ export function statusDomainProviderEnabled(): boolean {
   // even if a copied environment accidentally contains the hosted flag.
   if (instanceConfig().selfHosted) return false;
   const provider = process.env.STATUS_DOMAIN_PROVIDER?.trim().toLowerCase();
-  if (!provider) return false;
+  if (!provider) {
+    // The hosted OutRay status namespace needs Cloudflare for DNS, Worker
+    // routing, and TLS. Never publish a page that would have no public host.
+    if (process.env.NODE_ENV === "production" &&
+        publicHosts.canonicalStatusHostname() === "status.outray.app") {
+      throw new StatusDomainProviderError("Status domain provisioning is not configured", 503);
+    }
+    return false;
+  }
   if (provider !== PROVIDER_NAME) {
     throw new StatusDomainProviderError("Status domain provisioning is not configured", 503);
   }
