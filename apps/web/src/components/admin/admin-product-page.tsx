@@ -50,7 +50,8 @@ function productValue(value: AdminProductValue | undefined, format: AdminProduct
     if (!Number.isFinite(duration)) return "Unavailable";
     if (duration < 1_000) return `${duration.toLocaleString(undefined, { maximumFractionDigits: 1 })} ms`;
     if (duration < 60_000) return `${(duration / 1_000).toLocaleString(undefined, { maximumFractionDigits: 1 })} s`;
-    return `${Math.floor(duration / 60_000).toLocaleString()}m ${Math.round(duration % 60_000 / 1_000)}s`;
+    const seconds = Math.round(duration / 1_000);
+    return `${Math.floor(seconds / 60).toLocaleString()}m ${seconds % 60}s`;
   }
   if (format === "number" || format === "bytes" || format === "percent") return formatAdminUsage(Number(value), format);
   return String(value);
