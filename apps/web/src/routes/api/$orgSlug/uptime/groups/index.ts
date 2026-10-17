@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { uptimeStatusComponents, uptimeStatusGroups, uptimeStatusPages } from "@/db/uptime-schema";
-import { badInput, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
+import { uptimeStatusComponents, uptimeStatusGroups } from "@/db/uptime-schema";
+import { badInput, findStatusPage, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
 import { textField } from "@/lib/uptime/validation";
 
 export const Route = createFileRoute("/api/$orgSlug/uptime/groups/")({
@@ -14,8 +14,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/groups/")({
       if (body instanceof Response) return body;
       const name = textField(body.name, 100, true);
       if (name === undefined) return badInput("Group name must be 1–100 characters", "name");
-      const [page] = await db.select({ id: uptimeStatusPages.id }).from(uptimeStatusPages)
-        .where(eq(uptimeStatusPages.organizationId, access.organization.id)).limit(1);
+      const page = await findStatusPage(access.organization.id, request);
       if (!page) return notFound("Status page");
       const [{ count }] = await db.select({ count: sql<number>`count(*)::int` })
         .from(uptimeStatusGroups).where(and(
