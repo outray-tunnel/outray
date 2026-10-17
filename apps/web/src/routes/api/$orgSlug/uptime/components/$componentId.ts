@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { uptimeComponentMonitors, uptimeStatusComponents, uptimeStatusGroups } from "@/db/uptime-schema";
-import { badInput, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
+import { badInput, findStatusPage, jsonBody, notFound, requireUptimeManager } from "@/lib/uptime/api";
 import { textField } from "@/lib/uptime/validation";
 import { monitorsBelongToOrg, parseMonitorIds } from "./index";
 
@@ -19,6 +19,8 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/components/$component
         eq(uptimeStatusComponents.id, params.componentId), eq(uptimeStatusComponents.organizationId, access.organization.id),
       )).limit(1);
       if (!current) return notFound("Component");
+      const page = await findStatusPage(access.organization.id, request);
+      if (!page || current.pageId !== page.id) return notFound("Component");
       const values: Partial<typeof uptimeStatusComponents.$inferInsert> = { updatedAt: new Date() };
       if (Object.hasOwn(body, "name")) {
         const value = textField(body.name, 120, true);
@@ -85,10 +87,12 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/components/$component
     DELETE: async ({ request, params }) => {
       const access = await requireUptimeManager(request, params.orgSlug);
       if ("error" in access) return access.error;
+      const page = await findStatusPage(access.organization.id, request);
+      if (!page) return notFound("Status page");
       // Preserve incident history and audit references; removal from public view is an archive.
       const [component] = await db.update(uptimeStatusComponents).set({ visible: false, updatedAt: new Date() })
         .where(and(eq(uptimeStatusComponents.id, params.componentId),
-          eq(uptimeStatusComponents.organizationId, access.organization.id)))
+          eq(uptimeStatusComponents.organizationId, access.organization.id), eq(uptimeStatusComponents.pageId, page.id)))
         .returning({ id: uptimeStatusComponents.id });
       if (!component) return notFound("Component");
       return Response.json({ success: true, archived: true });
