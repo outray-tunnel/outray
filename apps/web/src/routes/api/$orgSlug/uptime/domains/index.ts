@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { domains } from "@/db/app-schema";
 import { uptimeStatusPages } from "@/db/uptime-schema";
-import { badInput, jsonBody, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
+import { badInput, findStatusPage, jsonBody, requireUptimeManager, requireUptimeRead } from "@/lib/uptime/api";
 import { isReservedStatusCustomDomain, statusDnsTarget } from "@/lib/uptime/domain-config";
 import { getOrganizationLimits, withOrganizationQuotaLock } from "@/lib/organization-entitlements.server";
 
@@ -14,9 +14,10 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/domains/")({
     GET: async ({ request, params }) => {
       const access = await requireUptimeRead(request, params.orgSlug);
       if ("error" in access) return access.error;
-      const [row] = await db.select().from(domains).where(and(
-        eq(domains.organizationId, access.organization.id), eq(domains.purpose, "status"),
-      )).limit(1);
+      const page = await findStatusPage(access.organization.id, request);
+      const [row] = page?.domainId ? await db.select().from(domains).where(and(
+        eq(domains.id, page.domainId), eq(domains.organizationId, access.organization.id), eq(domains.purpose, "status"),
+      )).limit(1) : [];
       return Response.json({ domain: row ?? null });
     },
     POST: async ({ request, params }) => {
@@ -36,8 +37,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/domains/")({
           const limits = await getOrganizationLimits(access.organization.id, tx);
           // Status-page domains are independent of paid tunnel custom domains.
           if (!limits.statusCustomDomains) return { error: "Custom status domains are not available for this workspace", status: 403 } as const;
-          const [page] = await tx.select().from(uptimeStatusPages)
-            .where(eq(uptimeStatusPages.organizationId, access.organization.id)).for("update").limit(1);
+          const page = await findStatusPage(access.organization.id, request, tx);
           if (!page) return { error: "Create a status page first", status: 404 } as const;
           if (page.domainId) return { error: "This page already has its beta custom subdomain", status: 409 } as const;
           const [existing] = await tx.select({ id: domains.id }).from(domains)
