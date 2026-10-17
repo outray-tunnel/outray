@@ -1,7 +1,8 @@
 import axios from "axios";
 import type { TunnelStatsRange } from "./tunnel-stats-range";
 import type { getPlanLimits } from "./subscription-plans";
-import type { AdminUsageParams, AdminUsageResponse } from "./admin-usage";
+import type { AdminProduct, AdminUsageParams, AdminUsageResponse } from "./admin-usage";
+import type { AdminProductParams, AdminProductResponse } from "./admin-products";
 
 const apiClient = axios.create({
   baseURL: typeof window !== "undefined" ? window.location.origin : "",
@@ -146,6 +147,9 @@ async function apiCall<T = any>(
 
 export const appClient = {
   admin: {
+    product: async (product: AdminProduct, params: AdminProductParams = {}) =>
+      apiCall<AdminProductResponse>("get", `/api/admin/products/${product}`, { params }),
+
     usage: async (params: AdminUsageParams = {}) =>
       apiCall<AdminUsageResponse>("get", "/api/admin/usage", { params }),
 
