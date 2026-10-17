@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { domains } from "@/db/app-schema";
 import { members } from "@/db/auth-schema";
@@ -64,9 +64,27 @@ export function serializeMonitor(row: typeof uptimeMonitors.$inferSelect) {
   };
 }
 
-export async function loadPage(organizationId: string) {
-  const [page] = await db.select().from(uptimeStatusPages)
-    .where(eq(uptimeStatusPages.organizationId, organizationId)).limit(1);
+export function requestedStatusPageId(request?: Request): string | null {
+  return request ? new URL(request.url).searchParams.get("pageId") : null;
+}
+
+/** Explicit page IDs never fall back to another page. Legacy callers without
+ * a page ID continue to address the organization's oldest status page. */
+export async function findStatusPage(
+  organizationId: string,
+  request?: Request,
+  database: Pick<typeof db, "select"> = db,
+) {
+  const pageId = requestedStatusPageId(request);
+  const [page] = await database.select().from(uptimeStatusPages)
+    .where(and(eq(uptimeStatusPages.organizationId, organizationId),
+      pageId === null ? undefined : eq(uptimeStatusPages.id, pageId)))
+    .orderBy(asc(uptimeStatusPages.createdAt), asc(uptimeStatusPages.id)).limit(1);
+  return page ?? null;
+}
+
+export async function loadPage(organizationId: string, request?: Request) {
+  const page = await findStatusPage(organizationId, request);
   if (!page) return null;
   const [groups, components, statusDomains] = await Promise.all([
     db.select().from(uptimeStatusGroups).where(and(eq(uptimeStatusGroups.organizationId, organizationId), eq(uptimeStatusGroups.pageId, page.id))),
