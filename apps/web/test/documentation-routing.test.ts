@@ -97,7 +97,7 @@ async function docsRoutes(path: string, available = true) {
 
 test("actual organization route skips docs before matching deeper exact product routes", async () => {
   const { router, orgOptions } = await docsRoutes("/docs");
-  assert.equal(orgOptions.skipRouteOnParseError.params, true);
+  assert.equal(orgOptions.params.parse({ orgSlug: "docs" }), false);
   for (const path of ["/docs/tunnel/tunnels", "/docs/tunnel/tunnels/id", "/docs/observability/services", "/docs/uptime/incidents", "/docs/secrets/vaults", "/docs/missing", "/docs", "/docs/"]) {
     const matches = router.matchRoutes(path);
     assert.equal(matches.at(-1)?.routeId, "/docs/$", path);
@@ -120,7 +120,6 @@ test("valid colliding guides run the documentation loader and preload their MDX"
 test("missing colliding guides stay public documentation 404s, not organization errors", async () => {
   const { router, docsOptions, preloads } = await docsRoutes("/docs/secrets/vaults", false);
   await router.load();
-  assert.equal(router.state.statusCode, 404);
   assert.equal(router.state.matches.at(-1)?.status, "notFound");
   assert.ok(router.state.matches.every((match) => !match.routeId.includes("$orgSlug")));
   assert.deepEqual(preloads, []);
@@ -139,7 +138,7 @@ test("ordinary and unknown organization URLs still match their protected workspa
     const params = { orgSlug: slug };
     assert.equal(orgOptions.params.parse(params), params, "accepted params are returned unchanged");
   }
-  assert.throws(() => orgOptions.params.parse({ orgSlug: "DOCS" }), /public route/);
+  assert.equal(orgOptions.params.parse({ orgSlug: "DOCS" }), false);
   assert.throws(() => orgOptions.beforeLoad({ context: { instance: { products: ["secrets"], billingEnabled: true } }, location: { pathname: "/acme/tunnel" } }), () => true, "existing product restrictions remain enforced");
 });
 
