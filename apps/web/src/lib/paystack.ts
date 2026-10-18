@@ -5,7 +5,7 @@
  * We store the card authorization and charge it ourselves via cron.
  */
 
-import { createHmac } from "crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 
 // Naira pricing (display)
 export const PAYSTACK_PRICES_NGN = {
@@ -141,7 +141,7 @@ export async function chargeAuthorization(
 ): Promise<ChargeAuthorizationResponse> {
   const reference =
     params.reference ||
-    `outray_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    generateReference();
 
   return paystackRequest<ChargeAuthorizationResponse>(
     "/transaction/charge_authorization",
@@ -214,13 +214,15 @@ export function verifyWebhookSignature(
   body: string,
   signature: string,
 ): boolean {
-  const hash = createHmac("sha512", getSecretKey()).update(body).digest("hex");
-  return hash === signature;
+  // Reject malformed input before comparing fixed-length HMACs.
+  if (!/^[a-fA-F0-9]{128}$/.test(signature)) return false;
+  const expected = createHmac("sha512", getSecretKey()).update(body).digest();
+  return timingSafeEqual(expected, Buffer.from(signature, "hex"));
 }
 
 /**
  * Generate a unique reference for a transaction
  */
 export function generateReference(prefix = "outray"): string {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+  return `${prefix}_${Date.now()}_${randomBytes(12).toString("hex")}`;
 }
