@@ -12,7 +12,8 @@
     "packages/*"
   ],
   "overrides": {
-    "seroval": "1.6.3",
+    "proxy-addr": "2.0.8",
+    "seroval": "1.6.11",
     "unifont": "0.7.4"
   },
   "scripts": {
