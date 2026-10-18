@@ -1,13 +1,13 @@
 import { betterAuth } from "better-auth";
 import { memberQuotaAdapter } from "./member-quota-adapter.server";
-import { createAuthMiddleware, organization } from "better-auth/plugins";
+import { organization } from "better-auth/plugins";
 import { sendViaZepto } from "./send-email";
 import { ac, admin, member, owner } from "./permissions";
 import { generateEmail } from "@/email/templates";
 import { workspaceSlugErrorMessage, workspaceSlugRejection } from "../../../../shared/workspace-slugs";
 import { assertOrganizationMemberCapacity } from "./member-limits.server";
 import { BETTER_AUTH_MEMBERSHIP_CEILING } from "./member-limit-policy";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { instanceConfig, instanceSignupAllowed } from "../../../../shared/instance-config";
 import { adminProfileFields } from "./auth-profile";
 
