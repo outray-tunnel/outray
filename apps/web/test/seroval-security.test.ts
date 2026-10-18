@@ -3,17 +3,17 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { fromJSON, toJSON } from "seroval";
 
-test("the Seroval security override and every locked copy stay on the verified patched release", async () => {
+test("the Seroval security override and every locked copy stay on the patched release", async () => {
   const manifest = JSON.parse(await readFile(new URL("../../../package.json", import.meta.url), "utf8"));
   const lock = JSON.parse(await readFile(new URL("../../../package-lock.json", import.meta.url), "utf8"));
-  assert.equal(manifest.overrides.seroval, "1.6.3");
+  assert.equal(manifest.overrides.seroval, "1.6.11");
   const copies = Object.entries(lock.packages).filter(([path]) => path.endsWith("node_modules/seroval"));
   assert.ok(copies.length > 0, "Seroval must be present in the production dependency graph");
   for (const [path, entry] of copies) {
-    assert.equal((entry as { version: string }).version, "1.6.3", path);
+    assert.equal((entry as { version: string }).version, "1.6.11", path);
   }
   const installed = JSON.parse(await readFile(new URL("../../../node_modules/seroval/package.json", import.meta.url), "utf8"));
-  assert.equal(installed.version, "1.6.3", "clean installs must select the patched release");
+  assert.equal(installed.version, "1.6.11", "clean installs must select the patched release");
 });
 
 test("patched Seroval preserves structured server-context serialization", () => {
