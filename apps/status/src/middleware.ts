@@ -3,6 +3,11 @@ import { withStatusRuntime } from "./lib/runtime";
 import { snapshotResponse } from "./lib/snapshots";
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  // Status pages do not optimize user-provided images through Astro. Keep its
+  // Sharp-backed image endpoint unreachable on the Node runtime as well.
+  if (context.url.pathname === "/_image") {
+    return new Response("Not found", { status: 404 });
+  }
   const respond = async () => {
     const response = await next();
     response.headers.set("X-Content-Type-Options", "nosniff");
