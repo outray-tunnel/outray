@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { redis } from "./redis";
 
 interface RateLimitConfig {
@@ -52,7 +53,7 @@ export async function rateLimit(
     const windowMs = config.windowSeconds * 1000;
     const windowStart = now - windowMs;
     const redisKey = `ratelimit:${config.identifier}:${key}`;
-    const requestId = `${now}-${Math.random().toString(36).substring(2)}`;
+    const requestId = `${now}-${randomUUID()}`;
 
     try {
         const result = (await redis.eval(
@@ -83,13 +84,8 @@ export async function rateLimit(
         };
     } catch (error) {
         console.error("Rate limit error:", error);
-        return {
-            allowed: true,
-            current: 0,
-            limit: config.maxRequests,
-            resetIn: config.windowSeconds,
-            remaining: config.maxRequests,
-        };
+        // Auth endpoints must not become unlimited when Redis is unavailable.
+        throw new Error("Rate limiter unavailable", { cause: error });
     }
 }
 
