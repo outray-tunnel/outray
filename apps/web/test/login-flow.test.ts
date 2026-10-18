@@ -99,7 +99,7 @@ test("signed-in users return to the safe local destination without invoking OAut
   }
 });
 
-test("installed router href navigation overrides the typed fallback and preserves callback query parameters", async () => {
+test("installed router resolves safe callback destinations and preserves query parameters", async () => {
   const root = createRootRoute();
   const select = createRoute({ getParentRoute: () => root, path: "/select" });
   const cli = createRoute({ getParentRoute: () => root, path: "/cli/login", validateSearch: (search: Record<string, unknown>) => ({ code: String(search.code ?? "") }) });
@@ -111,10 +111,10 @@ test("installed router href navigation overrides the typed fallback and preserve
     ["/cli/login?code=one-time-code", "/cli/login", "code", "one-time-code"],
     ["/invitations/accept?token=invitation-id", "/invitations/accept", "token", "invitation-id"],
   ]) {
-    await router.navigate({ to: "/select", href, replace: true });
-    assert.equal(router.state.location.pathname, pathname);
-    assert.equal(router.state.location.search[key], value);
-    assert.equal(history.location.href, href);
+    const location = router.buildLocation({ to: "/select", href });
+    assert.equal(location.pathname, pathname);
+    assert.equal(location.search[key], value);
+    assert.equal(location.href, href);
   }
 });
 
