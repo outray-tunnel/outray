@@ -81,7 +81,7 @@ async function loadViews(overrides: Partial<typeof context> = {}, resources?: Pa
   const fixture = { ...context, ...overrides };
   const copiedAddresses: string[] = [];
   const module = { exports: {} as any };
-  const route = { useParams: () => ({ orgSlug: "acme" }), useNavigate: () => () => {}, options: {} as any };
+  const route = { useParams: () => ({ orgSlug: "acme" }), useSearch: () => ({ pageId: page.id }), useNavigate: () => () => {}, options: {} as any };
   const Link = ({ to, params, children, ...props }: any) => React.createElement("a", { ...props, href: to.replace("$orgSlug", params.orgSlug) }, children);
   const code = ts.transpileModule(source.replaceAll("import.meta.env", `(${JSON.stringify(environment)})`), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true } }).outputText;
   runInNewContext(code, {
@@ -93,7 +93,7 @@ async function loadViews(overrides: Partial<typeof context> = {}, resources?: Pa
       if (specifier === "@dnd-kit/react/sortable") return { isSortable: () => false, useSortable: () => ({ ref: () => {}, sourceRef: () => {}, targetRef: () => {}, handleRef: () => {}, isDragging: false, isDropTarget: false }) };
       if (specifier === "@dnd-kit/dom/sortable") return { SortableKeyboardPlugin: class {} };
       if (specifier === "lucide-react") return icons;
-      if (specifier.endsWith("/uptime-client")) return { uptimeApiPath: (_: string, path: string) => path, uptimeRequest: async () => { throw new Error("Unexpected mutation in rendering test"); }, useUptimeResource: (_: string, path: string) => resources?.[path] ?? { data: path === "/page" ? { ...fixture, standaloneComponents: fixture.standaloneComponents } : { monitors: fixture.monitors }, loading: false, error: null, reload: () => {} } };
+      if (specifier.endsWith("/uptime-client")) return { statusPagePath: (path: string, id: string) => `${path}?pageId=${id}`, uptimeApiPath: (_: string, path: string) => path, uptimeRequest: async () => { throw new Error("Unexpected mutation in rendering test"); }, useUptimeResource: (_: string, path: string) => resources?.[path] ?? resources?.[path.split("?")[0]] ?? { data: path.startsWith("/page") ? { ...fixture, standaloneComponents: fixture.standaloneComponents } : { monitors: fixture.monitors }, loading: false, error: null, reload: () => {} } };
       if (specifier.endsWith("/uptime-ui")) return uptimeUi;
       if (specifier.endsWith("/uptime-skeleton")) return skeletons;
       if (specifier.endsWith("/status-page-editor-context")) return { useStatusPageEditor: () => fixture };
@@ -108,6 +108,7 @@ async function loadViews(overrides: Partial<typeof context> = {}, resources?: Pa
       if (specifier.endsWith("/copy-button/copy-button")) return { CopyButton: (props: React.ComponentProps<typeof CopyButton>) => { copiedAddresses.push(props.value); return React.createElement(CopyButton, props); } };
       if (specifier.endsWith("/segmented-control/segmented-control")) return { __esModule: true, default: SegmentedControl };
       if (specifier.endsWith("/uptime-dialog")) return { UptimeDialog: Dialog };
+      if (specifier.endsWith("/uptime-side-sheet")) return { UptimeSideSheet: Dialog };
       if (specifier.endsWith("/status-page-row-menu")) return { StatusPageRowMenu: () => null };
       if (specifier.endsWith(".css")) return {};
       throw new Error(`Unexpected status-page dependency: ${specifier}`);
