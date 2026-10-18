@@ -1,7 +1,7 @@
 /** Public documentation must never be interpreted as an organization slug. */
-export function parseOrganizationRouteParams<T extends { orgSlug: string }>(params: T): T {
+export function parseOrganizationRouteParams<T extends { orgSlug: string }>(params: T): T | false {
   if (params.orgSlug.toLowerCase() === "docs") {
-    throw new Error("Documentation is a public route, not an organization");
+    return false;
   }
   return params;
 }
