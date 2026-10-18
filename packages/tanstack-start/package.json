@@ -42,13 +42,13 @@
     "@outray/observability": "^0.1.5"
   },
   "peerDependencies": {
-    "@tanstack/react-start": ">=1.141.0 <2.0.0"
+    "@tanstack/react-start": ">=1.168.60 <2.0.0"
   },
   "devDependencies": {
     "@opentelemetry/context-async-hooks": "^2.11.0",
     "@opentelemetry/sdk-metrics": "^2.11.0",
     "@opentelemetry/sdk-trace-base": "^2.11.0",
-    "@tanstack/react-start": "1.147.0",
+    "@tanstack/react-start": "1.168.60",
     "@types/node": "^22.0.0",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
