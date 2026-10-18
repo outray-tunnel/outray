@@ -25,7 +25,6 @@ export const Route = createFileRoute("/$orgSlug")({
   // Exact workspace children otherwise outrank the public /docs/$ catch-all.
   // Skip this branch during matching, before organization hooks or loaders run.
   params: { parse: parseOrganizationRouteParams },
-  skipRouteOnParseError: { params: true },
   beforeLoad: ({ context, location }) => {
     const product = instanceProductForPath(location.pathname);
     if ((product && !context.instance.products.includes(product)) ||
