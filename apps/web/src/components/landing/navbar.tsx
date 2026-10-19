@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
 import { SiGithub, SiVite, SiNextdotjs, SiExpress, SiNestjs } from "react-icons/si";
 import { GitHubButton } from "./github-button";
+import { LogoMark } from "@/components/logo-mark";
 
 // SVG logo content for copying
 const logoSvgLight = `<svg width="170" height="170" viewBox="0 0 170 170" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -111,12 +112,8 @@ export const Navbar = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2" onContextMenu={handleLogoRightClick}>
-          <img
-            src="/logo.png"
-            alt="OutRay Logo"
-            className={`${scrolled ? "w-10" : "w-12"} transition-all`}
-          />
+        <Link to="/" className="flex items-center gap-2" aria-label="OutRay home" onContextMenu={handleLogoRightClick}>
+          <LogoMark className={`${scrolled ? "size-10" : "size-12"} transition-[width,height] duration-300`} />
         </Link>
 
         {/* Logo Context Menu */}
