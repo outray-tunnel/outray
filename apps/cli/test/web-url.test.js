@@ -37,10 +37,10 @@ function serverUrl(env = {}, args = []) {
   });
 }
 
-test("production CLI uses connect.outray.co for tunnels while browser auth stays on outray.dev", () => {
+test("production CLI uses outray.co for browser auth and connect.outray.co for tunnels", () => {
   assert.equal(serverUrl(), "wss://connect.outray.co/");
   assert.equal(serverUrl({ NODE_ENV: "production" }), "wss://connect.outray.co/");
-  assert.equal(webUrl(), "https://outray.dev");
+  assert.equal(webUrl(), "https://outray.co");
 });
 
 test("development and dev-flag tunnel connections keep the local server", () => {
@@ -57,9 +57,10 @@ test("OUTRAY_SERVER_URL retains custom and legacy endpoint overrides", () => {
   assert.equal(serverUrl({ OUTRAY_SERVER_URL: "" }), "wss://connect.outray.co/");
 });
 
-test("production CLI uses outray.dev for the console", () => {
-  assert.equal(webUrl(), "https://outray.dev");
-  assert.equal(webUrl({ NODE_ENV: "production" }), "https://outray.dev");
+test("production secrets commands use the console with the Secrets API", () => {
+  const args = ["secrets", "run", "--", "nest", "start"];
+  assert.equal(webUrl({}, args), "https://outray.co");
+  assert.equal(webUrl({ NODE_ENV: "production" }, args), "https://outray.co");
 });
 
 test("development environment keeps the local console URL", () => {
@@ -78,10 +79,11 @@ test("OUTRAY_WEB_URL overrides the production and development defaults", () => {
     override,
   );
   assert.equal(webUrl({ OUTRAY_WEB_URL: override }, ["--dev"]), override);
+  assert.equal(webUrl({ OUTRAY_WEB_URL: "https://outray.dev" }), "https://outray.dev");
 });
 
 test("an empty override falls back to the environment's console URL", () => {
-  assert.equal(webUrl({ OUTRAY_WEB_URL: "" }), "https://outray.dev");
+  assert.equal(webUrl({ OUTRAY_WEB_URL: "" }), "https://outray.co");
   assert.equal(
     webUrl({ NODE_ENV: "development", OUTRAY_WEB_URL: "" }),
     "http://localhost:6767",
