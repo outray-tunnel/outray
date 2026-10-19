@@ -12,7 +12,7 @@ OutRay credentials identify the organization a tunnel belongs to. They do not au
 outray login
 ~~~
 
-The CLI opens an authorization page on `https://outray.dev`, waits for approval, and asks you to select an organization. If the browser does not open, copy the authorization URL printed in your terminal.
+The CLI opens an authorization page on `https://outray.co`, waits for approval, and asks you to select an organization. If the browser does not open, copy the authorization URL printed in your terminal.
 
 The saved login is stored in `~/.outray/config.json`. Treat that file as a credential: do not commit or share it. The CLI refreshes its organization token when needed.
 
@@ -36,7 +36,7 @@ The override requires a browser login that has access to that organization.
 
 ## API tokens for automation
 
-Open your organization's **API tokens** page at `https://outray.dev/<org-slug>/tokens`. Create a token with **Connect tunnels** permission (`tunnel:connect`), and store the full value in a server-side secret store.
+Open your organization's **API tokens** page at `https://outray.co/<org-slug>/tokens`. Create a token with **Connect tunnels** permission (`tunnel:connect`), and store the full value in a server-side secret store.
 
 Pass the token explicitly:
 
