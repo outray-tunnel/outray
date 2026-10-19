@@ -9,328 +9,243 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ViteRouteImport } from './routes/vite'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as SelectRouteImport } from './routes/select'
-import { Route as ReportBugRouteImport } from './routes/report-bug'
-import { Route as ProductsRouteImport } from './routes/products'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as PluginsRouteImport } from './routes/plugins'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as NextjsRouteImport } from './routes/nextjs'
-import { Route as NestjsRouteImport } from './routes/nestjs'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ExpressRouteImport } from './routes/express'
-import { Route as EmailTemplatesRouteImport } from './routes/email-templates'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as ChangelogRouteImport } from './routes/changelog'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as OrgSlugRouteImport } from './routes/$orgSlug'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OrgSlugRouteImport } from './routes/$orgSlug'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ChangelogRouteImport } from './routes/changelog'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as EmailTemplatesRouteImport } from './routes/email-templates'
+import { Route as ExpressRouteImport } from './routes/express'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as NestjsRouteImport } from './routes/nestjs'
+import { Route as NextjsRouteImport } from './routes/nextjs'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PluginsRouteImport } from './routes/plugins'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ProductsRouteImport } from './routes/products'
+import { Route as ReportBugRouteImport } from './routes/report-bug'
+import { Route as SelectRouteImport } from './routes/select'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as ViteRouteImport } from './routes/vite'
 import { Route as OrgSlugIndexRouteImport } from './routes/$orgSlug/index'
-import { Route as StatusPageLogosFileNameRouteImport } from './routes/status-page-logos/$fileName'
-import { Route as ProductsUptimeRouteImport } from './routes/products.uptime'
-import { Route as ProductsTunnelsRouteImport } from './routes/products.tunnels'
-import { Route as ProductsSecretsRouteImport } from './routes/products.secrets'
-import { Route as ProductsObservabilityRouteImport } from './routes/products.observability'
-import { Route as InvitationsAcceptRouteImport } from './routes/invitations.accept'
-import { Route as InternalDomainCheckRouteImport } from './routes/internal/domain-check'
-import { Route as DocsSplatRouteImport } from './routes/docs/$'
-import { Route as CliLoginRouteImport } from './routes/cli.login'
-import { Route as ApiSearchRouteImport } from './routes/api/search'
-import { Route as ApiHealthRouteImport } from './routes/api/health'
-import { Route as AdminUsageRouteImport } from './routes/admin/usage'
-import { Route as AdminUptimeRouteImport } from './routes/admin/uptime'
-import { Route as AdminTunnelsRouteImport } from './routes/admin/tunnels'
-import { Route as AdminSubscriptionsRouteImport } from './routes/admin/subscriptions'
-import { Route as AdminSecretsRouteImport } from './routes/admin/secrets'
-import { Route as AdminObservabilityRouteImport } from './routes/admin/observability'
-import { Route as AdminChartsRouteImport } from './routes/admin/charts'
-import { Route as AdminAgentRouteImport } from './routes/admin/agent'
-import { Route as AdminActionsRouteImport } from './routes/admin/actions'
-import { Route as OrgSlugUptimeRouteImport } from './routes/$orgSlug/uptime'
-import { Route as OrgSlugTunnelRouteImport } from './routes/$orgSlug/tunnel'
-import { Route as OrgSlugTokensRouteImport } from './routes/$orgSlug/tokens'
-import { Route as OrgSlugSubdomainsRouteImport } from './routes/$orgSlug/subdomains'
-import { Route as OrgSlugSetupRouteImport } from './routes/$orgSlug/setup'
-import { Route as OrgSlugSettingsRouteImport } from './routes/$orgSlug/settings'
-import { Route as OrgSlugSecretsRouteImport } from './routes/$orgSlug/secrets'
-import { Route as OrgSlugRequestsRouteImport } from './routes/$orgSlug/requests'
-import { Route as OrgSlugObservabilityRouteImport } from './routes/$orgSlug/observability'
-import { Route as OrgSlugMembersRouteImport } from './routes/$orgSlug/members'
-import { Route as OrgSlugGetStartedRouteImport } from './routes/$orgSlug/get-started'
-import { Route as OrgSlugDomainsRouteImport } from './routes/$orgSlug/domains'
 import { Route as OrgSlugBillingRouteImport } from './routes/$orgSlug/billing'
-import { Route as AdminUsersIndexRouteImport } from './routes/admin/users.index'
-import { Route as AdminOrganizationsIndexRouteImport } from './routes/admin/organizations.index'
-import { Route as OrgSlugUptimeIndexRouteImport } from './routes/$orgSlug/uptime/index'
-import { Route as OrgSlugTunnelsIndexRouteImport } from './routes/$orgSlug/tunnels/index'
-import { Route as OrgSlugTunnelIndexRouteImport } from './routes/$orgSlug/tunnel/index'
-import { Route as OrgSlugSettingsIndexRouteImport } from './routes/$orgSlug/settings/index'
-import { Route as OrgSlugSecretsIndexRouteImport } from './routes/$orgSlug/secrets/index'
+import { Route as OrgSlugDomainsRouteImport } from './routes/$orgSlug/domains'
+import { Route as OrgSlugGetStartedRouteImport } from './routes/$orgSlug/get-started'
+import { Route as OrgSlugMembersRouteImport } from './routes/$orgSlug/members'
+import { Route as OrgSlugObservabilityRouteImport } from './routes/$orgSlug/observability'
+import { Route as OrgSlugRequestsRouteImport } from './routes/$orgSlug/requests'
+import { Route as OrgSlugSecretsRouteImport } from './routes/$orgSlug/secrets'
+import { Route as OrgSlugSettingsRouteImport } from './routes/$orgSlug/settings'
+import { Route as OrgSlugSetupRouteImport } from './routes/$orgSlug/setup'
+import { Route as OrgSlugSubdomainsRouteImport } from './routes/$orgSlug/subdomains'
+import { Route as OrgSlugTokensRouteImport } from './routes/$orgSlug/tokens'
+import { Route as OrgSlugTunnelRouteImport } from './routes/$orgSlug/tunnel'
+import { Route as OrgSlugUptimeRouteImport } from './routes/$orgSlug/uptime'
+import { Route as AdminActionsRouteImport } from './routes/admin/actions'
+import { Route as AdminAgentRouteImport } from './routes/admin/agent'
+import { Route as AdminChartsRouteImport } from './routes/admin/charts'
+import { Route as AdminObservabilityRouteImport } from './routes/admin/observability'
+import { Route as AdminSecretsRouteImport } from './routes/admin/secrets'
+import { Route as AdminSubscriptionsRouteImport } from './routes/admin/subscriptions'
+import { Route as AdminTunnelsRouteImport } from './routes/admin/tunnels'
+import { Route as AdminUptimeRouteImport } from './routes/admin/uptime'
+import { Route as AdminUsageRouteImport } from './routes/admin/usage'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as CliLoginRouteImport } from './routes/cli.login'
+import { Route as DocsSplatRouteImport } from './routes/docs/$'
+import { Route as InternalDomainCheckRouteImport } from './routes/internal/domain-check'
+import { Route as InvitationsAcceptRouteImport } from './routes/invitations.accept'
+import { Route as ProductsObservabilityRouteImport } from './routes/products.observability'
+import { Route as ProductsSecretsRouteImport } from './routes/products.secrets'
+import { Route as ProductsTunnelsRouteImport } from './routes/products.tunnels'
+import { Route as ProductsUptimeRouteImport } from './routes/products.uptime'
+import { Route as StatusPageLogosFileNameRouteImport } from './routes/status-page-logos/$fileName'
 import { Route as OrgSlugObservabilityIndexRouteImport } from './routes/$orgSlug/observability/index'
-import { Route as ApiWebhooksPolarRouteImport } from './routes/api/webhooks/polar'
-import { Route as ApiWebhooksPaystackRouteImport } from './routes/api/webhooks/paystack'
-import { Route as ApiTunnelRegisterRouteImport } from './routes/api/tunnel/register'
-import { Route as ApiTunnelCheckSubdomainRouteImport } from './routes/api/tunnel/check-subdomain'
-import { Route as ApiTunnelAuthRouteImport } from './routes/api/tunnel/auth'
-import { Route as ApiOrganizationsCheckSlugRouteImport } from './routes/api/organizations/check-slug'
-import { Route as ApiMeOrgsRouteImport } from './routes/api/me/orgs'
-import { Route as ApiDomainVerifyOwnershipRouteImport } from './routes/api/domain/verify-ownership'
-import { Route as ApiDashboardWsTokenRouteImport } from './routes/api/dashboard/ws-token'
-import { Route as ApiDashboardValidateWsTokenRouteImport } from './routes/api/dashboard/validate-ws-token'
-import { Route as ApiCliSecretsRouteImport } from './routes/api/cli/secrets'
-import { Route as ApiCliLoginRouteImport } from './routes/api/cli/login'
-import { Route as ApiCliExchangeRouteImport } from './routes/api/cli/exchange'
-import { Route as ApiCliCompleteRouteImport } from './routes/api/cli/complete'
-import { Route as ApiCheckoutPolarRouteImport } from './routes/api/checkout/polar'
-import { Route as ApiCheckoutPaystackVerifyRouteImport } from './routes/api/checkout/paystack-verify'
-import { Route as ApiCheckoutPaystackRouteImport } from './routes/api/checkout/paystack'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as ApiAdminUsersRouteImport } from './routes/api/admin/users'
-import { Route as ApiAdminUsageRouteImport } from './routes/api/admin/usage'
-import { Route as ApiAdminTunnelsRouteImport } from './routes/api/admin/tunnels'
-import { Route as ApiAdminSubscriptionsRouteImport } from './routes/api/admin/subscriptions'
-import { Route as ApiAdminStatsRouteImport } from './routes/api/admin/stats'
-import { Route as ApiAdminRevenueHistoryRouteImport } from './routes/api/admin/revenue-history'
-import { Route as ApiAdminProxyImageRouteImport } from './routes/api/admin/proxy-image'
-import { Route as ApiAdminOverviewRouteImport } from './routes/api/admin/overview'
-import { Route as ApiAdminOrganizationsRouteImport } from './routes/api/admin/organizations'
-import { Route as ApiAdminLoginRouteImport } from './routes/api/admin/login'
-import { Route as ApiAdminChartsRouteImport } from './routes/api/admin/charts'
-import { Route as ApiOrgSlugSubscriptionsRouteImport } from './routes/api/$orgSlug/subscriptions'
-import { Route as ApiOrgSlugSettingsRouteImport } from './routes/api/$orgSlug/settings'
-import { Route as ApiOrgSlugRequestsRouteImport } from './routes/api/$orgSlug/requests'
-import { Route as ApiOrgSlugAuthTokensRouteImport } from './routes/api/$orgSlug/auth-tokens'
-import { Route as AdminUsersUserIdRouteImport } from './routes/admin/users.$userId'
-import { Route as AdminTunnelsConnectionsRouteImport } from './routes/admin/tunnels.connections'
-import { Route as AdminOrganizationsSlugRouteImport } from './routes/admin/organizations.$slug'
-import { Route as OrgSlugUptimeStatusPageRouteImport } from './routes/$orgSlug/uptime/status-page'
-import { Route as OrgSlugUptimeNotificationsRouteImport } from './routes/$orgSlug/uptime/notifications'
-import { Route as OrgSlugUptimeMonitorsRouteImport } from './routes/$orgSlug/uptime/monitors'
-import { Route as OrgSlugUptimeIncidentsRouteImport } from './routes/$orgSlug/uptime/incidents'
-import { Route as OrgSlugTunnelsTunnelIdRouteImport } from './routes/$orgSlug/tunnels/$tunnelId'
-import { Route as OrgSlugTunnelSubdomainsRouteImport } from './routes/$orgSlug/tunnel/subdomains'
-import { Route as OrgSlugTunnelRequestsRouteImport } from './routes/$orgSlug/tunnel/requests'
-import { Route as OrgSlugTunnelDomainsRouteImport } from './routes/$orgSlug/tunnel/domains'
-import { Route as OrgSlugSettingsProfileRouteImport } from './routes/$orgSlug/settings/profile'
-import { Route as OrgSlugSettingsOrganizationRouteImport } from './routes/$orgSlug/settings/organization'
-import { Route as OrgSlugSecretsVaultsRouteImport } from './routes/$orgSlug/secrets/vaults'
-import { Route as OrgSlugSecretsTrashRouteImport } from './routes/$orgSlug/secrets/trash'
-import { Route as OrgSlugSecretsSharesRouteImport } from './routes/$orgSlug/secrets/shares'
-import { Route as OrgSlugSecretsProjectsRouteImport } from './routes/$orgSlug/secrets/projects'
-import { Route as OrgSlugSecretsAuditRouteImport } from './routes/$orgSlug/secrets/audit'
-import { Route as OrgSlugObservabilityTracesRouteImport } from './routes/$orgSlug/observability/traces'
-import { Route as OrgSlugObservabilityServicesRouteImport } from './routes/$orgSlug/observability/services'
-import { Route as OrgSlugObservabilityRequestsRouteImport } from './routes/$orgSlug/observability/requests'
-import { Route as OrgSlugObservabilityMonitorsRouteImport } from './routes/$orgSlug/observability/monitors'
-import { Route as OrgSlugObservabilityMetricsRouteImport } from './routes/$orgSlug/observability/metrics'
-import { Route as OrgSlugObservabilityLogsRouteImport } from './routes/$orgSlug/observability/logs'
 import { Route as OrgSlugObservabilityAlertsRouteImport } from './routes/$orgSlug/observability/alerts'
-import { Route as ApiOrgSlugTunnelsIndexRouteImport } from './routes/api/$orgSlug/tunnels/index'
-import { Route as ApiOrgSlugSubdomainsIndexRouteImport } from './routes/api/$orgSlug/subdomains/index'
-import { Route as ApiOrgSlugDomainsIndexRouteImport } from './routes/api/$orgSlug/domains/index'
-import { Route as OrgSlugUptimeStatusPageIndexRouteImport } from './routes/$orgSlug/uptime/status-page/index'
-import { Route as OrgSlugTunnelTunnelsIndexRouteImport } from './routes/$orgSlug/tunnel/tunnels/index'
-import { Route as ApiSubscriptionsOrgSlugCancelRouteImport } from './routes/api/subscriptions/$orgSlug/cancel'
-import { Route as ApiCliSecretsTargetsRouteImport } from './routes/api/cli/secrets/targets'
-import { Route as ApiCliSecretsRollbackRouteImport } from './routes/api/cli/secrets/rollback'
-import { Route as ApiCliSecretsRevisionRouteImport } from './routes/api/cli/secrets/revision'
-import { Route as ApiCliLoginStatusRouteImport } from './routes/api/cli/login/status'
-import { Route as ApiAdminUsersUserIdRouteImport } from './routes/api/admin/users.$userId'
-import { Route as ApiAdminProductsProductRouteImport } from './routes/api/admin/products.$product'
-import { Route as ApiAdminOrganizationsSlugRouteImport } from './routes/api/admin/organizations.$slug'
-import { Route as ApiOrgSlugUptimePageRouteImport } from './routes/api/$orgSlug/uptime/page'
-import { Route as ApiOrgSlugUptimeMembersRouteImport } from './routes/api/$orgSlug/uptime/members'
-import { Route as ApiOrgSlugTunnelsTunnelIdRouteImport } from './routes/api/$orgSlug/tunnels/$tunnelId'
-import { Route as ApiOrgSlugSubdomainsSubdomainIdRouteImport } from './routes/api/$orgSlug/subdomains/$subdomainId'
-import { Route as ApiOrgSlugStatsTunnelRouteImport } from './routes/api/$orgSlug/stats/tunnel'
-import { Route as ApiOrgSlugStatsProtocolRouteImport } from './routes/api/$orgSlug/stats/protocol'
-import { Route as ApiOrgSlugStatsOverviewRouteImport } from './routes/api/$orgSlug/stats/overview'
-import { Route as ApiOrgSlugStatsBandwidthRouteImport } from './routes/api/$orgSlug/stats/bandwidth'
-import { Route as ApiOrgSlugSecretsTrashRouteImport } from './routes/api/$orgSlug/secrets/trash'
-import { Route as ApiOrgSlugSecretsOverviewRouteImport } from './routes/api/$orgSlug/secrets/overview'
-import { Route as ApiOrgSlugSecretsMachineTokensRouteImport } from './routes/api/$orgSlug/secrets/machine-tokens'
-import { Route as ApiOrgSlugSecretsAuditRouteImport } from './routes/api/$orgSlug/secrets/audit'
-import { Route as ApiOrgSlugRequestsReplayRouteImport } from './routes/api/$orgSlug/requests/replay'
-import { Route as ApiOrgSlugRequestsCaptureRouteImport } from './routes/api/$orgSlug/requests/capture'
-import { Route as ApiOrgSlugPortalPolarRouteImport } from './routes/api/$orgSlug/portal/polar'
-import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$orgSlug/domains/$domainId'
-import { Route as ApiOrgSlugAgentThreadsRouteImport } from './routes/api/$orgSlug/agent/threads'
-import { Route as ApiOrgSlugAgentChatRouteImport } from './routes/api/$orgSlug/agent/chat'
-import { Route as OrgSlugUptimeStatusPageSubscribersRouteImport } from './routes/$orgSlug/uptime/status-page/subscribers'
-import { Route as OrgSlugUptimeStatusPagePublishingRouteImport } from './routes/$orgSlug/uptime/status-page/publishing'
-import { Route as OrgSlugUptimeStatusPageDomainsRouteImport } from './routes/$orgSlug/uptime/status-page/domains'
-import { Route as OrgSlugUptimeStatusPageComponentsRouteImport } from './routes/$orgSlug/uptime/status-page/components'
-import { Route as OrgSlugUptimeStatusPageAppearanceRouteImport } from './routes/$orgSlug/uptime/status-page/appearance'
-import { Route as OrgSlugUptimeMonitorsMonitorIdRouteImport } from './routes/$orgSlug/uptime/monitors_.$monitorId'
-import { Route as OrgSlugUptimeIncidentsIncidentIdRouteImport } from './routes/$orgSlug/uptime/incidents_.$incidentId'
-import { Route as OrgSlugTunnelTunnelsTunnelIdRouteImport } from './routes/$orgSlug/tunnel/tunnels/$tunnelId'
-import { Route as OrgSlugSecretsVaultsProjectSlugRouteImport } from './routes/$orgSlug/secrets/vaults_.$projectSlug'
-import { Route as OrgSlugSecretsProjectsProjectSlugRouteImport } from './routes/$orgSlug/secrets/projects_.$projectSlug'
-import { Route as OrgSlugObservabilityServicesServiceIdRouteImport } from './routes/$orgSlug/observability/services_.$serviceId'
+import { Route as OrgSlugObservabilityLogsRouteImport } from './routes/$orgSlug/observability/logs'
+import { Route as OrgSlugObservabilityMetricsRouteImport } from './routes/$orgSlug/observability/metrics'
+import { Route as OrgSlugObservabilityMonitorsRouteImport } from './routes/$orgSlug/observability/monitors'
+import { Route as OrgSlugObservabilityRequestsRouteImport } from './routes/$orgSlug/observability/requests'
+import { Route as OrgSlugObservabilityServicesRouteImport } from './routes/$orgSlug/observability/services'
+import { Route as OrgSlugObservabilityTracesRouteImport } from './routes/$orgSlug/observability/traces'
+import { Route as OrgSlugSecretsIndexRouteImport } from './routes/$orgSlug/secrets/index'
+import { Route as OrgSlugSecretsAuditRouteImport } from './routes/$orgSlug/secrets/audit'
+import { Route as OrgSlugSecretsProjectsRouteImport } from './routes/$orgSlug/secrets/projects'
+import { Route as OrgSlugSecretsSharesRouteImport } from './routes/$orgSlug/secrets/shares'
+import { Route as OrgSlugSecretsTrashRouteImport } from './routes/$orgSlug/secrets/trash'
+import { Route as OrgSlugSecretsVaultsRouteImport } from './routes/$orgSlug/secrets/vaults'
+import { Route as OrgSlugSettingsIndexRouteImport } from './routes/$orgSlug/settings/index'
+import { Route as OrgSlugSettingsOrganizationRouteImport } from './routes/$orgSlug/settings/organization'
+import { Route as OrgSlugSettingsProfileRouteImport } from './routes/$orgSlug/settings/profile'
+import { Route as OrgSlugTunnelIndexRouteImport } from './routes/$orgSlug/tunnel/index'
+import { Route as OrgSlugTunnelDomainsRouteImport } from './routes/$orgSlug/tunnel/domains'
+import { Route as OrgSlugTunnelRequestsRouteImport } from './routes/$orgSlug/tunnel/requests'
+import { Route as OrgSlugTunnelSubdomainsRouteImport } from './routes/$orgSlug/tunnel/subdomains'
+import { Route as OrgSlugTunnelsIndexRouteImport } from './routes/$orgSlug/tunnels/index'
+import { Route as OrgSlugTunnelsTunnelIdRouteImport } from './routes/$orgSlug/tunnels/$tunnelId'
+import { Route as OrgSlugUptimeIndexRouteImport } from './routes/$orgSlug/uptime/index'
+import { Route as OrgSlugUptimeIncidentsRouteImport } from './routes/$orgSlug/uptime/incidents'
+import { Route as OrgSlugUptimeMonitorsRouteImport } from './routes/$orgSlug/uptime/monitors'
+import { Route as OrgSlugUptimeNotificationsRouteImport } from './routes/$orgSlug/uptime/notifications'
+import { Route as OrgSlugUptimeStatusPageRouteImport } from './routes/$orgSlug/uptime/status-page'
+import { Route as AdminOrganizationsIndexRouteImport } from './routes/admin/organizations.index'
+import { Route as AdminOrganizationsSlugRouteImport } from './routes/admin/organizations.$slug'
+import { Route as AdminTunnelsConnectionsRouteImport } from './routes/admin/tunnels.connections'
+import { Route as AdminUsersIndexRouteImport } from './routes/admin/users.index'
+import { Route as AdminUsersUserIdRouteImport } from './routes/admin/users.$userId'
+import { Route as ApiOrgSlugAuthTokensRouteImport } from './routes/api/$orgSlug/auth-tokens'
+import { Route as ApiOrgSlugRequestsRouteImport } from './routes/api/$orgSlug/requests'
+import { Route as ApiOrgSlugSettingsRouteImport } from './routes/api/$orgSlug/settings'
+import { Route as ApiOrgSlugSubscriptionsRouteImport } from './routes/api/$orgSlug/subscriptions'
+import { Route as ApiAdminChartsRouteImport } from './routes/api/admin/charts'
+import { Route as ApiAdminLoginRouteImport } from './routes/api/admin/login'
+import { Route as ApiAdminOrganizationsRouteImport } from './routes/api/admin/organizations'
+import { Route as ApiAdminOverviewRouteImport } from './routes/api/admin/overview'
+import { Route as ApiAdminProxyImageRouteImport } from './routes/api/admin/proxy-image'
+import { Route as ApiAdminRevenueHistoryRouteImport } from './routes/api/admin/revenue-history'
+import { Route as ApiAdminStatsRouteImport } from './routes/api/admin/stats'
+import { Route as ApiAdminSubscriptionsRouteImport } from './routes/api/admin/subscriptions'
+import { Route as ApiAdminTunnelsRouteImport } from './routes/api/admin/tunnels'
+import { Route as ApiAdminUsageRouteImport } from './routes/api/admin/usage'
+import { Route as ApiAdminUsersRouteImport } from './routes/api/admin/users'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiCheckoutPaystackRouteImport } from './routes/api/checkout/paystack'
+import { Route as ApiCheckoutPaystackVerifyRouteImport } from './routes/api/checkout/paystack-verify'
+import { Route as ApiCheckoutPolarRouteImport } from './routes/api/checkout/polar'
+import { Route as ApiCliCompleteRouteImport } from './routes/api/cli/complete'
+import { Route as ApiCliExchangeRouteImport } from './routes/api/cli/exchange'
+import { Route as ApiCliLoginRouteImport } from './routes/api/cli/login'
+import { Route as ApiCliSecretsRouteImport } from './routes/api/cli/secrets'
+import { Route as ApiDashboardValidateWsTokenRouteImport } from './routes/api/dashboard/validate-ws-token'
+import { Route as ApiDashboardWsTokenRouteImport } from './routes/api/dashboard/ws-token'
+import { Route as ApiDomainVerifyOwnershipRouteImport } from './routes/api/domain/verify-ownership'
+import { Route as ApiMeOrgsRouteImport } from './routes/api/me/orgs'
+import { Route as ApiOrganizationsCheckSlugRouteImport } from './routes/api/organizations/check-slug'
+import { Route as ApiTunnelAuthRouteImport } from './routes/api/tunnel/auth'
+import { Route as ApiTunnelCheckSubdomainRouteImport } from './routes/api/tunnel/check-subdomain'
+import { Route as ApiTunnelRegisterRouteImport } from './routes/api/tunnel/register'
+import { Route as ApiWebhooksPaystackRouteImport } from './routes/api/webhooks/paystack'
+import { Route as ApiWebhooksPolarRouteImport } from './routes/api/webhooks/polar'
 import { Route as OrgSlugObservabilityAlertsAlertIdRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId'
-import { Route as ApiOrgSlugUptimeSubscribersIndexRouteImport } from './routes/api/$orgSlug/uptime/subscribers/index'
-import { Route as ApiOrgSlugUptimeMonitorsIndexRouteImport } from './routes/api/$orgSlug/uptime/monitors/index'
-import { Route as ApiOrgSlugUptimeIntegrationsIndexRouteImport } from './routes/api/$orgSlug/uptime/integrations/index'
-import { Route as ApiOrgSlugUptimeIncidentsIndexRouteImport } from './routes/api/$orgSlug/uptime/incidents/index'
-import { Route as ApiOrgSlugUptimeGroupsIndexRouteImport } from './routes/api/$orgSlug/uptime/groups/index'
-import { Route as ApiOrgSlugUptimeDomainsIndexRouteImport } from './routes/api/$orgSlug/uptime/domains/index'
-import { Route as ApiOrgSlugUptimeComponentsIndexRouteImport } from './routes/api/$orgSlug/uptime/components/index'
-import { Route as ApiOrgSlugSecretsSharesIndexRouteImport } from './routes/api/$orgSlug/secrets/shares/index'
-import { Route as ApiOrgSlugSecretsProjectsIndexRouteImport } from './routes/api/$orgSlug/secrets/projects/index'
-import { Route as ApiOrgSlugObservabilityTracesIndexRouteImport } from './routes/api/$orgSlug/observability/traces/index'
-import { Route as ApiOrgSlugObservabilityServicesIndexRouteImport } from './routes/api/$orgSlug/observability/services/index'
-import { Route as ApiOrgSlugObservabilityRequestsIndexRouteImport } from './routes/api/$orgSlug/observability/requests/index'
-import { Route as ApiOrgSlugObservabilityMetricsIndexRouteImport } from './routes/api/$orgSlug/observability/metrics/index'
-import { Route as ApiOrgSlugObservabilityLogsIndexRouteImport } from './routes/api/$orgSlug/observability/logs/index'
-import { Route as ApiOrgSlugObservabilityAlertsIndexRouteImport } from './routes/api/$orgSlug/observability/alerts/index'
+import { Route as OrgSlugObservabilityServicesServiceIdRouteImport } from './routes/$orgSlug/observability/services_.$serviceId'
+import { Route as OrgSlugSecretsProjectsProjectSlugRouteImport } from './routes/$orgSlug/secrets/projects_.$projectSlug'
+import { Route as OrgSlugSecretsVaultsProjectSlugRouteImport } from './routes/$orgSlug/secrets/vaults_.$projectSlug'
+import { Route as OrgSlugTunnelTunnelsIndexRouteImport } from './routes/$orgSlug/tunnel/tunnels/index'
+import { Route as OrgSlugTunnelTunnelsTunnelIdRouteImport } from './routes/$orgSlug/tunnel/tunnels/$tunnelId'
+import { Route as OrgSlugUptimeIncidentsIncidentIdRouteImport } from './routes/$orgSlug/uptime/incidents_.$incidentId'
+import { Route as OrgSlugUptimeMonitorsMonitorIdRouteImport } from './routes/$orgSlug/uptime/monitors_.$monitorId'
+import { Route as OrgSlugUptimeStatusPageIndexRouteImport } from './routes/$orgSlug/uptime/status-page/index'
+import { Route as OrgSlugUptimeStatusPageAppearanceRouteImport } from './routes/$orgSlug/uptime/status-page/appearance'
+import { Route as OrgSlugUptimeStatusPageComponentsRouteImport } from './routes/$orgSlug/uptime/status-page/components'
+import { Route as OrgSlugUptimeStatusPageDomainsRouteImport } from './routes/$orgSlug/uptime/status-page/domains'
+import { Route as OrgSlugUptimeStatusPagePublishingRouteImport } from './routes/$orgSlug/uptime/status-page/publishing'
+import { Route as OrgSlugUptimeStatusPageSubscribersRouteImport } from './routes/$orgSlug/uptime/status-page/subscribers'
+import { Route as ApiOrgSlugAgentChatRouteImport } from './routes/api/$orgSlug/agent/chat'
+import { Route as ApiOrgSlugAgentThreadsRouteImport } from './routes/api/$orgSlug/agent/threads'
+import { Route as ApiOrgSlugDomainsIndexRouteImport } from './routes/api/$orgSlug/domains/index'
+import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$orgSlug/domains/$domainId'
+import { Route as ApiOrgSlugPortalPolarRouteImport } from './routes/api/$orgSlug/portal/polar'
+import { Route as ApiOrgSlugRequestsCaptureRouteImport } from './routes/api/$orgSlug/requests/capture'
+import { Route as ApiOrgSlugRequestsReplayRouteImport } from './routes/api/$orgSlug/requests/replay'
+import { Route as ApiOrgSlugSecretsAuditRouteImport } from './routes/api/$orgSlug/secrets/audit'
+import { Route as ApiOrgSlugSecretsMachineTokensRouteImport } from './routes/api/$orgSlug/secrets/machine-tokens'
+import { Route as ApiOrgSlugSecretsOverviewRouteImport } from './routes/api/$orgSlug/secrets/overview'
+import { Route as ApiOrgSlugSecretsTrashRouteImport } from './routes/api/$orgSlug/secrets/trash'
+import { Route as ApiOrgSlugStatsBandwidthRouteImport } from './routes/api/$orgSlug/stats/bandwidth'
+import { Route as ApiOrgSlugStatsOverviewRouteImport } from './routes/api/$orgSlug/stats/overview'
+import { Route as ApiOrgSlugStatsProtocolRouteImport } from './routes/api/$orgSlug/stats/protocol'
+import { Route as ApiOrgSlugStatsTunnelRouteImport } from './routes/api/$orgSlug/stats/tunnel'
+import { Route as ApiOrgSlugSubdomainsIndexRouteImport } from './routes/api/$orgSlug/subdomains/index'
+import { Route as ApiOrgSlugSubdomainsSubdomainIdRouteImport } from './routes/api/$orgSlug/subdomains/$subdomainId'
+import { Route as ApiOrgSlugTunnelsIndexRouteImport } from './routes/api/$orgSlug/tunnels/index'
+import { Route as ApiOrgSlugTunnelsTunnelIdRouteImport } from './routes/api/$orgSlug/tunnels/$tunnelId'
+import { Route as ApiOrgSlugUptimeMembersRouteImport } from './routes/api/$orgSlug/uptime/members'
+import { Route as ApiOrgSlugUptimePageRouteImport } from './routes/api/$orgSlug/uptime/page'
+import { Route as ApiAdminOrganizationsSlugRouteImport } from './routes/api/admin/organizations.$slug'
+import { Route as ApiAdminProductsProductRouteImport } from './routes/api/admin/products.$product'
+import { Route as ApiAdminUsersUserIdRouteImport } from './routes/api/admin/users.$userId'
+import { Route as ApiCliLoginStatusRouteImport } from './routes/api/cli/login/status'
+import { Route as ApiCliSecretsRevisionRouteImport } from './routes/api/cli/secrets/revision'
+import { Route as ApiCliSecretsRollbackRouteImport } from './routes/api/cli/secrets/rollback'
+import { Route as ApiCliSecretsTargetsRouteImport } from './routes/api/cli/secrets/targets'
+import { Route as ApiSubscriptionsOrgSlugCancelRouteImport } from './routes/api/subscriptions/$orgSlug/cancel'
 import { Route as OrgSlugObservabilityAlertsAlertIdIndexRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId/index'
-import { Route as ApiUptimeIntegrationsProviderCallbackRouteImport } from './routes/api/uptime/integrations/$provider.callback'
-import { Route as ApiOrgSlugUptimeSubscribersSettingsRouteImport } from './routes/api/$orgSlug/uptime/subscribers/settings'
-import { Route as ApiOrgSlugUptimeSubscribersSubscriberIdRouteImport } from './routes/api/$orgSlug/uptime/subscribers/$subscriberId'
-import { Route as ApiOrgSlugUptimePageLogoRouteImport } from './routes/api/$orgSlug/uptime/page.logo'
-import { Route as ApiOrgSlugUptimePageLayoutRouteImport } from './routes/api/$orgSlug/uptime/page.layout'
-import { Route as ApiOrgSlugUptimeMonitorsMonitorIdRouteImport } from './routes/api/$orgSlug/uptime/monitors/$monitorId'
-import { Route as ApiOrgSlugUptimeIntegrationsProviderRouteImport } from './routes/api/$orgSlug/uptime/integrations/$provider'
-import { Route as ApiOrgSlugUptimeIncidentsIncidentIdRouteImport } from './routes/api/$orgSlug/uptime/incidents/$incidentId'
-import { Route as ApiOrgSlugUptimeGroupsGroupIdRouteImport } from './routes/api/$orgSlug/uptime/groups/$groupId'
-import { Route as ApiOrgSlugUptimeDomainsDomainIdRouteImport } from './routes/api/$orgSlug/uptime/domains/$domainId'
-import { Route as ApiOrgSlugUptimeComponentsComponentIdRouteImport } from './routes/api/$orgSlug/uptime/components/$componentId'
-import { Route as ApiOrgSlugTunnelsTunnelIdStopRouteImport } from './routes/api/$orgSlug/tunnels/$tunnelId.stop'
-import { Route as ApiOrgSlugSecretsTrashRestoreRouteImport } from './routes/api/$orgSlug/secrets/trash/restore'
-import { Route as ApiOrgSlugSecretsTrashPurgeRouteImport } from './routes/api/$orgSlug/secrets/trash/purge'
-import { Route as ApiOrgSlugSecretsSharesSnapshotRouteImport } from './routes/api/$orgSlug/secrets/shares/snapshot'
-import { Route as ApiOrgSlugSecretsSharesShareIdRouteImport } from './routes/api/$orgSlug/secrets/shares/$shareId'
-import { Route as ApiOrgSlugSecretsProjectsProjectSlugRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug'
-import { Route as ApiOrgSlugSecretsMachineTokensTokenIdRouteImport } from './routes/api/$orgSlug/secrets/machine-tokens/$tokenId'
-import { Route as ApiOrgSlugSecretsKeysRotateRouteImport } from './routes/api/$orgSlug/secrets/keys/rotate'
-import { Route as ApiOrgSlugSecretsKeysRewrapRouteImport } from './routes/api/$orgSlug/secrets/keys/rewrap'
-import { Route as ApiOrgSlugObservabilityTracesTraceIdRouteImport } from './routes/api/$orgSlug/observability/traces/$traceId'
-import { Route as ApiOrgSlugObservabilityRequestsRequestIdRouteImport } from './routes/api/$orgSlug/observability/requests/$requestId'
-import { Route as ApiOrgSlugObservabilityAlertsMembersRouteImport } from './routes/api/$orgSlug/observability/alerts/members'
-import { Route as ApiOrgSlugObservabilityAlertsAlertIdRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId'
-import { Route as ApiOrgSlugDomainsDomainIdVerifyRouteImport } from './routes/api/$orgSlug/domains/$domainId.verify'
-import { Route as OrgSlugSecretsVaultsProjectSlugEnvironmentsRouteImport } from './routes/$orgSlug/secrets/vaults_.$projectSlug_.environments'
-import { Route as OrgSlugObservabilityAlertsAlertIdStatusPageRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId/status-page'
-import { Route as OrgSlugObservabilityAlertsAlertIdNotificationsRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId/notifications'
-import { Route as OrgSlugObservabilityAlertsAlertIdIncidentsRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId/incidents'
-import { Route as OrgSlugObservabilityAlertsAlertIdEvaluationsRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId/evaluations'
 import { Route as OrgSlugObservabilityAlertsAlertIdConditionRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId/condition'
-import { Route as ApiObservabilityAlertsIntegrationsProviderCallbackRouteImport } from './routes/api/observability/alerts/integrations/$provider.callback'
-import { Route as ApiOrgSlugUptimeIntegrationsProviderStartRouteImport } from './routes/api/$orgSlug/uptime/integrations/$provider.start'
-import { Route as ApiOrgSlugUptimeIncidentsIncidentIdDecisionRouteImport } from './routes/api/$orgSlug/uptime/incidents/$incidentId/decision'
-import { Route as ApiOrgSlugUptimeDomainsDomainIdVerifyRouteImport } from './routes/api/$orgSlug/uptime/domains/$domainId.verify'
-import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments'
-import { Route as ApiOrgSlugObservabilityAlertsAlertIdStatusPageRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId.status-page'
-import { Route as ApiOrgSlugObservabilityAlertsAlertIdEvaluateRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId.evaluate'
-import { Route as OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRouteImport } from './routes/$orgSlug/secrets/vaults_.$projectSlug_.environments.$environmentSlug'
+import { Route as OrgSlugObservabilityAlertsAlertIdEvaluationsRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId/evaluations'
+import { Route as OrgSlugObservabilityAlertsAlertIdIncidentsRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId/incidents'
+import { Route as OrgSlugObservabilityAlertsAlertIdNotificationsRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId/notifications'
+import { Route as OrgSlugObservabilityAlertsAlertIdStatusPageRouteImport } from './routes/$orgSlug/observability/alerts_.$alertId/status-page'
+import { Route as OrgSlugSecretsVaultsProjectSlugEnvironmentsRouteImport } from './routes/$orgSlug/secrets/vaults_.$projectSlug_.environments'
+import { Route as ApiOrgSlugDomainsDomainIdVerifyRouteImport } from './routes/api/$orgSlug/domains/$domainId.verify'
+import { Route as ApiOrgSlugObservabilityAlertsIndexRouteImport } from './routes/api/$orgSlug/observability/alerts/index'
+import { Route as ApiOrgSlugObservabilityAlertsAlertIdRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId'
+import { Route as ApiOrgSlugObservabilityAlertsMembersRouteImport } from './routes/api/$orgSlug/observability/alerts/members'
+import { Route as ApiOrgSlugObservabilityLogsIndexRouteImport } from './routes/api/$orgSlug/observability/logs/index'
+import { Route as ApiOrgSlugObservabilityMetricsIndexRouteImport } from './routes/api/$orgSlug/observability/metrics/index'
+import { Route as ApiOrgSlugObservabilityRequestsIndexRouteImport } from './routes/api/$orgSlug/observability/requests/index'
+import { Route as ApiOrgSlugObservabilityRequestsRequestIdRouteImport } from './routes/api/$orgSlug/observability/requests/$requestId'
+import { Route as ApiOrgSlugObservabilityServicesIndexRouteImport } from './routes/api/$orgSlug/observability/services/index'
+import { Route as ApiOrgSlugObservabilityTracesIndexRouteImport } from './routes/api/$orgSlug/observability/traces/index'
+import { Route as ApiOrgSlugObservabilityTracesTraceIdRouteImport } from './routes/api/$orgSlug/observability/traces/$traceId'
+import { Route as ApiOrgSlugSecretsKeysRewrapRouteImport } from './routes/api/$orgSlug/secrets/keys/rewrap'
+import { Route as ApiOrgSlugSecretsKeysRotateRouteImport } from './routes/api/$orgSlug/secrets/keys/rotate'
+import { Route as ApiOrgSlugSecretsMachineTokensTokenIdRouteImport } from './routes/api/$orgSlug/secrets/machine-tokens/$tokenId'
+import { Route as ApiOrgSlugSecretsProjectsIndexRouteImport } from './routes/api/$orgSlug/secrets/projects/index'
+import { Route as ApiOrgSlugSecretsProjectsProjectSlugRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug'
+import { Route as ApiOrgSlugSecretsSharesIndexRouteImport } from './routes/api/$orgSlug/secrets/shares/index'
+import { Route as ApiOrgSlugSecretsSharesShareIdRouteImport } from './routes/api/$orgSlug/secrets/shares/$shareId'
+import { Route as ApiOrgSlugSecretsSharesSnapshotRouteImport } from './routes/api/$orgSlug/secrets/shares/snapshot'
+import { Route as ApiOrgSlugSecretsTrashPurgeRouteImport } from './routes/api/$orgSlug/secrets/trash/purge'
+import { Route as ApiOrgSlugSecretsTrashRestoreRouteImport } from './routes/api/$orgSlug/secrets/trash/restore'
+import { Route as ApiOrgSlugTunnelsTunnelIdStopRouteImport } from './routes/api/$orgSlug/tunnels/$tunnelId.stop'
+import { Route as ApiOrgSlugUptimeComponentsIndexRouteImport } from './routes/api/$orgSlug/uptime/components/index'
+import { Route as ApiOrgSlugUptimeComponentsComponentIdRouteImport } from './routes/api/$orgSlug/uptime/components/$componentId'
+import { Route as ApiOrgSlugUptimeDomainsIndexRouteImport } from './routes/api/$orgSlug/uptime/domains/index'
+import { Route as ApiOrgSlugUptimeDomainsDomainIdRouteImport } from './routes/api/$orgSlug/uptime/domains/$domainId'
+import { Route as ApiOrgSlugUptimeGroupsIndexRouteImport } from './routes/api/$orgSlug/uptime/groups/index'
+import { Route as ApiOrgSlugUptimeGroupsGroupIdRouteImport } from './routes/api/$orgSlug/uptime/groups/$groupId'
+import { Route as ApiOrgSlugUptimeIncidentsIndexRouteImport } from './routes/api/$orgSlug/uptime/incidents/index'
+import { Route as ApiOrgSlugUptimeIncidentsIncidentIdRouteImport } from './routes/api/$orgSlug/uptime/incidents/$incidentId'
+import { Route as ApiOrgSlugUptimeIntegrationsIndexRouteImport } from './routes/api/$orgSlug/uptime/integrations/index'
+import { Route as ApiOrgSlugUptimeIntegrationsProviderRouteImport } from './routes/api/$orgSlug/uptime/integrations/$provider'
+import { Route as ApiOrgSlugUptimeMonitorsIndexRouteImport } from './routes/api/$orgSlug/uptime/monitors/index'
+import { Route as ApiOrgSlugUptimeMonitorsMonitorIdRouteImport } from './routes/api/$orgSlug/uptime/monitors/$monitorId'
+import { Route as ApiOrgSlugUptimePageLayoutRouteImport } from './routes/api/$orgSlug/uptime/page.layout'
+import { Route as ApiOrgSlugUptimePageLogoRouteImport } from './routes/api/$orgSlug/uptime/page.logo'
+import { Route as ApiOrgSlugUptimeSubscribersIndexRouteImport } from './routes/api/$orgSlug/uptime/subscribers/index'
+import { Route as ApiOrgSlugUptimeSubscribersSubscriberIdRouteImport } from './routes/api/$orgSlug/uptime/subscribers/$subscriberId'
+import { Route as ApiOrgSlugUptimeSubscribersSettingsRouteImport } from './routes/api/$orgSlug/uptime/subscribers/settings'
+import { Route as ApiUptimeIntegrationsProviderCallbackRouteImport } from './routes/api/uptime/integrations/$provider.callback'
 import { Route as OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteImport } from './routes/$orgSlug/secrets/projects_.$projectSlug_.environments_.$environmentSlug'
+import { Route as OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRouteImport } from './routes/$orgSlug/secrets/vaults_.$projectSlug_.environments.$environmentSlug'
+import { Route as ApiOrgSlugObservabilityAlertsAlertIdEvaluateRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId.evaluate'
+import { Route as ApiOrgSlugObservabilityAlertsAlertIdStatusPageRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId.status-page'
+import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments'
+import { Route as ApiOrgSlugUptimeDomainsDomainIdVerifyRouteImport } from './routes/api/$orgSlug/uptime/domains/$domainId.verify'
+import { Route as ApiOrgSlugUptimeIncidentsIncidentIdDecisionRouteImport } from './routes/api/$orgSlug/uptime/incidents/$incidentId/decision'
+import { Route as ApiOrgSlugUptimeIntegrationsProviderStartRouteImport } from './routes/api/$orgSlug/uptime/integrations/$provider.start'
+import { Route as ApiObservabilityAlertsIntegrationsProviderCallbackRouteImport } from './routes/api/observability/alerts/integrations/$provider.callback'
+import { Route as ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId.integrations.$provider'
+import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
 import { Route as ApiOrgSlugUptimeIncidentsIncidentIdUpdatesIndexRouteImport } from './routes/api/$orgSlug/uptime/incidents/$incidentId/updates/index'
 import { Route as ApiOrgSlugUptimeIncidentsIncidentIdUpdatesUpdateIdRouteImport } from './routes/api/$orgSlug/uptime/incidents/$incidentId/updates/$updateId'
-import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
-import { Route as ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId.integrations.$provider'
-import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets'
-import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision'
-import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import'
-import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/export'
-import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
 import { Route as ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRouteImport } from './routes/api/$orgSlug/observability/alerts/$alertId.integrations.$provider.start'
+import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
+import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/export'
+import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import'
+import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision'
+import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets'
 import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId'
-import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdVersionsRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId.versions'
-import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRollbackRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId.rollback'
 import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRevealRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId.reveal'
+import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRollbackRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId.rollback'
+import { Route as ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdVersionsRouteImport } from './routes/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId.versions'
 
-const ViteRoute = ViteRouteImport.update({
-  id: '/vite',
-  path: '/vite',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SelectRoute = SelectRouteImport.update({
-  id: '/select',
-  path: '/select',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportBugRoute = ReportBugRouteImport.update({
-  id: '/report-bug',
-  path: '/report-bug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProductsRoute = ProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PluginsRoute = PluginsRouteImport.update({
-  id: '/plugins',
-  path: '/plugins',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NextjsRoute = NextjsRouteImport.update({
-  id: '/nextjs',
-  path: '/nextjs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NestjsRoute = NestjsRouteImport.update({
-  id: '/nestjs',
-  path: '/nestjs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExpressRoute = ExpressRouteImport.update({
-  id: '/express',
-  path: '/express',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EmailTemplatesRoute = EmailTemplatesRouteImport.update({
-  id: '/email-templates',
-  path: '/email-templates',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChangelogRoute = ChangelogRouteImport.update({
-  id: '/changelog',
-  path: '/changelog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrgSlugRoute = OrgSlugRouteImport.update({
@@ -338,9 +253,94 @@ const OrgSlugRoute = OrgSlugRouteImport.update({
   path: '/$orgSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailTemplatesRoute = EmailTemplatesRouteImport.update({
+  id: '/email-templates',
+  path: '/email-templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExpressRoute = ExpressRouteImport.update({
+  id: '/express',
+  path: '/express',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NestjsRoute = NestjsRouteImport.update({
+  id: '/nestjs',
+  path: '/nestjs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NextjsRoute = NextjsRouteImport.update({
+  id: '/nextjs',
+  path: '/nextjs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PluginsRoute = PluginsRouteImport.update({
+  id: '/plugins',
+  path: '/plugins',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsRoute = ProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportBugRoute = ReportBugRouteImport.update({
+  id: '/report-bug',
+  path: '/report-bug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SelectRoute = SelectRouteImport.update({
+  id: '/select',
+  path: '/select',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ViteRoute = ViteRouteImport.update({
+  id: '/vite',
+  path: '/vite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrgSlugIndexRoute = OrgSlugIndexRouteImport.update({
@@ -348,159 +348,9 @@ const OrgSlugIndexRoute = OrgSlugIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OrgSlugRoute,
 } as any)
-const StatusPageLogosFileNameRoute = StatusPageLogosFileNameRouteImport.update({
-  id: '/status-page-logos/$fileName',
-  path: '/status-page-logos/$fileName',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProductsUptimeRoute = ProductsUptimeRouteImport.update({
-  id: '/uptime',
-  path: '/uptime',
-  getParentRoute: () => ProductsRoute,
-} as any)
-const ProductsTunnelsRoute = ProductsTunnelsRouteImport.update({
-  id: '/tunnels',
-  path: '/tunnels',
-  getParentRoute: () => ProductsRoute,
-} as any)
-const ProductsSecretsRoute = ProductsSecretsRouteImport.update({
-  id: '/secrets',
-  path: '/secrets',
-  getParentRoute: () => ProductsRoute,
-} as any)
-const ProductsObservabilityRoute = ProductsObservabilityRouteImport.update({
-  id: '/observability',
-  path: '/observability',
-  getParentRoute: () => ProductsRoute,
-} as any)
-const InvitationsAcceptRoute = InvitationsAcceptRouteImport.update({
-  id: '/invitations/accept',
-  path: '/invitations/accept',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InternalDomainCheckRoute = InternalDomainCheckRouteImport.update({
-  id: '/internal/domain-check',
-  path: '/internal/domain-check',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsSplatRoute = DocsSplatRouteImport.update({
-  id: '/docs/$',
-  path: '/docs/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CliLoginRoute = CliLoginRouteImport.update({
-  id: '/cli/login',
-  path: '/cli/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSearchRoute = ApiSearchRouteImport.update({
-  id: '/api/search',
-  path: '/api/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiHealthRoute = ApiHealthRouteImport.update({
-  id: '/api/health',
-  path: '/api/health',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminUsageRoute = AdminUsageRouteImport.update({
-  id: '/usage',
-  path: '/usage',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminUptimeRoute = AdminUptimeRouteImport.update({
-  id: '/uptime',
-  path: '/uptime',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminTunnelsRoute = AdminTunnelsRouteImport.update({
-  id: '/tunnels',
-  path: '/tunnels',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminSubscriptionsRoute = AdminSubscriptionsRouteImport.update({
-  id: '/subscriptions',
-  path: '/subscriptions',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminSecretsRoute = AdminSecretsRouteImport.update({
-  id: '/secrets',
-  path: '/secrets',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminObservabilityRoute = AdminObservabilityRouteImport.update({
-  id: '/observability',
-  path: '/observability',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminChartsRoute = AdminChartsRouteImport.update({
-  id: '/charts',
-  path: '/charts',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAgentRoute = AdminAgentRouteImport.update({
-  id: '/agent',
-  path: '/agent',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminActionsRoute = AdminActionsRouteImport.update({
-  id: '/actions',
-  path: '/actions',
-  getParentRoute: () => AdminRoute,
-} as any)
-const OrgSlugUptimeRoute = OrgSlugUptimeRouteImport.update({
-  id: '/uptime',
-  path: '/uptime',
-  getParentRoute: () => OrgSlugRoute,
-} as any)
-const OrgSlugTunnelRoute = OrgSlugTunnelRouteImport.update({
-  id: '/tunnel',
-  path: '/tunnel',
-  getParentRoute: () => OrgSlugRoute,
-} as any)
-const OrgSlugTokensRoute = OrgSlugTokensRouteImport.update({
-  id: '/tokens',
-  path: '/tokens',
-  getParentRoute: () => OrgSlugRoute,
-} as any)
-const OrgSlugSubdomainsRoute = OrgSlugSubdomainsRouteImport.update({
-  id: '/subdomains',
-  path: '/subdomains',
-  getParentRoute: () => OrgSlugRoute,
-} as any)
-const OrgSlugSetupRoute = OrgSlugSetupRouteImport.update({
-  id: '/setup',
-  path: '/setup',
-  getParentRoute: () => OrgSlugRoute,
-} as any)
-const OrgSlugSettingsRoute = OrgSlugSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => OrgSlugRoute,
-} as any)
-const OrgSlugSecretsRoute = OrgSlugSecretsRouteImport.update({
-  id: '/secrets',
-  path: '/secrets',
-  getParentRoute: () => OrgSlugRoute,
-} as any)
-const OrgSlugRequestsRoute = OrgSlugRequestsRouteImport.update({
-  id: '/requests',
-  path: '/requests',
-  getParentRoute: () => OrgSlugRoute,
-} as any)
-const OrgSlugObservabilityRoute = OrgSlugObservabilityRouteImport.update({
-  id: '/observability',
-  path: '/observability',
-  getParentRoute: () => OrgSlugRoute,
-} as any)
-const OrgSlugMembersRoute = OrgSlugMembersRouteImport.update({
-  id: '/members',
-  path: '/members',
-  getParentRoute: () => OrgSlugRoute,
-} as any)
-const OrgSlugGetStartedRoute = OrgSlugGetStartedRouteImport.update({
-  id: '/get-started',
-  path: '/get-started',
+const OrgSlugBillingRoute = OrgSlugBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
   getParentRoute: () => OrgSlugRoute,
 } as any)
 const OrgSlugDomainsRoute = OrgSlugDomainsRouteImport.update({
@@ -508,347 +358,165 @@ const OrgSlugDomainsRoute = OrgSlugDomainsRouteImport.update({
   path: '/domains',
   getParentRoute: () => OrgSlugRoute,
 } as any)
-const OrgSlugBillingRoute = OrgSlugBillingRouteImport.update({
-  id: '/billing',
-  path: '/billing',
+const OrgSlugGetStartedRoute = OrgSlugGetStartedRouteImport.update({
+  id: '/get-started',
+  path: '/get-started',
   getParentRoute: () => OrgSlugRoute,
 } as any)
-const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
-  id: '/users/',
-  path: '/users/',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminOrganizationsIndexRoute = AdminOrganizationsIndexRouteImport.update({
-  id: '/organizations/',
-  path: '/organizations/',
-  getParentRoute: () => AdminRoute,
-} as any)
-const OrgSlugUptimeIndexRoute = OrgSlugUptimeIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => OrgSlugUptimeRoute,
-} as any)
-const OrgSlugTunnelsIndexRoute = OrgSlugTunnelsIndexRouteImport.update({
-  id: '/tunnels/',
-  path: '/tunnels/',
+const OrgSlugMembersRoute = OrgSlugMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
   getParentRoute: () => OrgSlugRoute,
 } as any)
-const OrgSlugTunnelIndexRoute = OrgSlugTunnelIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => OrgSlugTunnelRoute,
+const OrgSlugObservabilityRoute = OrgSlugObservabilityRouteImport.update({
+  id: '/observability',
+  path: '/observability',
+  getParentRoute: () => OrgSlugRoute,
 } as any)
-const OrgSlugSettingsIndexRoute = OrgSlugSettingsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => OrgSlugSettingsRoute,
+const OrgSlugRequestsRoute = OrgSlugRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => OrgSlugRoute,
 } as any)
-const OrgSlugSecretsIndexRoute = OrgSlugSecretsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => OrgSlugSecretsRoute,
+const OrgSlugSecretsRoute = OrgSlugSecretsRouteImport.update({
+  id: '/secrets',
+  path: '/secrets',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
+const OrgSlugSettingsRoute = OrgSlugSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
+const OrgSlugSetupRoute = OrgSlugSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
+const OrgSlugSubdomainsRoute = OrgSlugSubdomainsRouteImport.update({
+  id: '/subdomains',
+  path: '/subdomains',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
+const OrgSlugTokensRoute = OrgSlugTokensRouteImport.update({
+  id: '/tokens',
+  path: '/tokens',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
+const OrgSlugTunnelRoute = OrgSlugTunnelRouteImport.update({
+  id: '/tunnel',
+  path: '/tunnel',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
+const OrgSlugUptimeRoute = OrgSlugUptimeRouteImport.update({
+  id: '/uptime',
+  path: '/uptime',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
+const AdminActionsRoute = AdminActionsRouteImport.update({
+  id: '/actions',
+  path: '/actions',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAgentRoute = AdminAgentRouteImport.update({
+  id: '/agent',
+  path: '/agent',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminChartsRoute = AdminChartsRouteImport.update({
+  id: '/charts',
+  path: '/charts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminObservabilityRoute = AdminObservabilityRouteImport.update({
+  id: '/observability',
+  path: '/observability',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSecretsRoute = AdminSecretsRouteImport.update({
+  id: '/secrets',
+  path: '/secrets',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSubscriptionsRoute = AdminSubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTunnelsRoute = AdminTunnelsRouteImport.update({
+  id: '/tunnels',
+  path: '/tunnels',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUptimeRoute = AdminUptimeRouteImport.update({
+  id: '/uptime',
+  path: '/uptime',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsageRoute = AdminUsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
+  getParentRoute: () => AdminRoute,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSearchRoute = ApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CliLoginRoute = CliLoginRouteImport.update({
+  id: '/cli/login',
+  path: '/cli/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsSplatRoute = DocsSplatRouteImport.update({
+  id: '/docs/$',
+  path: '/docs/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InternalDomainCheckRoute = InternalDomainCheckRouteImport.update({
+  id: '/internal/domain-check',
+  path: '/internal/domain-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvitationsAcceptRoute = InvitationsAcceptRouteImport.update({
+  id: '/invitations/accept',
+  path: '/invitations/accept',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsObservabilityRoute = ProductsObservabilityRouteImport.update({
+  id: '/observability',
+  path: '/observability',
+  getParentRoute: () => ProductsRoute,
+} as any)
+const ProductsSecretsRoute = ProductsSecretsRouteImport.update({
+  id: '/secrets',
+  path: '/secrets',
+  getParentRoute: () => ProductsRoute,
+} as any)
+const ProductsTunnelsRoute = ProductsTunnelsRouteImport.update({
+  id: '/tunnels',
+  path: '/tunnels',
+  getParentRoute: () => ProductsRoute,
+} as any)
+const ProductsUptimeRoute = ProductsUptimeRouteImport.update({
+  id: '/uptime',
+  path: '/uptime',
+  getParentRoute: () => ProductsRoute,
+} as any)
+const StatusPageLogosFileNameRoute = StatusPageLogosFileNameRouteImport.update({
+  id: '/status-page-logos/$fileName',
+  path: '/status-page-logos/$fileName',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const OrgSlugObservabilityIndexRoute =
   OrgSlugObservabilityIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => OrgSlugObservabilityRoute,
-  } as any)
-const ApiWebhooksPolarRoute = ApiWebhooksPolarRouteImport.update({
-  id: '/api/webhooks/polar',
-  path: '/api/webhooks/polar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiWebhooksPaystackRoute = ApiWebhooksPaystackRouteImport.update({
-  id: '/api/webhooks/paystack',
-  path: '/api/webhooks/paystack',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiTunnelRegisterRoute = ApiTunnelRegisterRouteImport.update({
-  id: '/api/tunnel/register',
-  path: '/api/tunnel/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiTunnelCheckSubdomainRoute = ApiTunnelCheckSubdomainRouteImport.update({
-  id: '/api/tunnel/check-subdomain',
-  path: '/api/tunnel/check-subdomain',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiTunnelAuthRoute = ApiTunnelAuthRouteImport.update({
-  id: '/api/tunnel/auth',
-  path: '/api/tunnel/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrganizationsCheckSlugRoute =
-  ApiOrganizationsCheckSlugRouteImport.update({
-    id: '/api/organizations/check-slug',
-    path: '/api/organizations/check-slug',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiMeOrgsRoute = ApiMeOrgsRouteImport.update({
-  id: '/api/me/orgs',
-  path: '/api/me/orgs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiDomainVerifyOwnershipRoute =
-  ApiDomainVerifyOwnershipRouteImport.update({
-    id: '/api/domain/verify-ownership',
-    path: '/api/domain/verify-ownership',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiDashboardWsTokenRoute = ApiDashboardWsTokenRouteImport.update({
-  id: '/api/dashboard/ws-token',
-  path: '/api/dashboard/ws-token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiDashboardValidateWsTokenRoute =
-  ApiDashboardValidateWsTokenRouteImport.update({
-    id: '/api/dashboard/validate-ws-token',
-    path: '/api/dashboard/validate-ws-token',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiCliSecretsRoute = ApiCliSecretsRouteImport.update({
-  id: '/api/cli/secrets',
-  path: '/api/cli/secrets',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCliLoginRoute = ApiCliLoginRouteImport.update({
-  id: '/api/cli/login',
-  path: '/api/cli/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCliExchangeRoute = ApiCliExchangeRouteImport.update({
-  id: '/api/cli/exchange',
-  path: '/api/cli/exchange',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCliCompleteRoute = ApiCliCompleteRouteImport.update({
-  id: '/api/cli/complete',
-  path: '/api/cli/complete',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCheckoutPolarRoute = ApiCheckoutPolarRouteImport.update({
-  id: '/api/checkout/polar',
-  path: '/api/checkout/polar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCheckoutPaystackVerifyRoute =
-  ApiCheckoutPaystackVerifyRouteImport.update({
-    id: '/api/checkout/paystack-verify',
-    path: '/api/checkout/paystack-verify',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiCheckoutPaystackRoute = ApiCheckoutPaystackRouteImport.update({
-  id: '/api/checkout/paystack',
-  path: '/api/checkout/paystack',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminUsersRoute = ApiAdminUsersRouteImport.update({
-  id: '/api/admin/users',
-  path: '/api/admin/users',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminUsageRoute = ApiAdminUsageRouteImport.update({
-  id: '/api/admin/usage',
-  path: '/api/admin/usage',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminTunnelsRoute = ApiAdminTunnelsRouteImport.update({
-  id: '/api/admin/tunnels',
-  path: '/api/admin/tunnels',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminSubscriptionsRoute = ApiAdminSubscriptionsRouteImport.update({
-  id: '/api/admin/subscriptions',
-  path: '/api/admin/subscriptions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminStatsRoute = ApiAdminStatsRouteImport.update({
-  id: '/api/admin/stats',
-  path: '/api/admin/stats',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminRevenueHistoryRoute = ApiAdminRevenueHistoryRouteImport.update({
-  id: '/api/admin/revenue-history',
-  path: '/api/admin/revenue-history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminProxyImageRoute = ApiAdminProxyImageRouteImport.update({
-  id: '/api/admin/proxy-image',
-  path: '/api/admin/proxy-image',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminOverviewRoute = ApiAdminOverviewRouteImport.update({
-  id: '/api/admin/overview',
-  path: '/api/admin/overview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminOrganizationsRoute = ApiAdminOrganizationsRouteImport.update({
-  id: '/api/admin/organizations',
-  path: '/api/admin/organizations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminLoginRoute = ApiAdminLoginRouteImport.update({
-  id: '/api/admin/login',
-  path: '/api/admin/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminChartsRoute = ApiAdminChartsRouteImport.update({
-  id: '/api/admin/charts',
-  path: '/api/admin/charts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugSubscriptionsRoute = ApiOrgSlugSubscriptionsRouteImport.update({
-  id: '/api/$orgSlug/subscriptions',
-  path: '/api/$orgSlug/subscriptions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugSettingsRoute = ApiOrgSlugSettingsRouteImport.update({
-  id: '/api/$orgSlug/settings',
-  path: '/api/$orgSlug/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugRequestsRoute = ApiOrgSlugRequestsRouteImport.update({
-  id: '/api/$orgSlug/requests',
-  path: '/api/$orgSlug/requests',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugAuthTokensRoute = ApiOrgSlugAuthTokensRouteImport.update({
-  id: '/api/$orgSlug/auth-tokens',
-  path: '/api/$orgSlug/auth-tokens',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminUsersUserIdRoute = AdminUsersUserIdRouteImport.update({
-  id: '/users/$userId',
-  path: '/users/$userId',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminTunnelsConnectionsRoute = AdminTunnelsConnectionsRouteImport.update({
-  id: '/connections',
-  path: '/connections',
-  getParentRoute: () => AdminTunnelsRoute,
-} as any)
-const AdminOrganizationsSlugRoute = AdminOrganizationsSlugRouteImport.update({
-  id: '/organizations/$slug',
-  path: '/organizations/$slug',
-  getParentRoute: () => AdminRoute,
-} as any)
-const OrgSlugUptimeStatusPageRoute = OrgSlugUptimeStatusPageRouteImport.update({
-  id: '/status-page',
-  path: '/status-page',
-  getParentRoute: () => OrgSlugUptimeRoute,
-} as any)
-const OrgSlugUptimeNotificationsRoute =
-  OrgSlugUptimeNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => OrgSlugUptimeRoute,
-  } as any)
-const OrgSlugUptimeMonitorsRoute = OrgSlugUptimeMonitorsRouteImport.update({
-  id: '/monitors',
-  path: '/monitors',
-  getParentRoute: () => OrgSlugUptimeRoute,
-} as any)
-const OrgSlugUptimeIncidentsRoute = OrgSlugUptimeIncidentsRouteImport.update({
-  id: '/incidents',
-  path: '/incidents',
-  getParentRoute: () => OrgSlugUptimeRoute,
-} as any)
-const OrgSlugTunnelsTunnelIdRoute = OrgSlugTunnelsTunnelIdRouteImport.update({
-  id: '/tunnels/$tunnelId',
-  path: '/tunnels/$tunnelId',
-  getParentRoute: () => OrgSlugRoute,
-} as any)
-const OrgSlugTunnelSubdomainsRoute = OrgSlugTunnelSubdomainsRouteImport.update({
-  id: '/subdomains',
-  path: '/subdomains',
-  getParentRoute: () => OrgSlugTunnelRoute,
-} as any)
-const OrgSlugTunnelRequestsRoute = OrgSlugTunnelRequestsRouteImport.update({
-  id: '/requests',
-  path: '/requests',
-  getParentRoute: () => OrgSlugTunnelRoute,
-} as any)
-const OrgSlugTunnelDomainsRoute = OrgSlugTunnelDomainsRouteImport.update({
-  id: '/domains',
-  path: '/domains',
-  getParentRoute: () => OrgSlugTunnelRoute,
-} as any)
-const OrgSlugSettingsProfileRoute = OrgSlugSettingsProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => OrgSlugSettingsRoute,
-} as any)
-const OrgSlugSettingsOrganizationRoute =
-  OrgSlugSettingsOrganizationRouteImport.update({
-    id: '/organization',
-    path: '/organization',
-    getParentRoute: () => OrgSlugSettingsRoute,
-  } as any)
-const OrgSlugSecretsVaultsRoute = OrgSlugSecretsVaultsRouteImport.update({
-  id: '/vaults',
-  path: '/vaults',
-  getParentRoute: () => OrgSlugSecretsRoute,
-} as any)
-const OrgSlugSecretsTrashRoute = OrgSlugSecretsTrashRouteImport.update({
-  id: '/trash',
-  path: '/trash',
-  getParentRoute: () => OrgSlugSecretsRoute,
-} as any)
-const OrgSlugSecretsSharesRoute = OrgSlugSecretsSharesRouteImport.update({
-  id: '/shares',
-  path: '/shares',
-  getParentRoute: () => OrgSlugSecretsRoute,
-} as any)
-const OrgSlugSecretsProjectsRoute = OrgSlugSecretsProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => OrgSlugSecretsRoute,
-} as any)
-const OrgSlugSecretsAuditRoute = OrgSlugSecretsAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
-  getParentRoute: () => OrgSlugSecretsRoute,
-} as any)
-const OrgSlugObservabilityTracesRoute =
-  OrgSlugObservabilityTracesRouteImport.update({
-    id: '/traces',
-    path: '/traces',
-    getParentRoute: () => OrgSlugObservabilityRoute,
-  } as any)
-const OrgSlugObservabilityServicesRoute =
-  OrgSlugObservabilityServicesRouteImport.update({
-    id: '/services',
-    path: '/services',
-    getParentRoute: () => OrgSlugObservabilityRoute,
-  } as any)
-const OrgSlugObservabilityRequestsRoute =
-  OrgSlugObservabilityRequestsRouteImport.update({
-    id: '/requests',
-    path: '/requests',
-    getParentRoute: () => OrgSlugObservabilityRoute,
-  } as any)
-const OrgSlugObservabilityMonitorsRoute =
-  OrgSlugObservabilityMonitorsRouteImport.update({
-    id: '/monitors',
-    path: '/monitors',
-    getParentRoute: () => OrgSlugObservabilityRoute,
-  } as any)
-const OrgSlugObservabilityMetricsRoute =
-  OrgSlugObservabilityMetricsRouteImport.update({
-    id: '/metrics',
-    path: '/metrics',
-    getParentRoute: () => OrgSlugObservabilityRoute,
-  } as any)
-const OrgSlugObservabilityLogsRoute =
-  OrgSlugObservabilityLogsRouteImport.update({
-    id: '/logs',
-    path: '/logs',
     getParentRoute: () => OrgSlugObservabilityRoute,
   } as any)
 const OrgSlugObservabilityAlertsRoute =
@@ -857,27 +525,361 @@ const OrgSlugObservabilityAlertsRoute =
     path: '/alerts',
     getParentRoute: () => OrgSlugObservabilityRoute,
   } as any)
-const ApiOrgSlugTunnelsIndexRoute = ApiOrgSlugTunnelsIndexRouteImport.update({
-  id: '/api/$orgSlug/tunnels/',
-  path: '/api/$orgSlug/tunnels/',
+const OrgSlugObservabilityLogsRoute =
+  OrgSlugObservabilityLogsRouteImport.update({
+    id: '/logs',
+    path: '/logs',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
+const OrgSlugObservabilityMetricsRoute =
+  OrgSlugObservabilityMetricsRouteImport.update({
+    id: '/metrics',
+    path: '/metrics',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
+const OrgSlugObservabilityMonitorsRoute =
+  OrgSlugObservabilityMonitorsRouteImport.update({
+    id: '/monitors',
+    path: '/monitors',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
+const OrgSlugObservabilityRequestsRoute =
+  OrgSlugObservabilityRequestsRouteImport.update({
+    id: '/requests',
+    path: '/requests',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
+const OrgSlugObservabilityServicesRoute =
+  OrgSlugObservabilityServicesRouteImport.update({
+    id: '/services',
+    path: '/services',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
+const OrgSlugObservabilityTracesRoute =
+  OrgSlugObservabilityTracesRouteImport.update({
+    id: '/traces',
+    path: '/traces',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
+const OrgSlugSecretsIndexRoute = OrgSlugSecretsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrgSlugSecretsRoute,
+} as any)
+const OrgSlugSecretsAuditRoute = OrgSlugSecretsAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => OrgSlugSecretsRoute,
+} as any)
+const OrgSlugSecretsProjectsRoute = OrgSlugSecretsProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => OrgSlugSecretsRoute,
+} as any)
+const OrgSlugSecretsSharesRoute = OrgSlugSecretsSharesRouteImport.update({
+  id: '/shares',
+  path: '/shares',
+  getParentRoute: () => OrgSlugSecretsRoute,
+} as any)
+const OrgSlugSecretsTrashRoute = OrgSlugSecretsTrashRouteImport.update({
+  id: '/trash',
+  path: '/trash',
+  getParentRoute: () => OrgSlugSecretsRoute,
+} as any)
+const OrgSlugSecretsVaultsRoute = OrgSlugSecretsVaultsRouteImport.update({
+  id: '/vaults',
+  path: '/vaults',
+  getParentRoute: () => OrgSlugSecretsRoute,
+} as any)
+const OrgSlugSettingsIndexRoute = OrgSlugSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrgSlugSettingsRoute,
+} as any)
+const OrgSlugSettingsOrganizationRoute =
+  OrgSlugSettingsOrganizationRouteImport.update({
+    id: '/organization',
+    path: '/organization',
+    getParentRoute: () => OrgSlugSettingsRoute,
+  } as any)
+const OrgSlugSettingsProfileRoute = OrgSlugSettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => OrgSlugSettingsRoute,
+} as any)
+const OrgSlugTunnelIndexRoute = OrgSlugTunnelIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrgSlugTunnelRoute,
+} as any)
+const OrgSlugTunnelDomainsRoute = OrgSlugTunnelDomainsRouteImport.update({
+  id: '/domains',
+  path: '/domains',
+  getParentRoute: () => OrgSlugTunnelRoute,
+} as any)
+const OrgSlugTunnelRequestsRoute = OrgSlugTunnelRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => OrgSlugTunnelRoute,
+} as any)
+const OrgSlugTunnelSubdomainsRoute = OrgSlugTunnelSubdomainsRouteImport.update({
+  id: '/subdomains',
+  path: '/subdomains',
+  getParentRoute: () => OrgSlugTunnelRoute,
+} as any)
+const OrgSlugTunnelsIndexRoute = OrgSlugTunnelsIndexRouteImport.update({
+  id: '/tunnels/',
+  path: '/tunnels/',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
+const OrgSlugTunnelsTunnelIdRoute = OrgSlugTunnelsTunnelIdRouteImport.update({
+  id: '/tunnels/$tunnelId',
+  path: '/tunnels/$tunnelId',
+  getParentRoute: () => OrgSlugRoute,
+} as any)
+const OrgSlugUptimeIndexRoute = OrgSlugUptimeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrgSlugUptimeRoute,
+} as any)
+const OrgSlugUptimeIncidentsRoute = OrgSlugUptimeIncidentsRouteImport.update({
+  id: '/incidents',
+  path: '/incidents',
+  getParentRoute: () => OrgSlugUptimeRoute,
+} as any)
+const OrgSlugUptimeMonitorsRoute = OrgSlugUptimeMonitorsRouteImport.update({
+  id: '/monitors',
+  path: '/monitors',
+  getParentRoute: () => OrgSlugUptimeRoute,
+} as any)
+const OrgSlugUptimeNotificationsRoute =
+  OrgSlugUptimeNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => OrgSlugUptimeRoute,
+  } as any)
+const OrgSlugUptimeStatusPageRoute = OrgSlugUptimeStatusPageRouteImport.update({
+  id: '/status-page',
+  path: '/status-page',
+  getParentRoute: () => OrgSlugUptimeRoute,
+} as any)
+const AdminOrganizationsIndexRoute = AdminOrganizationsIndexRouteImport.update({
+  id: '/organizations/',
+  path: '/organizations/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOrganizationsSlugRoute = AdminOrganizationsSlugRouteImport.update({
+  id: '/organizations/$slug',
+  path: '/organizations/$slug',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTunnelsConnectionsRoute = AdminTunnelsConnectionsRouteImport.update({
+  id: '/connections',
+  path: '/connections',
+  getParentRoute: () => AdminTunnelsRoute,
+} as any)
+const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersUserIdRoute = AdminUsersUserIdRouteImport.update({
+  id: '/users/$userId',
+  path: '/users/$userId',
+  getParentRoute: () => AdminRoute,
+} as any)
+const ApiOrgSlugAuthTokensRoute = ApiOrgSlugAuthTokensRouteImport.update({
+  id: '/api/$orgSlug/auth-tokens',
+  path: '/api/$orgSlug/auth-tokens',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiOrgSlugSubdomainsIndexRoute =
-  ApiOrgSlugSubdomainsIndexRouteImport.update({
-    id: '/api/$orgSlug/subdomains/',
-    path: '/api/$orgSlug/subdomains/',
+const ApiOrgSlugRequestsRoute = ApiOrgSlugRequestsRouteImport.update({
+  id: '/api/$orgSlug/requests',
+  path: '/api/$orgSlug/requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugSettingsRoute = ApiOrgSlugSettingsRouteImport.update({
+  id: '/api/$orgSlug/settings',
+  path: '/api/$orgSlug/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugSubscriptionsRoute = ApiOrgSlugSubscriptionsRouteImport.update({
+  id: '/api/$orgSlug/subscriptions',
+  path: '/api/$orgSlug/subscriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminChartsRoute = ApiAdminChartsRouteImport.update({
+  id: '/api/admin/charts',
+  path: '/api/admin/charts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminLoginRoute = ApiAdminLoginRouteImport.update({
+  id: '/api/admin/login',
+  path: '/api/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminOrganizationsRoute = ApiAdminOrganizationsRouteImport.update({
+  id: '/api/admin/organizations',
+  path: '/api/admin/organizations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminOverviewRoute = ApiAdminOverviewRouteImport.update({
+  id: '/api/admin/overview',
+  path: '/api/admin/overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminProxyImageRoute = ApiAdminProxyImageRouteImport.update({
+  id: '/api/admin/proxy-image',
+  path: '/api/admin/proxy-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminRevenueHistoryRoute = ApiAdminRevenueHistoryRouteImport.update({
+  id: '/api/admin/revenue-history',
+  path: '/api/admin/revenue-history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminStatsRoute = ApiAdminStatsRouteImport.update({
+  id: '/api/admin/stats',
+  path: '/api/admin/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSubscriptionsRoute = ApiAdminSubscriptionsRouteImport.update({
+  id: '/api/admin/subscriptions',
+  path: '/api/admin/subscriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminTunnelsRoute = ApiAdminTunnelsRouteImport.update({
+  id: '/api/admin/tunnels',
+  path: '/api/admin/tunnels',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminUsageRoute = ApiAdminUsageRouteImport.update({
+  id: '/api/admin/usage',
+  path: '/api/admin/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminUsersRoute = ApiAdminUsersRouteImport.update({
+  id: '/api/admin/users',
+  path: '/api/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCheckoutPaystackRoute = ApiCheckoutPaystackRouteImport.update({
+  id: '/api/checkout/paystack',
+  path: '/api/checkout/paystack',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCheckoutPaystackVerifyRoute =
+  ApiCheckoutPaystackVerifyRouteImport.update({
+    id: '/api/checkout/paystack-verify',
+    path: '/api/checkout/paystack-verify',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiOrgSlugDomainsIndexRoute = ApiOrgSlugDomainsIndexRouteImport.update({
-  id: '/api/$orgSlug/domains/',
-  path: '/api/$orgSlug/domains/',
+const ApiCheckoutPolarRoute = ApiCheckoutPolarRouteImport.update({
+  id: '/api/checkout/polar',
+  path: '/api/checkout/polar',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OrgSlugUptimeStatusPageIndexRoute =
-  OrgSlugUptimeStatusPageIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
+const ApiCliCompleteRoute = ApiCliCompleteRouteImport.update({
+  id: '/api/cli/complete',
+  path: '/api/cli/complete',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCliExchangeRoute = ApiCliExchangeRouteImport.update({
+  id: '/api/cli/exchange',
+  path: '/api/cli/exchange',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCliLoginRoute = ApiCliLoginRouteImport.update({
+  id: '/api/cli/login',
+  path: '/api/cli/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCliSecretsRoute = ApiCliSecretsRouteImport.update({
+  id: '/api/cli/secrets',
+  path: '/api/cli/secrets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDashboardValidateWsTokenRoute =
+  ApiDashboardValidateWsTokenRouteImport.update({
+    id: '/api/dashboard/validate-ws-token',
+    path: '/api/dashboard/validate-ws-token',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiDashboardWsTokenRoute = ApiDashboardWsTokenRouteImport.update({
+  id: '/api/dashboard/ws-token',
+  path: '/api/dashboard/ws-token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDomainVerifyOwnershipRoute =
+  ApiDomainVerifyOwnershipRouteImport.update({
+    id: '/api/domain/verify-ownership',
+    path: '/api/domain/verify-ownership',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMeOrgsRoute = ApiMeOrgsRouteImport.update({
+  id: '/api/me/orgs',
+  path: '/api/me/orgs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrganizationsCheckSlugRoute =
+  ApiOrganizationsCheckSlugRouteImport.update({
+    id: '/api/organizations/check-slug',
+    path: '/api/organizations/check-slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiTunnelAuthRoute = ApiTunnelAuthRouteImport.update({
+  id: '/api/tunnel/auth',
+  path: '/api/tunnel/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTunnelCheckSubdomainRoute = ApiTunnelCheckSubdomainRouteImport.update({
+  id: '/api/tunnel/check-subdomain',
+  path: '/api/tunnel/check-subdomain',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTunnelRegisterRoute = ApiTunnelRegisterRouteImport.update({
+  id: '/api/tunnel/register',
+  path: '/api/tunnel/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksPaystackRoute = ApiWebhooksPaystackRouteImport.update({
+  id: '/api/webhooks/paystack',
+  path: '/api/webhooks/paystack',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksPolarRoute = ApiWebhooksPolarRouteImport.update({
+  id: '/api/webhooks/polar',
+  path: '/api/webhooks/polar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrgSlugObservabilityAlertsAlertIdRoute =
+  OrgSlugObservabilityAlertsAlertIdRouteImport.update({
+    id: '/alerts_/$alertId',
+    path: '/alerts/$alertId',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
+const OrgSlugObservabilityServicesServiceIdRoute =
+  OrgSlugObservabilityServicesServiceIdRouteImport.update({
+    id: '/services_/$serviceId',
+    path: '/services/$serviceId',
+    getParentRoute: () => OrgSlugObservabilityRoute,
+  } as any)
+const OrgSlugSecretsProjectsProjectSlugRoute =
+  OrgSlugSecretsProjectsProjectSlugRouteImport.update({
+    id: '/projects_/$projectSlug',
+    path: '/projects/$projectSlug',
+    getParentRoute: () => OrgSlugSecretsRoute,
+  } as any)
+const OrgSlugSecretsVaultsProjectSlugRoute =
+  OrgSlugSecretsVaultsProjectSlugRouteImport.update({
+    id: '/vaults_/$projectSlug',
+    path: '/vaults/$projectSlug',
+    getParentRoute: () => OrgSlugSecretsRoute,
   } as any)
 const OrgSlugTunnelTunnelsIndexRoute =
   OrgSlugTunnelTunnelsIndexRouteImport.update({
@@ -885,168 +887,28 @@ const OrgSlugTunnelTunnelsIndexRoute =
     path: '/tunnels/',
     getParentRoute: () => OrgSlugTunnelRoute,
   } as any)
-const ApiSubscriptionsOrgSlugCancelRoute =
-  ApiSubscriptionsOrgSlugCancelRouteImport.update({
-    id: '/api/subscriptions/$orgSlug/cancel',
-    path: '/api/subscriptions/$orgSlug/cancel',
-    getParentRoute: () => rootRouteImport,
+const OrgSlugTunnelTunnelsTunnelIdRoute =
+  OrgSlugTunnelTunnelsTunnelIdRouteImport.update({
+    id: '/tunnels/$tunnelId',
+    path: '/tunnels/$tunnelId',
+    getParentRoute: () => OrgSlugTunnelRoute,
   } as any)
-const ApiCliSecretsTargetsRoute = ApiCliSecretsTargetsRouteImport.update({
-  id: '/targets',
-  path: '/targets',
-  getParentRoute: () => ApiCliSecretsRoute,
-} as any)
-const ApiCliSecretsRollbackRoute = ApiCliSecretsRollbackRouteImport.update({
-  id: '/rollback',
-  path: '/rollback',
-  getParentRoute: () => ApiCliSecretsRoute,
-} as any)
-const ApiCliSecretsRevisionRoute = ApiCliSecretsRevisionRouteImport.update({
-  id: '/revision',
-  path: '/revision',
-  getParentRoute: () => ApiCliSecretsRoute,
-} as any)
-const ApiCliLoginStatusRoute = ApiCliLoginStatusRouteImport.update({
-  id: '/status',
-  path: '/status',
-  getParentRoute: () => ApiCliLoginRoute,
-} as any)
-const ApiAdminUsersUserIdRoute = ApiAdminUsersUserIdRouteImport.update({
-  id: '/$userId',
-  path: '/$userId',
-  getParentRoute: () => ApiAdminUsersRoute,
-} as any)
-const ApiAdminProductsProductRoute = ApiAdminProductsProductRouteImport.update({
-  id: '/api/admin/products/$product',
-  path: '/api/admin/products/$product',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminOrganizationsSlugRoute =
-  ApiAdminOrganizationsSlugRouteImport.update({
-    id: '/$slug',
-    path: '/$slug',
-    getParentRoute: () => ApiAdminOrganizationsRoute,
+const OrgSlugUptimeIncidentsIncidentIdRoute =
+  OrgSlugUptimeIncidentsIncidentIdRouteImport.update({
+    id: '/incidents_/$incidentId',
+    path: '/incidents/$incidentId',
+    getParentRoute: () => OrgSlugUptimeRoute,
   } as any)
-const ApiOrgSlugUptimePageRoute = ApiOrgSlugUptimePageRouteImport.update({
-  id: '/api/$orgSlug/uptime/page',
-  path: '/api/$orgSlug/uptime/page',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugUptimeMembersRoute = ApiOrgSlugUptimeMembersRouteImport.update({
-  id: '/api/$orgSlug/uptime/members',
-  path: '/api/$orgSlug/uptime/members',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugTunnelsTunnelIdRoute =
-  ApiOrgSlugTunnelsTunnelIdRouteImport.update({
-    id: '/api/$orgSlug/tunnels/$tunnelId',
-    path: '/api/$orgSlug/tunnels/$tunnelId',
-    getParentRoute: () => rootRouteImport,
+const OrgSlugUptimeMonitorsMonitorIdRoute =
+  OrgSlugUptimeMonitorsMonitorIdRouteImport.update({
+    id: '/monitors_/$monitorId',
+    path: '/monitors/$monitorId',
+    getParentRoute: () => OrgSlugUptimeRoute,
   } as any)
-const ApiOrgSlugSubdomainsSubdomainIdRoute =
-  ApiOrgSlugSubdomainsSubdomainIdRouteImport.update({
-    id: '/api/$orgSlug/subdomains/$subdomainId',
-    path: '/api/$orgSlug/subdomains/$subdomainId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugStatsTunnelRoute = ApiOrgSlugStatsTunnelRouteImport.update({
-  id: '/api/$orgSlug/stats/tunnel',
-  path: '/api/$orgSlug/stats/tunnel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugStatsProtocolRoute = ApiOrgSlugStatsProtocolRouteImport.update({
-  id: '/api/$orgSlug/stats/protocol',
-  path: '/api/$orgSlug/stats/protocol',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugStatsOverviewRoute = ApiOrgSlugStatsOverviewRouteImport.update({
-  id: '/api/$orgSlug/stats/overview',
-  path: '/api/$orgSlug/stats/overview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugStatsBandwidthRoute =
-  ApiOrgSlugStatsBandwidthRouteImport.update({
-    id: '/api/$orgSlug/stats/bandwidth',
-    path: '/api/$orgSlug/stats/bandwidth',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugSecretsTrashRoute = ApiOrgSlugSecretsTrashRouteImport.update({
-  id: '/api/$orgSlug/secrets/trash',
-  path: '/api/$orgSlug/secrets/trash',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugSecretsOverviewRoute =
-  ApiOrgSlugSecretsOverviewRouteImport.update({
-    id: '/api/$orgSlug/secrets/overview',
-    path: '/api/$orgSlug/secrets/overview',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugSecretsMachineTokensRoute =
-  ApiOrgSlugSecretsMachineTokensRouteImport.update({
-    id: '/api/$orgSlug/secrets/machine-tokens',
-    path: '/api/$orgSlug/secrets/machine-tokens',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugSecretsAuditRoute = ApiOrgSlugSecretsAuditRouteImport.update({
-  id: '/api/$orgSlug/secrets/audit',
-  path: '/api/$orgSlug/secrets/audit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugRequestsReplayRoute =
-  ApiOrgSlugRequestsReplayRouteImport.update({
-    id: '/replay',
-    path: '/replay',
-    getParentRoute: () => ApiOrgSlugRequestsRoute,
-  } as any)
-const ApiOrgSlugRequestsCaptureRoute =
-  ApiOrgSlugRequestsCaptureRouteImport.update({
-    id: '/capture',
-    path: '/capture',
-    getParentRoute: () => ApiOrgSlugRequestsRoute,
-  } as any)
-const ApiOrgSlugPortalPolarRoute = ApiOrgSlugPortalPolarRouteImport.update({
-  id: '/api/$orgSlug/portal/polar',
-  path: '/api/$orgSlug/portal/polar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugDomainsDomainIdRoute =
-  ApiOrgSlugDomainsDomainIdRouteImport.update({
-    id: '/api/$orgSlug/domains/$domainId',
-    path: '/api/$orgSlug/domains/$domainId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugAgentThreadsRoute = ApiOrgSlugAgentThreadsRouteImport.update({
-  id: '/api/$orgSlug/agent/threads',
-  path: '/api/$orgSlug/agent/threads',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrgSlugAgentChatRoute = ApiOrgSlugAgentChatRouteImport.update({
-  id: '/api/$orgSlug/agent/chat',
-  path: '/api/$orgSlug/agent/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrgSlugUptimeStatusPageSubscribersRoute =
-  OrgSlugUptimeStatusPageSubscribersRouteImport.update({
-    id: '/subscribers',
-    path: '/subscribers',
-    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
-  } as any)
-const OrgSlugUptimeStatusPagePublishingRoute =
-  OrgSlugUptimeStatusPagePublishingRouteImport.update({
-    id: '/publishing',
-    path: '/publishing',
-    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
-  } as any)
-const OrgSlugUptimeStatusPageDomainsRoute =
-  OrgSlugUptimeStatusPageDomainsRouteImport.update({
-    id: '/domains',
-    path: '/domains',
-    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
-  } as any)
-const OrgSlugUptimeStatusPageComponentsRoute =
-  OrgSlugUptimeStatusPageComponentsRouteImport.update({
-    id: '/components',
-    path: '/components',
+const OrgSlugUptimeStatusPageIndexRoute =
+  OrgSlugUptimeStatusPageIndexRouteImport.update({
+    id: '/',
+    path: '/',
     getParentRoute: () => OrgSlugUptimeStatusPageRoute,
   } as any)
 const OrgSlugUptimeStatusPageAppearanceRoute =
@@ -1055,136 +917,184 @@ const OrgSlugUptimeStatusPageAppearanceRoute =
     path: '/appearance',
     getParentRoute: () => OrgSlugUptimeStatusPageRoute,
   } as any)
-const OrgSlugUptimeMonitorsMonitorIdRoute =
-  OrgSlugUptimeMonitorsMonitorIdRouteImport.update({
-    id: '/monitors_/$monitorId',
-    path: '/monitors/$monitorId',
-    getParentRoute: () => OrgSlugUptimeRoute,
+const OrgSlugUptimeStatusPageComponentsRoute =
+  OrgSlugUptimeStatusPageComponentsRouteImport.update({
+    id: '/components',
+    path: '/components',
+    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
   } as any)
-const OrgSlugUptimeIncidentsIncidentIdRoute =
-  OrgSlugUptimeIncidentsIncidentIdRouteImport.update({
-    id: '/incidents_/$incidentId',
-    path: '/incidents/$incidentId',
-    getParentRoute: () => OrgSlugUptimeRoute,
+const OrgSlugUptimeStatusPageDomainsRoute =
+  OrgSlugUptimeStatusPageDomainsRouteImport.update({
+    id: '/domains',
+    path: '/domains',
+    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
   } as any)
-const OrgSlugTunnelTunnelsTunnelIdRoute =
-  OrgSlugTunnelTunnelsTunnelIdRouteImport.update({
-    id: '/tunnels/$tunnelId',
-    path: '/tunnels/$tunnelId',
-    getParentRoute: () => OrgSlugTunnelRoute,
+const OrgSlugUptimeStatusPagePublishingRoute =
+  OrgSlugUptimeStatusPagePublishingRouteImport.update({
+    id: '/publishing',
+    path: '/publishing',
+    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
   } as any)
-const OrgSlugSecretsVaultsProjectSlugRoute =
-  OrgSlugSecretsVaultsProjectSlugRouteImport.update({
-    id: '/vaults_/$projectSlug',
-    path: '/vaults/$projectSlug',
-    getParentRoute: () => OrgSlugSecretsRoute,
+const OrgSlugUptimeStatusPageSubscribersRoute =
+  OrgSlugUptimeStatusPageSubscribersRouteImport.update({
+    id: '/subscribers',
+    path: '/subscribers',
+    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
   } as any)
-const OrgSlugSecretsProjectsProjectSlugRoute =
-  OrgSlugSecretsProjectsProjectSlugRouteImport.update({
-    id: '/projects_/$projectSlug',
-    path: '/projects/$projectSlug',
-    getParentRoute: () => OrgSlugSecretsRoute,
-  } as any)
-const OrgSlugObservabilityServicesServiceIdRoute =
-  OrgSlugObservabilityServicesServiceIdRouteImport.update({
-    id: '/services_/$serviceId',
-    path: '/services/$serviceId',
-    getParentRoute: () => OrgSlugObservabilityRoute,
-  } as any)
-const OrgSlugObservabilityAlertsAlertIdRoute =
-  OrgSlugObservabilityAlertsAlertIdRouteImport.update({
-    id: '/alerts_/$alertId',
-    path: '/alerts/$alertId',
-    getParentRoute: () => OrgSlugObservabilityRoute,
-  } as any)
-const ApiOrgSlugUptimeSubscribersIndexRoute =
-  ApiOrgSlugUptimeSubscribersIndexRouteImport.update({
-    id: '/api/$orgSlug/uptime/subscribers/',
-    path: '/api/$orgSlug/uptime/subscribers/',
+const ApiOrgSlugAgentChatRoute = ApiOrgSlugAgentChatRouteImport.update({
+  id: '/api/$orgSlug/agent/chat',
+  path: '/api/$orgSlug/agent/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugAgentThreadsRoute = ApiOrgSlugAgentThreadsRouteImport.update({
+  id: '/api/$orgSlug/agent/threads',
+  path: '/api/$orgSlug/agent/threads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugDomainsIndexRoute = ApiOrgSlugDomainsIndexRouteImport.update({
+  id: '/api/$orgSlug/domains/',
+  path: '/api/$orgSlug/domains/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugDomainsDomainIdRoute =
+  ApiOrgSlugDomainsDomainIdRouteImport.update({
+    id: '/api/$orgSlug/domains/$domainId',
+    path: '/api/$orgSlug/domains/$domainId',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiOrgSlugUptimeMonitorsIndexRoute =
-  ApiOrgSlugUptimeMonitorsIndexRouteImport.update({
-    id: '/api/$orgSlug/uptime/monitors/',
-    path: '/api/$orgSlug/uptime/monitors/',
+const ApiOrgSlugPortalPolarRoute = ApiOrgSlugPortalPolarRouteImport.update({
+  id: '/api/$orgSlug/portal/polar',
+  path: '/api/$orgSlug/portal/polar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugRequestsCaptureRoute =
+  ApiOrgSlugRequestsCaptureRouteImport.update({
+    id: '/capture',
+    path: '/capture',
+    getParentRoute: () => ApiOrgSlugRequestsRoute,
+  } as any)
+const ApiOrgSlugRequestsReplayRoute =
+  ApiOrgSlugRequestsReplayRouteImport.update({
+    id: '/replay',
+    path: '/replay',
+    getParentRoute: () => ApiOrgSlugRequestsRoute,
+  } as any)
+const ApiOrgSlugSecretsAuditRoute = ApiOrgSlugSecretsAuditRouteImport.update({
+  id: '/api/$orgSlug/secrets/audit',
+  path: '/api/$orgSlug/secrets/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugSecretsMachineTokensRoute =
+  ApiOrgSlugSecretsMachineTokensRouteImport.update({
+    id: '/api/$orgSlug/secrets/machine-tokens',
+    path: '/api/$orgSlug/secrets/machine-tokens',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiOrgSlugUptimeIntegrationsIndexRoute =
-  ApiOrgSlugUptimeIntegrationsIndexRouteImport.update({
-    id: '/api/$orgSlug/uptime/integrations/',
-    path: '/api/$orgSlug/uptime/integrations/',
+const ApiOrgSlugSecretsOverviewRoute =
+  ApiOrgSlugSecretsOverviewRouteImport.update({
+    id: '/api/$orgSlug/secrets/overview',
+    path: '/api/$orgSlug/secrets/overview',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiOrgSlugUptimeIncidentsIndexRoute =
-  ApiOrgSlugUptimeIncidentsIndexRouteImport.update({
-    id: '/api/$orgSlug/uptime/incidents/',
-    path: '/api/$orgSlug/uptime/incidents/',
+const ApiOrgSlugSecretsTrashRoute = ApiOrgSlugSecretsTrashRouteImport.update({
+  id: '/api/$orgSlug/secrets/trash',
+  path: '/api/$orgSlug/secrets/trash',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugStatsBandwidthRoute =
+  ApiOrgSlugStatsBandwidthRouteImport.update({
+    id: '/api/$orgSlug/stats/bandwidth',
+    path: '/api/$orgSlug/stats/bandwidth',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiOrgSlugUptimeGroupsIndexRoute =
-  ApiOrgSlugUptimeGroupsIndexRouteImport.update({
-    id: '/api/$orgSlug/uptime/groups/',
-    path: '/api/$orgSlug/uptime/groups/',
+const ApiOrgSlugStatsOverviewRoute = ApiOrgSlugStatsOverviewRouteImport.update({
+  id: '/api/$orgSlug/stats/overview',
+  path: '/api/$orgSlug/stats/overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugStatsProtocolRoute = ApiOrgSlugStatsProtocolRouteImport.update({
+  id: '/api/$orgSlug/stats/protocol',
+  path: '/api/$orgSlug/stats/protocol',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugStatsTunnelRoute = ApiOrgSlugStatsTunnelRouteImport.update({
+  id: '/api/$orgSlug/stats/tunnel',
+  path: '/api/$orgSlug/stats/tunnel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugSubdomainsIndexRoute =
+  ApiOrgSlugSubdomainsIndexRouteImport.update({
+    id: '/api/$orgSlug/subdomains/',
+    path: '/api/$orgSlug/subdomains/',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiOrgSlugUptimeDomainsIndexRoute =
-  ApiOrgSlugUptimeDomainsIndexRouteImport.update({
-    id: '/api/$orgSlug/uptime/domains/',
-    path: '/api/$orgSlug/uptime/domains/',
+const ApiOrgSlugSubdomainsSubdomainIdRoute =
+  ApiOrgSlugSubdomainsSubdomainIdRouteImport.update({
+    id: '/api/$orgSlug/subdomains/$subdomainId',
+    path: '/api/$orgSlug/subdomains/$subdomainId',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiOrgSlugUptimeComponentsIndexRoute =
-  ApiOrgSlugUptimeComponentsIndexRouteImport.update({
-    id: '/api/$orgSlug/uptime/components/',
-    path: '/api/$orgSlug/uptime/components/',
+const ApiOrgSlugTunnelsIndexRoute = ApiOrgSlugTunnelsIndexRouteImport.update({
+  id: '/api/$orgSlug/tunnels/',
+  path: '/api/$orgSlug/tunnels/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugTunnelsTunnelIdRoute =
+  ApiOrgSlugTunnelsTunnelIdRouteImport.update({
+    id: '/api/$orgSlug/tunnels/$tunnelId',
+    path: '/api/$orgSlug/tunnels/$tunnelId',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiOrgSlugSecretsSharesIndexRoute =
-  ApiOrgSlugSecretsSharesIndexRouteImport.update({
-    id: '/api/$orgSlug/secrets/shares/',
-    path: '/api/$orgSlug/secrets/shares/',
-    getParentRoute: () => rootRouteImport,
+const ApiOrgSlugUptimeMembersRoute = ApiOrgSlugUptimeMembersRouteImport.update({
+  id: '/api/$orgSlug/uptime/members',
+  path: '/api/$orgSlug/uptime/members',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrgSlugUptimePageRoute = ApiOrgSlugUptimePageRouteImport.update({
+  id: '/api/$orgSlug/uptime/page',
+  path: '/api/$orgSlug/uptime/page',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminOrganizationsSlugRoute =
+  ApiAdminOrganizationsSlugRouteImport.update({
+    id: '/$slug',
+    path: '/$slug',
+    getParentRoute: () => ApiAdminOrganizationsRoute,
   } as any)
-const ApiOrgSlugSecretsProjectsIndexRoute =
-  ApiOrgSlugSecretsProjectsIndexRouteImport.update({
-    id: '/api/$orgSlug/secrets/projects/',
-    path: '/api/$orgSlug/secrets/projects/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugObservabilityTracesIndexRoute =
-  ApiOrgSlugObservabilityTracesIndexRouteImport.update({
-    id: '/api/$orgSlug/observability/traces/',
-    path: '/api/$orgSlug/observability/traces/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugObservabilityServicesIndexRoute =
-  ApiOrgSlugObservabilityServicesIndexRouteImport.update({
-    id: '/api/$orgSlug/observability/services/',
-    path: '/api/$orgSlug/observability/services/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugObservabilityRequestsIndexRoute =
-  ApiOrgSlugObservabilityRequestsIndexRouteImport.update({
-    id: '/api/$orgSlug/observability/requests/',
-    path: '/api/$orgSlug/observability/requests/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugObservabilityMetricsIndexRoute =
-  ApiOrgSlugObservabilityMetricsIndexRouteImport.update({
-    id: '/api/$orgSlug/observability/metrics/',
-    path: '/api/$orgSlug/observability/metrics/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugObservabilityLogsIndexRoute =
-  ApiOrgSlugObservabilityLogsIndexRouteImport.update({
-    id: '/api/$orgSlug/observability/logs/',
-    path: '/api/$orgSlug/observability/logs/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugObservabilityAlertsIndexRoute =
-  ApiOrgSlugObservabilityAlertsIndexRouteImport.update({
-    id: '/api/$orgSlug/observability/alerts/',
-    path: '/api/$orgSlug/observability/alerts/',
+const ApiAdminProductsProductRoute = ApiAdminProductsProductRouteImport.update({
+  id: '/api/admin/products/$product',
+  path: '/api/admin/products/$product',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminUsersUserIdRoute = ApiAdminUsersUserIdRouteImport.update({
+  id: '/$userId',
+  path: '/$userId',
+  getParentRoute: () => ApiAdminUsersRoute,
+} as any)
+const ApiCliLoginStatusRoute = ApiCliLoginStatusRouteImport.update({
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => ApiCliLoginRoute,
+} as any)
+const ApiCliSecretsRevisionRoute = ApiCliSecretsRevisionRouteImport.update({
+  id: '/revision',
+  path: '/revision',
+  getParentRoute: () => ApiCliSecretsRoute,
+} as any)
+const ApiCliSecretsRollbackRoute = ApiCliSecretsRollbackRouteImport.update({
+  id: '/rollback',
+  path: '/rollback',
+  getParentRoute: () => ApiCliSecretsRoute,
+} as any)
+const ApiCliSecretsTargetsRoute = ApiCliSecretsTargetsRouteImport.update({
+  id: '/targets',
+  path: '/targets',
+  getParentRoute: () => ApiCliSecretsRoute,
+} as any)
+const ApiSubscriptionsOrgSlugCancelRoute =
+  ApiSubscriptionsOrgSlugCancelRouteImport.update({
+    id: '/api/subscriptions/$orgSlug/cancel',
+    path: '/api/subscriptions/$orgSlug/cancel',
     getParentRoute: () => rootRouteImport,
   } as any)
 const OrgSlugObservabilityAlertsAlertIdIndexRoute =
@@ -1193,178 +1103,10 @@ const OrgSlugObservabilityAlertsAlertIdIndexRoute =
     path: '/',
     getParentRoute: () => OrgSlugObservabilityAlertsAlertIdRoute,
   } as any)
-const ApiUptimeIntegrationsProviderCallbackRoute =
-  ApiUptimeIntegrationsProviderCallbackRouteImport.update({
-    id: '/api/uptime/integrations/$provider/callback',
-    path: '/api/uptime/integrations/$provider/callback',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugUptimeSubscribersSettingsRoute =
-  ApiOrgSlugUptimeSubscribersSettingsRouteImport.update({
-    id: '/api/$orgSlug/uptime/subscribers/settings',
-    path: '/api/$orgSlug/uptime/subscribers/settings',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugUptimeSubscribersSubscriberIdRoute =
-  ApiOrgSlugUptimeSubscribersSubscriberIdRouteImport.update({
-    id: '/api/$orgSlug/uptime/subscribers/$subscriberId',
-    path: '/api/$orgSlug/uptime/subscribers/$subscriberId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugUptimePageLogoRoute =
-  ApiOrgSlugUptimePageLogoRouteImport.update({
-    id: '/logo',
-    path: '/logo',
-    getParentRoute: () => ApiOrgSlugUptimePageRoute,
-  } as any)
-const ApiOrgSlugUptimePageLayoutRoute =
-  ApiOrgSlugUptimePageLayoutRouteImport.update({
-    id: '/layout',
-    path: '/layout',
-    getParentRoute: () => ApiOrgSlugUptimePageRoute,
-  } as any)
-const ApiOrgSlugUptimeMonitorsMonitorIdRoute =
-  ApiOrgSlugUptimeMonitorsMonitorIdRouteImport.update({
-    id: '/api/$orgSlug/uptime/monitors/$monitorId',
-    path: '/api/$orgSlug/uptime/monitors/$monitorId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugUptimeIntegrationsProviderRoute =
-  ApiOrgSlugUptimeIntegrationsProviderRouteImport.update({
-    id: '/api/$orgSlug/uptime/integrations/$provider',
-    path: '/api/$orgSlug/uptime/integrations/$provider',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugUptimeIncidentsIncidentIdRoute =
-  ApiOrgSlugUptimeIncidentsIncidentIdRouteImport.update({
-    id: '/api/$orgSlug/uptime/incidents/$incidentId',
-    path: '/api/$orgSlug/uptime/incidents/$incidentId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugUptimeGroupsGroupIdRoute =
-  ApiOrgSlugUptimeGroupsGroupIdRouteImport.update({
-    id: '/api/$orgSlug/uptime/groups/$groupId',
-    path: '/api/$orgSlug/uptime/groups/$groupId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugUptimeDomainsDomainIdRoute =
-  ApiOrgSlugUptimeDomainsDomainIdRouteImport.update({
-    id: '/api/$orgSlug/uptime/domains/$domainId',
-    path: '/api/$orgSlug/uptime/domains/$domainId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugUptimeComponentsComponentIdRoute =
-  ApiOrgSlugUptimeComponentsComponentIdRouteImport.update({
-    id: '/api/$orgSlug/uptime/components/$componentId',
-    path: '/api/$orgSlug/uptime/components/$componentId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugTunnelsTunnelIdStopRoute =
-  ApiOrgSlugTunnelsTunnelIdStopRouteImport.update({
-    id: '/stop',
-    path: '/stop',
-    getParentRoute: () => ApiOrgSlugTunnelsTunnelIdRoute,
-  } as any)
-const ApiOrgSlugSecretsTrashRestoreRoute =
-  ApiOrgSlugSecretsTrashRestoreRouteImport.update({
-    id: '/restore',
-    path: '/restore',
-    getParentRoute: () => ApiOrgSlugSecretsTrashRoute,
-  } as any)
-const ApiOrgSlugSecretsTrashPurgeRoute =
-  ApiOrgSlugSecretsTrashPurgeRouteImport.update({
-    id: '/purge',
-    path: '/purge',
-    getParentRoute: () => ApiOrgSlugSecretsTrashRoute,
-  } as any)
-const ApiOrgSlugSecretsSharesSnapshotRoute =
-  ApiOrgSlugSecretsSharesSnapshotRouteImport.update({
-    id: '/api/$orgSlug/secrets/shares/snapshot',
-    path: '/api/$orgSlug/secrets/shares/snapshot',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugSecretsSharesShareIdRoute =
-  ApiOrgSlugSecretsSharesShareIdRouteImport.update({
-    id: '/api/$orgSlug/secrets/shares/$shareId',
-    path: '/api/$orgSlug/secrets/shares/$shareId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugSecretsProjectsProjectSlugRoute =
-  ApiOrgSlugSecretsProjectsProjectSlugRouteImport.update({
-    id: '/api/$orgSlug/secrets/projects/$projectSlug',
-    path: '/api/$orgSlug/secrets/projects/$projectSlug',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugSecretsMachineTokensTokenIdRoute =
-  ApiOrgSlugSecretsMachineTokensTokenIdRouteImport.update({
-    id: '/$tokenId',
-    path: '/$tokenId',
-    getParentRoute: () => ApiOrgSlugSecretsMachineTokensRoute,
-  } as any)
-const ApiOrgSlugSecretsKeysRotateRoute =
-  ApiOrgSlugSecretsKeysRotateRouteImport.update({
-    id: '/api/$orgSlug/secrets/keys/rotate',
-    path: '/api/$orgSlug/secrets/keys/rotate',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugSecretsKeysRewrapRoute =
-  ApiOrgSlugSecretsKeysRewrapRouteImport.update({
-    id: '/api/$orgSlug/secrets/keys/rewrap',
-    path: '/api/$orgSlug/secrets/keys/rewrap',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugObservabilityTracesTraceIdRoute =
-  ApiOrgSlugObservabilityTracesTraceIdRouteImport.update({
-    id: '/api/$orgSlug/observability/traces/$traceId',
-    path: '/api/$orgSlug/observability/traces/$traceId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugObservabilityRequestsRequestIdRoute =
-  ApiOrgSlugObservabilityRequestsRequestIdRouteImport.update({
-    id: '/api/$orgSlug/observability/requests/$requestId',
-    path: '/api/$orgSlug/observability/requests/$requestId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugObservabilityAlertsMembersRoute =
-  ApiOrgSlugObservabilityAlertsMembersRouteImport.update({
-    id: '/api/$orgSlug/observability/alerts/members',
-    path: '/api/$orgSlug/observability/alerts/members',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugObservabilityAlertsAlertIdRoute =
-  ApiOrgSlugObservabilityAlertsAlertIdRouteImport.update({
-    id: '/api/$orgSlug/observability/alerts/$alertId',
-    path: '/api/$orgSlug/observability/alerts/$alertId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOrgSlugDomainsDomainIdVerifyRoute =
-  ApiOrgSlugDomainsDomainIdVerifyRouteImport.update({
-    id: '/verify',
-    path: '/verify',
-    getParentRoute: () => ApiOrgSlugDomainsDomainIdRoute,
-  } as any)
-const OrgSlugSecretsVaultsProjectSlugEnvironmentsRoute =
-  OrgSlugSecretsVaultsProjectSlugEnvironmentsRouteImport.update({
-    id: '/vaults_/$projectSlug_/environments',
-    path: '/vaults/$projectSlug/environments',
-    getParentRoute: () => OrgSlugSecretsRoute,
-  } as any)
-const OrgSlugObservabilityAlertsAlertIdStatusPageRoute =
-  OrgSlugObservabilityAlertsAlertIdStatusPageRouteImport.update({
-    id: '/status-page',
-    path: '/status-page',
-    getParentRoute: () => OrgSlugObservabilityAlertsAlertIdRoute,
-  } as any)
-const OrgSlugObservabilityAlertsAlertIdNotificationsRoute =
-  OrgSlugObservabilityAlertsAlertIdNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => OrgSlugObservabilityAlertsAlertIdRoute,
-  } as any)
-const OrgSlugObservabilityAlertsAlertIdIncidentsRoute =
-  OrgSlugObservabilityAlertsAlertIdIncidentsRouteImport.update({
-    id: '/incidents',
-    path: '/incidents',
+const OrgSlugObservabilityAlertsAlertIdConditionRoute =
+  OrgSlugObservabilityAlertsAlertIdConditionRouteImport.update({
+    id: '/condition',
+    path: '/condition',
     getParentRoute: () => OrgSlugObservabilityAlertsAlertIdRoute,
   } as any)
 const OrgSlugObservabilityAlertsAlertIdEvaluationsRoute =
@@ -1373,59 +1115,269 @@ const OrgSlugObservabilityAlertsAlertIdEvaluationsRoute =
     path: '/evaluations',
     getParentRoute: () => OrgSlugObservabilityAlertsAlertIdRoute,
   } as any)
-const OrgSlugObservabilityAlertsAlertIdConditionRoute =
-  OrgSlugObservabilityAlertsAlertIdConditionRouteImport.update({
-    id: '/condition',
-    path: '/condition',
+const OrgSlugObservabilityAlertsAlertIdIncidentsRoute =
+  OrgSlugObservabilityAlertsAlertIdIncidentsRouteImport.update({
+    id: '/incidents',
+    path: '/incidents',
     getParentRoute: () => OrgSlugObservabilityAlertsAlertIdRoute,
   } as any)
-const ApiObservabilityAlertsIntegrationsProviderCallbackRoute =
-  ApiObservabilityAlertsIntegrationsProviderCallbackRouteImport.update({
-    id: '/api/observability/alerts/integrations/$provider/callback',
-    path: '/api/observability/alerts/integrations/$provider/callback',
-    getParentRoute: () => rootRouteImport,
+const OrgSlugObservabilityAlertsAlertIdNotificationsRoute =
+  OrgSlugObservabilityAlertsAlertIdNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => OrgSlugObservabilityAlertsAlertIdRoute,
   } as any)
-const ApiOrgSlugUptimeIntegrationsProviderStartRoute =
-  ApiOrgSlugUptimeIntegrationsProviderStartRouteImport.update({
-    id: '/start',
-    path: '/start',
-    getParentRoute: () => ApiOrgSlugUptimeIntegrationsProviderRoute,
-  } as any)
-const ApiOrgSlugUptimeIncidentsIncidentIdDecisionRoute =
-  ApiOrgSlugUptimeIncidentsIncidentIdDecisionRouteImport.update({
-    id: '/decision',
-    path: '/decision',
-    getParentRoute: () => ApiOrgSlugUptimeIncidentsIncidentIdRoute,
-  } as any)
-const ApiOrgSlugUptimeDomainsDomainIdVerifyRoute =
-  ApiOrgSlugUptimeDomainsDomainIdVerifyRouteImport.update({
-    id: '/verify',
-    path: '/verify',
-    getParentRoute: () => ApiOrgSlugUptimeDomainsDomainIdRoute,
-  } as any)
-const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRoute =
-  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteImport.update({
-    id: '/environments',
-    path: '/environments',
-    getParentRoute: () => ApiOrgSlugSecretsProjectsProjectSlugRoute,
-  } as any)
-const ApiOrgSlugObservabilityAlertsAlertIdStatusPageRoute =
-  ApiOrgSlugObservabilityAlertsAlertIdStatusPageRouteImport.update({
+const OrgSlugObservabilityAlertsAlertIdStatusPageRoute =
+  OrgSlugObservabilityAlertsAlertIdStatusPageRouteImport.update({
     id: '/status-page',
     path: '/status-page',
-    getParentRoute: () => ApiOrgSlugObservabilityAlertsAlertIdRoute,
+    getParentRoute: () => OrgSlugObservabilityAlertsAlertIdRoute,
   } as any)
-const ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute =
-  ApiOrgSlugObservabilityAlertsAlertIdEvaluateRouteImport.update({
-    id: '/evaluate',
-    path: '/evaluate',
-    getParentRoute: () => ApiOrgSlugObservabilityAlertsAlertIdRoute,
+const OrgSlugSecretsVaultsProjectSlugEnvironmentsRoute =
+  OrgSlugSecretsVaultsProjectSlugEnvironmentsRouteImport.update({
+    id: '/vaults_/$projectSlug_/environments',
+    path: '/vaults/$projectSlug/environments',
+    getParentRoute: () => OrgSlugSecretsRoute,
   } as any)
-const OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRoute =
-  OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRouteImport.update({
-    id: '/$environmentSlug',
-    path: '/$environmentSlug',
-    getParentRoute: () => OrgSlugSecretsVaultsProjectSlugEnvironmentsRoute,
+const ApiOrgSlugDomainsDomainIdVerifyRoute =
+  ApiOrgSlugDomainsDomainIdVerifyRouteImport.update({
+    id: '/verify',
+    path: '/verify',
+    getParentRoute: () => ApiOrgSlugDomainsDomainIdRoute,
+  } as any)
+const ApiOrgSlugObservabilityAlertsIndexRoute =
+  ApiOrgSlugObservabilityAlertsIndexRouteImport.update({
+    id: '/api/$orgSlug/observability/alerts/',
+    path: '/api/$orgSlug/observability/alerts/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugObservabilityAlertsAlertIdRoute =
+  ApiOrgSlugObservabilityAlertsAlertIdRouteImport.update({
+    id: '/api/$orgSlug/observability/alerts/$alertId',
+    path: '/api/$orgSlug/observability/alerts/$alertId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugObservabilityAlertsMembersRoute =
+  ApiOrgSlugObservabilityAlertsMembersRouteImport.update({
+    id: '/api/$orgSlug/observability/alerts/members',
+    path: '/api/$orgSlug/observability/alerts/members',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugObservabilityLogsIndexRoute =
+  ApiOrgSlugObservabilityLogsIndexRouteImport.update({
+    id: '/api/$orgSlug/observability/logs/',
+    path: '/api/$orgSlug/observability/logs/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugObservabilityMetricsIndexRoute =
+  ApiOrgSlugObservabilityMetricsIndexRouteImport.update({
+    id: '/api/$orgSlug/observability/metrics/',
+    path: '/api/$orgSlug/observability/metrics/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugObservabilityRequestsIndexRoute =
+  ApiOrgSlugObservabilityRequestsIndexRouteImport.update({
+    id: '/api/$orgSlug/observability/requests/',
+    path: '/api/$orgSlug/observability/requests/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugObservabilityRequestsRequestIdRoute =
+  ApiOrgSlugObservabilityRequestsRequestIdRouteImport.update({
+    id: '/api/$orgSlug/observability/requests/$requestId',
+    path: '/api/$orgSlug/observability/requests/$requestId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugObservabilityServicesIndexRoute =
+  ApiOrgSlugObservabilityServicesIndexRouteImport.update({
+    id: '/api/$orgSlug/observability/services/',
+    path: '/api/$orgSlug/observability/services/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugObservabilityTracesIndexRoute =
+  ApiOrgSlugObservabilityTracesIndexRouteImport.update({
+    id: '/api/$orgSlug/observability/traces/',
+    path: '/api/$orgSlug/observability/traces/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugObservabilityTracesTraceIdRoute =
+  ApiOrgSlugObservabilityTracesTraceIdRouteImport.update({
+    id: '/api/$orgSlug/observability/traces/$traceId',
+    path: '/api/$orgSlug/observability/traces/$traceId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugSecretsKeysRewrapRoute =
+  ApiOrgSlugSecretsKeysRewrapRouteImport.update({
+    id: '/api/$orgSlug/secrets/keys/rewrap',
+    path: '/api/$orgSlug/secrets/keys/rewrap',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugSecretsKeysRotateRoute =
+  ApiOrgSlugSecretsKeysRotateRouteImport.update({
+    id: '/api/$orgSlug/secrets/keys/rotate',
+    path: '/api/$orgSlug/secrets/keys/rotate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugSecretsMachineTokensTokenIdRoute =
+  ApiOrgSlugSecretsMachineTokensTokenIdRouteImport.update({
+    id: '/$tokenId',
+    path: '/$tokenId',
+    getParentRoute: () => ApiOrgSlugSecretsMachineTokensRoute,
+  } as any)
+const ApiOrgSlugSecretsProjectsIndexRoute =
+  ApiOrgSlugSecretsProjectsIndexRouteImport.update({
+    id: '/api/$orgSlug/secrets/projects/',
+    path: '/api/$orgSlug/secrets/projects/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugSecretsProjectsProjectSlugRoute =
+  ApiOrgSlugSecretsProjectsProjectSlugRouteImport.update({
+    id: '/api/$orgSlug/secrets/projects/$projectSlug',
+    path: '/api/$orgSlug/secrets/projects/$projectSlug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugSecretsSharesIndexRoute =
+  ApiOrgSlugSecretsSharesIndexRouteImport.update({
+    id: '/api/$orgSlug/secrets/shares/',
+    path: '/api/$orgSlug/secrets/shares/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugSecretsSharesShareIdRoute =
+  ApiOrgSlugSecretsSharesShareIdRouteImport.update({
+    id: '/api/$orgSlug/secrets/shares/$shareId',
+    path: '/api/$orgSlug/secrets/shares/$shareId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugSecretsSharesSnapshotRoute =
+  ApiOrgSlugSecretsSharesSnapshotRouteImport.update({
+    id: '/api/$orgSlug/secrets/shares/snapshot',
+    path: '/api/$orgSlug/secrets/shares/snapshot',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugSecretsTrashPurgeRoute =
+  ApiOrgSlugSecretsTrashPurgeRouteImport.update({
+    id: '/purge',
+    path: '/purge',
+    getParentRoute: () => ApiOrgSlugSecretsTrashRoute,
+  } as any)
+const ApiOrgSlugSecretsTrashRestoreRoute =
+  ApiOrgSlugSecretsTrashRestoreRouteImport.update({
+    id: '/restore',
+    path: '/restore',
+    getParentRoute: () => ApiOrgSlugSecretsTrashRoute,
+  } as any)
+const ApiOrgSlugTunnelsTunnelIdStopRoute =
+  ApiOrgSlugTunnelsTunnelIdStopRouteImport.update({
+    id: '/stop',
+    path: '/stop',
+    getParentRoute: () => ApiOrgSlugTunnelsTunnelIdRoute,
+  } as any)
+const ApiOrgSlugUptimeComponentsIndexRoute =
+  ApiOrgSlugUptimeComponentsIndexRouteImport.update({
+    id: '/api/$orgSlug/uptime/components/',
+    path: '/api/$orgSlug/uptime/components/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeComponentsComponentIdRoute =
+  ApiOrgSlugUptimeComponentsComponentIdRouteImport.update({
+    id: '/api/$orgSlug/uptime/components/$componentId',
+    path: '/api/$orgSlug/uptime/components/$componentId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeDomainsIndexRoute =
+  ApiOrgSlugUptimeDomainsIndexRouteImport.update({
+    id: '/api/$orgSlug/uptime/domains/',
+    path: '/api/$orgSlug/uptime/domains/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeDomainsDomainIdRoute =
+  ApiOrgSlugUptimeDomainsDomainIdRouteImport.update({
+    id: '/api/$orgSlug/uptime/domains/$domainId',
+    path: '/api/$orgSlug/uptime/domains/$domainId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeGroupsIndexRoute =
+  ApiOrgSlugUptimeGroupsIndexRouteImport.update({
+    id: '/api/$orgSlug/uptime/groups/',
+    path: '/api/$orgSlug/uptime/groups/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeGroupsGroupIdRoute =
+  ApiOrgSlugUptimeGroupsGroupIdRouteImport.update({
+    id: '/api/$orgSlug/uptime/groups/$groupId',
+    path: '/api/$orgSlug/uptime/groups/$groupId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeIncidentsIndexRoute =
+  ApiOrgSlugUptimeIncidentsIndexRouteImport.update({
+    id: '/api/$orgSlug/uptime/incidents/',
+    path: '/api/$orgSlug/uptime/incidents/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeIncidentsIncidentIdRoute =
+  ApiOrgSlugUptimeIncidentsIncidentIdRouteImport.update({
+    id: '/api/$orgSlug/uptime/incidents/$incidentId',
+    path: '/api/$orgSlug/uptime/incidents/$incidentId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeIntegrationsIndexRoute =
+  ApiOrgSlugUptimeIntegrationsIndexRouteImport.update({
+    id: '/api/$orgSlug/uptime/integrations/',
+    path: '/api/$orgSlug/uptime/integrations/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeIntegrationsProviderRoute =
+  ApiOrgSlugUptimeIntegrationsProviderRouteImport.update({
+    id: '/api/$orgSlug/uptime/integrations/$provider',
+    path: '/api/$orgSlug/uptime/integrations/$provider',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeMonitorsIndexRoute =
+  ApiOrgSlugUptimeMonitorsIndexRouteImport.update({
+    id: '/api/$orgSlug/uptime/monitors/',
+    path: '/api/$orgSlug/uptime/monitors/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeMonitorsMonitorIdRoute =
+  ApiOrgSlugUptimeMonitorsMonitorIdRouteImport.update({
+    id: '/api/$orgSlug/uptime/monitors/$monitorId',
+    path: '/api/$orgSlug/uptime/monitors/$monitorId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimePageLayoutRoute =
+  ApiOrgSlugUptimePageLayoutRouteImport.update({
+    id: '/layout',
+    path: '/layout',
+    getParentRoute: () => ApiOrgSlugUptimePageRoute,
+  } as any)
+const ApiOrgSlugUptimePageLogoRoute =
+  ApiOrgSlugUptimePageLogoRouteImport.update({
+    id: '/logo',
+    path: '/logo',
+    getParentRoute: () => ApiOrgSlugUptimePageRoute,
+  } as any)
+const ApiOrgSlugUptimeSubscribersIndexRoute =
+  ApiOrgSlugUptimeSubscribersIndexRouteImport.update({
+    id: '/api/$orgSlug/uptime/subscribers/',
+    path: '/api/$orgSlug/uptime/subscribers/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeSubscribersSubscriberIdRoute =
+  ApiOrgSlugUptimeSubscribersSubscriberIdRouteImport.update({
+    id: '/api/$orgSlug/uptime/subscribers/$subscriberId',
+    path: '/api/$orgSlug/uptime/subscribers/$subscriberId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugUptimeSubscribersSettingsRoute =
+  ApiOrgSlugUptimeSubscribersSettingsRouteImport.update({
+    id: '/api/$orgSlug/uptime/subscribers/settings',
+    path: '/api/$orgSlug/uptime/subscribers/settings',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiUptimeIntegrationsProviderCallbackRoute =
+  ApiUptimeIntegrationsProviderCallbackRouteImport.update({
+    id: '/api/uptime/integrations/$provider/callback',
+    path: '/api/uptime/integrations/$provider/callback',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute =
   OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteImport.update(
@@ -1433,6 +1385,69 @@ const OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute =
       id: '/projects_/$projectSlug_/environments_/$environmentSlug',
       path: '/projects/$projectSlug/environments/$environmentSlug',
       getParentRoute: () => OrgSlugSecretsRoute,
+    } as any,
+  )
+const OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRoute =
+  OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRouteImport.update({
+    id: '/$environmentSlug',
+    path: '/$environmentSlug',
+    getParentRoute: () => OrgSlugSecretsVaultsProjectSlugEnvironmentsRoute,
+  } as any)
+const ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute =
+  ApiOrgSlugObservabilityAlertsAlertIdEvaluateRouteImport.update({
+    id: '/evaluate',
+    path: '/evaluate',
+    getParentRoute: () => ApiOrgSlugObservabilityAlertsAlertIdRoute,
+  } as any)
+const ApiOrgSlugObservabilityAlertsAlertIdStatusPageRoute =
+  ApiOrgSlugObservabilityAlertsAlertIdStatusPageRouteImport.update({
+    id: '/status-page',
+    path: '/status-page',
+    getParentRoute: () => ApiOrgSlugObservabilityAlertsAlertIdRoute,
+  } as any)
+const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRoute =
+  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteImport.update({
+    id: '/environments',
+    path: '/environments',
+    getParentRoute: () => ApiOrgSlugSecretsProjectsProjectSlugRoute,
+  } as any)
+const ApiOrgSlugUptimeDomainsDomainIdVerifyRoute =
+  ApiOrgSlugUptimeDomainsDomainIdVerifyRouteImport.update({
+    id: '/verify',
+    path: '/verify',
+    getParentRoute: () => ApiOrgSlugUptimeDomainsDomainIdRoute,
+  } as any)
+const ApiOrgSlugUptimeIncidentsIncidentIdDecisionRoute =
+  ApiOrgSlugUptimeIncidentsIncidentIdDecisionRouteImport.update({
+    id: '/decision',
+    path: '/decision',
+    getParentRoute: () => ApiOrgSlugUptimeIncidentsIncidentIdRoute,
+  } as any)
+const ApiOrgSlugUptimeIntegrationsProviderStartRoute =
+  ApiOrgSlugUptimeIntegrationsProviderStartRouteImport.update({
+    id: '/start',
+    path: '/start',
+    getParentRoute: () => ApiOrgSlugUptimeIntegrationsProviderRoute,
+  } as any)
+const ApiObservabilityAlertsIntegrationsProviderCallbackRoute =
+  ApiObservabilityAlertsIntegrationsProviderCallbackRouteImport.update({
+    id: '/api/observability/alerts/integrations/$provider/callback',
+    path: '/api/observability/alerts/integrations/$provider/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRoute =
+  ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRouteImport.update({
+    id: '/integrations/$provider',
+    path: '/integrations/$provider',
+    getParentRoute: () => ApiOrgSlugObservabilityAlertsAlertIdRoute,
+  } as any)
+const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute =
+  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteImport.update(
+    {
+      id: '/$environmentSlug',
+      path: '/$environmentSlug',
+      getParentRoute: () =>
+        ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRoute,
     } as any,
   )
 const ApiOrgSlugUptimeIncidentsIncidentIdUpdatesIndexRoute =
@@ -1447,44 +1462,20 @@ const ApiOrgSlugUptimeIncidentsIncidentIdUpdatesUpdateIdRoute =
     path: '/updates/$updateId',
     getParentRoute: () => ApiOrgSlugUptimeIncidentsIncidentIdRoute,
   } as any)
-const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute =
-  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteImport.update(
+const ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRoute =
+  ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRouteImport.update(
     {
-      id: '/$environmentSlug',
-      path: '/$environmentSlug',
+      id: '/start',
+      path: '/start',
       getParentRoute: () =>
-        ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRoute,
+        ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRoute,
     } as any,
   )
-const ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRoute =
-  ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRouteImport.update({
-    id: '/integrations/$provider',
-    path: '/integrations/$provider',
-    getParentRoute: () => ApiOrgSlugObservabilityAlertsAlertIdRoute,
-  } as any)
-const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsRoute =
-  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsRouteImport.update(
+const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRoute =
+  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRouteImport.update(
     {
-      id: '/secrets',
-      path: '/secrets',
-      getParentRoute: () =>
-        ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute,
-    } as any,
-  )
-const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRoute =
-  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRouteImport.update(
-    {
-      id: '/revision',
-      path: '/revision',
-      getParentRoute: () =>
-        ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute,
-    } as any,
-  )
-const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRoute =
-  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRouteImport.update(
-    {
-      id: '/import',
-      path: '/import',
+      id: '/bulk',
+      path: '/bulk',
       getParentRoute: () =>
         ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute,
     } as any,
@@ -1498,22 +1489,31 @@ const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRoute
         ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute,
     } as any,
   )
-const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRoute =
-  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRouteImport.update(
+const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRoute =
+  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRouteImport.update(
     {
-      id: '/bulk',
-      path: '/bulk',
+      id: '/import',
+      path: '/import',
       getParentRoute: () =>
         ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute,
     } as any,
   )
-const ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRoute =
-  ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRouteImport.update(
+const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRoute =
+  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRouteImport.update(
     {
-      id: '/start',
-      path: '/start',
+      id: '/revision',
+      path: '/revision',
       getParentRoute: () =>
-        ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRoute,
+        ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute,
+    } as any,
+  )
+const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsRoute =
+  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsRouteImport.update(
+    {
+      id: '/secrets',
+      path: '/secrets',
+      getParentRoute: () =>
+        ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute,
     } as any,
   )
 const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRoute =
@@ -1525,11 +1525,11 @@ const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecr
         ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsRoute,
     } as any,
   )
-const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdVersionsRoute =
-  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdVersionsRouteImport.update(
+const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRevealRoute =
+  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRevealRouteImport.update(
     {
-      id: '/versions',
-      path: '/versions',
+      id: '/reveal',
+      path: '/reveal',
       getParentRoute: () =>
         ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRoute,
     } as any,
@@ -1543,11 +1543,11 @@ const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecr
         ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRoute,
     } as any,
   )
-const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRevealRoute =
-  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRevealRouteImport.update(
+const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdVersionsRoute =
+  ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdVersionsRouteImport.update(
     {
-      id: '/reveal',
-      path: '/reveal',
+      id: '/versions',
+      path: '/versions',
       getParentRoute: () =>
         ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRoute,
     } as any,
@@ -1670,10 +1670,10 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/secrets/': typeof OrgSlugSecretsIndexRoute
   '/$orgSlug/settings/': typeof OrgSlugSettingsIndexRoute
   '/$orgSlug/tunnel/': typeof OrgSlugTunnelIndexRoute
-  '/$orgSlug/tunnels': typeof OrgSlugTunnelsIndexRoute
+  '/$orgSlug/tunnels/': typeof OrgSlugTunnelsIndexRoute
   '/$orgSlug/uptime/': typeof OrgSlugUptimeIndexRoute
-  '/admin/organizations': typeof AdminOrganizationsIndexRoute
-  '/admin/users': typeof AdminUsersIndexRoute
+  '/admin/organizations/': typeof AdminOrganizationsIndexRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
   '/$orgSlug/observability/alerts/$alertId': typeof OrgSlugObservabilityAlertsAlertIdRouteWithChildren
   '/$orgSlug/observability/services/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/$orgSlug/secrets/projects/$projectSlug': typeof OrgSlugSecretsProjectsProjectSlugRoute
@@ -1712,11 +1712,11 @@ export interface FileRoutesByFullPath {
   '/api/cli/secrets/rollback': typeof ApiCliSecretsRollbackRoute
   '/api/cli/secrets/targets': typeof ApiCliSecretsTargetsRoute
   '/api/subscriptions/$orgSlug/cancel': typeof ApiSubscriptionsOrgSlugCancelRoute
-  '/$orgSlug/tunnel/tunnels': typeof OrgSlugTunnelTunnelsIndexRoute
+  '/$orgSlug/tunnel/tunnels/': typeof OrgSlugTunnelTunnelsIndexRoute
   '/$orgSlug/uptime/status-page/': typeof OrgSlugUptimeStatusPageIndexRoute
-  '/api/$orgSlug/domains': typeof ApiOrgSlugDomainsIndexRoute
-  '/api/$orgSlug/subdomains': typeof ApiOrgSlugSubdomainsIndexRoute
-  '/api/$orgSlug/tunnels': typeof ApiOrgSlugTunnelsIndexRoute
+  '/api/$orgSlug/domains/': typeof ApiOrgSlugDomainsIndexRoute
+  '/api/$orgSlug/subdomains/': typeof ApiOrgSlugSubdomainsIndexRoute
+  '/api/$orgSlug/tunnels/': typeof ApiOrgSlugTunnelsIndexRoute
   '/$orgSlug/observability/alerts/$alertId/condition': typeof OrgSlugObservabilityAlertsAlertIdConditionRoute
   '/$orgSlug/observability/alerts/$alertId/evaluations': typeof OrgSlugObservabilityAlertsAlertIdEvaluationsRoute
   '/$orgSlug/observability/alerts/$alertId/incidents': typeof OrgSlugObservabilityAlertsAlertIdIncidentsRoute
@@ -1749,21 +1749,21 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/uptime/subscribers/settings': typeof ApiOrgSlugUptimeSubscribersSettingsRoute
   '/api/uptime/integrations/$provider/callback': typeof ApiUptimeIntegrationsProviderCallbackRoute
   '/$orgSlug/observability/alerts/$alertId/': typeof OrgSlugObservabilityAlertsAlertIdIndexRoute
-  '/api/$orgSlug/observability/alerts': typeof ApiOrgSlugObservabilityAlertsIndexRoute
-  '/api/$orgSlug/observability/logs': typeof ApiOrgSlugObservabilityLogsIndexRoute
-  '/api/$orgSlug/observability/metrics': typeof ApiOrgSlugObservabilityMetricsIndexRoute
-  '/api/$orgSlug/observability/requests': typeof ApiOrgSlugObservabilityRequestsIndexRoute
-  '/api/$orgSlug/observability/services': typeof ApiOrgSlugObservabilityServicesIndexRoute
-  '/api/$orgSlug/observability/traces': typeof ApiOrgSlugObservabilityTracesIndexRoute
-  '/api/$orgSlug/secrets/projects': typeof ApiOrgSlugSecretsProjectsIndexRoute
-  '/api/$orgSlug/secrets/shares': typeof ApiOrgSlugSecretsSharesIndexRoute
-  '/api/$orgSlug/uptime/components': typeof ApiOrgSlugUptimeComponentsIndexRoute
-  '/api/$orgSlug/uptime/domains': typeof ApiOrgSlugUptimeDomainsIndexRoute
-  '/api/$orgSlug/uptime/groups': typeof ApiOrgSlugUptimeGroupsIndexRoute
-  '/api/$orgSlug/uptime/incidents': typeof ApiOrgSlugUptimeIncidentsIndexRoute
-  '/api/$orgSlug/uptime/integrations': typeof ApiOrgSlugUptimeIntegrationsIndexRoute
-  '/api/$orgSlug/uptime/monitors': typeof ApiOrgSlugUptimeMonitorsIndexRoute
-  '/api/$orgSlug/uptime/subscribers': typeof ApiOrgSlugUptimeSubscribersIndexRoute
+  '/api/$orgSlug/observability/alerts/': typeof ApiOrgSlugObservabilityAlertsIndexRoute
+  '/api/$orgSlug/observability/logs/': typeof ApiOrgSlugObservabilityLogsIndexRoute
+  '/api/$orgSlug/observability/metrics/': typeof ApiOrgSlugObservabilityMetricsIndexRoute
+  '/api/$orgSlug/observability/requests/': typeof ApiOrgSlugObservabilityRequestsIndexRoute
+  '/api/$orgSlug/observability/services/': typeof ApiOrgSlugObservabilityServicesIndexRoute
+  '/api/$orgSlug/observability/traces/': typeof ApiOrgSlugObservabilityTracesIndexRoute
+  '/api/$orgSlug/secrets/projects/': typeof ApiOrgSlugSecretsProjectsIndexRoute
+  '/api/$orgSlug/secrets/shares/': typeof ApiOrgSlugSecretsSharesIndexRoute
+  '/api/$orgSlug/uptime/components/': typeof ApiOrgSlugUptimeComponentsIndexRoute
+  '/api/$orgSlug/uptime/domains/': typeof ApiOrgSlugUptimeDomainsIndexRoute
+  '/api/$orgSlug/uptime/groups/': typeof ApiOrgSlugUptimeGroupsIndexRoute
+  '/api/$orgSlug/uptime/incidents/': typeof ApiOrgSlugUptimeIncidentsIndexRoute
+  '/api/$orgSlug/uptime/integrations/': typeof ApiOrgSlugUptimeIntegrationsIndexRoute
+  '/api/$orgSlug/uptime/monitors/': typeof ApiOrgSlugUptimeMonitorsIndexRoute
+  '/api/$orgSlug/uptime/subscribers/': typeof ApiOrgSlugUptimeSubscribersIndexRoute
   '/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug': typeof OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
   '/$orgSlug/secrets/vaults/$projectSlug/environments/$environmentSlug': typeof OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRoute
   '/api/$orgSlug/observability/alerts/$alertId/evaluate': typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRoute
@@ -1776,7 +1776,7 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider': typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRouteWithChildren
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteWithChildren
   '/api/$orgSlug/uptime/incidents/$incidentId/updates/$updateId': typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesUpdateIdRoute
-  '/api/$orgSlug/uptime/incidents/$incidentId/updates': typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesIndexRoute
+  '/api/$orgSlug/uptime/incidents/$incidentId/updates/': typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesIndexRoute
   '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start': typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRoute
   '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/export': typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRoute
@@ -2370,10 +2370,10 @@ export interface FileRouteTypes {
     | '/$orgSlug/secrets/'
     | '/$orgSlug/settings/'
     | '/$orgSlug/tunnel/'
-    | '/$orgSlug/tunnels'
+    | '/$orgSlug/tunnels/'
     | '/$orgSlug/uptime/'
-    | '/admin/organizations'
-    | '/admin/users'
+    | '/admin/organizations/'
+    | '/admin/users/'
     | '/$orgSlug/observability/alerts/$alertId'
     | '/$orgSlug/observability/services/$serviceId'
     | '/$orgSlug/secrets/projects/$projectSlug'
@@ -2412,11 +2412,11 @@ export interface FileRouteTypes {
     | '/api/cli/secrets/rollback'
     | '/api/cli/secrets/targets'
     | '/api/subscriptions/$orgSlug/cancel'
-    | '/$orgSlug/tunnel/tunnels'
+    | '/$orgSlug/tunnel/tunnels/'
     | '/$orgSlug/uptime/status-page/'
-    | '/api/$orgSlug/domains'
-    | '/api/$orgSlug/subdomains'
-    | '/api/$orgSlug/tunnels'
+    | '/api/$orgSlug/domains/'
+    | '/api/$orgSlug/subdomains/'
+    | '/api/$orgSlug/tunnels/'
     | '/$orgSlug/observability/alerts/$alertId/condition'
     | '/$orgSlug/observability/alerts/$alertId/evaluations'
     | '/$orgSlug/observability/alerts/$alertId/incidents'
@@ -2449,21 +2449,21 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/uptime/subscribers/settings'
     | '/api/uptime/integrations/$provider/callback'
     | '/$orgSlug/observability/alerts/$alertId/'
-    | '/api/$orgSlug/observability/alerts'
-    | '/api/$orgSlug/observability/logs'
-    | '/api/$orgSlug/observability/metrics'
-    | '/api/$orgSlug/observability/requests'
-    | '/api/$orgSlug/observability/services'
-    | '/api/$orgSlug/observability/traces'
-    | '/api/$orgSlug/secrets/projects'
-    | '/api/$orgSlug/secrets/shares'
-    | '/api/$orgSlug/uptime/components'
-    | '/api/$orgSlug/uptime/domains'
-    | '/api/$orgSlug/uptime/groups'
-    | '/api/$orgSlug/uptime/incidents'
-    | '/api/$orgSlug/uptime/integrations'
-    | '/api/$orgSlug/uptime/monitors'
-    | '/api/$orgSlug/uptime/subscribers'
+    | '/api/$orgSlug/observability/alerts/'
+    | '/api/$orgSlug/observability/logs/'
+    | '/api/$orgSlug/observability/metrics/'
+    | '/api/$orgSlug/observability/requests/'
+    | '/api/$orgSlug/observability/services/'
+    | '/api/$orgSlug/observability/traces/'
+    | '/api/$orgSlug/secrets/projects/'
+    | '/api/$orgSlug/secrets/shares/'
+    | '/api/$orgSlug/uptime/components/'
+    | '/api/$orgSlug/uptime/domains/'
+    | '/api/$orgSlug/uptime/groups/'
+    | '/api/$orgSlug/uptime/incidents/'
+    | '/api/$orgSlug/uptime/integrations/'
+    | '/api/$orgSlug/uptime/monitors/'
+    | '/api/$orgSlug/uptime/subscribers/'
     | '/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
     | '/$orgSlug/secrets/vaults/$projectSlug/environments/$environmentSlug'
     | '/api/$orgSlug/observability/alerts/$alertId/evaluate'
@@ -2476,7 +2476,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
     | '/api/$orgSlug/uptime/incidents/$incidentId/updates/$updateId'
-    | '/api/$orgSlug/uptime/incidents/$incidentId/updates'
+    | '/api/$orgSlug/uptime/incidents/$incidentId/updates/'
     | '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
     | '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/export'
@@ -3071,130 +3071,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/vite': {
-      id: '/vite'
-      path: '/vite'
-      fullPath: '/vite'
-      preLoaderRoute: typeof ViteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/select': {
-      id: '/select'
-      path: '/select'
-      fullPath: '/select'
-      preLoaderRoute: typeof SelectRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/report-bug': {
-      id: '/report-bug'
-      path: '/report-bug'
-      fullPath: '/report-bug'
-      preLoaderRoute: typeof ReportBugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/products': {
-      id: '/products'
-      path: '/products'
-      fullPath: '/products'
-      preLoaderRoute: typeof ProductsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/plugins': {
-      id: '/plugins'
-      path: '/plugins'
-      fullPath: '/plugins'
-      preLoaderRoute: typeof PluginsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/nextjs': {
-      id: '/nextjs'
-      path: '/nextjs'
-      fullPath: '/nextjs'
-      preLoaderRoute: typeof NextjsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/nestjs': {
-      id: '/nestjs'
-      path: '/nestjs'
-      fullPath: '/nestjs'
-      preLoaderRoute: typeof NestjsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/express': {
-      id: '/express'
-      path: '/express'
-      fullPath: '/express'
-      preLoaderRoute: typeof ExpressRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/email-templates': {
-      id: '/email-templates'
-      path: '/email-templates'
-      fullPath: '/email-templates'
-      preLoaderRoute: typeof EmailTemplatesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/changelog': {
-      id: '/changelog'
-      path: '/changelog'
-      fullPath: '/changelog'
-      preLoaderRoute: typeof ChangelogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$orgSlug': {
@@ -3204,11 +3085,130 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-templates': {
+      id: '/email-templates'
+      path: '/email-templates'
+      fullPath: '/email-templates'
+      preLoaderRoute: typeof EmailTemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/express': {
+      id: '/express'
+      path: '/express'
+      fullPath: '/express'
+      preLoaderRoute: typeof ExpressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nestjs': {
+      id: '/nestjs'
+      path: '/nestjs'
+      fullPath: '/nestjs'
+      preLoaderRoute: typeof NestjsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nextjs': {
+      id: '/nextjs'
+      path: '/nextjs'
+      fullPath: '/nextjs'
+      preLoaderRoute: typeof NextjsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plugins': {
+      id: '/plugins'
+      path: '/plugins'
+      fullPath: '/plugins'
+      preLoaderRoute: typeof PluginsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products': {
+      id: '/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof ProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/report-bug': {
+      id: '/report-bug'
+      path: '/report-bug'
+      fullPath: '/report-bug'
+      preLoaderRoute: typeof ReportBugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/select': {
+      id: '/select'
+      path: '/select'
+      fullPath: '/select'
+      preLoaderRoute: typeof SelectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vite': {
+      id: '/vite'
+      path: '/vite'
+      fullPath: '/vite'
+      preLoaderRoute: typeof ViteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$orgSlug/': {
@@ -3218,221 +3218,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugIndexRouteImport
       parentRoute: typeof OrgSlugRoute
     }
-    '/status-page-logos/$fileName': {
-      id: '/status-page-logos/$fileName'
-      path: '/status-page-logos/$fileName'
-      fullPath: '/status-page-logos/$fileName'
-      preLoaderRoute: typeof StatusPageLogosFileNameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/products/uptime': {
-      id: '/products/uptime'
-      path: '/uptime'
-      fullPath: '/products/uptime'
-      preLoaderRoute: typeof ProductsUptimeRouteImport
-      parentRoute: typeof ProductsRoute
-    }
-    '/products/tunnels': {
-      id: '/products/tunnels'
-      path: '/tunnels'
-      fullPath: '/products/tunnels'
-      preLoaderRoute: typeof ProductsTunnelsRouteImport
-      parentRoute: typeof ProductsRoute
-    }
-    '/products/secrets': {
-      id: '/products/secrets'
-      path: '/secrets'
-      fullPath: '/products/secrets'
-      preLoaderRoute: typeof ProductsSecretsRouteImport
-      parentRoute: typeof ProductsRoute
-    }
-    '/products/observability': {
-      id: '/products/observability'
-      path: '/observability'
-      fullPath: '/products/observability'
-      preLoaderRoute: typeof ProductsObservabilityRouteImport
-      parentRoute: typeof ProductsRoute
-    }
-    '/invitations/accept': {
-      id: '/invitations/accept'
-      path: '/invitations/accept'
-      fullPath: '/invitations/accept'
-      preLoaderRoute: typeof InvitationsAcceptRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/internal/domain-check': {
-      id: '/internal/domain-check'
-      path: '/internal/domain-check'
-      fullPath: '/internal/domain-check'
-      preLoaderRoute: typeof InternalDomainCheckRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/$': {
-      id: '/docs/$'
-      path: '/docs/$'
-      fullPath: '/docs/$'
-      preLoaderRoute: typeof DocsSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cli/login': {
-      id: '/cli/login'
-      path: '/cli/login'
-      fullPath: '/cli/login'
-      preLoaderRoute: typeof CliLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/search': {
-      id: '/api/search'
-      path: '/api/search'
-      fullPath: '/api/search'
-      preLoaderRoute: typeof ApiSearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/health': {
-      id: '/api/health'
-      path: '/api/health'
-      fullPath: '/api/health'
-      preLoaderRoute: typeof ApiHealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/usage': {
-      id: '/admin/usage'
-      path: '/usage'
-      fullPath: '/admin/usage'
-      preLoaderRoute: typeof AdminUsageRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/uptime': {
-      id: '/admin/uptime'
-      path: '/uptime'
-      fullPath: '/admin/uptime'
-      preLoaderRoute: typeof AdminUptimeRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/tunnels': {
-      id: '/admin/tunnels'
-      path: '/tunnels'
-      fullPath: '/admin/tunnels'
-      preLoaderRoute: typeof AdminTunnelsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/subscriptions': {
-      id: '/admin/subscriptions'
-      path: '/subscriptions'
-      fullPath: '/admin/subscriptions'
-      preLoaderRoute: typeof AdminSubscriptionsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/secrets': {
-      id: '/admin/secrets'
-      path: '/secrets'
-      fullPath: '/admin/secrets'
-      preLoaderRoute: typeof AdminSecretsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/observability': {
-      id: '/admin/observability'
-      path: '/observability'
-      fullPath: '/admin/observability'
-      preLoaderRoute: typeof AdminObservabilityRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/charts': {
-      id: '/admin/charts'
-      path: '/charts'
-      fullPath: '/admin/charts'
-      preLoaderRoute: typeof AdminChartsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/agent': {
-      id: '/admin/agent'
-      path: '/agent'
-      fullPath: '/admin/agent'
-      preLoaderRoute: typeof AdminAgentRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/actions': {
-      id: '/admin/actions'
-      path: '/actions'
-      fullPath: '/admin/actions'
-      preLoaderRoute: typeof AdminActionsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/$orgSlug/uptime': {
-      id: '/$orgSlug/uptime'
-      path: '/uptime'
-      fullPath: '/$orgSlug/uptime'
-      preLoaderRoute: typeof OrgSlugUptimeRouteImport
-      parentRoute: typeof OrgSlugRoute
-    }
-    '/$orgSlug/tunnel': {
-      id: '/$orgSlug/tunnel'
-      path: '/tunnel'
-      fullPath: '/$orgSlug/tunnel'
-      preLoaderRoute: typeof OrgSlugTunnelRouteImport
-      parentRoute: typeof OrgSlugRoute
-    }
-    '/$orgSlug/tokens': {
-      id: '/$orgSlug/tokens'
-      path: '/tokens'
-      fullPath: '/$orgSlug/tokens'
-      preLoaderRoute: typeof OrgSlugTokensRouteImport
-      parentRoute: typeof OrgSlugRoute
-    }
-    '/$orgSlug/subdomains': {
-      id: '/$orgSlug/subdomains'
-      path: '/subdomains'
-      fullPath: '/$orgSlug/subdomains'
-      preLoaderRoute: typeof OrgSlugSubdomainsRouteImport
-      parentRoute: typeof OrgSlugRoute
-    }
-    '/$orgSlug/setup': {
-      id: '/$orgSlug/setup'
-      path: '/setup'
-      fullPath: '/$orgSlug/setup'
-      preLoaderRoute: typeof OrgSlugSetupRouteImport
-      parentRoute: typeof OrgSlugRoute
-    }
-    '/$orgSlug/settings': {
-      id: '/$orgSlug/settings'
-      path: '/settings'
-      fullPath: '/$orgSlug/settings'
-      preLoaderRoute: typeof OrgSlugSettingsRouteImport
-      parentRoute: typeof OrgSlugRoute
-    }
-    '/$orgSlug/secrets': {
-      id: '/$orgSlug/secrets'
-      path: '/secrets'
-      fullPath: '/$orgSlug/secrets'
-      preLoaderRoute: typeof OrgSlugSecretsRouteImport
-      parentRoute: typeof OrgSlugRoute
-    }
-    '/$orgSlug/requests': {
-      id: '/$orgSlug/requests'
-      path: '/requests'
-      fullPath: '/$orgSlug/requests'
-      preLoaderRoute: typeof OrgSlugRequestsRouteImport
-      parentRoute: typeof OrgSlugRoute
-    }
-    '/$orgSlug/observability': {
-      id: '/$orgSlug/observability'
-      path: '/observability'
-      fullPath: '/$orgSlug/observability'
-      preLoaderRoute: typeof OrgSlugObservabilityRouteImport
-      parentRoute: typeof OrgSlugRoute
-    }
-    '/$orgSlug/members': {
-      id: '/$orgSlug/members'
-      path: '/members'
-      fullPath: '/$orgSlug/members'
-      preLoaderRoute: typeof OrgSlugMembersRouteImport
-      parentRoute: typeof OrgSlugRoute
-    }
-    '/$orgSlug/get-started': {
-      id: '/$orgSlug/get-started'
-      path: '/get-started'
-      fullPath: '/$orgSlug/get-started'
-      preLoaderRoute: typeof OrgSlugGetStartedRouteImport
+    '/$orgSlug/billing': {
+      id: '/$orgSlug/billing'
+      path: '/billing'
+      fullPath: '/$orgSlug/billing'
+      preLoaderRoute: typeof OrgSlugBillingRouteImport
       parentRoute: typeof OrgSlugRoute
     }
     '/$orgSlug/domains': {
@@ -3442,466 +3232,228 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugDomainsRouteImport
       parentRoute: typeof OrgSlugRoute
     }
-    '/$orgSlug/billing': {
-      id: '/$orgSlug/billing'
-      path: '/billing'
-      fullPath: '/$orgSlug/billing'
-      preLoaderRoute: typeof OrgSlugBillingRouteImport
+    '/$orgSlug/get-started': {
+      id: '/$orgSlug/get-started'
+      path: '/get-started'
+      fullPath: '/$orgSlug/get-started'
+      preLoaderRoute: typeof OrgSlugGetStartedRouteImport
       parentRoute: typeof OrgSlugRoute
     }
-    '/admin/users/': {
-      id: '/admin/users/'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminUsersIndexRouteImport
+    '/$orgSlug/members': {
+      id: '/$orgSlug/members'
+      path: '/members'
+      fullPath: '/$orgSlug/members'
+      preLoaderRoute: typeof OrgSlugMembersRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/$orgSlug/observability': {
+      id: '/$orgSlug/observability'
+      path: '/observability'
+      fullPath: '/$orgSlug/observability'
+      preLoaderRoute: typeof OrgSlugObservabilityRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/$orgSlug/requests': {
+      id: '/$orgSlug/requests'
+      path: '/requests'
+      fullPath: '/$orgSlug/requests'
+      preLoaderRoute: typeof OrgSlugRequestsRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/$orgSlug/secrets': {
+      id: '/$orgSlug/secrets'
+      path: '/secrets'
+      fullPath: '/$orgSlug/secrets'
+      preLoaderRoute: typeof OrgSlugSecretsRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/$orgSlug/settings': {
+      id: '/$orgSlug/settings'
+      path: '/settings'
+      fullPath: '/$orgSlug/settings'
+      preLoaderRoute: typeof OrgSlugSettingsRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/$orgSlug/setup': {
+      id: '/$orgSlug/setup'
+      path: '/setup'
+      fullPath: '/$orgSlug/setup'
+      preLoaderRoute: typeof OrgSlugSetupRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/$orgSlug/subdomains': {
+      id: '/$orgSlug/subdomains'
+      path: '/subdomains'
+      fullPath: '/$orgSlug/subdomains'
+      preLoaderRoute: typeof OrgSlugSubdomainsRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/$orgSlug/tokens': {
+      id: '/$orgSlug/tokens'
+      path: '/tokens'
+      fullPath: '/$orgSlug/tokens'
+      preLoaderRoute: typeof OrgSlugTokensRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/$orgSlug/tunnel': {
+      id: '/$orgSlug/tunnel'
+      path: '/tunnel'
+      fullPath: '/$orgSlug/tunnel'
+      preLoaderRoute: typeof OrgSlugTunnelRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/$orgSlug/uptime': {
+      id: '/$orgSlug/uptime'
+      path: '/uptime'
+      fullPath: '/$orgSlug/uptime'
+      preLoaderRoute: typeof OrgSlugUptimeRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/admin/actions': {
+      id: '/admin/actions'
+      path: '/actions'
+      fullPath: '/admin/actions'
+      preLoaderRoute: typeof AdminActionsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/organizations/': {
-      id: '/admin/organizations/'
-      path: '/organizations'
-      fullPath: '/admin/organizations'
-      preLoaderRoute: typeof AdminOrganizationsIndexRouteImport
+    '/admin/agent': {
+      id: '/admin/agent'
+      path: '/agent'
+      fullPath: '/admin/agent'
+      preLoaderRoute: typeof AdminAgentRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/$orgSlug/uptime/': {
-      id: '/$orgSlug/uptime/'
-      path: '/'
-      fullPath: '/$orgSlug/uptime/'
-      preLoaderRoute: typeof OrgSlugUptimeIndexRouteImport
-      parentRoute: typeof OrgSlugUptimeRoute
+    '/admin/charts': {
+      id: '/admin/charts'
+      path: '/charts'
+      fullPath: '/admin/charts'
+      preLoaderRoute: typeof AdminChartsRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$orgSlug/tunnels/': {
-      id: '/$orgSlug/tunnels/'
+    '/admin/observability': {
+      id: '/admin/observability'
+      path: '/observability'
+      fullPath: '/admin/observability'
+      preLoaderRoute: typeof AdminObservabilityRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/secrets': {
+      id: '/admin/secrets'
+      path: '/secrets'
+      fullPath: '/admin/secrets'
+      preLoaderRoute: typeof AdminSecretsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/subscriptions': {
+      id: '/admin/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/admin/subscriptions'
+      preLoaderRoute: typeof AdminSubscriptionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/tunnels': {
+      id: '/admin/tunnels'
       path: '/tunnels'
-      fullPath: '/$orgSlug/tunnels'
-      preLoaderRoute: typeof OrgSlugTunnelsIndexRouteImport
-      parentRoute: typeof OrgSlugRoute
+      fullPath: '/admin/tunnels'
+      preLoaderRoute: typeof AdminTunnelsRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$orgSlug/tunnel/': {
-      id: '/$orgSlug/tunnel/'
-      path: '/'
-      fullPath: '/$orgSlug/tunnel/'
-      preLoaderRoute: typeof OrgSlugTunnelIndexRouteImport
-      parentRoute: typeof OrgSlugTunnelRoute
+    '/admin/uptime': {
+      id: '/admin/uptime'
+      path: '/uptime'
+      fullPath: '/admin/uptime'
+      preLoaderRoute: typeof AdminUptimeRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$orgSlug/settings/': {
-      id: '/$orgSlug/settings/'
-      path: '/'
-      fullPath: '/$orgSlug/settings/'
-      preLoaderRoute: typeof OrgSlugSettingsIndexRouteImport
-      parentRoute: typeof OrgSlugSettingsRoute
+    '/admin/usage': {
+      id: '/admin/usage'
+      path: '/usage'
+      fullPath: '/admin/usage'
+      preLoaderRoute: typeof AdminUsageRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/$orgSlug/secrets/': {
-      id: '/$orgSlug/secrets/'
-      path: '/'
-      fullPath: '/$orgSlug/secrets/'
-      preLoaderRoute: typeof OrgSlugSecretsIndexRouteImport
-      parentRoute: typeof OrgSlugSecretsRoute
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/search': {
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cli/login': {
+      id: '/cli/login'
+      path: '/cli/login'
+      fullPath: '/cli/login'
+      preLoaderRoute: typeof CliLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/$': {
+      id: '/docs/$'
+      path: '/docs/$'
+      fullPath: '/docs/$'
+      preLoaderRoute: typeof DocsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/internal/domain-check': {
+      id: '/internal/domain-check'
+      path: '/internal/domain-check'
+      fullPath: '/internal/domain-check'
+      preLoaderRoute: typeof InternalDomainCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invitations/accept': {
+      id: '/invitations/accept'
+      path: '/invitations/accept'
+      fullPath: '/invitations/accept'
+      preLoaderRoute: typeof InvitationsAcceptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products/observability': {
+      id: '/products/observability'
+      path: '/observability'
+      fullPath: '/products/observability'
+      preLoaderRoute: typeof ProductsObservabilityRouteImport
+      parentRoute: typeof ProductsRoute
+    }
+    '/products/secrets': {
+      id: '/products/secrets'
+      path: '/secrets'
+      fullPath: '/products/secrets'
+      preLoaderRoute: typeof ProductsSecretsRouteImport
+      parentRoute: typeof ProductsRoute
+    }
+    '/products/tunnels': {
+      id: '/products/tunnels'
+      path: '/tunnels'
+      fullPath: '/products/tunnels'
+      preLoaderRoute: typeof ProductsTunnelsRouteImport
+      parentRoute: typeof ProductsRoute
+    }
+    '/products/uptime': {
+      id: '/products/uptime'
+      path: '/uptime'
+      fullPath: '/products/uptime'
+      preLoaderRoute: typeof ProductsUptimeRouteImport
+      parentRoute: typeof ProductsRoute
+    }
+    '/status-page-logos/$fileName': {
+      id: '/status-page-logos/$fileName'
+      path: '/status-page-logos/$fileName'
+      fullPath: '/status-page-logos/$fileName'
+      preLoaderRoute: typeof StatusPageLogosFileNameRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/$orgSlug/observability/': {
       id: '/$orgSlug/observability/'
       path: '/'
       fullPath: '/$orgSlug/observability/'
       preLoaderRoute: typeof OrgSlugObservabilityIndexRouteImport
-      parentRoute: typeof OrgSlugObservabilityRoute
-    }
-    '/api/webhooks/polar': {
-      id: '/api/webhooks/polar'
-      path: '/api/webhooks/polar'
-      fullPath: '/api/webhooks/polar'
-      preLoaderRoute: typeof ApiWebhooksPolarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/webhooks/paystack': {
-      id: '/api/webhooks/paystack'
-      path: '/api/webhooks/paystack'
-      fullPath: '/api/webhooks/paystack'
-      preLoaderRoute: typeof ApiWebhooksPaystackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/tunnel/register': {
-      id: '/api/tunnel/register'
-      path: '/api/tunnel/register'
-      fullPath: '/api/tunnel/register'
-      preLoaderRoute: typeof ApiTunnelRegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/tunnel/check-subdomain': {
-      id: '/api/tunnel/check-subdomain'
-      path: '/api/tunnel/check-subdomain'
-      fullPath: '/api/tunnel/check-subdomain'
-      preLoaderRoute: typeof ApiTunnelCheckSubdomainRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/tunnel/auth': {
-      id: '/api/tunnel/auth'
-      path: '/api/tunnel/auth'
-      fullPath: '/api/tunnel/auth'
-      preLoaderRoute: typeof ApiTunnelAuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/organizations/check-slug': {
-      id: '/api/organizations/check-slug'
-      path: '/api/organizations/check-slug'
-      fullPath: '/api/organizations/check-slug'
-      preLoaderRoute: typeof ApiOrganizationsCheckSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/me/orgs': {
-      id: '/api/me/orgs'
-      path: '/api/me/orgs'
-      fullPath: '/api/me/orgs'
-      preLoaderRoute: typeof ApiMeOrgsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/domain/verify-ownership': {
-      id: '/api/domain/verify-ownership'
-      path: '/api/domain/verify-ownership'
-      fullPath: '/api/domain/verify-ownership'
-      preLoaderRoute: typeof ApiDomainVerifyOwnershipRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/dashboard/ws-token': {
-      id: '/api/dashboard/ws-token'
-      path: '/api/dashboard/ws-token'
-      fullPath: '/api/dashboard/ws-token'
-      preLoaderRoute: typeof ApiDashboardWsTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/dashboard/validate-ws-token': {
-      id: '/api/dashboard/validate-ws-token'
-      path: '/api/dashboard/validate-ws-token'
-      fullPath: '/api/dashboard/validate-ws-token'
-      preLoaderRoute: typeof ApiDashboardValidateWsTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cli/secrets': {
-      id: '/api/cli/secrets'
-      path: '/api/cli/secrets'
-      fullPath: '/api/cli/secrets'
-      preLoaderRoute: typeof ApiCliSecretsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cli/login': {
-      id: '/api/cli/login'
-      path: '/api/cli/login'
-      fullPath: '/api/cli/login'
-      preLoaderRoute: typeof ApiCliLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cli/exchange': {
-      id: '/api/cli/exchange'
-      path: '/api/cli/exchange'
-      fullPath: '/api/cli/exchange'
-      preLoaderRoute: typeof ApiCliExchangeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cli/complete': {
-      id: '/api/cli/complete'
-      path: '/api/cli/complete'
-      fullPath: '/api/cli/complete'
-      preLoaderRoute: typeof ApiCliCompleteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/checkout/polar': {
-      id: '/api/checkout/polar'
-      path: '/api/checkout/polar'
-      fullPath: '/api/checkout/polar'
-      preLoaderRoute: typeof ApiCheckoutPolarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/checkout/paystack-verify': {
-      id: '/api/checkout/paystack-verify'
-      path: '/api/checkout/paystack-verify'
-      fullPath: '/api/checkout/paystack-verify'
-      preLoaderRoute: typeof ApiCheckoutPaystackVerifyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/checkout/paystack': {
-      id: '/api/checkout/paystack'
-      path: '/api/checkout/paystack'
-      fullPath: '/api/checkout/paystack'
-      preLoaderRoute: typeof ApiCheckoutPaystackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/users': {
-      id: '/api/admin/users'
-      path: '/api/admin/users'
-      fullPath: '/api/admin/users'
-      preLoaderRoute: typeof ApiAdminUsersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/usage': {
-      id: '/api/admin/usage'
-      path: '/api/admin/usage'
-      fullPath: '/api/admin/usage'
-      preLoaderRoute: typeof ApiAdminUsageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/tunnels': {
-      id: '/api/admin/tunnels'
-      path: '/api/admin/tunnels'
-      fullPath: '/api/admin/tunnels'
-      preLoaderRoute: typeof ApiAdminTunnelsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/subscriptions': {
-      id: '/api/admin/subscriptions'
-      path: '/api/admin/subscriptions'
-      fullPath: '/api/admin/subscriptions'
-      preLoaderRoute: typeof ApiAdminSubscriptionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/stats': {
-      id: '/api/admin/stats'
-      path: '/api/admin/stats'
-      fullPath: '/api/admin/stats'
-      preLoaderRoute: typeof ApiAdminStatsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/revenue-history': {
-      id: '/api/admin/revenue-history'
-      path: '/api/admin/revenue-history'
-      fullPath: '/api/admin/revenue-history'
-      preLoaderRoute: typeof ApiAdminRevenueHistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/proxy-image': {
-      id: '/api/admin/proxy-image'
-      path: '/api/admin/proxy-image'
-      fullPath: '/api/admin/proxy-image'
-      preLoaderRoute: typeof ApiAdminProxyImageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/overview': {
-      id: '/api/admin/overview'
-      path: '/api/admin/overview'
-      fullPath: '/api/admin/overview'
-      preLoaderRoute: typeof ApiAdminOverviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/organizations': {
-      id: '/api/admin/organizations'
-      path: '/api/admin/organizations'
-      fullPath: '/api/admin/organizations'
-      preLoaderRoute: typeof ApiAdminOrganizationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/login': {
-      id: '/api/admin/login'
-      path: '/api/admin/login'
-      fullPath: '/api/admin/login'
-      preLoaderRoute: typeof ApiAdminLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/charts': {
-      id: '/api/admin/charts'
-      path: '/api/admin/charts'
-      fullPath: '/api/admin/charts'
-      preLoaderRoute: typeof ApiAdminChartsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/subscriptions': {
-      id: '/api/$orgSlug/subscriptions'
-      path: '/api/$orgSlug/subscriptions'
-      fullPath: '/api/$orgSlug/subscriptions'
-      preLoaderRoute: typeof ApiOrgSlugSubscriptionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/settings': {
-      id: '/api/$orgSlug/settings'
-      path: '/api/$orgSlug/settings'
-      fullPath: '/api/$orgSlug/settings'
-      preLoaderRoute: typeof ApiOrgSlugSettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/requests': {
-      id: '/api/$orgSlug/requests'
-      path: '/api/$orgSlug/requests'
-      fullPath: '/api/$orgSlug/requests'
-      preLoaderRoute: typeof ApiOrgSlugRequestsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/auth-tokens': {
-      id: '/api/$orgSlug/auth-tokens'
-      path: '/api/$orgSlug/auth-tokens'
-      fullPath: '/api/$orgSlug/auth-tokens'
-      preLoaderRoute: typeof ApiOrgSlugAuthTokensRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/users/$userId': {
-      id: '/admin/users/$userId'
-      path: '/users/$userId'
-      fullPath: '/admin/users/$userId'
-      preLoaderRoute: typeof AdminUsersUserIdRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/tunnels/connections': {
-      id: '/admin/tunnels/connections'
-      path: '/connections'
-      fullPath: '/admin/tunnels/connections'
-      preLoaderRoute: typeof AdminTunnelsConnectionsRouteImport
-      parentRoute: typeof AdminTunnelsRoute
-    }
-    '/admin/organizations/$slug': {
-      id: '/admin/organizations/$slug'
-      path: '/organizations/$slug'
-      fullPath: '/admin/organizations/$slug'
-      preLoaderRoute: typeof AdminOrganizationsSlugRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/$orgSlug/uptime/status-page': {
-      id: '/$orgSlug/uptime/status-page'
-      path: '/status-page'
-      fullPath: '/$orgSlug/uptime/status-page'
-      preLoaderRoute: typeof OrgSlugUptimeStatusPageRouteImport
-      parentRoute: typeof OrgSlugUptimeRoute
-    }
-    '/$orgSlug/uptime/notifications': {
-      id: '/$orgSlug/uptime/notifications'
-      path: '/notifications'
-      fullPath: '/$orgSlug/uptime/notifications'
-      preLoaderRoute: typeof OrgSlugUptimeNotificationsRouteImport
-      parentRoute: typeof OrgSlugUptimeRoute
-    }
-    '/$orgSlug/uptime/monitors': {
-      id: '/$orgSlug/uptime/monitors'
-      path: '/monitors'
-      fullPath: '/$orgSlug/uptime/monitors'
-      preLoaderRoute: typeof OrgSlugUptimeMonitorsRouteImport
-      parentRoute: typeof OrgSlugUptimeRoute
-    }
-    '/$orgSlug/uptime/incidents': {
-      id: '/$orgSlug/uptime/incidents'
-      path: '/incidents'
-      fullPath: '/$orgSlug/uptime/incidents'
-      preLoaderRoute: typeof OrgSlugUptimeIncidentsRouteImport
-      parentRoute: typeof OrgSlugUptimeRoute
-    }
-    '/$orgSlug/tunnels/$tunnelId': {
-      id: '/$orgSlug/tunnels/$tunnelId'
-      path: '/tunnels/$tunnelId'
-      fullPath: '/$orgSlug/tunnels/$tunnelId'
-      preLoaderRoute: typeof OrgSlugTunnelsTunnelIdRouteImport
-      parentRoute: typeof OrgSlugRoute
-    }
-    '/$orgSlug/tunnel/subdomains': {
-      id: '/$orgSlug/tunnel/subdomains'
-      path: '/subdomains'
-      fullPath: '/$orgSlug/tunnel/subdomains'
-      preLoaderRoute: typeof OrgSlugTunnelSubdomainsRouteImport
-      parentRoute: typeof OrgSlugTunnelRoute
-    }
-    '/$orgSlug/tunnel/requests': {
-      id: '/$orgSlug/tunnel/requests'
-      path: '/requests'
-      fullPath: '/$orgSlug/tunnel/requests'
-      preLoaderRoute: typeof OrgSlugTunnelRequestsRouteImport
-      parentRoute: typeof OrgSlugTunnelRoute
-    }
-    '/$orgSlug/tunnel/domains': {
-      id: '/$orgSlug/tunnel/domains'
-      path: '/domains'
-      fullPath: '/$orgSlug/tunnel/domains'
-      preLoaderRoute: typeof OrgSlugTunnelDomainsRouteImport
-      parentRoute: typeof OrgSlugTunnelRoute
-    }
-    '/$orgSlug/settings/profile': {
-      id: '/$orgSlug/settings/profile'
-      path: '/profile'
-      fullPath: '/$orgSlug/settings/profile'
-      preLoaderRoute: typeof OrgSlugSettingsProfileRouteImport
-      parentRoute: typeof OrgSlugSettingsRoute
-    }
-    '/$orgSlug/settings/organization': {
-      id: '/$orgSlug/settings/organization'
-      path: '/organization'
-      fullPath: '/$orgSlug/settings/organization'
-      preLoaderRoute: typeof OrgSlugSettingsOrganizationRouteImport
-      parentRoute: typeof OrgSlugSettingsRoute
-    }
-    '/$orgSlug/secrets/vaults': {
-      id: '/$orgSlug/secrets/vaults'
-      path: '/vaults'
-      fullPath: '/$orgSlug/secrets/vaults'
-      preLoaderRoute: typeof OrgSlugSecretsVaultsRouteImport
-      parentRoute: typeof OrgSlugSecretsRoute
-    }
-    '/$orgSlug/secrets/trash': {
-      id: '/$orgSlug/secrets/trash'
-      path: '/trash'
-      fullPath: '/$orgSlug/secrets/trash'
-      preLoaderRoute: typeof OrgSlugSecretsTrashRouteImport
-      parentRoute: typeof OrgSlugSecretsRoute
-    }
-    '/$orgSlug/secrets/shares': {
-      id: '/$orgSlug/secrets/shares'
-      path: '/shares'
-      fullPath: '/$orgSlug/secrets/shares'
-      preLoaderRoute: typeof OrgSlugSecretsSharesRouteImport
-      parentRoute: typeof OrgSlugSecretsRoute
-    }
-    '/$orgSlug/secrets/projects': {
-      id: '/$orgSlug/secrets/projects'
-      path: '/projects'
-      fullPath: '/$orgSlug/secrets/projects'
-      preLoaderRoute: typeof OrgSlugSecretsProjectsRouteImport
-      parentRoute: typeof OrgSlugSecretsRoute
-    }
-    '/$orgSlug/secrets/audit': {
-      id: '/$orgSlug/secrets/audit'
-      path: '/audit'
-      fullPath: '/$orgSlug/secrets/audit'
-      preLoaderRoute: typeof OrgSlugSecretsAuditRouteImport
-      parentRoute: typeof OrgSlugSecretsRoute
-    }
-    '/$orgSlug/observability/traces': {
-      id: '/$orgSlug/observability/traces'
-      path: '/traces'
-      fullPath: '/$orgSlug/observability/traces'
-      preLoaderRoute: typeof OrgSlugObservabilityTracesRouteImport
-      parentRoute: typeof OrgSlugObservabilityRoute
-    }
-    '/$orgSlug/observability/services': {
-      id: '/$orgSlug/observability/services'
-      path: '/services'
-      fullPath: '/$orgSlug/observability/services'
-      preLoaderRoute: typeof OrgSlugObservabilityServicesRouteImport
-      parentRoute: typeof OrgSlugObservabilityRoute
-    }
-    '/$orgSlug/observability/requests': {
-      id: '/$orgSlug/observability/requests'
-      path: '/requests'
-      fullPath: '/$orgSlug/observability/requests'
-      preLoaderRoute: typeof OrgSlugObservabilityRequestsRouteImport
-      parentRoute: typeof OrgSlugObservabilityRoute
-    }
-    '/$orgSlug/observability/monitors': {
-      id: '/$orgSlug/observability/monitors'
-      path: '/monitors'
-      fullPath: '/$orgSlug/observability/monitors'
-      preLoaderRoute: typeof OrgSlugObservabilityMonitorsRouteImport
-      parentRoute: typeof OrgSlugObservabilityRoute
-    }
-    '/$orgSlug/observability/metrics': {
-      id: '/$orgSlug/observability/metrics'
-      path: '/metrics'
-      fullPath: '/$orgSlug/observability/metrics'
-      preLoaderRoute: typeof OrgSlugObservabilityMetricsRouteImport
-      parentRoute: typeof OrgSlugObservabilityRoute
-    }
-    '/$orgSlug/observability/logs': {
-      id: '/$orgSlug/observability/logs'
-      path: '/logs'
-      fullPath: '/$orgSlug/observability/logs'
-      preLoaderRoute: typeof OrgSlugObservabilityLogsRouteImport
       parentRoute: typeof OrgSlugObservabilityRoute
     }
     '/$orgSlug/observability/alerts': {
@@ -3911,249 +3463,515 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugObservabilityAlertsRouteImport
       parentRoute: typeof OrgSlugObservabilityRoute
     }
-    '/api/$orgSlug/tunnels/': {
-      id: '/api/$orgSlug/tunnels/'
-      path: '/api/$orgSlug/tunnels'
-      fullPath: '/api/$orgSlug/tunnels'
-      preLoaderRoute: typeof ApiOrgSlugTunnelsIndexRouteImport
+    '/$orgSlug/observability/logs': {
+      id: '/$orgSlug/observability/logs'
+      path: '/logs'
+      fullPath: '/$orgSlug/observability/logs'
+      preLoaderRoute: typeof OrgSlugObservabilityLogsRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
+    '/$orgSlug/observability/metrics': {
+      id: '/$orgSlug/observability/metrics'
+      path: '/metrics'
+      fullPath: '/$orgSlug/observability/metrics'
+      preLoaderRoute: typeof OrgSlugObservabilityMetricsRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
+    '/$orgSlug/observability/monitors': {
+      id: '/$orgSlug/observability/monitors'
+      path: '/monitors'
+      fullPath: '/$orgSlug/observability/monitors'
+      preLoaderRoute: typeof OrgSlugObservabilityMonitorsRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
+    '/$orgSlug/observability/requests': {
+      id: '/$orgSlug/observability/requests'
+      path: '/requests'
+      fullPath: '/$orgSlug/observability/requests'
+      preLoaderRoute: typeof OrgSlugObservabilityRequestsRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
+    '/$orgSlug/observability/services': {
+      id: '/$orgSlug/observability/services'
+      path: '/services'
+      fullPath: '/$orgSlug/observability/services'
+      preLoaderRoute: typeof OrgSlugObservabilityServicesRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
+    '/$orgSlug/observability/traces': {
+      id: '/$orgSlug/observability/traces'
+      path: '/traces'
+      fullPath: '/$orgSlug/observability/traces'
+      preLoaderRoute: typeof OrgSlugObservabilityTracesRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
+    '/$orgSlug/secrets/': {
+      id: '/$orgSlug/secrets/'
+      path: '/'
+      fullPath: '/$orgSlug/secrets/'
+      preLoaderRoute: typeof OrgSlugSecretsIndexRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
+    '/$orgSlug/secrets/audit': {
+      id: '/$orgSlug/secrets/audit'
+      path: '/audit'
+      fullPath: '/$orgSlug/secrets/audit'
+      preLoaderRoute: typeof OrgSlugSecretsAuditRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
+    '/$orgSlug/secrets/projects': {
+      id: '/$orgSlug/secrets/projects'
+      path: '/projects'
+      fullPath: '/$orgSlug/secrets/projects'
+      preLoaderRoute: typeof OrgSlugSecretsProjectsRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
+    '/$orgSlug/secrets/shares': {
+      id: '/$orgSlug/secrets/shares'
+      path: '/shares'
+      fullPath: '/$orgSlug/secrets/shares'
+      preLoaderRoute: typeof OrgSlugSecretsSharesRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
+    '/$orgSlug/secrets/trash': {
+      id: '/$orgSlug/secrets/trash'
+      path: '/trash'
+      fullPath: '/$orgSlug/secrets/trash'
+      preLoaderRoute: typeof OrgSlugSecretsTrashRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
+    '/$orgSlug/secrets/vaults': {
+      id: '/$orgSlug/secrets/vaults'
+      path: '/vaults'
+      fullPath: '/$orgSlug/secrets/vaults'
+      preLoaderRoute: typeof OrgSlugSecretsVaultsRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
+    '/$orgSlug/settings/': {
+      id: '/$orgSlug/settings/'
+      path: '/'
+      fullPath: '/$orgSlug/settings/'
+      preLoaderRoute: typeof OrgSlugSettingsIndexRouteImport
+      parentRoute: typeof OrgSlugSettingsRoute
+    }
+    '/$orgSlug/settings/organization': {
+      id: '/$orgSlug/settings/organization'
+      path: '/organization'
+      fullPath: '/$orgSlug/settings/organization'
+      preLoaderRoute: typeof OrgSlugSettingsOrganizationRouteImport
+      parentRoute: typeof OrgSlugSettingsRoute
+    }
+    '/$orgSlug/settings/profile': {
+      id: '/$orgSlug/settings/profile'
+      path: '/profile'
+      fullPath: '/$orgSlug/settings/profile'
+      preLoaderRoute: typeof OrgSlugSettingsProfileRouteImport
+      parentRoute: typeof OrgSlugSettingsRoute
+    }
+    '/$orgSlug/tunnel/': {
+      id: '/$orgSlug/tunnel/'
+      path: '/'
+      fullPath: '/$orgSlug/tunnel/'
+      preLoaderRoute: typeof OrgSlugTunnelIndexRouteImport
+      parentRoute: typeof OrgSlugTunnelRoute
+    }
+    '/$orgSlug/tunnel/domains': {
+      id: '/$orgSlug/tunnel/domains'
+      path: '/domains'
+      fullPath: '/$orgSlug/tunnel/domains'
+      preLoaderRoute: typeof OrgSlugTunnelDomainsRouteImport
+      parentRoute: typeof OrgSlugTunnelRoute
+    }
+    '/$orgSlug/tunnel/requests': {
+      id: '/$orgSlug/tunnel/requests'
+      path: '/requests'
+      fullPath: '/$orgSlug/tunnel/requests'
+      preLoaderRoute: typeof OrgSlugTunnelRequestsRouteImport
+      parentRoute: typeof OrgSlugTunnelRoute
+    }
+    '/$orgSlug/tunnel/subdomains': {
+      id: '/$orgSlug/tunnel/subdomains'
+      path: '/subdomains'
+      fullPath: '/$orgSlug/tunnel/subdomains'
+      preLoaderRoute: typeof OrgSlugTunnelSubdomainsRouteImport
+      parentRoute: typeof OrgSlugTunnelRoute
+    }
+    '/$orgSlug/tunnels/': {
+      id: '/$orgSlug/tunnels/'
+      path: '/tunnels'
+      fullPath: '/$orgSlug/tunnels/'
+      preLoaderRoute: typeof OrgSlugTunnelsIndexRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/$orgSlug/tunnels/$tunnelId': {
+      id: '/$orgSlug/tunnels/$tunnelId'
+      path: '/tunnels/$tunnelId'
+      fullPath: '/$orgSlug/tunnels/$tunnelId'
+      preLoaderRoute: typeof OrgSlugTunnelsTunnelIdRouteImport
+      parentRoute: typeof OrgSlugRoute
+    }
+    '/$orgSlug/uptime/': {
+      id: '/$orgSlug/uptime/'
+      path: '/'
+      fullPath: '/$orgSlug/uptime/'
+      preLoaderRoute: typeof OrgSlugUptimeIndexRouteImport
+      parentRoute: typeof OrgSlugUptimeRoute
+    }
+    '/$orgSlug/uptime/incidents': {
+      id: '/$orgSlug/uptime/incidents'
+      path: '/incidents'
+      fullPath: '/$orgSlug/uptime/incidents'
+      preLoaderRoute: typeof OrgSlugUptimeIncidentsRouteImport
+      parentRoute: typeof OrgSlugUptimeRoute
+    }
+    '/$orgSlug/uptime/monitors': {
+      id: '/$orgSlug/uptime/monitors'
+      path: '/monitors'
+      fullPath: '/$orgSlug/uptime/monitors'
+      preLoaderRoute: typeof OrgSlugUptimeMonitorsRouteImport
+      parentRoute: typeof OrgSlugUptimeRoute
+    }
+    '/$orgSlug/uptime/notifications': {
+      id: '/$orgSlug/uptime/notifications'
+      path: '/notifications'
+      fullPath: '/$orgSlug/uptime/notifications'
+      preLoaderRoute: typeof OrgSlugUptimeNotificationsRouteImport
+      parentRoute: typeof OrgSlugUptimeRoute
+    }
+    '/$orgSlug/uptime/status-page': {
+      id: '/$orgSlug/uptime/status-page'
+      path: '/status-page'
+      fullPath: '/$orgSlug/uptime/status-page'
+      preLoaderRoute: typeof OrgSlugUptimeStatusPageRouteImport
+      parentRoute: typeof OrgSlugUptimeRoute
+    }
+    '/admin/organizations/': {
+      id: '/admin/organizations/'
+      path: '/organizations'
+      fullPath: '/admin/organizations/'
+      preLoaderRoute: typeof AdminOrganizationsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/organizations/$slug': {
+      id: '/admin/organizations/$slug'
+      path: '/organizations/$slug'
+      fullPath: '/admin/organizations/$slug'
+      preLoaderRoute: typeof AdminOrganizationsSlugRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/tunnels/connections': {
+      id: '/admin/tunnels/connections'
+      path: '/connections'
+      fullPath: '/admin/tunnels/connections'
+      preLoaderRoute: typeof AdminTunnelsConnectionsRouteImport
+      parentRoute: typeof AdminTunnelsRoute
+    }
+    '/admin/users/': {
+      id: '/admin/users/'
+      path: '/users'
+      fullPath: '/admin/users/'
+      preLoaderRoute: typeof AdminUsersIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users/$userId': {
+      id: '/admin/users/$userId'
+      path: '/users/$userId'
+      fullPath: '/admin/users/$userId'
+      preLoaderRoute: typeof AdminUsersUserIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/api/$orgSlug/auth-tokens': {
+      id: '/api/$orgSlug/auth-tokens'
+      path: '/api/$orgSlug/auth-tokens'
+      fullPath: '/api/$orgSlug/auth-tokens'
+      preLoaderRoute: typeof ApiOrgSlugAuthTokensRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/subdomains/': {
-      id: '/api/$orgSlug/subdomains/'
-      path: '/api/$orgSlug/subdomains'
-      fullPath: '/api/$orgSlug/subdomains'
-      preLoaderRoute: typeof ApiOrgSlugSubdomainsIndexRouteImport
+    '/api/$orgSlug/requests': {
+      id: '/api/$orgSlug/requests'
+      path: '/api/$orgSlug/requests'
+      fullPath: '/api/$orgSlug/requests'
+      preLoaderRoute: typeof ApiOrgSlugRequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/domains/': {
-      id: '/api/$orgSlug/domains/'
-      path: '/api/$orgSlug/domains'
-      fullPath: '/api/$orgSlug/domains'
-      preLoaderRoute: typeof ApiOrgSlugDomainsIndexRouteImport
+    '/api/$orgSlug/settings': {
+      id: '/api/$orgSlug/settings'
+      path: '/api/$orgSlug/settings'
+      fullPath: '/api/$orgSlug/settings'
+      preLoaderRoute: typeof ApiOrgSlugSettingsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/subscriptions': {
+      id: '/api/$orgSlug/subscriptions'
+      path: '/api/$orgSlug/subscriptions'
+      fullPath: '/api/$orgSlug/subscriptions'
+      preLoaderRoute: typeof ApiOrgSlugSubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/charts': {
+      id: '/api/admin/charts'
+      path: '/api/admin/charts'
+      fullPath: '/api/admin/charts'
+      preLoaderRoute: typeof ApiAdminChartsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/login': {
+      id: '/api/admin/login'
+      path: '/api/admin/login'
+      fullPath: '/api/admin/login'
+      preLoaderRoute: typeof ApiAdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/organizations': {
+      id: '/api/admin/organizations'
+      path: '/api/admin/organizations'
+      fullPath: '/api/admin/organizations'
+      preLoaderRoute: typeof ApiAdminOrganizationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/overview': {
+      id: '/api/admin/overview'
+      path: '/api/admin/overview'
+      fullPath: '/api/admin/overview'
+      preLoaderRoute: typeof ApiAdminOverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/proxy-image': {
+      id: '/api/admin/proxy-image'
+      path: '/api/admin/proxy-image'
+      fullPath: '/api/admin/proxy-image'
+      preLoaderRoute: typeof ApiAdminProxyImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/revenue-history': {
+      id: '/api/admin/revenue-history'
+      path: '/api/admin/revenue-history'
+      fullPath: '/api/admin/revenue-history'
+      preLoaderRoute: typeof ApiAdminRevenueHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/stats': {
+      id: '/api/admin/stats'
+      path: '/api/admin/stats'
+      fullPath: '/api/admin/stats'
+      preLoaderRoute: typeof ApiAdminStatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/subscriptions': {
+      id: '/api/admin/subscriptions'
+      path: '/api/admin/subscriptions'
+      fullPath: '/api/admin/subscriptions'
+      preLoaderRoute: typeof ApiAdminSubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/tunnels': {
+      id: '/api/admin/tunnels'
+      path: '/api/admin/tunnels'
+      fullPath: '/api/admin/tunnels'
+      preLoaderRoute: typeof ApiAdminTunnelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/usage': {
+      id: '/api/admin/usage'
+      path: '/api/admin/usage'
+      fullPath: '/api/admin/usage'
+      preLoaderRoute: typeof ApiAdminUsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/users': {
+      id: '/api/admin/users'
+      path: '/api/admin/users'
+      fullPath: '/api/admin/users'
+      preLoaderRoute: typeof ApiAdminUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/checkout/paystack': {
+      id: '/api/checkout/paystack'
+      path: '/api/checkout/paystack'
+      fullPath: '/api/checkout/paystack'
+      preLoaderRoute: typeof ApiCheckoutPaystackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/checkout/paystack-verify': {
+      id: '/api/checkout/paystack-verify'
+      path: '/api/checkout/paystack-verify'
+      fullPath: '/api/checkout/paystack-verify'
+      preLoaderRoute: typeof ApiCheckoutPaystackVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/checkout/polar': {
+      id: '/api/checkout/polar'
+      path: '/api/checkout/polar'
+      fullPath: '/api/checkout/polar'
+      preLoaderRoute: typeof ApiCheckoutPolarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cli/complete': {
+      id: '/api/cli/complete'
+      path: '/api/cli/complete'
+      fullPath: '/api/cli/complete'
+      preLoaderRoute: typeof ApiCliCompleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cli/exchange': {
+      id: '/api/cli/exchange'
+      path: '/api/cli/exchange'
+      fullPath: '/api/cli/exchange'
+      preLoaderRoute: typeof ApiCliExchangeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cli/login': {
+      id: '/api/cli/login'
+      path: '/api/cli/login'
+      fullPath: '/api/cli/login'
+      preLoaderRoute: typeof ApiCliLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cli/secrets': {
+      id: '/api/cli/secrets'
+      path: '/api/cli/secrets'
+      fullPath: '/api/cli/secrets'
+      preLoaderRoute: typeof ApiCliSecretsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/dashboard/validate-ws-token': {
+      id: '/api/dashboard/validate-ws-token'
+      path: '/api/dashboard/validate-ws-token'
+      fullPath: '/api/dashboard/validate-ws-token'
+      preLoaderRoute: typeof ApiDashboardValidateWsTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/dashboard/ws-token': {
+      id: '/api/dashboard/ws-token'
+      path: '/api/dashboard/ws-token'
+      fullPath: '/api/dashboard/ws-token'
+      preLoaderRoute: typeof ApiDashboardWsTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/domain/verify-ownership': {
+      id: '/api/domain/verify-ownership'
+      path: '/api/domain/verify-ownership'
+      fullPath: '/api/domain/verify-ownership'
+      preLoaderRoute: typeof ApiDomainVerifyOwnershipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/orgs': {
+      id: '/api/me/orgs'
+      path: '/api/me/orgs'
+      fullPath: '/api/me/orgs'
+      preLoaderRoute: typeof ApiMeOrgsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/organizations/check-slug': {
+      id: '/api/organizations/check-slug'
+      path: '/api/organizations/check-slug'
+      fullPath: '/api/organizations/check-slug'
+      preLoaderRoute: typeof ApiOrganizationsCheckSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tunnel/auth': {
+      id: '/api/tunnel/auth'
+      path: '/api/tunnel/auth'
+      fullPath: '/api/tunnel/auth'
+      preLoaderRoute: typeof ApiTunnelAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tunnel/check-subdomain': {
+      id: '/api/tunnel/check-subdomain'
+      path: '/api/tunnel/check-subdomain'
+      fullPath: '/api/tunnel/check-subdomain'
+      preLoaderRoute: typeof ApiTunnelCheckSubdomainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tunnel/register': {
+      id: '/api/tunnel/register'
+      path: '/api/tunnel/register'
+      fullPath: '/api/tunnel/register'
+      preLoaderRoute: typeof ApiTunnelRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/paystack': {
+      id: '/api/webhooks/paystack'
+      path: '/api/webhooks/paystack'
+      fullPath: '/api/webhooks/paystack'
+      preLoaderRoute: typeof ApiWebhooksPaystackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/polar': {
+      id: '/api/webhooks/polar'
+      path: '/api/webhooks/polar'
+      fullPath: '/api/webhooks/polar'
+      preLoaderRoute: typeof ApiWebhooksPolarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$orgSlug/observability/alerts_/$alertId': {
+      id: '/$orgSlug/observability/alerts_/$alertId'
+      path: '/alerts/$alertId'
+      fullPath: '/$orgSlug/observability/alerts/$alertId'
+      preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
+    '/$orgSlug/observability/services_/$serviceId': {
+      id: '/$orgSlug/observability/services_/$serviceId'
+      path: '/services/$serviceId'
+      fullPath: '/$orgSlug/observability/services/$serviceId'
+      preLoaderRoute: typeof OrgSlugObservabilityServicesServiceIdRouteImport
+      parentRoute: typeof OrgSlugObservabilityRoute
+    }
+    '/$orgSlug/secrets/projects_/$projectSlug': {
+      id: '/$orgSlug/secrets/projects_/$projectSlug'
+      path: '/projects/$projectSlug'
+      fullPath: '/$orgSlug/secrets/projects/$projectSlug'
+      preLoaderRoute: typeof OrgSlugSecretsProjectsProjectSlugRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
+    '/$orgSlug/secrets/vaults_/$projectSlug': {
+      id: '/$orgSlug/secrets/vaults_/$projectSlug'
+      path: '/vaults/$projectSlug'
+      fullPath: '/$orgSlug/secrets/vaults/$projectSlug'
+      preLoaderRoute: typeof OrgSlugSecretsVaultsProjectSlugRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
+    '/$orgSlug/tunnel/tunnels/': {
+      id: '/$orgSlug/tunnel/tunnels/'
+      path: '/tunnels'
+      fullPath: '/$orgSlug/tunnel/tunnels/'
+      preLoaderRoute: typeof OrgSlugTunnelTunnelsIndexRouteImport
+      parentRoute: typeof OrgSlugTunnelRoute
+    }
+    '/$orgSlug/tunnel/tunnels/$tunnelId': {
+      id: '/$orgSlug/tunnel/tunnels/$tunnelId'
+      path: '/tunnels/$tunnelId'
+      fullPath: '/$orgSlug/tunnel/tunnels/$tunnelId'
+      preLoaderRoute: typeof OrgSlugTunnelTunnelsTunnelIdRouteImport
+      parentRoute: typeof OrgSlugTunnelRoute
+    }
+    '/$orgSlug/uptime/incidents_/$incidentId': {
+      id: '/$orgSlug/uptime/incidents_/$incidentId'
+      path: '/incidents/$incidentId'
+      fullPath: '/$orgSlug/uptime/incidents/$incidentId'
+      preLoaderRoute: typeof OrgSlugUptimeIncidentsIncidentIdRouteImport
+      parentRoute: typeof OrgSlugUptimeRoute
+    }
+    '/$orgSlug/uptime/monitors_/$monitorId': {
+      id: '/$orgSlug/uptime/monitors_/$monitorId'
+      path: '/monitors/$monitorId'
+      fullPath: '/$orgSlug/uptime/monitors/$monitorId'
+      preLoaderRoute: typeof OrgSlugUptimeMonitorsMonitorIdRouteImport
+      parentRoute: typeof OrgSlugUptimeRoute
     }
     '/$orgSlug/uptime/status-page/': {
       id: '/$orgSlug/uptime/status-page/'
       path: '/'
       fullPath: '/$orgSlug/uptime/status-page/'
       preLoaderRoute: typeof OrgSlugUptimeStatusPageIndexRouteImport
-      parentRoute: typeof OrgSlugUptimeStatusPageRoute
-    }
-    '/$orgSlug/tunnel/tunnels/': {
-      id: '/$orgSlug/tunnel/tunnels/'
-      path: '/tunnels'
-      fullPath: '/$orgSlug/tunnel/tunnels'
-      preLoaderRoute: typeof OrgSlugTunnelTunnelsIndexRouteImport
-      parentRoute: typeof OrgSlugTunnelRoute
-    }
-    '/api/subscriptions/$orgSlug/cancel': {
-      id: '/api/subscriptions/$orgSlug/cancel'
-      path: '/api/subscriptions/$orgSlug/cancel'
-      fullPath: '/api/subscriptions/$orgSlug/cancel'
-      preLoaderRoute: typeof ApiSubscriptionsOrgSlugCancelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cli/secrets/targets': {
-      id: '/api/cli/secrets/targets'
-      path: '/targets'
-      fullPath: '/api/cli/secrets/targets'
-      preLoaderRoute: typeof ApiCliSecretsTargetsRouteImport
-      parentRoute: typeof ApiCliSecretsRoute
-    }
-    '/api/cli/secrets/rollback': {
-      id: '/api/cli/secrets/rollback'
-      path: '/rollback'
-      fullPath: '/api/cli/secrets/rollback'
-      preLoaderRoute: typeof ApiCliSecretsRollbackRouteImport
-      parentRoute: typeof ApiCliSecretsRoute
-    }
-    '/api/cli/secrets/revision': {
-      id: '/api/cli/secrets/revision'
-      path: '/revision'
-      fullPath: '/api/cli/secrets/revision'
-      preLoaderRoute: typeof ApiCliSecretsRevisionRouteImport
-      parentRoute: typeof ApiCliSecretsRoute
-    }
-    '/api/cli/login/status': {
-      id: '/api/cli/login/status'
-      path: '/status'
-      fullPath: '/api/cli/login/status'
-      preLoaderRoute: typeof ApiCliLoginStatusRouteImport
-      parentRoute: typeof ApiCliLoginRoute
-    }
-    '/api/admin/users/$userId': {
-      id: '/api/admin/users/$userId'
-      path: '/$userId'
-      fullPath: '/api/admin/users/$userId'
-      preLoaderRoute: typeof ApiAdminUsersUserIdRouteImport
-      parentRoute: typeof ApiAdminUsersRoute
-    }
-    '/api/admin/products/$product': {
-      id: '/api/admin/products/$product'
-      path: '/api/admin/products/$product'
-      fullPath: '/api/admin/products/$product'
-      preLoaderRoute: typeof ApiAdminProductsProductRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/organizations/$slug': {
-      id: '/api/admin/organizations/$slug'
-      path: '/$slug'
-      fullPath: '/api/admin/organizations/$slug'
-      preLoaderRoute: typeof ApiAdminOrganizationsSlugRouteImport
-      parentRoute: typeof ApiAdminOrganizationsRoute
-    }
-    '/api/$orgSlug/uptime/page': {
-      id: '/api/$orgSlug/uptime/page'
-      path: '/api/$orgSlug/uptime/page'
-      fullPath: '/api/$orgSlug/uptime/page'
-      preLoaderRoute: typeof ApiOrgSlugUptimePageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/uptime/members': {
-      id: '/api/$orgSlug/uptime/members'
-      path: '/api/$orgSlug/uptime/members'
-      fullPath: '/api/$orgSlug/uptime/members'
-      preLoaderRoute: typeof ApiOrgSlugUptimeMembersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/tunnels/$tunnelId': {
-      id: '/api/$orgSlug/tunnels/$tunnelId'
-      path: '/api/$orgSlug/tunnels/$tunnelId'
-      fullPath: '/api/$orgSlug/tunnels/$tunnelId'
-      preLoaderRoute: typeof ApiOrgSlugTunnelsTunnelIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/subdomains/$subdomainId': {
-      id: '/api/$orgSlug/subdomains/$subdomainId'
-      path: '/api/$orgSlug/subdomains/$subdomainId'
-      fullPath: '/api/$orgSlug/subdomains/$subdomainId'
-      preLoaderRoute: typeof ApiOrgSlugSubdomainsSubdomainIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/stats/tunnel': {
-      id: '/api/$orgSlug/stats/tunnel'
-      path: '/api/$orgSlug/stats/tunnel'
-      fullPath: '/api/$orgSlug/stats/tunnel'
-      preLoaderRoute: typeof ApiOrgSlugStatsTunnelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/stats/protocol': {
-      id: '/api/$orgSlug/stats/protocol'
-      path: '/api/$orgSlug/stats/protocol'
-      fullPath: '/api/$orgSlug/stats/protocol'
-      preLoaderRoute: typeof ApiOrgSlugStatsProtocolRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/stats/overview': {
-      id: '/api/$orgSlug/stats/overview'
-      path: '/api/$orgSlug/stats/overview'
-      fullPath: '/api/$orgSlug/stats/overview'
-      preLoaderRoute: typeof ApiOrgSlugStatsOverviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/stats/bandwidth': {
-      id: '/api/$orgSlug/stats/bandwidth'
-      path: '/api/$orgSlug/stats/bandwidth'
-      fullPath: '/api/$orgSlug/stats/bandwidth'
-      preLoaderRoute: typeof ApiOrgSlugStatsBandwidthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/secrets/trash': {
-      id: '/api/$orgSlug/secrets/trash'
-      path: '/api/$orgSlug/secrets/trash'
-      fullPath: '/api/$orgSlug/secrets/trash'
-      preLoaderRoute: typeof ApiOrgSlugSecretsTrashRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/secrets/overview': {
-      id: '/api/$orgSlug/secrets/overview'
-      path: '/api/$orgSlug/secrets/overview'
-      fullPath: '/api/$orgSlug/secrets/overview'
-      preLoaderRoute: typeof ApiOrgSlugSecretsOverviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/secrets/machine-tokens': {
-      id: '/api/$orgSlug/secrets/machine-tokens'
-      path: '/api/$orgSlug/secrets/machine-tokens'
-      fullPath: '/api/$orgSlug/secrets/machine-tokens'
-      preLoaderRoute: typeof ApiOrgSlugSecretsMachineTokensRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/secrets/audit': {
-      id: '/api/$orgSlug/secrets/audit'
-      path: '/api/$orgSlug/secrets/audit'
-      fullPath: '/api/$orgSlug/secrets/audit'
-      preLoaderRoute: typeof ApiOrgSlugSecretsAuditRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/requests/replay': {
-      id: '/api/$orgSlug/requests/replay'
-      path: '/replay'
-      fullPath: '/api/$orgSlug/requests/replay'
-      preLoaderRoute: typeof ApiOrgSlugRequestsReplayRouteImport
-      parentRoute: typeof ApiOrgSlugRequestsRoute
-    }
-    '/api/$orgSlug/requests/capture': {
-      id: '/api/$orgSlug/requests/capture'
-      path: '/capture'
-      fullPath: '/api/$orgSlug/requests/capture'
-      preLoaderRoute: typeof ApiOrgSlugRequestsCaptureRouteImport
-      parentRoute: typeof ApiOrgSlugRequestsRoute
-    }
-    '/api/$orgSlug/portal/polar': {
-      id: '/api/$orgSlug/portal/polar'
-      path: '/api/$orgSlug/portal/polar'
-      fullPath: '/api/$orgSlug/portal/polar'
-      preLoaderRoute: typeof ApiOrgSlugPortalPolarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/domains/$domainId': {
-      id: '/api/$orgSlug/domains/$domainId'
-      path: '/api/$orgSlug/domains/$domainId'
-      fullPath: '/api/$orgSlug/domains/$domainId'
-      preLoaderRoute: typeof ApiOrgSlugDomainsDomainIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/agent/threads': {
-      id: '/api/$orgSlug/agent/threads'
-      path: '/api/$orgSlug/agent/threads'
-      fullPath: '/api/$orgSlug/agent/threads'
-      preLoaderRoute: typeof ApiOrgSlugAgentThreadsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/agent/chat': {
-      id: '/api/$orgSlug/agent/chat'
-      path: '/api/$orgSlug/agent/chat'
-      fullPath: '/api/$orgSlug/agent/chat'
-      preLoaderRoute: typeof ApiOrgSlugAgentChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$orgSlug/uptime/status-page/subscribers': {
-      id: '/$orgSlug/uptime/status-page/subscribers'
-      path: '/subscribers'
-      fullPath: '/$orgSlug/uptime/status-page/subscribers'
-      preLoaderRoute: typeof OrgSlugUptimeStatusPageSubscribersRouteImport
-      parentRoute: typeof OrgSlugUptimeStatusPageRoute
-    }
-    '/$orgSlug/uptime/status-page/publishing': {
-      id: '/$orgSlug/uptime/status-page/publishing'
-      path: '/publishing'
-      fullPath: '/$orgSlug/uptime/status-page/publishing'
-      preLoaderRoute: typeof OrgSlugUptimeStatusPagePublishingRouteImport
-      parentRoute: typeof OrgSlugUptimeStatusPageRoute
-    }
-    '/$orgSlug/uptime/status-page/domains': {
-      id: '/$orgSlug/uptime/status-page/domains'
-      path: '/domains'
-      fullPath: '/$orgSlug/uptime/status-page/domains'
-      preLoaderRoute: typeof OrgSlugUptimeStatusPageDomainsRouteImport
-      parentRoute: typeof OrgSlugUptimeStatusPageRoute
-    }
-    '/$orgSlug/uptime/status-page/components': {
-      id: '/$orgSlug/uptime/status-page/components'
-      path: '/components'
-      fullPath: '/$orgSlug/uptime/status-page/components'
-      preLoaderRoute: typeof OrgSlugUptimeStatusPageComponentsRouteImport
       parentRoute: typeof OrgSlugUptimeStatusPageRoute
     }
     '/$orgSlug/uptime/status-page/appearance': {
@@ -4163,158 +3981,235 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugUptimeStatusPageAppearanceRouteImport
       parentRoute: typeof OrgSlugUptimeStatusPageRoute
     }
-    '/$orgSlug/uptime/monitors_/$monitorId': {
-      id: '/$orgSlug/uptime/monitors_/$monitorId'
-      path: '/monitors/$monitorId'
-      fullPath: '/$orgSlug/uptime/monitors/$monitorId'
-      preLoaderRoute: typeof OrgSlugUptimeMonitorsMonitorIdRouteImport
-      parentRoute: typeof OrgSlugUptimeRoute
+    '/$orgSlug/uptime/status-page/components': {
+      id: '/$orgSlug/uptime/status-page/components'
+      path: '/components'
+      fullPath: '/$orgSlug/uptime/status-page/components'
+      preLoaderRoute: typeof OrgSlugUptimeStatusPageComponentsRouteImport
+      parentRoute: typeof OrgSlugUptimeStatusPageRoute
     }
-    '/$orgSlug/uptime/incidents_/$incidentId': {
-      id: '/$orgSlug/uptime/incidents_/$incidentId'
-      path: '/incidents/$incidentId'
-      fullPath: '/$orgSlug/uptime/incidents/$incidentId'
-      preLoaderRoute: typeof OrgSlugUptimeIncidentsIncidentIdRouteImport
-      parentRoute: typeof OrgSlugUptimeRoute
+    '/$orgSlug/uptime/status-page/domains': {
+      id: '/$orgSlug/uptime/status-page/domains'
+      path: '/domains'
+      fullPath: '/$orgSlug/uptime/status-page/domains'
+      preLoaderRoute: typeof OrgSlugUptimeStatusPageDomainsRouteImport
+      parentRoute: typeof OrgSlugUptimeStatusPageRoute
     }
-    '/$orgSlug/tunnel/tunnels/$tunnelId': {
-      id: '/$orgSlug/tunnel/tunnels/$tunnelId'
-      path: '/tunnels/$tunnelId'
-      fullPath: '/$orgSlug/tunnel/tunnels/$tunnelId'
-      preLoaderRoute: typeof OrgSlugTunnelTunnelsTunnelIdRouteImport
-      parentRoute: typeof OrgSlugTunnelRoute
+    '/$orgSlug/uptime/status-page/publishing': {
+      id: '/$orgSlug/uptime/status-page/publishing'
+      path: '/publishing'
+      fullPath: '/$orgSlug/uptime/status-page/publishing'
+      preLoaderRoute: typeof OrgSlugUptimeStatusPagePublishingRouteImport
+      parentRoute: typeof OrgSlugUptimeStatusPageRoute
     }
-    '/$orgSlug/secrets/vaults_/$projectSlug': {
-      id: '/$orgSlug/secrets/vaults_/$projectSlug'
-      path: '/vaults/$projectSlug'
-      fullPath: '/$orgSlug/secrets/vaults/$projectSlug'
-      preLoaderRoute: typeof OrgSlugSecretsVaultsProjectSlugRouteImport
-      parentRoute: typeof OrgSlugSecretsRoute
+    '/$orgSlug/uptime/status-page/subscribers': {
+      id: '/$orgSlug/uptime/status-page/subscribers'
+      path: '/subscribers'
+      fullPath: '/$orgSlug/uptime/status-page/subscribers'
+      preLoaderRoute: typeof OrgSlugUptimeStatusPageSubscribersRouteImport
+      parentRoute: typeof OrgSlugUptimeStatusPageRoute
     }
-    '/$orgSlug/secrets/projects_/$projectSlug': {
-      id: '/$orgSlug/secrets/projects_/$projectSlug'
-      path: '/projects/$projectSlug'
-      fullPath: '/$orgSlug/secrets/projects/$projectSlug'
-      preLoaderRoute: typeof OrgSlugSecretsProjectsProjectSlugRouteImport
-      parentRoute: typeof OrgSlugSecretsRoute
-    }
-    '/$orgSlug/observability/services_/$serviceId': {
-      id: '/$orgSlug/observability/services_/$serviceId'
-      path: '/services/$serviceId'
-      fullPath: '/$orgSlug/observability/services/$serviceId'
-      preLoaderRoute: typeof OrgSlugObservabilityServicesServiceIdRouteImport
-      parentRoute: typeof OrgSlugObservabilityRoute
-    }
-    '/$orgSlug/observability/alerts_/$alertId': {
-      id: '/$orgSlug/observability/alerts_/$alertId'
-      path: '/alerts/$alertId'
-      fullPath: '/$orgSlug/observability/alerts/$alertId'
-      preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdRouteImport
-      parentRoute: typeof OrgSlugObservabilityRoute
-    }
-    '/api/$orgSlug/uptime/subscribers/': {
-      id: '/api/$orgSlug/uptime/subscribers/'
-      path: '/api/$orgSlug/uptime/subscribers'
-      fullPath: '/api/$orgSlug/uptime/subscribers'
-      preLoaderRoute: typeof ApiOrgSlugUptimeSubscribersIndexRouteImport
+    '/api/$orgSlug/agent/chat': {
+      id: '/api/$orgSlug/agent/chat'
+      path: '/api/$orgSlug/agent/chat'
+      fullPath: '/api/$orgSlug/agent/chat'
+      preLoaderRoute: typeof ApiOrgSlugAgentChatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/uptime/monitors/': {
-      id: '/api/$orgSlug/uptime/monitors/'
-      path: '/api/$orgSlug/uptime/monitors'
-      fullPath: '/api/$orgSlug/uptime/monitors'
-      preLoaderRoute: typeof ApiOrgSlugUptimeMonitorsIndexRouteImport
+    '/api/$orgSlug/agent/threads': {
+      id: '/api/$orgSlug/agent/threads'
+      path: '/api/$orgSlug/agent/threads'
+      fullPath: '/api/$orgSlug/agent/threads'
+      preLoaderRoute: typeof ApiOrgSlugAgentThreadsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/uptime/integrations/': {
-      id: '/api/$orgSlug/uptime/integrations/'
-      path: '/api/$orgSlug/uptime/integrations'
-      fullPath: '/api/$orgSlug/uptime/integrations'
-      preLoaderRoute: typeof ApiOrgSlugUptimeIntegrationsIndexRouteImport
+    '/api/$orgSlug/domains/': {
+      id: '/api/$orgSlug/domains/'
+      path: '/api/$orgSlug/domains'
+      fullPath: '/api/$orgSlug/domains/'
+      preLoaderRoute: typeof ApiOrgSlugDomainsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/uptime/incidents/': {
-      id: '/api/$orgSlug/uptime/incidents/'
-      path: '/api/$orgSlug/uptime/incidents'
-      fullPath: '/api/$orgSlug/uptime/incidents'
-      preLoaderRoute: typeof ApiOrgSlugUptimeIncidentsIndexRouteImport
+    '/api/$orgSlug/domains/$domainId': {
+      id: '/api/$orgSlug/domains/$domainId'
+      path: '/api/$orgSlug/domains/$domainId'
+      fullPath: '/api/$orgSlug/domains/$domainId'
+      preLoaderRoute: typeof ApiOrgSlugDomainsDomainIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/uptime/groups/': {
-      id: '/api/$orgSlug/uptime/groups/'
-      path: '/api/$orgSlug/uptime/groups'
-      fullPath: '/api/$orgSlug/uptime/groups'
-      preLoaderRoute: typeof ApiOrgSlugUptimeGroupsIndexRouteImport
+    '/api/$orgSlug/portal/polar': {
+      id: '/api/$orgSlug/portal/polar'
+      path: '/api/$orgSlug/portal/polar'
+      fullPath: '/api/$orgSlug/portal/polar'
+      preLoaderRoute: typeof ApiOrgSlugPortalPolarRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/uptime/domains/': {
-      id: '/api/$orgSlug/uptime/domains/'
-      path: '/api/$orgSlug/uptime/domains'
-      fullPath: '/api/$orgSlug/uptime/domains'
-      preLoaderRoute: typeof ApiOrgSlugUptimeDomainsIndexRouteImport
+    '/api/$orgSlug/requests/capture': {
+      id: '/api/$orgSlug/requests/capture'
+      path: '/capture'
+      fullPath: '/api/$orgSlug/requests/capture'
+      preLoaderRoute: typeof ApiOrgSlugRequestsCaptureRouteImport
+      parentRoute: typeof ApiOrgSlugRequestsRoute
+    }
+    '/api/$orgSlug/requests/replay': {
+      id: '/api/$orgSlug/requests/replay'
+      path: '/replay'
+      fullPath: '/api/$orgSlug/requests/replay'
+      preLoaderRoute: typeof ApiOrgSlugRequestsReplayRouteImport
+      parentRoute: typeof ApiOrgSlugRequestsRoute
+    }
+    '/api/$orgSlug/secrets/audit': {
+      id: '/api/$orgSlug/secrets/audit'
+      path: '/api/$orgSlug/secrets/audit'
+      fullPath: '/api/$orgSlug/secrets/audit'
+      preLoaderRoute: typeof ApiOrgSlugSecretsAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/uptime/components/': {
-      id: '/api/$orgSlug/uptime/components/'
-      path: '/api/$orgSlug/uptime/components'
-      fullPath: '/api/$orgSlug/uptime/components'
-      preLoaderRoute: typeof ApiOrgSlugUptimeComponentsIndexRouteImport
+    '/api/$orgSlug/secrets/machine-tokens': {
+      id: '/api/$orgSlug/secrets/machine-tokens'
+      path: '/api/$orgSlug/secrets/machine-tokens'
+      fullPath: '/api/$orgSlug/secrets/machine-tokens'
+      preLoaderRoute: typeof ApiOrgSlugSecretsMachineTokensRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/secrets/shares/': {
-      id: '/api/$orgSlug/secrets/shares/'
-      path: '/api/$orgSlug/secrets/shares'
-      fullPath: '/api/$orgSlug/secrets/shares'
-      preLoaderRoute: typeof ApiOrgSlugSecretsSharesIndexRouteImport
+    '/api/$orgSlug/secrets/overview': {
+      id: '/api/$orgSlug/secrets/overview'
+      path: '/api/$orgSlug/secrets/overview'
+      fullPath: '/api/$orgSlug/secrets/overview'
+      preLoaderRoute: typeof ApiOrgSlugSecretsOverviewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/secrets/projects/': {
-      id: '/api/$orgSlug/secrets/projects/'
-      path: '/api/$orgSlug/secrets/projects'
-      fullPath: '/api/$orgSlug/secrets/projects'
-      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsIndexRouteImport
+    '/api/$orgSlug/secrets/trash': {
+      id: '/api/$orgSlug/secrets/trash'
+      path: '/api/$orgSlug/secrets/trash'
+      fullPath: '/api/$orgSlug/secrets/trash'
+      preLoaderRoute: typeof ApiOrgSlugSecretsTrashRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/observability/traces/': {
-      id: '/api/$orgSlug/observability/traces/'
-      path: '/api/$orgSlug/observability/traces'
-      fullPath: '/api/$orgSlug/observability/traces'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityTracesIndexRouteImport
+    '/api/$orgSlug/stats/bandwidth': {
+      id: '/api/$orgSlug/stats/bandwidth'
+      path: '/api/$orgSlug/stats/bandwidth'
+      fullPath: '/api/$orgSlug/stats/bandwidth'
+      preLoaderRoute: typeof ApiOrgSlugStatsBandwidthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/observability/services/': {
-      id: '/api/$orgSlug/observability/services/'
-      path: '/api/$orgSlug/observability/services'
-      fullPath: '/api/$orgSlug/observability/services'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityServicesIndexRouteImport
+    '/api/$orgSlug/stats/overview': {
+      id: '/api/$orgSlug/stats/overview'
+      path: '/api/$orgSlug/stats/overview'
+      fullPath: '/api/$orgSlug/stats/overview'
+      preLoaderRoute: typeof ApiOrgSlugStatsOverviewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/observability/requests/': {
-      id: '/api/$orgSlug/observability/requests/'
-      path: '/api/$orgSlug/observability/requests'
-      fullPath: '/api/$orgSlug/observability/requests'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityRequestsIndexRouteImport
+    '/api/$orgSlug/stats/protocol': {
+      id: '/api/$orgSlug/stats/protocol'
+      path: '/api/$orgSlug/stats/protocol'
+      fullPath: '/api/$orgSlug/stats/protocol'
+      preLoaderRoute: typeof ApiOrgSlugStatsProtocolRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/observability/metrics/': {
-      id: '/api/$orgSlug/observability/metrics/'
-      path: '/api/$orgSlug/observability/metrics'
-      fullPath: '/api/$orgSlug/observability/metrics'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityMetricsIndexRouteImport
+    '/api/$orgSlug/stats/tunnel': {
+      id: '/api/$orgSlug/stats/tunnel'
+      path: '/api/$orgSlug/stats/tunnel'
+      fullPath: '/api/$orgSlug/stats/tunnel'
+      preLoaderRoute: typeof ApiOrgSlugStatsTunnelRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/observability/logs/': {
-      id: '/api/$orgSlug/observability/logs/'
-      path: '/api/$orgSlug/observability/logs'
-      fullPath: '/api/$orgSlug/observability/logs'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityLogsIndexRouteImport
+    '/api/$orgSlug/subdomains/': {
+      id: '/api/$orgSlug/subdomains/'
+      path: '/api/$orgSlug/subdomains'
+      fullPath: '/api/$orgSlug/subdomains/'
+      preLoaderRoute: typeof ApiOrgSlugSubdomainsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/observability/alerts/': {
-      id: '/api/$orgSlug/observability/alerts/'
-      path: '/api/$orgSlug/observability/alerts'
-      fullPath: '/api/$orgSlug/observability/alerts'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsIndexRouteImport
+    '/api/$orgSlug/subdomains/$subdomainId': {
+      id: '/api/$orgSlug/subdomains/$subdomainId'
+      path: '/api/$orgSlug/subdomains/$subdomainId'
+      fullPath: '/api/$orgSlug/subdomains/$subdomainId'
+      preLoaderRoute: typeof ApiOrgSlugSubdomainsSubdomainIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/tunnels/': {
+      id: '/api/$orgSlug/tunnels/'
+      path: '/api/$orgSlug/tunnels'
+      fullPath: '/api/$orgSlug/tunnels/'
+      preLoaderRoute: typeof ApiOrgSlugTunnelsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/tunnels/$tunnelId': {
+      id: '/api/$orgSlug/tunnels/$tunnelId'
+      path: '/api/$orgSlug/tunnels/$tunnelId'
+      fullPath: '/api/$orgSlug/tunnels/$tunnelId'
+      preLoaderRoute: typeof ApiOrgSlugTunnelsTunnelIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/members': {
+      id: '/api/$orgSlug/uptime/members'
+      path: '/api/$orgSlug/uptime/members'
+      fullPath: '/api/$orgSlug/uptime/members'
+      preLoaderRoute: typeof ApiOrgSlugUptimeMembersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/page': {
+      id: '/api/$orgSlug/uptime/page'
+      path: '/api/$orgSlug/uptime/page'
+      fullPath: '/api/$orgSlug/uptime/page'
+      preLoaderRoute: typeof ApiOrgSlugUptimePageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/organizations/$slug': {
+      id: '/api/admin/organizations/$slug'
+      path: '/$slug'
+      fullPath: '/api/admin/organizations/$slug'
+      preLoaderRoute: typeof ApiAdminOrganizationsSlugRouteImport
+      parentRoute: typeof ApiAdminOrganizationsRoute
+    }
+    '/api/admin/products/$product': {
+      id: '/api/admin/products/$product'
+      path: '/api/admin/products/$product'
+      fullPath: '/api/admin/products/$product'
+      preLoaderRoute: typeof ApiAdminProductsProductRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/users/$userId': {
+      id: '/api/admin/users/$userId'
+      path: '/$userId'
+      fullPath: '/api/admin/users/$userId'
+      preLoaderRoute: typeof ApiAdminUsersUserIdRouteImport
+      parentRoute: typeof ApiAdminUsersRoute
+    }
+    '/api/cli/login/status': {
+      id: '/api/cli/login/status'
+      path: '/status'
+      fullPath: '/api/cli/login/status'
+      preLoaderRoute: typeof ApiCliLoginStatusRouteImport
+      parentRoute: typeof ApiCliLoginRoute
+    }
+    '/api/cli/secrets/revision': {
+      id: '/api/cli/secrets/revision'
+      path: '/revision'
+      fullPath: '/api/cli/secrets/revision'
+      preLoaderRoute: typeof ApiCliSecretsRevisionRouteImport
+      parentRoute: typeof ApiCliSecretsRoute
+    }
+    '/api/cli/secrets/rollback': {
+      id: '/api/cli/secrets/rollback'
+      path: '/rollback'
+      fullPath: '/api/cli/secrets/rollback'
+      preLoaderRoute: typeof ApiCliSecretsRollbackRouteImport
+      parentRoute: typeof ApiCliSecretsRoute
+    }
+    '/api/cli/secrets/targets': {
+      id: '/api/cli/secrets/targets'
+      path: '/targets'
+      fullPath: '/api/cli/secrets/targets'
+      preLoaderRoute: typeof ApiCliSecretsTargetsRouteImport
+      parentRoute: typeof ApiCliSecretsRoute
+    }
+    '/api/subscriptions/$orgSlug/cancel': {
+      id: '/api/subscriptions/$orgSlug/cancel'
+      path: '/api/subscriptions/$orgSlug/cancel'
+      fullPath: '/api/subscriptions/$orgSlug/cancel'
+      preLoaderRoute: typeof ApiSubscriptionsOrgSlugCancelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$orgSlug/observability/alerts_/$alertId/': {
@@ -4324,207 +4219,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdIndexRouteImport
       parentRoute: typeof OrgSlugObservabilityAlertsAlertIdRoute
     }
-    '/api/uptime/integrations/$provider/callback': {
-      id: '/api/uptime/integrations/$provider/callback'
-      path: '/api/uptime/integrations/$provider/callback'
-      fullPath: '/api/uptime/integrations/$provider/callback'
-      preLoaderRoute: typeof ApiUptimeIntegrationsProviderCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/uptime/subscribers/settings': {
-      id: '/api/$orgSlug/uptime/subscribers/settings'
-      path: '/api/$orgSlug/uptime/subscribers/settings'
-      fullPath: '/api/$orgSlug/uptime/subscribers/settings'
-      preLoaderRoute: typeof ApiOrgSlugUptimeSubscribersSettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/uptime/subscribers/$subscriberId': {
-      id: '/api/$orgSlug/uptime/subscribers/$subscriberId'
-      path: '/api/$orgSlug/uptime/subscribers/$subscriberId'
-      fullPath: '/api/$orgSlug/uptime/subscribers/$subscriberId'
-      preLoaderRoute: typeof ApiOrgSlugUptimeSubscribersSubscriberIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/uptime/page/logo': {
-      id: '/api/$orgSlug/uptime/page/logo'
-      path: '/logo'
-      fullPath: '/api/$orgSlug/uptime/page/logo'
-      preLoaderRoute: typeof ApiOrgSlugUptimePageLogoRouteImport
-      parentRoute: typeof ApiOrgSlugUptimePageRoute
-    }
-    '/api/$orgSlug/uptime/page/layout': {
-      id: '/api/$orgSlug/uptime/page/layout'
-      path: '/layout'
-      fullPath: '/api/$orgSlug/uptime/page/layout'
-      preLoaderRoute: typeof ApiOrgSlugUptimePageLayoutRouteImport
-      parentRoute: typeof ApiOrgSlugUptimePageRoute
-    }
-    '/api/$orgSlug/uptime/monitors/$monitorId': {
-      id: '/api/$orgSlug/uptime/monitors/$monitorId'
-      path: '/api/$orgSlug/uptime/monitors/$monitorId'
-      fullPath: '/api/$orgSlug/uptime/monitors/$monitorId'
-      preLoaderRoute: typeof ApiOrgSlugUptimeMonitorsMonitorIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/uptime/integrations/$provider': {
-      id: '/api/$orgSlug/uptime/integrations/$provider'
-      path: '/api/$orgSlug/uptime/integrations/$provider'
-      fullPath: '/api/$orgSlug/uptime/integrations/$provider'
-      preLoaderRoute: typeof ApiOrgSlugUptimeIntegrationsProviderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/uptime/incidents/$incidentId': {
-      id: '/api/$orgSlug/uptime/incidents/$incidentId'
-      path: '/api/$orgSlug/uptime/incidents/$incidentId'
-      fullPath: '/api/$orgSlug/uptime/incidents/$incidentId'
-      preLoaderRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/uptime/groups/$groupId': {
-      id: '/api/$orgSlug/uptime/groups/$groupId'
-      path: '/api/$orgSlug/uptime/groups/$groupId'
-      fullPath: '/api/$orgSlug/uptime/groups/$groupId'
-      preLoaderRoute: typeof ApiOrgSlugUptimeGroupsGroupIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/uptime/domains/$domainId': {
-      id: '/api/$orgSlug/uptime/domains/$domainId'
-      path: '/api/$orgSlug/uptime/domains/$domainId'
-      fullPath: '/api/$orgSlug/uptime/domains/$domainId'
-      preLoaderRoute: typeof ApiOrgSlugUptimeDomainsDomainIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/uptime/components/$componentId': {
-      id: '/api/$orgSlug/uptime/components/$componentId'
-      path: '/api/$orgSlug/uptime/components/$componentId'
-      fullPath: '/api/$orgSlug/uptime/components/$componentId'
-      preLoaderRoute: typeof ApiOrgSlugUptimeComponentsComponentIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/tunnels/$tunnelId/stop': {
-      id: '/api/$orgSlug/tunnels/$tunnelId/stop'
-      path: '/stop'
-      fullPath: '/api/$orgSlug/tunnels/$tunnelId/stop'
-      preLoaderRoute: typeof ApiOrgSlugTunnelsTunnelIdStopRouteImport
-      parentRoute: typeof ApiOrgSlugTunnelsTunnelIdRoute
-    }
-    '/api/$orgSlug/secrets/trash/restore': {
-      id: '/api/$orgSlug/secrets/trash/restore'
-      path: '/restore'
-      fullPath: '/api/$orgSlug/secrets/trash/restore'
-      preLoaderRoute: typeof ApiOrgSlugSecretsTrashRestoreRouteImport
-      parentRoute: typeof ApiOrgSlugSecretsTrashRoute
-    }
-    '/api/$orgSlug/secrets/trash/purge': {
-      id: '/api/$orgSlug/secrets/trash/purge'
-      path: '/purge'
-      fullPath: '/api/$orgSlug/secrets/trash/purge'
-      preLoaderRoute: typeof ApiOrgSlugSecretsTrashPurgeRouteImport
-      parentRoute: typeof ApiOrgSlugSecretsTrashRoute
-    }
-    '/api/$orgSlug/secrets/shares/snapshot': {
-      id: '/api/$orgSlug/secrets/shares/snapshot'
-      path: '/api/$orgSlug/secrets/shares/snapshot'
-      fullPath: '/api/$orgSlug/secrets/shares/snapshot'
-      preLoaderRoute: typeof ApiOrgSlugSecretsSharesSnapshotRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/secrets/shares/$shareId': {
-      id: '/api/$orgSlug/secrets/shares/$shareId'
-      path: '/api/$orgSlug/secrets/shares/$shareId'
-      fullPath: '/api/$orgSlug/secrets/shares/$shareId'
-      preLoaderRoute: typeof ApiOrgSlugSecretsSharesShareIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/secrets/projects/$projectSlug': {
-      id: '/api/$orgSlug/secrets/projects/$projectSlug'
-      path: '/api/$orgSlug/secrets/projects/$projectSlug'
-      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug'
-      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/secrets/machine-tokens/$tokenId': {
-      id: '/api/$orgSlug/secrets/machine-tokens/$tokenId'
-      path: '/$tokenId'
-      fullPath: '/api/$orgSlug/secrets/machine-tokens/$tokenId'
-      preLoaderRoute: typeof ApiOrgSlugSecretsMachineTokensTokenIdRouteImport
-      parentRoute: typeof ApiOrgSlugSecretsMachineTokensRoute
-    }
-    '/api/$orgSlug/secrets/keys/rotate': {
-      id: '/api/$orgSlug/secrets/keys/rotate'
-      path: '/api/$orgSlug/secrets/keys/rotate'
-      fullPath: '/api/$orgSlug/secrets/keys/rotate'
-      preLoaderRoute: typeof ApiOrgSlugSecretsKeysRotateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/secrets/keys/rewrap': {
-      id: '/api/$orgSlug/secrets/keys/rewrap'
-      path: '/api/$orgSlug/secrets/keys/rewrap'
-      fullPath: '/api/$orgSlug/secrets/keys/rewrap'
-      preLoaderRoute: typeof ApiOrgSlugSecretsKeysRewrapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/observability/traces/$traceId': {
-      id: '/api/$orgSlug/observability/traces/$traceId'
-      path: '/api/$orgSlug/observability/traces/$traceId'
-      fullPath: '/api/$orgSlug/observability/traces/$traceId'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityTracesTraceIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/observability/requests/$requestId': {
-      id: '/api/$orgSlug/observability/requests/$requestId'
-      path: '/api/$orgSlug/observability/requests/$requestId'
-      fullPath: '/api/$orgSlug/observability/requests/$requestId'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityRequestsRequestIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/observability/alerts/members': {
-      id: '/api/$orgSlug/observability/alerts/members'
-      path: '/api/$orgSlug/observability/alerts/members'
-      fullPath: '/api/$orgSlug/observability/alerts/members'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsMembersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/observability/alerts/$alertId': {
-      id: '/api/$orgSlug/observability/alerts/$alertId'
-      path: '/api/$orgSlug/observability/alerts/$alertId'
-      fullPath: '/api/$orgSlug/observability/alerts/$alertId'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/$orgSlug/domains/$domainId/verify': {
-      id: '/api/$orgSlug/domains/$domainId/verify'
-      path: '/verify'
-      fullPath: '/api/$orgSlug/domains/$domainId/verify'
-      preLoaderRoute: typeof ApiOrgSlugDomainsDomainIdVerifyRouteImport
-      parentRoute: typeof ApiOrgSlugDomainsDomainIdRoute
-    }
-    '/$orgSlug/secrets/vaults_/$projectSlug_/environments': {
-      id: '/$orgSlug/secrets/vaults_/$projectSlug_/environments'
-      path: '/vaults/$projectSlug/environments'
-      fullPath: '/$orgSlug/secrets/vaults/$projectSlug/environments'
-      preLoaderRoute: typeof OrgSlugSecretsVaultsProjectSlugEnvironmentsRouteImport
-      parentRoute: typeof OrgSlugSecretsRoute
-    }
-    '/$orgSlug/observability/alerts_/$alertId/status-page': {
-      id: '/$orgSlug/observability/alerts_/$alertId/status-page'
-      path: '/status-page'
-      fullPath: '/$orgSlug/observability/alerts/$alertId/status-page'
-      preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdStatusPageRouteImport
-      parentRoute: typeof OrgSlugObservabilityAlertsAlertIdRoute
-    }
-    '/$orgSlug/observability/alerts_/$alertId/notifications': {
-      id: '/$orgSlug/observability/alerts_/$alertId/notifications'
-      path: '/notifications'
-      fullPath: '/$orgSlug/observability/alerts/$alertId/notifications'
-      preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdNotificationsRouteImport
-      parentRoute: typeof OrgSlugObservabilityAlertsAlertIdRoute
-    }
-    '/$orgSlug/observability/alerts_/$alertId/incidents': {
-      id: '/$orgSlug/observability/alerts_/$alertId/incidents'
-      path: '/incidents'
-      fullPath: '/$orgSlug/observability/alerts/$alertId/incidents'
-      preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdIncidentsRouteImport
+    '/$orgSlug/observability/alerts_/$alertId/condition': {
+      id: '/$orgSlug/observability/alerts_/$alertId/condition'
+      path: '/condition'
+      fullPath: '/$orgSlug/observability/alerts/$alertId/condition'
+      preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdConditionRouteImport
       parentRoute: typeof OrgSlugObservabilityAlertsAlertIdRoute
     }
     '/$orgSlug/observability/alerts_/$alertId/evaluations': {
@@ -4534,68 +4233,313 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdEvaluationsRouteImport
       parentRoute: typeof OrgSlugObservabilityAlertsAlertIdRoute
     }
-    '/$orgSlug/observability/alerts_/$alertId/condition': {
-      id: '/$orgSlug/observability/alerts_/$alertId/condition'
-      path: '/condition'
-      fullPath: '/$orgSlug/observability/alerts/$alertId/condition'
-      preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdConditionRouteImport
+    '/$orgSlug/observability/alerts_/$alertId/incidents': {
+      id: '/$orgSlug/observability/alerts_/$alertId/incidents'
+      path: '/incidents'
+      fullPath: '/$orgSlug/observability/alerts/$alertId/incidents'
+      preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdIncidentsRouteImport
       parentRoute: typeof OrgSlugObservabilityAlertsAlertIdRoute
     }
-    '/api/observability/alerts/integrations/$provider/callback': {
-      id: '/api/observability/alerts/integrations/$provider/callback'
-      path: '/api/observability/alerts/integrations/$provider/callback'
-      fullPath: '/api/observability/alerts/integrations/$provider/callback'
-      preLoaderRoute: typeof ApiObservabilityAlertsIntegrationsProviderCallbackRouteImport
+    '/$orgSlug/observability/alerts_/$alertId/notifications': {
+      id: '/$orgSlug/observability/alerts_/$alertId/notifications'
+      path: '/notifications'
+      fullPath: '/$orgSlug/observability/alerts/$alertId/notifications'
+      preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdNotificationsRouteImport
+      parentRoute: typeof OrgSlugObservabilityAlertsAlertIdRoute
+    }
+    '/$orgSlug/observability/alerts_/$alertId/status-page': {
+      id: '/$orgSlug/observability/alerts_/$alertId/status-page'
+      path: '/status-page'
+      fullPath: '/$orgSlug/observability/alerts/$alertId/status-page'
+      preLoaderRoute: typeof OrgSlugObservabilityAlertsAlertIdStatusPageRouteImport
+      parentRoute: typeof OrgSlugObservabilityAlertsAlertIdRoute
+    }
+    '/$orgSlug/secrets/vaults_/$projectSlug_/environments': {
+      id: '/$orgSlug/secrets/vaults_/$projectSlug_/environments'
+      path: '/vaults/$projectSlug/environments'
+      fullPath: '/$orgSlug/secrets/vaults/$projectSlug/environments'
+      preLoaderRoute: typeof OrgSlugSecretsVaultsProjectSlugEnvironmentsRouteImport
+      parentRoute: typeof OrgSlugSecretsRoute
+    }
+    '/api/$orgSlug/domains/$domainId/verify': {
+      id: '/api/$orgSlug/domains/$domainId/verify'
+      path: '/verify'
+      fullPath: '/api/$orgSlug/domains/$domainId/verify'
+      preLoaderRoute: typeof ApiOrgSlugDomainsDomainIdVerifyRouteImport
+      parentRoute: typeof ApiOrgSlugDomainsDomainIdRoute
+    }
+    '/api/$orgSlug/observability/alerts/': {
+      id: '/api/$orgSlug/observability/alerts/'
+      path: '/api/$orgSlug/observability/alerts'
+      fullPath: '/api/$orgSlug/observability/alerts/'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/uptime/integrations/$provider/start': {
-      id: '/api/$orgSlug/uptime/integrations/$provider/start'
-      path: '/start'
-      fullPath: '/api/$orgSlug/uptime/integrations/$provider/start'
-      preLoaderRoute: typeof ApiOrgSlugUptimeIntegrationsProviderStartRouteImport
-      parentRoute: typeof ApiOrgSlugUptimeIntegrationsProviderRoute
+    '/api/$orgSlug/observability/alerts/$alertId': {
+      id: '/api/$orgSlug/observability/alerts/$alertId'
+      path: '/api/$orgSlug/observability/alerts/$alertId'
+      fullPath: '/api/$orgSlug/observability/alerts/$alertId'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/uptime/incidents/$incidentId/decision': {
-      id: '/api/$orgSlug/uptime/incidents/$incidentId/decision'
-      path: '/decision'
-      fullPath: '/api/$orgSlug/uptime/incidents/$incidentId/decision'
-      preLoaderRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdDecisionRouteImport
-      parentRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdRoute
+    '/api/$orgSlug/observability/alerts/members': {
+      id: '/api/$orgSlug/observability/alerts/members'
+      path: '/api/$orgSlug/observability/alerts/members'
+      fullPath: '/api/$orgSlug/observability/alerts/members'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsMembersRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/uptime/domains/$domainId/verify': {
-      id: '/api/$orgSlug/uptime/domains/$domainId/verify'
-      path: '/verify'
-      fullPath: '/api/$orgSlug/uptime/domains/$domainId/verify'
-      preLoaderRoute: typeof ApiOrgSlugUptimeDomainsDomainIdVerifyRouteImport
-      parentRoute: typeof ApiOrgSlugUptimeDomainsDomainIdRoute
+    '/api/$orgSlug/observability/logs/': {
+      id: '/api/$orgSlug/observability/logs/'
+      path: '/api/$orgSlug/observability/logs'
+      fullPath: '/api/$orgSlug/observability/logs/'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityLogsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/secrets/projects/$projectSlug/environments': {
-      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments'
-      path: '/environments'
-      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments'
-      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteImport
-      parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugRoute
+    '/api/$orgSlug/observability/metrics/': {
+      id: '/api/$orgSlug/observability/metrics/'
+      path: '/api/$orgSlug/observability/metrics'
+      fullPath: '/api/$orgSlug/observability/metrics/'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityMetricsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/observability/alerts/$alertId/status-page': {
-      id: '/api/$orgSlug/observability/alerts/$alertId/status-page'
-      path: '/status-page'
-      fullPath: '/api/$orgSlug/observability/alerts/$alertId/status-page'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdStatusPageRouteImport
-      parentRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdRoute
+    '/api/$orgSlug/observability/requests/': {
+      id: '/api/$orgSlug/observability/requests/'
+      path: '/api/$orgSlug/observability/requests'
+      fullPath: '/api/$orgSlug/observability/requests/'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityRequestsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/api/$orgSlug/observability/alerts/$alertId/evaluate': {
-      id: '/api/$orgSlug/observability/alerts/$alertId/evaluate'
-      path: '/evaluate'
-      fullPath: '/api/$orgSlug/observability/alerts/$alertId/evaluate'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRouteImport
-      parentRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdRoute
+    '/api/$orgSlug/observability/requests/$requestId': {
+      id: '/api/$orgSlug/observability/requests/$requestId'
+      path: '/api/$orgSlug/observability/requests/$requestId'
+      fullPath: '/api/$orgSlug/observability/requests/$requestId'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityRequestsRequestIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/$orgSlug/secrets/vaults_/$projectSlug_/environments/$environmentSlug': {
-      id: '/$orgSlug/secrets/vaults_/$projectSlug_/environments/$environmentSlug'
-      path: '/$environmentSlug'
-      fullPath: '/$orgSlug/secrets/vaults/$projectSlug/environments/$environmentSlug'
-      preLoaderRoute: typeof OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRouteImport
-      parentRoute: typeof OrgSlugSecretsVaultsProjectSlugEnvironmentsRoute
+    '/api/$orgSlug/observability/services/': {
+      id: '/api/$orgSlug/observability/services/'
+      path: '/api/$orgSlug/observability/services'
+      fullPath: '/api/$orgSlug/observability/services/'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityServicesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/observability/traces/': {
+      id: '/api/$orgSlug/observability/traces/'
+      path: '/api/$orgSlug/observability/traces'
+      fullPath: '/api/$orgSlug/observability/traces/'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityTracesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/observability/traces/$traceId': {
+      id: '/api/$orgSlug/observability/traces/$traceId'
+      path: '/api/$orgSlug/observability/traces/$traceId'
+      fullPath: '/api/$orgSlug/observability/traces/$traceId'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityTracesTraceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/secrets/keys/rewrap': {
+      id: '/api/$orgSlug/secrets/keys/rewrap'
+      path: '/api/$orgSlug/secrets/keys/rewrap'
+      fullPath: '/api/$orgSlug/secrets/keys/rewrap'
+      preLoaderRoute: typeof ApiOrgSlugSecretsKeysRewrapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/secrets/keys/rotate': {
+      id: '/api/$orgSlug/secrets/keys/rotate'
+      path: '/api/$orgSlug/secrets/keys/rotate'
+      fullPath: '/api/$orgSlug/secrets/keys/rotate'
+      preLoaderRoute: typeof ApiOrgSlugSecretsKeysRotateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/secrets/machine-tokens/$tokenId': {
+      id: '/api/$orgSlug/secrets/machine-tokens/$tokenId'
+      path: '/$tokenId'
+      fullPath: '/api/$orgSlug/secrets/machine-tokens/$tokenId'
+      preLoaderRoute: typeof ApiOrgSlugSecretsMachineTokensTokenIdRouteImport
+      parentRoute: typeof ApiOrgSlugSecretsMachineTokensRoute
+    }
+    '/api/$orgSlug/secrets/projects/': {
+      id: '/api/$orgSlug/secrets/projects/'
+      path: '/api/$orgSlug/secrets/projects'
+      fullPath: '/api/$orgSlug/secrets/projects/'
+      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/secrets/projects/$projectSlug': {
+      id: '/api/$orgSlug/secrets/projects/$projectSlug'
+      path: '/api/$orgSlug/secrets/projects/$projectSlug'
+      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug'
+      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/secrets/shares/': {
+      id: '/api/$orgSlug/secrets/shares/'
+      path: '/api/$orgSlug/secrets/shares'
+      fullPath: '/api/$orgSlug/secrets/shares/'
+      preLoaderRoute: typeof ApiOrgSlugSecretsSharesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/secrets/shares/$shareId': {
+      id: '/api/$orgSlug/secrets/shares/$shareId'
+      path: '/api/$orgSlug/secrets/shares/$shareId'
+      fullPath: '/api/$orgSlug/secrets/shares/$shareId'
+      preLoaderRoute: typeof ApiOrgSlugSecretsSharesShareIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/secrets/shares/snapshot': {
+      id: '/api/$orgSlug/secrets/shares/snapshot'
+      path: '/api/$orgSlug/secrets/shares/snapshot'
+      fullPath: '/api/$orgSlug/secrets/shares/snapshot'
+      preLoaderRoute: typeof ApiOrgSlugSecretsSharesSnapshotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/secrets/trash/purge': {
+      id: '/api/$orgSlug/secrets/trash/purge'
+      path: '/purge'
+      fullPath: '/api/$orgSlug/secrets/trash/purge'
+      preLoaderRoute: typeof ApiOrgSlugSecretsTrashPurgeRouteImport
+      parentRoute: typeof ApiOrgSlugSecretsTrashRoute
+    }
+    '/api/$orgSlug/secrets/trash/restore': {
+      id: '/api/$orgSlug/secrets/trash/restore'
+      path: '/restore'
+      fullPath: '/api/$orgSlug/secrets/trash/restore'
+      preLoaderRoute: typeof ApiOrgSlugSecretsTrashRestoreRouteImport
+      parentRoute: typeof ApiOrgSlugSecretsTrashRoute
+    }
+    '/api/$orgSlug/tunnels/$tunnelId/stop': {
+      id: '/api/$orgSlug/tunnels/$tunnelId/stop'
+      path: '/stop'
+      fullPath: '/api/$orgSlug/tunnels/$tunnelId/stop'
+      preLoaderRoute: typeof ApiOrgSlugTunnelsTunnelIdStopRouteImport
+      parentRoute: typeof ApiOrgSlugTunnelsTunnelIdRoute
+    }
+    '/api/$orgSlug/uptime/components/': {
+      id: '/api/$orgSlug/uptime/components/'
+      path: '/api/$orgSlug/uptime/components'
+      fullPath: '/api/$orgSlug/uptime/components/'
+      preLoaderRoute: typeof ApiOrgSlugUptimeComponentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/components/$componentId': {
+      id: '/api/$orgSlug/uptime/components/$componentId'
+      path: '/api/$orgSlug/uptime/components/$componentId'
+      fullPath: '/api/$orgSlug/uptime/components/$componentId'
+      preLoaderRoute: typeof ApiOrgSlugUptimeComponentsComponentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/domains/': {
+      id: '/api/$orgSlug/uptime/domains/'
+      path: '/api/$orgSlug/uptime/domains'
+      fullPath: '/api/$orgSlug/uptime/domains/'
+      preLoaderRoute: typeof ApiOrgSlugUptimeDomainsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/domains/$domainId': {
+      id: '/api/$orgSlug/uptime/domains/$domainId'
+      path: '/api/$orgSlug/uptime/domains/$domainId'
+      fullPath: '/api/$orgSlug/uptime/domains/$domainId'
+      preLoaderRoute: typeof ApiOrgSlugUptimeDomainsDomainIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/groups/': {
+      id: '/api/$orgSlug/uptime/groups/'
+      path: '/api/$orgSlug/uptime/groups'
+      fullPath: '/api/$orgSlug/uptime/groups/'
+      preLoaderRoute: typeof ApiOrgSlugUptimeGroupsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/groups/$groupId': {
+      id: '/api/$orgSlug/uptime/groups/$groupId'
+      path: '/api/$orgSlug/uptime/groups/$groupId'
+      fullPath: '/api/$orgSlug/uptime/groups/$groupId'
+      preLoaderRoute: typeof ApiOrgSlugUptimeGroupsGroupIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/incidents/': {
+      id: '/api/$orgSlug/uptime/incidents/'
+      path: '/api/$orgSlug/uptime/incidents'
+      fullPath: '/api/$orgSlug/uptime/incidents/'
+      preLoaderRoute: typeof ApiOrgSlugUptimeIncidentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/incidents/$incidentId': {
+      id: '/api/$orgSlug/uptime/incidents/$incidentId'
+      path: '/api/$orgSlug/uptime/incidents/$incidentId'
+      fullPath: '/api/$orgSlug/uptime/incidents/$incidentId'
+      preLoaderRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/integrations/': {
+      id: '/api/$orgSlug/uptime/integrations/'
+      path: '/api/$orgSlug/uptime/integrations'
+      fullPath: '/api/$orgSlug/uptime/integrations/'
+      preLoaderRoute: typeof ApiOrgSlugUptimeIntegrationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/integrations/$provider': {
+      id: '/api/$orgSlug/uptime/integrations/$provider'
+      path: '/api/$orgSlug/uptime/integrations/$provider'
+      fullPath: '/api/$orgSlug/uptime/integrations/$provider'
+      preLoaderRoute: typeof ApiOrgSlugUptimeIntegrationsProviderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/monitors/': {
+      id: '/api/$orgSlug/uptime/monitors/'
+      path: '/api/$orgSlug/uptime/monitors'
+      fullPath: '/api/$orgSlug/uptime/monitors/'
+      preLoaderRoute: typeof ApiOrgSlugUptimeMonitorsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/monitors/$monitorId': {
+      id: '/api/$orgSlug/uptime/monitors/$monitorId'
+      path: '/api/$orgSlug/uptime/monitors/$monitorId'
+      fullPath: '/api/$orgSlug/uptime/monitors/$monitorId'
+      preLoaderRoute: typeof ApiOrgSlugUptimeMonitorsMonitorIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/page/layout': {
+      id: '/api/$orgSlug/uptime/page/layout'
+      path: '/layout'
+      fullPath: '/api/$orgSlug/uptime/page/layout'
+      preLoaderRoute: typeof ApiOrgSlugUptimePageLayoutRouteImport
+      parentRoute: typeof ApiOrgSlugUptimePageRoute
+    }
+    '/api/$orgSlug/uptime/page/logo': {
+      id: '/api/$orgSlug/uptime/page/logo'
+      path: '/logo'
+      fullPath: '/api/$orgSlug/uptime/page/logo'
+      preLoaderRoute: typeof ApiOrgSlugUptimePageLogoRouteImport
+      parentRoute: typeof ApiOrgSlugUptimePageRoute
+    }
+    '/api/$orgSlug/uptime/subscribers/': {
+      id: '/api/$orgSlug/uptime/subscribers/'
+      path: '/api/$orgSlug/uptime/subscribers'
+      fullPath: '/api/$orgSlug/uptime/subscribers/'
+      preLoaderRoute: typeof ApiOrgSlugUptimeSubscribersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/subscribers/$subscriberId': {
+      id: '/api/$orgSlug/uptime/subscribers/$subscriberId'
+      path: '/api/$orgSlug/uptime/subscribers/$subscriberId'
+      fullPath: '/api/$orgSlug/uptime/subscribers/$subscriberId'
+      preLoaderRoute: typeof ApiOrgSlugUptimeSubscribersSubscriberIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/uptime/subscribers/settings': {
+      id: '/api/$orgSlug/uptime/subscribers/settings'
+      path: '/api/$orgSlug/uptime/subscribers/settings'
+      fullPath: '/api/$orgSlug/uptime/subscribers/settings'
+      preLoaderRoute: typeof ApiOrgSlugUptimeSubscribersSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/uptime/integrations/$provider/callback': {
+      id: '/api/uptime/integrations/$provider/callback'
+      path: '/api/uptime/integrations/$provider/callback'
+      fullPath: '/api/uptime/integrations/$provider/callback'
+      preLoaderRoute: typeof ApiUptimeIntegrationsProviderCallbackRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/$orgSlug/secrets/projects_/$projectSlug_/environments_/$environmentSlug': {
       id: '/$orgSlug/secrets/projects_/$projectSlug_/environments_/$environmentSlug'
@@ -4604,10 +4548,80 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteImport
       parentRoute: typeof OrgSlugSecretsRoute
     }
+    '/$orgSlug/secrets/vaults_/$projectSlug_/environments/$environmentSlug': {
+      id: '/$orgSlug/secrets/vaults_/$projectSlug_/environments/$environmentSlug'
+      path: '/$environmentSlug'
+      fullPath: '/$orgSlug/secrets/vaults/$projectSlug/environments/$environmentSlug'
+      preLoaderRoute: typeof OrgSlugSecretsVaultsProjectSlugEnvironmentsEnvironmentSlugRouteImport
+      parentRoute: typeof OrgSlugSecretsVaultsProjectSlugEnvironmentsRoute
+    }
+    '/api/$orgSlug/observability/alerts/$alertId/evaluate': {
+      id: '/api/$orgSlug/observability/alerts/$alertId/evaluate'
+      path: '/evaluate'
+      fullPath: '/api/$orgSlug/observability/alerts/$alertId/evaluate'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdEvaluateRouteImport
+      parentRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdRoute
+    }
+    '/api/$orgSlug/observability/alerts/$alertId/status-page': {
+      id: '/api/$orgSlug/observability/alerts/$alertId/status-page'
+      path: '/status-page'
+      fullPath: '/api/$orgSlug/observability/alerts/$alertId/status-page'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdStatusPageRouteImport
+      parentRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdRoute
+    }
+    '/api/$orgSlug/secrets/projects/$projectSlug/environments': {
+      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments'
+      path: '/environments'
+      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments'
+      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRouteImport
+      parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugRoute
+    }
+    '/api/$orgSlug/uptime/domains/$domainId/verify': {
+      id: '/api/$orgSlug/uptime/domains/$domainId/verify'
+      path: '/verify'
+      fullPath: '/api/$orgSlug/uptime/domains/$domainId/verify'
+      preLoaderRoute: typeof ApiOrgSlugUptimeDomainsDomainIdVerifyRouteImport
+      parentRoute: typeof ApiOrgSlugUptimeDomainsDomainIdRoute
+    }
+    '/api/$orgSlug/uptime/incidents/$incidentId/decision': {
+      id: '/api/$orgSlug/uptime/incidents/$incidentId/decision'
+      path: '/decision'
+      fullPath: '/api/$orgSlug/uptime/incidents/$incidentId/decision'
+      preLoaderRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdDecisionRouteImport
+      parentRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdRoute
+    }
+    '/api/$orgSlug/uptime/integrations/$provider/start': {
+      id: '/api/$orgSlug/uptime/integrations/$provider/start'
+      path: '/start'
+      fullPath: '/api/$orgSlug/uptime/integrations/$provider/start'
+      preLoaderRoute: typeof ApiOrgSlugUptimeIntegrationsProviderStartRouteImport
+      parentRoute: typeof ApiOrgSlugUptimeIntegrationsProviderRoute
+    }
+    '/api/observability/alerts/integrations/$provider/callback': {
+      id: '/api/observability/alerts/integrations/$provider/callback'
+      path: '/api/observability/alerts/integrations/$provider/callback'
+      fullPath: '/api/observability/alerts/integrations/$provider/callback'
+      preLoaderRoute: typeof ApiObservabilityAlertsIntegrationsProviderCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider': {
+      id: '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider'
+      path: '/integrations/$provider'
+      fullPath: '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRouteImport
+      parentRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdRoute
+    }
+    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug': {
+      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
+      path: '/$environmentSlug'
+      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
+      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteImport
+      parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRoute
+    }
     '/api/$orgSlug/uptime/incidents/$incidentId/updates/': {
       id: '/api/$orgSlug/uptime/incidents/$incidentId/updates/'
       path: '/updates'
-      fullPath: '/api/$orgSlug/uptime/incidents/$incidentId/updates'
+      fullPath: '/api/$orgSlug/uptime/incidents/$incidentId/updates/'
       preLoaderRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesIndexRouteImport
       parentRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdRoute
     }
@@ -4618,39 +4632,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdUpdatesUpdateIdRouteImport
       parentRoute: typeof ApiOrgSlugUptimeIncidentsIncidentIdRoute
     }
-    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug': {
-      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
-      path: '/$environmentSlug'
-      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug'
-      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRouteImport
-      parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsRoute
+    '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start': {
+      id: '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start'
+      path: '/start'
+      fullPath: '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start'
+      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRouteImport
+      parentRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRoute
     }
-    '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider': {
-      id: '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider'
-      path: '/integrations/$provider'
-      fullPath: '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRouteImport
-      parentRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdRoute
-    }
-    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets': {
-      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets'
-      path: '/secrets'
-      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets'
-      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsRouteImport
-      parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
-    }
-    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision': {
-      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision'
-      path: '/revision'
-      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision'
-      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRouteImport
-      parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
-    }
-    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import': {
-      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import'
-      path: '/import'
-      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import'
-      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRouteImport
+    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk': {
+      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
+      path: '/bulk'
+      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
+      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRouteImport
       parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
     }
     '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/export': {
@@ -4660,19 +4653,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugExportRouteImport
       parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
     }
-    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk': {
-      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
-      path: '/bulk'
-      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/bulk'
-      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugBulkRouteImport
+    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import': {
+      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import'
+      path: '/import'
+      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/import'
+      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugImportRouteImport
       parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
     }
-    '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start': {
-      id: '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start'
-      path: '/start'
-      fullPath: '/api/$orgSlug/observability/alerts/$alertId/integrations/$provider/start'
-      preLoaderRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderStartRouteImport
-      parentRoute: typeof ApiOrgSlugObservabilityAlertsAlertIdIntegrationsProviderRoute
+    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision': {
+      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision'
+      path: '/revision'
+      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/revision'
+      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRevisionRouteImport
+      parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
+    }
+    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets': {
+      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets'
+      path: '/secrets'
+      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets'
+      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsRouteImport
+      parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugRoute
     }
     '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId': {
       id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId'
@@ -4681,11 +4681,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRouteImport
       parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsRoute
     }
-    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/versions': {
-      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/versions'
-      path: '/versions'
-      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/versions'
-      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdVersionsRouteImport
+    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/reveal': {
+      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/reveal'
+      path: '/reveal'
+      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/reveal'
+      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRevealRouteImport
       parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRoute
     }
     '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/rollback': {
@@ -4695,11 +4695,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRollbackRouteImport
       parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRoute
     }
-    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/reveal': {
-      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/reveal'
-      path: '/reveal'
-      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/reveal'
-      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRevealRouteImport
+    '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/versions': {
+      id: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/versions'
+      path: '/versions'
+      fullPath: '/api/$orgSlug/secrets/projects/$projectSlug/environments/$environmentSlug/secrets/$secretId/versions'
+      preLoaderRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdVersionsRouteImport
       parentRoute: typeof ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecretIdRoute
     }
   }
