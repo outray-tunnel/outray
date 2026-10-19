@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { Button } from "../src/components/arc/button/button";
 import { NewTunnelButton } from "../src/components/new-tunnel-button";
+import type { SideSheetProps } from "../src/components/ui/side-sheet";
 import {
   buildNewTunnelCommand,
   isValidLocalPort,
@@ -16,25 +17,29 @@ import {
 // The Node test runner's TSX transform uses classic JSX; Vite uses automatic JSX.
 Object.assign(globalThis, { React });
 
-async function renderNewTunnelCommands(copiedCommand: string | null = null) {
-  const source = await readFile(new URL("../src/components/new-tunnel-modal.tsx", import.meta.url), "utf8");
+async function loadNewTunnelSheet(copiedCommand: string | null = null) {
+  const source = await readFile(new URL("../src/components/new-tunnel-sheet.tsx", import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true } }).outputText;
-  const module = { exports: {} as { NewTunnelModal: (props: object) => React.ReactNode } };
+  const module = { exports: {} as { NewTunnelSheet: (props: object) => React.ReactElement<SideSheetProps> } };
   let stateIndex = 0;
-  const childrenOnly = ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, null, children);
   runInNewContext(compiled, { React, module, exports: module.exports, require: (specifier: string) => {
     if (specifier === "react") return { useEffect: () => {}, useRef: () => ({ current: null }), useState: (initial: unknown) => [stateIndex++ === 4 ? copiedCommand : initial, () => {}] };
     if (specifier === "@hugeicons/react") return { HugeiconsIcon: ({ icon }: { icon: string }) => React.createElement("svg", { "aria-hidden": true, "data-icon": icon }) };
     if (specifier.startsWith("@outray/icons/stroke/")) return { __esModule: true, default: specifier.split("/").at(-1) };
     if (specifier.endsWith("arc/button/button")) return { Button };
-    if (specifier.endsWith("arc/dialog/dialog")) return { Dialog: childrenOnly, DialogContent: childrenOnly };
+    if (specifier.endsWith("ui/side-sheet")) return { SideSheet: ({ children, footer }: SideSheetProps) => React.createElement(React.Fragment, null, children, footer) };
     if (specifier.endsWith("arc/segmented-control/segmented-control")) return { __esModule: true, default: () => null };
     if (specifier.endsWith("ui/workspace-input")) return { WorkspaceInput: () => null };
     if (specifier.endsWith("ui/workspace-input-styles")) return { workspaceInputShellClassName: "input-shell" };
     if (specifier === "./new-tunnel-commands") return { buildNewTunnelCommand, isValidLocalPort, isValidTunnelAddress };
     throw new Error(`Unexpected new tunnel dependency: ${specifier}`);
   } });
-  return renderToStaticMarkup(module.exports.NewTunnelModal({ isOpen: true, onClose: () => {}, orgSlug: "byteship", triggerRef: { current: null } }));
+  return module.exports.NewTunnelSheet;
+}
+
+async function renderNewTunnelCommands(copiedCommand: string | null = null) {
+  const NewTunnelSheet = await loadNewTunnelSheet(copiedCommand);
+  return renderToStaticMarkup(NewTunnelSheet({ isOpen: true, onClose: () => {}, orgSlug: "byteship", triggerRef: { current: null } }));
 }
 
 test("new tunnel commands target the current workspace and validate the address", () => {
@@ -90,7 +95,7 @@ test("a loading UIArc button stays focusable and announces that it is busy", () 
   assert.doesNotMatch(html, /disabled=""/);
 });
 
-test("the new tunnel button uses the shared medium size and still opens plan-limit guidance", () => {
+test("the new tunnel button matches the outlined observability action and still opens plan-limit guidance", () => {
   const html = renderToStaticMarkup(
     React.createElement(NewTunnelButton, {
       isAtLimit: true,
@@ -101,11 +106,14 @@ test("the new tunnel button uses the shared medium size and still opens plan-lim
   assert.match(html, /New tunnel \(plan limit reached\)/);
   assert.match(html, /<button/);
   assert.match(html, /<button\b[^>]*class="[^"]*min-h-9/);
+  assert.match(html, /<button\b[^>]*class="[^"]*border-white\/12 bg-zinc-900 text-zinc-50/);
+  assert.match(html, /aria-haspopup="dialog"/);
+  assert.doesNotMatch(html, /border-zinc-50 bg-zinc-50/);
   assert.doesNotMatch(html, /disabled=""/);
 });
 
 test("composite tunnel inputs retain their neutral shell focus and accessible labels", async () => {
-  const source = await readFile(new URL("../src/components/new-tunnel-modal.tsx", import.meta.url), "utf8");
+  const source = await readFile(new URL("../src/components/new-tunnel-sheet.tsx", import.meta.url), "utf8");
   const inputs = [...source.matchAll(/<WorkspaceInput\b[\s\S]*?\/>/g)];
   assert.equal(inputs.length, 2);
 
@@ -116,6 +124,7 @@ test("composite tunnel inputs retain their neutral shell focus and accessible la
     const input = inputs.find(([markup]) => markup.includes(`id="${id}"`));
     assert.ok(input, `${id} uses the shared native input component`);
     assert.match(input[0], /variant="bare"/);
+    if (id === "new-tunnel-local-port") assert.match(input[0], /data-autofocus/);
     assert.ok(input[0].includes(`aria-describedby="${hint}"`));
     assert.ok(source.includes(`htmlFor="${id}"`));
     assert.ok(source.includes(`id="${hint}"`));
@@ -127,16 +136,44 @@ test("composite tunnel inputs retain their neutral shell focus and accessible la
   assert.match(source, /aria-hidden="true" className="[^"]*border-r border-white\/\[0\.08\]/);
 });
 
-test("new tunnel command actions use the small size inside the modal", async () => {
-  const source = await readFile(new URL("../src/components/new-tunnel-modal.tsx", import.meta.url), "utf8");
+test("new tunnel actions use the small size inside the sheet", async () => {
+  const source = await readFile(new URL("../src/components/new-tunnel-sheet.tsx", import.meta.url), "utf8");
   const buttons = [...source.matchAll(/<Button\b[\s\S]*?>/g)];
-  assert.equal(buttons.length, 2);
+  assert.equal(buttons.length, 3);
   for (const [button] of buttons) assert.match(button, /size="sm"/);
+});
+
+test("the new tunnel sheet delegates modal focus and dismisses through its Done action", async () => {
+  const NewTunnelSheet = await loadNewTunnelSheet();
+  let closed = 0;
+  const triggerRef = { current: null };
+  const sheet = NewTunnelSheet({ isOpen: true, onClose: () => { closed++; }, orgSlug: "byteship", triggerRef });
+  assert.equal(sheet.props.open, true);
+  assert.equal(sheet.props.title, "New tunnel");
+  assert.equal(sheet.props.returnFocusRef, triggerRef);
+  sheet.props.onClose();
+  assert.equal(closed, 1);
+  const footer = sheet.props.footer as React.ReactElement<{ children: React.ReactNode }>;
+  const actions = React.Children.toArray(footer.props.children);
+  const docs = actions[0] as React.ReactElement<React.AnchorHTMLAttributes<HTMLAnchorElement>>;
+  assert.equal(docs.type, "a");
+  assert.equal(docs.props.href, "/docs/opening-a-tunnel");
+  assert.equal(docs.props.target, "_blank");
+  assert.equal(docs.props.rel, "noreferrer");
+  assert.match(renderToStaticMarkup(docs), /Read the docs/);
+  const done = actions[1] as React.ReactElement<React.ComponentProps<typeof Button>>;
+  assert.equal(done.type, Button);
+  assert.equal(done.props.children, "Done");
+  assert.equal(done.props.variant, "secondary");
+  assert.equal(done.props.size, "sm");
+  done.props.onClick?.({} as React.MouseEvent<HTMLButtonElement>);
+  assert.equal(closed, 2);
 });
 
 test("new tunnel command copy actions are compact icons with accessible names and unchanged code displays", async () => {
   const html = await renderNewTunnelCommands();
-  const buttons = [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(([button]) => button);
+  const buttons = [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)]
+    .map(([button]) => button).filter((button) => /aria-label="Copy [^"]+ command"/.test(button));
   assert.equal(buttons.length, 3);
   for (const button of buttons) {
     assert.match(button, /aria-label="Copy [^"]+ command"/);
