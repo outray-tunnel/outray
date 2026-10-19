@@ -10,7 +10,7 @@ import Tick02Icon from "@outray/icons/stroke/Tick02Icon";
 import { Button } from "@/components/arc/button/button";
 import { SearchField } from "@/components/arc/search-field/search-field";
 import { Select } from "@/components/arc/select/select";
-import { NewTunnelModal } from "@/components/new-tunnel-modal";
+import { NewTunnelSheet } from "@/components/new-tunnel-sheet";
 import { NewTunnelButton } from "@/components/new-tunnel-button";
 import { LimitModal } from "@/components/limit-modal";
 import { appClient, type Tunnel } from "@/lib/app-client";
@@ -50,7 +50,7 @@ function TunnelsView() {
   const { orgSlug } = Route.useParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOrder>("newest");
-  const [isNewTunnelModalOpen, setIsNewTunnelModalOpen] = useState(false);
+  const [isNewTunnelSheetOpen, setIsNewTunnelSheetOpen] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const [copiedTunnelId, setCopiedTunnelId] = useState<string | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
@@ -106,7 +106,7 @@ function TunnelsView() {
       setIsLimitModalOpen(true);
       return;
     }
-    setIsNewTunnelModalOpen(true);
+    setIsNewTunnelSheetOpen(true);
   };
 
   const handleCopy = async (tunnel: Tunnel) => {
@@ -263,7 +263,7 @@ function TunnelsView() {
       </section>
 
       <p role="status" className="sr-only">{copiedTunnelId ? "Tunnel address copied." : ""}</p>
-      <NewTunnelModal isOpen={isNewTunnelModalOpen} onClose={() => setIsNewTunnelModalOpen(false)} orgSlug={orgSlug} triggerRef={newTunnelTriggerRef} />
+      <NewTunnelSheet isOpen={isNewTunnelSheetOpen} onClose={() => setIsNewTunnelSheetOpen(false)} orgSlug={orgSlug} triggerRef={newTunnelTriggerRef} />
       <LimitModal
         isOpen={isLimitModalOpen}
         onClose={() => setIsLimitModalOpen(false)}
