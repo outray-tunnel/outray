@@ -10,6 +10,8 @@ import ts from "typescript";
 import { ProductSetup } from "../src/components/onboarding/product-setup";
 import { parseSetupProduct, type SetupProduct } from "../src/components/onboarding/setup-products";
 import { observabilitySetupCode, setupCliCommand } from "../src/components/onboarding/setup-endpoints";
+import * as secretsDraft from "../src/components/onboarding/secrets-draft";
+import { serializeEnvText } from "../src/lib/secrets/validation";
 
 Object.assign(globalThis, { React });
 
@@ -139,6 +141,7 @@ async function loadSetup(initialState: any[] = [], clients: Record<string, any> 
     projects: async () => [],
     createProject: async () => project("new"),
     createSecret: async () => ({}),
+    importDotenv: async () => ({ created: 0, updated: 0, unchanged: 0 }),
     overview: async () => ({ secretCount: 0 }),
     ...clients.secrets,
   };
@@ -170,6 +173,8 @@ async function loadSetup(initialState: any[] = [], clients: Record<string, any> 
       if (specifier === "./setup-products") return { parseSetupProduct };
       if (specifier === "./observability-setup") return guideModule.exports;
       if (specifier === "./setup-endpoints") return { observabilitySetupCode, setupCliCommand };
+      if (specifier === "./secrets-draft") return secretsDraft;
+      if (specifier === "@/lib/secrets/validation") return { serializeEnvText };
       if (specifier.endsWith("ui/workspace-input")) return { WorkspaceInput: "input", WorkspaceTextarea: "textarea" };
       if (specifier.startsWith("@/components/") || specifier === "./setup-ui" || specifier === "./onboarding-shell" || specifier === "./uptime-monitor-form") return stubs;
       throw new Error(`Unexpected setup dependency: ${specifier}`);
@@ -200,7 +205,7 @@ async function loadSetup(initialState: any[] = [], clients: Record<string, any> 
 }
 
 const secretState = (overrides: Record<number, unknown> = {}) => Object.assign([
-  [project(), project("other")], false, "app", "development", "", "API_KEY", "example-value", false, false, null, null, null,
+  [project(), project("other")], false, "app", "development", "", [{ id: 0, key: "API_KEY", value: "example-value" }], false, false, null, null, null,
 ], overrides);
 const event = () => ({ preventDefault() {} });
 function submit(tree: React.ReactNode) {
@@ -208,6 +213,150 @@ function submit(tree: React.ReactNode) {
   assert.ok(form);
   return form.props.onSubmit(event());
 }
+function secretInput(tree: React.ReactNode, field: "key" | "value", row = 1) {
+  const input = elements(tree).find((element) => element.props["aria-label"] === `Secret ${field} ${row}`);
+  assert.ok(input, `Secret ${field} ${row} is labelled`);
+  return input;
+}
+function paste(input: React.ReactElement<any>, text: string) {
+  let prevented = false;
+  input.props.onPaste({
+    preventDefault() { prevented = true; },
+    clipboardData: { getData: (format: string) => format === "text" || format === "text/plain" ? text : "" },
+  });
+  return prevented;
+}
+const draftEntries = (rows: any[]) => normalize(rows.map(({ key, value }) => ({ key, value })));
+const multipleSecrets = [
+  { id: 0, key: "API_KEY", value: "secret=token" },
+  { id: 1, key: "DATABASE_URL", value: "postgres://localhost/app" },
+];
+
+test("pasting env assignments populates editable key and value columns, with manual row controls", async () => {
+  const setup = await loadSetup(secretState({ 5: [{ id: 0, key: "", value: "" }] }));
+  assert.equal(paste(secretInput(setup.renderSecrets(), "key"), 'API_KEY=first\nDATABASE_URL="postgres://localhost/app"'), true);
+  assert.deepEqual(draftEntries(setup.values[5]), [
+    { key: "API_KEY", value: "first" },
+    { key: "DATABASE_URL", value: "postgres://localhost/app" },
+  ]);
+  let tree = setup.renderSecrets();
+  for (const row of [1, 2]) {
+    const key = secretInput(tree, "key", row);
+    const value = secretInput(tree, "value", row);
+    const grid = elements(tree).find((element) => element.type === "div" && /grid/.test(element.props.className ?? "") && elements(element.props.children).includes(key) && elements(element.props.children).includes(value));
+    assert.ok(grid, "key and value share a grid row");
+    assert.match(grid.props.className, /grid-cols-(?:2|\[[^\]]+)/, "each row has two input columns");
+  }
+  secretInput(tree, "value", 2).props.onChange({ target: { value: "edited-url" } });
+  assert.equal(setup.values[5][1].value, "edited-url");
+  const add = elements(setup.renderSecrets()).find((element) => element.type === setup.stubs.Button && React.Children.toArray(element.props.children).includes("Add another"));
+  assert.ok(add);
+  add.props.onClick();
+  assert.equal(setup.values[5].length, 3);
+  tree = setup.renderSecrets();
+  assert.equal(secretInput(tree, "key", 3).props.value, "");
+  const remove = elements(tree).find((element) => element.props["aria-label"] === "Remove secret 1");
+  assert.ok(remove);
+  remove.props.onClick();
+  assert.deepEqual(draftEntries(setup.values[5]), [
+    { key: "DATABASE_URL", value: "edited-url" }, { key: "", value: "" },
+  ]);
+});
+
+test("pasting multiple envs in a value field expands them while ordinary values retain native paste", async () => {
+  for (const text of ["ordinary token", "token=abc123", "https://example.com/?key=value", "first line\nsecond line"]) {
+    const setup = await loadSetup(secretState());
+    assert.equal(paste(secretInput(setup.renderSecrets(), "value"), text), false);
+    assert.deepEqual(draftEntries(setup.values[5]), [{ key: "API_KEY", value: "example-value" }]);
+    assert.equal(setup.values[8], null);
+  }
+  const setup = await loadSetup(secretState());
+  assert.equal(paste(secretInput(setup.renderSecrets(), "value"), "FIRST=1\nSECOND=2"), true);
+  assert.deepEqual(draftEntries(setup.values[5]), [{ key: "FIRST", value: "1" }, { key: "SECOND", value: "2" }]);
+});
+
+test("malformed and duplicate env paste leaves all draft rows intact and shows an error", async () => {
+  for (const text of ['NEW_KEY="unterminated\nNEXT=2', "NEW_KEY=first\nNEW_KEY=second", "DATABASE_URL=duplicate\nNEW_KEY=value"]) {
+    const setup = await loadSetup(secretState({ 5: multipleSecrets }));
+    const before = normalize(setup.values[5]);
+    assert.equal(paste(secretInput(setup.renderSecrets(), "key"), text), true);
+    assert.deepEqual(normalize(setup.values[5]), before);
+    assert.match(setup.values[8], /quoted value|Duplicate environment key/);
+    assert.equal(setup.verified, 0);
+  }
+});
+
+test("bulk saving previews and commits one env import with the current and authoritative revisions", async () => {
+  const calls: any[] = [];
+  const setup = await loadSetup(secretState({ 5: multipleSecrets }), {
+    secrets: {
+      createSecret: async () => assert.fail("multiple rows must use an atomic import"),
+      importDotenv: async (...args: any[]) => {
+        calls.push(args);
+        return args[3].dryRun
+          ? { created: 2, updated: 0, unchanged: 0, revision: 6 }
+          : { created: 2, updated: 0, unchanged: 0, revision: 12 };
+      },
+    },
+  });
+  await submit(setup.renderSecrets());
+  const envText = serializeEnvText({ API_KEY: "secret=token", DATABASE_URL: "postgres://localhost/app" });
+  assert.deepEqual(normalize(calls), [
+    ["acme", "app", "development", { envText, dryRun: true }],
+    ["acme", "app", "development", { envText, expectedRevision: 6, dryRun: false }],
+  ]);
+  assert.deepEqual(draftEntries(setup.values[5]), [{ key: "", value: "" }]);
+  assert.equal(setup.values[7], false);
+  assert.equal(setup.values[8], null);
+  assert.equal(setup.values[10], "Saved 2 secrets to Application / Development.");
+  assert.equal(setup.values[0][0].secretCount, 6);
+  assert.equal(setup.values[0][0].environments[1].secretCount, 4);
+  assert.equal(setup.values[0][0].environments[1].revision, 12);
+  assert.equal(setup.values[0][0].environments[0].revision, 9);
+  assert.deepEqual(normalize(setup.values[0][1]), project("other"));
+  assert.equal(setup.verified, 1);
+});
+
+test("a failed atomic bulk import retains every draft and leaves destination counts unchanged", async () => {
+  let previews = 0;
+  let commits = 0;
+  const setup = await loadSetup(secretState({ 5: multipleSecrets }), {
+    secrets: {
+      createSecret: async () => assert.fail("bulk writes must not loop over createSecret"),
+      importDotenv: async (...args: any[]) => {
+        if (args[3].dryRun) { previews++; return { created: 2, updated: 0, unchanged: 0, revision: 3 }; }
+        commits++;
+        throw new Error("Revision conflict");
+      },
+    },
+  });
+  const before = normalize(setup.values[0]);
+  await submit(setup.renderSecrets());
+  assert.equal(previews, 1);
+  assert.equal(commits, 1);
+  assert.deepEqual(normalize(setup.values[5]), multipleSecrets);
+  assert.deepEqual(normalize(setup.values[0]), before);
+  assert.equal(setup.values[7], false);
+  assert.equal(setup.values[8], "Revision conflict");
+  assert.equal(setup.values[10], null);
+  assert.equal(setup.verified, 0);
+});
+
+test("bulk setup rejects existing keys from preview before writing any values", async () => {
+  for (const summary of [{ created: 1, updated: 1, unchanged: 0 }, { created: 1, updated: 0, unchanged: 1 }]) {
+    const calls: any[] = [];
+    const setup = await loadSetup(secretState({ 5: multipleSecrets }), {
+      secrets: { importDotenv: async (...args: any[]) => { calls.push(args); return { ...summary, revision: 3 }; } },
+    });
+    await submit(setup.renderSecrets());
+    assert.equal(calls.length, 1, "existing keys must not be overwritten");
+    assert.equal(calls[0][3].dryRun, true);
+    assert.deepEqual(normalize(setup.values[5]), multipleSecrets);
+    assert.equal(setup.values[0][0].secretCount, 4);
+    assert.match(setup.values[8], /already|exist/i);
+    assert.equal(setup.verified, 0);
+  }
+});
 
 test("vault creation errors retain the entered name; successful creation selects Development and clears it", async () => {
   let fail = true;
@@ -218,8 +367,8 @@ test("vault creation errors retain the entered name; successful creation selects
   });
   await submit(setup.renderSecrets());
   assert.equal(setup.values[4], "  Customer API  ");
-  assert.equal(setup.values[9], "Vault rejected");
-  assert.equal(setup.values[7], false);
+  assert.equal(setup.values[8], "Vault rejected");
+  assert.equal(setup.values[6], false);
   assert.equal(setup.values[0].length, 0);
   fail = false;
   await submit(setup.renderSecrets());
@@ -228,7 +377,7 @@ test("vault creation errors retain the entered name; successful creation selects
   assert.equal(setup.values[2], "created");
   assert.equal(setup.values[3], "development");
   assert.equal(setup.values[0].length, 1);
-  assert.equal(setup.values[9], null);
+  assert.equal(setup.values[8], null);
 });
 
 test("secret errors preserve inputs and revisions; success clears inputs and increments only its destination", async () => {
@@ -238,9 +387,8 @@ test("secret errors preserve inputs and revisions; success clears inputs and inc
     secrets: { createSecret: async (...args: any[]) => { calls.push(args); if (fail) throw new Error("Revision conflict"); return {}; } },
   });
   await submit(setup.renderSecrets());
-  assert.equal(setup.values[5], "API_KEY");
-  assert.equal(setup.values[6], "example-value");
-  assert.equal(setup.values[9], "Revision conflict");
+  assert.deepEqual(normalize(setup.values[5]), [{ id: 0, key: "API_KEY", value: "example-value" }]);
+  assert.equal(setup.values[8], "Revision conflict");
   assert.equal(setup.values[0][0].environments[1].revision, 3);
   assert.equal(setup.verified, 0);
   fail = false;
@@ -248,11 +396,10 @@ test("secret errors preserve inputs and revisions; success clears inputs and inc
   assert.deepEqual(normalize(calls[1]), ["acme", "app", "development", {
     key: "API_KEY", value: "example-value", environmentSlugs: ["development"], expectedRevisions: { development: 3 }, expectedRevision: 3,
   }]);
-  assert.equal(setup.values[5], "");
-  assert.equal(setup.values[6], "");
-  assert.equal(setup.values[8], false);
-  assert.equal(setup.values[9], null);
-  assert.equal(setup.values[11], "Saved to Application / Development.");
+  assert.deepEqual(normalize(setup.values[5]), [{ id: 0, key: "", value: "" }]);
+  assert.equal(setup.values[7], false);
+  assert.equal(setup.values[8], null);
+  assert.equal(setup.values[10], "Saved to Application / Development.");
   assert.equal(setup.values[0][0].secretCount, 5);
   assert.equal(setup.values[0][0].environments[1].revision, 4);
   assert.equal(setup.values[0][0].environments[1].secretCount, 3);
@@ -263,26 +410,30 @@ test("secret errors preserve inputs and revisions; success clears inputs and inc
 
 test("invalid keys, missing destinations, and pending saves cannot submit duplicate mutations", async () => {
   let mutations = 0;
-  for (const overrides of [{ 5: "" }, { 5: "1_BAD" }, { 5: "bad-key" }, { 2: "missing" }, { 0: [{ ...project(), environments: [] }] }, { 8: true }]) {
+  for (const overrides of [{ 5: [{ id: 0, key: "", value: "" }] }, { 5: [{ id: 0, key: "1_BAD", value: "value" }] }, { 5: [{ id: 0, key: "bad-key", value: "value" }] }, { 2: "missing" }, { 0: [{ ...project(), environments: [] }] }, { 7: true }]) {
     const setup = await loadSetup(secretState(overrides), { secrets: { createSecret: async () => { mutations++; } } });
     await submit(setup.renderSecrets());
     assert.equal(setup.verified, 0);
   }
-  for (const overrides of [{ 4: "   " }, { 4: "Application", 7: true }]) {
+  for (const overrides of [{ 4: "   " }, { 4: "Application", 6: true }]) {
     const setup = await loadSetup(secretState({ 0: [], ...overrides }), { secrets: { createProject: async () => { mutations++; return project(); } } });
     await submit(setup.renderSecrets());
   }
   assert.equal(mutations, 0);
 });
 
-test("pending Secrets forms retain text but lock destination selectors and editing", async () => {
-  const setup = await loadSetup(secretState({ 8: true }));
+test("pending Secrets forms retain text but lock destination selectors, editing, and row controls", async () => {
+  const setup = await loadSetup(secretState({ 5: multipleSecrets, 7: true }));
   const tree = elements(setup.renderSecrets());
   const selectors = tree.filter((element) => element.type === setup.stubs.Select);
   assert.equal(selectors.length, 2);
   for (const selector of selectors) assert.equal(selector.props.disabled, true);
   for (const input of tree.filter((element) => element.type === "input" || element.type === "textarea")) assert.equal(input.props.readOnly, true);
-  const vault = await loadSetup(secretState({ 0: [], 4: "Example", 7: true }));
+  for (const control of tree.filter((element) => element.type === setup.stubs.Button && element.props.type === "button")) assert.equal(control.props.disabled, true);
+  assert.equal(tree.find((element) => element.type === setup.stubs.Button && element.props.type === "submit")?.props.loading, true);
+  assert.equal(paste(secretInput(setup.renderSecrets(), "key"), "NEW=1\nOTHER=2"), false);
+  assert.deepEqual(normalize(setup.values[5]), multipleSecrets);
+  const vault = await loadSetup(secretState({ 0: [], 4: "Example", 6: true }));
   assert.equal(elements(vault.renderSecrets()).find((element) => element.type === "input")?.props.readOnly, true);
 });
 
@@ -292,14 +443,14 @@ test("vault-load errors show their own retry state and never masquerade as an em
   setup.renderSecrets();
   await setup.callbacks[0]();
   assert.equal(setup.values[1], false);
-  assert.equal(setup.values[10], "Vault service unavailable");
+  assert.equal(setup.values[9], "Vault service unavailable");
   const failed = setup.renderSecrets();
   assert.equal(failed.props.role, "alert");
   assert.equal(elements(failed).some((element) => element.type === "form"), false);
   assert.ok(elements(failed).some((element) => element.props.children === "Could not load vaults"));
   fail = false;
   await setup.callbacks[0]();
-  assert.equal(setup.values[10], null);
+  assert.equal(setup.values[9], null);
   assert.equal(setup.values[0].length, 1);
 });
 
