@@ -1,0 +1,46 @@
+.mark {
+  display: inline-flex;
+  flex: none;
+  color: #fff;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.band {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.band:nth-child(1) { --band-delay: 0ms; }
+.band:nth-child(2) { --band-delay: 120ms; }
+.band:nth-child(3) { --band-delay: 240ms; }
+.band:nth-child(4) { --band-delay: 360ms; }
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(a:hover, a:focus-visible) .band {
+    animation: arc-pulse 760ms cubic-bezier(.16, 1, .3, 1) var(--band-delay) both;
+  }
+}
+
+@keyframes arc-pulse {
+  0%, 100% {
+    transform: scale(1);
+    fill: currentColor;
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  28% {
+    transform: scale(.94, 1.06);
+    fill: #bba4ff;
+    filter: drop-shadow(0 0 3px rgb(167 139 250 / .6));
+  }
+  58% {
+    transform: scale(1.03, .98);
+    fill: #e0d4ff;
+    filter: drop-shadow(0 0 1px rgb(167 139 250 / .25));
+  }
+}
