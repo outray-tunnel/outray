@@ -1,4 +1,6 @@
 import { useState, type RefObject } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import ArrowUpRight01Icon from "@outray/icons/stroke/ArrowUpRight01Icon";
 import { Button } from "../arc/button/button";
 import { ObservabilitySetup } from "../onboarding/observability-setup";
 import { SideSheet } from "../ui/side-sheet";
@@ -39,7 +41,18 @@ export function ConnectServiceSheet({
       onInteractOutside={(event) => {
         if (tokenModalOpen) event.preventDefault();
       }}
-      footer={<Button variant="secondary" size="sm" onClick={close} disabled={tokenModalOpen}>Done</Button>}
+      footer={<>
+        <a
+          href="/docs/observability/getting-started"
+          target="_blank"
+          rel="noreferrer"
+          className="mr-auto inline-flex min-h-8 items-center gap-1.5 rounded-md text-[12px] text-zinc-400 transition-colors hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent motion-reduce:transition-none"
+        >
+          Read the docs
+          <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} strokeWidth={1.8} aria-hidden="true" />
+        </a>
+        <Button variant="secondary" size="sm" onClick={close} disabled={tokenModalOpen}>Done</Button>
+      </>}
     >
       <ObservabilitySetup
         orgSlug={orgSlug}
