@@ -8,9 +8,12 @@ import LockPasswordIcon from "@outray/icons/stroke/LockPasswordIcon";
 import Pulse02Icon from "@outray/icons/stroke/Pulse02Icon";
 import HeartPulseIcon from "@outray/icons/stroke/HeartPulseIcon";
 import Tick02Icon from "@outray/icons/stroke/Tick02Icon";
+import Add01Icon from "@outray/icons/stroke/Add01Icon";
+import Delete02Icon from "@outray/icons/stroke/Delete02Icon";
 import { Link } from "@tanstack/react-router";
 import {
   type FormEvent,
+  type ClipboardEvent,
   useCallback,
   useEffect,
   useState,
@@ -23,6 +26,8 @@ import { SetupFlow, SetupStep, SetupCodeBlock as CodeBlock } from "./setup-ui";
 import { UptimeMonitorForm } from "./uptime-monitor-form";
 import { ObservabilitySetup } from "./observability-setup";
 import { setupCliCommand } from "./setup-endpoints";
+import { createEmptySecretDraft, parseSecretPaste, populateSecretDraft, secretDraftValues } from "./secrets-draft";
+import { serializeEnvText } from "@/lib/secrets/validation";
 import { parseSetupProduct, type SetupProduct } from "./setup-products";
 import type { UptimeMonitor } from "@/components/uptime/uptime-client";
 import { appClient } from "@/lib/app-client";
@@ -207,8 +212,7 @@ function SecretsSetup({
   const [selectedProjectSlug, setSelectedProjectSlug] = useState("");
   const [selectedEnvironmentSlug, setSelectedEnvironmentSlug] = useState("");
   const [vaultName, setVaultName] = useState("");
-  const [secretKey, setSecretKey] = useState("");
-  const [secretValue, setSecretValue] = useState("");
+  const [secretRows, setSecretRows] = useState(createEmptySecretDraft);
   const [creatingVault, setCreatingVault] = useState(false);
   const [savingSecret, setSavingSecret] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -245,6 +249,33 @@ function SecretsSetup({
   const selectedEnvironment = environments.find(
     (environment) => environment.slug === selectedEnvironmentSlug,
   ) ?? environments.find((environment) => environment.slug === "development") ?? environments[0];
+  const populatedRows = secretRows.filter((row) => row.key || row.value);
+  const keyCounts = new Map<string, number>();
+  for (const row of populatedRows) keyCounts.set(row.key, (keyCounts.get(row.key) ?? 0) + 1);
+  const validDraft = populatedRows.length > 0 && populatedRows.every(
+    (row) => /^[A-Z_][A-Z0-9_]{0,255}$/.test(row.key) && keyCounts.get(row.key) === 1,
+  );
+
+  const updateSecretRow = (id: number, field: "key" | "value", value: string) => {
+    setSecretRows((current) => current.map((row) => row.id === id ? { ...row, [field]: value } : row));
+    setSavedMessage(null);
+    setError(null);
+  };
+
+  const pasteSecrets = (event: ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>, id: number, field: "key" | "value") => {
+    if (savingSecret) return;
+    try {
+      const entries = parseSecretPaste(event.clipboardData.getData("text/plain"), field);
+      if (!entries) return;
+      event.preventDefault();
+      setSecretRows(populateSecretDraft(secretRows, id, entries));
+      setSavedMessage(null);
+      setError(null);
+    } catch (pasteError) {
+      event.preventDefault();
+      setError(pasteError instanceof Error ? pasteError.message : "Could not read these .env values.");
+    }
+  };
 
   const createVault = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -280,41 +311,60 @@ function SecretsSetup({
       savingSecret ||
       !selectedProject ||
       !selectedEnvironment ||
-      !/^[A-Z_][A-Z0-9_]*$/.test(secretKey)
+      !validDraft
     )
       return;
     setSavingSecret(true);
     setError(null);
     try {
-      await secretsClient.createSecret(
-        orgSlug,
-        selectedProject.slug,
-        selectedEnvironment.slug,
-        {
-          key: secretKey.trim(),
-          value: secretValue,
-          environmentSlugs: [selectedEnvironment.slug],
-          expectedRevisions: {
-            [selectedEnvironment.slug]: selectedEnvironment.revision,
+      const values = secretDraftValues(secretRows);
+      const entries = Object.entries(values);
+      let created = 1;
+      let revision = selectedEnvironment.revision + 1;
+      if (entries.length === 1) {
+        const [key, value] = entries[0];
+        await secretsClient.createSecret(
+          orgSlug,
+          selectedProject.slug,
+          selectedEnvironment.slug,
+          {
+            key,
+            value,
+            environmentSlugs: [selectedEnvironment.slug],
+            expectedRevisions: {
+              [selectedEnvironment.slug]: selectedEnvironment.revision,
+            },
+            expectedRevision: selectedEnvironment.revision,
           },
-          expectedRevision: selectedEnvironment.revision,
-        },
-      );
-      setSecretValue("");
-      setSecretKey("");
-      setSavedMessage(`Saved to ${selectedProject.name} / ${selectedEnvironment.name}.`);
+        );
+      } else {
+        const envText = serializeEnvText(values);
+        const preview = await secretsClient.importDotenv(orgSlug, selectedProject.slug, selectedEnvironment.slug, { envText, dryRun: true });
+        if (preview.updated || preview.unchanged) {
+          throw new Error("Some keys already exist in this environment. Use the Secrets console to update them.");
+        }
+        const result = await secretsClient.importDotenv(orgSlug, selectedProject.slug, selectedEnvironment.slug, {
+          envText,
+          dryRun: false,
+          expectedRevision: preview.revision ?? selectedEnvironment.revision,
+        });
+        created = result.created;
+        revision = result.revision ?? selectedEnvironment.revision + (created ? 1 : 0);
+      }
+      setSecretRows(createEmptySecretDraft());
+      setSavedMessage(`${entries.length > 1 ? `Saved ${created} secrets` : "Saved"} to ${selectedProject.name} / ${selectedEnvironment.name}.`);
       setProjects((current) =>
         current.map((project) =>
           project.slug === selectedProject.slug
             ? {
                 ...project,
-                secretCount: project.secretCount + 1,
+                secretCount: project.secretCount + created,
                 environments: project.environments.map((environment) =>
                   environment.slug === selectedEnvironment.slug
                     ? {
                         ...environment,
-                        revision: environment.revision + 1,
-                        secretCount: environment.secretCount + 1,
+                        revision,
+                        secretCount: environment.secretCount + created,
                       }
                     : environment,
                 ),
@@ -327,7 +377,7 @@ function SecretsSetup({
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "The secret could not be stored.",
+          : "The secrets could not be stored.",
       );
     } finally {
       setSavingSecret(false);
@@ -381,7 +431,7 @@ function SecretsSetup({
   }
 
   return (
-    <SetupFlow steps={[{ id: "01", title: "Destination" }, { id: "02", title: "Add secret" }, { id: "03", title: "CLI access" }]} onRecheck={onSecretCreated}>
+    <SetupFlow steps={[{ id: "01", title: "Destination" }, { id: "02", title: "Add secrets" }, { id: "03", title: "CLI access" }]} onRecheck={onSecretCreated}>
       <SetupStep number="01" title="Choose where to store it">
         <p className="mb-4 text-[12px] leading-5 text-zinc-400">Select a vault and environment. Start with Development if you're trying Secrets for the first time.</p>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -414,43 +464,69 @@ function SecretsSetup({
         <p className="mt-3 text-[11px] text-zinc-400">You can add more vaults and environments from the Secrets console.</p>
       </SetupStep>
 
-      <SetupStep number="02" title="Add your first secret">
-        <p className="mb-4 text-[12px] leading-5 text-zinc-400">Store a value in <span className="text-zinc-300">{selectedProject?.name} / {selectedEnvironment?.name}</span>. It is encrypted at rest and never returned by metadata requests.</p>
+      <SetupStep number="02" title="Add your secrets">
+        <p className="mb-2 text-[12px] leading-5 text-zinc-400">Store values in <span className="text-zinc-300">{selectedProject?.name} / {selectedEnvironment?.name}</span>. They are encrypted at rest and never returned by metadata requests.</p>
+        <p id="setup-secrets-paste-hint" className="mb-4 text-[11px] leading-5 text-zinc-500">Paste .env lines into either column to fill multiple rows, or add keys and values one at a time.</p>
         {error && <InlineError message={error} />}
         {savedMessage && <p role="status" className="mb-4 flex items-center gap-2 text-[12px] text-emerald-300"><HugeiconsIcon icon={Tick02Icon} size={14} aria-hidden="true" />{savedMessage}</p>}
         <form onSubmit={createSecret} className="space-y-3">
-          <label className="block space-y-1.5">
-            <span className="text-[12px] text-zinc-300">Key</span>
-            <WorkspaceInput
-              value={secretKey}
-              onChange={(event) => {
-                setSecretKey(event.target.value.toUpperCase().replace(/\s+/g, "_").replace(/[^A-Z0-9_]/g, ""));
-                setSavedMessage(null);
-              }}
-              placeholder="API_KEY"
-              spellCheck={false}
-              readOnly={savingSecret}
-              autoComplete="off"
-              aria-invalid={!!secretKey && !/^[A-Z_][A-Z0-9_]*$/.test(secretKey)}
-              aria-describedby={secretKey && !/^[A-Z_][A-Z0-9_]*$/.test(secretKey) ? "setup-key-error" : undefined}
-              className="font-mono"
-            />
-          </label>
-          {secretKey && !/^[A-Z_][A-Z0-9_]*$/.test(secretKey) && <p id="setup-key-error" className="text-[11px] text-rose-300">Start the key with a letter or underscore.</p>}
-          <label className="block space-y-1.5">
-            <span className="text-[12px] text-zinc-300">Value</span>
-            <WorkspaceTextarea
-              value={secretValue}
-              onChange={(event) => { setSecretValue(event.target.value); setSavedMessage(null); }}
-              placeholder="Secret value"
-              rows={3}
-              autoComplete="off"
-              readOnly={savingSecret}
-              spellCheck={false}
-              className="ph-no-capture font-mono"
-            />
-          </label>
-          <Button type="submit" disabled={!/^[A-Z_][A-Z0-9_]*$/.test(secretKey) || !selectedEnvironment} loading={savingSecret}>Store encrypted secret</Button>
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_32px] gap-2 text-[12px] text-zinc-300" aria-hidden="true">
+            <span>Key</span><span>Value</span><span />
+          </div>
+          <div className="space-y-2.5">
+            {secretRows.map((row, index) => {
+              const invalidKey = !!(row.key || row.value) && !/^[A-Z_][A-Z0-9_]{0,255}$/.test(row.key);
+              const duplicateKey = (keyCounts.get(row.key) ?? 0) > 1;
+              return (
+                <div key={row.id} role="group" aria-label={`Secret ${index + 1}`} className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_32px] items-start gap-2">
+                  <WorkspaceInput
+                    aria-label={`Secret key ${index + 1}`}
+                    value={row.key}
+                    onChange={(event) => updateSecretRow(row.id, "key", event.target.value.toUpperCase().replace(/\s+/g, "_").replace(/[^A-Z0-9_]/g, ""))}
+                    onPaste={(event) => pasteSecrets(event, row.id, "key")}
+                    placeholder="API_KEY"
+                    maxLength={256}
+                    spellCheck={false}
+                    readOnly={savingSecret}
+                    autoComplete="off"
+                    aria-invalid={invalidKey || duplicateKey}
+                    aria-describedby={invalidKey || duplicateKey ? `setup-key-error-${row.id}` : "setup-secrets-paste-hint"}
+                    className="font-mono text-[13px]!"
+                  />
+                  <WorkspaceTextarea
+                    aria-label={`Secret value ${index + 1}`}
+                    value={row.value}
+                    onChange={(event) => updateSecretRow(row.id, "value", event.target.value)}
+                    onPaste={(event) => pasteSecrets(event, row.id, "value")}
+                    placeholder="Secret value"
+                    rows={Math.min(6, row.value.split("\n").length)}
+                    wrap="off"
+                    autoComplete="off"
+                    readOnly={savingSecret}
+                    spellCheck={false}
+                    aria-describedby="setup-secrets-paste-hint"
+                    className="ph-no-capture min-h-11! py-2.5 font-mono text-[13px]! leading-5!"
+                  />
+                  <Button type="button" variant="ghost" size="sm" aria-label={`Remove secret ${index + 1}`} disabled={savingSecret} className="mt-1.5 size-8 p-0!"
+                    onClick={() => {
+                      setSecretRows((current) => current.length === 1 ? createEmptySecretDraft() : current.filter((item) => item.id !== row.id));
+                      setSavedMessage(null);
+                      setError(null);
+                    }}>
+                    <HugeiconsIcon icon={Delete02Icon} size={14} strokeWidth={1.7} aria-hidden="true" />
+                  </Button>
+                  {(invalidKey || duplicateKey) && <p id={`setup-key-error-${row.id}`} className="col-span-3 text-[11px] text-rose-300">{duplicateKey ? "Each key must be unique." : "Start the key with a letter or underscore."}</p>}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+            <Button type="button" variant="ghost" size="sm" disabled={savingSecret} onClick={() => {
+              setSecretRows((current) => [...current, { id: Math.max(...current.map((row) => row.id)) + 1, key: "", value: "" }]);
+              setSavedMessage(null);
+            }}><HugeiconsIcon icon={Add01Icon} size={14} strokeWidth={1.7} aria-hidden="true" />Add another</Button>
+            <Button type="submit" disabled={!validDraft || !selectedEnvironment} loading={savingSecret}>{populatedRows.length > 1 ? `Store ${populatedRows.length} encrypted secrets` : "Store encrypted secret"}</Button>
+          </div>
         </form>
       </SetupStep>
 
