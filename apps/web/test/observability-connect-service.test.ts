@@ -136,11 +136,18 @@ test("nested token Escape dismisses the token dialog, not the connection sheet",
   assert.ok(guide);
   assert.equal(guide.props.onRecheck, props.onRecheck);
   assert.equal(guide.props.buttonSize, "sm");
-  assert.equal(sheet.props.footer.props.size, "sm");
+  let footer = elements(sheet.props.footer);
+  const docs = footer.find((element) => element.type === "a");
+  assert.ok(docs);
+  assert.equal(docs.props.href, "/docs/observability/getting-started");
+  assert.equal(docs.props.target, "_blank");
+  assert.equal(docs.props.rel, "noreferrer");
+  assert.equal(footer.find((element) => element.type === ui.stubs.Button)?.props.size, "sm");
   guide.props.onTokenModalOpenChange(true);
   sheet = ui.render("ConnectServiceSheet", props) as React.ReactElement<any>;
   assert.equal(sheet.props.closeDisabled, true);
-  assert.equal(sheet.props.footer.props.disabled, true);
+  footer = elements(sheet.props.footer);
+  assert.equal(footer.find((element) => element.type === ui.stubs.Button)?.props.disabled, true);
   let prevented = 0;
   sheet.props.onInteractOutside({ preventDefault: () => { prevented++; } });
   assert.equal(ui.values[0], true);
@@ -149,7 +156,11 @@ test("nested token Escape dismisses the token dialog, not the connection sheet",
   assert.equal(ui.values[0], false);
   assert.equal(closed, 0);
   sheet = ui.render("ConnectServiceSheet", props) as React.ReactElement<any>;
-  sheet.props.footer.props.onClick();
+  footer = elements(sheet.props.footer);
+  const done = footer.find((element) => element.type === ui.stubs.Button);
+  assert.ok(done);
+  assert.equal(done.props.disabled, false);
+  done.props.onClick();
   assert.equal(closed, 1);
 });
 
