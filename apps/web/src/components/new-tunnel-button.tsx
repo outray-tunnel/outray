@@ -16,9 +16,10 @@ export function NewTunnelButton({
     <Button
       type="button"
       ref={buttonRef}
-      variant="primary"
+      variant="secondary"
       size="md"
       onClick={onClick}
+      aria-haspopup="dialog"
       aria-label={isAtLimit ? "New tunnel (plan limit reached)" : "New tunnel"}
       className="shrink-0"
     >
