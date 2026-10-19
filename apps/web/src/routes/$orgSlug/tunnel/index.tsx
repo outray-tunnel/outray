@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { appClient } from "@/lib/app-client";
 import { getSubscriptionLimits } from "@/lib/subscription-plans";
-import { NewTunnelModal } from "@/components/new-tunnel-modal";
+import { NewTunnelSheet } from "@/components/new-tunnel-sheet";
 import { LimitModal } from "@/components/limit-modal";
 import { OverviewHeader } from "@/components/overview/overview-header";
 import {
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/$orgSlug/tunnel/")({
 });
 
 function OverviewView() {
-  const [isNewTunnelModalOpen, setIsNewTunnelModalOpen] = useState(false);
+  const [isNewTunnelSheetOpen, setIsNewTunnelSheetOpen] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const newTunnelTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [timeRange, setTimeRange] = useState<OverviewRange>("24h");
@@ -88,7 +88,7 @@ function OverviewView() {
       setIsLimitModalOpen(true);
       return;
     }
-    setIsNewTunnelModalOpen(true);
+    setIsNewTunnelSheetOpen(true);
   };
 
   if (statsLoading && !stats) {
@@ -112,9 +112,9 @@ function OverviewView() {
         onRetry={() => void refetchStats()}
       />
 
-      <NewTunnelModal
-        isOpen={isNewTunnelModalOpen}
-        onClose={() => setIsNewTunnelModalOpen(false)}
+      <NewTunnelSheet
+        isOpen={isNewTunnelSheetOpen}
+        onClose={() => setIsNewTunnelSheetOpen(false)}
         orgSlug={orgSlug}
         triggerRef={newTunnelTriggerRef}
       />
