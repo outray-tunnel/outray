@@ -1,6 +1,7 @@
 import { SidebarTrigger } from "fumadocs-ui/components/sidebar/base";
 import { useSearchContext } from "fumadocs-ui/contexts/search";
 import { Menu, Search } from "lucide-react";
+import { LogoMark } from "@/components/logo-mark";
 
 function DocsSearch() {
   const { enabled, hotKey, setOpenSearch } = useSearchContext();
@@ -19,7 +20,7 @@ export function DocsHeader() {
     <header className="sticky top-0 z-35 col-[1/-1] row-1 flex h-16 min-w-0 items-center gap-[13px] border-b border-white/[.07] bg-[#09090bf5] px-7 [&_:is(a,button):focus-visible]:outline-2 [&_:is(a,button):focus-visible]:outline-offset-4 [&_:is(a,button):focus-visible]:outline-[#b29adf] max-md:h-14 max-md:gap-2.5 max-md:px-4">
       <a className="absolute top-2 left-4 -translate-y-[200%] rounded-lg bg-zinc-100 px-3.5 py-2.5 text-zinc-900 focus:translate-y-0" href="#docs-content">Skip to content</a>
       <a className="inline-flex items-center gap-2.25 text-[17px] font-medium text-zinc-50 no-underline" href="/" aria-label="OutRay home">
-        <img src="/brand/outray-mark.svg" alt="" width="28" height="28" />
+        <LogoMark className="size-7" />
         <span>OutRay</span>
       </a>
       <span className="text-[21px] font-light text-[#46464f]" aria-hidden="true">/</span>
