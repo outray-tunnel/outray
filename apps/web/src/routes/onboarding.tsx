@@ -31,6 +31,7 @@ function Onboarding() {
   );
   const { data: sessionData, isPending: sessionPending } =
     authClient.useSession();
+  const { refetch: refetchOrganizations } = authClient.useListOrganizations();
 
   const validateSlug = useCallback((value: string) => {
     if (!/^[a-z0-9-]+$/.test(value)) {
@@ -161,6 +162,9 @@ function Onboarding() {
 
       if (data) {
         await authClient.organization.setActive({ organizationId: data.id });
+        // The workspace guard reads this cache, not selectedOrganization.
+        // Mutation invalidation runs in the background, so await it before routing.
+        await refetchOrganizations();
         setSelectedOrganization(data);
         await navigate({
           to: "/$orgSlug/get-started",
