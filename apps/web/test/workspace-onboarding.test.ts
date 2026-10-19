@@ -56,6 +56,7 @@ async function onboardingComponent(): Promise<React.ComponentType> {
       if (specifier === "@/lib/instance-context") return { useInstance: () => React.useContext(InstanceContext) };
       if (specifier === "@/lib/auth-client") return { authClient: {
         useSession: () => ({ data: { session: { id: "test-session" }, user: { name: "Test owner", email: "owner@example.test" } }, isPending: false }),
+        useListOrganizations: () => ({ refetch: async () => {} }),
       } };
       if (specifier === "@/lib/app-client") return { appClient: { organizations: {} } };
       if (specifier === "@/lib/store") return { useAppStore: (select: (store: unknown) => unknown) => select({ setSelectedOrganization: () => undefined }) };
