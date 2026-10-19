@@ -4,6 +4,7 @@ export const MAX_SECRET_VALUE_BYTES = 64 * 1024;
 export const MAX_ENV_TEXT_BYTES = 1024 * 1024;
 const SECRET_KEY_PATTERN = /^[A-Z_][A-Z0-9_]{0,255}$/;
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const utf8Encoder = new TextEncoder();
 
 export function requireObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -114,7 +115,7 @@ export function validateSecretValue(value: unknown): string {
       field: "value",
     });
   }
-  if (Buffer.byteLength(value, "utf8") > MAX_SECRET_VALUE_BYTES) {
+  if (utf8Encoder.encode(value).byteLength > MAX_SECRET_VALUE_BYTES) {
     throw new SecretsError("value must be at most 64 KiB", {
       code: "VALIDATION_ERROR",
       status: 413,
@@ -128,8 +129,8 @@ export function validateSecretImportSize(values: Record<string, string>) {
   const bytes = Object.entries(values).reduce(
     (total, [key, value]) =>
       total +
-      Buffer.byteLength(key, "utf8") +
-      Buffer.byteLength(value, "utf8") +
+      utf8Encoder.encode(key).byteLength +
+      utf8Encoder.encode(value).byteLength +
       2,
     0,
   );
@@ -347,7 +348,7 @@ function parseQuotedValue(raw: string, lineNumber: number): string {
 }
 
 export function parseEnvText(envText: string): ParsedEnv {
-  if (Buffer.byteLength(envText, "utf8") > MAX_ENV_TEXT_BYTES) {
+  if (utf8Encoder.encode(envText).byteLength > MAX_ENV_TEXT_BYTES) {
     throw new SecretsError("envText must be at most 1 MiB", {
       code: "VALIDATION_ERROR",
       status: 413,
