@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ProductIcon } from "./ProductIcon";
 import { authClient } from "@/lib/auth-client";
+import { LogoMark } from "@/components/logo-mark";
 
 const productLinks = [
   { id: "tunnels", label: "Tunnels", to: "/products/tunnels", description: "Put a local service on a public URL." },
@@ -50,7 +51,7 @@ export function Navigation({ loginUrl, signupUrl, githubUrl }: { loginUrl: "/log
           data-track="navigation"
           data-track-label="logo"
         >
-          <img className="h-[30px] w-[30px]" src="/brand/outray-mark.svg" width="34" height="34" alt="" />
+          <LogoMark />
           <span>OutRay</span>
         </Link>
 
