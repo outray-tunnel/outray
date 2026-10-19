@@ -44,7 +44,7 @@ function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const unifiedSidebar = useFeatureFlag("unified_sidebar");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { data: organizations, isPending } = authClient.useListOrganizations();
+  const { data: organizations, isPending, isRefetching } = authClient.useListOrganizations();
   const { data: activeOrg } = authClient.useActiveOrganization();
   const { data: session } = authClient.useSession();
   const setSelectedOrganization = useAppStore(
@@ -76,7 +76,7 @@ function DashboardLayout() {
     });
   }, [matchedOrgId, matchedOrgName, matchedOrgSlug, setSelectedOrganization]);
 
-  if (isPending) {
+  if (isPending || (!matchedOrg && isRefetching)) {
     return <OrganizationAccessSkeleton />;
   }
 
