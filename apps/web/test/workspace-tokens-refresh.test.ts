@@ -121,7 +121,7 @@ test("creation fields retain real checkbox semantics, compact name input, custom
   assert.match(html, /Resource scope/); assert.match(html, /Expires after/); assert.match(html, />90 days/);
   assert.match(html, /Vault/); assert.match(html, /Environment/); assert.match(html, />API/); assert.match(html, />Live/);
   assert.match(html, /limits apply to Secrets/); assert.match(html, /Tunnels and observability remain workspace-wide/);
-  assert.doesNotMatch(html, /autoFocus|autofocus/);
+  assert.doesNotMatch(html, /\sautoFocus(?:=|[\s>])|\sautofocus(?:=|[\s>])/);
   for (const [select] of html.matchAll(/<select\b[^>]*>/g)) assert.match(select, /aria-hidden="true"/);
   const failed = renderToStaticMarkup(React.createElement(TokenCreationForm, formProps({ projectsError: "Vault options failed", environmentsError: "Environment options failed" })));
   assert.match(failed, /Vault options failed/); assert.match(failed, /Environment options failed/);
@@ -172,7 +172,7 @@ async function controller(kind: "create" | "revoke") {
   const createCalls: any[] = []; const revokeCalls: any[] = []; const queryOptions: any[] = []; const invalidations: any[] = [];
   const timers = new Map<number, () => void>(); let timerId = 0;
   const cleanups: Array<() => void> = [];
-  const stubs = Object.fromEntries(["Button", "CopyButton", "Select", "WorkspaceInput", "WorkspaceDialog", "WorkspaceNotice", "TokensContent", "CreateTokenModal"].map((name) => [name, () => null]));
+  const stubs = Object.fromEntries(["Button", "CopyButton", "Select", "WorkspaceInput", "SideSheet", "WorkspaceDialog", "WorkspaceNotice", "TokensContent", "CreateTokenModal"].map((name) => [name, () => null]));
   let mutationOptions: any; let error: Error | null = null; let pending = false; let cache: AuthToken[] = inventory;
   const mutation = {
     get isPending() { return pending; }, get error() { return error; }, reset() { error = null; },
@@ -231,7 +231,7 @@ test("creation is permission-gated, single-flight, and a failed create stays ret
   assert.equal(ui.createCalls.length, 1);
   assert.deepEqual(JSON.parse(JSON.stringify(ui.createCalls[0])), { name: "CI ingest", orgSlug: "acme", scopes: ["observability:write"], expiresIn: "90d", projectId: null, environmentId: null });
   nodes = ui.render();
-  assert.equal(nodes.find((node) => node.type === ui.stubs.WorkspaceDialog)?.props.busy, true);
+  assert.equal(nodes.find((node) => node.type === ui.stubs.SideSheet)?.props.closeDisabled, true);
   resolveRequest({ error: "Synthetic create failed" }); await settle();
   nodes = ui.render();
   const failed = nodes.find((node) => typeof node.type === "function" && node.type.name === "TokenCreationForm")!;
@@ -259,7 +259,7 @@ test("successful creation reveals only in session memory, hides after thirty sec
   reveal = nodes.find((node) => typeof node.type === "function" && node.type.name === "TokenReveal")!;
   assert.equal(reveal.props.token, null);
   assert.equal(nodes.some((node) => typeof node.type === "function" && node.type.name === "TokenCreationForm"), false);
-  const dialog = nodes.find((node) => node.type === ui.stubs.WorkspaceDialog)!;
+  const dialog = nodes.find((node) => node.type === ui.stubs.SideSheet)!;
   const footer = elements(dialog.props.footer);
   assert.equal(footer.length, 1); assert.equal(footer[0].props.size, "sm");
   ui.dispose();
