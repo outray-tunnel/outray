@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 
 // Preserve the active process settings, then override the service credentials
-// from Unbe. None of these values are sent to Woodpecker or printed.
+// from our standard self-hosted OutRay Secrets API. Values are never printed.
 const serviceIndex = process.argv.indexOf("--service");
 const service = serviceIndex < 0 ? undefined : process.argv[serviceIndex + 1];
 const scripts = {
@@ -77,46 +77,56 @@ const optionalTelemetrySecrets = [
   "OUTRAY_OTLP_ENDPOINT",
 ];
 
-async function readUnbeToken() {
+async function readOutRayToken() {
   if (process.argv.includes("--token-stdin")) {
     let token = "";
     for await (const chunk of process.stdin) {
       token += chunk;
-      if (token.length > 256) throw new Error("Unbe token input is too large.");
+      if (token.length > 2048) throw new Error("OutRay token input is too large.");
     }
-    if (!token.trim()) throw new Error("Unbe token input is empty.");
+    if (!token.trim()) throw new Error("OutRay token input is empty.");
     return token.trim();
   }
 
   // Root-only fallback for manual edge deployments outside Woodpecker.
-  const tokenPath = "/etc/outray/unbe-token";
+  const tokenPath = "/etc/outray/ops-secrets-token";
   const tokenFile = statSync(tokenPath);
   if (tokenFile.uid !== 0 || (tokenFile.mode & 0o077) !== 0) {
-    throw new Error("Unbe token must be root-owned and readable only by root.");
+    throw new Error("OutRay token must be root-owned and readable only by root.");
   }
 
   const token = readFileSync(tokenPath, "utf8").trim();
-  if (!token) throw new Error("Unbe token is empty.");
+  if (!token) throw new Error("OutRay token is empty.");
   return token;
 }
 
-async function readUnbeSecrets() {
-  const token = await readUnbeToken();
+async function readOutRaySecrets() {
+  const token = await readOutRayToken();
 
   const target = new URLSearchParams({
-    workspace: "outray",
+    organization: "outray",
     project: "outray",
     environment: "production",
   });
-  const response = await fetch(`https://unbe.dev/api/cli/secrets?${target}`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const response = await fetch(`https://ops.outray.dev/api/cli/secrets?${target}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ confirmProduction: true }),
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) {
-    throw new Error(`Unbe returned HTTP ${response.status}.`);
+    throw new Error(`OutRay Secrets returned HTTP ${response.status}.`);
   }
 
   const result = await response.json();
+  if (!Array.isArray(result.secrets) || result.secrets.some(
+    (entry) => typeof entry?.key !== "string" || typeof entry?.value !== "string",
+  )) {
+    throw new Error("OutRay Secrets returned an invalid response.");
+  }
   const secrets = Object.fromEntries(
     result.secrets.map(({ key, value }) => [key, value]),
   );
@@ -124,28 +134,28 @@ async function readUnbeSecrets() {
     (name) => typeof secrets[name] !== "string" || !secrets[name],
   );
   if (missing.length > 0) {
-    throw new Error(`Unbe is missing required secrets: ${missing.join(", ")}`);
+    throw new Error(`OutRay is missing required secrets: ${missing.join(", ")}`);
   }
 
   const configuredFlags = uptimeFlags.filter((name) => Object.hasOwn(secrets, name));
   if (configuredFlags.length > 0 && configuredFlags.length !== uptimeFlags.length) {
     const missingFlags = uptimeFlags.filter((name) => !Object.hasOwn(secrets, name));
-    throw new Error(`Unbe Uptime flags must be configured together; missing: ${missingFlags.join(", ")}`);
+    throw new Error(`OutRay Uptime flags must be configured together; missing: ${missingFlags.join(", ")}`);
   }
   for (const name of configuredFlags) {
     if (secrets[name] !== "true" && secrets[name] !== "false") {
-      throw new Error(`Unbe ${name} must be exactly true or false.`);
+      throw new Error(`OutRay ${name} must be exactly true or false.`);
     }
   }
 
   const configuredTelemetrySecrets = optionalTelemetrySecrets.filter((name) => Object.hasOwn(secrets, name));
   if (configuredTelemetrySecrets.length > 0 && configuredTelemetrySecrets.length !== optionalTelemetrySecrets.length) {
-    throw new Error("Unbe OutRay SDK credentials must be configured together.");
+    throw new Error("OutRay SDK credentials must be configured together.");
   }
 
   console.log(configuredFlags.length > 0
-    ? "Uptime feature flags loaded from Unbe."
-    : "Uptime feature flags not in Unbe; retaining active tunnel settings.");
+    ? "Uptime feature flags loaded from Ops Secrets."
+    : "Uptime feature flags not in Ops Secrets; retaining active tunnel settings.");
   return Object.fromEntries(
     [...managedSecrets, ...configuredFlags, ...configuredTelemetrySecrets].map((name) => [name, secrets[name]]),
   );
@@ -177,9 +187,9 @@ const runtime = Object.fromEntries(
 );
 
 try {
-  Object.assign(runtime, await readUnbeSecrets());
+  Object.assign(runtime, await readOutRaySecrets());
 } catch (error) {
-  console.error(`Cannot load production secrets from Unbe: ${error.message}`);
+  console.error(`Cannot load production secrets from Ops: ${error.message}`);
   process.exit(1);
 }
 
@@ -217,7 +227,7 @@ if (missing.length > 0) {
 }
 
 if (process.argv.includes("--check")) {
-  console.log(`${service} runtime verified from ${tunnel.name} and Unbe; cron deployment disabled.`);
+  console.log(`${service} runtime verified from ${tunnel.name} and Ops Secrets; cron deployment disabled.`);
   process.exit(0);
 }
 
