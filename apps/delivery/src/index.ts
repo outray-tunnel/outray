@@ -1,10 +1,16 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import jpegImage from "../../../shared/jpeg-image";
+
+const { isValidJpeg } = jpegImage;
 
 export const MAX_LOGO_BYTES = 256 * 1024;
 const PUBLIC_PREFIX = "/uptime-logos/";
 const LEGACY_PUBLIC_PREFIX = "/status-page-logos/";
 const INTERNAL_PREFIX = "/internal/status-page-logos/";
+const ORGANIZATION_PUBLIC_PREFIX = "/org-logos/";
+const ORGANIZATION_INTERNAL_PREFIX = "/internal/org-logos/";
 const LOGO_FILENAME = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(png|webp)$/;
+const ORGANIZATION_LOGO_FILENAME = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(png|webp|jpg|jpeg)$/;
 const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 export interface StoredLogo {
@@ -55,8 +61,13 @@ export function logoKey(filename: string): string | null {
   return LOGO_FILENAME.test(filename) ? `uptime-logos/${filename}` : null;
 }
 
-function imageContentType(filename: string): "image/png" | "image/webp" {
-  return filename.endsWith(".png") ? "image/png" : "image/webp";
+export function organizationLogoKey(filename: string): string | null {
+  return ORGANIZATION_LOGO_FILENAME.test(filename) ? `org-logos/${filename}` : null;
+}
+
+function imageContentType(filename: string): "image/png" | "image/webp" | "image/jpeg" {
+  if (filename.endsWith(".png")) return "image/png";
+  return filename.endsWith(".webp") ? "image/webp" : "image/jpeg";
 }
 
 /** Compare fixed-size digests, including when a caller supplies a wrong-length token. */
@@ -76,6 +87,7 @@ export function authorizedUpload(request: Request, env: DeliveryEnv): boolean {
 
 /** Validate image signatures/structure without trusting the caller's MIME type. */
 export function matchesImageFormat(bytes: Uint8Array, contentType: string): boolean {
+  if (contentType === "image/jpeg") return isValidJpeg(bytes);
   if (contentType === "image/png") {
     const signature = [137, 80, 78, 71, 13, 10, 26, 10];
     const end = [0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130];
@@ -172,7 +184,7 @@ async function serveLogo(request: Request, env: DeliveryEnv, filename: string, k
   return new Response(object.body, { status: 200, headers });
 }
 
-async function mutateLogo(request: Request, env: DeliveryEnv, filename: string, key: string): Promise<Response> {
+async function mutateLogo(request: Request, env: DeliveryEnv, filename: string, key: string, publicPrefix: string): Promise<Response> {
   if (!authorizedUpload(request, env)) {
     return jsonResponse(401, { error: "Unauthorized." });
   }
@@ -193,7 +205,8 @@ async function mutateLogo(request: Request, env: DeliveryEnv, filename: string, 
   }
   const body = await readLogoBody(request);
   if (!matchesImageFormat(body, contentType)) {
-    return jsonResponse(415, { error: "Upload must be a valid PNG or WebP image." });
+    const formats = publicPrefix === ORGANIZATION_PUBLIC_PREFIX ? "PNG, WebP, or JPEG" : "PNG or WebP";
+    return jsonResponse(415, { error: `Upload must be a valid ${formats} image.` });
   }
 
   const stored = await env.STATUS_PAGE_LOGOS.put(key, body, {
@@ -202,7 +215,7 @@ async function mutateLogo(request: Request, env: DeliveryEnv, filename: string, 
   });
   if (!stored) return jsonResponse(409, { error: "A logo with this filename already exists." });
   const origin = new URL(env.PUBLIC_DELIVERY_URL || "https://delivery.outray.co").origin;
-  return jsonResponse(201, { key, url: `${origin}${PUBLIC_PREFIX}${filename}` });
+  return jsonResponse(201, { key, url: `${origin}${publicPrefix}${filename}` });
 }
 
 export async function handleRequest(request: Request, env: DeliveryEnv): Promise<Response> {
@@ -212,17 +225,21 @@ export async function handleRequest(request: Request, env: DeliveryEnv): Promise
       ? new Response(null, { headers: { "cache-control": "no-store" } })
       : jsonResponse(200, { ok: true });
   }
-  const internal = pathname.startsWith(INTERNAL_PREFIX);
-  const prefix = internal ? INTERNAL_PREFIX
-    : [PUBLIC_PREFIX, LEGACY_PUBLIC_PREFIX].find((candidate) => pathname.startsWith(candidate));
-  if (!prefix) return jsonResponse(404, { error: "Not found." });
-  const filename = pathname.slice(prefix.length);
-  const key = logoKey(filename);
+  const route = [
+    { prefix: ORGANIZATION_INTERNAL_PREFIX, internal: true, publicPrefix: ORGANIZATION_PUBLIC_PREFIX, key: organizationLogoKey },
+    { prefix: ORGANIZATION_PUBLIC_PREFIX, internal: false, publicPrefix: ORGANIZATION_PUBLIC_PREFIX, key: organizationLogoKey },
+    { prefix: INTERNAL_PREFIX, internal: true, publicPrefix: PUBLIC_PREFIX, key: logoKey },
+    { prefix: PUBLIC_PREFIX, internal: false, publicPrefix: PUBLIC_PREFIX, key: logoKey },
+    { prefix: LEGACY_PUBLIC_PREFIX, internal: false, publicPrefix: PUBLIC_PREFIX, key: logoKey },
+  ].find((candidate) => pathname.startsWith(candidate.prefix));
+  if (!route) return jsonResponse(404, { error: "Not found." });
+  const filename = pathname.slice(route.prefix.length);
+  const key = route.key(filename);
   if (!key) return jsonResponse(404, { error: "Not found." });
 
   try {
-    return internal
-      ? await mutateLogo(request, env, filename, key)
+    return route.internal
+      ? await mutateLogo(request, env, filename, key, route.publicPrefix)
       : await serveLogo(request, env, filename, key);
   } catch (error) {
     if (error instanceof HttpError) return jsonResponse(error.status, { error: error.message });
