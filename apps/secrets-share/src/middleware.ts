@@ -5,6 +5,7 @@ import { purgeExpiredShares } from "./lib/shares";
 let cleanupStarted = false;
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  const startedAt = Date.now();
   if (!cleanupStarted && process.env.SHARE_DATABASE_URL) {
     cleanupStarted = true;
     void purgeExpiredShares().catch(() => {});
@@ -15,7 +16,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // their framework endpoints, including before the island body parser runs.
   const pathname = context.url.pathname;
   const blocked = pathname === "/_image" || pathname.startsWith("/_server-islands/");
-  const upstream = blocked ? new Response("Not found", { status: 404 }) : await next();
+  let upstream: Response;
+  try {
+    upstream = blocked ? new Response("Not found", { status: 404 }) : await next();
+  } catch (error) {
+    // Do not log a share URL, body, or an arbitrary exception message here.
+    console.error("secrets_share_request_failed", {
+      errorType: error instanceof Error ? error.name : "UnknownError",
+    });
+    throw error;
+  }
   // Astro injects small inline island bootstraps. Hash exactly those bytes so
   // hydration works without permitting arbitrary inline JavaScript.
   const isHtml = upstream.headers.get("content-type")?.includes("text/html") ?? false;
@@ -31,5 +41,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("Content-Security-Policy", `default-src 'none'; script-src 'self' ${scriptHashes}; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`);
+  console.info("secrets_share_request", {
+    method: context.request.method,
+    status: response.status,
+    durationMs: Date.now() - startedAt,
+  });
   return response;
 });
