@@ -55,7 +55,7 @@ async function loadController(orgSlug = "acme", projectSlug = "api", environment
   const downloads: Array<{ href: string; download: string; rel: string }> = [];
   const timers = new Map<number, () => void>();
   let workspaceProps: EnvironmentKeysWorkspaceProps = { orgSlug, projectSlug, environmentSlug, ...options };
-  const Content = () => null; const Table = () => null; const Editor = () => null; const Import = () => null; const ExportConfirmation = () => null;
+  const Content = () => null; const Table = () => null; const Composer = () => null; const ExportConfirmation = () => null;
   const module = { exports: {} as any };
   const sameDependencies = (left: unknown[], right: unknown[]) =>
     left.length === right.length && left.every((value, position) => Object.is(value, right[position]));
@@ -114,7 +114,8 @@ async function loadController(orgSlug = "acme", projectSlug = "api", environment
       } };
       if (specifier === "./environment-keys-content") return { EnvironmentKeysContent: Content };
       if (specifier === "./secrets-table") return { SecretsTable: Table };
-      if (specifier === "./secret-dialogs") return { SecretEditorDialog: Editor, ImportDotenvDialog: Import, ConfirmSecretActionDialog: ExportConfirmation };
+      if (specifier === "./inline-secrets-editor") return { InlineSecretsEditor: Composer };
+      if (specifier === "./secret-dialogs") return { ConfirmSecretActionDialog: ExportConfirmation };
       throw new Error(`Unexpected environment keys controller dependency: ${specifier}`);
     },
   });
@@ -158,8 +159,7 @@ async function loadController(orgSlug = "acme", projectSlug = "api", environment
       assert.ok(content);
       return { content: content.props as EnvironmentKeysContentProps,
         table: elements.find((element) => element.type === Table),
-        editor: elements.find((element) => element.type === Editor),
-        importing: elements.find((element) => element.type === Import),
+        composer: elements.find((element) => element.type === Composer),
         exportConfirmation: elements.find((element) => element.type === ExportConfirmation) };
     },
     dispose() { committed.forEach((effect) => effect.cleanup?.()); disposed = true; },
@@ -310,52 +310,50 @@ test("org/vault/environment path changes remount all state and table identity; s
   const destination = await loadController("other-team", "other-vault", "production");
   const next = destination.render();
   assert.equal(next.table, undefined);
-  assert.equal(next.editor, undefined);
-  assert.equal(next.importing, undefined);
+  assert.equal(next.composer, undefined);
   assert.equal(next.exportConfirmation, undefined);
   assert.equal(next.content.data, null);
   destination.dispose();
 });
 
-test("add/import capture original environment, list, and expected revision while metadata refreshes or fails", async () => {
+test("the inline composer keeps its identity through metadata refreshes and pauses writes while metadata is unavailable", async () => {
   const controller = await loadController();
   controller.setResult({ data: snapshot, loading: false, refreshing: false });
-  controller.render().content.onAdd(); controller.render().content.onImport();
   let view = controller.render();
-  assert.equal(view.editor?.props.environment, staging);
-  assert.equal(view.editor?.props.environments, project.environments);
-  assert.equal(view.editor?.props.revision, 17);
-  assert.equal(view.importing?.props.environment, staging);
-  assert.equal(view.importing?.props.revision, 17);
+  assert.ok(view.composer);
+  const draftKey = view.composer.key;
+  assert.equal(draftKey, JSON.stringify(["draft", "acme", "api", "env-staging"]));
+  assert.equal(view.composer.props.environment, staging);
+  assert.equal(view.composer.props.revision, 17);
+  assert.deepEqual(Array.from(view.composer.props.existingKeys), ["API_KEY"]);
+  assert.equal(view.composer.props.disabled, false);
+  assert.equal("onAdd" in view.content, false);
+  assert.equal("onImport" in view.content, false);
   const refreshed = { ...snapshot, environment: { ...staging, name: "Server renamed", revision: 18 }, project: { ...project, environments: [{ ...staging, revision: 18 }] }, revision: 18 };
   controller.setResult({ data: refreshed, refreshing: true }); view = controller.render();
   assert.equal(view.content.data, refreshed);
-  assert.equal(view.editor?.props.environment, staging);
-  assert.equal(view.editor?.props.environments, project.environments);
-  assert.equal(view.editor?.props.revision, 17);
-  assert.equal(view.importing?.props.environment, staging);
-  assert.equal(view.importing?.props.revision, 17);
+  assert.equal(view.composer?.key, draftKey, "refreshes never remount unsaved fields");
+  assert.equal(view.composer?.props.environment, refreshed.environment);
+  assert.equal(view.composer?.props.revision, 18);
+  assert.equal(view.composer?.props.disabled, true);
   controller.setResult({ refreshing: false, error: "Could not refresh" }); view = controller.render();
   assert.equal(view.content.error, "Could not refresh");
-  assert.equal(view.editor?.props.environment, staging);
-  assert.equal(view.importing?.props.environment, staging);
-  view.editor?.props.onClose(); view.importing?.props.onClose(); view = controller.render();
-  assert.equal(view.editor, undefined);
-  assert.equal(view.importing, undefined);
-  assert.equal(controller.retries, 0, "closing drafts must not reload or submit data");
+  assert.equal(view.composer?.key, draftKey);
+  assert.equal(view.composer?.props.disabled, true);
+  controller.setResult({ error: null }); view = controller.render();
+  assert.equal(view.composer?.props.disabled, false);
+  assert.equal(controller.retries, 0, "metadata state does not submit draft values");
   controller.dispose();
 });
 
-test("table add/mutation, editor save, import completion, and retry keep existing reload flows without invented metadata", async () => {
+test("table mutation, inline save, conflict and retry keep metadata reload flows without invented metadata", async () => {
   const controller = await loadController();
   controller.setResult({ data: snapshot, loading: false, refreshing: false });
   let view = controller.render();
-  view.table?.props.onAdd(); view = controller.render();
-  assert.equal(view.editor?.props.environment, staging);
-  view.editor?.props.onSaved(); view.editor?.props.onClose(); view = controller.render();
+  view.composer?.props.onSaved(); view = controller.render();
   assert.equal(controller.retries, 1);
   assert.equal(view.content.data, snapshot);
-  view.content.onImport(); view = controller.render(); view.importing?.props.onImported(); view.importing?.props.onClose();
+  view.composer?.props.onConflict();
   view = controller.render(); view.table?.props.onMutated(); view.content.onRetry();
   assert.equal(controller.retries, 4);
   assert.equal(view.content.data, snapshot);
@@ -363,41 +361,128 @@ test("table add/mutation, editor save, import completion, and retry keep existin
   controller.dispose();
 });
 
-test("one mounted mutation callback refreshes key metadata and the shared vault, but retry, dismissal, export, and late completions do not", async () => {
+test("the panel and table share a scoped search query that survives metadata refreshes", async () => {
+  const controller = await loadController();
+  controller.setResult({ data: snapshot, loading: false, refreshing: false });
+  let view = controller.render();
+  assert.equal(view.content.search, "");
+  assert.equal(view.table?.props.query, "");
+  view.content.onSearchChange("api"); view = controller.render();
+  assert.equal(view.content.search, "api");
+  assert.equal(view.table?.props.query, "api");
+  controller.setResult({ data: { ...snapshot, revision: 18 }, refreshing: true });
+  view = controller.render();
+  assert.equal(view.content.search, "api");
+  assert.equal(view.table?.props.query, "api");
+  view.table?.props.onQueryChange(""); view = controller.render();
+  assert.equal(view.content.search, "");
+  assert.equal(controller.retries, 0, "searching filters existing metadata without requests");
+  controller.dispose();
+  const destination = await loadController("other-team", "other-vault", "production");
+  assert.equal(destination.render().content.search, "", "a newly scoped workspace starts without another environment's search");
+  destination.dispose();
+});
+
+test("only an active inline draft reserves table scroll space for floating save actions", async () => {
+  const controller = await loadController();
+  controller.setResult({ data: snapshot, loading: false, refreshing: false });
+  let view = controller.render();
+  assert.equal(view.table?.props.reserveActionsSpace, false);
+  const draftKey = view.composer?.key;
+  view.composer?.props.onDirtyChange(true); view = controller.render();
+  assert.equal(view.table?.props.reserveActionsSpace, true);
+  assert.equal(view.composer?.key, draftKey, "reserving action space cannot reset draft fields");
+  controller.setResult({ data: { ...snapshot, revision: 18 }, refreshing: true }); view = controller.render();
+  assert.equal(view.table?.props.reserveActionsSpace, true, "refreshes do not remove room for unsaved actions");
+  view.composer?.props.onDirtyChange(false); view = controller.render();
+  assert.equal(view.table?.props.reserveActionsSpace, false);
+  assert.equal(controller.retries, 0, "layout reservation does not claim a save or reload metadata");
+  controller.dispose();
+});
+
+test("saved value drafts share the save coordinator and retain their revealed version through refreshes", async () => {
+  const controller = await loadController();
+  controller.setResult({ data: snapshot, loading: false, refreshing: false });
+  let view = controller.render();
+  const edit = { id: secret.id, key: secret.key, version: 4, revision: 17, originalValue: "original", value: "changed" };
+  view.table?.props.onEditChange(edit);
+  view = controller.render();
+  assert.equal(view.composer?.props.edits[secret.id], edit);
+  assert.equal(view.table?.props.edits, view.composer?.props.edits);
+  assert.equal(view.table?.props.hasUnsavedChanges, true);
+  assert.equal(view.table?.props.reserveActionsSpace, true);
+  controller.setResult({ data: { ...snapshot, revision: 18, secrets: [{ ...secret, version: 5 }] }, refreshing: true });
+  view = controller.render();
+  assert.equal(view.composer?.props.edits[secret.id], edit, "metadata cannot rebase a plaintext draft");
+  assert.equal(view.table?.props.disabled, true);
+  assert.equal(view.composer?.props.disabled, true);
+  controller.setResult({ refreshing: false });
+  view = controller.render();
+  view.table?.props.onEditChange({ ...edit, value: "original" });
+  view = controller.render();
+  assert.equal(Object.keys(view.composer?.props.edits).length, 0, "reverting the value clears its pending edit");
+  assert.equal(view.table?.props.hasUnsavedChanges, false);
+  assert.equal(controller.retries, 0, "editing never persists before Save");
+  controller.dispose();
+});
+
+test("saving locks both row editing and local Reset clears saved-value reveal sessions", async () => {
+  const controller = await loadController();
+  controller.setResult({ data: snapshot, loading: false, refreshing: false });
+  let view = controller.render();
+  const edit = { id: secret.id, key: secret.key, version: 4, revision: 17, originalValue: "original", value: "changed" };
+  view.table?.props.onEditChange(edit);
+  view = controller.render();
+  const resetToken = view.table?.props.resetToken;
+  view.composer?.props.onSavingChange(true);
+  // Even a handler captured before the save began must obey the synchronous lock.
+  view.table?.props.onEditChange({ ...edit, value: "too late" });
+  view = controller.render();
+  assert.equal(view.table?.props.disabled, true);
+  assert.equal(view.composer?.props.edits[secret.id].value, "changed");
+  view.composer?.props.onSavingChange(false);
+  view = controller.render();
+  assert.equal(view.table?.props.disabled, false);
+  view.composer?.props.onResetEdits();
+  view = controller.render();
+  assert.equal(Object.keys(view.composer?.props.edits).length, 0);
+  assert.equal(view.table?.props.resetToken, resetToken + 1);
+  assert.equal(view.table?.props.hasUnsavedChanges, false);
+  assert.equal(controller.retries, 0);
+  controller.dispose();
+});
+
+test("one mounted mutation callback refreshes key metadata and the shared vault, but conflicts, retry, export, and late completions do not", async () => {
   const sharedReloads: number[] = [];
   const controller = await loadController("acme", "api", "staging", {
     project, sharedLayout: true, onProjectMutated: () => { sharedReloads.push(controller.retries); },
   });
   controller.setResult({ data: snapshot, loading: false, refreshing: false });
-  controller.render().content.onAdd(); controller.render().content.onImport();
   let view = controller.render();
-  assert.ok(view.table); assert.ok(view.editor); assert.ok(view.importing);
-  const completions = [view.table.props.onMutated, view.editor.props.onSaved, view.importing.props.onImported];
-  assert.equal(completions[0], completions[1], "table and editor receive the same mutation refresh callback");
-  assert.equal(completions[0], completions[2], "import completion receives that same callback");
+  assert.ok(view.table); assert.ok(view.composer);
+  const completions = [view.table.props.onMutated, view.composer.props.onSaved];
+  assert.equal(completions[0], completions[1], "table and inline editor receive the same mutation refresh callback");
   assert.equal(controller.retries, 0);
-  assert.deepEqual(sharedReloads, [], "opening a draft is not a mutation");
+  assert.deepEqual(sharedReloads, [], "rendering a draft is not a mutation");
   for (const complete of completions) complete();
-  assert.equal(controller.retries, 3);
-  assert.deepEqual(sharedReloads, [1, 2, 3], "each mutation refreshes local metadata before notifying the shared vault");
+  assert.equal(controller.retries, 2);
+  assert.deepEqual(sharedReloads, [1, 2], "each mutation refreshes local metadata before notifying the shared vault");
   assert.equal(view.content.data, snapshot, "callbacks request real metadata rather than inventing local counts or revision");
-  view.editor.props.onClose(); view.importing.props.onClose();
-  view = controller.render();
-  assert.equal(view.editor, undefined); assert.equal(view.importing, undefined);
+  view.composer.props.onConflict(); view = controller.render();
   assert.equal(controller.retries, 3);
-  assert.equal(sharedReloads.length, 3);
+  assert.equal(sharedReloads.length, 2, "conflicts refresh metadata without claiming a mutation");
   view.content.onRetry();
   assert.equal(controller.retries, 4);
-  assert.equal(sharedReloads.length, 3, "retry refreshes keys only, not a claimed vault mutation");
+  assert.equal(sharedReloads.length, 2, "retry refreshes keys only, not a claimed vault mutation");
   view.content.onExport(); await settle(); view = controller.render();
   assert.equal(controller.downloads.length, 1);
   assert.equal(view.content.exporting, false);
   assert.equal(controller.retries, 4);
-  assert.equal(sharedReloads.length, 3, "read-only export must not refresh shared vault metadata as a mutation");
+  assert.equal(sharedReloads.length, 2, "read-only export must not refresh shared vault metadata as a mutation");
   controller.tick(); controller.dispose();
   for (const complete of completions) complete();
   assert.equal(controller.retries, 4, "old-scope completion cannot reload unmounted key metadata");
-  assert.equal(sharedReloads.length, 3, "old-scope completion cannot refresh the shared vault either");
+  assert.equal(sharedReloads.length, 2, "old-scope completion cannot refresh the shared vault either");
   assert.equal(controller.lateStateWrites, 0);
 });
 
@@ -521,13 +606,12 @@ test("old-scope export success or error after unmount cannot download plaintext 
   }
 });
 
-test("late table/editor/import completion callbacks do not reload an unmounted scope", async () => {
+test("late table/inline-editor completion callbacks do not reload an unmounted scope", async () => {
   const controller = await loadController();
   controller.setResult({ data: snapshot, loading: false, refreshing: false });
-  controller.render().content.onAdd(); controller.render().content.onImport();
   const view = controller.render();
   controller.dispose();
-  view.table?.props.onMutated(); view.editor?.props.onSaved(); view.importing?.props.onImported();
+  view.table?.props.onMutated(); view.composer?.props.onSaved();
   assert.equal(controller.retries, 0);
   assert.equal(controller.lateStateWrites, 0);
   assert.equal(controller.exports.length, 0);
