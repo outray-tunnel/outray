@@ -14,7 +14,21 @@
   ],
   "workers_dev": true,
   "preview_urls": false,
-  "observability": { "enabled": true },
+  "observability": {
+    "enabled": true,
+    "redact_query_string": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+      "head_sampling_rate": 1,
+      "destinations": ["outray-ops-worker-logs"],
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1,
+      "destinations": ["outray-ops-worker-traces"],
+    },
+  },
   "vars": {
     "TINYBIRD_API_HOST": "https://api.europe-west2.gcp.tinybird.co",
     "OUTRAY_DEPLOYMENT_MODE": "hosted",
