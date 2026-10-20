@@ -15,7 +15,7 @@ test("switching organizations preserves each audited static page and canonicaliz
     "/settings", "/settings/profile", "/settings/organization", "/get-started", "/setup",
     "/observability", "/observability/alerts", "/observability/services", "/observability/requests",
     "/observability/logs", "/observability/metrics", "/observability/traces",
-    "/secrets", "/secrets/vaults", "/secrets/shares", "/secrets/trash", "/secrets/audit",
+    "/secrets/vaults", "/secrets/shares", "/secrets/trash", "/secrets/audit",
     "/uptime", "/uptime/monitors", "/uptime/incidents", "/uptime/notifications", "/uptime/status-page",
     "/uptime/status-page/appearance", "/uptime/status-page/components", "/uptime/status-page/domains", "/uptime/status-page/publishing",
   ];
@@ -31,6 +31,7 @@ test("switching organizations preserves each audited static page and canonicaliz
       assert.equal(organizationSwitchDestination(`/current${source}${suffix}`, "current", "next"), `/next${destination}`, source);
     }
   }
+  assert.equal(organizationSwitchDestination("/current/secrets", "current", "next"), "/next/secrets/vaults");
   assert.equal(organizationSwitchDestination("/current/secrets/projects", "current", "next"), "/next/secrets/vaults");
   assert.equal(organizationSwitchDestination("/current/observability/monitors", "current", "next"), "/next/observability/alerts");
 });
