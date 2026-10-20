@@ -49,7 +49,7 @@ const productConfig: Record<
     consoleTo:
       | "/$orgSlug/tunnel"
       | "/$orgSlug/observability"
-      | "/$orgSlug/secrets"
+      | "/$orgSlug/secrets/vaults"
       | "/$orgSlug/uptime";
   }
 > = {
@@ -81,7 +81,7 @@ const productConfig: Record<
     waitingLabel: "Waiting for your first secret",
     completeLabel: "First secret stored",
     icon: LockPasswordIcon,
-    consoleTo: "/$orgSlug/secrets",
+    consoleTo: "/$orgSlug/secrets/vaults",
   },
   uptime: {
     name: "Uptime",
