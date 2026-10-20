@@ -28,7 +28,7 @@ export function organizationSwitchDestination(pathname: string, currentSlug: str
   }
   const section = segments.length ? `/${segments.join("/")}` : "";
   if (["/tunnels", "/requests", "/subdomains", "/domains"].includes(section)) return `${overview}${section}`;
-  if (section === "/secrets/projects") return `${base}/secrets/vaults`;
+  if (section === "/secrets" || section === "/secrets/projects") return `${base}/secrets/vaults`;
   if (section === "/observability/monitors") return `${base}/observability/alerts`;
   if (staticSections.has(section)) return `${base}${section}`;
   if (/^\/secrets\/(?:vaults|projects)\/[^/]+(?:\/.*)?$/.test(section)) return `${base}/secrets/vaults`;
