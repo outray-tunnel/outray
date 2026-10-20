@@ -39,7 +39,7 @@ outray udp 53
 
 ### Requirements
 
-- Node.js 20+
+- Node.js 22.19.0+
 - npm 10+
 - PostgreSQL
 - Redis
