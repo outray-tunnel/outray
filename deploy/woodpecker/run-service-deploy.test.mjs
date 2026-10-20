@@ -28,7 +28,7 @@ const managedSecrets = {
   OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS: "synthetic-previous-keys",
 };
 
-async function run(service, { check = false, secrets = managedSecrets } = {}) {
+async function run(service, { check = false, secrets = managedSecrets, nodeVersion = "22.23.3" } = {}) {
   const spawnCalls = [];
   const logs = [];
   const exit = {};
@@ -46,6 +46,7 @@ async function run(service, { check = false, secrets = managedSecrets } = {}) {
     UPTIME_EGRESS_POLICY_READY: "false",
   };
   const process = {
+    versions: { node: nodeVersion },
     argv: ["node", "run-service-deploy.mjs", "--service", service,
       "--token-stdin", ...(check ? ["--check"] : [])],
     // An inherited shell API URL must not override the public production host.
@@ -88,6 +89,13 @@ async function run(service, { check = false, secrets = managedSecrets } = {}) {
 
   return { spawnCalls, exitCode, logs, current };
 }
+
+test("unsupported VPS Node versions fail before reading credentials or deploying", async () => {
+  const { spawnCalls, exitCode, logs } = await run("status", { nodeVersion: "20.20.2" });
+  assert.equal(exitCode, 1);
+  assert.equal(spawnCalls.length, 0);
+  assert.match(logs.join("\n"), /Node\.js >=22\.19\.0/);
+});
 
 for (const service of ["edge", "status", "uptime-probe"]) {
   test(`${service} uses the public dashboard and API instead of stale PM2 origins`, async () => {
