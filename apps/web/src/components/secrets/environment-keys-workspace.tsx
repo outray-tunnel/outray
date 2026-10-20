@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { ImportDotenvDialog, SecretEditorDialog, ConfirmSecretActionDialog } from "./secret-dialogs";
+import { ConfirmSecretActionDialog } from "./secret-dialogs";
 import { EnvironmentKeysContent, type EnvironmentKeysData } from "./environment-keys-content";
+import { InlineSecretsEditor } from "./inline-secrets-editor";
+import type { InlineSecretEdit } from "./inline-secret-edits";
 import { SecretsTable } from "./secrets-table";
 import { useSecretsResource } from "./use-secrets-resource";
 import { secretsClient, type SecretProject } from "@/lib/secrets-client";
@@ -20,13 +22,17 @@ export function VaultEnvironmentPageView(props: EnvironmentKeysWorkspaceProps) {
 }
 
 export function EnvironmentKeysWorkspace({ orgSlug, projectSlug, environmentSlug, project: sharedProject, sharedLayout, actionsContainer, onProjectMutated }: EnvironmentKeysWorkspaceProps) {
-  const [adding, setAdding] = useState<EnvironmentKeysData | null>(null);
-  const [importing, setImporting] = useState<EnvironmentKeysData | null>(null);
+  const [query, setQuery] = useState("");
+  const [hasDraft, setHasDraft] = useState(false);
+  const [edits, setEdits] = useState<Record<string, InlineSecretEdit>>({});
+  const [saving, setSaving] = useState(false);
+  const [resetToken, setResetToken] = useState(0);
   const [exportTarget, setExportTarget] = useState<EnvironmentKeysData | null>(null);
   const [exporting, setExporting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const mounted = useRef(true);
   const exportPending = useRef(false);
+  const savePending = useRef(false);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const resource = useSecretsResource(async (signal) => {
     const project = sharedProject ?? await secretsClient.project(orgSlug, projectSlug, signal);
@@ -70,15 +76,31 @@ export function EnvironmentKeysWorkspace({ orgSlug, projectSlug, environmentSlug
     }
   }
   const afterMutation = () => { if (mounted.current) { resource.reload(); onProjectMutated?.(); } };
+  const resetEdits = () => {
+    setEdits({});
+    setResetToken((current) => current + 1);
+  };
+  const savingChanged = (value: boolean) => {
+    savePending.current = value;
+    setSaving(value);
+  };
+  const updateEdit = (edit: InlineSecretEdit) => {
+    if (!mounted.current || savePending.current) return;
+    setEdits((current) => {
+      const next = { ...current };
+      if (edit.value === edit.originalValue) delete next[edit.id];
+      else next[edit.id] = edit;
+      return next;
+    });
+  };
 
   return <>
     <EnvironmentKeysContent orgSlug={orgSlug} projectSlug={projectSlug} environmentSlug={environmentSlug} sharedLayout={sharedLayout} actionsContainer={actionsContainer} data={data} loading={resource.loading} refreshing={resource.refreshing} error={resource.error} actionError={actionError} exporting={exporting}
-      onAdd={() => { if (data) setAdding(data); }} onImport={() => { if (data) setImporting(data); }} onRetry={resource.reload}
+      search={query} onSearchChange={setQuery} onRetry={resource.reload}
       onExport={() => { if (!data || exportPending.current) return; setActionError(null); if (data.environment.isProduction) setExportTarget(data); else void downloadExport(data, false, data.environment.name); }}>
-      {data && <SecretsTable key={JSON.stringify([orgSlug, projectSlug, data.environment.id])} contained scrollRows={sharedLayout} orgSlug={orgSlug} projectSlug={projectSlug} environment={data.environment} environments={data.project.environments} secrets={data.secrets} revision={data.revision} onMutated={afterMutation} onAdd={() => setAdding(data)} />}
+      {data && <InlineSecretsEditor key={JSON.stringify(["draft", orgSlug, projectSlug, data.environment.id])} orgSlug={orgSlug} projectSlug={projectSlug} environment={data.environment} revision={data.revision} existingKeys={data.secrets.map((secret) => secret.key)} disabled={resource.loading || resource.refreshing || !!resource.error} edits={edits} onResetEdits={resetEdits} onSavingChange={savingChanged} onDirtyChange={setHasDraft} onSaved={afterMutation} onConflict={resource.reload} />}
+      {data && <SecretsTable key={JSON.stringify([orgSlug, projectSlug, data.environment.id])} contained scrollRows={sharedLayout} orgSlug={orgSlug} projectSlug={projectSlug} environment={data.environment} environments={data.project.environments} secrets={data.secrets} revision={data.revision} query={query} onQueryChange={setQuery} edits={edits} onEditChange={updateEdit} disabled={saving || resource.loading || resource.refreshing || !!resource.error} hasUnsavedChanges={hasDraft || Object.keys(edits).length > 0} resetToken={resetToken} reserveActionsSpace={hasDraft || Object.keys(edits).length > 0} onMutated={afterMutation} />}
     </EnvironmentKeysContent>
-    {adding && <SecretEditorDialog open onClose={() => setAdding(null)} orgSlug={orgSlug} projectSlug={projectSlug} environment={adding.environment} environments={adding.project.environments} revision={adding.revision} onSaved={afterMutation} />}
-    {importing && <ImportDotenvDialog open onClose={() => setImporting(null)} orgSlug={orgSlug} projectSlug={projectSlug} environment={importing.environment} revision={importing.revision} onImported={afterMutation} />}
     {exportTarget && <ConfirmSecretActionDialog open onClose={() => { if (!exportPending.current) setExportTarget(null); }} title="Export production secrets?" description={actionError || "This downloads every plaintext value in the production environment to your device. Keep the file out of source control and delete it when finished."} confirmLabel="Export .env" confirmationText={exportTarget.environment.name} production danger={false} loading={exporting} onConfirm={(confirmed, confirmation) => void downloadExport(exportTarget, confirmed, confirmation)} />}
   </>;
 }
