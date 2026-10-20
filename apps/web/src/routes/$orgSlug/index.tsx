@@ -7,7 +7,7 @@ export const Route = createFileRoute("/$orgSlug/")({
     throw redirect({
       to: firstProduct === "tunnels" ? "/$orgSlug/tunnel"
         : firstProduct === "observability" ? "/$orgSlug/observability"
-        : firstProduct === "secrets" ? "/$orgSlug/secrets"
+        : firstProduct === "secrets" ? "/$orgSlug/secrets/vaults"
         : firstProduct === "uptime" ? "/$orgSlug/uptime" : "/$orgSlug/settings",
       params: { orgSlug: params.orgSlug },
       ...legacyTunnelRedirectLocation(location),
