@@ -1,6 +1,12 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 
+const [nodeMajor, nodeMinor] = process.versions.node.split(".").map(Number);
+if (nodeMajor < 22 || (nodeMajor === 22 && nodeMinor < 19)) {
+  console.error("The VPS requires Node.js >=22.19.0 before deploying built services.");
+  process.exit(1);
+}
+
 // Preserve the active process settings, then override the service credentials
 // from our standard self-hosted OutRay Secrets API. Values are never printed.
 const serviceIndex = process.argv.indexOf("--service");
