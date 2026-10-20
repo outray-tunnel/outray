@@ -1,5 +1,5 @@
 import { defineMiddleware } from "astro:middleware";
-import { withStatusRuntime } from "./lib/runtime";
+import { getStatusRuntime } from "./lib/runtime";
 import { snapshotResponse } from "./lib/snapshots";
 
 export const onRequest = defineMiddleware(async (context, next) => {
@@ -24,16 +24,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
     return response;
   };
-  const runtime = context.locals.runtime;
-  if (runtime?.env && typeof runtime.ctx?.waitUntil === "function") {
-    return withStatusRuntime({
-      env: runtime.env,
-      request: context.request,
-      waitUntil: (promise) => runtime.ctx.waitUntil(promise),
-    }, () => snapshotResponse(context.request, respond, {
+  const runtime = getStatusRuntime();
+  if (runtime) {
+    return snapshotResponse(context.request, respond, {
       bucket: runtime.env.STATUS_SNAPSHOTS,
-      waitUntil: (promise) => runtime.ctx.waitUntil(promise),
-    }));
+      waitUntil: runtime.waitUntil,
+    });
   }
   return respond();
 });
