@@ -112,7 +112,7 @@ export function Sidebar({
             activeIcon: Pulse02SolidIcon,
           },
           {
-            to: "/$orgSlug/secrets",
+            to: "/$orgSlug/secrets/vaults",
             label: "Secrets",
             icon: LockPasswordIcon,
             activeIcon: LockPasswordSolidIcon,
@@ -203,7 +203,7 @@ export function Sidebar({
     unified && filterSidebarProducts(navQuery, !!canManageShares, instance.products).length > 0;
 
   const isNavItemActive = (item: SidebarNavItem) => {
-    const targetPath = item.to.replace("/$orgSlug", basePath);
+    const targetPath = (item.to === "/$orgSlug/secrets/vaults" ? "/$orgSlug/secrets" : item.to).replace("/$orgSlug", basePath);
     return (
       location.pathname === targetPath ||
       location.pathname.startsWith(`${targetPath}/`)
