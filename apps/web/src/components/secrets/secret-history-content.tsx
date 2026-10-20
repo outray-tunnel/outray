@@ -30,6 +30,8 @@ export interface SecretHistoryContentProps {
   onRestore: (version: number) => void;
   onHide: () => void;
   onRetry: () => void;
+  showDetails?: boolean;
+  showHeading?: boolean;
 }
 
 function versionSource(version: HistoryVersion): string {
@@ -59,21 +61,29 @@ function HistorySkeleton() {
   </div>;
 }
 
-export function SecretHistoryContent({ secret, environment, versions, loading, error, actionError, pending, revealed, secondsRemaining, copiedVersion, onReveal, onCopy, onRestore, onHide, onRetry }: SecretHistoryContentProps) {
+export function SecretHistorySummary({ secret, environment, currentVersion = secret?.version }: {
+  secret: SecretMetadata | null;
+  environment: SecretEnvironment;
+  currentVersion?: number;
+}) {
+  return <section className="flex min-w-0 items-center gap-[11px] pt-[18px] pb-[22px]" aria-label="Secret details">
+    <span className="grid size-[34px] basis-[34px] place-items-center rounded-[10px] border border-white/[.07] bg-white/[.025] text-zinc-400"><KeyRound size={16} aria-hidden="true" /></span>
+    <div className="min-w-0 [&>h3]:m-0 [&>h3]:font-mono [&>h3]:text-[13px] [&>h3]:leading-[1.6] [&>h3]:font-medium [&>h3]:text-zinc-200 [&>h3]:[overflow-wrap:anywhere]"><h3>{secret?.key ?? "Secret"}</h3><div className="mt-1 flex flex-wrap items-center gap-2.25 text-[11px] leading-[1.6] text-zinc-500">
+      <span className="inline-flex items-center gap-1 text-zinc-400 data-production:text-[#bba477]" data-production={environment.isProduction || undefined}>{environment.isProduction ? <LockKeyhole size={11} aria-hidden="true" /> : null}{environment.name}</span>
+      {currentVersion !== undefined ? <span>Current v{currentVersion}</span> : null}
+    </div></div>
+  </section>;
+}
+
+export function SecretHistoryContent({ secret, environment, versions, loading, error, actionError, pending, revealed, secondsRemaining, copiedVersion, onReveal, onCopy, onRestore, onHide, onRetry, showDetails = true, showHeading = true }: SecretHistoryContentProps) {
   const id = useId();
   const hasMarkedCurrent = versions.some((version) => version.isCurrent === true);
   const currentVersion = versions.find((version) => version.isCurrent === true)?.version ?? secret?.version;
   const initialLoading = loading && versions.length === 0;
   return <div className="w-full min-w-0 text-zinc-300" aria-busy={loading || undefined}>
-    <section className="flex min-w-0 items-center gap-[11px] pt-[18px] pb-[22px]" aria-label="Secret details">
-      <span className="grid size-[34px] basis-[34px] place-items-center rounded-[10px] border border-white/[.07] bg-white/[.025] text-zinc-400"><KeyRound size={16} aria-hidden="true" /></span>
-      <div className="min-w-0 [&>h3]:m-0 [&>h3]:font-mono [&>h3]:text-[13px] [&>h3]:leading-[1.6] [&>h3]:font-medium [&>h3]:text-zinc-200 [&>h3]:[overflow-wrap:anywhere]"><h3>{secret?.key ?? "Secret"}</h3><div className="mt-1 flex flex-wrap items-center gap-2.25 text-[11px] leading-[1.6] text-zinc-500">
-        <span className="inline-flex items-center gap-1 text-zinc-400 data-production:text-[#bba477]" data-production={environment.isProduction || undefined}>{environment.isProduction ? <LockKeyhole size={11} aria-hidden="true" /> : null}{environment.name}</span>
-        {currentVersion !== undefined ? <span>Current v{currentVersion}</span> : null}
-      </div></div>
-    </section>
+    {showDetails ? <SecretHistorySummary secret={secret} environment={environment} currentVersion={currentVersion} /> : null}
 
-    <div className="flex items-center justify-between gap-3 border-b border-white/[.07] pb-[11px] [&>h3]:m-0 [&>h3]:text-xs [&>h3]:leading-normal [&>h3]:font-medium [&>h3]:text-zinc-400 [&>span]:text-[11px] [&>span]:text-zinc-500"><h3>Version history</h3>{!initialLoading && !error ? <span>{versions.length} {versions.length === 1 ? "version" : "versions"}</span> : null}</div>
+    {showHeading ? <div className="flex items-center justify-between gap-3 border-b border-white/[.07] pb-[11px] [&>h3]:m-0 [&>h3]:text-xs [&>h3]:leading-normal [&>h3]:font-medium [&>h3]:text-zinc-400 [&>span]:text-[11px] [&>span]:text-zinc-500"><h3>Version history</h3>{!initialLoading && !error ? <span>{versions.length} {versions.length === 1 ? "version" : "versions"}</span> : null}</div> : null}
 
     {initialLoading ? <HistorySkeleton /> : error && versions.length === 0 ? <div className={emptyStateClassName} role="alert">
       <span className={`${iconStateClassName} text-[#c78996]`}><CircleAlert size={20} aria-hidden="true" /></span><h4>Couldn’t load history</h4><p>{error}</p><Button type="button" variant="secondary" size="sm" onClick={onRetry}>Try again</Button>
