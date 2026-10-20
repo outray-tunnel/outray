@@ -10,7 +10,7 @@ Public-launch gate: the current checkout's production Seroval dependency needs a
 
 ## 1. Prepare an independent installation
 
-Use a fresh checkout on your installation's host. Install Node.js 22+, Docker Engine with BuildKit, and the Docker Compose plugin. Reserve a public domain and enough disk/memory for your expected telemetry, Redis backlog, PostgreSQL data, and application builds. If using OutRay to monitor another OutRay installation, keep the two hosts, databases, credentials and Tinybird workspaces independent. This package has not been load-tested to establish hardware sizing guarantees.
+Use a fresh checkout on your installation's host. Install Node.js 22.19.0+, Docker Engine with BuildKit, and the Docker Compose plugin. Reserve a public domain and enough disk/memory for your expected telemetry, Redis backlog, PostgreSQL data, and application builds. If using OutRay to monitor another OutRay installation, keep the two hosts, databases, credentials and Tinybird workspaces independent. This package has not been load-tested to establish hardware sizing guarantees.
 
 From the repository root:
 
