@@ -30,7 +30,7 @@ if [ "$UPTIME_ENABLED" = "true" ]; then
 fi
 
 cd /root/outray/status
-npm install --production
+npm install --omit=dev --engine-strict --no-audit --no-fund
 
 # The renderer is private to the tunnel edge. Never bind it to a public address.
 export STATUS_BIND_HOST="127.0.0.1" HOST="127.0.0.1" PORT="$STATUS_PORT" NODE_ENV="production"
