@@ -109,8 +109,8 @@ test("connection verification replaces Next only on the final step, rather than 
   assert.doesNotMatch(html, /Check connection|Check again/);
   const source = await readFile(new URL("../src/components/onboarding/setup-ui.tsx", import.meta.url), "utf8");
   assert.match(source, /const isFinalStep = selectedIndex === steps\.length - 1/);
-  assert.match(source, /disabled=\{isFinalStep && !onRecheck\}/);
-  assert.match(source, /onClick=\{isFinalStep \? onRecheck : \(\) => setSelectedId\(steps\[selectedIndex \+ 1\]\.id\)\}/);
+  assert.match(source, /disabled=\{\(isFinalStep && !onRecheck\) \|\| !!activeAction\?\.disabled\}/);
+  assert.match(source, /onClick=\{activeAction \? undefined : isFinalStep \? onRecheck : \(\) => \{ void changeStep\(steps\[selectedIndex \+ 1\]\.id\); \}\}/);
   assert.match(source, /isFinalStep && onRecheck \? <>.*Check connection<\/> : <>Next step/);
   assert.equal((source.match(/Check connection/g) ?? []).length, 1);
   assert.doesNotMatch(source, /Check again/);
@@ -144,7 +144,7 @@ test("multiline code shows its file name, escapes content, and has a specific co
 test("setup tabs implement keyboard wrap, Home/End, focus return, and reduced motion", async () => {
   const source = await readFile(new URL("../src/components/onboarding/setup-ui.tsx", import.meta.url), "utf8");
   for (const key of ["ArrowRight", "ArrowLeft", "Home", "End"]) assert.ok(source.includes(`event.key === "${key}"`));
-  assert.match(source, /event\.preventDefault\(\);\s*setSelectedId\(steps\[next\]\.id\);\s*tabs\.current\[next\]\?\.focus\(\)/);
+  assert.match(source, /event\.preventDefault\(\);\s*void changeStep\(steps\[next\]\.id\)\.then\(\(changed\) => \{\s*if \(changed\) tabs\.current\[next\]\?\.focus\(\)/);
   assert.match(source, /onKeyDown=\{handleKeyDown\}/);
   assert.match(source, /reducedMotion \? \{ duration: 0 \}/);
   assert.match(source, /hidden=\{flow \? flow\.activeId !== number : undefined\}/);
