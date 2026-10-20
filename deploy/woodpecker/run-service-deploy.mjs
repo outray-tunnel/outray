@@ -177,6 +177,10 @@ try {
 const dashboardOrigin = "https://outray.dev";
 runtime.OUTRAY_DASHBOARD_URL = dashboardOrigin;
 runtime.WEB_API_URL = `${dashboardOrigin}/api`;
+// The hosted status origin is fixed by deploy.sh, but older PM2 processes did
+// not retain OUTRAY_STATUS_URL in their environment. Do not let that prevent
+// the next blue/green deploy from recovering the edge.
+runtime.OUTRAY_STATUS_URL ||= "https://status.outray.app";
 
 // Cron runs separately on Aeroplane. Do not start a second evaluator here.
 runtime.DEPLOY_CRON = "false";
