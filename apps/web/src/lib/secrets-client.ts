@@ -918,6 +918,7 @@ export const secretsClient = {
       envText: string;
       dryRun?: boolean;
       expectedRevision?: number;
+      expectedVersions?: Record<string, number | null>;
       confirmProduction?: boolean;
     },
   ): Promise<ImportReview> {
@@ -1011,6 +1012,27 @@ export const secretsClient = {
       events: unwrapArray(payload, ["events", "audit", "items", "data"]).map(
         normalizeAuditEvent,
       ),
+      nextCursor: nullableText(record.nextCursor),
+    };
+  },
+
+  async secretAccessHistory(
+    orgSlug: string,
+    projectSlug: string,
+    environmentSlug: string,
+    secretId: string,
+    cursor?: string | null,
+    signal?: AbortSignal,
+  ): Promise<SecretAuditPage> {
+    const search = new URLSearchParams({
+      limit: "50", category: "access", projectSlug, environmentSlug, secretId,
+    });
+    if (cursor) search.set("cursor", cursor);
+    const payload = await jsonRequest(orgSlug, `/audit?${search.toString()}`, { signal });
+    signal?.throwIfAborted();
+    const record = isRecord(payload) ? payload : {};
+    return {
+      events: unwrapArray(payload, ["events", "audit", "items", "data"]).map(normalizeAuditEvent),
       nextCursor: nullableText(record.nextCursor),
     };
   },
