@@ -16,6 +16,7 @@ if (!site) {
 export default defineConfig({
   site,
   output: "static",
+  compressHTML: true,
   vite: {
     plugins: [tailwindcss()],
   },
