@@ -99,6 +99,9 @@ async function controller(initial: Partial<SessionProps> = {}) {
     const id = ++timerId; timers.set(id, { callback, due: now + duration, interval }); return id;
   }
   const Content = (_props: Props) => null, RestoreDialog = (_props: Props) => null, Sheet = (_props: Props) => null;
+  const Summary = (_props: Props) => null, AccessHistory = (_props: Props) => null;
+  const Tabs = (_props: Props) => null, TabsList = (_props: Props) => null;
+  const TabsTrigger = (_props: Props) => null, TabsContent = (_props: Props) => null;
   const module = { exports: {} as {
     SecretHistorySession: (props: SessionProps) => React.ReactNode;
     SecretHistorySheet: (props: Props) => React.ReactNode;
@@ -122,7 +125,9 @@ async function controller(initial: Partial<SessionProps> = {}) {
       if (specifier === "lucide-react") return { LockKeyhole: (_props: Props) => null };
       if (specifier === "@/components/ui/side-sheet") return { SideSheet: Sheet };
       if (specifier === "@/lib/secrets-client") return { secretsClient: client };
-      if (specifier === "./secret-history-content") return { SecretHistoryContent: Content, SecretHistoryRestoreDialog: RestoreDialog };
+      if (specifier === "./secret-history-content") return { SecretHistoryContent: Content, SecretHistoryRestoreDialog: RestoreDialog, SecretHistorySummary: Summary };
+      if (specifier === "./secret-access-history") return { SecretAccessHistory: AccessHistory };
+      if (specifier === "../arc/tabs/tabs") return { Tabs, TabsList, TabsTrigger, TabsContent };
       if (specifier === "./secret-history-restore-dialog") return { SecretHistoryRestoreDialog: RestoreDialog };
       if (specifier === "./secrets-ui") return { SecretsSheet: Sheet };
       if (specifier.endsWith(".css")) return {};
@@ -140,13 +145,27 @@ async function controller(initial: Partial<SessionProps> = {}) {
         previous?.cleanup?.(); committed.set(effect.slot, { deps: [...effect.deps], cleanup: effect.callback() ?? undefined });
       }
       if (dirty) continue;
-      return { tree, content: tree.find((element) => element.type === Content)?.props, dialog: tree.find((element) => element.type === RestoreDialog)?.props };
+      return {
+        tree,
+        content: tree.find((element) => element.type === Content)?.props,
+        dialog: tree.find((element) => element.type === RestoreDialog)?.props,
+        tabs: tree.find((element) => element.type === Tabs)?.props,
+        triggers: tree.filter((element) => element.type === TabsTrigger).map((element) => element.props),
+        summary: tree.find((element) => element.type === Summary)?.props,
+        access: tree.find((element) => element.type === AccessHistory)?.props,
+      };
     }
     throw new Error("The actual history controller did not settle");
   }
   function show() { const view = render(); assert.ok(view.content); assert.ok(view.dialog); return { content: view.content, dialog: view.dialog }; }
   return {
     calls, clipboard, interactions, render, show,
+    changeTab(tab: "versions" | "access") {
+      const tabs = render().tabs;
+      assert.ok(tabs, "history exposes controlled tabs");
+      tabs.onValueChange(tab);
+      return render();
+    },
     get closes() { return closes; }, get mutations() { return mutations; },
     get lateWrites() { return lateWrites; }, get timerCount() { return timers.size; },
     setProps(next: Partial<SessionProps>) { props = { ...props, ...next }; },
@@ -182,6 +201,131 @@ test("history fetches metadata with an abort signal, sorts versions, and respect
   assert.equal(content.versions.find((version: SecretVersion) => version.isCurrent).version, 3);
   assert.equal(content.revealed, null); assert.equal(view.clipboard.length, 0);
   view.dispose(); assert.equal(view.calls[0].signal?.aborted, true);
+});
+
+test("history defaults to versions and mounts access history only while its tab is selected", async () => {
+  const view = await controller();
+  let rendered = view.render();
+  assert.equal(rendered.tabs?.value, "versions");
+  assert.deepEqual(rendered.triggers.map((trigger) => trigger.children), ["Version history", "Access history"]);
+  assert.ok(rendered.summary, "secret metadata remains common to both tabs");
+  assert.equal(rendered.content?.showDetails, false);
+  assert.equal(rendered.content?.showHeading, false);
+  assert.equal(rendered.access, undefined, "the access panel performs no work before selection");
+  await settle();
+  rendered = view.changeTab("access");
+  assert.equal(rendered.tabs?.value, "access");
+  assert.equal(rendered.content, undefined, "the version panel unmounts instead of retaining plaintext behind the tab");
+  assert.ok(rendered.access);
+  assert.equal(rendered.access.orgSlug, "acme");
+  assert.equal(rendered.access.projectSlug, "api");
+  assert.ok(rendered.summary);
+  rendered = view.changeTab("versions");
+  assert.equal(rendered.tabs?.value, "versions");
+  assert.equal(rendered.access, undefined);
+  assert.ok(rendered.content);
+  assert.equal(view.calls.filter((call) => call.action === "versions").length, 1, "tab navigation retains loaded version metadata");
+  view.dispose();
+});
+
+test("switching to access clears revealed values, copy feedback, action errors and all value timers", async () => {
+  const view = await controller(); view.show(); await settle();
+  view.show().content.onReveal(1); await settle();
+  view.show().content.onCopy(2); await settle();
+  let content = view.show().content;
+  assert.equal(content.revealed.version, 1);
+  assert.equal(content.copiedVersion, 2);
+  assert.ok(view.timerCount > 0);
+  view.revealWith(async () => { throw new Error("Version access failed"); });
+  content.onReveal(2); await settle();
+  content = view.show().content;
+  assert.deepEqual(clone(content.actionError), { version: 2, message: "Version access failed" });
+  const before = view.calls.length;
+  view.changeTab("access");
+  assert.equal(view.timerCount, 0);
+  content.onReveal(1); content.onCopy(1); content.onRestore(1);
+  assert.equal(view.calls.length, before, "stale version handlers cannot fetch values from the access tab");
+  assert.equal(view.render().dialog?.open, false);
+  content = view.changeTab("versions").content!;
+  assert.equal(content.revealed, null);
+  assert.equal(content.copiedVersion, null);
+  assert.equal(content.actionError, null);
+  assert.equal(content.pending, null);
+  assert.equal(content.secondsRemaining, 0);
+  view.advance(30_000);
+  assert.equal(view.show().content.revealed, null);
+  view.dispose();
+});
+
+test("tab changes abort pending value requests and fence late replies even after reentering version history", async () => {
+  for (const action of ["reveal", "copy"] as const) {
+    const view = await controller(), wait = deferred<{ value: string; expiresIn: number }>();
+    view.show(); await settle(); view.revealWith(() => wait.promise);
+    const old = view.show().content;
+    if (action === "reveal") old.onReveal(1); else old.onCopy(1);
+    const request = view.calls.at(-1)!;
+    assert.equal(request.signal?.aborted, false);
+    view.changeTab("access");
+    assert.equal(request.signal?.aborted, true);
+    const calls = view.calls.length;
+    old.onReveal(2); old.onCopy(2); old.onRestore(2);
+    assert.equal(view.calls.length, calls);
+    const active = view.changeTab("versions").content!;
+    assert.equal(active.pending, null, "the new version panel is not locked by the abandoned action");
+    view.revealWith(async () => ({ value: "fresh-fixture", expiresIn: 30 }));
+    active.onReveal(2); await settle();
+    assert.equal(view.show().content.revealed.value, "fresh-fixture");
+    wait.resolve({ value: "late-fixture", expiresIn: 30 }); await settle();
+    const content = view.show().content;
+    assert.equal(content.revealed.value, "fresh-fixture");
+    assert.equal(content.pending, null);
+    assert.equal(content.copiedVersion, null);
+    assert.deepEqual(view.clipboard, [], "abandoned copy replies never reach the clipboard");
+    view.dispose();
+  }
+});
+
+test("a clipboard completion from a previous tab cannot add feedback or clear a new request", async () => {
+  const view = await controller(), clipboard = deferred<void>(), reveal = deferred<{ value: string; expiresIn: number }>();
+  view.show(); await settle(); view.clipboardWith(() => clipboard.promise);
+  view.show().content.onCopy(1); await settle();
+  assert.deepEqual(view.clipboard, ["fixture-v1"]);
+  view.changeTab("access");
+  const content = view.changeTab("versions").content!;
+  view.revealWith(() => reveal.promise);
+  content.onReveal(2);
+  clipboard.resolve(); await settle();
+  assert.deepEqual(clone(view.show().content.pending), { type: "reveal", version: 2 });
+  assert.equal(view.show().content.copiedVersion, null);
+  reveal.resolve({ value: "new-tab-fixture", expiresIn: 30 }); await settle();
+  assert.equal(view.show().content.revealed.value, "new-tab-fixture");
+  view.dispose();
+});
+
+test("restore confirmation and an in-flight restore block tab switching synchronously", async () => {
+  const view = await controller(), wait = deferred<Props>();
+  view.show(); await settle();
+  const tabs = view.render().tabs!;
+  view.show().content.onRestore(1);
+  tabs.onValueChange("access");
+  let rendered = view.render();
+  assert.equal(rendered.tabs?.value, "versions");
+  assert.equal(rendered.access, undefined);
+  assert.equal(rendered.dialog?.open, true);
+  assert.equal(rendered.triggers.every((trigger) => trigger.disabled), true);
+  view.rollbackWith(() => wait.promise);
+  rendered.dialog!.onConfirm();
+  tabs.onValueChange("access");
+  rendered = view.render();
+  assert.equal(rendered.tabs?.value, "versions");
+  assert.equal(rendered.access, undefined);
+  assert.equal(rendered.dialog?.pending, true);
+  wait.reject(new Error("Restore conflict")); await settle();
+  rendered = view.render(); rendered.tabs!.onValueChange("access");
+  assert.equal(view.render().tabs?.value, "versions", "a failed restore keeps the confirmation scope active");
+  view.render().dialog!.onClose();
+  assert.ok(view.changeTab("access").access, "closing confirmation allows navigation again");
+  view.dispose();
 });
 
 test("history failures stay distinct from empty history and retry without losing the session", async () => {
@@ -307,14 +451,14 @@ test("the sheet unmounts private sessions on close and scopes their keys to orga
   const unchanged = findSession(view.sheet({ revision: 99, secret: { ...secret, version: 99 }, environment: { ...staging, revision: 99 } }));
   assert.equal(unchanged?.key, initial.key, "ordinary background metadata changes preserve the open session");
   initial.props.onInteractionChange({ confirming: true, restoring: false });
-  assert.equal(view.sheet({}).find((element) => element.props.title === "Version history")?.props.closeDisabled, true);
+  assert.equal(view.sheet({}).find((element) => element.props.title === "Secret history")?.props.closeDisabled, true);
   for (const next of [
     { orgSlug: "other-org" }, { projectSlug: "other-vault" },
     { environment: { ...staging, id: "other-environment" } }, { environment: { ...staging, slug: "renamed-environment" } },
     { secret: { ...secret, id: "other-secret" } },
   ]) {
     const tree = view.sheet(next); assert.notEqual(findSession(tree)?.key, initial.key);
-    assert.equal(Boolean(tree.find((element) => element.props.title === "Version history")?.props.closeDisabled), false, "old-session interactions cannot block a new scope");
+    assert.equal(Boolean(tree.find((element) => element.props.title === "Secret history")?.props.closeDisabled), false, "old-session interactions cannot block a new scope");
   }
   assert.equal(findSession(view.sheet({ open: false })), undefined);
   assert.equal(findSession(view.sheet({ secret: null })), undefined); view.dispose();
