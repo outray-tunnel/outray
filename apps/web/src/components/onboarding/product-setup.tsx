@@ -16,11 +16,12 @@ import {
   type ClipboardEvent,
   useCallback,
   useEffect,
+  useId,
   useState,
 } from "react";
 import { Button } from "@/components/arc/button/button";
 import { Select } from "@/components/ui/select";
-import { WorkspaceInput, WorkspaceTextarea } from "@/components/ui/workspace-input";
+import { WorkspaceInput } from "@/components/ui/workspace-input";
 import { OnboardingShell } from "./onboarding-shell";
 import { SetupFlow, SetupStep, SetupCodeBlock as CodeBlock } from "./setup-ui";
 import { UptimeMonitorForm } from "./uptime-monitor-form";
@@ -207,6 +208,7 @@ function SecretsSetup({
   orgSlug: string;
   onSecretCreated: () => void;
 }) {
+  const secretFormId = useId();
   const [projects, setProjects] = useState<SecretProject[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [selectedProjectSlug, setSelectedProjectSlug] = useState("");
@@ -255,6 +257,7 @@ function SecretsSetup({
   const validDraft = populatedRows.length > 0 && populatedRows.every(
     (row) => /^[A-Z_][A-Z0-9_]{0,255}$/.test(row.key) && keyCounts.get(row.key) === 1,
   );
+  const alreadySaved = !!savedMessage && populatedRows.length === 0;
 
   const updateSecretRow = (id: number, field: "key" | "value", value: string) => {
     setSecretRows((current) => current.map((row) => row.id === id ? { ...row, [field]: value } : row));
@@ -262,7 +265,7 @@ function SecretsSetup({
     setError(null);
   };
 
-  const pasteSecrets = (event: ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>, id: number, field: "key" | "value") => {
+  const pasteSecrets = (event: ClipboardEvent<HTMLInputElement>, id: number, field: "key" | "value") => {
     if (savingSecret) return;
     try {
       const entries = parseSecretPaste(event.clipboardData.getData("text/plain"), field);
@@ -305,15 +308,15 @@ function SecretsSetup({
     }
   };
 
-  const createSecret = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const saveSecrets = async (): Promise<boolean> => {
     if (
       savingSecret ||
       !selectedProject ||
-      !selectedEnvironment ||
-      !validDraft
+      !selectedEnvironment
     )
-      return;
+      return false;
+    if (alreadySaved) return true;
+    if (!validDraft) return false;
     setSavingSecret(true);
     setError(null);
     try {
@@ -373,12 +376,14 @@ function SecretsSetup({
         ),
       );
       onSecretCreated();
+      return true;
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
           : "The secrets could not be stored.",
       );
+      return false;
     } finally {
       setSavingSecret(false);
     }
@@ -431,7 +436,8 @@ function SecretsSetup({
   }
 
   return (
-    <SetupFlow steps={[{ id: "01", title: "Destination" }, { id: "02", title: "Add secrets" }, { id: "03", title: "CLI access" }]} onRecheck={onSecretCreated}>
+    <SetupFlow steps={[{ id: "01", title: "Destination" }, { id: "02", title: "Add secrets" }, { id: "03", title: "CLI access" }]} onRecheck={onSecretCreated}
+      nextAction={{ step: "02", form: secretFormId, onNext: saveSecrets, disabled: (!validDraft && !alreadySaved) || !selectedProject || !selectedEnvironment, loading: savingSecret }}>
       <SetupStep number="01" title="Choose where to store it">
         <p className="mb-4 text-[12px] leading-5 text-zinc-400">Select a vault and environment. Start with Development if you're trying Secrets for the first time.</p>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -469,16 +475,16 @@ function SecretsSetup({
         <p id="setup-secrets-paste-hint" className="mb-4 text-[11px] leading-5 text-zinc-500">Paste .env lines into either column to fill multiple rows, or add keys and values one at a time.</p>
         {error && <InlineError message={error} />}
         {savedMessage && <p role="status" className="mb-4 flex items-center gap-2 text-[12px] text-emerald-300"><HugeiconsIcon icon={Tick02Icon} size={14} aria-hidden="true" />{savedMessage}</p>}
-        <form onSubmit={createSecret} className="space-y-3">
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_32px] gap-2 text-[12px] text-zinc-300" aria-hidden="true">
-            <span>Key</span><span>Value</span><span />
+        <form id={secretFormId} className="space-y-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_40px] text-[12px] text-zinc-300" aria-hidden="true">
+            <span className="pl-3.5">Key</span><span className="pl-3.5">Value</span><span />
           </div>
           <div className="space-y-2.5">
             {secretRows.map((row, index) => {
               const invalidKey = !!(row.key || row.value) && !/^[A-Z_][A-Z0-9_]{0,255}$/.test(row.key);
               const duplicateKey = (keyCounts.get(row.key) ?? 0) > 1;
               return (
-                <div key={row.id} role="group" aria-label={`Secret ${index + 1}`} className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_32px] items-start gap-2">
+                <div key={row.id} role="group" aria-label={`Secret ${index + 1}`} className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_40px] items-start gap-y-2">
                   <WorkspaceInput
                     aria-label={`Secret key ${index + 1}`}
                     value={row.key}
@@ -491,23 +497,22 @@ function SecretsSetup({
                     autoComplete="off"
                     aria-invalid={invalidKey || duplicateKey}
                     aria-describedby={invalidKey || duplicateKey ? `setup-key-error-${row.id}` : "setup-secrets-paste-hint"}
-                    className="font-mono text-[13px]!"
+                    className="relative rounded-l-2xl! rounded-r-none! font-mono text-[13px]! focus:z-10"
                   />
-                  <WorkspaceTextarea
+                  <WorkspaceInput
+                    type="text"
                     aria-label={`Secret value ${index + 1}`}
                     value={row.value}
                     onChange={(event) => updateSecretRow(row.id, "value", event.target.value)}
                     onPaste={(event) => pasteSecrets(event, row.id, "value")}
                     placeholder="Secret value"
-                    rows={Math.min(6, row.value.split("\n").length)}
-                    wrap="off"
                     autoComplete="off"
                     readOnly={savingSecret}
                     spellCheck={false}
                     aria-describedby="setup-secrets-paste-hint"
-                    className="ph-no-capture min-h-11! py-2.5 font-mono text-[13px]! leading-5!"
+                    className="ph-no-capture relative rounded-l-none! rounded-r-2xl! border-l-0! font-mono text-[13px]! focus:z-10"
                   />
-                  <Button type="button" variant="ghost" size="sm" aria-label={`Remove secret ${index + 1}`} disabled={savingSecret} className="mt-1.5 size-8 p-0!"
+                  <Button type="button" variant="ghost" size="sm" aria-label={`Remove secret ${index + 1}`} disabled={savingSecret} className="mt-1.5 ml-2 size-8 p-0!"
                     onClick={() => {
                       setSecretRows((current) => current.length === 1 ? createEmptySecretDraft() : current.filter((item) => item.id !== row.id));
                       setSavedMessage(null);
@@ -525,7 +530,6 @@ function SecretsSetup({
               setSecretRows((current) => [...current, { id: Math.max(...current.map((row) => row.id)) + 1, key: "", value: "" }]);
               setSavedMessage(null);
             }}><HugeiconsIcon icon={Add01Icon} size={14} strokeWidth={1.7} aria-hidden="true" />Add another</Button>
-            <Button type="submit" disabled={!validDraft || !selectedEnvironment} loading={savingSecret}>{populatedRows.length > 1 ? `Store ${populatedRows.length} encrypted secrets` : "Store encrypted secret"}</Button>
           </div>
         </form>
       </SetupStep>
