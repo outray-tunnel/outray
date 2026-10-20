@@ -79,7 +79,7 @@ Public `GET` and `HEAD` support ETag revalidation and use
 public; deleting the R2 object does not revoke copies already cached by browsers.
 Do not put secrets, credentials, or sensitive data in a logo.
 
-The source exports `handleRequest`, `logoKey`, `organizationLogoKey`, `matchesImageFormat`,
+The `src/handler.ts` module exports `handleRequest`, `logoKey`, `organizationLogoKey`, `matchesImageFormat`,
 `authorizedUpload`, and `readLogoBody` for targeted verification without deploying.
 Run `npx tsx --test apps/delivery/test/logos.test.ts` from the repository root to
 check uploads, public delivery, prefix isolation, and the legacy uptime routes.
