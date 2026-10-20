@@ -2,10 +2,25 @@ import express from "express";
 import pg from "pg";
 import dotenv from "dotenv";
 import postgresConfig from "../../../shared/postgres-ssl";
+import { startOutrayObservability } from "@outray/observability";
 import { certificateDomainAllowed, normalizeCertificateDomain } from "./domain-authorization";
 import { statusDomainCheckHandler } from "./status-domain-check";
 
 dotenv.config();
+if (process.env.OUTRAY_API_KEY) {
+  try {
+    startOutrayObservability({
+      serviceName: "outray-internal-check",
+      endpoint: process.env.OUTRAY_OTLP_ENDPOINT,
+      environment: process.env.NODE_ENV,
+      captureConsole: true,
+      autoInstrumentations: false,
+      redactedLogFields: ["body", "data", "result", "content", "env"],
+    });
+  } catch {
+    console.error("Observability initialization failed");
+  }
+}
 
 // --- Database Connection ---
 
