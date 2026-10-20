@@ -1,0 +1,18 @@
+[Unit]
+Description=Forward selected Docker service logs to OutRay Ops
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/outray/ops-log-forwarder.env
+ExecStart=/usr/bin/python3 /opt/outray/ops/docker-log-forwarder.py --container outray-woodpecker-server-1=outray-ci-server --container outray-woodpecker-agent-1=outray-ci-agent
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target
