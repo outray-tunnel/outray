@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { CopyButton } from "../arc/copy-button/copy-button";
 import { Button } from "../arc/button/button";
 import { WorkspaceEmptyState, WorkspaceNotice } from "./workspace-ui";
+import { OrganizationLogoUpload, type OrganizationLogoFeedback } from "./organization-logo-upload";
 
 const settingsGridClassName = "grid grid-cols-[minmax(180px,260px)_minmax(0,680px)] items-start gap-8 max-[900px]:grid-cols-[minmax(0,1fr)] max-[900px]:gap-5";
 const sectionIntroClassName = "pt-1 [&_h2]:text-sm [&_h2]:font-medium [&_h2]:tracking-[-.02em] [&_h2]:text-zinc-200 [&_p]:mt-[7px] [&_p]:max-w-[245px] [&_p]:text-xs [&_p]:leading-[1.7] [&_p]:text-[#8b8b94] max-[900px]:[&_p]:max-w-none";
@@ -73,7 +74,15 @@ export function ProfileSettingsContent({ user }: { user: SettingsIdentity }) {
   </div>;
 }
 
-export function OrganizationSettingsContent({ organization, orgSlug }: { organization: SettingsOrganization; orgSlug: string }) {
+export function OrganizationSettingsContent({ organization, orgSlug, canUploadLogo = false, onLogoUpdated }: {
+  organization: SettingsOrganization;
+  orgSlug: string;
+  canUploadLogo?: boolean;
+  onLogoUpdated?: (url: string) => void;
+}) {
+  const [uploadedLogo, setUploadedLogo] = useState<{ url: string; previous: typeof organization.logo } | null>(null);
+  const [logoFeedback, setLogoFeedback] = useState<OrganizationLogoFeedback | null>(null);
+  const logo = uploadedLogo && uploadedLogo.previous === organization.logo ? uploadedLogo.url : organization.logo;
   return <div className={settingsGridClassName}>
     <div className={sectionIntroClassName}>
       <h2>Workspace identity</h2>
@@ -82,15 +91,19 @@ export function OrganizationSettingsContent({ organization, orgSlug }: { organiz
     <div className="min-w-0 space-y-4">
       <section className={settingsPanelClassName} aria-label="Organization identity">
         <div className={identityClassName}>
-          <IdentityAvatar name={organization.name} image={organization.logo} organization />
-          <div className="min-w-0"><h3>{organization.name}</h3><p>Organization</p></div>
+          {canUploadLogo ? <OrganizationLogoUpload orgSlug={orgSlug} name={organization.name} image={logo}
+            onUploaded={(url) => { setUploadedLogo({ url, previous: organization.logo }); onLogoUpdated?.(url); }} onFeedback={setLogoFeedback} />
+            : <IdentityAvatar name={organization.name} image={logo} organization />}
+          <div className="min-w-0"><h3>{organization.name}</h3><p>Organization</p>
+            {logoFeedback ? <p role={logoFeedback.error ? "alert" : "status"} className={`mt-1! text-[11px]! ${logoFeedback.error ? "text-rose-300!" : "text-emerald-300!"}`}>{logoFeedback.message}</p> : null}
+          </div>
         </div>
         <dl className="m-0">
           <DetailRow label="Organization name">{organization.name}</DetailRow>
           <DetailRow label="Organization slug" copy={organization.slug} mono>{organization.slug}</DetailRow>
           <DetailRow label="Organization ID" copy={organization.id} mono>{organization.id}</DetailRow>
         </dl>
-        <p className={panelNoteClassName}><ShieldCheck size={14} aria-hidden="true" />These organization details are currently read-only.</p>
+        <p className={panelNoteClassName}><ShieldCheck size={14} aria-hidden="true" />{canUploadLogo ? "Organization names and identifiers are currently read-only." : "These organization details are currently read-only."}</p>
       </section>
       <Link to="/$orgSlug/members" params={{ orgSlug }} className="flex items-center gap-3 rounded-xl border border-white/[.07] bg-white/[.015] px-[18px] py-4 text-zinc-400 transition-[background,border-color] duration-[140ms] hover:border-white/[.13] hover:bg-white/[.035] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#8367c7] motion-reduce:transition-none">
         <Users size={16} aria-hidden="true" /><span><span className="block text-[13px] text-zinc-300">Members and access</span><span className="mt-[3px] block text-xs text-[#8b8b94]">See who belongs to this workspace.</span></span><span className="ml-auto text-zinc-500" aria-hidden="true">→</span>
