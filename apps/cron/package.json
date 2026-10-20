@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsup src/index.ts",
+    "build": "npm run build --workspace=@outray/observability && tsup src/index.ts",
     "start": "node dist/index.js",
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
+    "@outray/observability": "^0.1.5",
     "pg": "^8.13.1",
     "dotenv": "^17.2.3",
     "ioredis": "^5.4.1"
