@@ -45,6 +45,8 @@ const names = [
   "OUTRAY_SECRETS_ACTIVE_MASTER_KEY_ID",
   "OUTRAY_SECRETS_ACTIVE_MASTER_KEY",
   "OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS",
+  "OUTRAY_API_KEY",
+  "OUTRAY_OTLP_ENDPOINT",
 ];
 
 const managedSecrets = [
@@ -68,6 +70,11 @@ const uptimeFlags = [
   "UPTIME_PROBES_ENABLED",
   "UPTIME_NOTIFICATIONS_ENABLED",
   "UPTIME_EGRESS_POLICY_READY",
+];
+
+const optionalTelemetrySecrets = [
+  "OUTRAY_API_KEY",
+  "OUTRAY_OTLP_ENDPOINT",
 ];
 
 async function readUnbeToken() {
@@ -131,11 +138,16 @@ async function readUnbeSecrets() {
     }
   }
 
+  const configuredTelemetrySecrets = optionalTelemetrySecrets.filter((name) => Object.hasOwn(secrets, name));
+  if (configuredTelemetrySecrets.length > 0 && configuredTelemetrySecrets.length !== optionalTelemetrySecrets.length) {
+    throw new Error("Unbe OutRay SDK credentials must be configured together.");
+  }
+
   console.log(configuredFlags.length > 0
     ? "Uptime feature flags loaded from Unbe."
     : "Uptime feature flags not in Unbe; retaining active tunnel settings.");
   return Object.fromEntries(
-    [...managedSecrets, ...configuredFlags].map((name) => [name, secrets[name]]),
+    [...managedSecrets, ...configuredFlags, ...configuredTelemetrySecrets].map((name) => [name, secrets[name]]),
   );
 }
 
