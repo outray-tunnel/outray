@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { Button } from "../src/components/arc/button/button";
 import { SearchField } from "../src/components/arc/search-field/search-field";
+import { WorkspaceInput } from "../src/components/ui/workspace-input";
 import type { SecretsTable } from "../src/components/secrets/secrets-table";
 import type { SecretEnvironment, SecretMetadata } from "../src/lib/secrets-client";
 import { formatRelativeDate, formatSecretDate } from "../src/components/secrets/utils";
@@ -45,7 +46,7 @@ async function controller(update: Partial<TableProps> = {}, canShare: boolean | 
   const committed: Array<{ deps: unknown[]; cleanup?: () => void }> = [];
   const timers = new Map<number, { callback: () => void; delay: number; at: number; interval: boolean }>();
   let effects: Effect[] = [], index = 0, timerId = 0, dirty = false;
-  let unmounted = false, writesAfterUnmount = 0, mutations = 0, adds = 0;
+  let unmounted = false, writesAfterUnmount = 0, mutations = 0;
   let clock = Date.parse("2026-10-05T12:00:00Z");
   const clipboard: string[] = [];
   const calls: Array<{ action: string; orgSlug: string; projectSlug: string; environmentSlug: string; secretId: string; input: any }> = [];
@@ -88,6 +89,7 @@ async function controller(update: Partial<TableProps> = {}, canShare: boolean | 
       if (specifier.startsWith("@outray/icons/")) return [];
       if (specifier === "../arc/button/button") return { Button };
       if (specifier === "../arc/search-field/search-field") return { SearchField };
+      if (specifier === "../ui/workspace-input") return { WorkspaceInput };
       if (specifier === "./secret-dialogs") return { SecretEditorDialog: Editor, ConfirmSecretActionDialog: Confirm };
       if (specifier === "./secret-history-sheet") return { SecretHistorySheet: History };
       if (specifier === "./bulk-actions-dialog") return { BulkActionsDialog: Bulk };
@@ -107,11 +109,11 @@ async function controller(update: Partial<TableProps> = {}, canShare: boolean | 
   });
   const props: TableProps = {
     orgSlug: "acme", projectSlug: "payments-api", environment, environments: [environment], secrets, revision: 7,
-    onMutated: () => { mutations++; }, onAdd: () => { adds++; }, ...update,
+    onMutated: () => { mutations++; }, ...update,
   };
   return {
     calls, clipboard, timers, permissionCalls,
-    get mutations() { return mutations; }, get adds() { return adds; }, get writesAfterUnmount() { return writesAfterUnmount; },
+    get mutations() { return mutations; }, get writesAfterUnmount() { return writesAfterUnmount; },
     revealWith(response: typeof revealResponse) { revealResponse = response; },
     deleteWith(response: typeof deleteResponse) { deleteResponse = response; },
     copyWith(response: typeof copyResponse) { copyResponse = response; },
@@ -140,7 +142,7 @@ async function controller(update: Partial<TableProps> = {}, canShare: boolean | 
       }
       const tree = elements(root);
       const action = (label: string) => {
-        const element = tree.find((item) => item.type === Button && (item.props["aria-label"] === label || text(item.props.children) === label));
+        const element = tree.find((item) => (item.type === Button || item.type === "button") && (item.props["aria-label"] === label || text(item.props.children) === label));
         assert.ok(element, `the ${label} action exists`); return element.props;
       };
       const checkbox = (label: string) => {
@@ -150,7 +152,8 @@ async function controller(update: Partial<TableProps> = {}, canShare: boolean | 
       const search = tree.find((item) => item.type === SearchField)?.props;
       return { root, tree, action, checkbox, search,
         rows: tree.filter((item) => item.props.role === "row" && "aria-selected" in item.props),
-        toolbar: tree.find((item) => item.props.role === "toolbar")?.props,
+        toolbar: tree.find((item) => item.props.role === "toolbar" && item.props["aria-label"] === "Selected secrets actions")?.props,
+        input: (label: string) => tree.find((item) => item.type === WorkspaceInput && item.props["aria-label"] === label)?.props,
         editor: tree.find((item) => item.type === Editor)?.props,
         history: tree.find((item) => item.type === History)?.props,
         confirm: tree.find((item) => item.type === Confirm)?.props,
@@ -163,7 +166,7 @@ async function controller(update: Partial<TableProps> = {}, canShare: boolean | 
   };
 }
 
-test("compact single responsive table stays masked, uses content-width breakpoints, and offers accessible Arc actions", async () => {
+test("responsive joined split bars stay masked and expose hover and keyboard action toolbars", async () => {
   const table = await controller();
   const view = table.render();
   assert.equal(view.rows.length, 2, "there is no separate duplicate mobile-card render");
@@ -173,7 +176,7 @@ test("compact single responsive table stays masked, uses content-width breakpoin
   assert.equal(view.search?.label, "Search secret keys");
   assert.equal(view.search?.autoComplete, "off");
   for (const row of view.rows) {
-    assert.match(row.props.className, /@\[680px\]\/secret-table:grid-cols/);
+    assert.match(row.props.className, /grid-cols-\[16px_minmax\(0,1fr\)_minmax\(0,1fr\)\]/);
     assert.match(row.props.className, /motion-reduce:transition-none/);
     assert.doesNotMatch(row.props.className, /rounded|lg:/);
   }
@@ -184,12 +187,34 @@ test("compact single responsive table stays masked, uses content-width breakpoin
   assert.match(html, /v4/);
   assert.doesNotMatch(html, /plaintext-test-value|uppercase|tracking-\[0.09em\]|border-violet/);
   for (const key of secrets.map((item) => item.key)) {
-    for (const action of [`Reveal ${key} for 30 seconds`, `Copy value for ${key}`, `Edit secret ${key}`, `Version history ${key}`, `Delete secret ${key}`]) {
+    assert.equal(view.action(`Reveal ${key}`).type, "button");
+    assert.equal(view.action(`Reveal ${key}`).disabled, false);
+    for (const action of [`Copy value for ${key}`, `Share secret ${key}`, `Version history ${key}`, `Delete secret ${key}`]) {
       assert.equal(view.action(action).type, "button");
       assert.equal(view.action(action).disabled, false);
-      assert.equal(view.action(action).size, "sm", "icon-only row actions remain compact");
+      assert.equal(view.action(action).size, "sm", "hover row actions remain compact");
     }
   }
+  const toolbars = view.tree.filter((item) => item.props.role === "toolbar");
+  assert.equal(toolbars.length, 2);
+  for (const toolbar of toolbars) {
+    const wrapper = view.tree.find((item) => React.isValidElement<Props>(item.props.children) && item.props.children === toolbar);
+    assert.ok(wrapper, "the sliding toolbar has a clipping wrapper");
+    assert.match(wrapper.props.className, /left-0/);
+    assert.match(wrapper.props.className, /bottom-full/);
+    assert.match(wrapper.props.className, /overflow-hidden/);
+    assert.match(wrapper.props.className, /group-hover\/value:pointer-events-auto/);
+    assert.match(toolbar.props.className, /translate-y-full/);
+    assert.match(toolbar.props.className, /group-hover\/value:translate-y-0/);
+    assert.match(toolbar.props.className, /group-focus-within\/value:translate-y-0/);
+    assert.match(toolbar.props.className, /motion-reduce:translate-y-0/);
+    assert.match(toolbar.props.className, /motion-reduce:transition-none/);
+    assert.equal(text(toolbar), "CopyShareHistoryDelete");
+  }
+  assert.match(html, /rounded-l-\[16px\]/);
+  assert.match(html, /rounded-r-\[16px\]/);
+  assert.doesNotMatch(html, /secret-table:col-start|secret-table:row-start/, "joined bars stay side by side even in narrow panels");
+  assert.doesNotMatch(html, /ellipsis|More actions|Edit secret|Hide value for|Reveal DATABASE_URL for 30 seconds/);
   assert.equal(table.calls.length, 0, "initial and repeated renders never request plaintext");
   table.render(); assert.equal(table.calls.length, 0);
   table.dispose();
@@ -238,7 +263,7 @@ test("scrollRows opt-in fixes controls and headers while only the named, keyboar
   assert.match(view.toolbar!.className, /shrink-0/);
   assert.equal(view.bulk?.secrets.length, 2);
   table.revealWith(async () => { throw new Error("Reveal unavailable"); });
-  view.action("Reveal DATABASE_URL for 30 seconds").onClick(); await settle(); view = table.render();
+  view.action("Reveal DATABASE_URL").onClick(); await settle(); view = table.render();
   assert.equal(view.notices[0].message, "Reveal unavailable");
   assert.match(view.html(), /space-y-2 px-4 pt-4 shrink-0/);
   assert.equal((view.html().match(/overflow-y-auto/g) ?? []).length, 1);
@@ -268,6 +293,25 @@ test("scrollRows defaults to natural-height rendering for other consumers and re
   standalone.dispose();
 });
 
+test("floating action space pads only the rows so the final secret can scroll above the action bar", async () => {
+  for (const scrollRows of [true, false]) {
+    const table = await controller({ contained: true, scrollRows });
+    let view = table.render();
+    assert.doesNotMatch(view.html(), /pb-24/);
+    const originalShell = view.root.props.className;
+    view = table.render({ reserveActionsSpace: true });
+    const groups = view.tree.filter((item) => item.props.role === "rowgroup");
+    assert.doesNotMatch(groups[0].props.className, /pb-24/);
+    assert.match(groups[1].props.className, /pb-24/);
+    assert.equal(view.root.props.className, originalShell, "padding never changes the panel's height or scrolling shell");
+    assert.equal((view.html().match(/overflow-y-auto/g) ?? []).length, scrollRows ? 1 : 0);
+    assert.equal(view.rows.length, 2);
+    assert.doesNotMatch(table.render({ reserveActionsSpace: false }).html(), /pb-24/);
+    assert.equal(table.calls.length, 0);
+    table.dispose();
+  }
+});
+
 test("row scroll restoration identity is scoped to organization, vault and environment, not refreshed metadata", async () => {
   const table = await controller({ contained: true, scrollRows: true });
   const identity = (view: ReturnType<typeof table.render>) => {
@@ -294,14 +338,14 @@ test("row scroll restoration identity is scoped to organization, vault and envir
   table.dispose();
 });
 
-test("scrollRows centers empty and unmatched messages in the remaining space without changing add or search recovery", async () => {
+test("scrollRows centers empty and unmatched messages in the remaining space and points to inline fields", async () => {
   const empty = await controller({ contained: true, scrollRows: true, secrets: [] });
   let view = empty.render();
   assert.match(view.root.props.className, /h-full min-h-0 flex-col/);
   assert.match(view.html(), /flex min-h-0 flex-1 flex-col items-center justify-center/);
   assert.doesNotMatch(view.html(), /overflow-y-auto/);
-  assert.equal(view.action("Add first secret").size, "md");
-  view.action("Add first secret").onClick(); assert.equal(empty.adds, 1);
+  assert.match(view.html(), /Use the fields above to save your first secrets/);
+  assert.doesNotMatch(view.html(), /Add first secret/);
   empty.dispose();
   const table = await controller({ contained: true, scrollRows: true });
   table.render().search!.onValueChange("missing-key"); view = table.render();
@@ -319,7 +363,7 @@ test("scrollRows keeps user-triggered reveal TTL, clipboard isolation and select
   const table = await controller({ contained: true, scrollRows: true });
   let view = table.render();
   assert.equal(table.calls.length, 0);
-  view.action("Reveal DATABASE_URL for 30 seconds").onClick(); await settle(); view = table.render();
+  view.action("Reveal DATABASE_URL").onClick(); await settle(); view = table.render();
   assert.match(view.html(), /plaintext-test-value/);
   assert.match(view.html(), /30s/);
   table.advance(30_000); view = table.render();
@@ -341,12 +385,13 @@ test("scrollRows introduces no document-wide scrolling styles or scroll commands
   assert.doesNotMatch(source, /document\.(?:body|documentElement)|window\.scroll|:global|h-screen|100[ds]?vh/);
 });
 
-test("empty inventory and search misses stay distinct and recover through real add/clear handlers", async () => {
+test("empty inventory points to inline fields while search misses recover through the clear handler", async () => {
   const empty = await controller({ contained: true, secrets: [] });
   let view = empty.render();
   assert.match(view.html(), /No secrets in this environment/);
   assert.equal(view.search, undefined);
-  view.action("Add first secret").onClick(); assert.equal(empty.adds, 1);
+  assert.match(view.html(), /Use the fields above to save your first secrets/);
+  assert.doesNotMatch(view.html(), /Add first secret/);
   assert.equal(empty.calls.length, 0); empty.dispose();
   const table = await controller();
   table.render().search!.onValueChange("  database  "); view = table.render();
@@ -357,6 +402,27 @@ test("empty inventory and search misses stay distinct and recover through real a
   assert.equal(view.rows.length, 0);
   view.action("Clear search").onClick(); assert.equal(table.render().rows.length, 2);
   assert.equal(table.calls.length, 0); table.dispose();
+});
+
+test("an external query filters metadata without a second search row and clears through its owner", async () => {
+  const changes: string[] = [];
+  const table = await controller({ query: "database", onQueryChange: (value) => changes.push(value), contained: true, scrollRows: true });
+  let view = table.render();
+  assert.equal(view.search, undefined);
+  assert.equal(view.rows.length, 1);
+  assert.match(view.html(), /DATABASE_URL/);
+  assert.doesNotMatch(view.html(), /type="search"|of 2 keys/);
+  view.checkbox("Select DATABASE_URL").onChange();
+  view = table.render({ query: "api" });
+  assert.equal(view.rows.length, 1);
+  assert.equal(view.bulk?.secrets[0].key, "DATABASE_URL", "changing an external filter preserves hidden selections");
+  view = table.render({ query: "missing-key" });
+  assert.match(view.html(), /No matching keys/);
+  view.action("Clear search").onClick();
+  assert.deepEqual(changes, [""]);
+  assert.equal(table.render({ query: "" }).rows.length, 2);
+  assert.equal(table.calls.length, 0, "external search never reads plaintext");
+  table.dispose();
 });
 
 test("native checkboxes and neutral selection toolbar preserve filtered selection and bulk action wiring", async () => {
@@ -402,24 +468,24 @@ test("bulk Share remains permission-gated and limited to at most 50 selections",
   const table = await controller({ secrets: many });
   table.render().checkbox("Select all visible secrets").onChange();
   assert.equal(table.render().bulk?.secrets.length, 51);
-  assert.equal(table.render().tree.some((item) => item.type === Button && text(item.props.children) === "Share"), false);
+  assert.equal(table.render().tree.some((item) => item.type === Button && !item.props["aria-label"] && text(item.props.children) === "Share"), false);
   table.dispose();
 });
 
 test("reveals are user-triggered, use server TTL, can hide early, and erase transient values on expiry", async () => {
   const table = await controller();
   table.revealWith(async () => ({ value: "short-lived-plaintext", expiresIn: 7 }));
-  table.render().action("Reveal DATABASE_URL for 30 seconds").onClick();
+  table.render().action("Reveal DATABASE_URL").onClick();
   assert.equal(table.render().action("Copy value for DATABASE_URL").disabled, true);
   await settle(); let view = table.render();
   assert.match(view.html(), /short-lived-plaintext/);
   assert.match(view.html(), /7s/);
-  assert.deepEqual(table.calls[0], { action: "reveal", orgSlug: "acme", projectSlug: "payments-api", environmentSlug: "production", secretId: "secret-a", input: { intent: "reveal" } });
+  assert.deepEqual(table.calls[0], { action: "reveal", orgSlug: "acme", projectSlug: "payments-api", environmentSlug: "production", secretId: "secret-a", input: { intent: "reveal", version: 4 } });
   assert.ok([...table.timers.values()].some((timer) => !timer.interval && timer.delay === 7_000));
   table.advance(6_000); view = table.render(); assert.match(view.html(), /1s/);
   table.advance(1_000); view = table.render(); assert.doesNotMatch(view.html(), /short-lived-plaintext/);
-  view.action("Reveal DATABASE_URL for 30 seconds").onClick(); await settle(); view = table.render();
-  view.action("Hide value for DATABASE_URL").onClick(); view = table.render();
+  view.action("Reveal DATABASE_URL").onClick(); await settle(); view = table.render();
+  view.input("Edit DATABASE_URL value")!.onKeyDown({ key: "Escape", preventDefault() {} }); view = table.render();
   assert.doesNotMatch(view.html(), /short-lived-plaintext/);
   assert.equal(table.timers.size, 0);
   assert.equal(table.calls.length, 2, "hiding an already revealed value never fetches it again");
@@ -439,29 +505,118 @@ test("copy uses copy intent and clipboard without putting plaintext into rendere
   assert.equal(table.timers.size, 0); table.dispose();
 });
 
-test("editor identity and expected revision snapshot survive background metadata refreshes, while history still opens", async () => {
+test("value clicks reveal then focus inline editing with the original version and revision snapshot", async () => {
+  const changes: any[] = [];
+  const table = await controller({ onEditChange: (edit) => changes.push(edit) });
+  let view = table.render();
+  view.action("Reveal DATABASE_URL").onClick(); await settle(); view = table.render();
+  const revealedInput = view.input("Edit DATABASE_URL value")!;
+  const revealedElement = view.tree.find((item) => item.type === WorkspaceInput && item.props["aria-label"] === "Edit DATABASE_URL value")!;
+  assert.ok(revealedInput, "first click reveals directly into the native input");
+  assert.equal(revealedInput.readOnly, true, "reveal alone does not enter editing");
+  assert.equal(revealedInput.autoFocus, undefined, "first reveal does not steal focus or choose a caret position");
+  assert.equal(table.calls.length, 1);
+  revealedInput.onChange({ target: { value: "ignored-read-only-value" } });
+  assert.equal(changes.length, 0, "read-only reveal cannot change the draft");
+  revealedInput.onPointerDown({ button: 0 }); view = table.render();
+  const input = view.input("Edit DATABASE_URL value")!;
+  const editingElement = view.tree.find((item) => item.type === WorkspaceInput && item.props["aria-label"] === "Edit DATABASE_URL value")!;
+  assert.equal(editingElement.type, revealedElement.type, "second pointer interaction keeps the same native input type");
+  assert.equal(editingElement.key, revealedElement.key, "editing does not change the native input identity");
+  assert.equal(input.autoFocus, undefined, "editing relies on the browser's natural pointer caret placement");
+  assert.equal(input.readOnly, false);
+  assert.equal(input.type, "text");
+  assert.equal(input.value, "plaintext-test-value");
+  input.onChange({ target: { value: "local-draft-value" } });
+  assert.deepEqual(JSON.parse(JSON.stringify(changes[0])), { id: "secret-a", key: "DATABASE_URL", version: 4, revision: 7, originalValue: "plaintext-test-value", value: "local-draft-value" });
+  view = table.render({ edits: { "secret-a": changes[0] }, hasUnsavedChanges: true, revision: 19, secrets: [{ ...secrets[0], version: 5 }, secrets[1]] });
+  assert.equal(view.input("Edit DATABASE_URL value")?.value, "local-draft-value");
+  view.input("Edit DATABASE_URL value")!.onChange({ target: { value: "updated-draft" } });
+  assert.equal(changes[1].version, 4);
+  assert.equal(changes[1].revision, 7, "background refresh never rebases a draft");
+  assert.equal(changes[1].originalValue, "plaintext-test-value");
+  assert.equal(table.calls.length, 1, "typing is entirely local");
+  view.input("Edit DATABASE_URL value")!.onKeyDown({ key: "Enter", preventDefault() {} });
+  view = table.render();
+  assert.equal(view.input("Edit DATABASE_URL value")?.readOnly, true, "Enter leaves the same revealed input read-only");
+  assert.match(view.html(), /local-draft-value/, "Enter leaves editing while the value remains revealed");
+  view.input("Edit DATABASE_URL value")!.onPointerDown({ button: 0 });
+  view = table.render();
+  assert.equal(view.input("Edit DATABASE_URL value")?.readOnly, false, "a subsequent pointer interaction also enters editing without remounting");
+  view.input("Edit DATABASE_URL value")!.onBlur(); view = table.render();
+  assert.equal(view.input("Edit DATABASE_URL value")?.readOnly, true, "blur retains the revealed native field");
+  view.input("Edit DATABASE_URL value")!.onFocus(); view = table.render();
+  assert.equal(view.input("Edit DATABASE_URL value")?.readOnly, false, "keyboard focus enables native inline editing");
+  view.input("Edit DATABASE_URL value")!.onKeyDown({ key: "Escape", preventDefault() {} });
+  view = table.render();
+  assert.equal(view.input("Edit DATABASE_URL value"), undefined);
+  assert.doesNotMatch(view.html(), /local-draft-value|plaintext-test-value/, "Escape hides the value without discarding the draft");
+  assert.equal(table.timers.size, 0);
+  table.dispose();
+});
+
+test("draft values survive visibility expiry and Reset erases display and edit state", async () => {
+  let draft: any;
+  const table = await controller({ onEditChange: (edit) => { draft = edit; } });
+  table.revealWith(async () => ({ value: "original-value", expiresIn: 2 }));
+  table.render().action("Reveal DATABASE_URL").onClick(); await settle();
+  table.render().input("Edit DATABASE_URL value")!.onFocus();
+  table.render().input("Edit DATABASE_URL value")!.onChange({ target: { value: "retained-draft" } });
+  let view = table.render({ edits: { "secret-a": draft }, hasUnsavedChanges: true });
+  table.advance(2_000); view = table.render();
+  assert.doesNotMatch(view.html(), /original-value|retained-draft/);
+  assert.equal(view.input("Edit DATABASE_URL value"), undefined);
+  view.action("Reveal DATABASE_URL").onClick(); view = table.render();
+  assert.match(view.html(), /retained-draft/);
+  assert.equal(table.calls.length, 1, "a local dirty draft is never replaced by a new server value");
+  view.input("Edit DATABASE_URL value")!.onFocus();
+  view = table.render({ edits: {}, hasUnsavedChanges: false, resetToken: 1 });
+  assert.doesNotMatch(view.html(), /original-value|retained-draft/);
+  assert.equal(view.input("Edit DATABASE_URL value"), undefined);
+  assert.equal(table.timers.size, 0);
+  table.dispose();
+});
+
+test("History opens normally and draft changes disable saved-data mutations", async () => {
   const table = await controller();
-  table.render().action("Edit secret DATABASE_URL").onClick();
-  const edited = table.render().editor!;
-  assert.equal(edited.open, true);
-  assert.equal(edited.secret.key, "DATABASE_URL");
-  assert.equal(edited.revision, 7);
-  const refreshed = table.render({ revision: 19, environment: { ...environment, revision: 19, name: "Remote production" }, environments: [{ ...environment, revision: 19 }], secrets: [{ ...secrets[0], key: "REMOTE_NAME", version: 5 }, secrets[1]] });
-  assert.equal(refreshed.editor?.secret.key, "DATABASE_URL");
-  assert.equal(refreshed.editor?.revision, 7);
-  assert.equal(refreshed.editor?.environment.name, "Production");
-  assert.equal(refreshed.editor?.environments[0].revision, 7);
-  refreshed.editor!.onClose();
   table.render().action("Version history API_KEY").onClick();
   assert.equal(table.render().history?.open, true);
-  assert.equal(table.render().history?.secret.id, "secret-b");
   table.render().history!.onRolledBack(); assert.equal(table.mutations, 1);
+  table.render().checkbox("Select all visible secrets").onChange();
+  let view = table.render({ hasUnsavedChanges: true });
+  assert.equal(view.history?.open, false);
+  for (const label of ["Move to", "Share", "Delete", "Share secret DATABASE_URL", "Version history DATABASE_URL", "Delete secret DATABASE_URL"]) {
+    assert.equal(view.action(label).disabled, true);
+    view.action(label).onClick();
+  }
+  view = table.render();
+  assert.equal(view.bulk?.action, null);
+  assert.equal(view.confirm?.open, false);
+  assert.equal(view.history?.open, false);
+  assert.equal(view.action("Copy value for DATABASE_URL").disabled, false, "copy remains available while drafts exist");
+  table.dispose();
+});
+
+test("individual Share targets only that row and preserves a different selected row", async () => {
+  const table = await controller();
+  table.render().checkbox("Select API_KEY").onChange();
+  table.render().action("Share secret DATABASE_URL").onClick();
+  let view = table.render();
+  assert.equal(view.bulk?.action, "share");
+  assert.equal(view.bulk?.secrets.length, 1);
+  assert.equal(view.bulk?.secrets[0].id, "secret-a");
+  view.bulk!.onClose(); view = table.render();
+  assert.equal(view.checkbox("Select API_KEY").checked, true);
+  assert.equal(view.bulk?.action, null);
+  view.action("Share secret DATABASE_URL").onClick();
+  table.render().bulk!.onDone("Link created"); view = table.render();
+  assert.equal(view.checkbox("Select API_KEY").checked, true, "sharing one row does not clear a separate selection");
   table.dispose();
 });
 
 test("delete forwards the existing exact-name, production and revision contract and clears a revealed value after success", async () => {
   const table = await controller();
-  table.render().action("Reveal DATABASE_URL for 30 seconds").onClick(); await settle(); table.render();
+  table.render().action("Reveal DATABASE_URL").onClick(); await settle(); table.render();
   table.render().action("Delete secret DATABASE_URL").onClick();
   let view = table.render();
   assert.equal(view.confirm?.open, true);
@@ -478,7 +633,7 @@ test("delete forwards the existing exact-name, production and revision contract 
 test("reveal, copy and deletion failures retain masked rows and expose recoverable notices", async () => {
   const table = await controller();
   table.revealWith(async () => { throw new Error("Access denied"); });
-  table.render().action("Reveal DATABASE_URL for 30 seconds").onClick(); await settle();
+  table.render().action("Reveal DATABASE_URL").onClick(); await settle();
   let view = table.render();
   assert.equal(view.notices[0].message, "Access denied");
   assert.doesNotMatch(view.html(), /plaintext-test-value/);
@@ -501,7 +656,7 @@ test("late reveal/copy responses cannot write state or clipboard after the table
     const table = await controller();
     let resolve!: (value: { value: string; expiresIn: number }) => void;
     table.revealWith(() => new Promise((done) => { resolve = done; }));
-    table.render().action(intent === "reveal" ? "Reveal DATABASE_URL for 30 seconds" : "Copy value for DATABASE_URL").onClick();
+    table.render().action(intent === "reveal" ? "Reveal DATABASE_URL" : "Copy value for DATABASE_URL").onClick();
     table.dispose(); resolve({ value: "late-plaintext", expiresIn: 30 }); await settle();
     assert.equal(table.writesAfterUnmount, 0);
     assert.deepEqual(table.clipboard, []);
@@ -511,7 +666,7 @@ test("late reveal/copy responses cannot write state or clipboard after the table
 
 test("unmount clears active reveal and copy timers and suppresses clipboard completion feedback", async () => {
   const table = await controller();
-  table.render().action("Reveal DATABASE_URL for 30 seconds").onClick(); await settle(); table.render();
+  table.render().action("Reveal DATABASE_URL").onClick(); await settle(); table.render();
   table.render().action("Copy value for API_KEY").onClick(); await settle(); table.render();
   assert.ok(table.timers.size >= 3);
   table.dispose(); assert.equal(table.timers.size, 0);
@@ -537,5 +692,52 @@ test("bulk completion preserves recoverable feedback and clears the selection wi
   assert.match(view.notices[0].message, /Trash/);
   assert.equal(table.mutations, 1);
   assert.equal(table.calls.length, 0);
+  table.dispose();
+});
+
+
+test("copying a dirty value retains an audited copy request and uses the local draft", async () => {
+  const table = await controller({ edits: { "secret-a": { id: "secret-a", key: "DATABASE_URL", version: 4, revision: 7, originalValue: "old-secret", value: "local-draft" } }, hasUnsavedChanges: true });
+  table.revealWith(async () => ({ value: "remote-value", expiresIn: 30 }));
+  table.render().action("Copy value for DATABASE_URL").onClick(); await settle();
+  assert.deepEqual(table.calls[0].input, { intent: "copy" });
+  assert.deepEqual(table.clipboard, ["local-draft"]);
+  assert.doesNotMatch(table.render().html(), /local-draft|remote-value|old-secret/);
+  table.dispose();
+});
+
+test("Reset fences late reveal and copy responses before any plaintext or clipboard write", async () => {
+  for (const intent of ["reveal", "copy"] as const) {
+    const table = await controller();
+    let resolve!: (value: { value: string; expiresIn: number }) => void;
+    table.revealWith(() => new Promise((done) => { resolve = done; }));
+    table.render().action(intent === "reveal" ? "Reveal DATABASE_URL" : "Copy value for DATABASE_URL").onClick();
+    table.render({ resetToken: 1 });
+    resolve({ value: "late-plaintext", expiresIn: 30 }); await settle();
+    assert.doesNotMatch(table.render().html(), /late-plaintext/);
+    assert.deepEqual(table.clipboard, []);
+    assert.equal(table.timers.size, 0);
+    table.dispose();
+  }
+});
+
+test("a saving workspace disables all reads, mutations and draft changes", async () => {
+  const changes: unknown[] = [];
+  const table = await controller({ onEditChange: (edit) => changes.push(edit) });
+  table.render().action("Reveal DATABASE_URL").onClick(); await settle();
+  table.render().input("Edit DATABASE_URL value")!.onFocus();
+  let view = table.render({ disabled: true });
+  assert.equal(view.input("Edit DATABASE_URL value")?.disabled, true);
+  view.input("Edit DATABASE_URL value")!.onChange({ target: { value: "ignored-value" } });
+  for (const label of ["Copy value for DATABASE_URL", "Share secret DATABASE_URL", "Version history DATABASE_URL", "Delete secret DATABASE_URL"]) {
+    assert.equal(view.action(label).disabled, true);
+    view.action(label).onClick();
+  }
+  await settle(); view = table.render();
+  assert.equal(changes.length, 0);
+  assert.equal(table.calls.length, 1);
+  assert.equal(view.bulk?.action, null);
+  assert.equal(view.history?.open, false);
+  assert.equal(view.confirm?.open, false);
   table.dispose();
 });
