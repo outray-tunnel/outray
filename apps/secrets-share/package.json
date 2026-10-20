@@ -12,9 +12,10 @@
     "check": "astro check",
     "lint": "astro check",
     "test": "tsx --tsconfig ./tsconfig.json --import ./test/register-tsx-loader.mjs --test test/*.test.ts",
-    "start": "node dist/server/entry.mjs"
+    "start": "node --import ./observability-preload.mjs dist/server/entry.mjs"
   },
   "dependencies": {
+    "@outray/observability": "^0.1.5",
     "@astrojs/node": "11.1.9",
     "@astrojs/react": "6.0.6",
     "@outray/share-crypto": "file:../../packages/share-crypto",
