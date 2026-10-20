@@ -28,7 +28,7 @@ import {
   normalizeMachineTokenScopes,
 } from "../machine-tokens";
 import { assertActorScope } from "./access-policy";
-import { auditEvent, lockOrganization } from "./database";
+import { auditEvent, lockOrganization, resolveSecretForReveal } from "./database";
 import { assertSecretCapacity } from "./quotas";
 import {
   createOrganizationKey,
@@ -75,6 +75,36 @@ export async function listAuditEvents(
   if (access.actor.type === "machine" && access.actor.environmentId) {
     conditions.push(
       eq(secretAuditEvents.environmentId, access.actor.environmentId),
+    );
+  }
+  const scopeFields = ["projectSlug", "environmentSlug", "secretId"];
+  if (search.has("category") || scopeFields.some((field) => search.has(field))) {
+    if (search.get("category") !== "access") {
+      throw new SecretsError("category must be access for secret history", {
+        code: "VALIDATION_ERROR", status: 400, field: "category",
+      });
+    }
+    const scope = Object.fromEntries(scopeFields.map((field) => [field, search.get(field)]));
+    const projectSlug = validateSlug(readRequiredString(scope, "projectSlug", { maxLength: 63 }));
+    const environmentSlug = validateSlug(readRequiredString(scope, "environmentSlug", { maxLength: 63 }));
+    const secretId = readRequiredString(scope, "secretId", { maxLength: 100 });
+    // Resolve the actual secret before reading audit rows, preserving tenant and
+    // machine-token scope checks without reading or decrypting a secret value.
+    const { project, environment, entry } = await resolveSecretForReveal(
+      access, projectSlug, environmentSlug, secretId,
+    );
+    conditions.push(
+      eq(secretAuditEvents.projectId, project.id),
+      eq(secretAuditEvents.environmentId, environment.id),
+      inArray(secretAuditEvents.action, [
+        "secret.revealed", "secret.copied", "secrets.exported",
+        "secrets.runtime_read", "share.snapshot_revealed",
+      ]),
+      or(
+        eq(secretAuditEvents.entryId, entry.id),
+        and(eq(secretAuditEvents.targetType, "secret"), eq(secretAuditEvents.targetId, entry.id)),
+        sql`${secretAuditEvents.metadata}->'entryIds' @> ${JSON.stringify([entry.id])}::jsonb`,
+      )!,
     );
   }
   const action = search.get("action")?.trim();
