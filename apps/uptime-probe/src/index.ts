@@ -1,5 +1,21 @@
 import { databasePool, startUptimeWorker, WorkerStartupError } from "./worker";
 import { closeDatabasePool, safeDatabaseError } from "./database";
+import { startOutrayObservability } from "@outray/observability";
+
+if (process.env.OUTRAY_API_KEY) {
+  try {
+    startOutrayObservability({
+      serviceName: "outray-uptime-probe",
+      endpoint: process.env.OUTRAY_OTLP_ENDPOINT,
+      environment: process.env.NODE_ENV,
+      captureConsole: true,
+      autoInstrumentations: false,
+      redactedLogFields: ["body", "data", "result", "content", "env"],
+    });
+  } catch {
+    console.error("Observability initialization failed");
+  }
+}
 
 let shuttingDown = false;
 function shutdown(exitCode: number) {
