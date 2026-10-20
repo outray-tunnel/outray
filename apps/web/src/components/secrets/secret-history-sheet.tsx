@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LockKeyhole } from "lucide-react";
 import { SideSheet } from "@/components/ui/side-sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../arc/tabs/tabs";
+import { SecretAccessHistory } from "./secret-access-history";
 import {
   secretsClient,
   type SecretEnvironment,
@@ -10,6 +12,7 @@ import {
 import {
   SecretHistoryContent,
   SecretHistoryRestoreDialog,
+  SecretHistorySummary,
   type PendingHistoryAction,
   type RevealedHistoryValue,
 } from "./secret-history-content";
@@ -44,8 +47,8 @@ export function SecretHistorySheet(props: HistoryProps) {
   return <SideSheet
     open={open && Boolean(secret)}
     onClose={props.onClose}
-    title="Version history"
-    description="Review previous values or restore an earlier version."
+    title="Secret history"
+    description="Review previous versions and access to this secret."
     closeDisabled={blocked}
     footer={<p className="flex w-full items-center gap-2 text-[11px] leading-5 text-zinc-500">
       <LockKeyhole size={13} aria-hidden="true" />
@@ -77,6 +80,7 @@ export function SecretHistorySession({
   onInteractionChange: (state: InteractionState) => void;
 }) {
   const [versions, setVersions] = useState<SecretVersion[]>([]);
+  const [tab, setTab] = useState<"versions" | "access">("versions");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
@@ -97,6 +101,7 @@ export function SecretHistorySession({
   const actionRequest = useRef<AbortController | null>(null);
   const revealTimer = useRef<number | undefined>(undefined);
   const copyTimer = useRef<number | undefined>(undefined);
+  const tabRef = useRef<"versions" | "access">("versions");
 
   useEffect(() => {
     mounted.current = true;
@@ -148,8 +153,26 @@ export function SecretHistorySession({
     setRevealed(null);
   }
 
+  function selectTab(value: string) {
+    if (!mounted.current || completed.current || restoreRef.current || pendingRef.current?.type === "restore" ||
+      (value !== "versions" && value !== "access") || tabRef.current === value) return;
+    // Switching panels immediately discards plaintext and invalidates late reads.
+    sequence.current++;
+    actionRequest.current?.abort();
+    actionRequest.current = null;
+    pendingRef.current = null;
+    if (copyTimer.current !== undefined) window.clearTimeout(copyTimer.current);
+    copyTimer.current = undefined;
+    hide();
+    setPending(null);
+    setCopiedVersion(null);
+    setActionError(null);
+    tabRef.current = value;
+    setTab(value);
+  }
+
   async function readValue(type: "reveal" | "copy", version: number) {
-    if (!mounted.current || completed.current || pendingRef.current || restoreRef.current ||
+    if (!mounted.current || completed.current || tabRef.current !== "versions" || pendingRef.current || restoreRef.current ||
       !versions.some((item) => item.version === version)) return;
     const action: PendingHistoryAction = { type, version };
     pendingRef.current = action;
@@ -192,7 +215,7 @@ export function SecretHistorySession({
   }
 
   function openRestore(version: number) {
-    if (!mounted.current || completed.current || pendingRef.current || restoreRef.current ||
+    if (!mounted.current || completed.current || tabRef.current !== "versions" || pendingRef.current || restoreRef.current ||
       !versions.some((item) => item.version === version)) return;
     const currentVersion = versions.find((item) => item.isCurrent)?.version ?? secret.version;
     if (version === currentVersion) return;
@@ -253,14 +276,29 @@ export function SecretHistorySession({
   const secondsRemaining = visibleReveal ? Math.max(0, Math.ceil((visibleReveal.expiresAt - now) / 1_000)) : 0;
 
   return <>
-    <SecretHistoryContent
-      secret={secret} environment={environment} versions={versions} loading={loading}
-      error={error} actionError={actionError} pending={pending} revealed={visibleReveal}
-      secondsRemaining={secondsRemaining} copiedVersion={copiedVersion}
-      onReveal={(version) => void readValue("reveal", version)}
-      onCopy={(version) => void readValue("copy", version)}
-      onHide={hide} onRestore={openRestore} onRetry={() => setRetry((value) => value + 1)}
-    />
+    <SecretHistorySummary secret={secret} environment={environment} currentVersion={versions.find((version) => version.isCurrent)?.version ?? secret.version} />
+    <Tabs value={tab} onValueChange={selectTab}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[.07] pb-4">
+        <TabsList aria-label="Secret history">
+          <TabsTrigger value="versions" disabled={restoreTarget !== null || pending?.type === "restore"}>Version history</TabsTrigger>
+          <TabsTrigger value="access" disabled={restoreTarget !== null || pending?.type === "restore"}>Access history</TabsTrigger>
+        </TabsList>
+        {tab === "versions" && !loading && !error ? <span className="text-[11px] tabular-nums text-zinc-500">{versions.length} {versions.length === 1 ? "version" : "versions"}</span> : null}
+      </div>
+      {tab === "versions" ? <TabsContent value="versions" forceMount className="mt-0!">
+        <SecretHistoryContent
+          secret={secret} environment={environment} versions={versions} loading={loading}
+          error={error} actionError={actionError} pending={pending} revealed={visibleReveal}
+          secondsRemaining={secondsRemaining} copiedVersion={copiedVersion}
+          onReveal={(version) => void readValue("reveal", version)}
+          onCopy={(version) => void readValue("copy", version)}
+          onHide={hide} onRestore={openRestore} onRetry={() => setRetry((value) => value + 1)}
+          showDetails={false} showHeading={false}
+        />
+      </TabsContent> : <TabsContent value="access" forceMount className="mt-0!">
+        <SecretAccessHistory orgSlug={orgSlug} projectSlug={projectSlug} environment={environment} secret={secret} />
+      </TabsContent>}
+    </Tabs>
     <SecretHistoryRestoreDialog
       open={restoreTarget !== null} secretKey={secret.key} version={restoreTarget?.version ?? null}
       currentVersion={restoreTarget?.currentVersion ?? secret.version}
