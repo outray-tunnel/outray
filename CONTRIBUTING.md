@@ -23,7 +23,7 @@ outray/
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 22.19.0+
 - npm
 - Redis (for tunnel state)
 - PostgreSQL (for user data)
