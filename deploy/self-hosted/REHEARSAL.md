@@ -2,7 +2,7 @@
 
 This opt-in path checks a fresh installation's local infrastructure and packaged processes before its OAuth/Tinybird accounts are configured. It is **not** `self-host:up`, does not weaken its preflight, and is not a functional or public deployment.
 
-Initialize a new private configuration on an independent disposable host, using installation-owned hostnames and fresh generated keys. Build the shared image separately using the selected icon mode; any optional private icon credential belongs only to that build. Then run from the repository root with Node.js 22+:
+Initialize a new private configuration on an independent disposable host, using installation-owned hostnames and fresh generated keys. Build the shared image separately using the selected icon mode; any optional private icon credential belongs only to that build. Then run from the repository root with Node.js 22.19.0+:
 
 ```bash
 node scripts/self-hosted-rehearsal.mjs --file /absolute/path/fresh-private.env --image outray-rehearsal:local
