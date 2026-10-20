@@ -31,6 +31,8 @@ The share runtime must **not** receive the dashboard's database URL, Secrets mas
 | `PORT` | Listen port; default `4324`. |
 | `SHARE_CLIENT_IP_HEADER` | Optional proxy-supplied IP header. Set only if the host strips incoming copies and sets its own trusted value. Otherwise the connection IP is used. |
 | `DATABASE_SSL_REJECT_UNAUTHORIZED` | Defaults to certificate verification. Set to `false` only if your database platform explicitly requires it. |
+| `OUTRAY_API_KEY` | Optional server-only OutRay SDK token with Send telemetry permission. |
+| `OUTRAY_OTLP_ENDPOINT` | Optional base ingest URL for a self-hosted OutRay installation. Omit to use the hosted ingest endpoint. |
 
 The dashboard additionally needs `VITE_SHARE_PUBLIC_ORIGIN=https://secrets.outray.dev` at build time so its one-time links point to this service. This value is public and is not a secret.
 
