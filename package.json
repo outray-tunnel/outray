@@ -61,6 +61,7 @@
   },
   "devDependencies": {
     "dotenv-cli": "^10.0.0",
+    "drizzle-orm": "^0.45.2",
     "semver": "^7.7.3",
     "turbo": "^2.5.6"
   }
