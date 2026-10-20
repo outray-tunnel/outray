@@ -1,17 +1,6 @@
 import type { SecretProject } from "@/lib/secrets-client";
 
 export type SecretsVaultSort = "updated" | "name";
-export interface SecretsOverviewSearch {
-  search?: string;
-  sort?: "name";
-}
-
-export function normalizeSecretsOverviewSearch(input: unknown): SecretsOverviewSearch {
-  const value = input && typeof input === "object" ? input as Record<string, unknown> : {};
-  const search = typeof value.search === "string" ? value.search.trim().slice(0, 200) : "";
-  return { ...(search ? { search } : {}), ...(value.sort === "name" ? { sort: "name" as const } : {}) };
-}
-
 /** Environment revisions also change when values inside a vault change. */
 export function vaultUpdatedAt(project: SecretProject): string | null {
   const dates = [project.updatedAt, ...project.environments.map((environment) => environment.updatedAt)]
