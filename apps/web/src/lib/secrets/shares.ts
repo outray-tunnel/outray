@@ -104,7 +104,8 @@ export async function snapshotSecrets(
       }
       await auditEvent(tx, access, {
         action: "share.snapshot_revealed", targetType: "environment", targetId: environment.id,
-        projectId: project.id, environmentId: environment.id, metadata: { count: entries.length },
+        projectId: project.id, environmentId: environment.id,
+        metadata: { count: entries.length, entryIds: entries.map((entry) => entry.id) },
       });
       return { secrets, revision: environment.revision };
     } finally {
