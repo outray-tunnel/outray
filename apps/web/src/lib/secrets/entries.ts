@@ -28,6 +28,7 @@ import {
   optionalNonNegativeInteger,
   parseEnvText,
   readExpectedEnvironmentRevisions,
+  readExpectedSecretVersions,
   readOptionalString,
   requireProductionConfirmation,
   serializeEnvText,
@@ -1216,6 +1217,9 @@ async function plaintextEnvironmentValues(
       environmentId: lockedEnvironment.id,
       metadata: {
         count: rows.length,
+        // Keep grouped audit metadata bounded. Without exact attribution, a
+        // large environment read remains in its environment audit history.
+        ...(rows.length <= 1_000 ? { entryIds: rows.map((row) => row.entry.id) } : {}),
         filtered: Boolean(options.key),
         revision: lockedEnvironment.revision,
       },
@@ -1239,6 +1243,9 @@ export async function importSecrets(
   }
   const envText = input.envText;
   const parsed = parseEnvText(envText);
+  const expectedVersions = input.expectedVersions === undefined
+    ? undefined
+    : readExpectedSecretVersions(input.expectedVersions, Object.keys(parsed.values));
   return importSecretValues(
     access,
     projectSlug,
@@ -1250,6 +1257,7 @@ export async function importSecrets(
         input.expectedRevision,
         "expectedRevision",
       ),
+      expectedVersions,
       confirmProduction: input.confirmProduction,
       source: "import",
     },
