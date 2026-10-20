@@ -2,7 +2,7 @@
 set -euo pipefail
 
 : "${EDGE_SSH_KEY:?Set the Woodpecker edge_ssh_key repository secret}"
-: "${UNBE_TOKEN:?Set the Woodpecker unbe_token repository secret}"
+: "${OPS_SECRETS_TOKEN:?Set the Woodpecker ops_secrets_token repository secret}"
 service="${1:-}"
 case "$service" in
   edge|status|uptime-probe) ;;
@@ -39,7 +39,7 @@ edge=root@209.74.86.123
 
 ssh "${ssh_options[@]}" "$edge" 'mkdir -p /root/outray/deploy/woodpecker'
 scp "${scp_options[@]}" deploy/woodpecker/run-service-deploy.mjs "$edge:/root/outray/deploy/woodpecker/"
-printf '%s' "$UNBE_TOKEN" | ssh "${ssh_options[@]}" "$edge" \
+printf '%s' "$OPS_SECRETS_TOKEN" | ssh "${ssh_options[@]}" "$edge" \
   "node /root/outray/deploy/woodpecker/run-service-deploy.mjs --service $service --token-stdin --check"
 
 case "$service" in
@@ -63,5 +63,5 @@ case "$service" in
     ;;
 esac
 
-printf '%s' "$UNBE_TOKEN" | ssh "${ssh_options[@]}" "$edge" \
+printf '%s' "$OPS_SECRETS_TOKEN" | ssh "${ssh_options[@]}" "$edge" \
   "node /root/outray/deploy/woodpecker/run-service-deploy.mjs --service $service --token-stdin"
