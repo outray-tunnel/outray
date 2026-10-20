@@ -56,8 +56,7 @@ export const mobileProducts: MobileProduct[] = [
     { label: "Traces", to: "/$orgSlug/observability/traces", icon: WorkflowSquare06Icon },
     { label: "Alerts", to: "/$orgSlug/observability/alerts", icon: Alert02Icon },
   ] },
-  { key: "secrets", label: "Secrets", to: "/$orgSlug/secrets", icon: LockPasswordIcon, activeIcon: LockPasswordSolidIcon, pages: [
-    { label: "Overview", to: "/$orgSlug/secrets", icon: Home01Icon, exact: true },
+  { key: "secrets", label: "Secrets", to: "/$orgSlug/secrets/vaults", icon: LockPasswordIcon, activeIcon: LockPasswordSolidIcon, pages: [
     { label: "Vaults", to: "/$orgSlug/secrets/vaults", icon: Folder01Icon },
     { label: "Shares", to: "/$orgSlug/secrets/shares", icon: LinkSquare01Icon },
     { label: "Trash", to: "/$orgSlug/secrets/trash", icon: Delete02Icon },
