@@ -19,6 +19,7 @@
     "preview": "astro preview"
   },
   "dependencies": {
+    "@outray/observability": "^0.1.5",
     "@astrojs/node": "11.1.9",
     "@astrojs/react": "6.0.6",
     "astro": "7.2.8",
