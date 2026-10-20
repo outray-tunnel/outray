@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "scripts": {
     "dev": "astro dev --host 0.0.0.0",
     "build": "astro build",
@@ -12,11 +15,11 @@
     "start": "node dist/server/entry.mjs"
   },
   "dependencies": {
-    "@astrojs/node": "9.5.5",
-    "@astrojs/react": "4.3.0",
+    "@astrojs/node": "11.1.9",
+    "@astrojs/react": "6.0.6",
     "@outray/share-crypto": "file:../../packages/share-crypto",
     "@radix-ui/react-dropdown-menu": "2.1.16",
-    "astro": "5.18.2",
+    "astro": "7.2.8",
     "lucide-react": "^0.560.0",
     "motion": "12.25.0",
     "pg": "^8.16.3",
