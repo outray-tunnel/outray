@@ -63,7 +63,7 @@ fi
 cd $APP_DIR
 
 # Install Server dependencies
-npm install --production
+npm install --omit=dev --engine-strict --no-audit --no-fund
 
 # Determine which instance is currently running
 if pm2 list | grep -q "$BLUE_NAME.*online"; then
@@ -120,7 +120,7 @@ pm2 start dist/server.js --name $TARGET_NAME --update-env --force
 # 1.5 Start Internal Check Service
 echo "🔍 Starting Internal Check Service..."
 cd ../internal-check
-npm install --production
+npm install --omit=dev --engine-strict --no-audit --no-fund
 # Restart if exists, otherwise start new (prevents duplicates without downtime)
 if pm2 list | grep -q "outray-internal-check"; then
   DATABASE_URL="$DATABASE_URL" \
@@ -143,7 +143,7 @@ cd $APP_DIR
 if [ "$DEPLOY_CRON" = "true" ]; then
 echo "⏰ Starting Cron Service..."
 cd ../cron
-npm install --production
+npm install --omit=dev --engine-strict --no-audit --no-fund
 if [ -z "$TINYBIRD_API_HOST" ] || [ -z "$TINYBIRD_QUERY_TOKEN" ]; then
   echo "⚠️ Tinybird runtime credentials are incomplete; alert evaluation will be disabled."
 fi
