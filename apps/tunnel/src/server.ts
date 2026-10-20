@@ -1,4 +1,5 @@
 import { createServer } from "http";
+import { startOutrayObservability } from "@outray/observability";
 import Redis from "ioredis";
 import { WebSocketServer } from "ws";
 import { TunnelRouter } from "./core/TunnelRouter";
@@ -21,6 +22,21 @@ import {
   normalizeHost,
   proxyToStatus,
 } from "./lib/status-routing";
+
+if (process.env.OUTRAY_API_KEY) {
+  try {
+    startOutrayObservability({
+      serviceName: "outray-connect",
+      endpoint: process.env.OUTRAY_OTLP_ENDPOINT,
+      environment: process.env.NODE_ENV,
+      captureConsole: true,
+      autoInstrumentations: false,
+      redactedLogFields: ["body", "data", "result", "content", "env"],
+    });
+  } catch {
+    console.error("Observability initialization failed");
+  }
+}
 
 const redis = new Redis(config.redisUrl, {
   lazyConnect: true,
