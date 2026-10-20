@@ -40,7 +40,7 @@ install -d -m 0755 /opt/outray/uptime-probe
 install -d -m 0700 /etc/outray
 cp -a /root/outray/uptime-probe/. /opt/outray/uptime-probe/
 cd /opt/outray/uptime-probe
-npm install --production
+npm install --omit=dev --engine-strict --no-audit --no-fund
 install -m 0644 /root/outray/deploy/uptime-probe.service /etc/systemd/system/outray-uptime-probe.service
 systemd-analyze verify /etc/systemd/system/outray-uptime-probe.service
 
