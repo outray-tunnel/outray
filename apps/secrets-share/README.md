@@ -1,6 +1,6 @@
 # OutRay Secrets Share
 
-`outray-secrets-share` is a standalone Astro 5/Node service. It has no dependency on the OutRay edge VPS, Caddy, Woodpecker, or the dashboard runtime. Anonymous visitors can create an encrypted share; organization shares are created by the dashboard and use the same share tables.
+`outray-secrets-share` is a standalone Astro 7/Node service. It has no dependency on the OutRay edge VPS, Caddy, Woodpecker, or the dashboard runtime. Anonymous visitors can create an encrypted share; organization shares are created by the dashboard and use the same share tables.
 
 ## Database preparation
 
@@ -36,7 +36,7 @@ The dashboard additionally needs `VITE_SHARE_PUBLIC_ORIGIN=https://secrets.outra
 
 ## Build and run
 
-From the repository root (the isolated lockfile/install keeps the dashboard's private icon packages out of this service):
+Use Node.js 22.19.0 or newer. From the repository root (the isolated lockfile/install keeps the dashboard's private icon packages out of this service):
 
 ```sh
 cd apps/secrets-share
@@ -50,11 +50,11 @@ The health check is `GET /health` (204 when the restricted database connection w
 
 ### Brimble example
 
-Create a service from this repository. Keep the full repository available to the build (the share app has a local dependency in `packages/share-crypto`), but use `cd apps/secrets-share && npm ci --workspaces=false` as install, `cd apps/secrets-share && npm run build --workspaces=false` as build, and `cd apps/secrets-share && npm run start --workspaces=false` as start. Set the runtime variables above in Brimble's private environment settings, configure `/health` as its health check, then attach `secrets.outray.dev` as a custom domain in Brimble. Follow Brimble's DNS and certificate instructions for that domain. Do not copy an unrestricted production `DATABASE_URL` or Hugeicons license into this service.
+Create a service from this repository and select Node.js 22.19.0 or newer for both build and runtime. Keep the full repository available to the build (the share app has a local dependency in `packages/share-crypto`), but use `cd apps/secrets-share && npm ci --workspaces=false` as install, `cd apps/secrets-share && npm run build --workspaces=false` as build, and `cd apps/secrets-share && npm run start --workspaces=false` as start. Set the runtime variables above in Brimble's private environment settings, configure `/health` as its health check, then attach `secrets.outray.dev` as a custom domain in Brimble. Follow Brimble's DNS and certificate instructions for that domain. Do not copy an unrestricted production `DATABASE_URL` or Hugeicons license into this service.
 
 The service serves no analytics or third-party assets. The 32-byte browser encryption key stays in the URL fragment; the server stores ciphertext, IV, a SHA-256 link verifier, expiry, and view count. Optional password protection derives a second client-side key with PBKDF2 and stores only a salted, key-bound password proof. A wrong password does not consume a view. The complete link appears only once; merely opening the landing page does not consume a view.
 
-This app does not use Astro's server-island or image-optimization endpoints; its middleware returns 404 for `/_server-islands/*` and `/_image`. The API also caps request bodies while streaming. Keep an upstream request-body limit in the hosting platform as defense in depth. Astro 5 currently has upstream dependency advisories, so review `npm audit --workspaces=false` before a public release and upgrade the framework when the repository's Node baseline permits it.
+This app does not use Astro's server-island or image-optimization endpoints; its middleware returns 404 for `/_server-islands/*` and `/_image`. The API also caps request bodies while streaming. Keep an upstream request-body limit in the hosting platform as defense in depth. Astro 7.2.8 includes the Sharp >=0.35.4 fix for [GHSA-26w7-cxv4-gfx2](https://github.com/withastro/astro/security/advisories/GHSA-26w7-cxv4-gfx2). Review `npm audit --workspaces=false` before a public release and keep the framework and its dependencies patched.
 
 ## Operations
 
