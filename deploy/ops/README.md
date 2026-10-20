@@ -13,7 +13,7 @@ the hosted ingest endpoint; no Ops-specific ingestion code is required.
 - The hosted web already uses the public TanStack Start adapter, with its
   existing private credential names. The other Node services call the public
   `@outray/observability` SDK directly. Add `OUTRAY_API_KEY` and
-  `OUTRAY_OTLP_ENDPOINT` to Unbe's OutRay / OutRay / Production environment
+  `OUTRAY_OTLP_ENDPOINT` to Ops Secrets' outray / outray / production environment
   for connect, internal-check, Status, and the uptime probe. The edge deploy
   helper passes them to those runtimes. Cron on Aeroplane and Secrets Share
   on Brimble need the same pair in their private runtime environment. The
