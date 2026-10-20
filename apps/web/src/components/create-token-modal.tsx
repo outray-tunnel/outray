@@ -7,7 +7,8 @@ import { Button } from "@/components/arc/button/button";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import { Select } from "@/components/arc/select/select";
 import { WorkspaceInput } from "@/components/ui/workspace-input";
-import { WorkspaceDialog, WorkspaceNotice } from "@/components/workspace/workspace-ui";
+import { SideSheet } from "@/components/ui/side-sheet";
+import { WorkspaceNotice } from "@/components/workspace/workspace-ui";
 import { canCreateToken, tokenPermissionOptions, type TokenBoundary, type TokenExpiry, type TokenScope } from "@/components/workspace/tokens-data";
 
 interface CreateTokenModalProps {
@@ -131,14 +132,14 @@ function TokenCreationSession({ onClose, orgSlug, defaultName = "", defaultScope
     if (boundary !== "organization" && !next.some((item) => item.startsWith("secrets:"))) changeBoundary("organization");
   };
 
-  return <WorkspaceDialog open onClose={close} title={created ? "Your API token" : "Create API token"} description={created ? "This credential is shown once and cannot be recovered." : "Give a credential only the access it needs."} size="md" busy={isCreating}
+  return <SideSheet open onClose={close} title={created ? "Your API token" : "Create API token"} description={created ? "This credential is shown once and cannot be recovered." : "Give a credential only the access it needs."} size="md" closeDisabled={isCreating}
     footer={created || (!canCreate && !permissionPending) ? <Button size="sm" onClick={close}>Done</Button> : <><Button variant="ghost" size="sm" onClick={close} disabled={isCreating}>Cancel</Button><Button type="submit" form={formId} size="sm" disabled={!canSubmit} loading={isCreating}>Create token</Button></>}>
     {permissionPending ? <p role="status" className="py-6 text-center text-[12px] text-zinc-500">Checking token permissions…</p> : !canCreate ? <WorkspaceNotice message="Only workspace owners and admins can create API tokens." /> : created ? <TokenReveal token={createdToken} copyError={copyError} onCopyError={() => setCopyError("Could not copy the token. Try again or copy it manually.")} onCopied={() => setCopyError(null)} /> : <TokenCreationForm formId={formId} name={name} scopes={scopes} boundary={boundary} projectId={projectId} environmentId={environmentId} expiresIn={expiresIn} busy={isCreating} error={createError}
       projects={projectsQuery.data ?? []} projectsLoading={projectsQuery.isLoading} projectsError={projectsQuery.error?.message ?? null}
       environments={environmentsQuery.data ?? []} environmentsLoading={environmentsQuery.isLoading} environmentsError={environmentsQuery.error?.message ?? null}
       onNameChange={setName} onScopeChange={toggleScope} onBoundaryChange={changeBoundary} onProjectChange={(value) => { setProjectId(value); setEnvironmentId(""); }} onEnvironmentChange={setEnvironmentId} onExpiryChange={setExpiresIn}
       onRetryProjects={() => void projectsQuery.refetch()} onRetryEnvironments={() => void environmentsQuery.refetch()} onSubmit={() => void createToken()} />}
-  </WorkspaceDialog>;
+  </SideSheet>;
 }
 
 export interface TokenCreationFormProps {
@@ -154,7 +155,7 @@ export function TokenCreationForm({ formId, name, scopes, boundary, projectId, e
   const fieldId = useId();
   const hasSecrets = scopes.some((scope) => scope.startsWith("secrets:"));
   return <form id={formId} className="space-y-4 [&_label]:text-[12px]" onSubmit={(event) => { event.preventDefault(); if (!busy) onSubmit(); }}>
-    <div className="space-y-1.5"><label htmlFor={fieldId + "-name"} className="block text-[12px] font-medium text-zinc-300">Token name</label><WorkspaceInput id={fieldId + "-name"} name="name" size="compact" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Production deploy" maxLength={100} autoComplete="off" disabled={busy} /></div>
+    <div className="space-y-1.5"><label htmlFor={fieldId + "-name"} className="block text-[12px] font-medium text-zinc-300">Token name</label><WorkspaceInput id={fieldId + "-name"} name="name" size="compact" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Production deploy" maxLength={100} autoComplete="off" data-autofocus disabled={busy} /></div>
     <fieldset disabled={busy}>
       <legend className="text-[12px] font-medium text-zinc-300">Permissions</legend>
       <p className="mb-2 mt-1 text-[11px] leading-5 text-zinc-500">Choose at least one permission. Start with the minimum access.</p>
@@ -188,7 +189,7 @@ export function TokenCreationForm({ formId, name, scopes, boundary, projectId, e
 export function TokenReveal({ token, copyError, onCopyError, onCopied }: { token: string | null; copyError: string | null; onCopyError: () => void; onCopied: () => void }) {
   return <div className="ph-no-capture space-y-4">
     {token ? <>
-      <WorkspaceNotice tone="info" message="Save this token in your secret manager. It is hidden after 30 seconds or when you close this dialog." />
+      <WorkspaceNotice tone="info" message="Save this token in your secret manager. It is hidden after 30 seconds or when you close this panel." />
       <div className="space-y-1.5"><p className="text-[12px] font-medium text-zinc-300">Your token</p><div className="flex min-w-0 items-center gap-2 rounded-lg border border-white/[0.09] bg-black/20 px-3 py-2.5"><pre aria-label="Generated API token" tabIndex={0} className="min-w-0 flex-1 overflow-x-auto whitespace-pre font-mono text-[12px] leading-6 text-zinc-200"><code>{token}</code></pre><CopyButton value={token} iconOnly variant="plain" label="Copy token" className="shrink-0" onCopyError={onCopyError} onCopied={onCopied} /></div></div>
       {copyError ? <WorkspaceNotice message={copyError} /> : null}
     </> : <div className="py-5 text-center"><KeyRound size={24} className="mx-auto text-zinc-500" aria-hidden="true" /><h2 className="mt-3 text-[14px] font-medium text-zinc-200">Token hidden</h2><p className="mt-1 text-[12px] leading-5 text-zinc-500">Your token was created. The full credential cannot be shown again.</p></div>}
