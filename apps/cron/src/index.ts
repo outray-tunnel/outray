@@ -1,4 +1,5 @@
 import { redis } from "./lib/redis";
+import { startOutrayObservability } from "@outray/observability";
 import { config } from "./config";
 import { activeTunnelSnapshot, createSnapshotLogger } from "./lib/tinybird-tunnels";
 import { chargePaystackSubscriptions } from "./lib/paystack";
@@ -11,6 +12,21 @@ import {
 import { instanceConfig } from "../../../shared/instance-config";
 import { createProductEmailWorker, PRODUCT_EMAIL_POLL_INTERVAL_MS } from "./lib/product-emails";
 import { createUsageEmailScanner, USAGE_EMAIL_SCAN_INTERVAL_MS } from "./lib/usage-emails";
+
+if (process.env.OUTRAY_API_KEY) {
+  try {
+    startOutrayObservability({
+      serviceName: "outray-cron",
+      endpoint: process.env.OUTRAY_OTLP_ENDPOINT,
+      environment: process.env.NODE_ENV,
+      captureConsole: true,
+      autoInstrumentations: false,
+      redactedLogFields: ["body", "data", "result", "content", "env"],
+    });
+  } catch {
+    console.error("Observability initialization failed");
+  }
+}
 
 async function connectRedis() {
   await redis.connect();
