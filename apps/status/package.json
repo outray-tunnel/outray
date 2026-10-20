@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "scripts": {
     "dev": "astro dev --host 0.0.0.0",
     "build": "astro build",
@@ -16,9 +19,9 @@
     "preview": "astro preview"
   },
   "dependencies": {
-    "@astrojs/node": "9.5.5",
-    "@astrojs/react": "4.3.0",
-    "astro": "5.18.2",
+    "@astrojs/node": "11.1.9",
+    "@astrojs/react": "6.0.6",
+    "astro": "7.2.8",
     "motion": "^12.23.26",
     "pg": "^8.16.3",
     "react": "19.2.0",
@@ -26,11 +29,11 @@
     "recharts": "3.6.0"
   },
   "overrides": {
-    "unifont": "0.7.4"
+    "unifont": "0.7.5"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "@astrojs/cloudflare": "12.6.13",
+    "@astrojs/cloudflare": "14.2.2",
     "@outray/incident-content": "file:../../packages/incident-content",
     "@tailwindcss/vite": "4.1.18",
     "@types/node": "^22.15.30",
@@ -40,6 +43,6 @@
     "tailwindcss": "4.1.18",
     "tsx": "^4.20.3",
     "typescript": "~5.9.3",
-    "wrangler": "4.88.0"
+    "wrangler": "4.151.2"
   }
 }
