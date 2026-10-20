@@ -162,6 +162,7 @@ async function loadSetup(initialState: any[] = [], clients: Record<string, any> 
         },
         useCallback: (callback: (...args: any[]) => any) => { callbacks.push(callback); return callback; },
         useEffect: (effect: () => void | (() => void)) => { effects.push(effect); },
+        useId: () => "setup-test-id",
         useRef: (initial: unknown) => ({ current: initial }),
       };
       if (specifier === "@hugeicons/react") return { HugeiconsIcon: () => null };
@@ -209,6 +210,8 @@ const secretState = (overrides: Record<number, unknown> = {}) => Object.assign([
 ], overrides);
 const event = () => ({ preventDefault() {} });
 function submit(tree: React.ReactNode) {
+  const flow = elements(tree).find((element) => element.props.nextAction);
+  if (flow) return flow.props.nextAction.onNext();
   const form = elements(tree).find((element) => element.type === "form");
   assert.ok(form);
   return form.props.onSubmit(event());
@@ -240,9 +243,22 @@ test("pasting env assignments populates editable key and value columns, with man
     { key: "DATABASE_URL", value: "postgres://localhost/app" },
   ]);
   let tree = setup.renderSecrets();
+  const flow = elements(tree).find((element) => element.type === setup.stubs.SetupFlow);
+  const form = elements(tree).find((element) => element.type === "form");
+  assert.ok(flow?.props.nextAction);
+  assert.ok(form?.props.id);
+  assert.equal(flow.props.nextAction.step, "02", "Next saves on the add-secrets step");
+  assert.equal(flow.props.nextAction.form, form.props.id, "Next and Enter submit the secrets form");
+  assert.equal(flow.props.nextAction.disabled, false);
+  assert.equal(flow.props.nextAction.loading, false);
+  assert.equal(form.props.onSubmit, undefined, "SetupFlow owns submission and step advancement");
+  assert.equal(elements(tree).some((element) => element.type === setup.stubs.Button && element.props.type === "submit"), false, "there is no separate Store secret button");
   for (const row of [1, 2]) {
     const key = secretInput(tree, "key", row);
     const value = secretInput(tree, "value", row);
+    assert.equal(key.type, "input");
+    assert.equal(value.type, "input");
+    assert.equal(value.props.type, "text");
     const grid = elements(tree).find((element) => element.type === "div" && /grid/.test(element.props.className ?? "") && elements(element.props.children).includes(key) && elements(element.props.children).includes(value));
     assert.ok(grid, "key and value share a grid row");
     assert.match(grid.props.className, /grid-cols-(?:2|\[[^\]]+)/, "each row has two input columns");
@@ -299,7 +315,7 @@ test("bulk saving previews and commits one env import with the current and autho
       },
     },
   });
-  await submit(setup.renderSecrets());
+  assert.equal(await submit(setup.renderSecrets()), true, "a successful save allows Next to advance");
   const envText = serializeEnvText({ API_KEY: "secret=token", DATABASE_URL: "postgres://localhost/app" });
   assert.deepEqual(normalize(calls), [
     ["acme", "app", "development", { envText, dryRun: true }],
@@ -331,7 +347,7 @@ test("a failed atomic bulk import retains every draft and leaves destination cou
     },
   });
   const before = normalize(setup.values[0]);
-  await submit(setup.renderSecrets());
+  assert.equal(await submit(setup.renderSecrets()), false, "a failed save keeps the current step open");
   assert.equal(previews, 1);
   assert.equal(commits, 1);
   assert.deepEqual(normalize(setup.values[5]), multipleSecrets);
@@ -348,7 +364,7 @@ test("bulk setup rejects existing keys from preview before writing any values", 
     const setup = await loadSetup(secretState({ 5: multipleSecrets }), {
       secrets: { importDotenv: async (...args: any[]) => { calls.push(args); return { ...summary, revision: 3 }; } },
     });
-    await submit(setup.renderSecrets());
+    assert.equal(await submit(setup.renderSecrets()), false);
     assert.equal(calls.length, 1, "existing keys must not be overwritten");
     assert.equal(calls[0][3].dryRun, true);
     assert.deepEqual(normalize(setup.values[5]), multipleSecrets);
@@ -386,13 +402,13 @@ test("secret errors preserve inputs and revisions; success clears inputs and inc
   const setup = await loadSetup(secretState(), {
     secrets: { createSecret: async (...args: any[]) => { calls.push(args); if (fail) throw new Error("Revision conflict"); return {}; } },
   });
-  await submit(setup.renderSecrets());
+  assert.equal(await submit(setup.renderSecrets()), false);
   assert.deepEqual(normalize(setup.values[5]), [{ id: 0, key: "API_KEY", value: "example-value" }]);
   assert.equal(setup.values[8], "Revision conflict");
   assert.equal(setup.values[0][0].environments[1].revision, 3);
   assert.equal(setup.verified, 0);
   fail = false;
-  await submit(setup.renderSecrets());
+  assert.equal(await submit(setup.renderSecrets()), true);
   assert.deepEqual(normalize(calls[1]), ["acme", "app", "development", {
     key: "API_KEY", value: "example-value", environmentSlugs: ["development"], expectedRevisions: { development: 3 }, expectedRevision: 3,
   }]);
@@ -406,13 +422,22 @@ test("secret errors preserve inputs and revisions; success clears inputs and inc
   assert.equal(setup.values[0][0].environments[0].revision, 9);
   assert.deepEqual(normalize(setup.values[0][1]), project("other"));
   assert.equal(setup.verified, 1);
+  const savedTree = setup.renderSecrets();
+  assert.equal(elements(savedTree).find((element) => element.type === setup.stubs.SetupFlow)?.props.nextAction.disabled, false);
+  assert.equal(await submit(savedTree), true, "returning to the completed step can advance again");
+  assert.equal(calls.length, 2, "revisiting a saved step does not write the same secret again");
+  assert.equal(setup.verified, 1);
 });
 
 test("invalid keys, missing destinations, and pending saves cannot submit duplicate mutations", async () => {
   let mutations = 0;
   for (const overrides of [{ 5: [{ id: 0, key: "", value: "" }] }, { 5: [{ id: 0, key: "1_BAD", value: "value" }] }, { 5: [{ id: 0, key: "bad-key", value: "value" }] }, { 2: "missing" }, { 0: [{ ...project(), environments: [] }] }, { 7: true }]) {
     const setup = await loadSetup(secretState(overrides), { secrets: { createSecret: async () => { mutations++; } } });
-    await submit(setup.renderSecrets());
+    const tree = setup.renderSecrets();
+    const nextAction = elements(tree).find((element) => element.type === setup.stubs.SetupFlow)?.props.nextAction;
+    assert.ok(nextAction);
+    assert.equal(nextAction.disabled || nextAction.loading, true);
+    assert.equal(await submit(tree), false);
     assert.equal(setup.verified, 0);
   }
   for (const overrides of [{ 4: "   " }, { 4: "Application", 6: true }]) {
@@ -430,7 +455,7 @@ test("pending Secrets forms retain text but lock destination selectors, editing,
   for (const selector of selectors) assert.equal(selector.props.disabled, true);
   for (const input of tree.filter((element) => element.type === "input" || element.type === "textarea")) assert.equal(input.props.readOnly, true);
   for (const control of tree.filter((element) => element.type === setup.stubs.Button && element.props.type === "button")) assert.equal(control.props.disabled, true);
-  assert.equal(tree.find((element) => element.type === setup.stubs.Button && element.props.type === "submit")?.props.loading, true);
+  assert.equal(tree.find((element) => element.type === setup.stubs.SetupFlow)?.props.nextAction.loading, true);
   assert.equal(paste(secretInput(setup.renderSecrets(), "key"), "NEW=1\nOTHER=2"), false);
   assert.deepEqual(normalize(setup.values[5]), multipleSecrets);
   const vault = await loadSetup(secretState({ 0: [], 4: "Example", 6: true }));
