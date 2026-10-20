@@ -40,7 +40,7 @@ test("all four setup pages server-render the compact branded workspace layout wi
     for (const [product, title, consolePath] of [
       ["tunnels", "Connect your first tunnel", "/acme/tunnel"],
       ["observability", "Instrument your first service", "/acme/observability"],
-      ["secrets", "Store your first secret", "/acme/secrets"],
+      ["secrets", "Store your first secret", "/acme/secrets/vaults"],
       ["uptime", "Watch your first endpoint", "/acme/uptime"],
     ] as const) {
       const html = renderProduct(product);
