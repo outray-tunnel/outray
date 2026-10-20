@@ -101,8 +101,9 @@ async function layoutController(initialEnvironment = "staging") {
       portals.push({ children, target }); return React.createElement("portal-placeholder", null, children);
     } };
     if (specifier === "@tanstack/react-router") return { Link: (_props: Props) => null };
-    if (specifier === "lucide-react") return { ArrowLeft: Icon, Download: Icon, Layers: Icon, LockKeyhole: Icon, Plus: Icon, RefreshCw: Icon, Upload: Icon };
+    if (specifier === "lucide-react") return { ArrowLeft: Icon, Download: Icon, Layers: Icon, LockKeyhole: Icon, RefreshCw: Icon, Search: Icon, X: Icon };
     if (specifier === "../arc/button/button") return { Button };
+    if (specifier === "../ui/workspace-input") return { WorkspaceInput: (_props: Props) => null };
     if (specifier.endsWith(".css")) return {};
     throw new Error(`Unexpected keys content dependency: ${specifier}`);
   });
@@ -124,6 +125,7 @@ async function layoutController(initialEnvironment = "staging") {
     if (specifier === "./secret-dialogs") return {};
     if (specifier === "./environment-keys-content") return content;
     if (specifier === "./secrets-table") return {};
+    if (specifier === "./inline-secrets-editor") return {};
     if (specifier === "./use-secrets-resource") return resource;
     if (specifier === "@/lib/secrets-client") return {};
     throw new Error(`Unexpected workspace wrapper dependency: ${specifier}`);
@@ -182,8 +184,8 @@ test("generated routes match direct environment URLs through the shared vault pa
   for (const environmentSlug of ["staging", "production", "deleted"]) {
     const matches = router.matchRoutes(`/acme/secrets/vaults/api/environments/${environmentSlug}`);
     assert.deepEqual(matches.map((match) => match.routeId), ["__root__", "/$orgSlug", "/$orgSlug/secrets", parentId, childId]);
-    assert.deepEqual(matches.at(-1)?.params, { orgSlug: "acme", projectSlug: "api", environmentSlug });
-    assert.deepEqual(matches.find((match) => match.routeId === parentId)?.params, { orgSlug: "acme", projectSlug: "api", environmentSlug }, "the parent match includes its descendant's active environment");
+    assert.deepEqual({ ...matches.at(-1)?.params }, { orgSlug: "acme", projectSlug: "api", environmentSlug });
+    assert.deepEqual({ ...matches.find((match) => match.routeId === parentId)?.params }, { orgSlug: "acme", projectSlug: "api", environmentSlug }, "the parent match includes its descendant's active environment");
   }
   const route = router.routesById[childId];
   assert.equal(route.parentRoute, router.routesById[parentId]);
@@ -193,7 +195,7 @@ test("generated routes match direct environment URLs through the shared vault pa
   assert.equal(router.matchRoutes("/acme/secrets/vaults/api/environments").at(-1)?.routeId, parentId);
   const encoded = router.matchRoutes("/team%2F%3F%CE%B2/secrets/vaults/api%2F%3F%CE%B2/environments/pre%2Fprod%3F%CE%B2").at(-1);
   assert.equal(encoded?.routeId, childId);
-  assert.deepEqual(encoded?.params, { orgSlug: "team/?β", projectSlug: "api/?β", environmentSlug: "pre/prod?β" });
+  assert.deepEqual({ ...encoded?.params }, { orgSlug: "team/?β", projectSlug: "api/?β", environmentSlug: "pre/prod?β" });
 });
 
 test("the real parent useParams hook reads descendant environmentSlug on a direct link and after sibling navigation", async () => {
@@ -313,19 +315,21 @@ test("the active leaf owns header actions in the persistent slot and clears them
   const props: EnvironmentKeysContentProps = {
     orgSlug: "acme", projectSlug: "api", environmentSlug: "staging", sharedLayout: true, actionsContainer: view.context.actionsContainer,
     data: { project, environment: project.environments[0], secrets: [], revision: 7 }, loading: false, refreshing: false, error: null, actionError: null, exporting: false,
-    onAdd: () => actions.push("staging:add"), onImport: () => actions.push("staging:import"), onExport: () => actions.push("staging:export"), onRetry: () => {},
+    search: "", onSearchChange: () => {},
+    onExport: () => actions.push("staging:export"), onRetry: () => {},
   };
   let root = controller.renderActions(props);
   assert.equal(controller.portals.length, 1); assert.equal(controller.portals[0].target, slot);
   assert.equal(elements(root).filter((element) => element.type === controller.content.EnvironmentKeysHeader || element.type === controller.content.EnvironmentKeysTabs).length, 0, "the leaf does not duplicate persistent chrome");
-  const add = elements(controller.portals[0].children).find((element) => element.type === controller.Button && text(element) === "Add secret");
-  assert.ok(add); add.props.onClick(); assert.deepEqual(actions, ["staging:add"]);
+  const exportAction = elements(controller.portals[0].children).find((element) => element.type === controller.Button && text(element) === "Export .env");
+  assert.ok(exportAction); exportAction.props.onClick(); assert.deepEqual(actions, ["staging:export"]);
+  assert.equal(elements(controller.portals[0].children).filter((element) => element.type === controller.Button).length, 1);
   view = controller.render("production");
   controller.renderActions({ ...props, environmentSlug: "production", data: null, loading: true, actionsContainer: view.context.actionsContainer });
   assert.equal(controller.portals[0].target, slot); assert.equal(controller.portals[0].children, null, "an outgoing environment's actions are not kept alive by its parent");
-  root = controller.renderActions({ ...props, environmentSlug: "production", actionsContainer: view.context.actionsContainer, data: { ...props.data!, environment: project.environments[1] }, onAdd: () => actions.push("production:add") });
-  const productionAdd = elements(controller.portals[0].children).find((element) => element.type === controller.Button && text(element) === "Add secret");
-  assert.ok(productionAdd); productionAdd.props.onClick(); assert.deepEqual(actions, ["staging:add", "production:add"]);
+  root = controller.renderActions({ ...props, environmentSlug: "production", actionsContainer: view.context.actionsContainer, data: { ...props.data!, environment: project.environments[1] }, onExport: () => actions.push("production:export") });
+  const productionExport = elements(controller.portals[0].children).find((element) => element.type === controller.Button && text(element) === "Export .env");
+  assert.ok(productionExport); productionExport.props.onClick(); assert.deepEqual(actions, ["staging:export", "production:export"]);
   controller.renderActions({ ...props, actionsContainer: null });
   assert.equal(controller.portals.length, 0, "unmounting the action ref never targets a stale detached slot");
   controller.dispose();
