@@ -52,7 +52,7 @@ case "$service" in
     ;;
   status)
     ssh "${ssh_options[@]}" "$edge" 'mkdir -p /root/outray/status'
-    scp "${scp_options[@]}" -r apps/status/dist apps/status/package.json "$edge:/root/outray/status/"
+    scp "${scp_options[@]}" -r apps/status/dist apps/status/package.json apps/status/observability-preload.mjs "$edge:/root/outray/status/"
     scp "${scp_options[@]}" deploy-status.sh "$edge:/root/outray/"
     ;;
   uptime-probe)
