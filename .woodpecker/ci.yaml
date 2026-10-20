@@ -8,7 +8,7 @@ concurrency: 1
 
 steps:
   - name: install
-    image: node:20-bookworm
+    image: node:22-bookworm
     environment:
       HUGEICONS_LICENSE_KEY:
         from_secret: hugeicons_license_key
@@ -18,7 +18,7 @@ steps:
   # Apply checked-in migrations before any service deployment. The database
   # URL is available only to this step and never enters the application image.
   - name: migrate-database
-    image: node:20-bookworm
+    image: node:22-bookworm
     environment:
       DATABASE_URL:
         from_secret: database_url
@@ -26,7 +26,7 @@ steps:
       - npm run db:migrate:ci
 
   - name: build
-    image: node:20-bookworm
+    image: node:22-bookworm
     commands:
       - npm run build -- --concurrency=1 --filter=outray-tunnel --filter=outray-internal-check --filter=outray-status --filter=outray-uptime-probe
 
@@ -49,7 +49,7 @@ steps:
   # secret cannot break the default VPS pipeline because it is not requested.
   # The Node artifact is still built above for self-hosting and rollback.
   - name: deploy-status
-    image: node:20-bookworm
+    image: node:22-bookworm
     environment:
       STATUS_DEPLOY_TARGET: vps
       # CLOUDFLARE_API_TOKEN:
@@ -91,7 +91,7 @@ steps:
         esac
 
   - name: deploy-edge
-    image: node:20-bookworm
+    image: node:22-bookworm
     environment:
       EDGE_SSH_KEY:
         from_secret: edge_ssh_key
@@ -103,7 +103,7 @@ steps:
 
   # Start probes only after both the renderer and edge are healthy.
   - name: deploy-uptime-probe
-    image: node:20-bookworm
+    image: node:22-bookworm
     environment:
       EDGE_SSH_KEY:
         from_secret: edge_ssh_key
