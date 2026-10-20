@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
@@ -11,7 +14,7 @@
     "preview": "astro preview"
   },
   "dependencies": {
-    "astro": "5.18.2",
+    "astro": "7.2.8",
     "motion": "^12.23.26",
     "posthog-js": "^1.318.1"
   },
