@@ -3,6 +3,7 @@ import { getStatusRuntime } from "./lib/runtime";
 import { snapshotResponse } from "./lib/snapshots";
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  const startedAt = Date.now();
   // Status pages do not optimize user-provided images through Astro. Keep its
   // Sharp-backed image endpoint unreachable on the Node runtime as well.
   if (context.url.pathname === "/_image") {
@@ -25,11 +26,23 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return response;
   };
   const runtime = getStatusRuntime();
-  if (runtime) {
-    return snapshotResponse(context.request, respond, {
-      bucket: runtime.env.STATUS_SNAPSHOTS,
-      waitUntil: runtime.waitUntil,
+  try {
+    const response = runtime
+      ? await snapshotResponse(context.request, respond, {
+          bucket: runtime.env.STATUS_SNAPSHOTS,
+          waitUntil: runtime.waitUntil,
+        })
+      : await respond();
+    console.info("status_request", {
+      method: context.request.method,
+      status: response.status,
+      durationMs: Date.now() - startedAt,
     });
+    return response;
+  } catch (error) {
+    console.error("status_request_failed", {
+      errorType: error instanceof Error ? error.name : "UnknownError",
+    });
+    throw error;
   }
-  return respond();
 });
