@@ -16,6 +16,10 @@ deploy Tinybird endpoints, then deploy Status, Edge, and the uptime probe as
 separate, health-gated steps. Status is deployed first so the edge has a healthy
 upstream; the probe is deployed last. Each step copies only its own artifacts.
 These are serial steps in one workflow, not independently triggered workflows.
+The edge VPS must run Node.js 22.19.0 or later, matching the build toolchain.
+Both deployment paths generate production-only runtime manifests before copying
+artifacts. Build adapters, dev dependencies, workspace links and lifecycle scripts
+are not sent to the VPS; `--omit=dev` alone still resolves development dependencies.
 Woodpecker serializes these workflows across both branches. Both branches use
 the **same production Tinybird workspace and edge VPS**, so the latest successful deploy
 from either branch becomes live. The GitHub Actions deploy is a manual fallback,
