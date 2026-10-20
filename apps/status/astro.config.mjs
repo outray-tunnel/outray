@@ -8,9 +8,9 @@ const worker = process.env.OUTRAY_STATUS_RUNTIME === "cloudflare";
 
 export default defineConfig({
   output: "server",
+  compressHTML: true,
   outDir: worker ? "./dist-worker" : "./dist",
   adapter: worker ? cloudflare({
-    workerEntryPoint: { path: "src/worker.ts" },
     imageService: "compile",
   }) : node({ mode: "standalone" }),
   integrations: [react()],
@@ -24,15 +24,15 @@ export default defineConfig({
     // runtime in development too: TSX uses jsxDEV here, which the production
     // react/jsx-dev-runtime intentionally does not export.
     optimizeDeps: {
-      esbuildOptions: {
-        define: { "process.env.NODE_ENV": JSON.stringify("development") },
+      rolldownOptions: {
+        transform: { define: { "process.env.NODE_ENV": JSON.stringify("development") } },
       },
     },
     // Bundle the whole Motion family: standalone installs must not pair a
     // bundled framer-motion with a different external motion-dom version.
     ssr: { noExternal: ["motion", "framer-motion", "motion-dom", "motion-utils"] },
   },
-  experimental: {
+  security: {
     // Astro's CSP hash generation runs during builds, not the Vite dev server.
     csp: process.env.NODE_ENV === "production" ? {
       directives: [
