@@ -50,7 +50,7 @@ async function run(service, { check = false, secrets = managedSecrets } = {}) {
       "--token-stdin", ...(check ? ["--check"] : [])],
     // An inherited shell API URL must not override the public production host.
     env: { WEB_API_URL: "https://outray.co/api", UNRELATED_SETTING: "keep-me" },
-    stdin: (async function* () { yield "synthetic-unbe-token"; })(),
+    stdin: (async function* () { yield "synthetic-ops-token"; })(),
     exit(code) { exitCode = code; throw exit; },
   };
 
@@ -66,8 +66,11 @@ async function run(service, { check = false, secrets = managedSecrets } = {}) {
       () => { throw new Error("Must not inspect real credential files"); },
       process,
       async (url, options) => {
-        assert.equal(new URL(url).origin, "https://unbe.dev");
-        assert.equal(options.headers.Authorization, "Bearer synthetic-unbe-token");
+        assert.equal(new URL(url).origin, "https://ops.outray.dev");
+        assert.equal(new URL(url).searchParams.get("organization"), "outray");
+        assert.equal(options.method, "POST");
+        assert.deepEqual(JSON.parse(options.body), { confirmProduction: true });
+        assert.equal(options.headers.Authorization, "Bearer synthetic-ops-token");
         return {
           ok: true,
           json: async () => ({
