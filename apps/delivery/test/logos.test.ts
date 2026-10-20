@@ -9,7 +9,7 @@ import {
   organizationLogoKey,
   type DeliveryEnv,
   type LogoBucket,
-} from "../src/index.ts";
+} from "../src/handler.ts";
 
 const { isValidJpeg } = jpegImage;
 const { BASELINE_JPEG_BASE64, PROGRESSIVE_JPEG_BASE64 } = jpegFixtures;
