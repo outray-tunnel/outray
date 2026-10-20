@@ -68,6 +68,14 @@ COPY --from=builder --chown=node:node /app/package.json /app/package-lock.json .
 COPY --from=builder --chown=node:node /app/apps ./apps
 COPY --from=builder --chown=node:node /app/packages ./packages
 COPY --from=builder --chown=node:node /app/shared ./shared
+# drizzle-kit is hoisted to /app/node_modules, while npm may place its
+# drizzle-orm peer dependency under the web workspace. Resolve both from the
+# same location so committed migrations run in the runtime image.
+RUN if [ ! -e /app/node_modules/drizzle-orm ]; then \
+      test -d /app/apps/web/node_modules/drizzle-orm && \
+      ln -s /app/apps/web/node_modules/drizzle-orm /app/node_modules/drizzle-orm; \
+    fi
+RUN node --input-type=module -e 'await import("drizzle-orm/version")'
 COPY --from=builder --chown=node:node /app/scripts/self-hosted-share-role.mjs ./scripts/self-hosted-share-role.mjs
 COPY --from=builder --chown=node:node /app/deploy/self-hosted/standard-probe-boot.mjs ./probe-boot.mjs
 # Docker initializes the persistent logo volume with this non-root ownership.
