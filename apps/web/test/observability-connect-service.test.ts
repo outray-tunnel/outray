@@ -299,12 +299,12 @@ test("the embedded connection guide uses small actions without shrinking standal
   }
 });
 
-test("refreshed token dialog footer actions stay small in standalone and embedded setup", async () => {
+test("token sidesheet footer actions stay small in standalone and embedded setup", async () => {
   for (const actionSize of [undefined, "sm"] as const) {
     for (const createdToken of [null, "synthetic-test-token"] as const) {
       const ui = await loadComponent("../src/components/create-token-modal.tsx", ["Ingest", "organization", "", "", "90d", ["observability:write"], !!createdToken, createdToken]);
       const tree = elements(ui.render("TokenCreationSession", { isOpen: true, orgSlug: "acme", onClose: () => {}, actionSize, canCreate: true, permissionPending: false }));
-      const dialog = tree.find((element) => element.type === ui.stubs.WorkspaceDialog);
+      const dialog = tree.find((element) => element.type === ui.stubs.SideSheet);
       assert.ok(dialog);
       const actions = elements(dialog.props.footer).filter((element) => element.type === ui.stubs.Button);
       assert.equal(actions.length, createdToken ? 1 : 2);
