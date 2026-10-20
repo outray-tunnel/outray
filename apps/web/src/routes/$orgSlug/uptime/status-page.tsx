@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-r
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import { isSortable, useSortable } from "@dnd-kit/react/sortable";
 import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable";
-import { Activity, ArrowUpRight, Check, ChevronDown, Eye, ExternalLink, Folder, Globe2, GripVertical, Layers3, Mail, Palette, Plus, Radio, ShieldCheck } from "lucide-react";
+import { Activity, ArrowUpRight, Check, ChevronDown, Eye, ExternalLink, Folder, Globe2, GripVertical, ImagePlus, Layers3, LoaderCircle, Mail, Palette, Plus, Radio, ShieldCheck } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { type UptimeComponent, type UptimeGroup, type UptimeMonitor, type UptimePage, uptimeApiPath, uptimeRequest, useUptimeResource, statusPagePath } from "@/components/uptime/uptime-client";
 import { UptimeHeaderSkeleton, UptimeSkeleton, UptimeSummarySkeleton } from "@/components/uptime/uptime-skeleton";
@@ -250,7 +250,7 @@ function CreatePage({ open, onClose, orgSlug, pageNumber, onCreated }: { open: b
 function PageSettings({ page, orgSlug, onSaved }: { page: UptimePage; orgSlug: string; onSaved: () => void }) {
   const { canManage, appearanceDraft, setAppearanceDraft, appearanceDirty, commitAppearance, appearanceSaving: saving, setAppearanceSaving: setSaving } = useStatusPageEditor();
   const { name, description, accentColor } = appearanceDraft;
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const pending = useRef(false);
@@ -258,12 +258,61 @@ function PageSettings({ page, orgSlug, onSaved }: { page: UptimePage; orgSlug: s
   const previewColor = /^#[0-9a-fA-F]{6}$/.test(accentColor) ? accentColor : page.accentColor;
   const updateDraft = (key: "name" | "description" | "accentColor", value: string) => { setAppearanceDraft((draft) => ({ ...draft, [key]: value })); setSaved(false); };
   const save = async (event: FormEvent) => { event.preventDefault(); if (!canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); setSaved(false); try { await uptimeRequest(orgSlug, statusPagePath("/page", page.id), { method: "PATCH", body: JSON.stringify({ name, description: description || null, accentColor }) }); commitAppearance(appearanceDraft); setSaved(true); onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save page."); } finally { pending.current = false; setSaving(false); } };
-  const uploadLogo = async () => { if (!logoFile || !canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); try { const body = new FormData(); body.set("logo", logoFile); const response = await fetch(uptimeApiPath(orgSlug, statusPagePath("/page/logo", page.id)), { method: "POST", credentials: "same-origin", body }); const payload = await response.json().catch(() => null) as { error?: string } | null; if (!response.ok) throw new Error(payload?.error || "Logo upload failed."); setLogoFile(null); if (fileInput.current) fileInput.current.value = ""; onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not upload logo."); } finally { pending.current = false; setSaving(false); } };
+  const uploadLogo = async (file: File | undefined) => {
+    if (!file || !canManage || pending.current || saving) return;
+    setError(null);
+    if (!["image/png", "image/webp"].includes(file.type) || !file.size || file.size > 256 * 1024) {
+      setError("Choose a PNG or WebP image up to 256 KB.");
+      return;
+    }
+    pending.current = true;
+    setSaving(true);
+    setUploadingLogo(true);
+    try {
+      const body = new FormData();
+      body.set("logo", file);
+      const response = await fetch(uptimeApiPath(orgSlug, statusPagePath("/page/logo", page.id)), { method: "POST", credentials: "same-origin", body });
+      const payload = await response.json().catch(() => null) as { error?: string } | null;
+      if (!response.ok) throw new Error(payload?.error || "Logo upload failed.");
+      onSaved();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not upload logo.");
+    } finally {
+      pending.current = false;
+      setUploadingLogo(false);
+      setSaving(false);
+    }
+  };
   const removeLogo = async () => { if (!canManage || pending.current) return; pending.current = true; setSaving(true); setError(null); try { await uptimeRequest(orgSlug, statusPagePath("/page/logo", page.id), { method: "DELETE" }); onSaved(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not remove logo."); } finally { pending.current = false; setSaving(false); } };
-  return <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(260px,1fr)]">
+  return <div className="max-w-3xl">
     <UptimePanel className="overflow-hidden">
       <div className="border-b border-white/[0.06] p-4"><h3 className="text-[14px] font-medium text-zinc-200">Page details</h3><p className="mt-1 text-[12px] text-zinc-500">The first things visitors see.</p></div>
       <form onSubmit={(event) => void save(event)} className="space-y-4 p-4">
+        <div className="flex items-center gap-3 border-b border-white/[0.06] pb-4">
+          {canManage ? <>
+            <button type="button" aria-label={page.logoUrl ? "Change page logo" : "Upload page logo"} title="PNG or WebP, up to 256 KB" aria-busy={uploadingLogo || undefined} disabled={saving}
+              onClick={() => { if (!pending.current) fileInput.current?.click(); }}
+              className="group relative flex size-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.025] transition-colors hover:border-white/25 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-accent disabled:cursor-wait motion-reduce:transition-none">
+              {page.logoUrl ? <img src={page.logoUrl} alt="" className="size-full object-contain" /> : <span aria-hidden="true" className="text-[22px] font-normal text-zinc-500">{page.name.slice(0, 1).toUpperCase()}</span>}
+              <span aria-hidden="true" className={`pointer-events-none absolute right-0.5 bottom-0.5 grid size-5 place-items-center rounded-md border border-white/15 bg-[#151515]/95 text-zinc-200 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 [@media(pointer:coarse)]:opacity-100 motion-reduce:transition-none ${uploadingLogo ? "opacity-100" : "opacity-0"}`}>
+                {uploadingLogo ? <LoaderCircle size={12} className="animate-spin motion-reduce:animate-none" /> : <ImagePlus size={12} />}
+              </span>
+            </button>
+            <input ref={fileInput} type="file" accept="image/png,image/webp" aria-label="Choose page logo" hidden disabled={saving} onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              void uploadLogo(file);
+            }} />
+          </> : <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.025]">
+            {page.logoUrl ? <img src={page.logoUrl} alt="Current page logo" className="size-full object-contain" /> : <span className="text-[22px] font-normal text-zinc-500" aria-label="No logo uploaded">{page.name.slice(0, 1).toUpperCase()}</span>}
+          </div>}
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] font-medium text-zinc-300">Page logo</p>
+            <p className="mt-1 text-[11px] leading-5 text-zinc-500">PNG or WebP · Up to 256 KB</p>
+            {uploadingLogo && <p role="status" className="mt-1 text-[11px] text-zinc-400">Uploading logo…</p>}
+          </div>
+          {canManage && page.logoUrl && <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={() => void removeLogo()}>Remove logo</Button>}
+        </div>
         <label className={labelClass}>Page name<WorkspaceInput className="mt-2" value={name} onChange={(event) => updateDraft("name", event.target.value)} required maxLength={120} disabled={saving || !canManage} /></label>
         <label className={labelClass}>Description<WorkspaceTextarea className="mt-2 min-h-24" value={description} onChange={(event) => updateDraft("description", event.target.value)} maxLength={1000} placeholder="Tell visitors what this page covers" disabled={saving || !canManage} /></label>
         <div>
@@ -280,7 +329,6 @@ function PageSettings({ page, orgSlug, onSaved }: { page: UptimePage; orgSlug: s
         <div className="flex flex-wrap items-center gap-3 border-t border-white/[0.06] pt-4">{canManage && <Button type="submit" size="sm" loading={saving} disabled={saving || !appearanceDirty}>Save changes</Button>}{saved && <span role="status" className="inline-flex items-center gap-1.5 text-[12px] text-emerald-300"><Check size={13} aria-hidden="true" />Saved</span>}{appearanceDirty && !saved && <span className="text-[11px] text-zinc-500">Unsaved changes</span>}{!canManage && <span className="text-[12px] text-zinc-500">Only owners and admins can change these settings.</span>}</div>
       </form>
     </UptimePanel>
-    <UptimePanel className="overflow-hidden"><div className="border-b border-white/[0.06] p-4"><h3 className="text-[14px] font-medium text-zinc-200">Logo</h3><p className="mt-1 text-[12px] text-zinc-500">Shown beside the public page name.</p></div><div className="p-4"><div className="flex items-center gap-3"><div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.025]">{page.logoUrl ? <img src={page.logoUrl} alt="Current page logo" className="size-full object-contain" /> : <span className="text-[22px] font-normal text-zinc-500" aria-label="No logo uploaded">{page.name.slice(0, 1).toUpperCase()}</span>}</div><p className="text-[12px] leading-5 text-zinc-500">PNG or WebP<br /><span className="text-zinc-600">Up to 256 KB</span></p></div>{canManage && <><input ref={fileInput} type="file" accept="image/png,image/webp" aria-label="Choose page logo" disabled={saving} onChange={(event) => setLogoFile(event.target.files?.[0] || null)} className="mt-4 max-w-full text-[11px] text-zinc-500 file:mr-3 file:rounded-lg file:border file:border-white/[0.08] file:bg-white/[0.025] file:px-3 file:py-2 file:text-[12px] file:text-zinc-300" /><div className="mt-4 flex flex-wrap gap-2"><Button type="button" variant="secondary" size="sm" disabled={!logoFile || saving} onClick={() => void uploadLogo()}>Upload logo</Button>{page.logoUrl && <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={() => void removeLogo()}>Remove logo</Button>}</div></>}</div></UptimePanel>
   </div>;
 }
 
