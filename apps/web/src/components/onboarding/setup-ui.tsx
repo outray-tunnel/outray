@@ -18,6 +18,14 @@ interface SetupFlowStep {
   description?: string;
 }
 
+interface SetupStepAction {
+  step: string;
+  form: string;
+  onNext: () => boolean | Promise<boolean>;
+  disabled?: boolean;
+  loading?: boolean;
+}
+
 const SetupFlowContext = createContext<{
   activeId: string;
   id: string;
@@ -28,11 +36,13 @@ export function SetupFlow({
   children,
   onRecheck,
   buttonSize = "md",
+  nextAction,
 }: {
   steps: readonly SetupFlowStep[];
   children: ReactNode;
   onRecheck?: () => void;
   buttonSize?: "sm" | "md";
+  nextAction?: SetupStepAction;
 }) {
   const id = useId();
   const reducedMotion = useReducedMotion();
@@ -41,6 +51,32 @@ export function SetupFlow({
   const activeId = steps[selectedIndex]?.id ?? "";
   const isFinalStep = selectedIndex === steps.length - 1;
   const tabs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [actionPending, setActionPending] = useState(false);
+  const pending = useRef(false);
+  const activeAction = !isFinalStep && nextAction?.step === activeId ? nextAction : undefined;
+  const busy = actionPending || !!nextAction?.loading;
+
+  async function changeStep(nextId: string): Promise<boolean> {
+    const nextIndex = steps.findIndex((step) => step.id === nextId);
+    if (nextIndex < 0 || nextIndex === selectedIndex || pending.current || nextAction?.loading) return false;
+    if (nextIndex > selectedIndex && activeAction) {
+      if (activeAction.disabled) return false;
+      pending.current = true;
+      setActionPending(true);
+      try {
+        if (!await activeAction.onNext()) return false;
+        setSelectedId(nextId);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        pending.current = false;
+        setActionPending(false);
+      }
+    }
+    setSelectedId(nextId);
+    return true;
+  }
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     const last = steps.length - 1;
@@ -55,13 +91,19 @@ export function SetupFlow({
             : -1;
     if (next < 0 || !steps[next]) return;
     event.preventDefault();
-    setSelectedId(steps[next].id);
-    tabs.current[next]?.focus();
+    void changeStep(steps[next].id).then((changed) => {
+      if (changed) tabs.current[next]?.focus();
+    });
   }
 
   return (
     <SetupFlowContext.Provider value={{ activeId, id }}>
-      <section className="min-w-0 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0b0b0b]" aria-label="Setup guide">
+      <section className="min-w-0 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0b0b0b]" aria-label="Setup guide"
+        onSubmit={(event) => {
+          if (!activeAction || (event.target as HTMLFormElement).id !== activeAction.form) return;
+          event.preventDefault();
+          void changeStep(steps[selectedIndex + 1].id);
+        }}>
         <div role="tablist" aria-label="Setup steps" aria-orientation="horizontal" className="flex min-w-0 gap-1 overflow-x-auto border-b border-white/[0.07] p-2 [scrollbar-width:thin]">
           <LayoutGroup id={id}>
             {steps.map((step, index) => {
@@ -76,7 +118,8 @@ export function SetupFlow({
                   aria-selected={selected}
                   aria-controls={`${id}-panel-${step.id}`}
                   tabIndex={selected ? 0 : -1}
-                  onClick={() => setSelectedId(step.id)}
+                  disabled={busy}
+                  onClick={() => { void changeStep(step.id); }}
                   onKeyDown={handleKeyDown}
                   title={step.description}
                   className={`relative isolate inline-flex min-h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-[12px] transition-colors motion-reduce:transition-none focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${selected ? "text-zinc-100" : "text-zinc-400 hover:bg-white/[0.025] hover:text-zinc-300"}`}
@@ -94,13 +137,14 @@ export function SetupFlow({
         {children}
         {steps.length > 1 && (
           <div className="flex flex-wrap items-center justify-center gap-3 border-t border-white/[0.07] px-5 py-3.5 sm:px-6">
-            <Button size={buttonSize} variant="ghost" disabled={selectedIndex === 0} onClick={() => setSelectedId(steps[selectedIndex - 1].id)}>
+            <Button type="button" size={buttonSize} variant="ghost" disabled={selectedIndex === 0 || busy} onClick={() => { void changeStep(steps[selectedIndex - 1].id); }}>
               <ArrowLeft size={14} aria-hidden="true" /> Back
             </Button>
             <span aria-live="polite" className="min-w-14 text-center text-[11px] tabular-nums text-zinc-400">
               {selectedIndex + 1} of {steps.length}
             </span>
-            <Button size={buttonSize} variant="secondary" disabled={isFinalStep && !onRecheck} onClick={isFinalStep ? onRecheck : () => setSelectedId(steps[selectedIndex + 1].id)}>
+            <Button type={activeAction ? "submit" : "button"} form={activeAction?.form} size={buttonSize} variant="secondary" disabled={(isFinalStep && !onRecheck) || !!activeAction?.disabled} loading={busy}
+              onClick={activeAction ? undefined : isFinalStep ? onRecheck : () => { void changeStep(steps[selectedIndex + 1].id); }}>
               {isFinalStep && onRecheck ? <><RefreshCw size={13} aria-hidden="true" /> Check connection</> : <>Next step <ArrowRight size={14} aria-hidden="true" /></>}
             </Button>
           </div>
