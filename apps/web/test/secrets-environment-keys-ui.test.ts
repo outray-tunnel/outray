@@ -49,7 +49,8 @@ function render(overrides: Partial<EnvironmentKeysContentProps> = {}, sharedFram
   const contentProps: EnvironmentKeysContentProps = {
     orgSlug: "acme", projectSlug: "backend", environmentSlug: "development", data,
     loading: false, refreshing: false, error: null, actionError: null, exporting: false,
-    onImport: () => {}, onExport: () => {}, onAdd: () => {}, onRetry: () => {},
+    search: "", onSearchChange: () => {},
+    onExport: () => {}, onRetry: () => {},
     ...overrides,
   };
   if (contentProps.data && contentProps.children === undefined) {
@@ -57,7 +58,8 @@ function render(overrides: Partial<EnvironmentKeysContentProps> = {}, sharedFram
       orgSlug: contentProps.orgSlug, projectSlug: contentProps.projectSlug,
       environment: contentProps.data.environment, environments: contentProps.data.project.environments,
       secrets: contentProps.data.secrets, revision: contentProps.data.revision,
-      onMutated: () => {}, onAdd: contentProps.onAdd,
+      onMutated: () => {},
+      query: contentProps.search, onQueryChange: contentProps.onSearchChange,
       contained: contentProps.sharedLayout, scrollRows: contentProps.sharedLayout,
     });
   }
@@ -184,19 +186,43 @@ test("background refresh and failed refresh retain environment links and readabl
   assert.match(stale, /DATABASE_URL/);
 });
 
-test("the environment header preserves add, import and export actions alongside compact revision metadata", () => {
+test("the panel starts with one integrated borderless search row above its inline fields", () => {
+  const html = render({ children: React.createElement("div", { "data-inline-composer": "" }, "Draft fields") });
+  assert.equal((html.match(/type="search"/g) ?? []).length, 1);
+  assert.match(html, /<span class="sr-only">Search secret keys<\/span>/);
+  assert.match(html, /placeholder="Search secrets…"/);
+  assert.match(html, /data-workspace-input="bare"/);
+  assert.match(html, /rounded-none border-0 bg-transparent/);
+  assert.match(html, /<h2 class="sr-only">Secret keys<\/h2>/);
+  assert.match(html, /class="ph-no-capture flex shrink-0 items-center gap-3 border-b/);
+  assert.ok(html.indexOf('type="search"') < html.indexOf("data-inline-composer"));
+  assert.match(html, /Revision 4/);
+  assert.match(html, /2 secrets/);
+  const filtered = render({ search: "database" });
+  assert.equal((filtered.match(/type="search"/g) ?? []).length, 1);
+  assert.match(filtered, /DATABASE_URL/);
+  assert.doesNotMatch(filtered, /API_KEY|Search keys…|of 2 keys/);
+  assert.match(filtered, /aria-label="Clear search"/);
+  const production = render({ data: { ...data, environment: environments[1], revision: 9 } });
+  assert.match(production, /class="sr-only text-\[11px\] text-zinc-600 sm:not-sr-only">Revision 9/);
+  assert.match(production, /class="hidden items-center gap-1 rounded-md[^\"]*sm:inline-flex"/);
+  assert.match(production, /class="text-\[11px\] tabular-nums text-zinc-500">2 secrets/);
+});
+
+test("the environment header keeps export alongside compact revision metadata without add or import dialogs", () => {
   const html = render();
   assert.match(html, /<h1[^>]*>Development<\/h1>/);
   assert.match(html, /Payments API/);
   assert.match(html, /Revision 4|revision 4|r4/);
-  for (const label of ["Import", "Export .env", "Add secret"]) {
+  assert.doesNotMatch(html, />Import<|>Add secret<|Add first secret/);
+  for (const label of ["Export .env"]) {
     const action = buttons(html).find((button) => button.includes(label)) ?? "";
     assert.ok(action, `${label} remains available`);
     const trigger = buttonTag(action);
     assert.match(trigger, /\bmin-h-9\b/);
     assert.match(trigger, /\bpx-4\b/);
     assert.doesNotMatch(trigger, /\bmin-h-(?:8|11)\b|\bpx-(?:3|5)\b/);
-    assert.match(trigger, label === "Add secret" ? /border-zinc-50 bg-zinc-50 text-zinc-950/ : /border-white\/12 bg-zinc-900 text-zinc-50/);
+    assert.match(trigger, /border-white\/12 bg-zinc-900 text-zinc-50/);
     assert.match(trigger, /focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-\[#8367c7\]/);
     assert.match(trigger, /tabindex="0"/);
     assert.doesNotMatch(trigger, /\s(?:disabled|aria-disabled)=/);
@@ -207,7 +233,7 @@ test("the environment header preserves add, import and export actions alongside 
   assert.match(exportAction, /aria-disabled="true"/);
 });
 
-test("initial key rendering contains metadata only and a genuine empty environment remains actionable", () => {
+test("initial key rendering contains metadata only and empty environments direct users to inline fields", () => {
   const decorated = Object.assign({ ...secrets[0] }, { value: "private-plaintext", ciphertext: "private-ciphertext", token: "private-token" });
   const html = render({ data: { ...data, secrets: [decorated, secrets[1]] } });
   assert.match(html, /DATABASE_URL/);
@@ -216,11 +242,8 @@ test("initial key rendering contains metadata only and a genuine empty environme
   const emptyEnvironment = environment({ secretCount: 0, revision: 0 });
   const empty = render({ data: { ...data, environment: emptyEnvironment, secrets: [], revision: 0 } });
   assert.match(empty, /No secrets in this environment/);
-  assert.match(empty, /Add first secret/);
-  const addFirst = buttonTag(buttons(empty).find((button) => button.includes("Add first secret")) ?? "");
-  assert.match(addFirst, /\bmin-h-9\b/);
-  assert.match(addFirst, /border-white\/12 bg-zinc-900 text-zinc-50/);
-  assert.match(addFirst, /aria-haspopup="dialog"/);
+  assert.match(empty, /Use the fields above to save your first secrets/);
+  assert.doesNotMatch(empty, /Add first secret|import a dotenv file/);
   assert.equal(environmentLinks(empty).length, environments.length);
   assert.doesNotMatch(empty, /DATABASE_URL|API_KEY|Try again/);
 });
