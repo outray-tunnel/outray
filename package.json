@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "npm@10.9.2",
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.19.0",
     "npm": ">=10.0.0"
   },
   "workspaces": [
@@ -14,7 +14,7 @@
   "overrides": {
     "proxy-addr": "2.0.8",
     "seroval": "1.6.11",
-    "unifont": "0.7.4"
+    "unifont": "0.7.5"
   },
   "scripts": {
     "postinstall": "node packages/icons/prepare.mjs",
