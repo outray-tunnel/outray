@@ -109,7 +109,7 @@ test("unified navigation keeps all four products and their existing pages", () =
   assert.deepEqual(products.map(({ pages }) => pages.map(({ label }) => label)), [
     ["Overview", "Active tunnels", "Requests", "Subdomains", "Domains"],
     ["Overview", "Services", "Requests", "Metrics", "Logs", "Traces", "Alerts"],
-    ["Overview", "Vaults", "Shares", "Trash", "Audit log"],
+    ["Vaults", "Shares", "Trash", "Audit log"],
     ["Overview", "Monitors", "Incidents", "Notifications", "Status page"],
   ]);
 });
@@ -124,7 +124,7 @@ test("product and page activation uses exact overviews and segment-safe nested r
     ["/acme/observability", "observability", "Overview"],
     ["/acme/observability/services/service-1", "observability", "Services"],
     ["/acme/observability/alerts/rule-1", "observability", "Alerts"],
-    ["/acme/secrets", "secrets", "Overview"],
+    ["/acme/secrets/vaults", "secrets", "Vaults"],
     ["/acme/secrets/vaults/vault-1", "secrets", "Vaults"],
     ["/acme/secrets/shares/share-1", "secrets", "Shares"],
     ["/acme/uptime", "uptime", "Overview"],
@@ -186,7 +186,7 @@ test("denied Shares is excluded before product-name and page-label searches", ()
     const products = filterSidebarProducts(query, false);
     const secrets = products.find(({ key }) => key === "secrets");
     assert.ok(secrets);
-    assert.deepEqual(secrets.pages.map(({ label }) => label), ["Overview", "Vaults", "Trash", "Audit log"]);
+    assert.deepEqual(secrets.pages.map(({ label }) => label), ["Vaults", "Trash", "Audit log"]);
   }
   for (const query of ["share", " SHARES "]) {
     assert.deepEqual(filterSidebarProducts(query, false), []);
@@ -335,7 +335,7 @@ test("collapsed workspace and split-product NavItems center a square without alt
   for (const compact of [false, true]) {
     for (const isActive of [false, true]) {
       const props = {
-        to: "/$orgSlug/secrets",
+        to: "/$orgSlug/secrets/vaults",
         params: { orgSlug: "acme" },
         label: "Secrets",
         icon: mobileProducts[2].icon,
@@ -563,13 +563,13 @@ test("the rendered sidebar never exposes Shares when permission is denied, inclu
   assert.match(allowed, /href="\/acme\/secrets\/shares"/);
 });
 
-test("trailing-slash product roots reveal and highlight their exact Overview page", async () => {
-  for (const pathname of ["/acme/tunnel/", "/acme/secrets/"]) {
+test("trailing-slash product destinations reveal and highlight their page", async () => {
+  for (const [pathname, page] of [["/acme/tunnel/", "Overview"], ["/acme/secrets/vaults/", "Vaults"]]) {
     const html = await renderNavigation({ pathname });
     assert.match(html, /aria-label="Products"/, `${pathname}: navigation should render before checking activity`);
     const active = elements(html, "a").filter((link) => link.includes('aria-current="page"'));
     assert.equal(active.length, 1, pathname);
-    assert.equal(label(active[0]), "Overview");
+    assert.equal(label(active[0]), page);
     assert.doesNotMatch(active[0], /tabindex="-1"/);
   }
 });
