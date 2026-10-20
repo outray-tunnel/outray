@@ -132,3 +132,24 @@ test("missing managed credentials still prevent every deployment", async () => {
     assert.ok(logs.some((message) => message.includes("missing required secrets: DATABASE_URL")));
   }
 });
+
+test("standard OutRay SDK credentials pass through without being logged", async () => {
+  const telemetrySecrets = {
+    ...managedSecrets,
+    OUTRAY_API_KEY: "synthetic-observability-token",
+    OUTRAY_OTLP_ENDPOINT: "https://ingest.ops.example.test",
+  };
+  const { spawnCalls, logs, exitCode } = await run("edge", { secrets: telemetrySecrets });
+  assert.equal(exitCode, 0);
+  assert.equal(spawnCalls[0][2].env.OUTRAY_API_KEY, telemetrySecrets.OUTRAY_API_KEY);
+  assert.equal(spawnCalls[0][2].env.OUTRAY_OTLP_ENDPOINT, telemetrySecrets.OUTRAY_OTLP_ENDPOINT);
+  assert.ok(logs.every((message) => !message.includes(telemetrySecrets.OUTRAY_API_KEY)));
+});
+
+test("a partial OutRay SDK configuration blocks deployment", async () => {
+  const secrets = { ...managedSecrets, OUTRAY_API_KEY: "synthetic-observability-token" };
+  const { spawnCalls, logs, exitCode } = await run("edge", { secrets });
+  assert.equal(exitCode, 1);
+  assert.deepEqual(spawnCalls, []);
+  assert.ok(logs.some((message) => message.includes("credentials must be configured together")));
+});
