@@ -133,12 +133,6 @@ export function ProductSubSidebar() {
       name: "Secrets",
       items: [
         {
-          label: "Overview",
-          to: "/$orgSlug/secrets",
-          icon: Home01Icon,
-          exact: true,
-        },
-        {
           label: "Vaults",
           to: "/$orgSlug/secrets/vaults",
           icon: Folder01Icon,
