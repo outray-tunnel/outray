@@ -179,7 +179,43 @@ test("appearance is read-only for members and keeps the full circular accent pre
   assert.match(html, /Only owners and admins/);
   assert.match(html, /rounded-full[^>]+background-color:#8367c7/);
   assert.match(html, /type="color"[^>]+disabled=""/);
-  assert.doesNotMatch(html, /Save changes|Upload logo|Remove logo/);
+  assert.doesNotMatch(html, /Save changes|Upload logo|Remove logo|Choose page logo|Upload page logo|Change page logo|type="file"/);
+});
+
+test("appearance integrates one logo picker into Page details without a separate upload card or button", async () => {
+  const views = await loadViews();
+  const html = views.render("StatusPageAppearance");
+  assert.equal(html.match(/<section\b/g)?.length, 1, "page details and the logo share one panel");
+  assert.match(html, /<section\b[\s\S]*>Page details<\/h3>[\s\S]*aria-label="Upload page logo"[\s\S]*<\/section>/);
+  const picker = html.match(/<button\b[^>]*aria-label="Upload page logo"[^>]*>/g);
+  assert.ok(picker);
+  assert.equal(picker.length, 1);
+  assert.match(picker[0], /type="button"/, "opening the picker must not submit unsaved page details");
+  const inputs = html.match(/<input\b[^>]*type="file"[^>]*>/g);
+  assert.ok(inputs);
+  assert.equal(inputs.length, 1);
+  assert.match(inputs[0], /aria-label="Choose page logo"/);
+  assert.match(inputs[0], /accept="image\/png,image\/webp"/);
+  assert.match(inputs[0], /hidden=""/);
+  assert.doesNotMatch(html, />Upload logo<|>Logo<\/h3>|>Remove logo</);
+  const busy = await loadViews({ appearanceSaving: true });
+  const busyHtml = busy.render("StatusPageAppearance");
+  assert.match(busyHtml.match(/<button\b[^>]*aria-label="Upload page logo"[^>]*>/)?.[0] ?? "", /disabled=""/);
+  assert.match(busyHtml.match(/<input\b[^>]*type="file"[^>]*>/)?.[0] ?? "", /disabled=""/);
+});
+
+test("existing page logos keep a single change control and a permission-gated remove action", async () => {
+  const withLogo = { ...page, logoUrl: "https://images.example.com/status-logo.webp" };
+  const manager = await loadViews({ page: withLogo });
+  const html = manager.render("StatusPageAppearance");
+  assert.equal(html.match(/aria-label="Change page logo"/g)?.length, 1);
+  assert.match(html, /src="https:\/\/images\.example\.com\/status-logo.webp"/);
+  assert.match(html, />Remove logo</);
+  assert.doesNotMatch(html, /aria-label="Upload page logo"|>Upload logo<|>Logo<\/h3>/);
+  const member = await loadViews({ canManage: false, page: withLogo });
+  const readOnly = member.render("StatusPageAppearance");
+  assert.match(readOnly, /src="https:\/\/images\.example\.com\/status-logo.webp"/);
+  assert.doesNotMatch(readOnly, /Choose page logo|Change page logo|Upload page logo|Remove logo|type="file"/);
 });
 
 test("publishing separates page visibility, incident drafts and queued subscriber email", async () => {
