@@ -8,7 +8,21 @@
   "routes": [{ "pattern": "delivery.outray.co", "custom_domain": true }],
   "workers_dev": true,
   "preview_urls": false,
-  "observability": { "enabled": true },
+  "observability": {
+    "enabled": true,
+    "redact_query_string": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+      "head_sampling_rate": 1,
+      "destinations": ["outray-ops-worker-logs"],
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1,
+      "destinations": ["outray-ops-worker-traces"],
+    },
+  },
   "vars": { "PUBLIC_DELIVERY_URL": "https://delivery.outray.co" },
   "r2_buckets": [
     { "binding": "STATUS_PAGE_LOGOS", "bucket_name": "outray" }
