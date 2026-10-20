@@ -56,8 +56,8 @@ steps:
       #   from_secret: cloudflare_api_token
       EDGE_SSH_KEY:
         from_secret: edge_ssh_key
-      UNBE_TOKEN:
-        from_secret: unbe_token
+      OPS_SECRETS_TOKEN:
+        from_secret: ops_secrets_token
     commands:
       - apt-get update -qq && apt-get install -y -qq openssh-client
       - |
@@ -95,8 +95,8 @@ steps:
     environment:
       EDGE_SSH_KEY:
         from_secret: edge_ssh_key
-      UNBE_TOKEN:
-        from_secret: unbe_token
+      OPS_SECRETS_TOKEN:
+        from_secret: ops_secrets_token
     commands:
       - apt-get update -qq && apt-get install -y -qq openssh-client
       - bash deploy/woodpecker/deploy-service.sh edge
@@ -107,8 +107,8 @@ steps:
     environment:
       EDGE_SSH_KEY:
         from_secret: edge_ssh_key
-      UNBE_TOKEN:
-        from_secret: unbe_token
+      OPS_SECRETS_TOKEN:
+        from_secret: ops_secrets_token
     commands:
       - apt-get update -qq && apt-get install -y -qq openssh-client
       - bash deploy/woodpecker/deploy-service.sh uptime-probe
