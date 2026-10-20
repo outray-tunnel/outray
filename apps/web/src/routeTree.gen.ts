@@ -147,6 +147,7 @@ import { Route as ApiOrgSlugAgentChatRouteImport } from './routes/api/$orgSlug/a
 import { Route as ApiOrgSlugAgentThreadsRouteImport } from './routes/api/$orgSlug/agent/threads'
 import { Route as ApiOrgSlugDomainsIndexRouteImport } from './routes/api/$orgSlug/domains/index'
 import { Route as ApiOrgSlugDomainsDomainIdRouteImport } from './routes/api/$orgSlug/domains/$domainId'
+import { Route as ApiOrgSlugOrganizationLogoRouteImport } from './routes/api/$orgSlug/organization/logo'
 import { Route as ApiOrgSlugPortalPolarRouteImport } from './routes/api/$orgSlug/portal/polar'
 import { Route as ApiOrgSlugRequestsCaptureRouteImport } from './routes/api/$orgSlug/requests/capture'
 import { Route as ApiOrgSlugRequestsReplayRouteImport } from './routes/api/$orgSlug/requests/replay'
@@ -962,6 +963,12 @@ const ApiOrgSlugDomainsDomainIdRoute =
     path: '/api/$orgSlug/domains/$domainId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiOrgSlugOrganizationLogoRoute =
+  ApiOrgSlugOrganizationLogoRouteImport.update({
+    id: '/api/$orgSlug/organization/logo',
+    path: '/api/$orgSlug/organization/logo',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiOrgSlugPortalPolarRoute = ApiOrgSlugPortalPolarRouteImport.update({
   id: '/api/$orgSlug/portal/polar',
   path: '/api/$orgSlug/portal/polar',
@@ -1689,6 +1696,7 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/agent/chat': typeof ApiOrgSlugAgentChatRoute
   '/api/$orgSlug/agent/threads': typeof ApiOrgSlugAgentThreadsRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
+  '/api/$orgSlug/organization/logo': typeof ApiOrgSlugOrganizationLogoRoute
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
   '/api/$orgSlug/requests/replay': typeof ApiOrgSlugRequestsReplayRoute
@@ -1916,6 +1924,7 @@ export interface FileRoutesByTo {
   '/api/$orgSlug/agent/chat': typeof ApiOrgSlugAgentChatRoute
   '/api/$orgSlug/agent/threads': typeof ApiOrgSlugAgentThreadsRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
+  '/api/$orgSlug/organization/logo': typeof ApiOrgSlugOrganizationLogoRoute
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
   '/api/$orgSlug/requests/replay': typeof ApiOrgSlugRequestsReplayRoute
@@ -2152,6 +2161,7 @@ export interface FileRoutesById {
   '/api/$orgSlug/agent/chat': typeof ApiOrgSlugAgentChatRoute
   '/api/$orgSlug/agent/threads': typeof ApiOrgSlugAgentThreadsRoute
   '/api/$orgSlug/domains/$domainId': typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
+  '/api/$orgSlug/organization/logo': typeof ApiOrgSlugOrganizationLogoRoute
   '/api/$orgSlug/portal/polar': typeof ApiOrgSlugPortalPolarRoute
   '/api/$orgSlug/requests/capture': typeof ApiOrgSlugRequestsCaptureRoute
   '/api/$orgSlug/requests/replay': typeof ApiOrgSlugRequestsReplayRoute
@@ -2389,6 +2399,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/agent/chat'
     | '/api/$orgSlug/agent/threads'
     | '/api/$orgSlug/domains/$domainId'
+    | '/api/$orgSlug/organization/logo'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
     | '/api/$orgSlug/requests/replay'
@@ -2616,6 +2627,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/agent/chat'
     | '/api/$orgSlug/agent/threads'
     | '/api/$orgSlug/domains/$domainId'
+    | '/api/$orgSlug/organization/logo'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
     | '/api/$orgSlug/requests/replay'
@@ -2851,6 +2863,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/agent/chat'
     | '/api/$orgSlug/agent/threads'
     | '/api/$orgSlug/domains/$domainId'
+    | '/api/$orgSlug/organization/logo'
     | '/api/$orgSlug/portal/polar'
     | '/api/$orgSlug/requests/capture'
     | '/api/$orgSlug/requests/replay'
@@ -3015,6 +3028,7 @@ export interface RootRouteChildren {
   ApiOrgSlugAgentChatRoute: typeof ApiOrgSlugAgentChatRoute
   ApiOrgSlugAgentThreadsRoute: typeof ApiOrgSlugAgentThreadsRoute
   ApiOrgSlugDomainsDomainIdRoute: typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
+  ApiOrgSlugOrganizationLogoRoute: typeof ApiOrgSlugOrganizationLogoRoute
   ApiOrgSlugPortalPolarRoute: typeof ApiOrgSlugPortalPolarRoute
   ApiOrgSlugSecretsAuditRoute: typeof ApiOrgSlugSecretsAuditRoute
   ApiOrgSlugSecretsMachineTokensRoute: typeof ApiOrgSlugSecretsMachineTokensRouteWithChildren
@@ -4035,6 +4049,13 @@ declare module '@tanstack/react-router' {
       path: '/api/$orgSlug/domains/$domainId'
       fullPath: '/api/$orgSlug/domains/$domainId'
       preLoaderRoute: typeof ApiOrgSlugDomainsDomainIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$orgSlug/organization/logo': {
+      id: '/api/$orgSlug/organization/logo'
+      path: '/api/$orgSlug/organization/logo'
+      fullPath: '/api/$orgSlug/organization/logo'
+      preLoaderRoute: typeof ApiOrgSlugOrganizationLogoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/$orgSlug/portal/polar': {
@@ -5391,6 +5412,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOrgSlugAgentChatRoute: ApiOrgSlugAgentChatRoute,
   ApiOrgSlugAgentThreadsRoute: ApiOrgSlugAgentThreadsRoute,
   ApiOrgSlugDomainsDomainIdRoute: ApiOrgSlugDomainsDomainIdRouteWithChildren,
+  ApiOrgSlugOrganizationLogoRoute: ApiOrgSlugOrganizationLogoRoute,
   ApiOrgSlugPortalPolarRoute: ApiOrgSlugPortalPolarRoute,
   ApiOrgSlugSecretsAuditRoute: ApiOrgSlugSecretsAuditRoute,
   ApiOrgSlugSecretsMachineTokensRoute:
