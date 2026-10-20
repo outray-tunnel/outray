@@ -136,6 +136,13 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npm run tokens:backfill
 
+      - name: Prepare Production Runtime Manifests
+        run: |
+          for app in tunnel internal-check cron status uptime-probe; do
+            node deploy/woodpecker/runtime-package.mjs "apps/$app/package.json" > "apps/$app/runtime-package.json"
+            mv "apps/$app/runtime-package.json" "apps/$app/package.json"
+          done
+
       - name: Deploy Tunnel Files
         uses: appleboy/scp-action@master
         with:
@@ -176,7 +183,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: "apps/status/dist,apps/status/package.json"
+          source: "apps/status/dist,apps/status/package.json,apps/status/observability-preload.mjs"
           target: "/root/outray/status"
           strip_components: 2
 
