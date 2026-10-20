@@ -11,7 +11,7 @@ esac
 
 temporary_dir="$(mktemp -d)"
 cleanup() {
-  rm -f "$temporary_dir/id_ed25519" "$temporary_dir/known_hosts"
+  rm -f "$temporary_dir/id_ed25519" "$temporary_dir/known_hosts" "$temporary_dir/package.json"
   rmdir "$temporary_dir"
 }
 trap cleanup EXIT
@@ -46,18 +46,24 @@ case "$service" in
   edge)
     ssh "${ssh_options[@]}" "$edge" 'mkdir -p /root/outray/tunnel /root/outray/internal-check'
     for app in tunnel internal-check; do
-      scp "${scp_options[@]}" -r "apps/$app/dist" "apps/$app/package.json" "$edge:/root/outray/$app/"
+      node deploy/woodpecker/runtime-package.mjs "apps/$app/package.json" > "$temporary_dir/package.json"
+      scp "${scp_options[@]}" -r "apps/$app/dist" "$edge:/root/outray/$app/"
+      scp "${scp_options[@]}" "$temporary_dir/package.json" "$edge:/root/outray/$app/package.json"
     done
     scp "${scp_options[@]}" deploy.sh "$edge:/root/outray/"
     ;;
   status)
     ssh "${ssh_options[@]}" "$edge" 'mkdir -p /root/outray/status'
-    scp "${scp_options[@]}" -r apps/status/dist apps/status/package.json apps/status/observability-preload.mjs "$edge:/root/outray/status/"
+    node deploy/woodpecker/runtime-package.mjs apps/status/package.json > "$temporary_dir/package.json"
+    scp "${scp_options[@]}" -r apps/status/dist apps/status/observability-preload.mjs "$edge:/root/outray/status/"
+    scp "${scp_options[@]}" "$temporary_dir/package.json" "$edge:/root/outray/status/package.json"
     scp "${scp_options[@]}" deploy-status.sh "$edge:/root/outray/"
     ;;
   uptime-probe)
     ssh "${ssh_options[@]}" "$edge" 'mkdir -p /root/outray/uptime-probe'
-    scp "${scp_options[@]}" -r apps/uptime-probe/dist apps/uptime-probe/package.json "$edge:/root/outray/uptime-probe/"
+    node deploy/woodpecker/runtime-package.mjs apps/uptime-probe/package.json > "$temporary_dir/package.json"
+    scp "${scp_options[@]}" -r apps/uptime-probe/dist "$edge:/root/outray/uptime-probe/"
+    scp "${scp_options[@]}" "$temporary_dir/package.json" "$edge:/root/outray/uptime-probe/package.json"
     scp "${scp_options[@]}" deploy-uptime-probe.sh "$edge:/root/outray/"
     scp "${scp_options[@]}" deploy/uptime-probe.service "$edge:/root/outray/deploy/"
     ;;
