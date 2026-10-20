@@ -36,10 +36,12 @@ npm install --production
 export STATUS_BIND_HOST="127.0.0.1" HOST="127.0.0.1" PORT="$STATUS_PORT" NODE_ENV="production"
 export DATABASE_URL DATABASE_SSL_REJECT_UNAUTHORIZED OUTRAY_STATUS_URL UPTIME_ENABLED
 export UPTIME_RATE_LIMIT_SECRET UPTIME_UNSUBSCRIBE_SECRET STATUS_EDGE_SECRET ZEPTO_API_KEY
+export OUTRAY_API_KEY OUTRAY_OTLP_ENDPOINT
+STATUS_NODE_ARGS="--import /root/outray/status/observability-preload.mjs"
 if pm2 describe outray-status >/dev/null 2>&1; then
-  pm2 restart outray-status --update-env
+  pm2 restart outray-status --node-args "$STATUS_NODE_ARGS" --update-env
 else
-  pm2 start dist/server/entry.mjs --name outray-status
+  pm2 start dist/server/entry.mjs --name outray-status --node-args "$STATUS_NODE_ARGS"
 fi
 
 sleep 3
