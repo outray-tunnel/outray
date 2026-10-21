@@ -1,0 +1,47 @@
+TOKEN OUTRAY_QUERY_TOKEN READ
+
+DESCRIPTION >
+    Tenant- and page-scoped visitor analytics. Visitor IDs rotate daily in UTC.
+
+NODE events
+SQL >
+    %
+    SELECT timestamp, event_id, visitor_hash, path, referrer, country
+    FROM status_page_views FINAL
+    WHERE organization_id = {{String(organization_id)}}
+      AND page_id = {{String(page_id)}}
+      AND timestamp >= fromUnixTimestamp64Milli({{Int64(start_ms)}})
+      AND timestamp < fromUnixTimestamp64Milli({{Int64(end_ms)}})
+      AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest({{UInt16(retention_days)}}, 1), 90))
+      AND timestamp >= now64(3, 'UTC') - toIntervalDay(least(greatest(retention_days, 1), 90))
+
+NODE sources
+SQL >
+    SELECT 'referrer' AS kind, referrer AS label, uniqExact(event_id) AS views, toUInt64(0) AS visitors
+    FROM events GROUP BY referrer ORDER BY views DESC, label ASC LIMIT 10
+
+NODE locations
+SQL >
+    SELECT 'country' AS kind, country AS label, uniqExact(event_id) AS views, toUInt64(0) AS visitors
+    FROM events GROUP BY country ORDER BY views DESC, label ASC LIMIT 10
+
+NODE paths
+SQL >
+    SELECT 'page' AS kind, path AS label, uniqExact(event_id) AS views, toUInt64(0) AS visitors
+    FROM events GROUP BY path ORDER BY views DESC, label ASC LIMIT 10
+
+NODE report
+SQL >
+    %
+    SELECT 'summary' AS kind, '' AS label, uniqExact(event_id) AS views,
+           uniqExactIf(visitor_hash, visitor_hash != '') AS visitors FROM events
+    UNION ALL
+    SELECT 'time' AS kind,
+           toString(intDiv(toUnixTimestamp(timestamp), least(greatest({{UInt32(bucket_seconds)}}, 3600), 86400)) * least(greatest({{UInt32(bucket_seconds)}}, 3600), 86400)) AS label,
+           uniqExact(event_id) AS views, uniqExactIf(visitor_hash, visitor_hash != '') AS visitors
+    FROM events GROUP BY label
+    UNION ALL SELECT * FROM sources
+    UNION ALL SELECT * FROM locations
+    UNION ALL SELECT * FROM paths
+
+TYPE endpoint
