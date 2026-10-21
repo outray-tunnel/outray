@@ -5,6 +5,8 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { getStatusRuntime, statusEnvironment, withStatusRuntime, type StatusWorkerEnv } from "../src/lib/runtime";
 import { snapshotResponse, type StatusSnapshotBucket } from "../src/lib/snapshots";
+import { isSameOrigin } from "../src/lib/security";
+import headlessPolicy from "../../../shared/status-headless";
 
 function loadModule<T>(path: string, imports: Record<string, unknown>): T {
   const module = { exports: {} };
@@ -75,6 +77,8 @@ function middleware(): Middleware {
     "astro:middleware": { defineMiddleware: (handler: Middleware) => handler },
     "./lib/runtime": { getStatusRuntime },
     "./lib/snapshots": { snapshotResponse },
+    "./lib/security": { isSameOrigin },
+    "../../../shared/status-headless": { default: headlessPolicy },
   }).onRequest;
 }
 
@@ -122,4 +126,21 @@ test("image optimizer remains unavailable before either runtime renders a route"
   });
   assert.equal(response.status, 404);
   assert.equal(rendered, false);
+});
+
+test("only the exact headless collector bypasses the same-origin write guard", async () => {
+  const call = async (path: string, method = "POST", origin = "https://other.example.test") => {
+    const request = new Request(`https://health.example.test${path}`, { method, headers: { origin } });
+    return middleware()({ request, url: new URL(request.url), locals: {} }, async () => new Response(null, { status: 204 }));
+  };
+  const id = "acdcc15f-16a4-51cc-a6b9-5f6161706284";
+  assert.equal((await call(`/api/v1/pages/${id}/analytics`)).status, 204);
+  assert.equal((await call(`/api/v1/pages/${id}/analytics/`)).status, 204);
+  for (const path of ["/api/subscribe", "/api/analytics", `/api/v1/pages/${id}`, "/api/v1/pages/invalid/analytics"]) {
+    assert.equal((await call(path)).status, 403, path);
+  }
+  assert.equal((await call(`/api/v1/pages/${id}/analytics`, "DELETE")).status, 403);
+  assert.equal((await call("/api/subscribe", "POST", "https://health.example.test")).status, 204);
+  const noOrigin = new Request("https://health.example.test/api/subscribe", { method: "POST", body: "email=someone" });
+  assert.equal((await middleware()({ request: noOrigin, url: new URL(noOrigin.url), locals: {} }, async () => new Response(null, { status: 204 }))).status, 403);
 });
