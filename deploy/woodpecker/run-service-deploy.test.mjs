@@ -8,7 +8,7 @@ const source = readFileSync(
 ).replace(/^import[^\n]+\n/gm, "");
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 const runHelper = new AsyncFunction(
-  "execFileSync", "spawnSync", "readFileSync", "statSync", "process", "fetch",
+  "execFileSync", "spawnSync", "existsSync", "readFileSync", "statSync", "process", "fetch",
   "URLSearchParams", "AbortSignal", "console", source,
 );
 
@@ -28,7 +28,7 @@ const managedSecrets = {
   OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS: "synthetic-previous-keys",
 };
 
-async function run(service, { check = false, secrets = managedSecrets, nodeVersion = "22.23.3", statusTls } = {}) {
+async function run(service, { check = false, secrets = managedSecrets, nodeVersion = "22.23.3", statusTls, statusCa, hostCa = false, writableCa = false } = {}) {
   const spawnCalls = [];
   const logs = [];
   const exit = {};
@@ -63,12 +63,16 @@ async function run(service, { check = false, secrets = managedSecrets, nodeVersi
         assert.deepEqual(args, ["jlist"]);
         return JSON.stringify([
           { name: "outray-blue", pm2_env: current },
-          ...(statusTls ? [{ name: "outray-status", pm2_env: { DATABASE_SSL_REJECT_UNAUTHORIZED: statusTls } }] : []),
+          ...(statusTls || statusCa ? [{ name: "outray-status", pm2_env: { DATABASE_SSL_REJECT_UNAUTHORIZED: statusTls, NODE_EXTRA_CA_CERTS: statusCa } }] : []),
         ]);
       },
       (...args) => { spawnCalls.push(args); return { status: 0 }; },
+      (path) => { assert.equal(path, "/etc/ssl/outray/brimble-ca.pem"); return hostCa; },
       () => { throw new Error("Must not read real credential files"); },
-      () => { throw new Error("Must not inspect real credential files"); },
+      (path) => {
+        assert.equal(path, "/etc/ssl/outray/brimble-ca.pem");
+        return { isFile: () => true, uid: 0, mode: writableCa ? 0o100666 : 0o100644 };
+      },
       process,
       async (url, options) => {
         assert.equal(new URL(url).origin, "https://ops.outray.dev");
@@ -105,6 +109,26 @@ test("Status retains its deployed TLS policy rather than the tunnel's setting", 
   const { exitCode, spawnCalls } = await run("status", { statusTls: "false" });
   assert.equal(exitCode, 0);
   assert.equal(spawnCalls[0][2].env.DATABASE_SSL_REJECT_UNAUTHORIZED, "false");
+});
+
+test("Status retains its deployed extra CA path", async () => {
+  const { exitCode, spawnCalls } = await run("status", { statusTls: "true", statusCa: "/etc/ssl/outray/service-ca.pem" });
+  assert.equal(exitCode, 0);
+  assert.equal(spawnCalls[0][2].env.NODE_EXTRA_CA_CERTS, "/etc/ssl/outray/service-ca.pem");
+});
+
+test("all service deploys use the root-owned VPS database CA when installed", async () => {
+  for (const service of ["edge", "status", "uptime-probe"]) {
+    const { exitCode, spawnCalls } = await run(service, { hostCa: true });
+    assert.equal(exitCode, 0);
+    assert.equal(spawnCalls[0][2].env.NODE_EXTRA_CA_CERTS, "/etc/ssl/outray/brimble-ca.pem");
+  }
+});
+
+test("a group or world-writable VPS database CA blocks deployment", async () => {
+  const { exitCode, spawnCalls } = await run("status", { hostCa: true, writableCa: true });
+  assert.equal(exitCode, 1);
+  assert.equal(spawnCalls.length, 0);
 });
 
 test("an explicit Ops TLS policy overrides the deployed service setting", async () => {
