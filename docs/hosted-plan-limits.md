@@ -13,8 +13,9 @@ The authoritative entitlement matrix is `shared/hosted-plan-limits.ts`. These li
 | Telemetry retention | 3 days | 14 days | 30 days | 90 days |
 | Observability alert rules | 3 | 10 | 30 | 100 |
 | Uptime monitors | 5 | 10 | 25 | 100 |
-| Status pages | 1 | 1 | 1 | 1 |
+| Status pages | 1 | 2 | 5 | 20 |
 | Status custom domain | Included | Included | Included | Included |
+| Status page visitor analytics | — | Included | Included | Included |
 | Active secret vaults | 1 | 3 | 10 | 50 |
 | Active environments per vault | 3 | 5 | 10 | 20 |
 | Active secret entries across the organization | 100 | 1,000 | 5,000 | 25,000 |
@@ -34,7 +35,8 @@ The existing UI may label binary allowances as GB; the actual limits use GiB (`1
 - Cron expires up to 1,000 old retry receipts per minute, without deleting monthly usage counters. Organization deletion cascades to its counters and receipts.
 - Exceeding the telemetry allowance rejects new admission until allowance is available; it does not block viewing previously retained data. Retention is stamped with the plan at ingestion time; a later downgrade does not retroactively delete previously accepted rows or shorten their TTL. Existing retention policy remains separate from ingestion capacity.
 - Uptime checks remain every 60 seconds. Raw uptime check history remains 30 days, with 90-day daily component history; the telemetry retention row above does not change those values.
-- One status page is still a database ownership constraint. Free includes a status custom domain; paid-only tunnel custom domains remain unchanged.
+- Multiple status pages use the per-plan allowance above. Free includes a status custom domain; paid-only tunnel custom domains remain unchanged.
+- Visitor analytics collection and reports require a paid plan (or a self-hosted installation). History follows plan retention; a downgrade stops collection and blocks reports. See `apps/status/README.md` for privacy and deployment details.
 - Polar revocation now clears paid capacity, and legitimate activation restores the product's plan. Cancelling at period end still preserves access until revocation. Historical already-revoked subscription rows are not automatically repaired by this change; those require separately approved reconciliation. Past-due/grace-period payment policy is unchanged.
 - Encryption, redaction, production confirmation, scoped credentials, and revocation are not paywalled. Operational safety limits are separate from plan allowances. No new machine-token, share-count, secrets-history, or secrets-audit-retention quota is introduced here.
 
