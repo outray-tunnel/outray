@@ -98,6 +98,7 @@ async function loadViews(overrides: Partial<typeof context> = {}, resources?: Pa
       if (specifier.endsWith("/uptime-skeleton")) return skeletons;
       if (specifier.endsWith("/status-page-editor-context")) return { useStatusPageEditor: () => fixture };
       if (specifier.endsWith("/status-page-editor-provider")) return { StatusPageEditorProvider: ({ children }: any) => children };
+      if (specifier.endsWith("/status-page-headless")) return { StatusPageHeadlessButton: () => React.createElement("button", { type: "button" }, "Headless") };
       if (specifier.endsWith("/status-url")) return { preferredStatusPageUrl, statusPageOrigin, statusPagePreviewUrl, statusPageUrl };
       if (specifier.endsWith("/status-layout")) return { moveStatusLayout };
       if (specifier.endsWith("/workspace-input")) return { WorkspaceInput, WorkspaceTextarea };
