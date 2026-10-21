@@ -1,0 +1,25 @@
+---
+interface Props { slug: string }
+const { slug } = Astro.props;
+---
+<meta name="outray-status-slug" content={slug} />
+<script>
+  const slug = document.querySelector<HTMLMetaElement>('meta[name="outray-status-slug"]')?.content;
+  let sent = false;
+  function track() {
+    if (!slug || sent || document.visibilityState !== "visible" || navigator.doNotTrack === "1" ||
+        (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl || navigator.webdriver) return;
+    sent = true;
+    let referrer = "";
+    try { referrer = document.referrer ? new URL(document.referrer).origin : ""; } catch { /* No referrer. */ }
+    const body = JSON.stringify({ eventId: crypto.randomUUID(), slug, path: location.pathname, referrer });
+    // A text/plain beacon avoids unnecessary preflight. The collector requires
+    // a same-origin browser request and re-resolves the page and paid plan.
+    if (!navigator.sendBeacon?.("/api/analytics", new Blob([body], { type: "text/plain" }))) {
+      void fetch("/api/analytics", { method: "POST", body, keepalive: true, credentials: "omit" }).catch(() => {});
+    }
+  }
+  track();
+  document.addEventListener("visibilitychange", track);
+  window.addEventListener("pageshow", (event) => { if (event.persisted) { sent = false; track(); } });
+</script>
