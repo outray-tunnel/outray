@@ -89,9 +89,9 @@ function sourceUrl(value: string): string | undefined {
   } catch { /* Invalid sources stay plain text. */ }
 }
 
-function countryFlag(value: string): string | undefined {
+function countryFlag(value: string): ReactNode {
   if (!/^[A-Z]{2}$/.test(value) || ["XX", "T1"].includes(value)) return;
-  return String.fromCodePoint(...Array.from(value, (letter) => letter.charCodeAt(0) + 127397));
+  return <img src={`https://flagcdn.com/${value.toLowerCase()}.svg`} alt="" width={20} height={14} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="h-3.5 w-5 rounded-[2px] object-cover" />;
 }
 
 function Breakdown({ title, rows, total, label, href, icon }: {
@@ -112,7 +112,7 @@ function Breakdown({ title, rows, total, label, href, icon }: {
         <span aria-hidden="true" className="absolute inset-y-0 left-0 rounded-md bg-white/[0.035]" style={{ width: `${total ? Math.min(100, row.views / total * 100) : 0}%` }} />
         <div className="relative flex items-center justify-between gap-3 text-[12px]">
           <div className="flex min-w-0 items-center gap-2 text-zinc-400">
-            {marker && <span aria-hidden="true" className="shrink-0 text-[15px] leading-none">{marker}</span>}
+            {marker && <span aria-hidden="true" className="inline-flex shrink-0">{marker}</span>}
             {url ? <a href={url} target="_blank" rel="noopener noreferrer" title={name} className="min-w-0 truncate rounded-sm transition-colors hover:text-zinc-100 hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400">{name}</a> : <span title={name} className="min-w-0 truncate">{name}</span>}
           </div>
           <span className="shrink-0 tabular-nums text-zinc-300">{number.format(row.views)}</span>
