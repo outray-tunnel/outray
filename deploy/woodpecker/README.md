@@ -52,6 +52,10 @@ combines them with the currently online tunnel PM2 process settings, and
 passes them to the selected service script without printing or transferring
 application secret values to Woodpecker. A separate read-only token remains in the edge's
 root-owned `/etc/outray/ops-secrets-token` (mode `0600`) for manual fallback deploys.
+Status retains its own deployed `DATABASE_SSL_REJECT_UNAUTHORIZED` setting rather
+than inheriting the tunnel's policy. An explicit `true` or `false` value in Ops
+Secrets overrides it. Private-CA databases need their provider CA configured for
+verified TLS; deployments must not silently change an existing service's policy.
 The four Uptime feature flags (`UPTIME_ENABLED`, `UPTIME_PROBES_ENABLED`,
 `UPTIME_NOTIFICATIONS_ENABLED`, and `UPTIME_EGRESS_POLICY_READY`) may also be
 set in Ops Secrets. Add all four as exact `true` or `false` strings; a complete set
