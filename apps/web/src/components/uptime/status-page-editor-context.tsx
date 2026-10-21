@@ -11,6 +11,7 @@ export interface StatusPageEditorContextValue {
   monitorsLoaded: boolean;
   reload: () => void;
   canManage: boolean;
+  analyticsAvailable: boolean;
   appearanceDraft: StatusPageAppearanceDraft;
   setAppearanceDraft: Dispatch<SetStateAction<StatusPageAppearanceDraft>>;
   appearanceDirty: boolean;
