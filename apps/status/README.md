@@ -6,13 +6,20 @@ Both Node and Worker builds reuse the hosted page's publication/visibility logic
 and cache successful JSON for 15 seconds. Errors are uncached; the HTML snapshot
 fallback never applies to these routes.
 
+`POST /api/v1/pages/{pageId}/subscribe` accepts cross-origin, credential-free
+JSON (`{"email":"visitor@example.com"}`) on every plan. It reuses hosted
+double opt-in, quotas and hashed IP/email rate limits; no origin registration
+or analytics entitlement is required. Both forms share the existing confirmation
+and unsubscribe flow. All responses are uncached and successful requests return
+the same `{"ok":true}` acknowledgement without exposing subscriber status.
+
 The optional `/status-tracker.v1.js` script sends credential-free visits to
 `/api/v1/pages/{pageId}/analytics`. Owners register exact analytics origins in
 the dashboard; collection remains paid-only (included for self-hosting).
 Apply the checked-in PostgreSQL migration for `uptime_status_pages.analytics_origins`
 before deploying the new status service or console. No Tinybird schema change,
 new token, DNS record, or additional runtime environment variable is required.
-See the console's Headless tab and `/docs/uptime/headless` for setup and CSP guidance.
+See the console's Headless button and `/docs/uptime/headless` for setup and CSP guidance.
 
 Public Uptime pages, separate from the authenticated dashboard and from OutRay's own `status.outray.dev`. The default target remains an Astro standalone Node server for VPS and self-hosted deployments. The hosted service can instead be built for Cloudflare Workers; choosing that target must be explicit.
 
