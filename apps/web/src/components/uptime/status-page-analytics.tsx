@@ -2,10 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { BarChart3, Eye, Globe2, LockKeyhole, RefreshCw, Users } from "lucide-react";
 import { useReducedMotion } from "motion/react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/arc/button/button";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
+import { statusPageOrigin, statusPagePreviewUrl } from "@/lib/uptime/status-url";
 import { useStatusPageEditor } from "./status-page-editor-context";
 import { statusPagePath, uptimeRequest, UptimeRequestError } from "./uptime-client";
 import { UptimeSkeleton, UptimeSummarySkeleton } from "./uptime-skeleton";
@@ -18,10 +19,11 @@ const regions = new Intl.DisplayNames(["en"], { type: "region" });
 
 export function StatusPageAnalytics() {
   const { orgSlug, page, analyticsAvailable } = useStatusPageEditor();
-  return <AnalyticsSession key={`${orgSlug}:${page.id}:${analyticsAvailable}`} orgSlug={orgSlug} pageId={page.id} published={page.published} available={analyticsAvailable} />;
+  const publicUrl = statusPagePreviewUrl(statusPageOrigin(import.meta.env.VITE_OUTRAY_STATUS_URL, import.meta.env.DEV), page);
+  return <AnalyticsSession key={`${orgSlug}:${page.id}:${analyticsAvailable}`} orgSlug={orgSlug} pageId={page.id} publicUrl={publicUrl} published={page.published} available={analyticsAvailable} />;
 }
 
-function AnalyticsSession({ orgSlug, pageId, published, available }: { orgSlug: string; pageId: string; published: boolean; available: boolean }) {
+function AnalyticsSession({ orgSlug, pageId, publicUrl, published, available }: { orgSlug: string; pageId: string; publicUrl: string; published: boolean; available: boolean }) {
   const [range, setRange] = useState<StatusAnalyticsRange>("7d");
   const reducedMotion = useReducedMotion();
   const resource = useQuery({
@@ -71,15 +73,51 @@ function AnalyticsSession({ orgSlug, pageId, published, available }: { orgSlug: 
         </div>}
       </UptimePanel>
       <div className="grid gap-3 lg:grid-cols-3">
-        <Breakdown title="Top sources" rows={data.referrers} total={data.views} label={(value) => value || "Direct / unknown"} />
-        <Breakdown title="Countries" rows={data.countries} total={data.views} label={(value) => value ? regions.of(value) || value : "Unknown"} />
-        <Breakdown title="Pages" rows={data.pages} total={data.views} label={(value) => value === "/" ? "Status overview" : value} />
+        <Breakdown title="Top sources" rows={data.referrers} total={data.views} label={(value) => value || "Direct / unknown"} href={sourceUrl} />
+        <Breakdown title="Countries" rows={data.countries} total={data.views} label={(value) => countryFlag(value) ? regions.of(value) || value : "Unknown"} icon={countryFlag} />
+        <Breakdown title="Pages" rows={data.pages} total={data.views} label={(value) => value === "/" ? "Status overview" : value} href={(value) => /^\/(?!\/)/.test(value) && !value.includes("\\") ? new URL(`.${value}`, publicUrl).href : undefined} />
       </div>
-      <p className="text-[11px] leading-5 text-zinc-600">Up to {data.retentionDays} days of history on your plan. Visitor estimates reset daily; no cookies or raw IPs are stored. Privacy opt-outs and known bots are excluded. Countries are available when served by Cloudflare.</p>
     </>}
   </div>;
 }
 
-function Breakdown({ title, rows, total, label }: { title: string; rows: Array<{ label: string; views: number }>; total: number; label: (value: string) => string }) {
-  return <UptimePanel className="min-w-0 p-4 sm:p-5"><h3 className="mb-4 text-[13px] font-medium text-zinc-200">{title}</h3>{rows.length === 0 ? <p className="py-5 text-[12px] text-zinc-600">No traffic yet.</p> : <ul className="space-y-3">{rows.map((row) => <li key={row.label} className="relative overflow-hidden rounded-md px-2.5 py-2"><span aria-hidden="true" className="absolute inset-y-0 left-0 rounded-md bg-white/[0.035]" style={{ width: `${total ? Math.min(100, row.views / total * 100) : 0}%` }} /><div className="relative flex items-center justify-between gap-3 text-[12px]"><span title={label(row.label)} className="min-w-0 truncate text-zinc-400">{label(row.label)}</span><span className="shrink-0 tabular-nums text-zinc-300">{number.format(row.views)}</span></div></li>)}</ul>}</UptimePanel>;
+function sourceUrl(value: string): string | undefined {
+  if (!value) return;
+  try {
+    const url = new URL(`https://${value}`);
+    if (url.host === value && url.pathname === "/" && !url.search && !url.hash && !url.username && !url.password) return url.href;
+  } catch { /* Invalid sources stay plain text. */ }
+}
+
+function countryFlag(value: string): string | undefined {
+  if (!/^[A-Z]{2}$/.test(value) || ["XX", "T1"].includes(value)) return;
+  return String.fromCodePoint(...Array.from(value, (letter) => letter.charCodeAt(0) + 127397));
+}
+
+function Breakdown({ title, rows, total, label, href, icon }: {
+  title: string;
+  rows: Array<{ label: string; views: number }>;
+  total: number;
+  label: (value: string) => string;
+  href?: (value: string) => string | undefined;
+  icon?: (value: string) => ReactNode;
+}) {
+  return <UptimePanel className="min-w-0 p-4 sm:p-5">
+    <h3 className="mb-4 text-[13px] font-medium text-zinc-200">{title}</h3>
+    {rows.length === 0 ? <p className="py-5 text-[12px] text-zinc-600">No traffic yet.</p> : <ul className="space-y-3">{rows.map((row) => {
+      const name = label(row.label);
+      const url = href?.(row.label);
+      const marker = icon?.(row.label);
+      return <li key={row.label} className="relative overflow-hidden rounded-md px-2.5 py-2">
+        <span aria-hidden="true" className="absolute inset-y-0 left-0 rounded-md bg-white/[0.035]" style={{ width: `${total ? Math.min(100, row.views / total * 100) : 0}%` }} />
+        <div className="relative flex items-center justify-between gap-3 text-[12px]">
+          <div className="flex min-w-0 items-center gap-2 text-zinc-400">
+            {marker && <span aria-hidden="true" className="shrink-0 text-[15px] leading-none">{marker}</span>}
+            {url ? <a href={url} target="_blank" rel="noopener noreferrer" title={name} className="min-w-0 truncate rounded-sm transition-colors hover:text-zinc-100 hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400">{name}</a> : <span title={name} className="min-w-0 truncate">{name}</span>}
+          </div>
+          <span className="shrink-0 tabular-nums text-zinc-300">{number.format(row.views)}</span>
+        </div>
+      </li>;
+    })}</ul>}
+  </UptimePanel>;
 }
