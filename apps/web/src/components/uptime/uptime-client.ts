@@ -60,6 +60,7 @@ export interface UptimePage {
   logoUrl: string | null;
   published: boolean;
   subscriptionsEnabled?: boolean;
+  analyticsOrigins?: string[];
   customDomain?: string | null;
 }
 
