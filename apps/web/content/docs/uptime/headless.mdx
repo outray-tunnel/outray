@@ -1,12 +1,12 @@
 ---
 title: Headless status pages
-description: Build a custom frontend with public status data and optional visitor analytics.
+description: Build a custom frontend with public status data, email subscriptions, and optional visitor analytics.
 icon: Code2
 ---
 
 OutRay can provide the status data while you build and host the frontend. Every published page includes the public data API, including on Free. Your OutRay-hosted page remains available alongside your custom frontend.
 
-Open **Uptime → Status pages**, select a page, and open **Headless** for its exact API URLs and optional analytics snippet. Publish the page before fetching data. You do not need a CNAME change, an API key, or an OutRay-managed certificate for your own frontend.
+Open **Uptime → Status pages**, select a page, and click the **Headless** button to open its setup panel with exact API URLs and the optional analytics snippet. Publish the page before fetching data. You do not need a CNAME change, an API key, or an OutRay-managed certificate for your own frontend.
 
 ## Fetch public status
 
@@ -27,7 +27,7 @@ Use the **status-service origin configured by your installation** instead of `ht
 | --- | --- |
 | `id`, `slug`, `name`, `description` | Public page identity and copy |
 | `logoUrl`, `accentColor`, `canonicalUrl` | Branding and the OutRay-hosted address |
-| `subscriptionsEnabled` | Whether visitors can request email updates on the hosted page |
+| `subscriptionsEnabled` | Whether visitors can request email updates through either the hosted page or headless API |
 | `state` | `operational`, `degraded`, `outage`, or `unknown` |
 | `generatedAt` | ISO-8601 timestamp when the response was generated |
 | `groups` | Ordered groups, each containing its state and ordered components |
@@ -88,4 +88,37 @@ No wildcard origins or `unsafe-inline` are needed for this integration.
 
 ## Email subscriptions
 
-V1 does not expose custom subscription forms. Link visitors to the `canonicalUrl` returned by the API, where they can subscribe if `subscriptionsEnabled` is true. Existing confirmation and unsubscribe flows remain unchanged. See [status page notifications](/docs/uptime/notifications).
+Build your own email form using the public subscription endpoint. It is available on every plan, independently of paid analytics and the analytics allowed-website list. Show the form only when the page's `subscriptionsEnabled` field is true.
+
+```js
+const response = await fetch(
+  "https://status.outray.app/api/v1/pages/YOUR_PAGE_ID/subscribe",
+  {
+    method: "POST",
+    credentials: "omit",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "visitor@example.com" }),
+  }
+);
+if (!response.ok) throw new Error("Could not request subscription");
+// Show: "Check your inbox to confirm your subscription."
+```
+
+Use your configured status-service origin, as with the data API. Browser requests support cross-origin JSON and OPTIONS preflights; no cookies, authorization, or browser secret is required. Add that origin to your frontend's `connect-src` CSP directive. Non-browser clients may use the same endpoint.
+
+A successful request returns HTTP `200` with `{"ok":true}`. This is an acknowledgement, not proof of delivery or an active subscription. New subscribers must confirm through the emailed link, which expires after 24 hours. The existing hosted confirmation and unsubscribe pages handle consent; API requests never bypass confirmation or return a confirmation token.
+
+Hosted and headless forms share subscriber quotas and per-page rate limits: up to five requests per IP per hour and one per email per 15 minutes. Already subscribed, throttled, full, and temporarily undeliverable addresses receive the same acknowledgement, so the endpoint does not reveal subscription status. Do not retry successful requests automatically or poll this endpoint.
+
+Requests accept only JSON objects with an `email` string, with a maximum body size of 4 KiB. Errors are JSON and are never cached:
+
+| HTTP status | `error` | Meaning |
+| --- | --- | --- |
+| `400` | `invalid_subscription` or `invalid_email` | Invalid JSON, missing email, or invalid email address |
+| `404` | `not_found` | Invalid, missing, or unpublished page |
+| `409` | `subscriptions_disabled` | The page owner has paused subscriptions |
+| `413` | `payload_too_large` | Body exceeds 4 KiB |
+| `415` | `unsupported_media_type` | Content-Type must be `application/json` |
+| `503` | `status_unavailable` | The service or page lookup is unavailable |
+
+Alternatively, link visitors to the `canonicalUrl` returned by the data API to use the hosted form. Existing subscribers, confirmation emails, incident updates, and unsubscribe links work the same way regardless of which form was used. See [status page notifications](/docs/uptime/notifications).
