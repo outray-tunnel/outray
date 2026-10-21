@@ -112,6 +112,7 @@ export const uptimeStatusPages = pgTable(
     accentColor: text("accent_color").notNull().default("#8367c7"),
     published: boolean("published").notNull().default(false),
     subscriptionsEnabled: boolean("subscriptions_enabled").notNull().default(true),
+    analyticsOrigins: text("analytics_origins").array().notNull().default(sql`ARRAY[]::text[]`),
     domainId: text("domain_id").unique().references(() => domains.id, { onDelete: "set null" }),
     // Hosted deployments persist the exact provider resource used to issue the
     // canonical page hostname certificate. Self-hosted pages leave these null.
