@@ -23,11 +23,14 @@
     "@astrojs/node": "11.1.9",
     "@astrojs/react": "6.0.6",
     "astro": "7.2.8",
+    "cookie": "^2.0.1",
     "motion": "^12.23.26",
     "pg": "^8.16.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "recharts": "3.6.0"
+    "recharts": "3.6.0",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.7"
   },
   "overrides": {
     "unifont": "0.7.5"
