@@ -67,24 +67,27 @@ test("origin setting validates HTTPS, exact origin shape, count and localhost de
 
 function headlessView(paid: boolean, canManage: boolean, origin = "https://status.selfhost.example") {
   const element = (tag: string) => ({ children, ...props }: any) => React.createElement(tag, props, children);
-  const view = compile<{ StatusPageHeadless: () => React.ReactNode }>("../src/components/uptime/status-page-headless.tsx", {
+  const view = compile<{ StatusPageHeadless: React.ComponentType<{ open: boolean; onClose: () => void }> }>("../src/components/uptime/status-page-headless.tsx", {
     react: React,
     "@tanstack/react-router": { Link: ({ children, to }: any) => React.createElement("a", { href: to }, children) },
     "lucide-react": { Code2: () => null, LockKeyhole: () => null },
     "@/components/arc/button/button": { Button: ({ children, loading: _loading, size: _size, ...props }: any) => React.createElement("button", props, children) },
     "@/components/arc/copy-button/copy-button": { CopyButton: ({ label }: any) => React.createElement("button", { "aria-label": label }) },
     "@/components/ui/workspace-input": { WorkspaceTextarea: element("textarea") },
+    "@/components/ui/side-sheet": { SideSheet: ({ children, open, title, description }: any) => open ? React.createElement("section", { role: "dialog", "aria-label": title }, description, children) : null },
     "@/lib/uptime/status-url": { statusPageOrigin, statusPagePreviewUrl },
     "../../../../../shared/status-headless": { default: headlessPolicy },
     "./status-page-editor-context": { useStatusPageEditor: () => ({ orgSlug: "acme", canManage, analyticsAvailable: paid, reload() {}, page: { id: pageId, slug: "acme", published: true, analyticsOrigins: ["https://custom.example"] } }) },
     "./uptime-client": {}, "./uptime-ui": { UptimePanel: element("section"), UptimeError: () => null, primaryButton: "button" },
   }, {}, { "import.meta.env.VITE_OUTRAY_STATUS_URL": JSON.stringify(origin), "import.meta.env.DEV": "false" });
-  return renderToStaticMarkup(React.createElement(view.StatusPageHeadless));
+  return renderToStaticMarkup(React.createElement(view.StatusPageHeadless, { open: true, onClose() {} }));
 }
 
 test("Free retains public API instructions, while analytics setup is paid and manager-only", () => {
   const free = headlessView(false, true);
   assert.ok(free.includes(`https://status.selfhost.example/api/v1/pages/${pageId}`));
+  assert.ok(free.includes(`https://status.selfhost.example/api/v1/pages/${pageId}/subscribe`));
+  assert.ok(free.includes("Email subscriptions")); assert.ok(free.includes("Request a subscription"));
   assert.ok(free.includes("Explore plans")); assert.ok(!free.includes('id="headless-origins"'));
   const paid = headlessView(true, true);
   assert.ok(paid.includes('id="headless-origins"')); assert.ok(paid.includes("status-tracker.v1.js")); assert.ok(paid.includes("Save websites"));
