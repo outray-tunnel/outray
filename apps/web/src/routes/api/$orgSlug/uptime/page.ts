@@ -6,6 +6,7 @@ import { badInput, findStatusPage, jsonBody, loadPage, notFound, requireUptimeMa
 import { safeUptimeSlug, textField } from "@/lib/uptime/validation";
 import { isAlertManagerRole } from "@/lib/observability/alert-validation";
 import { getOrganizationLimits, withOrganizationQuotaLock } from "@/lib/organization-entitlements.server";
+import headlessPolicy from "../../../../../../../shared/status-headless";
 import {
   ensureCanonicalStatusHostname,
   statusDomainProviderResponse,
@@ -70,11 +71,16 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
         if ("error" in access) return access.error;
         const body = await jsonBody(request);
         if (body instanceof Response) return body;
-        const allowed = new Set(["name", "description", "accentColor", "logoUrl", "published"]);
+        const allowed = new Set(["name", "description", "accentColor", "logoUrl", "published", "analyticsOrigins"]);
         if (!Object.keys(body).length || Object.keys(body).some((key) => !allowed.has(key))) {
           return badInput("Provide valid page settings");
         }
         const update: Partial<typeof uptimeStatusPages.$inferInsert> = { updatedAt: new Date() };
+        if (Object.hasOwn(body, "analyticsOrigins")) {
+          const origins = headlessPolicy.normalizeAnalyticsOrigins(body.analyticsOrigins, process.env.NODE_ENV !== "production");
+          if (origins === null) return badInput("Use up to 10 exact HTTPS origins without paths, credentials, queries, or wildcards", "analyticsOrigins");
+          update.analyticsOrigins = origins;
+        }
         if (Object.hasOwn(body, "name")) {
           const value = textField(body.name, 120, true);
           if (value === undefined) return badInput("Page name must be 1–120 characters", "name");
