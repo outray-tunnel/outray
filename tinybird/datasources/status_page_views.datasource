@@ -1,0 +1,20 @@
+TOKEN OUTRAY_INGEST_TOKEN APPEND
+
+DESCRIPTION >
+    Cookie-free paid status-page analytics. No raw IPs, user agents or referrer URLs.
+
+SCHEMA >
+    `timestamp` DateTime64(3, 'UTC') `json:$.timestamp`,
+    `event_id` String `json:$.event_id`,
+    `organization_id` String `json:$.organization_id`,
+    `page_id` String `json:$.page_id`,
+    `visitor_hash` String `json:$.visitor_hash`,
+    `path` String `json:$.path`,
+    `referrer` String `json:$.referrer`,
+    `country` LowCardinality(String) `json:$.country`,
+    `retention_days` UInt16 `json:$.retention_days`
+
+ENGINE "ReplacingMergeTree"
+ENGINE_PARTITION_KEY "toDate(timestamp)"
+ENGINE_SORTING_KEY "organization_id, page_id, timestamp, event_id"
+ENGINE_TTL "toDateTime(timestamp) + toIntervalDay(least(greatest(retention_days, 1), 90))"
