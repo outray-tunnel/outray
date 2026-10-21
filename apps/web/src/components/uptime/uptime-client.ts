@@ -152,13 +152,15 @@ export interface UptimeIncidentDetailResponse {
 
 export class UptimeRequestError extends Error {
   field?: string;
+  code?: string;
   status: number;
 
-  constructor(message: string, status: number, field?: string) {
+  constructor(message: string, status: number, field?: string, code?: string) {
     super(message);
     this.name = "UptimeRequestError";
     this.status = status;
     this.field = field;
+    this.code = code;
   }
 }
 
@@ -183,8 +185,8 @@ export async function uptimeRequest<T>(orgSlug: string, path: string, init?: Req
       ...init?.headers,
     },
   });
-  const payload = await response.json().catch(() => null) as (T & { error?: string; field?: string }) | null;
-  if (!response.ok) throw new UptimeRequestError(payload?.error || `Request failed (${response.status})`, response.status, payload?.field);
+  const payload = await response.json().catch(() => null) as (T & { error?: string; field?: string; code?: string }) | null;
+  if (!response.ok) throw new UptimeRequestError(payload?.error || `Request failed (${response.status})`, response.status, payload?.field, payload?.code);
   if (!payload) throw new Error("The server returned an empty response.");
   return payload;
 }
