@@ -8,14 +8,18 @@ import { getStatusRuntime, isStatusProduction, statusEnvironment } from "./runti
 
 const BOT = /bot|crawler|spider|headless|preview|facebookexternalhit|slurp|monitor|uptime|curl|wget/i;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export function analyticsEventInput(value: unknown, slug: string) {
+export function analyticsEventInput(value: unknown, slug: string, customPaths = false) {
   if (!value || typeof value !== "object") return null;
   const body = value as Record<string, unknown>;
   if (typeof body.eventId !== "string" || !UUID.test(body.eventId) || typeof body.path !== "string") return null;
   let path = body.path;
-  if (path === `/${slug}` || path === `/${slug}/`) path = "/";
-  else if (path.startsWith(`/${slug}/incidents/`)) path = path.slice(slug.length + 1);
-  if (path !== "/" && (!path.startsWith("/incidents/") || !UUID.test(path.slice(11)))) return null;
+  if (customPaths) {
+    if (path.length > 2048 || !path.startsWith("/") || path.startsWith("//") || /[\\?#\u0000-\u001f\u007f]/.test(path)) return null;
+  } else {
+    if (path === `/${slug}` || path === `/${slug}/`) path = "/";
+    else if (path.startsWith(`/${slug}/incidents/`)) path = path.slice(slug.length + 1);
+    if (path !== "/" && (!path.startsWith("/incidents/") || !UUID.test(path.slice(11)))) return null;
+  }
   let referrer = "";
   if (typeof body.referrer === "string" && body.referrer.length <= 2048) {
     try {
@@ -62,7 +66,7 @@ export async function analyticsRetention(organizationId: string): Promise<number
   return limits.statusAnalytics ? Math.min(90, limits.retentionDays) : null;
 }
 
-export async function appendAnalyticsEvent(page: { id: string; organization_id: string }, input: NonNullable<ReturnType<typeof analyticsEventInput>>, request: Request, ip: string, retentionDays: number) {
+export async function appendAnalyticsEvent(page: { id: string; organization_id: string }, input: NonNullable<ReturnType<typeof analyticsEventInput>>, request: Request, ip: string, retentionDays: number, sourceOrigin?: string) {
   const env = statusEnvironment();
   if (!env.TINYBIRD_API_HOST || !env.TINYBIRD_INGEST_TOKEN) throw new Error("Status analytics is not configured");
   const now = new Date();
@@ -77,7 +81,7 @@ export async function appendAnalyticsEvent(page: { id: string; organization_id: 
     timestamp: now.toISOString().replace("T", " ").replace("Z", ""),
     event_id: input.eventId, organization_id: page.organization_id, page_id: page.id,
     visitor_hash: visitor, path: input.path,
-    referrer: input.referrer === new URL(request.url).hostname ? "" : input.referrer,
+    referrer: input.referrer === new URL(sourceOrigin || request.url).hostname ? "" : input.referrer,
     country: /^[A-Z]{2}$/.test(country) && !["XX", "T1"].includes(country) ? country : "",
     retention_days: retentionDays,
   };
