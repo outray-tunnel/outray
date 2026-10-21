@@ -32,6 +32,7 @@ const statusBase = (import.meta.env.VITE_OUTRAY_STATUS_URL || "https://status.ou
 
 const editorTabs = [
   { label: "Overview", to: "/$orgSlug/uptime/status-page", icon: Layers3 },
+  { label: "Analytics", to: "/$orgSlug/uptime/status-page/analytics", icon: Activity },
   { label: "Components", to: "/$orgSlug/uptime/status-page/components", icon: Radio },
   { label: "Subscribers", to: "/$orgSlug/uptime/status-page/subscribers", icon: Mail },
   { label: "Appearance", to: "/$orgSlug/uptime/status-page/appearance", icon: Palette },
@@ -47,7 +48,7 @@ function StatusPageLayout() {
 function WorkspaceStatusPage({ orgSlug }: { orgSlug: string }) {
   const { pageId } = Route.useSearch();
   const [createOpen, setCreateOpen] = useState(false);
-  const pageData = useUptimeResource<{ page: UptimePage | null; pages: Array<Pick<UptimePage, "id" | "name" | "slug" | "published">>; limit: number; groups: UptimeGroup[]; standaloneComponents: UptimeComponent[]; canManage: boolean }>(orgSlug, pageId ? statusPagePath("/page", pageId) : "/page");
+  const pageData = useUptimeResource<{ page: UptimePage | null; pages: Array<Pick<UptimePage, "id" | "name" | "slug" | "published">>; limit: number; analyticsAvailable: boolean; groups: UptimeGroup[]; standaloneComponents: UptimeComponent[]; canManage: boolean }>(orgSlug, pageId ? statusPagePath("/page", pageId) : "/page");
   const monitorData = useUptimeResource<{ monitors: UptimeMonitor[] }>(orgSlug, "/monitors");
   const navigate = Route.useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -75,7 +76,7 @@ function WorkspaceStatusPage({ orgSlug }: { orgSlug: string }) {
       {canManage && pages.length < limit && <CreatePage open={createOpen} onClose={() => setCreateOpen(false)} orgSlug={orgSlug} pageNumber={pages.length + 1} onCreated={(createdId) => void navigate({ to: "/$orgSlug/uptime/status-page", params: { orgSlug }, search: { pageId: createdId } })} />}
     </>}
     {!pageData.loading && !pageData.error && pageId && !page && <UptimeError message="This status page could not be found in your workspace." />}
-    {page && pageId && <StatusPageEditorProvider key={page.id} orgSlug={orgSlug} page={page} groups={groups} standaloneComponents={standaloneComponents} monitors={monitors} monitorsLoaded={Boolean(monitorData.data)} reload={pageData.reload} canManage={canManage}>
+    {page && pageId && <StatusPageEditorProvider key={page.id} orgSlug={orgSlug} page={page} groups={groups} standaloneComponents={standaloneComponents} monitors={monitors} monitorsLoaded={Boolean(monitorData.data)} reload={pageData.reload} canManage={canManage} analyticsAvailable={pageData.data?.analyticsAvailable === true}>
       <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <Link to="/$orgSlug/uptime/status-page" params={{ orgSlug }} search={{ pageId: undefined }} className="mb-2 inline-block text-[12px] text-zinc-500 hover:text-zinc-200">← All status pages</Link>
