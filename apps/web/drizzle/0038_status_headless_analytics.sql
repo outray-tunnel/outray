@@ -1,0 +1,1 @@
+ALTER TABLE "uptime_status_pages" ADD COLUMN "analytics_origins" text[] DEFAULT ARRAY[]::text[] NOT NULL;
