@@ -4,6 +4,7 @@ import { getStatusConfig } from "../../lib/config";
 import { getStatusRuntime, isStatusProduction } from "../../lib/runtime";
 import { isSameOrigin, safeClientIp } from "../../lib/security";
 import { findPageForRequest } from "../../lib/status-data";
+import { readAnalyticsBody } from "../../lib/analytics-body";
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   const empty = () => new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
@@ -18,25 +19,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     // Limit before database lookups; the limiter never retains the raw address.
     const rateKey = visitorHash(config.rateLimitSecret || (!isStatusProduction() ? "local-development-only" : ""), "analytics-rate", ip, "");
     if (!rateKey || !allowAnalyticsEvent(rateKey)) return empty();
-    // Bound the actual stream, not just an optional/spoofable Content-Length.
-    const reader = request.body?.getReader();
-    if (!reader) return empty();
-    let size = 0;
-    const parts: Uint8Array[] = [];
-    try {
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        size += value.byteLength;
-        if (size > 4096) { await reader.cancel(); return empty(); }
-        parts.push(value);
-      }
-    } finally { reader.releaseLock(); }
-    const bytes = new Uint8Array(size);
-    let offset = 0;
-    for (const part of parts) { bytes.set(part, offset); offset += part.byteLength; }
-    const body = JSON.parse(new TextDecoder().decode(bytes));
-    const slug = !isStatusProduction() && typeof body.slug === "string" ? body.slug : null;
+    const body = await readAnalyticsBody(request);
+    if (!body || typeof body !== "object") return empty();
+    const slug = !isStatusProduction() && body && typeof body === "object" && "slug" in body && typeof body.slug === "string" ? body.slug : null;
     const page = await findPageForRequest(request, slug);
     if (!page) return empty();
     const input = analyticsEventInput(body, page.slug);
