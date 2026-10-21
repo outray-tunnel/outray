@@ -158,12 +158,17 @@ async function readOutRaySecrets() {
   if (configuredTelemetrySecrets.length > 0 && configuredTelemetrySecrets.length !== optionalTelemetrySecrets.length) {
     throw new Error("OutRay SDK credentials must be configured together.");
   }
+  const databaseTlsSettings = Object.hasOwn(secrets, "DATABASE_SSL_REJECT_UNAUTHORIZED")
+    ? ["DATABASE_SSL_REJECT_UNAUTHORIZED"] : [];
+  if (databaseTlsSettings.length && !["true", "false"].includes(secrets.DATABASE_SSL_REJECT_UNAUTHORIZED)) {
+    throw new Error("OutRay DATABASE_SSL_REJECT_UNAUTHORIZED must be exactly true or false.");
+  }
 
   console.log(configuredFlags.length > 0
     ? "Uptime feature flags loaded from Ops Secrets."
     : "Uptime feature flags not in Ops Secrets; retaining active tunnel settings.");
   return Object.fromEntries(
-    [...managedSecrets, ...configuredFlags, ...configuredTelemetrySecrets].map((name) => [name, secrets[name]]),
+    [...managedSecrets, ...configuredFlags, ...configuredTelemetrySecrets, ...databaseTlsSettings].map((name) => [name, secrets[name]]),
   );
 }
 
@@ -191,6 +196,12 @@ const runtime = Object.fromEntries(
     .filter((name) => typeof current[name] === "string" && current[name].length > 0)
     .map((name) => [name, current[name]]),
 );
+// Preserve Status's explicitly deployed TLS policy, not an unrelated tunnel
+// setting. An explicit value in Ops Secrets still takes precedence below.
+if (service === "status") {
+  const statusTls = processes.find((process) => process.name === "outray-status")?.pm2_env?.DATABASE_SSL_REJECT_UNAUTHORIZED;
+  if (["true", "false"].includes(statusTls)) runtime.DATABASE_SSL_REJECT_UNAUTHORIZED = statusTls;
+}
 
 try {
   Object.assign(runtime, await readOutRaySecrets());
