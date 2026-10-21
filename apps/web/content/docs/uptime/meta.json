@@ -1,5 +1,5 @@
 {
   "title": "Uptime",
   "icon": "HeartPulse",
-  "pages": ["index", "getting-started", "monitors", "incidents", "status-page", "notifications"]
+  "pages": ["index", "getting-started", "monitors", "incidents", "status-page", "headless", "notifications"]
 }
