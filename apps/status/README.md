@@ -27,6 +27,44 @@ Required in production:
 
 Optional: `ZEPTO_FROM_EMAIL` (defaults to `no-reply@outray.co`), `DATABASE_SSL_REJECT_UNAUTHORIZED=false` only for a trusted private database connection, `UPTIME_ENABLED=false` to disable public pages and signups.
 
+## Status-page analytics
+
+Each page has an **Analytics** tab in the console. Collection and reports are
+enabled for Ray, Beam, Pulse, Unlimited, and self-hosted installations, not Free.
+An upgrade starts collection; there is no historical backfill. Downgrades stop
+collection and deny report access immediately on the next API request.
+
+Deploy `tinybird/datasources/status_page_views.datasource` and
+`tinybird/endpoints/status_page_analytics.pipe` through the normal Tinybird
+deployment **before** deploying Status and the console. Existing named
+`OUTRAY_INGEST_TOKEN` / `OUTRAY_QUERY_TOKEN` scopes must include the new resources;
+custom scoped tokens need `status_page_views:APPEND` and
+`status_page_analytics:READ`, respectively. No PostgreSQL migration is required.
+The Status runtime needs `TINYBIRD_API_HOST` and `TINYBIRD_INGEST_TOKEN`; the console
+continues using `TINYBIRD_QUERY_TOKEN`. Compose and both deployment paths forward
+these existing server-only credentials. No tokens are included in the beacon.
+
+The same-origin browser beacon counts the overview and public incident reports,
+including CDN-served pages. Health checks, static assets, subscription routes,
+known bots, prefetches, DNT and Global Privacy Control are excluded. It requires
+the current host to resolve to a published page, and uses the database's
+organization and plan, never client-supplied tenant or plan identifiers.
+Ingestion is bounded and best-effort, independent of public HTML availability;
+failures emit `status_analytics_unavailable` without sensitive details. The
+collector has a bounded per-process rate limiter (20 events/minute/address).
+For distributed abuse protection, also rate-limit `/api/analytics` at your edge.
+
+Views and approximate daily unique visitors are reported hourly/daily, alongside
+top referrer hostnames, countries and pages. Visitor HMACs use the existing
+`UPTIME_RATE_LIMIT_SECRET` with a separate purpose prefix and rotate daily in UTC
+and per page. Totals sum daily uniques, not deduplicated people across days.
+There are no analytics cookies, local storage, raw IPs, user agents, full
+referrer URLs or query strings in Tinybird. Countries come only from trusted
+Worker `request.cf.country`; VPS installs report Unknown. Retention follows the
+plan (14/30/90 days), or the installation policy (at most 90). Reports enforce
+the current retention window even before Tinybird's asynchronous TTL deletion.
+Browser blockers and privacy preferences can make counts lower than access logs.
+
 The edge must set `Host` to the original external hostname, strip any incoming `X-Outray-Edge-Secret` and `X-Outray-Client-IP`, and set its own `X-Outray-Edge-Secret` plus `X-Outray-Client-IP` containing a validated client address. Do not derive the client address from an untrusted incoming `X-Forwarded-For`. Do not expose the standalone service port to the public network. Canonical pages live at `https://<page-slug>.status.outray.app/`; an active status-purpose domain bound to a published page also serves that page at `/`. The base `OUTRAY_STATUS_URL` host handles health and subscription confirmation/unsubscribe routes, but has no default customer page. Legacy `/<page-slug>` links redirect to the page's subdomain.
 
 The public signup UI is hydrated separately from the native confirmation and unsubscribe forms. A subscription remains pending until the visitor opens the confirmation URL and submits the confirmation form. Confirmation tokens are SHA-256 hashes in Postgres and expire after 24 hours. Unsubscribe URLs are HMAC-signed and contain an expiry; visiting the URL only renders a page, and its POST performs the unsubscribe. Subscriber emails are sent only by the dedicated Uptime outbox worker for team-published incident updates.
