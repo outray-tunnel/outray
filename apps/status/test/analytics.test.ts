@@ -8,6 +8,7 @@ import ts from "typescript";
 import plans from "../../../shared/hosted-plan-limits";
 import instance from "../../../shared/instance-config";
 import { analyticsEventInput, allowAnalyticsEvent, shouldTrack, visitorHash } from "../src/lib/analytics";
+import { readAnalyticsBody } from "../src/lib/analytics-body";
 
 const eventId = "8d679e8e-a522-4bc4-a176-d5d86bbcab38";
 const input = { eventId, path: "/", referrer: "https://example.com/private?token=not-for-storage" };
@@ -107,6 +108,7 @@ test("public collector resolves host ownership, denies free ingestion and ignore
   let lookups = 0;
   let writes = 0;
   const api = load<{ POST: (context: { request: Request; clientAddress: string }) => Promise<Response> }>("../src/pages/api/analytics.ts", {
+    "../../lib/analytics-body": { readAnalyticsBody },
     "../../lib/analytics": { analyticsEventInput, shouldTrack, visitorHash, allowAnalyticsEvent: () => true, analyticsRetention: async () => paid ? 14 : null, appendAnalyticsEvent: async () => { writes++; } },
     "../../lib/config": { getStatusConfig: () => ({ enabled: true, edgeSecret: "test-edge", rateLimitSecret: "test-rate" }) },
     "../../lib/runtime": { isStatusProduction: () => true, getStatusRuntime: () => undefined },
