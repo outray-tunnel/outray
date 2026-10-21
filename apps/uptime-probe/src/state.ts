@@ -24,8 +24,11 @@ export function transitionMonitor(
     if (state === "down" && nextSuccesses < 2) {
       return { state: "down", failureStreak: 0, successStreak: nextSuccesses, incidentAction: null };
     }
+    // A configuration edit resets the monitor to Unknown without deleting its
+    // open incident. Reconcile after two successes even if Down was reset;
+    // the incident UPDATE only returns an open row, so notifications stay once-only.
     return { state: "up", failureStreak: 0, successStreak: nextSuccesses,
-      incidentAction: state === "down" ? "resolve" : null };
+      incidentAction: nextSuccesses >= 2 ? "resolve" : null };
   }
 
   const nextFailures = Math.min(failureThreshold, Math.max(0, failureStreak) + 1);
