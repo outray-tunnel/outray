@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-r
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import { isSortable, useSortable } from "@dnd-kit/react/sortable";
 import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable";
-import { Activity, ArrowUpRight, Check, ChevronDown, Eye, ExternalLink, Folder, Globe2, GripVertical, ImagePlus, Layers3, LoaderCircle, Mail, Palette, Plus, Radio, ShieldCheck } from "lucide-react";
+import { Activity, ArrowUpRight, Check, ChevronDown, Code2, Eye, ExternalLink, Folder, Globe2, GripVertical, ImagePlus, Layers3, LoaderCircle, Mail, Palette, Plus, Radio, ShieldCheck } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { type UptimeComponent, type UptimeGroup, type UptimeMonitor, type UptimePage, uptimeApiPath, uptimeRequest, useUptimeResource, statusPagePath } from "@/components/uptime/uptime-client";
 import { UptimeHeaderSkeleton, UptimeSkeleton, UptimeSummarySkeleton } from "@/components/uptime/uptime-skeleton";
@@ -38,6 +38,7 @@ const editorTabs = [
   { label: "Appearance", to: "/$orgSlug/uptime/status-page/appearance", icon: Palette },
   { label: "Publishing", to: "/$orgSlug/uptime/status-page/publishing", icon: Globe2 },
   { label: "Custom domains", to: "/$orgSlug/uptime/status-page/domains", icon: ExternalLink },
+  { label: "Headless", to: "/$orgSlug/uptime/status-page/headless", icon: Code2 },
 ] as const;
 
 function StatusPageLayout() {
