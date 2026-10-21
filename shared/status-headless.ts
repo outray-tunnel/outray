@@ -21,7 +21,7 @@ export function normalizeAnalyticsOrigins(value: unknown, allowLocalhost = false
 export function headlessStatusUrls(origin: string, pageId: string) {
   const base = new URL(origin).origin;
   const page = `${base}/api/v1/pages/${encodeURIComponent(pageId)}`;
-  return { page, incident: `${page}/incidents/INCIDENT_ID`, script: `${base}/status-tracker.v1.js` };
+  return { page, incident: `${page}/incidents/INCIDENT_ID`, subscribe: `${page}/subscribe`, script: `${base}/status-tracker.v1.js` };
 }
 
 export default { MAX_ANALYTICS_ORIGINS, PUBLIC_STATUS_ID, normalizeAnalyticsOrigins, headlessStatusUrls };
