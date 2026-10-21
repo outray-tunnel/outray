@@ -166,6 +166,18 @@ test("a configurable failure threshold delays Down without changing recovery", (
   assert.equal(transitionMonitor("down", third.failureStreak, 0, true, 3).state, "down");
 });
 
+test("recovery reconciles an orphaned incident after a configuration reset to Unknown", () => {
+  const first = transitionMonitor("unknown", 0, 0, true);
+  assert.equal(first.state, "up");
+  assert.equal(first.incidentAction, null);
+  const confirmed = transitionMonitor(first.state, first.failureStreak, first.successStreak, true);
+  assert.equal(confirmed.incidentAction, "resolve");
+  // An already-Up monitor must also repair incidents missed by an older worker.
+  assert.equal(transitionMonitor("up", 0, 2, true).incidentAction, "resolve");
+  const failed = transitionMonitor("up", 0, 1, false);
+  assert.equal(transitionMonitor(failed.state, failed.failureStreak, failed.successStreak, true).incidentAction, null);
+});
+
 test("missing and stale evidence is Unknown", () => {
   const now = new Date("2026-09-29T12:00:00.000Z");
   assert.equal(effectiveMonitorState("up", null, now), "unknown");
