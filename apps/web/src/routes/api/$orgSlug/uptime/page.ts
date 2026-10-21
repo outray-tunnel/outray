@@ -27,7 +27,7 @@ export const Route = createFileRoute("/api/$orgSlug/uptime/page")({
           getOrganizationLimits(access.organization.id),
         ]);
         return Response.json({ ...(data ?? { page: null, groups: [], standaloneComponents: [] }),
-          pages, limit: limits.maxStatusPages, canManage: isAlertManagerRole(access.membership.role) });
+          pages, limit: limits.maxStatusPages, analyticsAvailable: limits.statusAnalytics, canManage: isAlertManagerRole(access.membership.role) });
       },
       POST: async ({ request, params }) => {
         const access = await requireUptimeManager(request, params.orgSlug);
