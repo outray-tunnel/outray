@@ -17,6 +17,7 @@ interface PageRow {
   accent_color: string;
   published: boolean;
   subscriptions_enabled: boolean;
+  analytics_origins?: string[];
 }
 
 interface GroupRow {
@@ -230,7 +231,7 @@ export async function findPageForRequest(
 
 export async function findPublishedPageById(pageId: string): Promise<PageRow | null> {
   const rows = await query<PageRow>(
-    `SELECT id, organization_id, slug, name, description, logo_url, accent_color, published, subscriptions_enabled
+    `SELECT id, organization_id, slug, name, description, logo_url, accent_color, published, subscriptions_enabled, analytics_origins
      FROM uptime_status_pages WHERE id = $1 AND published = true LIMIT 1`,
     [pageId],
   );
