@@ -270,7 +270,7 @@ services:
     <<: *app
     command: ["node", "apps/status/dist/server/entry.mjs"]
     environment:
-      <<: [*policy, *database-environment, *uptime-environment]
+      <<: [*policy, *database-environment, *uptime-environment, *tinybird-write-environment]
       PORT: "4323"
       STATUS_BIND_HOST: 0.0.0.0
     depends_on: *dependencies
