@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 
 const [nodeMajor, nodeMinor] = process.versions.node.split(".").map(Number);
 if (nodeMajor < 22 || (nodeMajor === 22 && nodeMinor < 19)) {
@@ -27,6 +27,7 @@ const names = [
   "TINYBIRD_INGEST_TOKEN",
   "DATABASE_URL",
   "DATABASE_SSL_REJECT_UNAUTHORIZED",
+  "NODE_EXTRA_CA_CERTS",
   "INTERNAL_API_SECRET",
   "PAYSTACK_SECRET_KEY",
   "TINYBIRD_API_HOST",
@@ -199,8 +200,22 @@ const runtime = Object.fromEntries(
 // Preserve Status's explicitly deployed TLS policy, not an unrelated tunnel
 // setting. An explicit value in Ops Secrets still takes precedence below.
 if (service === "status") {
-  const statusTls = processes.find((process) => process.name === "outray-status")?.pm2_env?.DATABASE_SSL_REJECT_UNAUTHORIZED;
+  const statusEnvironment = processes.find((process) => process.name === "outray-status")?.pm2_env;
+  const statusTls = statusEnvironment?.DATABASE_SSL_REJECT_UNAUTHORIZED;
   if (["true", "false"].includes(statusTls)) runtime.DATABASE_SSL_REJECT_UNAUTHORIZED = statusTls;
+  if (statusEnvironment?.NODE_EXTRA_CA_CERTS) runtime.NODE_EXTRA_CA_CERTS = statusEnvironment.NODE_EXTRA_CA_CERTS;
+}
+
+// The private database CA is installed on the VPS, not stored in Ops Secrets.
+// Pass it to newly started Node processes so a deploy cannot lose host trust.
+const databaseCaPath = "/etc/ssl/outray/brimble-ca.pem";
+if (!runtime.NODE_EXTRA_CA_CERTS && !process.env.NODE_EXTRA_CA_CERTS && existsSync(databaseCaPath)) {
+  const certificate = statSync(databaseCaPath);
+  if (!certificate.isFile() || certificate.uid !== 0 || (certificate.mode & 0o022) !== 0) {
+    console.error("The VPS database CA must be a root-owned file without group or world write access.");
+    process.exit(1);
+  }
+  runtime.NODE_EXTRA_CA_CERTS = databaseCaPath;
 }
 
 try {
