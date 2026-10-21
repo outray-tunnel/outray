@@ -28,13 +28,14 @@ const managedSecrets = {
   OUTRAY_SECRETS_PREVIOUS_MASTER_KEYS: "synthetic-previous-keys",
 };
 
-async function run(service, { check = false, secrets = managedSecrets, nodeVersion = "22.23.3" } = {}) {
+async function run(service, { check = false, secrets = managedSecrets, nodeVersion = "22.23.3", statusTls } = {}) {
   const spawnCalls = [];
   const logs = [];
   const exit = {};
   let exitCode;
   const current = {
     status: "online",
+    DATABASE_SSL_REJECT_UNAUTHORIZED: "true",
     ...managedSecrets,
     OUTRAY_DASHBOARD_URL: "https://outray.co",
     WEB_API_URL: "https://outray.co/api",
@@ -60,7 +61,10 @@ async function run(service, { check = false, secrets = managedSecrets, nodeVersi
       (command, args) => {
         assert.equal(command, "pm2");
         assert.deepEqual(args, ["jlist"]);
-        return JSON.stringify([{ name: "outray-blue", pm2_env: current }]);
+        return JSON.stringify([
+          { name: "outray-blue", pm2_env: current },
+          ...(statusTls ? [{ name: "outray-status", pm2_env: { DATABASE_SSL_REJECT_UNAUTHORIZED: statusTls } }] : []),
+        ]);
       },
       (...args) => { spawnCalls.push(args); return { status: 0 }; },
       () => { throw new Error("Must not read real credential files"); },
@@ -95,6 +99,28 @@ test("unsupported VPS Node versions fail before reading credentials or deploying
   assert.equal(exitCode, 1);
   assert.equal(spawnCalls.length, 0);
   assert.match(logs.join("\n"), /Node\.js >=22\.19\.0/);
+});
+
+test("Status retains its deployed TLS policy rather than the tunnel's setting", async () => {
+  const { exitCode, spawnCalls } = await run("status", { statusTls: "false" });
+  assert.equal(exitCode, 0);
+  assert.equal(spawnCalls[0][2].env.DATABASE_SSL_REJECT_UNAUTHORIZED, "false");
+});
+
+test("an explicit Ops TLS policy overrides the deployed service setting", async () => {
+  const { exitCode, spawnCalls } = await run("status", {
+    statusTls: "false", secrets: { ...managedSecrets, DATABASE_SSL_REJECT_UNAUTHORIZED: "true" },
+  });
+  assert.equal(exitCode, 0);
+  assert.equal(spawnCalls[0][2].env.DATABASE_SSL_REJECT_UNAUTHORIZED, "true");
+});
+
+test("invalid Ops TLS policy is rejected", async () => {
+  const { exitCode, spawnCalls } = await run("status", {
+    secrets: { ...managedSecrets, DATABASE_SSL_REJECT_UNAUTHORIZED: "invalid" },
+  });
+  assert.equal(exitCode, 1);
+  assert.equal(spawnCalls.length, 0);
 });
 
 for (const service of ["edge", "status", "uptime-probe"]) {
