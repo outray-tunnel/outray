@@ -1,16 +1,30 @@
 import { Link } from "@tanstack/react-router";
 import { Code2, LockKeyhole } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
 import { Button } from "@/components/arc/button/button";
 import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import { WorkspaceTextarea } from "@/components/ui/workspace-input";
+import { SideSheet } from "@/components/ui/side-sheet";
 import { statusPageOrigin, statusPagePreviewUrl } from "@/lib/uptime/status-url";
 import headlessPolicy from "../../../../../shared/status-headless";
 import { useStatusPageEditor } from "./status-page-editor-context";
 import { statusPagePath, uptimeRequest, type UptimePage } from "./uptime-client";
 import { primaryButton, UptimeError, UptimePanel } from "./uptime-ui";
 
-export function StatusPageHeadless() {
+export function StatusPageHeadlessButton() {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  return <>
+    <Button ref={triggerRef} type="button" variant="secondary" size="md" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}><Code2 size={14} aria-hidden="true" />Headless</Button>
+    <StatusPageHeadless open={open} onClose={() => setOpen(false)} returnFocusRef={triggerRef} />
+  </>;
+}
+
+export function StatusPageHeadless({ open, onClose, returnFocusRef }: {
+  open: boolean;
+  onClose: () => void;
+  returnFocusRef?: RefObject<HTMLElement | null>;
+}) {
   const { orgSlug, page, canManage, analyticsAvailable, reload } = useStatusPageEditor();
   const origin = statusPageOrigin(import.meta.env.VITE_OUTRAY_STATUS_URL, import.meta.env.DEV);
   const urls = headlessPolicy.headlessStatusUrls(origin, page.id);
@@ -25,6 +39,7 @@ export function StatusPageHeadless() {
   const dirty = value !== saved;
   const snippet = `<script defer\n  src="${urls.script}"\n  data-page-id="${page.id}"></script>`;
   const example = `const response = await fetch(${JSON.stringify(urls.page)});\nif (!response.ok) throw new Error("Status unavailable");\nconst status = await response.json();\n\n// operational | degraded | outage | unknown\nconsole.log(status.state, status.groups);`;
+  const subscribeExample = `const response = await fetch(${JSON.stringify(urls.subscribe)}, {\n  method: "POST",\n  credentials: "omit",\n  headers: { "Content-Type": "application/json" },\n  body: JSON.stringify({ email: "visitor@example.com" }),\n});\nif (!response.ok) throw new Error("Could not request subscription");\n// Ask the visitor to check their inbox for confirmation.`;
   async function save(event: FormEvent) {
     event.preventDefault();
     if (!canManage || !analyticsAvailable || pending.current) return;
@@ -38,15 +53,22 @@ export function StatusPageHeadless() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save allowed websites."); }
     finally { pending.current = false; setSaving(false); }
   }
-  return <div className="space-y-5">
-    <div><h2 className="flex items-center gap-2 text-[14px] font-medium text-zinc-200"><Code2 size={16} aria-hidden="true" />Your frontend. OutRay’s status data.</h2><p className="mt-2 max-w-2xl text-[13px] leading-6 text-zinc-500">Build your own status page with public JSON. Keep hosting it wherever you like—no CNAME changes, API keys, or OutRay-managed certificates needed.</p></div>
+  return <SideSheet open={open} onClose={onClose} returnFocusRef={returnFocusRef} closeDisabled={saving} title="Headless" description="Use status data, subscriptions, and analytics in your own frontend.">
+    <div className="space-y-5">
+    <p className="text-[13px] leading-6 text-zinc-500">Build your own status page with public JSON. Keep hosting it wherever you like—no CNAME changes, API keys, or OutRay-managed certificates needed.</p>
     {!page.published && <p className="rounded-lg border border-amber-400/15 bg-amber-400/[0.04] px-4 py-3 text-[12px] leading-5 text-amber-200/80">Publish this status page before using its public API. Draft pages return 404.</p>}
     <UptimePanel className="space-y-4 p-4 sm:p-5">
       <div><h3 className="text-[13px] font-medium text-zinc-200">Public API</h3><p className="mt-1 text-[12px] leading-5 text-zinc-500">Included on every plan. Components, 90-day history, and the latest 25 published incidents. Poll once a minute; responses are cached for 15 seconds.</p></div>
       <CodeBlock title="Status page · GET" code={urls.page} />
       <CodeBlock title="Incident detail · GET" code={urls.incident} />
       <CodeBlock title="Fetch status" code={example} />
-      <p className="text-[12px] leading-5 text-zinc-500">The hosted page stays available. For email updates, link visitors to <a href={statusPagePreviewUrl(origin, page)} target="_blank" rel="noopener noreferrer" className="text-zinc-300 underline underline-offset-4 hover:text-white">its subscription form</a>.</p>
+    </UptimePanel>
+    <UptimePanel className="space-y-4 p-4 sm:p-5">
+      <div><h3 className="text-[13px] font-medium text-zinc-200">Email subscriptions</h3><p className="mt-1 text-[12px] leading-5 text-zinc-500">Add a subscribe form to your frontend. Visitors confirm their email before receiving incident updates. No API key or allowed-website registration is needed.</p></div>
+      {page.subscriptionsEnabled === false && <p className="text-[12px] text-amber-200/80">Email subscriptions are currently turned off for this page.</p>}
+      <CodeBlock title="Subscribe · POST" code={urls.subscribe} />
+      <CodeBlock title="Request a subscription" code={subscribeExample} />
+      <p className="text-[12px] leading-5 text-zinc-500">The hosted <a href={statusPagePreviewUrl(origin, page)} target="_blank" rel="noopener noreferrer" className="text-zinc-300 underline underline-offset-4 hover:text-white">subscription form</a> stays available. Both forms share confirmation emails, subscriber limits, and rate limits.</p>
     </UptimePanel>
     {analyticsAvailable ? <UptimePanel className="space-y-4 p-4 sm:p-5">
       <div><h3 className="text-[13px] font-medium text-zinc-200">Track your custom page</h3><p className="mt-1 text-[12px] leading-5 text-zinc-500">Register your website, then add the optional script. Visits appear alongside your hosted page in Analytics.</p></div>
@@ -66,7 +88,8 @@ export function StatusPageHeadless() {
       <Link to="/$orgSlug/billing" params={{ orgSlug }} className={`${primaryButton} mt-4`}>Explore plans</Link>
     </UptimePanel>}
     <p className="text-[12px] text-zinc-500"><Link to="/docs/$" params={{ _splat: "uptime/headless" }} className="text-zinc-300 underline underline-offset-4 hover:text-white">Headless setup guide</Link> · API fields, CSP settings, and privacy details.</p>
-  </div>;
+    </div>
+  </SideSheet>;
 }
 
 function CodeBlock({ title, code }: { title: string; code: string }) {
