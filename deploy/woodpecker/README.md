@@ -56,6 +56,13 @@ Status retains its own deployed `DATABASE_SSL_REJECT_UNAUTHORIZED` setting rathe
 than inheriting the tunnel's policy. An explicit `true` or `false` value in Ops
 Secrets overrides it. Private-CA databases need their provider CA configured for
 verified TLS; deployments must not silently change an existing service's policy.
+The VPS's Brimble CA is installed at `/etc/ssl/outray/brimble-ca.pem` (root-owned,
+mode `0644`). The helper passes that file through `NODE_EXTRA_CA_CERTS` when no
+extra CA is already configured; Status also retains its own deployed CA path.
+This augments Node's normal public roots without disabling certificate or
+hostname verification. The probe uses a persistent systemd drop-in pointing to
+the same CA. Installing or changing the CA requires restarting the affected
+Node service; do not restart active tunnel processes merely to refresh trust.
 The four Uptime feature flags (`UPTIME_ENABLED`, `UPTIME_PROBES_ENABLED`,
 `UPTIME_NOTIFICATIONS_ENABLED`, and `UPTIME_EGRESS_POLICY_READY`) may also be
 set in Ops Secrets. Add all four as exact `true` or `false` strings; a complete set
