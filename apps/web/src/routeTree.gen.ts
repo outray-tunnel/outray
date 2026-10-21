@@ -142,7 +142,6 @@ import { Route as OrgSlugUptimeStatusPageAnalyticsRouteImport } from './routes/$
 import { Route as OrgSlugUptimeStatusPageAppearanceRouteImport } from './routes/$orgSlug/uptime/status-page/appearance'
 import { Route as OrgSlugUptimeStatusPageComponentsRouteImport } from './routes/$orgSlug/uptime/status-page/components'
 import { Route as OrgSlugUptimeStatusPageDomainsRouteImport } from './routes/$orgSlug/uptime/status-page/domains'
-import { Route as OrgSlugUptimeStatusPageHeadlessRouteImport } from './routes/$orgSlug/uptime/status-page/headless'
 import { Route as OrgSlugUptimeStatusPagePublishingRouteImport } from './routes/$orgSlug/uptime/status-page/publishing'
 import { Route as OrgSlugUptimeStatusPageSubscribersRouteImport } from './routes/$orgSlug/uptime/status-page/subscribers'
 import { Route as ApiOrgSlugAgentChatRouteImport } from './routes/api/$orgSlug/agent/chat'
@@ -939,12 +938,6 @@ const OrgSlugUptimeStatusPageDomainsRoute =
     path: '/domains',
     getParentRoute: () => OrgSlugUptimeStatusPageRoute,
   } as any)
-const OrgSlugUptimeStatusPageHeadlessRoute =
-  OrgSlugUptimeStatusPageHeadlessRouteImport.update({
-    id: '/headless',
-    path: '/headless',
-    getParentRoute: () => OrgSlugUptimeStatusPageRoute,
-  } as any)
 const OrgSlugUptimeStatusPagePublishingRoute =
   OrgSlugUptimeStatusPagePublishingRouteImport.update({
     id: '/publishing',
@@ -1713,7 +1706,6 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/uptime/status-page/appearance': typeof OrgSlugUptimeStatusPageAppearanceRoute
   '/$orgSlug/uptime/status-page/components': typeof OrgSlugUptimeStatusPageComponentsRoute
   '/$orgSlug/uptime/status-page/domains': typeof OrgSlugUptimeStatusPageDomainsRoute
-  '/$orgSlug/uptime/status-page/headless': typeof OrgSlugUptimeStatusPageHeadlessRoute
   '/$orgSlug/uptime/status-page/publishing': typeof OrgSlugUptimeStatusPagePublishingRoute
   '/$orgSlug/uptime/status-page/subscribers': typeof OrgSlugUptimeStatusPageSubscribersRoute
   '/api/$orgSlug/agent/chat': typeof ApiOrgSlugAgentChatRoute
@@ -1944,7 +1936,6 @@ export interface FileRoutesByTo {
   '/$orgSlug/uptime/status-page/appearance': typeof OrgSlugUptimeStatusPageAppearanceRoute
   '/$orgSlug/uptime/status-page/components': typeof OrgSlugUptimeStatusPageComponentsRoute
   '/$orgSlug/uptime/status-page/domains': typeof OrgSlugUptimeStatusPageDomainsRoute
-  '/$orgSlug/uptime/status-page/headless': typeof OrgSlugUptimeStatusPageHeadlessRoute
   '/$orgSlug/uptime/status-page/publishing': typeof OrgSlugUptimeStatusPagePublishingRoute
   '/$orgSlug/uptime/status-page/subscribers': typeof OrgSlugUptimeStatusPageSubscribersRoute
   '/api/$orgSlug/agent/chat': typeof ApiOrgSlugAgentChatRoute
@@ -2184,7 +2175,6 @@ export interface FileRoutesById {
   '/$orgSlug/uptime/status-page/appearance': typeof OrgSlugUptimeStatusPageAppearanceRoute
   '/$orgSlug/uptime/status-page/components': typeof OrgSlugUptimeStatusPageComponentsRoute
   '/$orgSlug/uptime/status-page/domains': typeof OrgSlugUptimeStatusPageDomainsRoute
-  '/$orgSlug/uptime/status-page/headless': typeof OrgSlugUptimeStatusPageHeadlessRoute
   '/$orgSlug/uptime/status-page/publishing': typeof OrgSlugUptimeStatusPagePublishingRoute
   '/$orgSlug/uptime/status-page/subscribers': typeof OrgSlugUptimeStatusPageSubscribersRoute
   '/api/$orgSlug/agent/chat': typeof ApiOrgSlugAgentChatRoute
@@ -2425,7 +2415,6 @@ export interface FileRouteTypes {
     | '/$orgSlug/uptime/status-page/appearance'
     | '/$orgSlug/uptime/status-page/components'
     | '/$orgSlug/uptime/status-page/domains'
-    | '/$orgSlug/uptime/status-page/headless'
     | '/$orgSlug/uptime/status-page/publishing'
     | '/$orgSlug/uptime/status-page/subscribers'
     | '/api/$orgSlug/agent/chat'
@@ -2656,7 +2645,6 @@ export interface FileRouteTypes {
     | '/$orgSlug/uptime/status-page/appearance'
     | '/$orgSlug/uptime/status-page/components'
     | '/$orgSlug/uptime/status-page/domains'
-    | '/$orgSlug/uptime/status-page/headless'
     | '/$orgSlug/uptime/status-page/publishing'
     | '/$orgSlug/uptime/status-page/subscribers'
     | '/api/$orgSlug/agent/chat'
@@ -2895,7 +2883,6 @@ export interface FileRouteTypes {
     | '/$orgSlug/uptime/status-page/appearance'
     | '/$orgSlug/uptime/status-page/components'
     | '/$orgSlug/uptime/status-page/domains'
-    | '/$orgSlug/uptime/status-page/headless'
     | '/$orgSlug/uptime/status-page/publishing'
     | '/$orgSlug/uptime/status-page/subscribers'
     | '/api/$orgSlug/agent/chat'
@@ -4055,13 +4042,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugUptimeStatusPageDomainsRouteImport
       parentRoute: typeof OrgSlugUptimeStatusPageRoute
     }
-    '/$orgSlug/uptime/status-page/headless': {
-      id: '/$orgSlug/uptime/status-page/headless'
-      path: '/headless'
-      fullPath: '/$orgSlug/uptime/status-page/headless'
-      preLoaderRoute: typeof OrgSlugUptimeStatusPageHeadlessRouteImport
-      parentRoute: typeof OrgSlugUptimeStatusPageRoute
-    }
     '/$orgSlug/uptime/status-page/publishing': {
       id: '/$orgSlug/uptime/status-page/publishing'
       path: '/publishing'
@@ -4938,7 +4918,6 @@ interface OrgSlugUptimeStatusPageRouteChildren {
   OrgSlugUptimeStatusPageAppearanceRoute: typeof OrgSlugUptimeStatusPageAppearanceRoute
   OrgSlugUptimeStatusPageComponentsRoute: typeof OrgSlugUptimeStatusPageComponentsRoute
   OrgSlugUptimeStatusPageDomainsRoute: typeof OrgSlugUptimeStatusPageDomainsRoute
-  OrgSlugUptimeStatusPageHeadlessRoute: typeof OrgSlugUptimeStatusPageHeadlessRoute
   OrgSlugUptimeStatusPagePublishingRoute: typeof OrgSlugUptimeStatusPagePublishingRoute
   OrgSlugUptimeStatusPageSubscribersRoute: typeof OrgSlugUptimeStatusPageSubscribersRoute
   OrgSlugUptimeStatusPageIndexRoute: typeof OrgSlugUptimeStatusPageIndexRoute
@@ -4953,7 +4932,6 @@ const OrgSlugUptimeStatusPageRouteChildren: OrgSlugUptimeStatusPageRouteChildren
     OrgSlugUptimeStatusPageComponentsRoute:
       OrgSlugUptimeStatusPageComponentsRoute,
     OrgSlugUptimeStatusPageDomainsRoute: OrgSlugUptimeStatusPageDomainsRoute,
-    OrgSlugUptimeStatusPageHeadlessRoute: OrgSlugUptimeStatusPageHeadlessRoute,
     OrgSlugUptimeStatusPagePublishingRoute:
       OrgSlugUptimeStatusPagePublishingRoute,
     OrgSlugUptimeStatusPageSubscribersRoute:
