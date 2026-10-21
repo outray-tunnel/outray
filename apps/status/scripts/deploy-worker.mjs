@@ -31,8 +31,9 @@ function run(command, args, options = {}) {
 }
 
 // Read only these Status credentials from the running Node deployment. Neither
-// DATABASE_URL nor unrelated dashboard/ingestion/OAuth credentials leave it.
-const names = ["UPTIME_RATE_LIMIT_SECRET", "UPTIME_UNSUBSCRIBE_SECRET", "ZEPTO_API_KEY", "ZEPTO_FROM_EMAIL", "ZEPTO_FROM_NAME"];
+// DATABASE_URL nor unrelated dashboard/OAuth credentials leave it. Analytics
+// uses the same scoped append token as the existing Tinybird pipeline.
+const names = ["UPTIME_RATE_LIMIT_SECRET", "UPTIME_UNSUBSCRIBE_SECRET", "ZEPTO_API_KEY", "ZEPTO_FROM_EMAIL", "ZEPTO_FROM_NAME", "TINYBIRD_API_HOST", "TINYBIRD_INGEST_TOKEN"];
 const remoteCode = `try{const {execFileSync}=require("node:child_process");const p=JSON.parse(execFileSync("pm2",["jlist"],{encoding:"utf8",stdio:["ignore","pipe","pipe"],maxBuffer:4194304})).find(p=>p.name==="outray-status");if(!p)throw Error("Status process not found");const names=${JSON.stringify(names)};const out={};for(const n of names)if(typeof p.pm2_env[n]==="string"&&p.pm2_env[n])out[n]=p.pm2_env[n];process.stdout.write(JSON.stringify(out));}catch{process.stderr.write("Cannot read Status configuration\\n");process.exitCode=1;}`;
 let credentials;
 try {
@@ -46,7 +47,7 @@ try {
   // execFileSync errors carry stdout/stderr; never print the captured secrets.
   throw new Error("Could not read Status credentials over verified SSH");
 }
-for (const name of ["UPTIME_RATE_LIMIT_SECRET", "UPTIME_UNSUBSCRIBE_SECRET", "ZEPTO_API_KEY"]) {
+for (const name of ["UPTIME_RATE_LIMIT_SECRET", "UPTIME_UNSUBSCRIBE_SECRET", "ZEPTO_API_KEY", "TINYBIRD_API_HOST", "TINYBIRD_INGEST_TOKEN"]) {
   if (!credentials[name]) throw new Error(`Status source is missing ${name}`);
 }
 run("npm", ["run", "build:worker"]);
