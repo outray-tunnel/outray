@@ -11,8 +11,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (context.url.pathname === "/_image") {
     return new Response("Not found", { status: 404 });
   }
-  const analyticsPage = context.url.pathname.match(/^\/api\/v1\/pages\/([^/]+)\/analytics\/?$/)?.[1];
-  const headlessPost = context.request.method === "POST" && !!analyticsPage && headlessPolicy.PUBLIC_STATUS_ID.test(analyticsPage);
+  const headlessPage = context.url.pathname.match(/^\/api\/v1\/pages\/([^/]+)\/(?:analytics|subscribe)\/?$/)?.[1];
+  const headlessPost = context.request.method === "POST" && !!headlessPage && headlessPolicy.PUBLIC_STATUS_ID.test(headlessPage);
   const contentType = context.request.headers.get("content-type")?.toLowerCase();
   const formLike = !contentType || ["application/x-www-form-urlencoded", "multipart/form-data", "text/plain"].some((type) => contentType.includes(type));
   const invalidOrigin = context.request.headers.has("origin") ? !isSameOrigin(context.request) : formLike;
