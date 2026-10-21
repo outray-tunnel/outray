@@ -2,12 +2,13 @@ import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-r
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import { isSortable, useSortable } from "@dnd-kit/react/sortable";
 import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable";
-import { Activity, ArrowUpRight, Check, ChevronDown, Code2, Eye, ExternalLink, Folder, Globe2, GripVertical, ImagePlus, Layers3, LoaderCircle, Mail, Palette, Plus, Radio, ShieldCheck } from "lucide-react";
+import { Activity, ArrowUpRight, Check, ChevronDown, Eye, ExternalLink, Folder, Globe2, GripVertical, ImagePlus, Layers3, LoaderCircle, Mail, Palette, Plus, Radio, ShieldCheck } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { type UptimeComponent, type UptimeGroup, type UptimeMonitor, type UptimePage, uptimeApiPath, uptimeRequest, useUptimeResource, statusPagePath } from "@/components/uptime/uptime-client";
 import { UptimeHeaderSkeleton, UptimeSkeleton, UptimeSummarySkeleton } from "@/components/uptime/uptime-skeleton";
 import { useStatusPageEditor } from "@/components/uptime/status-page-editor-context";
 import { StatusPageEditorProvider } from "@/components/uptime/status-page-editor-provider";
+import { StatusPageHeadlessButton } from "@/components/uptime/status-page-headless";
 import { labelClass, secondaryButton, StateBadge, UptimeCheckbox, UptimeError, UptimePageHeading, UptimePanel } from "@/components/uptime/uptime-ui";
 import { preferredStatusPageUrl, statusPageOrigin, statusPagePreviewUrl, statusPageUrl } from "@/lib/uptime/status-url";
 import { moveStatusLayout, type StatusLayout } from "@/lib/uptime/status-layout";
@@ -38,7 +39,6 @@ const editorTabs = [
   { label: "Appearance", to: "/$orgSlug/uptime/status-page/appearance", icon: Palette },
   { label: "Publishing", to: "/$orgSlug/uptime/status-page/publishing", icon: Globe2 },
   { label: "Custom domains", to: "/$orgSlug/uptime/status-page/domains", icon: ExternalLink },
-  { label: "Headless", to: "/$orgSlug/uptime/status-page/headless", icon: Code2 },
 ] as const;
 
 function StatusPageLayout() {
@@ -84,7 +84,10 @@ function WorkspaceStatusPage({ orgSlug }: { orgSlug: string }) {
           <div className="flex flex-wrap items-center gap-2.5"><h1 className="min-w-0 break-words text-[20px] font-normal tracking-[-0.035em] text-zinc-100">{page.name}</h1><span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] ${page.published ? "border-emerald-400/15 bg-emerald-400/[0.06] text-emerald-300" : "border-white/[0.08] bg-white/[0.025] text-zinc-400"}`}><span className="size-1.5 rounded-full bg-current" aria-hidden="true" />{page.published ? "Published" : "Draft"}</span></div>
           <p className="mt-1 text-[12px] leading-5 text-zinc-500">Components, branding, and a home for your public updates.</p>
         </div>
-        {page.published && <a className={`${secondaryButton} gap-2`} href={statusPagePreviewUrl(statusPageOrigin(import.meta.env.VITE_OUTRAY_STATUS_URL, import.meta.env.DEV), page)} target="_blank" rel="noopener noreferrer">View page <ExternalLink size={14} aria-hidden="true" /></a>}
+        <div className="flex items-center gap-2">
+          <StatusPageHeadlessButton />
+          {page.published && <a className={`${secondaryButton} gap-2`} href={statusPagePreviewUrl(statusPageOrigin(import.meta.env.VITE_OUTRAY_STATUS_URL, import.meta.env.DEV), page)} target="_blank" rel="noopener noreferrer">View page <ExternalLink size={14} aria-hidden="true" /></a>}
+        </div>
       </header>
       <nav aria-label="Status page sections" className="mb-6 border-b border-white/[0.07] pb-4"><SegmentedControl label="Status page section" options={editorTabs.map(({ label }) => ({ value: label, label }))} value={selectedTab} onValueChange={(label) => { const tab = editorTabs.find((item) => item.label === label); if (tab) void navigate({ to: tab.to, params: { orgSlug }, search: { pageId: page.id } }); }} /></nav>
       {monitorData.error && ["Components", "Overview"].includes(selectedTab) && <div className="mb-4 space-y-2"><UptimeError message={monitorData.error} /><Button type="button" variant="secondary" size="sm" onClick={monitorData.reload}>Retry monitors</Button></div>}
