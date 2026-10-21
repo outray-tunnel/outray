@@ -1,6 +1,8 @@
 import { defineMiddleware } from "astro:middleware";
 import { getStatusRuntime } from "./lib/runtime";
 import { snapshotResponse } from "./lib/snapshots";
+import { isSameOrigin } from "./lib/security";
+import headlessPolicy from "../../../shared/status-headless";
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const startedAt = Date.now();
@@ -8,6 +10,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Sharp-backed image endpoint unreachable on the Node runtime as well.
   if (context.url.pathname === "/_image") {
     return new Response("Not found", { status: 404 });
+  }
+  const analyticsPage = context.url.pathname.match(/^\/api\/v1\/pages\/([^/]+)\/analytics\/?$/)?.[1];
+  const headlessPost = context.request.method === "POST" && !!analyticsPage && headlessPolicy.PUBLIC_STATUS_ID.test(analyticsPage);
+  const contentType = context.request.headers.get("content-type")?.toLowerCase();
+  const formLike = !contentType || ["application/x-www-form-urlencoded", "multipart/form-data", "text/plain"].some((type) => contentType.includes(type));
+  const invalidOrigin = context.request.headers.has("origin") ? !isSameOrigin(context.request) : formLike;
+  if (!["GET", "HEAD", "OPTIONS"].includes(context.request.method) && !headlessPost && invalidOrigin) {
+    return new Response("Invalid origin", { status: 403, headers: { "Cache-Control": "no-store" } });
   }
   const respond = async () => {
     const response = await next();
