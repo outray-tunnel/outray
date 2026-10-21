@@ -11,10 +11,12 @@ compose ps` to inspect services, and `docker compose logs --tail=100 server agen
 for diagnostics. The health endpoint is `https://ci.outray.dev/healthz` (HTTP 204).
 
 The repository workflow is `.woodpecker/ci.yaml`. Pushes to either `main` or
-`next` install dependencies, apply checked-in PostgreSQL migrations, build the edge, status renderer, and uptime probe,
-deploy Tinybird endpoints, then deploy Status, Edge, and the uptime probe as
-separate, health-gated steps. Status is deployed first so the edge has a healthy
-upstream; the probe is deployed last. Each step copies only its own artifacts.
+`next` install dependencies, apply checked-in PostgreSQL migrations, build the edge,
+Node status renderer, and uptime probe, deploy Tinybird endpoints, then deploy
+Edge and the uptime probe as separate, health-gated steps. The probe is deployed
+last. Hosted Status builds and deploys directly through Cloudflare Workers Builds;
+Woodpecker does not deploy or restart it. The Node Status build remains a compile
+check and is available to ordinary VPS/self-hosted deployments and manual rollback.
 These are serial steps in one workflow, not independently triggered workflows.
 The edge VPS must run Node.js 22.19.0 or later, matching the build toolchain.
 Both deployment paths generate production-only runtime manifests before copying
@@ -38,6 +40,16 @@ Required repository secrets, with pull-request exposure disabled:
 | `edge_ssh_key` | Push, Manual | SSH from CI to the edge VPS. |
 | `ops_secrets_token` | Push, Manual | Production-environment-scoped Secrets Read token for the self-hosted Ops instance. |
 | `database_url` | Push, Manual | Production PostgreSQL URL used only by the migration step. |
+
+The hosted Status Worker is connected to `outray-tunnel/outray`, production
+branch `next`, in Cloudflare. Its publish script waits for the exact commit's
+`ci/woodpecker/push/ci` status to succeed before deploying, so database migrations
+and Tinybird resources cannot be overtaken by a parallel Cloudflare build.
+Other GitHub checks are not used as this release gate. Failed, timed-out, or
+superseded commits are not deployed. No database URL or SSH key is supplied to
+Cloudflare Builds. See [Status deployment settings](../../apps/status/README.md#direct-github-deployment-cloudflare-workers-builds).
+The previously configured `cloudflare_api_token` secret is not used by this
+Woodpecker workflow; it may remain available for an explicit manual fallback.
 
 The edge deployment key is already generated in
 `/opt/woodpecker/secrets/edge-deploy` on the CI VPS. Its public key is restricted
