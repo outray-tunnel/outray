@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Analytics from "./Analytics.astro";
 import ComponentHistoryChart from "./ComponentHistoryChart";
 import GetUpdates from "./GetUpdates";
 import { getStatusConfig } from "../lib/config";
@@ -79,6 +80,7 @@ const groupStateClasses: Record<PublicState, string> = {
 };
 ---
 <BaseLayout title={showStatusSuffix ? `${page.name} status` : page.name} description={page.description || `Current status and incident history for ${page.name}.`} accent={page.accentColor} canonical={page.canonicalUrl} faviconUrl={page.logoUrl}>
+  <Analytics slug={page.slug} />
   <main class="mx-auto w-[min(100%_-_48px,800px)] pt-[38px] pb-[88px] max-[600px]:w-[min(100%_-_32px,800px)] max-[600px]:pt-6 max-[600px]:pb-[62px]">
     <header class="mb-16 flex items-center justify-between gap-5 max-[600px]:mb-[54px] max-[420px]:items-start">
       <div class="flex min-w-0 items-center gap-3">
