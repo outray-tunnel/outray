@@ -41,6 +41,54 @@ Required in production:
 
 Optional: `ZEPTO_FROM_EMAIL` (defaults to `no-reply@outray.co`), `DATABASE_SSL_REJECT_UNAUTHORIZED=false` only for a trusted private database connection, `UPTIME_ENABLED=false` to disable public pages and signups.
 
+## Direct GitHub deployment: Cloudflare Workers Builds
+
+Hosted `outray-status-worker` is connected directly to `outray-tunnel/outray`.
+Production builds use `next`; preview builds are disabled because this Worker
+uses production Hyperdrive and subscription secrets. Existing routes, custom
+domains, and TLS settings are unchanged by code deployments.
+
+Build settings:
+
+- Root directory: `apps/status`
+- Node version: build variable `NODE_VERSION=22.23.2`
+- Custom installation: build variable `SKIP_DEPENDENCY_INSTALL=true`
+- Build caching: enabled
+- Build command (run from the configured root directory):
+
+  ```sh
+  cd ../.. && HUGEICONS_LICENSE_KEY= OUTRAY_ICON_MODE=free npm ci --ignore-scripts --workspace=outray-status --workspace=@outray/incident-content --no-audit --include=dev && npm run build --workspace=@outray/incident-content && npm run build:worker --workspace=outray-status
+  ```
+
+- Deploy command: `node scripts/deploy-from-git.mjs`
+
+The scoped install does not install the console or require a Hugeicons license.
+The shared incident-content package is built before Astro. Runtime secrets stay
+in the Worker's **Runtime variables and secrets** settings; do not put the database
+URL, email token, analytics token, or SSH keys in build variables. Hyperdrive
+supplies the runtime database connection.
+
+`deploy-from-git.mjs` waits up to 20 minutes for the same commit's successful
+`ci/woodpecker/push/ci` GitHub status. Woodpecker continues to apply PostgreSQL
+migrations and deploy Tinybird before that check succeeds, but no longer deploys
+hosted Status. This keeps code builds on Cloudflare while preventing a migration
+race. A failed pipeline, unavailable status API, or superseded commit stops the
+release; existing Worker code stays active. The repository is public, so no
+GitHub API credential is needed (an optional `GITHUB_TOKEN` supports authenticated
+status reads if required). After deployment, the script checks the Worker health.
+
+Keep this publish script and the Woodpecker change in the same pushed revision.
+To validate its release rules without deploying:
+
+```sh
+node --test apps/status/scripts/deploy-from-git.test.mjs
+```
+
+The existing `scripts/deploy-worker.mjs` remains an explicit manual bootstrap or
+fallback: it can sync allowlisted credentials from a VPS and deploy. Direct GitHub
+builds do not use it or depend on SSH access. Ordinary Node builds and self-hosted
+updates remain unchanged.
+
 ## Status-page analytics
 
 Each page has an **Analytics** tab in the console. Collection and reports are
