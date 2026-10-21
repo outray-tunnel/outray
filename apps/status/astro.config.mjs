@@ -33,8 +33,9 @@ export default defineConfig({
     ssr: { noExternal: ["motion", "framer-motion", "motion-dom", "motion-utils"] },
   },
   security: {
-    // Cross-origin headless analytics is intentional. Middleware retains the
-    // same-origin write guard everywhere else; the collector checks its allowlist.
+    // Headless analytics and double-opt-in signup intentionally accept cross-origin
+    // POSTs. Middleware retains the same-origin write guard everywhere else;
+    // analytics checks its allowlist and signup reuses the hosted abuse limits.
     checkOrigin: false,
     // Astro's CSP hash generation runs during builds, not the Vite dev server.
     csp: process.env.NODE_ENV === "production" ? {
