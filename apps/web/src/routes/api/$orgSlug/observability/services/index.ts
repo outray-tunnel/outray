@@ -18,7 +18,7 @@ interface ServiceCatalogRow {
   p95_duration_ms: number;
   operations_per_minute: number;
   uses_server_spans: number | boolean;
-  health: "healthy" | "degraded" | "critical";
+  health: "healthy" | "degraded" | "critical" | "unknown";
   total_service_count: number;
   total_operation_count: number;
   total_error_count: number;
@@ -87,7 +87,6 @@ export const Route = createFileRoute("/api/$orgSlug/observability/services/")({
                   organization_id: organizationId,
                   hours,
                   service,
-                  limit: 250,
                 }),
                 queryTinybird<ServiceTrafficRow>("service_traffic", {
                   organization_id: organizationId,
