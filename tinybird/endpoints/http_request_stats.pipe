@@ -1,7 +1,7 @@
 TOKEN OUTRAY_QUERY_TOKEN READ
 
 DESCRIPTION >
-    HTTP request volume, errors, latency, and capture-state totals without page limits.
+    HTTP request volume, server/span failures, separate 4xx rates, latency, and capture-state totals without page limits.
 
 NODE http_spans
 SQL >
@@ -58,7 +58,8 @@ SQL >
             nullIf(SpanAttributes['outray.http.response.status_code'], ''),
             '0'
         )) AS status_code,
-        StatusCode = 2 OR status_code >= 400 AS is_error,
+        StatusCode = 2 OR status_code >= 500 AS is_error,
+        status_code >= 400 AND status_code < 500 AS is_client_error,
         DurationNano / 1000000 AS duration_ms,
         mapContains(SpanAttributes, 'outray.http.request.headers')
             OR mapContains(SpanAttributes, 'outray.http.request.body')
@@ -115,7 +116,8 @@ SQL >
     {% if defined(status) %}
       AND multiIf(
           {{String(status)}} = 'errors', is_error,
-          {{String(status)}} = 'success', not is_error,
+          {{String(status)}} = 'client_errors', is_client_error,
+          {{String(status)}} = 'success', status_code >= 200 AND status_code < 400 AND not is_error,
           true
       )
     {% end %}
@@ -138,6 +140,14 @@ SQL >
       )
     {% end %}
 
+NODE client_error_breakdown
+SQL >
+    %
+    SELECT status_code, count() AS request_count
+    FROM filtered_requests
+    WHERE is_client_error
+    GROUP BY status_code
+
 NODE statistics
 SQL >
     %
@@ -149,6 +159,16 @@ SQL >
             0,
             round(error_requests / total_requests * 100, 2)
         ) AS error_rate,
+        countIf(is_client_error) AS client_error_requests,
+        if(
+            total_requests = 0,
+            0,
+            round(client_error_requests / total_requests * 100, 2)
+        ) AS client_error_rate,
+        (
+            SELECT groupArray(tuple(status_code, request_count))
+            FROM client_error_breakdown
+        ) AS client_errors_by_status,
         if(
             total_requests = 0,
             0,
