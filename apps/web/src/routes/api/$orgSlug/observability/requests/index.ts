@@ -31,6 +31,9 @@ interface HttpRequestStatsRow {
   total_requests: number;
   error_requests: number;
   error_rate: number;
+  client_error_requests?: number;
+  client_error_rate?: number;
+  client_errors_by_status?: Array<[number, number]>;
   p95_duration_ms: number;
   payload_capture_count: number;
   metadata_count: number;
@@ -52,7 +55,7 @@ const RANGE_HOURS: Record<string, number> = {
   "30d": 720,
 };
 
-const STATUS_FILTERS = new Set(["success", "errors"]);
+const STATUS_FILTERS = new Set(["success", "errors", "client_errors"]);
 const CAPTURE_FILTERS = new Set(["metadata", "full", "redacted"]);
 
 export const Route = createFileRoute("/api/$orgSlug/observability/requests/")({
@@ -74,6 +77,7 @@ export const Route = createFileRoute("/api/$orgSlug/observability/requests/")({
           requestedStatus && STATUS_FILTERS.has(requestedStatus)
             ? requestedStatus
             : undefined;
+        const statusCode = requestedStatus && /^4\d{2}$/.test(requestedStatus) ? Number(requestedStatus) : undefined;
         const requestedCapture = url.searchParams.get("capture")?.trim();
         const capture =
           requestedCapture && CAPTURE_FILTERS.has(requestedCapture)
@@ -97,6 +101,7 @@ export const Route = createFileRoute("/api/$orgSlug/observability/requests/")({
               service,
               method,
               status,
+              statusCode,
               capture,
               limit,
               includeFacets,
@@ -111,6 +116,7 @@ export const Route = createFileRoute("/api/$orgSlug/observability/requests/")({
                   service,
                   method,
                   status,
+                  status_code: statusCode,
                   capture,
                   limit,
                   before_timestamp: cursor?.timestamp,
@@ -124,6 +130,7 @@ export const Route = createFileRoute("/api/$orgSlug/observability/requests/")({
                   service,
                   method,
                   status,
+                  status_code: statusCode,
                   capture,
                 }),
                 includeFacets
@@ -149,6 +156,12 @@ export const Route = createFileRoute("/api/$orgSlug/observability/requests/")({
               totalRequests: Number(stats?.total_requests || 0),
               errorCount: Number(stats?.error_requests || 0),
               errorRate: Number(stats?.error_rate || 0),
+              clientErrorCount: stats?.client_error_requests == null ? null : Number(stats.client_error_requests),
+              clientErrorRate: stats?.client_error_rate == null ? null : Number(stats.client_error_rate),
+              clientErrorsByStatus: (stats?.client_errors_by_status || [])
+                .map(([code, count]) => ({ statusCode: Number(code), count: Number(count) }))
+                .filter(({ statusCode, count }) => Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 500 && Number.isFinite(count) && count > 0)
+                .sort((left, right) => right.count - left.count || left.statusCode - right.statusCode),
               p95Duration: Number(stats?.p95_duration_ms || 0),
               payloadCaptureCount: Number(stats?.payload_capture_count || 0),
               metadataCount: Number(stats?.metadata_count || 0),
