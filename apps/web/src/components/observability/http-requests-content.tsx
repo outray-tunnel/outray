@@ -75,13 +75,19 @@ export function HttpRequestsContent(props: HttpRequestsContentProps) {
       </header>
 
       {loading && !data ? <StatisticsSkeleton /> : data ? (
-        <section aria-label="Request summary" className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.06] xl:grid-cols-4">
+        <section aria-label="Request summary" className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.06] xl:grid-cols-5">
           <RequestMetric label="Requests" value={formatHttpRequestNumber(data.statistics.totalRequests)} detail={`Matching requests · Last ${range}`} />
-          <RequestMetric label="Error rate" value={measured && Number.isFinite(data.statistics.errorRate) && data.statistics.errorRate >= 0 ? `${formatHttpRequestNumber(data.statistics.errorRate)}%` : "—"} detail={`${formatHttpRequestNumber(data.statistics.errorCount)} errors`} />
+          <RequestMetric label="Error rate" value={measured && Number.isFinite(data.statistics.errorRate) && data.statistics.errorRate >= 0 ? `${formatHttpRequestNumber(data.statistics.errorRate)}%` : "—"} detail={`${formatHttpRequestNumber(data.statistics.errorCount)} failures · 5xx or failed spans`} />
+          <RequestMetric label="4xx rate" value={measured && typeof data.statistics.clientErrorRate === "number" && Number.isFinite(data.statistics.clientErrorRate) && data.statistics.clientErrorRate >= 0 ? `${formatHttpRequestNumber(data.statistics.clientErrorRate)}%` : "—"} detail={`${formatHttpRequestNumber(data.statistics.clientErrorCount)} client responses`} />
           <RequestMetric label="P95 latency" value={measured ? formatHttpRequestDuration(data.statistics.p95Duration) : "—"} detail="Across matching requests" />
           <RequestMetric label="Payload captures" value={formatHttpRequestNumber(data.statistics.payloadCaptureCount)} detail={`${formatHttpRequestNumber(data.statistics.metadataCount)} metadata only`} />
         </section>
       ) : null}
+
+      {data?.statistics.clientErrorsByStatus?.length ? <div aria-label="4xx response breakdown" className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-400">
+        <span className="mr-1">4xx responses</span>
+        {data.statistics.clientErrorsByStatus.map(({ statusCode, count }) => <Button key={statusCode} type="button" variant="ghost" size="sm" aria-label={`Filter ${statusCode} responses, ${formatHttpRequestNumber(count)} requests`} aria-pressed={status === String(statusCode)} onClick={() => onStatusChange(String(statusCode) as StatusFilter)}>{statusCode}<span className="text-zinc-500">{formatHttpRequestNumber(count)}</span></Button>)}
+      </div> : null}
 
       <section aria-label="HTTP request inventory" className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#111112]">
         <div className="space-y-4 border-b border-white/[0.07] p-4">
@@ -93,7 +99,7 @@ export function HttpRequestsContent(props: HttpRequestsContentProps) {
           <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.15fr)]">
             <Select label="Service" value={service ? `service:${service}` : "all"} onValueChange={(value) => onServiceChange(value === "all" ? "" : value.slice("service:".length))} disabled={!facets.services.length && service === ""} options={serviceOptions(facets.services, service)} />
             <Select label="Method" value={method} onValueChange={onMethodChange} disabled={!facets.methods.length && method === "all"} options={facetOptions(facets.methods, method, "All methods")} />
-            <Select label="Status" value={status} onValueChange={(value) => onStatusChange(value as StatusFilter)} options={[{ value: "all", label: "All responses" }, { value: "success", label: "Successful" }, { value: "errors", label: "Errors" }]} />
+            <Select label="Status" value={status} onValueChange={(value) => onStatusChange(value as StatusFilter)} options={statusOptions(data, status)} />
             <Select label="Capture" value={capture} onValueChange={(value) => onCaptureChange(value as CaptureFilter)} options={[{ value: "all", label: "All capture states" }, { value: "full", label: "Captured" }, { value: "redacted", label: "Redacted" }, { value: "metadata", label: "Metadata only" }]} />
           </div>
           {hasFilters && <Button variant="ghost" size="sm" onClick={onResetFilters}>Clear filters</Button>}
@@ -171,7 +177,7 @@ function RequestMetric({ label, value, detail }: { label: string; value: string;
 }
 
 function StatisticsSkeleton() {
-  return <section aria-label="Loading request summary" aria-busy="true" className="grid animate-pulse grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.06] motion-reduce:animate-none xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} aria-hidden="true" className="bg-[#111112] px-4 py-3.5"><div className="h-4 w-20 rounded bg-zinc-800/70" /><div className="mt-1.5 h-8 w-24 rounded bg-zinc-800/70" /><div className="mt-1 h-4 w-28 max-w-full rounded bg-zinc-800/50" /></div>)}</section>;
+  return <section aria-label="Loading request summary" aria-busy="true" className="grid animate-pulse grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.06] motion-reduce:animate-none xl:grid-cols-5">{Array.from({ length: 5 }, (_, index) => <div key={index} aria-hidden="true" className="bg-[#111112] px-4 py-3.5"><div className="h-4 w-20 rounded bg-zinc-800/70" /><div className="mt-1.5 h-8 w-24 rounded bg-zinc-800/70" /><div className="mt-1 h-4 w-28 max-w-full rounded bg-zinc-800/50" /></div>)}</section>;
 }
 
 function RequestRowsSkeleton() {
@@ -190,5 +196,16 @@ function serviceOptions(values: string[], current: string) {
   // Prefix actual identities so a service named "all" stays distinct from the
   // unfiltered option, and Radix never needs an empty item value.
   return [{ value: "all", label: "All services" }, ...Array.from(new Set([...values, ...(current ? [current] : [])])).filter(Boolean).sort().map((value) => ({ value: `service:${value}`, label: value }))];
+}
+function statusOptions(data: RequestsResponse | null | undefined, current: StatusFilter) {
+  const codes = new Set([401, 403, 404, 429, ...(data?.statistics.clientErrorsByStatus?.map((row) => row.statusCode) ?? [])]);
+  if (/^4\d{2}$/.test(current)) codes.add(Number(current));
+  return [
+    { value: "all", label: "All responses" },
+    { value: "success", label: "Successful (2xx / 3xx)" },
+    { value: "errors", label: "5xx / failed spans" },
+    { value: "client_errors", label: "Client responses (4xx)" },
+    ...[...codes].sort((left, right) => left - right).map((code) => ({ value: String(code), label: `HTTP ${code}` })),
+  ];
 }
 function safeBytes(value: number) { return Number.isFinite(value) && value >= 0 ? formatBytes(value, 1) : "—"; }
