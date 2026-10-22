@@ -14,6 +14,8 @@ Keep `serviceName` stable and descriptive, such as `orders-api`. Use `serviceVer
 
 Service details shows operations, throughput, error rate, and P95 latency for the selected period. Where server spans are available, operations and throughput represent completed server operations. Otherwise they can represent reported spans; do not assume every span is one incoming HTTP request.
 
+Error rate counts HTTP 5xx responses or spans explicitly marked as failed, using the same failure definition as Requests and request-error alerts. Ordinary 4xx responses do not increase it; use Requests to inspect their separate rate and status-code breakdown.
+
 P95 describes the measured distribution, not the slowest request. For a specific operation, follow the links to [Requests or Traces](/docs/observability/requests-and-traces). Resource details show the environment, namespace, version, region if reported, instrumentation scope, and last span.
 
 ## Interpret health cautiously
