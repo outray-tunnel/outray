@@ -12,6 +12,8 @@ Open **Observability → Alerts**, create an alert, and select the service and o
 
 Choose a signal that answers a specific question. For example, error rate describes failed measured requests, while **no telemetry** asks whether the selected service is reporting evidence. It is not an HTTP probe; use [Uptime](/docs/uptime) for reachability.
 
+Request error rate counts HTTP 5xx responses or server spans explicitly marked as failed. Ordinary 4xx responses do not trigger this signal; they remain visible in the separate Requests 4xx rate and status-code filters.
+
 Metric-value alerts require a cataloged **gauge** metric. Select its catalog identity and aggregation (latest, average, maximum, or minimum), not only a display name. Log-count alerts can restrict severity and search text.
 
 ## Set evaluation behavior
