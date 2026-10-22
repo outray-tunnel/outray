@@ -129,6 +129,28 @@ test("instrumented requests use compact native rows and real custom filters with
   assert.doesNotMatch(html, /Export|<tr[^>]*tabindex=|<option\b/);
 });
 
+test("server failures and 4xx rates remain distinct, with a clickable per-code breakdown", async () => {
+  const snapshot = { ...data, statistics: { ...data.statistics, clientErrorCount: 10, clientErrorRate: 8,
+    clientErrorsByStatus: [{ statusCode: 401, count: 7 }, { statusCode: 429, count: 3 }] } };
+  const html = render({ data: snapshot });
+  assert.match(html, /5 failures · 5xx or failed spans/);
+  assert.match(html, /4xx rate/); assert.match(html, /8%/); assert.match(html, /10 client responses/);
+  assert.match(html, /aria-label="4xx response breakdown"/);
+  const ui = await loadContent(); const selected: string[] = [];
+  const tree = ui.render({ data: snapshot, onStatusChange: (value) => selected.push(value) });
+  const code = tree.find((element) => element.props["aria-label"] === "Filter 401 responses, 7 requests");
+  assert.ok(code); code.props.onClick(); assert.deepEqual(selected, ["401"]);
+  const select = tree.find((element) => element.type === ui.stubs.Select && element.props.label === "Status");
+  assert.ok(select.props.options.some((option: any) => option.value === "client_errors"));
+  assert.ok(select.props.options.some((option: any) => option.value === "429"));
+});
+
+test("missing 4xx statistics during a rolling upgrade remain unknown rather than zero", () => {
+  const html = render();
+  assert.match(html, /4xx rate<\/p><p[^>]*>—<\/p>/);
+  assert.match(html, /— client responses/);
+});
+
 test("capture and HTTP status pills keep their intrinsic width in request grid columns", () => {
   for (const [state, label, dot] of [
     ["full", "Captured", "bg-emerald-400"],
