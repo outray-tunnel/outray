@@ -104,7 +104,8 @@ SQL >
             nullIf(SpanAttributes['outray.http.response.status_code'], ''),
             '0'
         )) AS status_code,
-        StatusCode = 2 OR status_code >= 400 AS is_error,
+        StatusCode = 2 OR status_code >= 500 AS is_error,
+        status_code >= 400 AND status_code < 500 AS is_client_error,
         round(DurationNano / 1000000, 3) AS duration_ms,
         toUInt64OrZero(coalesce(
             nullIf(SpanAttributes['outray.http.request.body.size'], ''),
@@ -173,7 +174,8 @@ SQL >
     {% if defined(status) %}
       AND multiIf(
           {{String(status)}} = 'errors', is_error,
-          {{String(status)}} = 'success', not is_error,
+          {{String(status)}} = 'client_errors', is_client_error,
+          {{String(status)}} = 'success', status_code >= 200 AND status_code < 400 AND not is_error,
           true
       )
     {% end %}
