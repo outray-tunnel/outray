@@ -29,10 +29,10 @@ test("standard and dynamic HTTP method tokens roundtrip with exact case and char
 });
 
 test("status, capture and nondefault ranges accept only their current DTO choices", () => {
-  for (const status of ["success", "errors"]) assert.deepEqual(parseHttpRequestsSearch({ status }), { status });
+  for (const status of ["success", "errors", "client_errors", "400", "401", "403", "404", "429", "499"]) assert.deepEqual(parseHttpRequestsSearch({ status }), { status });
   for (const capture of ["full", "metadata", "redacted"]) assert.deepEqual(parseHttpRequestsSearch({ capture }), { capture });
   for (const range of ["6h", "24h", "7d", "30d"]) assert.deepEqual(parseHttpRequestsSearch({ range }), { range });
-  for (const input of [{ status: "200" }, { status: "SUCCESS" }, { capture: "captured" }, { capture: "Full" }, { range: "live" }, { range: "6H" }, { range: "90d" }]) {
+  for (const input of [{ status: "200" }, { status: "500" }, { status: "4xx" }, { status: "401 OR 1=1" }, { status: "401 " }, { status: "SUCCESS" }, { capture: "captured" }, { capture: "Full" }, { range: "live" }, { range: "6H" }, { range: "90d" }]) {
     assert.deepEqual(parseHttpRequestsSearch(input), {});
   }
 });
