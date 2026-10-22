@@ -1,7 +1,25 @@
 TOKEN OUTRAY_QUERY_TOKEN READ
 
 DESCRIPTION >
-    Trace-derived service health and traffic statistics for one OutRay organization.
+    All discovered services, with trace-derived health and traffic statistics for the selected period.
+
+NODE service_inventory
+SQL >
+    %
+    SELECT
+        ServiceName AS id,
+        ServiceName AS name,
+        ServiceNamespace AS namespace,
+        ServiceVersion AS version,
+        Environment AS environment,
+        Region AS region,
+        ScopeName AS scope_name,
+        LastSeen AS last_seen
+    FROM observability_service_inventory FINAL
+    WHERE OrganizationId = {{String(organization_id)}}
+    {% if defined(service) %}
+      AND ServiceName = {{String(service)}}
+    {% end %}
 
 NODE service_modes
 SQL >
@@ -38,13 +56,6 @@ SQL >
     %
     SELECT
         ServiceName AS id,
-        ServiceName AS name,
-        argMaxIf(ServiceNamespace, Timestamp, notEmpty(ServiceNamespace)) AS namespace,
-        argMaxIf(ServiceVersion, Timestamp, notEmpty(ServiceVersion)) AS version,
-        argMaxIf(Environment, Timestamp, notEmpty(Environment)) AS environment,
-        argMaxIf(Region, Timestamp, notEmpty(Region)) AS region,
-        argMaxIf(ScopeName, Timestamp, notEmpty(ScopeName)) AS scope_name,
-        max(Timestamp) AS last_seen,
         count() AS operation_count,
         countIf(
             StatusCode = 2
@@ -62,17 +73,31 @@ SQL >
     FROM selected_spans
     GROUP BY ServiceName
 
+NODE service_activity
+SQL >
+    SELECT
+        inventory.*,
+        coalesce(activity.operation_count, 0) AS operation_count,
+        coalesce(activity.error_count, 0) AS error_count,
+        coalesce(activity.error_rate, 0) AS error_rate,
+        coalesce(activity.p95_duration_ms, 0) AS p95_duration_ms,
+        coalesce(activity.operations_per_minute, 0) AS operations_per_minute,
+        coalesce(activity.uses_server_spans, 0) AS uses_server_spans
+    FROM service_inventory AS inventory
+    LEFT JOIN service_rollup AS activity ON inventory.id = activity.id
+
 NODE service_health
 SQL >
     %
     SELECT
         *,
         multiIf(
+            operation_count = 0, 'unknown',
             error_rate >= 5 OR p95_duration_ms >= 1500, 'critical',
             error_rate >= 2 OR p95_duration_ms >= 750, 'degraded',
             'healthy'
         ) AS health
-    FROM service_rollup
+    FROM service_activity
 
 NODE catalog
 SQL >
@@ -87,12 +112,14 @@ SQL >
                 / (toFloat64({{Int32(hours, 24)}}) * 60),
             2
         ) AS total_operations_per_minute,
-        countIf(health != 'healthy') OVER () AS total_attention_count
+        countIf(health IN ('degraded', 'critical')) OVER () AS total_attention_count
     FROM service_health
     ORDER BY
-        multiIf(health = 'critical', 0, health = 'degraded', 1, 2),
+        multiIf(health = 'critical', 0, health = 'degraded', 1, health = 'healthy', 2, 3),
         operation_count DESC,
         name ASC
-    LIMIT {{Int32(limit, 250)}}
+    {% if defined(limit) %}
+    LIMIT {{Int32(limit)}}
+    {% end %}
 
 TYPE endpoint
