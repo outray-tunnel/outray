@@ -1,7 +1,7 @@
 import { parseServiceLastSeen } from "./services-data";
 
 export type RequestCaptureState = "full" | "metadata" | "redacted";
-export type StatusFilter = "all" | "success" | "errors";
+export type StatusFilter = "all" | "success" | "errors" | "client_errors" | `4${number}${number}`;
 export type CaptureFilter = "all" | RequestCaptureState;
 export type InspectorTab = "request" | "response" | "context";
 
@@ -65,6 +65,10 @@ export interface RequestStatistics {
   totalRequests: number;
   errorCount: number;
   errorRate: number;
+  // Optional during rolling upgrades from the previous query/API version.
+  clientErrorCount?: number | null;
+  clientErrorRate?: number | null;
+  clientErrorsByStatus?: Array<{ statusCode: number; count: number }>;
   p95Duration: number;
   payloadCaptureCount: number;
   metadataCount: number;
