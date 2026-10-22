@@ -14,7 +14,7 @@ export interface ServiceInventoryItem {
   p95Duration: number;
   operationsPerMinute: number;
   usesServerSpans: boolean;
-  health: Exclude<ServiceInventoryHealth, "unknown">;
+  health: ServiceInventoryHealth;
 }
 
 /** A catalog entry without measured operations is not evidence of health. */
