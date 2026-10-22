@@ -29,7 +29,7 @@ test("Alerts shares compact typography, Arc controls, fitted status badges and f
   assert.match(html, /New alert/); assert.match(html, /aria-haspopup="dialog"/);
   const rows = [...html.matchAll(/<a\b[^>]*href="[^"]*alerts\/rule-[^"]*"[\s\S]*?<\/a>/g)].map(([row]) => row);
   assert.equal(rows.length, 2); assert.match(rows[0], /API error rate/); assert.match(rows[0], /payments-worker/);
-  assert.match(rows[0], /5xx error rate &gt; 5% for 5m/); assert.match(rows[0], /8.25%/); assert.match(rows[0], /Firing/);
+  assert.match(rows[0], /Request error rate &gt; 5% for 5m/); assert.match(rows[0], /8.25%/); assert.match(rows[0], /Firing/);
   assert.doesNotMatch(html, /Export|text-\[9px\]|uppercase tracking|bg-violet/);
   const nativeSelects = [...html.matchAll(/<select\b[^>]*>/g)];
   assert.ok(nativeSelects.every(([element]) => element.includes('aria-hidden="true"') && element.includes('tabindex="-1"')));
