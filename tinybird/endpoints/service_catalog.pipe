@@ -48,8 +48,12 @@ SQL >
         count() AS operation_count,
         countIf(
             StatusCode = 2
-            OR toUInt16OrZero(SpanAttributes['http.response.status_code']) >= 500
-            OR toUInt16OrZero(SpanAttributes['http.status_code']) >= 500
+            OR toUInt16OrZero(coalesce(
+                nullIf(SpanAttributes['http.response.status_code'], ''),
+                nullIf(SpanAttributes['http.status_code'], ''),
+                nullIf(SpanAttributes['outray.http.response.status_code'], ''),
+                '0'
+            )) >= 500
         ) AS error_count,
         round(error_count / operation_count * 100, 2) AS error_rate,
         round(quantileTDigest(0.95)(DurationNano / 1000000), 2) AS p95_duration_ms,
