@@ -150,7 +150,7 @@ SQL >
             nullIf(SpanAttributes['outray.http.response.status_code'], ''),
             '0'
         )) AS status_code,
-        StatusCode = 2 OR status_code >= 400 AS is_error,
+        StatusCode = 2 OR status_code >= 500 AS is_error,
         StatusMessage AS status_message,
         round(DurationNano / 1000000, 3) AS duration_ms,
         SpanAttributes['outray.http.capture.version'] AS capture_version,
