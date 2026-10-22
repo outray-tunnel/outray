@@ -1,0 +1,20 @@
+DESCRIPTION >
+    Discover service identities from metrics without retaining metric payloads.
+
+NODE inventory
+SQL >
+    SELECT
+        OrganizationId,
+        toString(ServiceName) AS ServiceName,
+        argMax(toString(ServiceNamespace), Timestamp) AS ServiceNamespace,
+        argMax(toString(ServiceVersion), Timestamp) AS ServiceVersion,
+        argMax(toString(Environment), Timestamp) AS Environment,
+        argMax(toString(Region), Timestamp) AS Region,
+        argMax(toString(ScopeName), Timestamp) AS ScopeName,
+        max(Timestamp) AS LastSeen
+    FROM otel_metrics
+    WHERE notEmpty(ServiceName)
+    GROUP BY OrganizationId, ServiceName
+
+TYPE materialized
+DATASOURCE observability_service_inventory
