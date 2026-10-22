@@ -10,6 +10,8 @@ Open **Observability → Requests** and select a range containing the event. Nar
 
 Compare its HTTP status and measured duration with the request statistics for that selection. A successful HTTP response does not prove all downstream operations succeeded; inspect the trace and logs before concluding that a dependency was healthy.
 
+**Error rate** counts HTTP 5xx responses or server spans explicitly marked as failed, divided by matching requests. Ordinary 4xx responses do not increase it. The separate **4xx rate** counts client responses, with a clickable status-code breakdown and filters for codes such as 401, 403, and 429. **Successful** shows 2xx/3xx responses that are not marked as failed; 4xx responses are not labeled successful. A 4xx span explicitly marked as failed appears in both rates. All requests and logs remain captured under your existing capture settings.
+
 ## Understand captured details
 
 Request spans can provide method, route, status, duration, service, and trace context without recording bodies. Payload capture is [explicitly opt-in](/docs/observability/sdk-setup#optional-request-capture).
