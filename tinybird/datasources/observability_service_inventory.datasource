@@ -1,0 +1,19 @@
+DESCRIPTION >
+    Last reported identity for every discovered service. Kept independently of raw telemetry retention.
+
+SCHEMA >
+    `OrganizationId` LowCardinality(String),
+    `ServiceName` String,
+    `ServiceNamespace` String,
+    `ServiceVersion` String,
+    `Environment` String,
+    `Region` String,
+    `ScopeName` String,
+    `LastSeen` DateTime64(9)
+
+ENGINE "ReplacingMergeTree"
+ENGINE_SORTING_KEY "OrganizationId, ServiceName"
+ENGINE_VER LastSeen
+
+FORWARD_QUERY >
+    SELECT *
