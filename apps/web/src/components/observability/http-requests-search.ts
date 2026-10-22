@@ -12,7 +12,7 @@ export interface HttpRequestsSearch {
 }
 
 const invalidMethodCharacter = /[^!#$%&'*+\-.^_`|~0-9A-Za-z]/;
-const statuses = ["success", "errors"] as const;
+const statuses = ["success", "errors", "client_errors"] as const;
 const captures = ["full", "metadata", "redacted"] as const;
 const ranges = ["6h", "24h", "7d", "30d"] as const;
 
@@ -29,6 +29,7 @@ export function parseHttpRequestsSearch(input: Record<string, unknown>): HttpReq
   // Methods come from telemetry facets and can include custom RFC HTTP tokens.
   if (typeof input.method === "string" && input.method && input.method !== "all" && !invalidMethodCharacter.test(input.method)) parsed.method = input.method;
   if (isChoice(input.status, statuses)) parsed.status = input.status;
+  else if (typeof input.status === "string" && /^4\d{2}$/.test(input.status)) parsed.status = input.status as StatusFilter;
   if (isChoice(input.capture, captures)) parsed.capture = input.capture;
   if (isChoice(input.range, ranges)) parsed.range = input.range;
   return parsed;
