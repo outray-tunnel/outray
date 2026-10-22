@@ -457,6 +457,15 @@ function RequestContext({
       </div>
       <InspectorSection
         title="Correlated logs"
+        action={
+          logs.length ? (
+            <InspectorCopyButton
+              value={JSON.stringify(logs, null, 2)}
+              label="Copy correlated logs"
+              {...feedback}
+            />
+          ) : undefined
+        }
         titleAccessory={
           request.traceId ? (
             <Link
