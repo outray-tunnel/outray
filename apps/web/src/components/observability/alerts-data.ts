@@ -108,7 +108,7 @@ export function normalizeAlertsSearch(input: unknown): AlertsSearch {
 export function filterAlerts(alerts: AlertRecord[], input: AlertsSearch): AlertRecord[] {
   const filters = normalizeAlertsSearch(input);
   const search = filters.search?.toLocaleLowerCase();
-  return alerts.filter((alert) => (!search || [alert.name, alert.description, alert.service, alert.environment, signalLabel(alert.signal), alert.metricName, alert.logQuery].some((value) => value?.toLocaleLowerCase().includes(search))) &&
+  return alerts.filter((alert) => (!search || [alert.name, alert.description, alert.service, alert.environment, signalLabel(alert.signal), signalOptions.find((option) => option.value === alert.signal)?.description, alert.metricName, alert.logQuery].some((value) => value?.toLocaleLowerCase().includes(search))) &&
     (!filters.service || alert.service === filters.service) && (!filters.signal || alert.signal === filters.signal) && (!filters.state || getEffectiveState(alert) === filters.state));
 }
 
@@ -132,8 +132,8 @@ export const signalOptions: Array<{
 }> = [
   {
     value: "request_error_rate",
-    label: "5xx error rate",
-    description: "OTel errors and HTTP responses at or above 500",
+    label: "Request error rate",
+    description: "HTTP 5xx responses or explicitly failed OTel server spans",
   },
   {
     value: "request_latency_p95",
