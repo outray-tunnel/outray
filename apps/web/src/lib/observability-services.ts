@@ -8,7 +8,6 @@ interface TraceServiceNameRow {
   name: string;
 }
 
-const SERVICE_INVENTORY_HOURS = 30 * 24;
 const defaultServiceNamesTtlMs = 5 * 60_000;
 const serviceNamesCache = new Map<
   string,
@@ -79,18 +78,14 @@ async function loadServiceNames(organizationId: string): Promise<string[]> {
       "service_names",
       {
         organization_id: organizationId,
-        hours: SERVICE_INVENTORY_HOURS,
-        limit: 250,
       },
     );
     names = rows.map((row) => row.service);
   } catch {
-    // Keep web deploys compatible while the union endpoint rolls out. The
-    // trace catalog is the closest existing inventory and uses the same window.
+    // The catalog can also supply names if the dedicated endpoint is unavailable.
+    // Both endpoints read the same persistent inventory.
     const rows = await queryTinybird<TraceServiceNameRow>("service_catalog", {
       organization_id: organizationId,
-      hours: SERVICE_INVENTORY_HOURS,
-      limit: 250,
     });
     names = rows.map((row) => row.name);
   }
