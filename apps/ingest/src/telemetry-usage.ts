@@ -2,6 +2,8 @@ import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import type pg from "pg";
 import usagePolicy from "../../../shared/telemetry-usage.js";
+import productUsage from "../../../shared/product-usage.js";
+const { recordProductUsage } = productUsage;
 import type { IngestAuthContext } from "./auth.js";
 
 const { TELEMETRY_USAGE_METRIC, telemetryUsagePeriod } = usagePolicy;
@@ -227,6 +229,16 @@ export async function enqueueWithTelemetryQuota<T extends NormalizedRecord>(
           accepted.map((chunk) => chunk.bytes),
         ],
       );
+      // Account only admitted chunks, in the same transaction as their receipts.
+      // Queue consumers never record these counters, so redelivery is free.
+      for (const chunk of accepted) {
+        const metric = signal === "traces" ? "observability.spans" : signal === "logs" ? "observability.logs" : "observability.metric_points";
+        await recordProductUsage(database, {
+          organizationId: auth.organizationId, source: "telemetry", id: chunk.key,
+          timestamp: now.toISOString(),
+          deltas: { "observability.telemetry_bytes": chunk.bytes, [metric]: chunk.records.length },
+        });
+      }
     }
     await database.query("COMMIT");
     transactionOpen = false;
