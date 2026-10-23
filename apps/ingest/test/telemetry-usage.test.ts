@@ -51,6 +51,7 @@ const bytes = (rows: Row[]) =>
 export class FakeUsageStore {
   counters = new Map<string, number>();
   receipts = new Map<string, { month: string; bytes: number }>();
+  permanent = new Map<string, bigint>();
   calls: string[] = [];
   unavailable = false;
   private tail: Promise<void> = Promise.resolve();
@@ -58,6 +59,7 @@ export class FakeUsageStore {
   connection(): UsageDatabase {
     let counters = new Map<string, number>();
     let receipts = new Map<string, { month: string; bytes: number }>();
+    let permanent = new Map<string, bigint>();
     let unlock: (() => void) | undefined;
     const store = this;
     const database = {
@@ -71,12 +73,14 @@ export class FakeUsageStore {
           await previous;
           counters = new Map(store.counters);
           receipts = new Map(store.receipts);
+          permanent = new Map(store.permanent);
           return { rows: [] };
         }
         if (sql === "COMMIT" || sql === "ROLLBACK") {
           if (sql === "COMMIT") {
             store.counters = counters;
             store.receipts = receipts;
+            store.permanent = permanent;
           }
           unlock?.();
           unlock = undefined;
@@ -84,6 +88,10 @@ export class FakeUsageStore {
         }
         if (store.unavailable) throw new Error("quota storage unavailable");
         if (sql.includes("pg_advisory_xact_lock")) return { rows: [] };
+        if (sql.includes("SELECT record_product_usage(")) {
+          for (const [key, value] of Object.entries(JSON.parse(String(values[4])))) permanent.set(key, (permanent.get(key) ?? 0n) + BigInt(String(value)));
+          return { rows: [{ recorded: true }] };
+        }
         const [organizationId, month, metric, delta, limit] = values;
         const counterKey = `${organizationId}:${month}:${metric}`;
         if (sql.includes("INSERT INTO organization_monthly_usage")) {
@@ -166,6 +174,8 @@ test("quota counts normalized UTF-8 rows only; empty batches never query or enqu
     october,
   );
   assert.equal(store.used(), bytes([row]));
+  assert.equal(store.permanent.get("observability.telemetry_bytes"), BigInt(bytes([row])));
+  assert.equal(store.permanent.get("observability.logs"), 1n);
   assert.equal(enqueues, 1);
   assert.ok(store.used() > JSON.stringify(row).length);
 });
@@ -229,6 +239,7 @@ test("whole-export preflight rejects excess bytes before accepting any first chu
   assert.equal(enqueues, 0);
   assert.equal(store.used(), 0);
   assert.equal(store.receipts.size, 0);
+  assert.equal(store.permanent.size, 0);
 });
 
 test("parallel replicas cannot spend more than one shared organization allowance", async () => {
@@ -316,6 +327,8 @@ test("partial queue failure bills only durable chunks, and retries skip those ch
     /second send failed/,
   );
   assert.equal(store.used(), chunks[0].bytes);
+  assert.equal(store.permanent.get("observability.logs"), BigInt(chunks[0].records.length));
+  assert.equal(store.permanent.get("observability.telemetry_bytes"), BigInt(chunks[0].bytes));
   assert.equal(store.receipts.size, 1);
   const retryChunks: Row[][] = [];
   await enqueueWithTelemetryQuota(
@@ -331,6 +344,8 @@ test("partial queue failure bills only durable chunks, and retries skip those ch
   assert.equal(retryChunks.length, 1);
   assert.deepEqual(retryChunks[0], chunks[1].records);
   assert.equal(store.used(), bytes(rows));
+  assert.equal(store.permanent.get("observability.logs"), 500n);
+  assert.equal(store.permanent.get("observability.telemetry_bytes"), BigInt(bytes(rows)));
 });
 
 test("accepted SDK retries ignore changed ingestion time, retention and attribute order", async () => {
@@ -363,6 +378,7 @@ test("accepted SDK retries ignore changed ingestion time, retention and attribut
   );
   assert.equal(requeued, false);
   assert.equal(store.used(), bytes([first]));
+  assert.equal(store.permanent.get("observability.logs"), 1n);
 });
 
 test("retry chunk boundaries do not change when a plan changes retention metadata", () => {
@@ -422,6 +438,7 @@ test("an ambiguous committed database response cannot double-charge a retry", as
     october,
   );
   assert.equal(store.used(), bytes(rows));
+  assert.equal(store.permanent.get("observability.logs"), 1n);
 });
 
 test("UTC calendar months reset across year boundaries regardless of annual billing", async () => {
