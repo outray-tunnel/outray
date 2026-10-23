@@ -18,6 +18,7 @@ import { WorkspacePageHeader } from "@/components/workspace-page-header";
 import { WorkspaceInput } from "@/components/ui/workspace-input";
 import { WorkspaceDialog, WorkspaceNotice } from "@/components/workspace/workspace-ui";
 import { AdminOrganizationProductUsage } from "@/components/admin/admin-product-usage";
+import { PermanentUsagePanel } from "@/components/admin/permanent-usage-panel";
 
 export const Route = createFileRoute("/admin/organizations/$slug")({
   head: () => ({
@@ -233,6 +234,7 @@ function AdminOrganizationDetailPage() {
       </div>
 
       <AdminOrganizationProductUsage organizationId={data.organization.id} />
+      <PermanentUsagePanel organizationId={data.organization.id} />
 
       {/* Edit Form */}
       <div className="rounded-xl border border-white/[.08] bg-[#101010] p-5">
