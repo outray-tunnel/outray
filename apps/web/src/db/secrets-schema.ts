@@ -349,7 +349,7 @@ export const secretAuditEvents = pgTable(
     ),
     check(
       "secret_audit_events_actor_credential_check",
-      sql`${table.actorCredential} IN ('session', 'cli', 'machine', 'system')`,
+      sql`${table.actorCredential} IN ('session', 'cli', 'machine', 'system', 'mcp')`,
     ),
     check(
       "secret_audit_events_result_check",
