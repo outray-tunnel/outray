@@ -4,6 +4,7 @@ const PRIVATE_PATH_SEGMENTS = new Set([
   "auth", "secrets", "login", "logout", "signup", "register", "cli",
   "auth-tokens", "machine-tokens", "tokens", "invitations", "invite",
   "webhooks", "checkout", "portal", "admin", "_serverfn",
+  "mcp", "authorize", "connections", "sign-in", "continue",
 ]);
 
 // Application-owned opaque values must not be forwarded into another telemetry
@@ -49,12 +50,16 @@ export function isSensitiveInternalObservabilityRequest({ pathname }: { pathname
 const SECRET_PROJECT_ROUTE = "/api/:orgSlug/secrets/projects/:projectSlug";
 const SECRET_ENVIRONMENT_ROUTE = `${SECRET_PROJECT_ROUTE}/environments/:environmentSlug`;
 const SENSITIVE_ROUTE_TEMPLATES = [
+  "/api/mcp", "/api/mcp/openai", "/api/mcp/consent", "/api/mcp/connections",
+  "/plugins/authorize", "/plugins/sign-in", "/plugins/continue", "/plugins/connections",
   "/login", "/logout", "/signup", "/register", "/cli/login", "/invitations/accept",
   "/api/tunnel/auth", "/api/dashboard/ws-token", "/api/dashboard/validate-ws-token",
   "/api/uptime/integrations/:provider/callback",
   "/api/observability/alerts/integrations/:provider/callback",
   "/api/:orgSlug/auth-tokens", "/api/:orgSlug/portal/polar", "/:orgSlug/tokens",
   "/api/auth/callback/:provider",
+  "/api/auth/sign-in/magic-link", "/api/auth/magic-link/verify", "/api/auth/jwks",
+  ...["authorize", "token", "revoke", "register", "consent", "continue", "userinfo", "introspect"].map((action) => `/api/auth/oauth2/${action}`),
   ...["get-session", "sign-out", "sign-in/social", "sign-in/email", "sign-up/email",
     "organization/list", "organization/get-full-organization", "organization/set-active",
     "organization/get-active-member", "organization/invite-member", "organization/accept-invitation",
