@@ -1,0 +1,10 @@
+{
+  "name": "outray-development",
+  "interface": { "displayName": "OutRay development" },
+  "plugins": [{
+    "name": "outray",
+    "source": { "source": "local", "path": "./plugins/outray" },
+    "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+    "category": "Developer Tools"
+  }]
+}
