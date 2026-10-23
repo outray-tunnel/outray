@@ -150,6 +150,8 @@ export class UDPProxy {
         rinfo.port,
         msg.length,
         0,
+        undefined,
+        "in",
       );
     }
 
@@ -196,6 +198,8 @@ export class UDPProxy {
               client.port,
               0,
               data.length,
+              undefined,
+              "out",
             );
           }
 
@@ -235,6 +239,8 @@ export class UDPProxy {
         client.port,
         0,
         data.length,
+        undefined,
+        "out",
       );
     }
 
