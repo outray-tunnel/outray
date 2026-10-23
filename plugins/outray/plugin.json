@@ -3,6 +3,9 @@
   "name": "outray",
   "version": "0.0.1",
   "description": "Work with OutRay tunnels, observability, uptime, secrets metadata and organization resources from Codex and ChatGPT.",
+  "author": {
+    "name": "AKINKUNMI OYEWOLE"
+  },
   "homepage": "https://outray.co/plugins/codex",
   "license": "AGPL-3.0-only",
   "keywords": [
@@ -16,6 +19,7 @@
     "com.openai": {
       "interface": {
         "displayName": "OutRay",
+        "developerName": "AKINKUNMI OYEWOLE",
         "shortDescription": "OutRay tools for developers",
         "longDescription": "Connect your OutRay account to inspect tunnels, investigate service telemetry, manage uptime monitors and status pages, work with secret metadata, and administer organization resources. Choose which organizations to connect and retain your existing permissions. In chats with local execution, bundled skills help configure SDKs, create HTTP/TCP/UDP tunnels, test webhooks, and inject secrets through the OutRay CLI without displaying values. The public plugin does not receive or return secret values or authentication credentials. Billing changes take place in OutRay.",
         "category": "Developer Tools",
