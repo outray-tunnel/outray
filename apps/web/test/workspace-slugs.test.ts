@@ -24,7 +24,7 @@ test("hosted reservations remain in place, while self-hosted branding and future
 test("self-hosted route collision policy matches every actual static route and public asset directory", async () => {
   const routes = await readdir(new URL("../src/routes", import.meta.url), { recursive: true });
   const rootRoutes = routes.filter((path) => /\.[cm]?[jt]sx?$/.test(path))
-    .map((path) => path.split(/[/.]/)[0])
+    .map((path) => path.split(/[/.]/)[0].replace(/_$/, ""))
     .filter((slug) => slug !== "index" && !slug.startsWith("$") && !slug.startsWith("_"));
   const publicEntries = await readdir(new URL("../public", import.meta.url), { withFileTypes: true });
   const staticDirectories = publicEntries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
@@ -110,6 +110,7 @@ test("the actual creation hook uses the same policy before persistence, without 
       if (specifier === "./member-quota-adapter.server") return { memberQuotaAdapter: () => ({}) };
       if (specifier === "better-auth/plugins") return { organization: (options: unknown) => options };
       if (specifier === "better-auth/api") return { APIError, createAuthMiddleware: (handler: unknown) => handler };
+      if (specifier === "./mcp/auth-plugins") return { outrayMcpAuthPlugins: () => [] };
       if (specifier === "./auth-profile") return { adminProfileFields: {} };
       if (specifier === "../db") return { db: new Proxy({}, { get() { persistence++; throw new Error("Policy must run before persistence"); } }) };
       if (specifier === "../../../../shared/instance-config") return { instanceConfig: () => ({ ...instanceConfig({}), selfHosted }), instanceSignupAllowed };
