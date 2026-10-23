@@ -2,6 +2,7 @@ import ArrowDown01Icon from "@outray/icons/stroke/ArrowDown01Icon";
 import Bug01Icon from "@outray/icons/stroke/Bug01Icon";
 import Loading03Icon from "@outray/icons/stroke/Loading03Icon";
 import Logout02Icon from "@outray/icons/stroke/Logout02Icon";
+import Settings02Icon from "@outray/icons/stroke/Settings02Icon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   useCallback,
@@ -21,6 +22,7 @@ export interface WorkspaceAccountMenuProps {
   user?: WorkspaceAccountUser | null;
   onReportBug: () => void;
   onSignOut: () => Promise<void>;
+  onAccountSettings?: () => void;
   isPending?: boolean;
 }
 
@@ -28,6 +30,7 @@ export function WorkspaceAccountMenu({
   user,
   onReportBug,
   onSignOut,
+  onAccountSettings,
   isPending = false,
 }: WorkspaceAccountMenuProps) {
   const instanceId = useId();
@@ -37,6 +40,7 @@ export function WorkspaceAccountMenu({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const reportRef = useRef<HTMLButtonElement>(null);
+  const accountSettingsRef = useRef<HTMLButtonElement>(null);
   const signOutRef = useRef<HTMLButtonElement>(null);
   const initialFocus = useRef<"first" | "last">("first");
   const signOutInFlight = useRef(false);
@@ -49,7 +53,7 @@ export function WorkspaceAccountMenu({
 
   const enabledItems = useCallback(
     () =>
-      [reportRef.current, signOutRef.current].filter(
+      [accountSettingsRef.current, reportRef.current, signOutRef.current].filter(
         (item): item is HTMLButtonElement => !!item && !item.disabled,
       ),
     [],
@@ -239,6 +243,11 @@ export function WorkspaceAccountMenu({
             onKeyDown={handleMenuKeyDown}
             className="space-y-0.5 outline-none"
           >
+            {onAccountSettings && <button ref={accountSettingsRef} type="button" role="menuitem" tabIndex={-1} disabled={isBusy}
+              onClick={() => { closeMenu(false); onAccountSettings(); }}
+              className="flex h-10 min-h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[12px] font-normal text-zinc-400 transition-colors duration-150 enabled:hover:bg-white/[0.045] enabled:hover:text-zinc-200 disabled:opacity-50 md:h-8 md:min-h-8 motion-reduce:transition-none focus-visible:bg-white/[0.06] focus-visible:text-zinc-100 focus-visible:outline-2 focus-visible:outline-violet-400">
+              <HugeiconsIcon icon={Settings02Icon} size={15} strokeWidth={1.7} aria-hidden="true" />Personal settings
+            </button>}
             <button
               ref={reportRef}
               type="button"
