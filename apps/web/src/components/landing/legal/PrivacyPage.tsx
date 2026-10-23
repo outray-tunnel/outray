@@ -12,9 +12,16 @@ export const PrivacyPage = () => {
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
             Privacy Policy
           </h1>
-          <p className="text-white/40 mb-12">Last updated: January 24, 2026</p>
+          <p className="text-white/40 mb-12">Last updated: October 22, 2026</p>
 
           <div className="prose prose-invert prose-lg max-w-none">
+            <section className="mb-12" aria-labelledby="plugin-privacy">
+              <h2 id="plugin-privacy" className="text-2xl font-semibold text-white mb-4">Codex, ChatGPT and MCP connections</h2>
+              <p className="text-white/60 leading-relaxed">When you connect an MCP client, OutRay stores the OAuth authorization records and your selected organizations so it can authenticate requests and enforce your current permissions. You can revoke a connection from Connected apps. Revoked connection records and limited plugin activity records are removed after 90 days by the retention cleanup.</p>
+              <p className="text-white/60 leading-relaxed mt-4">Plugin activity records contain the acting user, tool name, resource identifiers, time and outcome. They exclude conversation transcripts, tool arguments, tool results and secret values. Existing product records and audits continue to follow the rules for those products.</p>
+              <p className="text-white/60 leading-relaxed mt-4">Information you request through an integration is returned to the client you use, including Codex or ChatGPT, and is also subject to that provider’s policies. The public OutRay plugin excludes secret-value and authentication-credential tools. Direct MCP connections can separately request permission for explicit secret-value operations; those values are not added to the plugin activity log. Local CLI injection passes values to your chosen application without displaying them in the conversation.</p>
+              <p className="text-white/60 leading-relaxed mt-4">Passwordless sign-in links are sent through OutRay’s email provider to verify access to your email address. Keep these links private. See <a href="/plugins/connections" className="text-accent hover:underline">Connected apps</a> to review or revoke your integrations, or contact us using the details below for privacy requests.</p>
+            </section>
             <section className="mb-12">
               <h2 className="text-2xl font-semibold text-white mb-4">
                 1. Introduction
