@@ -319,6 +319,21 @@ test("OAuth and product tools enforce their boundaries against real PostgreSQL a
         const dashboard = await originalFetch(`${origin}/account/settings/connected-apps`, { headers: { cookie } });
         assert.equal(dashboard.status, 200); assert.match(await dashboard.text(), /Connected apps/);
         const connected = await connect("openai");
+        const identity = connected.client.getServerVersion();
+        assert.equal(identity?.title, "OutRay");
+        assert.equal(identity?.version, "0.0.1");
+        assert.ok(identity?.icons);
+        assert.equal(identity.icons.length, 2);
+        for (const icon of identity.icons) {
+          assert.equal(new URL(icon.src).origin, origin);
+          const image = await originalFetch(icon.src);
+          assert.equal(image.status, 200, "branding is accessible without an authenticated request");
+          assert.match(image.headers.get("content-type") ?? "", /image\/png/);
+          const bytes = Buffer.from(await image.arrayBuffer());
+          assert.equal(bytes.toString("hex", 0, 8), "89504e470d0a1a0a");
+          assert.equal(bytes.readUInt32BE(16), 680);
+          assert.equal(bytes.readUInt32BE(20), 680);
+        }
         await call(connected.client, "list_tunnels", { orgSlug: "mcp-demo" });
         const vault = await call(connected.client, "get_vault", { orgSlug: "mcp-demo", vaultSlug: "demo" });
         const privateConnection = await connect("direct");
