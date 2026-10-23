@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrgSlugRouteImport } from './routes/$orgSlug'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -43,6 +44,8 @@ import { Route as OrgSlugSubdomainsRouteImport } from './routes/$orgSlug/subdoma
 import { Route as OrgSlugTokensRouteImport } from './routes/$orgSlug/tokens'
 import { Route as OrgSlugTunnelRouteImport } from './routes/$orgSlug/tunnel'
 import { Route as OrgSlugUptimeRouteImport } from './routes/$orgSlug/uptime'
+import { Route as AccountIndexRouteImport } from './routes/account/index'
+import { Route as AccountSettingsRouteImport } from './routes/account/settings'
 import { Route as AdminActionsRouteImport } from './routes/admin/actions'
 import { Route as AdminAgentRouteImport } from './routes/admin/agent'
 import { Route as AdminChartsRouteImport } from './routes/admin/charts'
@@ -58,6 +61,11 @@ import { Route as CliLoginRouteImport } from './routes/cli.login'
 import { Route as DocsSplatRouteImport } from './routes/docs/$'
 import { Route as InternalDomainCheckRouteImport } from './routes/internal/domain-check'
 import { Route as InvitationsAcceptRouteImport } from './routes/invitations.accept'
+import { Route as PluginsContinueRouteImport } from './routes/plugins.continue'
+import { Route as PluginsSignInRouteImport } from './routes/plugins.sign-in'
+import { Route as PluginsAuthorizeRouteImport } from './routes/plugins_.authorize'
+import { Route as PluginsCodexRouteImport } from './routes/plugins_.codex'
+import { Route as PluginsConnectionsRouteImport } from './routes/plugins_.connections'
 import { Route as ProductsObservabilityRouteImport } from './routes/products.observability'
 import { Route as ProductsSecretsRouteImport } from './routes/products.secrets'
 import { Route as ProductsTunnelsRouteImport } from './routes/products.tunnels'
@@ -78,6 +86,7 @@ import { Route as OrgSlugSecretsSharesRouteImport } from './routes/$orgSlug/secr
 import { Route as OrgSlugSecretsTrashRouteImport } from './routes/$orgSlug/secrets/trash'
 import { Route as OrgSlugSecretsVaultsRouteImport } from './routes/$orgSlug/secrets/vaults'
 import { Route as OrgSlugSettingsIndexRouteImport } from './routes/$orgSlug/settings/index'
+import { Route as OrgSlugSettingsConnectedAppsRouteImport } from './routes/$orgSlug/settings/connected-apps'
 import { Route as OrgSlugSettingsOrganizationRouteImport } from './routes/$orgSlug/settings/organization'
 import { Route as OrgSlugSettingsProfileRouteImport } from './routes/$orgSlug/settings/profile'
 import { Route as OrgSlugTunnelIndexRouteImport } from './routes/$orgSlug/tunnel/index'
@@ -91,6 +100,8 @@ import { Route as OrgSlugUptimeIncidentsRouteImport } from './routes/$orgSlug/up
 import { Route as OrgSlugUptimeMonitorsRouteImport } from './routes/$orgSlug/uptime/monitors'
 import { Route as OrgSlugUptimeNotificationsRouteImport } from './routes/$orgSlug/uptime/notifications'
 import { Route as OrgSlugUptimeStatusPageRouteImport } from './routes/$orgSlug/uptime/status-page'
+import { Route as AccountSettingsIndexRouteImport } from './routes/account/settings/index'
+import { Route as AccountSettingsConnectedAppsRouteImport } from './routes/account/settings/connected-apps'
 import { Route as AdminOrganizationsIndexRouteImport } from './routes/admin/organizations.index'
 import { Route as AdminOrganizationsSlugRouteImport } from './routes/admin/organizations.$slug'
 import { Route as AdminTunnelsConnectionsRouteImport } from './routes/admin/tunnels.connections'
@@ -122,6 +133,10 @@ import { Route as ApiCliSecretsRouteImport } from './routes/api/cli/secrets'
 import { Route as ApiDashboardValidateWsTokenRouteImport } from './routes/api/dashboard/validate-ws-token'
 import { Route as ApiDashboardWsTokenRouteImport } from './routes/api/dashboard/ws-token'
 import { Route as ApiDomainVerifyOwnershipRouteImport } from './routes/api/domain/verify-ownership'
+import { Route as ApiMcpIndexRouteImport } from './routes/api/mcp/index'
+import { Route as ApiMcpConnectionsRouteImport } from './routes/api/mcp/connections'
+import { Route as ApiMcpConsentRouteImport } from './routes/api/mcp/consent'
+import { Route as ApiMcpOpenaiRouteImport } from './routes/api/mcp/openai'
 import { Route as ApiMeOrgsRouteImport } from './routes/api/me/orgs'
 import { Route as ApiOrganizationsCheckSlugRouteImport } from './routes/api/organizations/check-slug'
 import { Route as ApiTunnelAuthRouteImport } from './routes/api/tunnel/auth'
@@ -168,6 +183,7 @@ import { Route as ApiOrgSlugUptimeMembersRouteImport } from './routes/api/$orgSl
 import { Route as ApiOrgSlugUptimePageRouteImport } from './routes/api/$orgSlug/uptime/page'
 import { Route as ApiAdminOrganizationsSlugRouteImport } from './routes/api/admin/organizations.$slug'
 import { Route as ApiAdminProductsProductRouteImport } from './routes/api/admin/products.$product'
+import { Route as ApiAdminUsageAggregatesRouteImport } from './routes/api/admin/usage/aggregates'
 import { Route as ApiAdminUsersUserIdRouteImport } from './routes/api/admin/users.$userId'
 import { Route as ApiCliLoginStatusRouteImport } from './routes/api/cli/login/status'
 import { Route as ApiCliSecretsRevisionRouteImport } from './routes/api/cli/secrets/revision'
@@ -254,6 +270,11 @@ const IndexRoute = IndexRouteImport.update({
 const OrgSlugRoute = OrgSlugRouteImport.update({
   id: '/$orgSlug',
   path: '/$orgSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -416,6 +437,16 @@ const OrgSlugUptimeRoute = OrgSlugUptimeRouteImport.update({
   path: '/uptime',
   getParentRoute: () => OrgSlugRoute,
 } as any)
+const AccountIndexRoute = AccountIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountSettingsRoute = AccountSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AccountRoute,
+} as any)
 const AdminActionsRoute = AdminActionsRouteImport.update({
   id: '/actions',
   path: '/actions',
@@ -489,6 +520,31 @@ const InternalDomainCheckRoute = InternalDomainCheckRouteImport.update({
 const InvitationsAcceptRoute = InvitationsAcceptRouteImport.update({
   id: '/invitations/accept',
   path: '/invitations/accept',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PluginsContinueRoute = PluginsContinueRouteImport.update({
+  id: '/continue',
+  path: '/continue',
+  getParentRoute: () => PluginsRoute,
+} as any)
+const PluginsSignInRoute = PluginsSignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => PluginsRoute,
+} as any)
+const PluginsAuthorizeRoute = PluginsAuthorizeRouteImport.update({
+  id: '/plugins_/authorize',
+  path: '/plugins/authorize',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PluginsCodexRoute = PluginsCodexRouteImport.update({
+  id: '/plugins_/codex',
+  path: '/plugins/codex',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PluginsConnectionsRoute = PluginsConnectionsRouteImport.update({
+  id: '/plugins_/connections',
+  path: '/plugins/connections',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsObservabilityRoute = ProductsObservabilityRouteImport.update({
@@ -599,6 +655,12 @@ const OrgSlugSettingsIndexRoute = OrgSlugSettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OrgSlugSettingsRoute,
 } as any)
+const OrgSlugSettingsConnectedAppsRoute =
+  OrgSlugSettingsConnectedAppsRouteImport.update({
+    id: '/connected-apps',
+    path: '/connected-apps',
+    getParentRoute: () => OrgSlugSettingsRoute,
+  } as any)
 const OrgSlugSettingsOrganizationRoute =
   OrgSlugSettingsOrganizationRouteImport.update({
     id: '/organization',
@@ -666,6 +728,17 @@ const OrgSlugUptimeStatusPageRoute = OrgSlugUptimeStatusPageRouteImport.update({
   path: '/status-page',
   getParentRoute: () => OrgSlugUptimeRoute,
 } as any)
+const AccountSettingsIndexRoute = AccountSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AccountSettingsRoute,
+} as any)
+const AccountSettingsConnectedAppsRoute =
+  AccountSettingsConnectedAppsRouteImport.update({
+    id: '/connected-apps',
+    path: '/connected-apps',
+    getParentRoute: () => AccountSettingsRoute,
+  } as any)
 const AdminOrganizationsIndexRoute = AdminOrganizationsIndexRouteImport.update({
   id: '/organizations/',
   path: '/organizations/',
@@ -824,6 +897,26 @@ const ApiDomainVerifyOwnershipRoute =
     path: '/api/domain/verify-ownership',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMcpIndexRoute = ApiMcpIndexRouteImport.update({
+  id: '/api/mcp/',
+  path: '/api/mcp/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMcpConnectionsRoute = ApiMcpConnectionsRouteImport.update({
+  id: '/api/mcp/connections',
+  path: '/api/mcp/connections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMcpConsentRoute = ApiMcpConsentRouteImport.update({
+  id: '/api/mcp/consent',
+  path: '/api/mcp/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMcpOpenaiRoute = ApiMcpOpenaiRouteImport.update({
+  id: '/api/mcp/openai',
+  path: '/api/mcp/openai',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMeOrgsRoute = ApiMeOrgsRouteImport.update({
   id: '/api/me/orgs',
   path: '/api/me/orgs',
@@ -1080,6 +1173,11 @@ const ApiAdminProductsProductRoute = ApiAdminProductsProductRouteImport.update({
   id: '/api/admin/products/$product',
   path: '/api/admin/products/$product',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminUsageAggregatesRoute = ApiAdminUsageAggregatesRouteImport.update({
+  id: '/aggregates',
+  path: '/aggregates',
+  getParentRoute: () => ApiAdminUsageRoute,
 } as any)
 const ApiAdminUsersUserIdRoute = ApiAdminUsersUserIdRouteImport.update({
   id: '/$userId',
@@ -1577,6 +1675,7 @@ const ApiOrgSlugSecretsProjectsProjectSlugEnvironmentsEnvironmentSlugSecretsSecr
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$orgSlug': typeof OrgSlugRouteWithChildren
+  '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/changelog': typeof ChangelogRoute
   '/contact': typeof ContactRoute
@@ -1586,7 +1685,7 @@ export interface FileRoutesByFullPath {
   '/nestjs': typeof NestjsRoute
   '/nextjs': typeof NextjsRoute
   '/onboarding': typeof OnboardingRoute
-  '/plugins': typeof PluginsRoute
+  '/plugins': typeof PluginsRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRouteWithChildren
@@ -1608,6 +1707,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
   '/$orgSlug/tunnel': typeof OrgSlugTunnelRouteWithChildren
   '/$orgSlug/uptime': typeof OrgSlugUptimeRouteWithChildren
+  '/account/settings': typeof AccountSettingsRouteWithChildren
   '/admin/actions': typeof AdminActionsRoute
   '/admin/agent': typeof AdminAgentRoute
   '/admin/charts': typeof AdminChartsRoute
@@ -1623,12 +1723,18 @@ export interface FileRoutesByFullPath {
   '/docs/$': typeof DocsSplatRoute
   '/internal/domain-check': typeof InternalDomainCheckRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
+  '/plugins/continue': typeof PluginsContinueRoute
+  '/plugins/sign-in': typeof PluginsSignInRoute
+  '/plugins/authorize': typeof PluginsAuthorizeRoute
+  '/plugins/codex': typeof PluginsCodexRoute
+  '/plugins/connections': typeof PluginsConnectionsRoute
   '/products/observability': typeof ProductsObservabilityRoute
   '/products/secrets': typeof ProductsSecretsRoute
   '/products/tunnels': typeof ProductsTunnelsRoute
   '/products/uptime': typeof ProductsUptimeRoute
   '/status-page-logos/$fileName': typeof StatusPageLogosFileNameRoute
   '/$orgSlug/': typeof OrgSlugIndexRoute
+  '/account/': typeof AccountIndexRoute
   '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
@@ -1641,6 +1747,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/secrets/shares': typeof OrgSlugSecretsSharesRoute
   '/$orgSlug/secrets/trash': typeof OrgSlugSecretsTrashRoute
   '/$orgSlug/secrets/vaults': typeof OrgSlugSecretsVaultsRoute
+  '/$orgSlug/settings/connected-apps': typeof OrgSlugSettingsConnectedAppsRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
   '/$orgSlug/tunnel/domains': typeof OrgSlugTunnelDomainsRoute
@@ -1651,6 +1758,7 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/uptime/monitors': typeof OrgSlugUptimeMonitorsRoute
   '/$orgSlug/uptime/notifications': typeof OrgSlugUptimeNotificationsRoute
   '/$orgSlug/uptime/status-page': typeof OrgSlugUptimeStatusPageRouteWithChildren
+  '/account/settings/connected-apps': typeof AccountSettingsConnectedAppsRoute
   '/admin/organizations/$slug': typeof AdminOrganizationsSlugRoute
   '/admin/tunnels/connections': typeof AdminTunnelsConnectionsRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
@@ -1667,7 +1775,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/stats': typeof ApiAdminStatsRoute
   '/api/admin/subscriptions': typeof ApiAdminSubscriptionsRoute
   '/api/admin/tunnels': typeof ApiAdminTunnelsRoute
-  '/api/admin/usage': typeof ApiAdminUsageRoute
+  '/api/admin/usage': typeof ApiAdminUsageRouteWithChildren
   '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/checkout/paystack': typeof ApiCheckoutPaystackRoute
@@ -1680,6 +1788,9 @@ export interface FileRoutesByFullPath {
   '/api/dashboard/validate-ws-token': typeof ApiDashboardValidateWsTokenRoute
   '/api/dashboard/ws-token': typeof ApiDashboardWsTokenRoute
   '/api/domain/verify-ownership': typeof ApiDomainVerifyOwnershipRoute
+  '/api/mcp/connections': typeof ApiMcpConnectionsRoute
+  '/api/mcp/consent': typeof ApiMcpConsentRoute
+  '/api/mcp/openai': typeof ApiMcpOpenaiRoute
   '/api/me/orgs': typeof ApiMeOrgsRoute
   '/api/organizations/check-slug': typeof ApiOrganizationsCheckSlugRoute
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
@@ -1693,8 +1804,10 @@ export interface FileRoutesByFullPath {
   '/$orgSlug/tunnel/': typeof OrgSlugTunnelIndexRoute
   '/$orgSlug/tunnels/': typeof OrgSlugTunnelsIndexRoute
   '/$orgSlug/uptime/': typeof OrgSlugUptimeIndexRoute
+  '/account/settings/': typeof AccountSettingsIndexRoute
   '/admin/organizations/': typeof AdminOrganizationsIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
+  '/api/mcp/': typeof ApiMcpIndexRoute
   '/$orgSlug/observability/alerts/$alertId': typeof OrgSlugObservabilityAlertsAlertIdRouteWithChildren
   '/$orgSlug/observability/services/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/$orgSlug/secrets/projects/$projectSlug': typeof OrgSlugSecretsProjectsProjectSlugRoute
@@ -1729,6 +1842,7 @@ export interface FileRoutesByFullPath {
   '/api/$orgSlug/uptime/page': typeof ApiOrgSlugUptimePageRouteWithChildren
   '/api/admin/organizations/$slug': typeof ApiAdminOrganizationsSlugRoute
   '/api/admin/products/$product': typeof ApiAdminProductsProductRoute
+  '/api/admin/usage/aggregates': typeof ApiAdminUsageAggregatesRoute
   '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRoute
   '/api/cli/login/status': typeof ApiCliLoginStatusRoute
   '/api/cli/secrets/revision': typeof ApiCliSecretsRevisionRoute
@@ -1823,7 +1937,7 @@ export interface FileRoutesByTo {
   '/nestjs': typeof NestjsRoute
   '/nextjs': typeof NextjsRoute
   '/onboarding': typeof OnboardingRoute
-  '/plugins': typeof PluginsRoute
+  '/plugins': typeof PluginsRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRouteWithChildren
@@ -1855,12 +1969,18 @@ export interface FileRoutesByTo {
   '/docs/$': typeof DocsSplatRoute
   '/internal/domain-check': typeof InternalDomainCheckRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
+  '/plugins/continue': typeof PluginsContinueRoute
+  '/plugins/sign-in': typeof PluginsSignInRoute
+  '/plugins/authorize': typeof PluginsAuthorizeRoute
+  '/plugins/codex': typeof PluginsCodexRoute
+  '/plugins/connections': typeof PluginsConnectionsRoute
   '/products/observability': typeof ProductsObservabilityRoute
   '/products/secrets': typeof ProductsSecretsRoute
   '/products/tunnels': typeof ProductsTunnelsRoute
   '/products/uptime': typeof ProductsUptimeRoute
   '/status-page-logos/$fileName': typeof StatusPageLogosFileNameRoute
   '/$orgSlug': typeof OrgSlugIndexRoute
+  '/account': typeof AccountIndexRoute
   '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
@@ -1873,6 +1993,7 @@ export interface FileRoutesByTo {
   '/$orgSlug/secrets/shares': typeof OrgSlugSecretsSharesRoute
   '/$orgSlug/secrets/trash': typeof OrgSlugSecretsTrashRoute
   '/$orgSlug/secrets/vaults': typeof OrgSlugSecretsVaultsRoute
+  '/$orgSlug/settings/connected-apps': typeof OrgSlugSettingsConnectedAppsRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
   '/$orgSlug/tunnel/domains': typeof OrgSlugTunnelDomainsRoute
@@ -1882,6 +2003,7 @@ export interface FileRoutesByTo {
   '/$orgSlug/uptime/incidents': typeof OrgSlugUptimeIncidentsRoute
   '/$orgSlug/uptime/monitors': typeof OrgSlugUptimeMonitorsRoute
   '/$orgSlug/uptime/notifications': typeof OrgSlugUptimeNotificationsRoute
+  '/account/settings/connected-apps': typeof AccountSettingsConnectedAppsRoute
   '/admin/organizations/$slug': typeof AdminOrganizationsSlugRoute
   '/admin/tunnels/connections': typeof AdminTunnelsConnectionsRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
@@ -1898,7 +2020,7 @@ export interface FileRoutesByTo {
   '/api/admin/stats': typeof ApiAdminStatsRoute
   '/api/admin/subscriptions': typeof ApiAdminSubscriptionsRoute
   '/api/admin/tunnels': typeof ApiAdminTunnelsRoute
-  '/api/admin/usage': typeof ApiAdminUsageRoute
+  '/api/admin/usage': typeof ApiAdminUsageRouteWithChildren
   '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/checkout/paystack': typeof ApiCheckoutPaystackRoute
@@ -1911,6 +2033,9 @@ export interface FileRoutesByTo {
   '/api/dashboard/validate-ws-token': typeof ApiDashboardValidateWsTokenRoute
   '/api/dashboard/ws-token': typeof ApiDashboardWsTokenRoute
   '/api/domain/verify-ownership': typeof ApiDomainVerifyOwnershipRoute
+  '/api/mcp/connections': typeof ApiMcpConnectionsRoute
+  '/api/mcp/consent': typeof ApiMcpConsentRoute
+  '/api/mcp/openai': typeof ApiMcpOpenaiRoute
   '/api/me/orgs': typeof ApiMeOrgsRoute
   '/api/organizations/check-slug': typeof ApiOrganizationsCheckSlugRoute
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
@@ -1924,8 +2049,10 @@ export interface FileRoutesByTo {
   '/$orgSlug/tunnel': typeof OrgSlugTunnelIndexRoute
   '/$orgSlug/tunnels': typeof OrgSlugTunnelsIndexRoute
   '/$orgSlug/uptime': typeof OrgSlugUptimeIndexRoute
+  '/account/settings': typeof AccountSettingsIndexRoute
   '/admin/organizations': typeof AdminOrganizationsIndexRoute
   '/admin/users': typeof AdminUsersIndexRoute
+  '/api/mcp': typeof ApiMcpIndexRoute
   '/$orgSlug/observability/services/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/$orgSlug/secrets/projects/$projectSlug': typeof OrgSlugSecretsProjectsProjectSlugRoute
   '/$orgSlug/secrets/vaults/$projectSlug': typeof OrgSlugSecretsVaultsProjectSlugRoute
@@ -1959,6 +2086,7 @@ export interface FileRoutesByTo {
   '/api/$orgSlug/uptime/page': typeof ApiOrgSlugUptimePageRouteWithChildren
   '/api/admin/organizations/$slug': typeof ApiAdminOrganizationsSlugRoute
   '/api/admin/products/$product': typeof ApiAdminProductsProductRoute
+  '/api/admin/usage/aggregates': typeof ApiAdminUsageAggregatesRoute
   '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRoute
   '/api/cli/login/status': typeof ApiCliLoginStatusRoute
   '/api/cli/secrets/revision': typeof ApiCliSecretsRevisionRoute
@@ -2046,6 +2174,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$orgSlug': typeof OrgSlugRouteWithChildren
+  '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/changelog': typeof ChangelogRoute
   '/contact': typeof ContactRoute
@@ -2055,7 +2184,7 @@ export interface FileRoutesById {
   '/nestjs': typeof NestjsRoute
   '/nextjs': typeof NextjsRoute
   '/onboarding': typeof OnboardingRoute
-  '/plugins': typeof PluginsRoute
+  '/plugins': typeof PluginsRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRouteWithChildren
@@ -2077,6 +2206,7 @@ export interface FileRoutesById {
   '/$orgSlug/tokens': typeof OrgSlugTokensRoute
   '/$orgSlug/tunnel': typeof OrgSlugTunnelRouteWithChildren
   '/$orgSlug/uptime': typeof OrgSlugUptimeRouteWithChildren
+  '/account/settings': typeof AccountSettingsRouteWithChildren
   '/admin/actions': typeof AdminActionsRoute
   '/admin/agent': typeof AdminAgentRoute
   '/admin/charts': typeof AdminChartsRoute
@@ -2092,12 +2222,18 @@ export interface FileRoutesById {
   '/docs/$': typeof DocsSplatRoute
   '/internal/domain-check': typeof InternalDomainCheckRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
+  '/plugins/continue': typeof PluginsContinueRoute
+  '/plugins/sign-in': typeof PluginsSignInRoute
+  '/plugins_/authorize': typeof PluginsAuthorizeRoute
+  '/plugins_/codex': typeof PluginsCodexRoute
+  '/plugins_/connections': typeof PluginsConnectionsRoute
   '/products/observability': typeof ProductsObservabilityRoute
   '/products/secrets': typeof ProductsSecretsRoute
   '/products/tunnels': typeof ProductsTunnelsRoute
   '/products/uptime': typeof ProductsUptimeRoute
   '/status-page-logos/$fileName': typeof StatusPageLogosFileNameRoute
   '/$orgSlug/': typeof OrgSlugIndexRoute
+  '/account/': typeof AccountIndexRoute
   '/$orgSlug/observability/alerts': typeof OrgSlugObservabilityAlertsRoute
   '/$orgSlug/observability/logs': typeof OrgSlugObservabilityLogsRoute
   '/$orgSlug/observability/metrics': typeof OrgSlugObservabilityMetricsRoute
@@ -2110,6 +2246,7 @@ export interface FileRoutesById {
   '/$orgSlug/secrets/shares': typeof OrgSlugSecretsSharesRoute
   '/$orgSlug/secrets/trash': typeof OrgSlugSecretsTrashRoute
   '/$orgSlug/secrets/vaults': typeof OrgSlugSecretsVaultsRoute
+  '/$orgSlug/settings/connected-apps': typeof OrgSlugSettingsConnectedAppsRoute
   '/$orgSlug/settings/organization': typeof OrgSlugSettingsOrganizationRoute
   '/$orgSlug/settings/profile': typeof OrgSlugSettingsProfileRoute
   '/$orgSlug/tunnel/domains': typeof OrgSlugTunnelDomainsRoute
@@ -2120,6 +2257,7 @@ export interface FileRoutesById {
   '/$orgSlug/uptime/monitors': typeof OrgSlugUptimeMonitorsRoute
   '/$orgSlug/uptime/notifications': typeof OrgSlugUptimeNotificationsRoute
   '/$orgSlug/uptime/status-page': typeof OrgSlugUptimeStatusPageRouteWithChildren
+  '/account/settings/connected-apps': typeof AccountSettingsConnectedAppsRoute
   '/admin/organizations/$slug': typeof AdminOrganizationsSlugRoute
   '/admin/tunnels/connections': typeof AdminTunnelsConnectionsRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
@@ -2136,7 +2274,7 @@ export interface FileRoutesById {
   '/api/admin/stats': typeof ApiAdminStatsRoute
   '/api/admin/subscriptions': typeof ApiAdminSubscriptionsRoute
   '/api/admin/tunnels': typeof ApiAdminTunnelsRoute
-  '/api/admin/usage': typeof ApiAdminUsageRoute
+  '/api/admin/usage': typeof ApiAdminUsageRouteWithChildren
   '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/checkout/paystack': typeof ApiCheckoutPaystackRoute
@@ -2149,6 +2287,9 @@ export interface FileRoutesById {
   '/api/dashboard/validate-ws-token': typeof ApiDashboardValidateWsTokenRoute
   '/api/dashboard/ws-token': typeof ApiDashboardWsTokenRoute
   '/api/domain/verify-ownership': typeof ApiDomainVerifyOwnershipRoute
+  '/api/mcp/connections': typeof ApiMcpConnectionsRoute
+  '/api/mcp/consent': typeof ApiMcpConsentRoute
+  '/api/mcp/openai': typeof ApiMcpOpenaiRoute
   '/api/me/orgs': typeof ApiMeOrgsRoute
   '/api/organizations/check-slug': typeof ApiOrganizationsCheckSlugRoute
   '/api/tunnel/auth': typeof ApiTunnelAuthRoute
@@ -2162,8 +2303,10 @@ export interface FileRoutesById {
   '/$orgSlug/tunnel/': typeof OrgSlugTunnelIndexRoute
   '/$orgSlug/tunnels/': typeof OrgSlugTunnelsIndexRoute
   '/$orgSlug/uptime/': typeof OrgSlugUptimeIndexRoute
+  '/account/settings/': typeof AccountSettingsIndexRoute
   '/admin/organizations/': typeof AdminOrganizationsIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
+  '/api/mcp/': typeof ApiMcpIndexRoute
   '/$orgSlug/observability/alerts_/$alertId': typeof OrgSlugObservabilityAlertsAlertIdRouteWithChildren
   '/$orgSlug/observability/services_/$serviceId': typeof OrgSlugObservabilityServicesServiceIdRoute
   '/$orgSlug/secrets/projects_/$projectSlug': typeof OrgSlugSecretsProjectsProjectSlugRoute
@@ -2198,6 +2341,7 @@ export interface FileRoutesById {
   '/api/$orgSlug/uptime/page': typeof ApiOrgSlugUptimePageRouteWithChildren
   '/api/admin/organizations/$slug': typeof ApiAdminOrganizationsSlugRoute
   '/api/admin/products/$product': typeof ApiAdminProductsProductRoute
+  '/api/admin/usage/aggregates': typeof ApiAdminUsageAggregatesRoute
   '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRoute
   '/api/cli/login/status': typeof ApiCliLoginStatusRoute
   '/api/cli/secrets/revision': typeof ApiCliSecretsRevisionRoute
@@ -2286,6 +2430,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$orgSlug'
+    | '/account'
     | '/admin'
     | '/changelog'
     | '/contact'
@@ -2317,6 +2462,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/tokens'
     | '/$orgSlug/tunnel'
     | '/$orgSlug/uptime'
+    | '/account/settings'
     | '/admin/actions'
     | '/admin/agent'
     | '/admin/charts'
@@ -2332,12 +2478,18 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/internal/domain-check'
     | '/invitations/accept'
+    | '/plugins/continue'
+    | '/plugins/sign-in'
+    | '/plugins/authorize'
+    | '/plugins/codex'
+    | '/plugins/connections'
     | '/products/observability'
     | '/products/secrets'
     | '/products/tunnels'
     | '/products/uptime'
     | '/status-page-logos/$fileName'
     | '/$orgSlug/'
+    | '/account/'
     | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
@@ -2350,6 +2502,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/secrets/shares'
     | '/$orgSlug/secrets/trash'
     | '/$orgSlug/secrets/vaults'
+    | '/$orgSlug/settings/connected-apps'
     | '/$orgSlug/settings/organization'
     | '/$orgSlug/settings/profile'
     | '/$orgSlug/tunnel/domains'
@@ -2360,6 +2513,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/uptime/monitors'
     | '/$orgSlug/uptime/notifications'
     | '/$orgSlug/uptime/status-page'
+    | '/account/settings/connected-apps'
     | '/admin/organizations/$slug'
     | '/admin/tunnels/connections'
     | '/admin/users/$userId'
@@ -2389,6 +2543,9 @@ export interface FileRouteTypes {
     | '/api/dashboard/validate-ws-token'
     | '/api/dashboard/ws-token'
     | '/api/domain/verify-ownership'
+    | '/api/mcp/connections'
+    | '/api/mcp/consent'
+    | '/api/mcp/openai'
     | '/api/me/orgs'
     | '/api/organizations/check-slug'
     | '/api/tunnel/auth'
@@ -2402,8 +2559,10 @@ export interface FileRouteTypes {
     | '/$orgSlug/tunnel/'
     | '/$orgSlug/tunnels/'
     | '/$orgSlug/uptime/'
+    | '/account/settings/'
     | '/admin/organizations/'
     | '/admin/users/'
+    | '/api/mcp/'
     | '/$orgSlug/observability/alerts/$alertId'
     | '/$orgSlug/observability/services/$serviceId'
     | '/$orgSlug/secrets/projects/$projectSlug'
@@ -2438,6 +2597,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/uptime/page'
     | '/api/admin/organizations/$slug'
     | '/api/admin/products/$product'
+    | '/api/admin/usage/aggregates'
     | '/api/admin/users/$userId'
     | '/api/cli/login/status'
     | '/api/cli/secrets/revision'
@@ -2564,12 +2724,18 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/internal/domain-check'
     | '/invitations/accept'
+    | '/plugins/continue'
+    | '/plugins/sign-in'
+    | '/plugins/authorize'
+    | '/plugins/codex'
+    | '/plugins/connections'
     | '/products/observability'
     | '/products/secrets'
     | '/products/tunnels'
     | '/products/uptime'
     | '/status-page-logos/$fileName'
     | '/$orgSlug'
+    | '/account'
     | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
@@ -2582,6 +2748,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/secrets/shares'
     | '/$orgSlug/secrets/trash'
     | '/$orgSlug/secrets/vaults'
+    | '/$orgSlug/settings/connected-apps'
     | '/$orgSlug/settings/organization'
     | '/$orgSlug/settings/profile'
     | '/$orgSlug/tunnel/domains'
@@ -2591,6 +2758,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/uptime/incidents'
     | '/$orgSlug/uptime/monitors'
     | '/$orgSlug/uptime/notifications'
+    | '/account/settings/connected-apps'
     | '/admin/organizations/$slug'
     | '/admin/tunnels/connections'
     | '/admin/users/$userId'
@@ -2620,6 +2788,9 @@ export interface FileRouteTypes {
     | '/api/dashboard/validate-ws-token'
     | '/api/dashboard/ws-token'
     | '/api/domain/verify-ownership'
+    | '/api/mcp/connections'
+    | '/api/mcp/consent'
+    | '/api/mcp/openai'
     | '/api/me/orgs'
     | '/api/organizations/check-slug'
     | '/api/tunnel/auth'
@@ -2633,8 +2804,10 @@ export interface FileRouteTypes {
     | '/$orgSlug/tunnel'
     | '/$orgSlug/tunnels'
     | '/$orgSlug/uptime'
+    | '/account/settings'
     | '/admin/organizations'
     | '/admin/users'
+    | '/api/mcp'
     | '/$orgSlug/observability/services/$serviceId'
     | '/$orgSlug/secrets/projects/$projectSlug'
     | '/$orgSlug/secrets/vaults/$projectSlug'
@@ -2668,6 +2841,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/uptime/page'
     | '/api/admin/organizations/$slug'
     | '/api/admin/products/$product'
+    | '/api/admin/usage/aggregates'
     | '/api/admin/users/$userId'
     | '/api/cli/login/status'
     | '/api/cli/secrets/revision'
@@ -2754,6 +2928,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$orgSlug'
+    | '/account'
     | '/admin'
     | '/changelog'
     | '/contact'
@@ -2785,6 +2960,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/tokens'
     | '/$orgSlug/tunnel'
     | '/$orgSlug/uptime'
+    | '/account/settings'
     | '/admin/actions'
     | '/admin/agent'
     | '/admin/charts'
@@ -2800,12 +2976,18 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/internal/domain-check'
     | '/invitations/accept'
+    | '/plugins/continue'
+    | '/plugins/sign-in'
+    | '/plugins_/authorize'
+    | '/plugins_/codex'
+    | '/plugins_/connections'
     | '/products/observability'
     | '/products/secrets'
     | '/products/tunnels'
     | '/products/uptime'
     | '/status-page-logos/$fileName'
     | '/$orgSlug/'
+    | '/account/'
     | '/$orgSlug/observability/alerts'
     | '/$orgSlug/observability/logs'
     | '/$orgSlug/observability/metrics'
@@ -2818,6 +3000,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/secrets/shares'
     | '/$orgSlug/secrets/trash'
     | '/$orgSlug/secrets/vaults'
+    | '/$orgSlug/settings/connected-apps'
     | '/$orgSlug/settings/organization'
     | '/$orgSlug/settings/profile'
     | '/$orgSlug/tunnel/domains'
@@ -2828,6 +3011,7 @@ export interface FileRouteTypes {
     | '/$orgSlug/uptime/monitors'
     | '/$orgSlug/uptime/notifications'
     | '/$orgSlug/uptime/status-page'
+    | '/account/settings/connected-apps'
     | '/admin/organizations/$slug'
     | '/admin/tunnels/connections'
     | '/admin/users/$userId'
@@ -2857,6 +3041,9 @@ export interface FileRouteTypes {
     | '/api/dashboard/validate-ws-token'
     | '/api/dashboard/ws-token'
     | '/api/domain/verify-ownership'
+    | '/api/mcp/connections'
+    | '/api/mcp/consent'
+    | '/api/mcp/openai'
     | '/api/me/orgs'
     | '/api/organizations/check-slug'
     | '/api/tunnel/auth'
@@ -2870,8 +3057,10 @@ export interface FileRouteTypes {
     | '/$orgSlug/tunnel/'
     | '/$orgSlug/tunnels/'
     | '/$orgSlug/uptime/'
+    | '/account/settings/'
     | '/admin/organizations/'
     | '/admin/users/'
+    | '/api/mcp/'
     | '/$orgSlug/observability/alerts_/$alertId'
     | '/$orgSlug/observability/services_/$serviceId'
     | '/$orgSlug/secrets/projects_/$projectSlug'
@@ -2906,6 +3095,7 @@ export interface FileRouteTypes {
     | '/api/$orgSlug/uptime/page'
     | '/api/admin/organizations/$slug'
     | '/api/admin/products/$product'
+    | '/api/admin/usage/aggregates'
     | '/api/admin/users/$userId'
     | '/api/cli/login/status'
     | '/api/cli/secrets/revision'
@@ -2993,6 +3183,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OrgSlugRoute: typeof OrgSlugRouteWithChildren
+  AccountRoute: typeof AccountRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
   ChangelogRoute: typeof ChangelogRoute
   ContactRoute: typeof ContactRoute
@@ -3002,7 +3193,7 @@ export interface RootRouteChildren {
   NestjsRoute: typeof NestjsRoute
   NextjsRoute: typeof NextjsRoute
   OnboardingRoute: typeof OnboardingRoute
-  PluginsRoute: typeof PluginsRoute
+  PluginsRoute: typeof PluginsRouteWithChildren
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ProductsRoute: typeof ProductsRouteWithChildren
@@ -3017,6 +3208,9 @@ export interface RootRouteChildren {
   DocsSplatRoute: typeof DocsSplatRoute
   InternalDomainCheckRoute: typeof InternalDomainCheckRoute
   InvitationsAcceptRoute: typeof InvitationsAcceptRoute
+  PluginsAuthorizeRoute: typeof PluginsAuthorizeRoute
+  PluginsCodexRoute: typeof PluginsCodexRoute
+  PluginsConnectionsRoute: typeof PluginsConnectionsRoute
   StatusPageLogosFileNameRoute: typeof StatusPageLogosFileNameRoute
   ApiOrgSlugAuthTokensRoute: typeof ApiOrgSlugAuthTokensRoute
   ApiOrgSlugRequestsRoute: typeof ApiOrgSlugRequestsRouteWithChildren
@@ -3031,7 +3225,7 @@ export interface RootRouteChildren {
   ApiAdminStatsRoute: typeof ApiAdminStatsRoute
   ApiAdminSubscriptionsRoute: typeof ApiAdminSubscriptionsRoute
   ApiAdminTunnelsRoute: typeof ApiAdminTunnelsRoute
-  ApiAdminUsageRoute: typeof ApiAdminUsageRoute
+  ApiAdminUsageRoute: typeof ApiAdminUsageRouteWithChildren
   ApiAdminUsersRoute: typeof ApiAdminUsersRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCheckoutPaystackRoute: typeof ApiCheckoutPaystackRoute
@@ -3044,6 +3238,9 @@ export interface RootRouteChildren {
   ApiDashboardValidateWsTokenRoute: typeof ApiDashboardValidateWsTokenRoute
   ApiDashboardWsTokenRoute: typeof ApiDashboardWsTokenRoute
   ApiDomainVerifyOwnershipRoute: typeof ApiDomainVerifyOwnershipRoute
+  ApiMcpConnectionsRoute: typeof ApiMcpConnectionsRoute
+  ApiMcpConsentRoute: typeof ApiMcpConsentRoute
+  ApiMcpOpenaiRoute: typeof ApiMcpOpenaiRoute
   ApiMeOrgsRoute: typeof ApiMeOrgsRoute
   ApiOrganizationsCheckSlugRoute: typeof ApiOrganizationsCheckSlugRoute
   ApiTunnelAuthRoute: typeof ApiTunnelAuthRoute
@@ -3051,6 +3248,7 @@ export interface RootRouteChildren {
   ApiTunnelRegisterRoute: typeof ApiTunnelRegisterRoute
   ApiWebhooksPaystackRoute: typeof ApiWebhooksPaystackRoute
   ApiWebhooksPolarRoute: typeof ApiWebhooksPolarRoute
+  ApiMcpIndexRoute: typeof ApiMcpIndexRoute
   ApiOrgSlugAgentChatRoute: typeof ApiOrgSlugAgentChatRoute
   ApiOrgSlugAgentThreadsRoute: typeof ApiOrgSlugAgentThreadsRoute
   ApiOrgSlugDomainsDomainIdRoute: typeof ApiOrgSlugDomainsDomainIdRouteWithChildren
@@ -3123,6 +3321,13 @@ declare module '@tanstack/react-router' {
       path: '/$orgSlug'
       fullPath: '/$orgSlug'
       preLoaderRoute: typeof OrgSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -3349,6 +3554,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugUptimeRouteImport
       parentRoute: typeof OrgSlugRoute
     }
+    '/account/': {
+      id: '/account/'
+      path: '/'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AccountIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/settings': {
+      id: '/account/settings'
+      path: '/settings'
+      fullPath: '/account/settings'
+      preLoaderRoute: typeof AccountSettingsRouteImport
+      parentRoute: typeof AccountRoute
+    }
     '/admin/actions': {
       id: '/admin/actions'
       path: '/actions'
@@ -3452,6 +3671,41 @@ declare module '@tanstack/react-router' {
       path: '/invitations/accept'
       fullPath: '/invitations/accept'
       preLoaderRoute: typeof InvitationsAcceptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plugins/continue': {
+      id: '/plugins/continue'
+      path: '/continue'
+      fullPath: '/plugins/continue'
+      preLoaderRoute: typeof PluginsContinueRouteImport
+      parentRoute: typeof PluginsRoute
+    }
+    '/plugins/sign-in': {
+      id: '/plugins/sign-in'
+      path: '/sign-in'
+      fullPath: '/plugins/sign-in'
+      preLoaderRoute: typeof PluginsSignInRouteImport
+      parentRoute: typeof PluginsRoute
+    }
+    '/plugins_/authorize': {
+      id: '/plugins_/authorize'
+      path: '/plugins/authorize'
+      fullPath: '/plugins/authorize'
+      preLoaderRoute: typeof PluginsAuthorizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plugins_/codex': {
+      id: '/plugins_/codex'
+      path: '/plugins/codex'
+      fullPath: '/plugins/codex'
+      preLoaderRoute: typeof PluginsCodexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plugins_/connections': {
+      id: '/plugins_/connections'
+      path: '/plugins/connections'
+      fullPath: '/plugins/connections'
+      preLoaderRoute: typeof PluginsConnectionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products/observability': {
@@ -3594,6 +3848,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgSlugSettingsIndexRouteImport
       parentRoute: typeof OrgSlugSettingsRoute
     }
+    '/$orgSlug/settings/connected-apps': {
+      id: '/$orgSlug/settings/connected-apps'
+      path: '/connected-apps'
+      fullPath: '/$orgSlug/settings/connected-apps'
+      preLoaderRoute: typeof OrgSlugSettingsConnectedAppsRouteImport
+      parentRoute: typeof OrgSlugSettingsRoute
+    }
     '/$orgSlug/settings/organization': {
       id: '/$orgSlug/settings/organization'
       path: '/organization'
@@ -3684,6 +3945,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/$orgSlug/uptime/status-page'
       preLoaderRoute: typeof OrgSlugUptimeStatusPageRouteImport
       parentRoute: typeof OrgSlugUptimeRoute
+    }
+    '/account/settings/': {
+      id: '/account/settings/'
+      path: '/'
+      fullPath: '/account/settings/'
+      preLoaderRoute: typeof AccountSettingsIndexRouteImport
+      parentRoute: typeof AccountSettingsRoute
+    }
+    '/account/settings/connected-apps': {
+      id: '/account/settings/connected-apps'
+      path: '/connected-apps'
+      fullPath: '/account/settings/connected-apps'
+      preLoaderRoute: typeof AccountSettingsConnectedAppsRouteImport
+      parentRoute: typeof AccountSettingsRoute
     }
     '/admin/organizations/': {
       id: '/admin/organizations/'
@@ -3900,6 +4175,34 @@ declare module '@tanstack/react-router' {
       path: '/api/domain/verify-ownership'
       fullPath: '/api/domain/verify-ownership'
       preLoaderRoute: typeof ApiDomainVerifyOwnershipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mcp/': {
+      id: '/api/mcp/'
+      path: '/api/mcp'
+      fullPath: '/api/mcp/'
+      preLoaderRoute: typeof ApiMcpIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mcp/connections': {
+      id: '/api/mcp/connections'
+      path: '/api/mcp/connections'
+      fullPath: '/api/mcp/connections'
+      preLoaderRoute: typeof ApiMcpConnectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mcp/consent': {
+      id: '/api/mcp/consent'
+      path: '/api/mcp/consent'
+      fullPath: '/api/mcp/consent'
+      preLoaderRoute: typeof ApiMcpConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mcp/openai': {
+      id: '/api/mcp/openai'
+      path: '/api/mcp/openai'
+      fullPath: '/api/mcp/openai'
+      preLoaderRoute: typeof ApiMcpOpenaiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/me/orgs': {
@@ -4223,6 +4526,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/products/$product'
       preLoaderRoute: typeof ApiAdminProductsProductRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/usage/aggregates': {
+      id: '/api/admin/usage/aggregates'
+      path: '/aggregates'
+      fullPath: '/api/admin/usage/aggregates'
+      preLoaderRoute: typeof ApiAdminUsageAggregatesRouteImport
+      parentRoute: typeof ApiAdminUsageRoute
     }
     '/api/admin/users/$userId': {
       id: '/api/admin/users/$userId'
@@ -4876,12 +5186,14 @@ const OrgSlugSecretsRouteWithChildren = OrgSlugSecretsRoute._addFileChildren(
 )
 
 interface OrgSlugSettingsRouteChildren {
+  OrgSlugSettingsConnectedAppsRoute: typeof OrgSlugSettingsConnectedAppsRoute
   OrgSlugSettingsOrganizationRoute: typeof OrgSlugSettingsOrganizationRoute
   OrgSlugSettingsProfileRoute: typeof OrgSlugSettingsProfileRoute
   OrgSlugSettingsIndexRoute: typeof OrgSlugSettingsIndexRoute
 }
 
 const OrgSlugSettingsRouteChildren: OrgSlugSettingsRouteChildren = {
+  OrgSlugSettingsConnectedAppsRoute: OrgSlugSettingsConnectedAppsRoute,
   OrgSlugSettingsOrganizationRoute: OrgSlugSettingsOrganizationRoute,
   OrgSlugSettingsProfileRoute: OrgSlugSettingsProfileRoute,
   OrgSlugSettingsIndexRoute: OrgSlugSettingsIndexRoute,
@@ -5009,6 +5321,33 @@ const OrgSlugRouteChildren: OrgSlugRouteChildren = {
 const OrgSlugRouteWithChildren =
   OrgSlugRoute._addFileChildren(OrgSlugRouteChildren)
 
+interface AccountSettingsRouteChildren {
+  AccountSettingsConnectedAppsRoute: typeof AccountSettingsConnectedAppsRoute
+  AccountSettingsIndexRoute: typeof AccountSettingsIndexRoute
+}
+
+const AccountSettingsRouteChildren: AccountSettingsRouteChildren = {
+  AccountSettingsConnectedAppsRoute: AccountSettingsConnectedAppsRoute,
+  AccountSettingsIndexRoute: AccountSettingsIndexRoute,
+}
+
+const AccountSettingsRouteWithChildren = AccountSettingsRoute._addFileChildren(
+  AccountSettingsRouteChildren,
+)
+
+interface AccountRouteChildren {
+  AccountSettingsRoute: typeof AccountSettingsRouteWithChildren
+  AccountIndexRoute: typeof AccountIndexRoute
+}
+
+const AccountRouteChildren: AccountRouteChildren = {
+  AccountSettingsRoute: AccountSettingsRouteWithChildren,
+  AccountIndexRoute: AccountIndexRoute,
+}
+
+const AccountRouteWithChildren =
+  AccountRoute._addFileChildren(AccountRouteChildren)
+
 interface AdminTunnelsRouteChildren {
   AdminTunnelsConnectionsRoute: typeof AdminTunnelsConnectionsRoute
 }
@@ -5055,6 +5394,19 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface PluginsRouteChildren {
+  PluginsContinueRoute: typeof PluginsContinueRoute
+  PluginsSignInRoute: typeof PluginsSignInRoute
+}
+
+const PluginsRouteChildren: PluginsRouteChildren = {
+  PluginsContinueRoute: PluginsContinueRoute,
+  PluginsSignInRoute: PluginsSignInRoute,
+}
+
+const PluginsRouteWithChildren =
+  PluginsRoute._addFileChildren(PluginsRouteChildren)
+
 interface ProductsRouteChildren {
   ProductsObservabilityRoute: typeof ProductsObservabilityRoute
   ProductsSecretsRoute: typeof ProductsSecretsRoute
@@ -5098,6 +5450,18 @@ const ApiAdminOrganizationsRouteWithChildren =
   ApiAdminOrganizationsRoute._addFileChildren(
     ApiAdminOrganizationsRouteChildren,
   )
+
+interface ApiAdminUsageRouteChildren {
+  ApiAdminUsageAggregatesRoute: typeof ApiAdminUsageAggregatesRoute
+}
+
+const ApiAdminUsageRouteChildren: ApiAdminUsageRouteChildren = {
+  ApiAdminUsageAggregatesRoute: ApiAdminUsageAggregatesRoute,
+}
+
+const ApiAdminUsageRouteWithChildren = ApiAdminUsageRoute._addFileChildren(
+  ApiAdminUsageRouteChildren,
+)
 
 interface ApiAdminUsersRouteChildren {
   ApiAdminUsersUserIdRoute: typeof ApiAdminUsersUserIdRoute
@@ -5396,6 +5760,7 @@ const ApiOrgSlugUptimeIntegrationsProviderRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OrgSlugRoute: OrgSlugRouteWithChildren,
+  AccountRoute: AccountRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
   ChangelogRoute: ChangelogRoute,
   ContactRoute: ContactRoute,
@@ -5405,7 +5770,7 @@ const rootRouteChildren: RootRouteChildren = {
   NestjsRoute: NestjsRoute,
   NextjsRoute: NextjsRoute,
   OnboardingRoute: OnboardingRoute,
-  PluginsRoute: PluginsRoute,
+  PluginsRoute: PluginsRouteWithChildren,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ProductsRoute: ProductsRouteWithChildren,
@@ -5420,6 +5785,9 @@ const rootRouteChildren: RootRouteChildren = {
   DocsSplatRoute: DocsSplatRoute,
   InternalDomainCheckRoute: InternalDomainCheckRoute,
   InvitationsAcceptRoute: InvitationsAcceptRoute,
+  PluginsAuthorizeRoute: PluginsAuthorizeRoute,
+  PluginsCodexRoute: PluginsCodexRoute,
+  PluginsConnectionsRoute: PluginsConnectionsRoute,
   StatusPageLogosFileNameRoute: StatusPageLogosFileNameRoute,
   ApiOrgSlugAuthTokensRoute: ApiOrgSlugAuthTokensRoute,
   ApiOrgSlugRequestsRoute: ApiOrgSlugRequestsRouteWithChildren,
@@ -5434,7 +5802,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminStatsRoute: ApiAdminStatsRoute,
   ApiAdminSubscriptionsRoute: ApiAdminSubscriptionsRoute,
   ApiAdminTunnelsRoute: ApiAdminTunnelsRoute,
-  ApiAdminUsageRoute: ApiAdminUsageRoute,
+  ApiAdminUsageRoute: ApiAdminUsageRouteWithChildren,
   ApiAdminUsersRoute: ApiAdminUsersRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCheckoutPaystackRoute: ApiCheckoutPaystackRoute,
@@ -5447,6 +5815,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiDashboardValidateWsTokenRoute: ApiDashboardValidateWsTokenRoute,
   ApiDashboardWsTokenRoute: ApiDashboardWsTokenRoute,
   ApiDomainVerifyOwnershipRoute: ApiDomainVerifyOwnershipRoute,
+  ApiMcpConnectionsRoute: ApiMcpConnectionsRoute,
+  ApiMcpConsentRoute: ApiMcpConsentRoute,
+  ApiMcpOpenaiRoute: ApiMcpOpenaiRoute,
   ApiMeOrgsRoute: ApiMeOrgsRoute,
   ApiOrganizationsCheckSlugRoute: ApiOrganizationsCheckSlugRoute,
   ApiTunnelAuthRoute: ApiTunnelAuthRoute,
@@ -5454,6 +5825,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTunnelRegisterRoute: ApiTunnelRegisterRoute,
   ApiWebhooksPaystackRoute: ApiWebhooksPaystackRoute,
   ApiWebhooksPolarRoute: ApiWebhooksPolarRoute,
+  ApiMcpIndexRoute: ApiMcpIndexRoute,
   ApiOrgSlugAgentChatRoute: ApiOrgSlugAgentChatRoute,
   ApiOrgSlugAgentThreadsRoute: ApiOrgSlugAgentThreadsRoute,
   ApiOrgSlugDomainsDomainIdRoute: ApiOrgSlugDomainsDomainIdRouteWithChildren,
