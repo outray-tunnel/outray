@@ -1,12 +1,16 @@
 import { validatePlugin } from "./outray-plugin.mjs";
+import { readFile } from "node:fs/promises";
 
 const checked = await validatePlugin(undefined, { release: process.argv.includes("--release") });
 const metadata = checked.manifest.extensions["com.openai"];
 const origin = "https://outray.co";
+const domainProof = (await readFile(new URL("../apps/web/public/.well-known/openai-apps-challenge", import.meta.url), "utf8")).trim();
 let failed = false;
 const checks = [
   ...["websiteURL", "supportURL", "privacyPolicyURL", "termsOfServiceURL"].map((key) => ({ name: key, url: metadata.interface[key], status: 200, type: "text/html" })),
   ...["mcp-logo.png", "mcp-logo-dark.png"].map((name) => ({ name: `MCP branding ${name}`, url: `${origin}/brand/${name}`, status: 200, type: "image/png", png: true })),
+  { name: "Domain verification proof", url: `${origin}/.well-known/openai-apps-challenge`, status: 200, text: domainProof },
+  ...["/api/mcp", "/api/mcp/openai"].map((path) => ({ name: `Browser GET ${path} (POST required)`, url: `${origin}${path}`, status: 405, allow: "POST" })),
   ...["/api/mcp", "/api/mcp/openai"].map((path) => ({ name: path, url: `${origin}${path}`, status: 401, method: "POST", type: "application/json" })),
   ...["/api/mcp", "/api/mcp/openai"].map((path) => ({ name: `Resource metadata ${path}`, url: `${origin}/.well-known/oauth-protected-resource${path}`, status: 200, resource: `${origin}${path}`, type: "application/json" })),
   { name: "OAuth issuer", url: `${origin}/.well-known/oauth-authorization-server/api/auth`, status: 200, issuer: `${origin}/api/auth`, type: "application/json" },
@@ -18,6 +22,8 @@ for (const check of checks) {
       headers: { "user-agent": `OutRay-Plugin-Release-Check/${checked.manifest.version}`, ...(check.method ? { "content-type": "application/json", accept: "application/json, text/event-stream" } : {}) },
       ...(check.method ? { body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "release-check", version: checked.manifest.version } } }) } : {}) });
     if (response.status !== check.status) throw new Error(`expected HTTP ${check.status}, received ${response.status}`);
+    if (check.allow && response.headers.get("allow") !== check.allow) throw new Error(`expected Allow: ${check.allow}`);
+    if (check.text !== undefined && (await response.text()).trim() !== check.text) throw new Error("domain verification proof mismatch");
     if (check.type && !response.headers.get("content-type")?.includes(check.type)) throw new Error("unexpected content type");
     if (check.png) {
       const bytes = Buffer.from(await response.arrayBuffer());
