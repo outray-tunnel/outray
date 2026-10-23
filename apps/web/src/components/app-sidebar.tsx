@@ -1,24 +1,19 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { useLocation, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import Cone01Icon from "@outray/icons/stroke/Cone01Icon";
-import Key02Icon from "@outray/icons/stroke/Key02Icon";
 import LockPasswordIcon from "@outray/icons/stroke/LockPasswordIcon";
 import Pulse02Icon from "@outray/icons/stroke/Pulse02Icon";
 import HeartPulseIcon from "@outray/icons/stroke/HeartPulseIcon";
 import Search01Icon from "@outray/icons/stroke/Search01Icon";
 import Settings02Icon from "@outray/icons/stroke/Settings02Icon";
-import UserGroupIcon from "@outray/icons/stroke/UserGroupIcon";
-import WalletCardsIcon from "@outray/icons/stroke/WalletCardsIcon";
 import Cone01SolidIcon from "@outray/icons/solid/Cone01Icon";
-import Key02SolidIcon from "@outray/icons/solid/Key02Icon";
 import LockPasswordSolidIcon from "@outray/icons/solid/LockPasswordIcon";
 import Pulse02SolidIcon from "@outray/icons/solid/Pulse02Icon";
 import HeartPulseSolidIcon from "@outray/icons/solid/HeartPulseIcon";
 import Settings02SolidIcon from "@outray/icons/solid/Settings02Icon";
-import UserGroupSolidIcon from "@outray/icons/solid/UserGroupIcon";
-import WalletCardsSolidIcon from "@outray/icons/solid/WalletCardsIcon";
 import { useAppStore } from "@/lib/store";
 import { authClient, usePermission } from "@/lib/auth-client";
 import { appClient } from "@/lib/app-client";
@@ -29,11 +24,15 @@ import { filterSidebarProducts } from "./sidebar/product-navigation-state";
 import { SidebarCollapseControl } from "./sidebar/sidebar-collapse-control";
 import { useInstance } from "@/lib/instance-context";
 import { instanceProductForPath } from "../../../../shared/instance-config";
+import { SidebarSettingsNavigation } from "./workspace/settings-navigation";
 
 interface SidebarProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
   unified?: boolean;
+  orgSlug?: string;
+  mode?: "dashboard" | "organization" | "personal";
+  backHref?: string;
 }
 
 interface SidebarNavItem {
@@ -53,6 +52,9 @@ export function Sidebar({
   isCollapsed,
   setIsCollapsed,
   unified = false,
+  orgSlug: providedOrgSlug,
+  mode = "dashboard",
+  backHref = "/select",
 }: SidebarProps) {
   const sidebarId = useId();
   const instance = useInstance();
@@ -61,11 +63,15 @@ export function Sidebar({
   const organizations = orgData ?? [];
   const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [navQuery, setNavQuery] = useState("");
+  const [search, setSearch] = useState({ mode, query: "" });
+  const navQuery = search.mode === mode ? search.query : "";
+  const setNavQuery = (query: string) => setSearch({ mode, query });
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchToggleRef = useRef<HTMLButtonElement>(null);
-  const { orgSlug } = useParams({ from: "/$orgSlug" });
+  const routeParams = useParams({ strict: false });
+  const orgSlug = providedOrgSlug ?? routeParams.orgSlug ?? "";
   const location = useLocation();
+  const reducedMotion = useReducedMotion();
 
   const selectedOrg =
     organizations.find((org) => org.slug === orgSlug) || organizations[0];
@@ -77,7 +83,7 @@ export function Sidebar({
       if ("error" in response) throw new Error(response.error);
       return response;
     },
-    enabled: !!orgSlug && unified && instance.products.includes("tunnels"),
+    enabled: mode === "dashboard" && !!orgSlug && unified && instance.products.includes("tunnels"),
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
@@ -89,10 +95,8 @@ export function Sidebar({
     if (isSearchOpen) searchInputRef.current?.focus();
   }, [isSearchOpen]);
 
-  const { data: canManageBilling } = usePermission({
-    billing: ["manage"],
-  });
   const { data: canManageShares } = usePermission({ secretShare: ["create"] });
+  const { data: canManageBilling } = usePermission({ billing: ["manage"] });
 
   const navGroups = useMemo<SidebarNavGroup[]>(
     () => [
@@ -128,28 +132,6 @@ export function Sidebar({
       {
         label: "Workspace",
         items: [
-          {
-            to: "/$orgSlug/members",
-            label: "Members",
-            icon: UserGroupIcon,
-            activeIcon: UserGroupSolidIcon,
-          },
-          {
-            to: "/$orgSlug/tokens",
-            label: "API tokens",
-            icon: Key02Icon,
-            activeIcon: Key02SolidIcon,
-          },
-          ...(canManageBilling && instance.billingEnabled
-            ? [
-                {
-                  to: "/$orgSlug/billing",
-                  label: "Billing",
-                  icon: WalletCardsIcon,
-                  activeIcon: WalletCardsSolidIcon,
-                },
-              ]
-            : []),
           ...(unified
             ? [
                 {
@@ -163,7 +145,7 @@ export function Sidebar({
         ],
       },
     ],
-    [canManageBilling, unified, instance.billingEnabled],
+    [unified],
   );
 
   const visibleGroups = useMemo(() => {
@@ -218,6 +200,7 @@ export function Sidebar({
       aria-label="Main navigation"
       id={sidebarId}
       data-sidebar-layout={unified ? "unified" : "split"}
+      data-sidebar-mode={mode}
     >
       <div
         className={`flex h-16 shrink-0 items-center ${
@@ -263,6 +246,7 @@ export function Sidebar({
       </div>
 
       <OrganizationDropdown
+        orgSlug={orgSlug}
         organizations={organizations}
         setSelectedOrganization={setSelectedOrganization}
         isOrgDropdownOpen={isOrgDropdownOpen}
@@ -300,77 +284,86 @@ export function Sidebar({
       )}
 
       <nav
-        className={`scrollbar-hide flex-1 overflow-x-hidden overflow-y-auto pb-3 pt-3 ${
+        className={`scrollbar-hide min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-3 pt-3 ${
           isCollapsed ? "px-2" : "px-3"
         }`}
       >
-        <div className="space-y-5">
-          {unified && (
-            <ProductNavigation
-              orgSlug={params.orgSlug}
-              pathname={location.pathname}
-              isCollapsed={isCollapsed}
-              searchQuery={navQuery}
-              canManageShares={!!canManageShares}
-              activeTunnelsCount={activeTunnelsCount}
-            />
-          )}
-          {visibleGroups.map((group, groupIndex) => (
-            <div key={group.label || `primary-${groupIndex}`}>
-              {!isCollapsed && group.label && (
-                <p className="mb-1.5 px-2 text-[10px] font-medium uppercase tracking-[0.11em] text-zinc-700">
-                  {group.label}
-                </p>
-              )}
-              <div className="space-y-0.5">
-                {group.items.map((item) => (
-                  <NavItem
-                    key={item.to}
-                    to={item.to}
-                    icon={item.icon}
-                    activeIcon={item.activeIcon}
-                    label={item.label}
-                    activeOptions={item.activeOptions}
-                    isCollapsed={isCollapsed}
-                    compact={unified}
-                    params={params}
-                    isActive={isNavItemActive(item)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <AnimatePresence initial={false} mode="wait">
+          <SidebarNavigationPanel key={mode} reducedMotion={Boolean(reducedMotion)}>
+            {mode === "dashboard" ? (
+              <>
+                <div className="space-y-5">
+                  {unified && (
+                    <ProductNavigation
+                      orgSlug={params.orgSlug}
+                      pathname={location.pathname}
+                      isCollapsed={isCollapsed}
+                      searchQuery={navQuery}
+                      canManageShares={!!canManageShares}
+                      activeTunnelsCount={activeTunnelsCount}
+                    />
+                  )}
+                  {visibleGroups.map((group, groupIndex) => (
+                    <div key={group.label || `primary-${groupIndex}`}>
+                      {!isCollapsed && group.label && (
+                        <p className="mb-1.5 px-2 text-[10px] font-medium uppercase tracking-[0.11em] text-zinc-700">
+                          {group.label}
+                        </p>
+                      )}
+                      <div className="space-y-0.5">
+                        {group.items.map((item) => (
+                          <NavItem
+                            key={item.to}
+                            to={item.to}
+                            icon={item.icon}
+                            activeIcon={item.activeIcon}
+                            label={item.label}
+                            activeOptions={item.activeOptions}
+                            isCollapsed={isCollapsed}
+                            compact={unified}
+                            params={params}
+                            isActive={isNavItemActive(item)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-        {!isCollapsed && visibleGroups.length === 0 && !hasProductResults && (
-          <p className="px-2 py-4 text-[12px] text-zinc-600">
-            No pages match “{navQuery}”.
-          </p>
-        )}
+                {!isCollapsed && visibleGroups.length === 0 && !hasProductResults && (
+                  <p className="px-2 py-4 text-[12px] text-zinc-600">
+                    No pages match “{navQuery}”.
+                  </p>
+                )}
+                {!unified && (
+                  <div
+                    className={`mt-auto shrink-0 border-t border-white/[0.06] pt-1 ${
+                      isCollapsed ? "px-2" : "px-3"
+                    }`}
+                  >
+                    <NavItem
+                      to="/$orgSlug/settings"
+                      icon={Settings02Icon}
+                      activeIcon={Settings02SolidIcon}
+                      label="Settings"
+                      isCollapsed={isCollapsed}
+                      params={params}
+                      isActive={isNavItemActive({
+                        to: "/$orgSlug/settings",
+                        label: "Settings",
+                        icon: Settings02Icon,
+                        activeIcon: Settings02SolidIcon,
+                      })}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <SidebarSettingsNavigation mode={mode} orgSlug={orgSlug} backHref={backHref} isCollapsed={isCollapsed} billing={Boolean(canManageBilling && instance.billingEnabled)} query={navQuery} />
+            )}
+          </SidebarNavigationPanel>
+        </AnimatePresence>
       </nav>
-
-      {!unified && (
-        <div
-          className={`shrink-0 border-t border-white/[0.06] pt-1 ${
-            isCollapsed ? "px-2" : "px-3"
-          }`}
-        >
-          <NavItem
-            to="/$orgSlug/settings"
-            icon={Settings02Icon}
-            activeIcon={Settings02SolidIcon}
-            label="Settings"
-            isCollapsed={isCollapsed}
-            params={params}
-            isActive={isNavItemActive({
-              to: "/$orgSlug/settings",
-              label: "Settings",
-              icon: Settings02Icon,
-              activeIcon: Settings02SolidIcon,
-            })}
-          />
-        </div>
-      )}
 
       <footer
         data-sidebar-collapse=""
@@ -389,4 +382,13 @@ export function Sidebar({
       </footer>
     </aside>
   );
+}
+
+function SidebarNavigationPanel({ children, reducedMotion }: { children: ReactNode; reducedMotion: boolean }) {
+  const present = useIsPresent();
+  return <motion.div className="flex min-h-full flex-col" inert={!present} aria-hidden={present ? undefined : true}
+    initial={reducedMotion ? false : { opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: reducedMotion ? 0 : -8 }}
+    transition={{ duration: reducedMotion ? 0 : present ? .16 : .08, ease: [.22, 1, .36, 1] }}>
+    {children}
+  </motion.div>;
 }
