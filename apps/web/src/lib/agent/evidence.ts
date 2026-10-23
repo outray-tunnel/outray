@@ -1,6 +1,8 @@
 import { queryTinybird } from "../tinybird";
 import { createHash } from "node:crypto";
 import type { AgentEvidenceReference } from "./protocol";
+import { summarizeAgentLogMessage } from "./log-summary";
+export { summarizeAgentLogMessage } from "./log-summary";
 
 /** The only telemetry endpoints this read-only agent is allowed to invoke. */
 export type AgentEvidenceEndpoint =
@@ -198,20 +200,6 @@ function boolean(value: unknown): boolean | null {
   if (value === true || value === 1) return true;
   if (value === false || value === 0) return false;
   return null;
-}
-
-/** No original log text survives. Fixed hints are useful without exposing secret values. */
-export function summarizeAgentLogMessage(value: unknown): string {
-  if (typeof value !== "string" || !value) return "[message withheld]";
-  const message = value.slice(0, 2_000);
-  if (/(?:ignore.{0,30}(?:instructions|previous)|system\s*prompt|<\/?(?:system|assistant)>|you are|execute|run command|authorization|bearer|password|secret|token|cookie|api[_-]?key)/i.test(message)) {
-    return "[message withheld]";
-  }
-  if (/timeout|timed out|deadline exceeded/i.test(message)) return "[message withheld; timeout mentioned]";
-  if (/connection refused|econnrefused|econnreset/i.test(message)) return "[message withheld; connection failure mentioned]";
-  if (/rate limit|too many requests/i.test(message)) return "[message withheld; rate limiting mentioned]";
-  if (/out of memory|heap exhausted|enomem/i.test(message)) return "[message withheld; memory exhaustion mentioned]";
-  return "[message withheld]";
 }
 
 function safeOperationName(value: unknown): string | null {
