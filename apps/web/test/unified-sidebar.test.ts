@@ -377,7 +377,7 @@ test("split product links use genuine solid variants without changing workspace 
   ]) {
     assert.match(source, new RegExp(`icon: ${icon},\\s*activeIcon: ${activeIcon},`));
   }
-  for (const activeIcon of ["UserGroupSolidIcon", "Key02SolidIcon", "WalletCardsSolidIcon", "Settings02SolidIcon"]) {
+  for (const activeIcon of ["Settings02SolidIcon"]) {
     assert.match(source, new RegExp(`activeIcon: ${activeIcon}`));
   }
 });
@@ -469,7 +469,7 @@ test("unified and legacy child badges share a tenant-scoped query without primar
     assert.doesNotMatch(source, /placeholderData/);
     assert.match(source, /const activeTunnelsCount = tunnelsError\s*\? undefined\s*:\s*tunnelsData\?\.tunnels\.length/);
   }
-  assert.match(primary, /enabled:\s*!!orgSlug && unified/);
+  assert.match(primary, /enabled:\s*mode === "dashboard" && !!orgSlug && unified/);
   assert.match(primary, /<ProductNavigation\b[\s\S]*?activeTunnelsCount=\{activeTunnelsCount\}/);
   assert.doesNotMatch(primary, /\bActiveTunnelBadge\b|\bactiveTunnelCountLabel\b|\bbadge=|\bariaLabel=/);
   assert.match(legacy, /enabled:\s*!!orgSlug && isTunnelRoute/);
@@ -574,9 +574,17 @@ test("trailing-slash product destinations reveal and highlight their page", asyn
   }
 });
 
-test("the layout uses one flag decision for unified primary navigation and the legacy second column", async () => {
-  const layout = await readFile(new URL("../src/routes/$orgSlug.tsx", import.meta.url), "utf8");
+test("one shared sidebar stays above dashboard and personal settings routes", async () => {
+  const [root, layout, organization, personal] = await Promise.all([
+    readFile(new URL("../src/routes/__root.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/workspace/workspace-shell.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/routes/$orgSlug.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/workspace/account-settings-layout.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(root, /<WorkspaceFrame><Outlet\s*\/><\/WorkspaceFrame>/);
   assert.match(layout, /const unifiedSidebar = useFeatureFlag\("unified_sidebar"\)/);
   assert.match(layout, /<Sidebar\b[^>]*unified=\{unifiedSidebar\}/);
-  assert.match(layout, /\{!unifiedSidebar && <ProductSubSidebar\s*\/>\}/);
+  assert.equal((layout.match(/<Sidebar\b/g) ?? []).length, 1);
+  assert.match(layout, /!organizationSettings && !personal && !unifiedSidebar && <ProductSubSidebar\s*\/>/);
+  assert.doesNotMatch(organization + personal, /<Sidebar\b|<OrganizationSettingsNavigation\b|<AccountSettingsSidebar\b/);
 });
