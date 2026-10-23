@@ -7,6 +7,8 @@ description: Use when a user wants to expose a local application with OutRay, cr
 
 For platform inspection, use the connected OutRay MCP tools. Start with `list_organizations` and use returned slugs and resource IDs.
 
+If the plugin is disconnected, use its **Connect** control for browser sign-in and organization consent. The CLI login below authenticates local tunnel commands separately; it does not connect the plugin.
+
 Creating a localhost tunnel requires a chat with local execution. If no local runtime is available, give the user the exact CLI command to run on their development machine. A hosted MCP server cannot reach their localhost.
 
 When local execution is available:
