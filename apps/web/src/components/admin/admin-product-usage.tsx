@@ -24,6 +24,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/arc/button/button";
 import { AdminDataTable, type Column } from "./admin-data-table";
+import { PermanentUsagePanel } from "./permanent-usage-panel";
 
 const productStyle = {
   tunnels: { name: "Tunnels", icon: Cone01Icon, color: "#b49ade", className: "text-violet-300" },
@@ -180,6 +181,7 @@ export function AdminProductUsagePage() {
   return <div className="mx-auto w-full max-w-[1440px] space-y-5" aria-busy={query.isFetching || undefined}>
     <WorkspacePageHeader appearance="compact" title="Product usage" description="What workspaces adopt, what they use, and how that changes over time." action={<div className="flex flex-wrap items-center gap-2"><SegmentedControl label="Usage period" value={range} options={ranges} onValueChange={changeRange} /><Button type="button" variant="ghost" size="sm" loading={query.isFetching} aria-label="Refresh product usage" onClick={() => void query.refetch()}><HugeiconsIcon icon={RefreshIcon} size={15} aria-hidden="true" /></Button></div>} />
     {query.isError ? <WorkspaceNotice message="Could not load product usage." action={<Button type="button" variant="ghost" size="sm" onClick={() => void query.refetch()}>Try again</Button>} /> : null}
+    <PermanentUsagePanel />
     {!data ? query.isPending ? <><UsageSkeleton /><div className="grid gap-4 lg:grid-cols-2"><UsageSkeleton /><UsageSkeleton /></div></> : <section className={`${panelClass} flex min-h-52 flex-col items-center justify-center gap-3 p-5`}><HugeiconsIcon icon={ChartLineData01Icon} size={22} className="text-zinc-600" aria-hidden="true" /><p className="text-[12px] text-zinc-500">Usage is unavailable. No metrics have been substituted.</p></section> : <>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[
         { label: "Workspaces", value: data.summary.organizations, detail: `${formatAdminUsage(data.summary.users)} users across the platform` },
