@@ -1,5 +1,7 @@
 # OutRay plugin
 
+The initial public release is **0.0.1**. Local Codex cachebusters use build metadata (`0.0.1+codex.…`); they do not advance the product release version. Earlier private account test uploads are not public releases.
+
 This package connects Codex and ChatGPT to OutRay's hosted public MCP catalog at `https://outray.co/api/mcp/openai`. The backend and direct MCP catalog are implemented by the same OutRay web application.
 
 The four bundled skills cover local tunnels, SDK setup and investigation, Secrets administration and opaque local injection, and organization/uptime administration. Local execution is optional; the plugin is not marked desktop-only.
