@@ -1,0 +1,13 @@
+{
+  "name": "OutRay integration accessibility",
+  "kind": "zone",
+  "phase": "http_config_settings",
+  "rules": [{
+    "ref": "outray_mcp_accessibility",
+    "description": "Allow standards-based OAuth/MCP clients and public listing checks",
+    "expression": "(http.host eq \"outray.co\" and (http.request.uri.path in {\"/contact\" \"/privacy\" \"/terms\" \"/plugins/codex\" \"/api/mcp\"} or starts_with(http.request.uri.path, \"/api/mcp/\") or starts_with(http.request.uri.path, \"/.well-known/\") or starts_with(http.request.uri.path, \"/api/auth/\")))",
+    "action": "set_config",
+    "action_parameters": { "bic": false },
+    "enabled": true
+  }]
+}
