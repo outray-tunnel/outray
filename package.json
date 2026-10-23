@@ -51,18 +51,26 @@
     "packages:publish": "node scripts/publish-packages.mjs",
     "packages:publish:dry-run": "node scripts/publish-packages.mjs --dry-run",
     "packages:publish:test": "node --test scripts/publish-packages.test.mjs",
+    "plugin:check": "node scripts/outray-plugin.mjs",
+    "plugin:package": "node scripts/outray-plugin.mjs --package",
+    "plugin:prepare:native": "node scripts/prepare-outray-native-plugin.mjs",
+    "mcp:test:integration": "node scripts/test-outray-mcp.mjs",
     "db:migrate": "dotenv -e .env -- npm run db:migrate --workspace=outray-web",
     "db:migrate:ci": "npm run db:migrate:ci --workspace=outray-web",
+    "usage:backfill": "tsx scripts/product-usage-backfill.mjs",
     "admin:profile": "npm run admin:profile --workspace=outray-web --",
     "db:generate-auth": "dotenv -e .env -- npm run db:generate-auth --workspace=outray-web",
     "tokens:backfill": "dotenv -e .env -- npm run tokens:backfill --workspace=outray-web",
     "secrets:rewrap": "dotenv -e .env -- npm run secrets:rewrap --workspace=outray-web --",
-    "secrets:rewrap:verify": "dotenv -e .env -- npm run secrets:rewrap:verify --workspace=outray-web --"
+    "secrets:rewrap:verify": "dotenv -e .env -- npm run secrets:rewrap:verify --workspace=outray-web --",
+    "mcp:review:prepare": "node scripts/prepare-outray-mcp-review.mjs",
+    "mcp:check:live": "node scripts/check-outray-mcp-live.mjs"
   },
   "devDependencies": {
     "dotenv-cli": "^10.0.0",
     "drizzle-orm": "^0.45.2",
     "semver": "^7.7.3",
-    "turbo": "^2.5.6"
+    "turbo": "^2.5.6",
+    "yaml": "2.9.1"
   }
 }
