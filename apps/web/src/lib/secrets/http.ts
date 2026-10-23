@@ -33,7 +33,9 @@ export function secretsErrorResponse(error: unknown): Response {
       { status: error.status },
     );
   }
-  console.error("Unhandled Secrets API error", error);
+  // Database errors can contain the failed row, including secret input. Keep
+  // diagnostics structural; never log error messages, queries or parameters.
+  console.error("Unhandled Secrets API error", { name: error instanceof Error ? error.name : "UnknownError" });
   return Response.json(
     { error: "Internal server error", code: "INTERNAL_ERROR" },
     { status: 500 },
