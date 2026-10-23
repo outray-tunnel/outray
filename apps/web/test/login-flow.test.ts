@@ -9,6 +9,17 @@ import {
 } from "../src/lib/login";
 import { authRouteController, deferred, settle, type AuthControllerOptions, type AuthResult } from "./auth-flow.fixture";
 
+test("MCP sign-in preserves signed continuation and requested reauthentication on retry", async () => {
+  const redirect = `/plugins/continue?oauth_query=${"a".repeat(4000)}`;
+  assert.equal(normalizeLoginRedirect(redirect), redirect);
+  assert.equal(normalizeLoginRedirect(`/ordinary?query=${"a".repeat(4000)}`), undefined);
+  assert.deepEqual(readLoginSearch({ redirect, reauth: "1" }), { redirect, reauth: true });
+  const retry = new URL(loginCallbacks("github", redirect).errorCallbackURL, "https://outray.test");
+  assert.equal(retry.searchParams.get("redirect"), redirect); assert.equal(retry.searchParams.get("reauth"), "1");
+  const controller = await authRouteController("login", { search: { redirect, reauth: "1" }, session: { user: { id: "signed-in" } } });
+  assert.equal(controller.render().type.name, "Page");
+});
+
 test("safe return destinations retain CLI codes, invitation tokens, and workspace query parameters", () => {
   for (const destination of [
     "/select", "/onboarding", "/acme/uptime",
