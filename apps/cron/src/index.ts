@@ -12,6 +12,9 @@ import {
 import { instanceConfig } from "../../../shared/instance-config";
 import { createProductEmailWorker, PRODUCT_EMAIL_POLL_INTERVAL_MS } from "./lib/product-emails";
 import { createUsageEmailScanner, USAGE_EMAIL_SCAN_INTERVAL_MS } from "./lib/usage-emails";
+import statusAnalyticsOutbox from "../../../shared/status-analytics-outbox";
+import { createMcpActivityCleanup, MCP_ACTIVITY_CLEANUP_INTERVAL_MS } from "../../../shared/mcp-activity";
+const { cleanupProductUsage, deliverStatusAnalyticsOutbox } = statusAnalyticsOutbox;
 
 if (process.env.OUTRAY_API_KEY) {
   try {
@@ -38,9 +41,20 @@ const timers: NodeJS.Timeout[] = [];
 const telemetryReceiptCleanup = createTelemetryReceiptCleanup(databasePool);
 const productEmailWorker = createProductEmailWorker(databasePool);
 const usageEmailScanner = createUsageEmailScanner(databasePool, redis);
+const mcpActivityCleanup = createMcpActivityCleanup(databasePool);
 
 let isSampling = false;
 let isCleaning = false;
+let usageJob: Promise<void> | null = null;
+function pollPermanentUsage() {
+  if (usageJob) return usageJob;
+  usageJob = (async () => {
+    await cleanupProductUsage(databasePool);
+    if (instanceConfig().products.includes("uptime")) await deliverStatusAnalyticsOutbox(databasePool, { environment: process.env });
+  })().catch(() => console.error("[Permanent usage] Maintenance failed; queued analytics remain durable"))
+    .finally(() => { usageJob = null; });
+  return usageJob;
+}
 
 /**
  * Cleans up stale entries from org:*:online_tunnels sets.
@@ -218,6 +232,10 @@ async function rebuildGlobalOrgIndex() {
 
 async function start() {
   const instance = instanceConfig();
+  void mcpActivityCleanup.run();
+  timers.push(setInterval(() => void mcpActivityCleanup.run(), MCP_ACTIVITY_CLEANUP_INTERVAL_MS));
+  void pollPermanentUsage();
+  timers.push(setInterval(() => void pollPermanentUsage(), 15_000));
   if (instance.products.includes("observability")) {
     startAlertWorkers();
     void telemetryReceiptCleanup.run();
@@ -266,6 +284,8 @@ async function shutdown() {
   timers.forEach(clearInterval);
   await Promise.all([usageEmailScanner.shutdown(), productEmailWorker.shutdown()]);
   await telemetryReceiptCleanup.shutdown();
+  await mcpActivityCleanup.shutdown();
+  await usageJob;
   try { await snapshots.shutdown(); }
   catch { console.error("Could not persist buffered tunnel snapshots before shutdown"); }
   await redis.quit().catch(() => undefined);
