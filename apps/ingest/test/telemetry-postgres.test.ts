@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { Buffer } from "node:buffer";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import pg from "pg";
 import {
@@ -27,13 +28,14 @@ test(
       /^\/telemetry_test(?:_[a-zA-Z0-9_]+)?$/,
       "use an explicitly named throwaway telemetry_test database",
     );
+    const schema = `telemetry_quota_${randomUUID().replaceAll("-", "")}`;
     const pool = new pg.Pool({
       connectionString: testDatabaseUrl,
       max: 10,
       connectionTimeoutMillis: 3000,
       query_timeout: 10_000,
+      options: `-c search_path=${schema}`,
     });
-    const schema = `telemetry_quota_${randomUUID().replaceAll("-", "")}`;
     const auth: IngestAuthContext = {
       organizationId: "org_pg",
       tokenId: "token_pg",
@@ -48,7 +50,7 @@ test(
       body: "local quota check 🔒",
     });
     const size = Buffer.byteLength(JSON.stringify(row(0)), "utf8");
-    const october = new Date("2026-10-15T00:00:00Z");
+    const october = new Date(Date.now() - 3 * 86400000);
     async function admit(
       context: IngestAuthContext,
       rows: ReturnType<typeof row>[],
@@ -78,6 +80,18 @@ test(
     }
     try {
       await pool.query(`CREATE SCHEMA "${schema}"`);
+      await pool.query(`CREATE TABLE organizations(id text PRIMARY KEY);
+        CREATE TABLE uptime_status_pages(id text PRIMARY KEY,organization_id text,published boolean);
+        CREATE TABLE secret_audit_events(id text PRIMARY KEY,organization_id text,created_at timestamptz,action text,result text,metadata jsonb);
+        CREATE TABLE tunnels(id text PRIMARY KEY,organization_id text,created_at timestamp,protocol text);
+        CREATE TABLE uptime_checks(id text PRIMARY KEY,organization_id text,checked_at timestamptz,success boolean);
+        CREATE TABLE observability_alert_evaluations(id text PRIMARY KEY,organization_id text,evaluated_at timestamptz,status text);
+        CREATE TABLE agent_threads(id uuid PRIMARY KEY,organization_id text);
+        CREATE TABLE agent_runs(id uuid PRIMARY KEY,thread_id uuid,started_at timestamptz,status text,input_tokens integer,output_tokens integer);
+        INSERT INTO organizations VALUES('org_pg'),('org_failure'),('org_month_boundary');`);
+      for (const name of ["0039_permanent_product_usage", "0040_permanent_usage_reconciliation", "0041_permanent_usage_read_reconciliation"]) {
+        await pool.query(readFileSync(new URL(`../../web/drizzle/${name}.sql`, import.meta.url), "utf8").replaceAll('"public".', `"${schema}".`));
+      }
       await pool.query(`CREATE TABLE "${schema}".organization_monthly_usage (
       organization_id text NOT NULL, month date NOT NULL, metric text NOT NULL,
       used bigint NOT NULL DEFAULT 0 CHECK (used >= 0), updated_at timestamptz NOT NULL DEFAULT NOW(),
@@ -150,6 +164,7 @@ test(
         organization_id: boundaryOrg.organizationId,
       };
       let boundaryQueued = 0;
+      const boundary = new Date(); boundary.setUTCHours(0, 0, 0, 0); boundary.setUTCDate(1);
       await Promise.all([
         admit(
           boundaryOrg,
@@ -158,7 +173,7 @@ test(
             boundaryQueued++;
             await new Promise((resolve) => setTimeout(resolve, 20));
           },
-          new Date("2026-10-31T23:59:59.999Z"),
+          new Date(boundary.getTime() - 1),
         ),
         admit(
           boundaryOrg,
@@ -166,7 +181,7 @@ test(
           async () => {
             boundaryQueued++;
           },
-          new Date("2026-11-01T00:00:00.000Z"),
+          boundary,
         ),
       ]);
       assert.equal(boundaryQueued, 1);
@@ -174,6 +189,9 @@ test(
         await used(),
         expected + Buffer.byteLength(JSON.stringify(boundaryRow), "utf8"),
       );
+      const permanent = await pool.query("SELECT metric,sum(value)::text AS value FROM organization_product_usage_daily GROUP BY metric");
+      assert.equal(permanent.rows.find(r => r.metric === "observability.logs")?.value, "5");
+      assert.equal(permanent.rows.find(r => r.metric === "observability.telemetry_bytes")?.value, String(await used()));
     } finally {
       // Only the random schema created above is removed; no app tables are touched.
       await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
