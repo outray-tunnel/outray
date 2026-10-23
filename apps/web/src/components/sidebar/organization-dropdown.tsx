@@ -13,11 +13,13 @@ export interface OrganizationDropdownProps {
   setIsOrgDropdownOpen: (open: boolean) => void;
   isCollapsed: boolean;
   isLoading?: boolean;
+  orgSlug?: string;
 }
 
-export function OrganizationDropdown({ organizations, setSelectedOrganization, isOrgDropdownOpen, setIsOrgDropdownOpen, isCollapsed, isLoading = false }: OrganizationDropdownProps) {
+export function OrganizationDropdown({ organizations, setSelectedOrganization, isOrgDropdownOpen, setIsOrgDropdownOpen, isCollapsed, isLoading = false, orgSlug: selectedSlug }: OrganizationDropdownProps) {
   const location = useLocation();
-  const { orgSlug } = useParams({ from: "/$orgSlug" });
+  const params = useParams({ strict: false });
+  const orgSlug = selectedSlug ?? params.orgSlug ?? "";
   const selectedOrg = organizations.find((organization) => organization.slug === orgSlug);
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
