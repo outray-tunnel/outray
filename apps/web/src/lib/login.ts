@@ -4,11 +4,12 @@ export type LoginCallbackError = "cancelled" | "failed";
 export interface LoginSearch {
   redirect?: string;
   error?: LoginCallbackError;
+  reauth?: boolean;
 }
 
 /** OAuth callbacks stay local and retain invitation tokens and CLI login codes. */
 export function normalizeLoginRedirect(value: unknown): string | undefined {
-  if (typeof value !== "string" || value.length > 2_048 || !value.startsWith("/")
+  if (typeof value !== "string" || value.length > (value.startsWith("/plugins/continue?") ? 20_000 : 2_048) || !value.startsWith("/")
     || value.startsWith("//") || /[\\#\s\p{Cc}]/u.test(value) || /^\/%(?:2f|5c)/i.test(value)) return undefined;
   try {
     const url = new URL(value, "https://outray.invalid");
@@ -24,7 +25,7 @@ export function readLoginSearch(search?: Record<string, unknown>): LoginSearch {
   const error = typeof search?.error === "string" && search.error
     ? ["access_denied", "user_cancelled", "cancelled"].includes(search.error) ? "cancelled" : "failed"
     : undefined;
-  return { ...(redirect ? { redirect } : {}), ...(error ? { error } : {}) };
+  return { ...(redirect ? { redirect } : {}), ...(error ? { error } : {}), ...(search?.reauth === "1" || search?.reauth === true ? { reauth: true } : {}) };
 }
 
 export function loginCallbackErrorMessage(error?: LoginCallbackError): string | null {
@@ -40,7 +41,8 @@ function authCallbacks(provider: LoginProvider, redirect: string | undefined, er
     provider,
     callbackURL: destination ?? "/select",
     newUserCallbackURL: destination ?? "/onboarding",
-    errorCallbackURL: destination ? `${errorPath}?${new URLSearchParams({ redirect: destination })}` : errorPath,
+    errorCallbackURL: destination ? `${errorPath}?${new URLSearchParams({ redirect: destination,
+      ...(destination.startsWith("/plugins/continue?") ? { reauth: "1" } : {}) })}` : errorPath,
   };
 }
 
