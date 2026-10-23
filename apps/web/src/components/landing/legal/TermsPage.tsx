@@ -12,9 +12,15 @@ export const TermsPage = () => {
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
             Terms of Service
           </h1>
-          <p className="text-white/40 mb-12">Last updated: January 24, 2026</p>
+          <p className="text-white/40 mb-12">Last updated: October 22, 2026</p>
 
           <div className="prose prose-invert prose-lg max-w-none">
+            <section className="mb-12" aria-labelledby="plugin-terms">
+              <h2 id="plugin-terms" className="text-2xl font-semibold text-white mb-4">Connected apps and MCP</h2>
+              <p className="text-white/60 leading-relaxed">These terms apply to the OutRay MCP server and OutRay integrations for Codex and ChatGPT. Connect only accounts and organizations you are authorized to use. Actions remain subject to your current organization role, product limits and selected permissions. You can revoke an integration from Connected apps.</p>
+              <p className="text-white/60 leading-relaxed mt-4">Review consequential actions such as deleting resources, inviting members, publishing incident updates and changing monitoring behavior. Publishing updates or configuring notifications may communicate with other people. Local tunnel and SDK workflows run on the development machine you authorize. Billing changes take place through OutRay’s account-management workflows.</p>
+              <p className="text-white/60 leading-relaxed mt-4">The public plugin excludes secret-value and credential-generation tools. Direct MCP clients may request separate access to explicit secret-value operations. Do not paste passwords, API keys or sign-in links into a conversation. External clients and their handling of returned information are governed by their own terms and policies.</p>
+            </section>
             <section className="mb-12">
               <h2 className="text-2xl font-semibold text-white mb-4">
                 1. Acceptance of Terms
