@@ -274,6 +274,41 @@
       "when": 1792610074844,
       "tag": "0038_status_headless_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1792655573021,
+      "tag": "0039_permanent_product_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792656539666,
+      "tag": "0040_permanent_usage_reconciliation",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792657015905,
+      "tag": "0041_permanent_usage_read_reconciliation",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792692948705,
+      "tag": "0042_outray_mcp",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792694543350,
+      "tag": "0043_mcp_secret_audit_actor",
+      "breakpoints": true
     }
   ]
 }
