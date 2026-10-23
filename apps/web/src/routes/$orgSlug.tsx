@@ -7,19 +7,18 @@ import {
 } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
-import { Sidebar } from "@/components/app-sidebar";
-import { ProductSubSidebar } from "@/components/product-sub-sidebar";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { WorkspaceTopbar } from "@/components/workspace-topbar";
 import { MobileNavSheet } from "@/components/mobile-nav-sheet";
 import { useAppStore } from "@/lib/store";
-import { useFeatureFlag } from "@/lib/feature-flags";
 import { OrganizationAccessPage, OrganizationAccessSkeleton } from "@/components/organization/organization-access-page";
 import { AgentChatProvider } from "@/components/agent/agent-chat-provider";
 import { AgentChatHost } from "@/components/agent/agent-chat-host";
 import { workspaceScopeClassName } from "@/components/ui/workspace-scope";
 import { instanceProductForPath } from "../../../../shared/instance-config";
 import { parseOrganizationRouteParams } from "@/lib/documentation-routing";
+import { OrganizationSettingsMobileNavigation } from "@/components/workspace/settings-navigation";
+import { isOrganizationSettingsPath } from "@/components/workspace/settings-navigation-state";
 
 export const Route = createFileRoute("/$orgSlug")({
   // Exact workspace children otherwise outrank the public /docs/$ catch-all.
@@ -41,8 +40,7 @@ export const Route = createFileRoute("/$orgSlug")({
 function DashboardLayout() {
   const { orgSlug } = Route.useParams();
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const unifiedSidebar = useFeatureFlag("unified_sidebar");
+  const organizationSettings = isOrganizationSettingsPath(location.pathname, orgSlug);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { data: organizations, isPending, isRefetching } = authClient.useListOrganizations();
   const { data: activeOrg } = authClient.useActiveOrganization();
@@ -105,30 +103,22 @@ function DashboardLayout() {
 
   return (
     <AgentChatProvider key={`${session?.user.id ?? "pending"}:${matchedOrgId}`} orgSlug={orgSlug}>
-    <div className={`${workspaceScopeClassName} fixed inset-0 flex overflow-hidden bg-[#070707] font-sans text-gray-300 selection:bg-accent/30`}>
+    <div className={`${workspaceScopeClassName} flex h-full min-h-0 w-full overflow-hidden bg-[#070707] font-sans text-gray-300 selection:bg-accent/30`}>
       {/* Keep the workspace in the viewport; long pages scroll inside main. */}
       <div className="flex h-full min-h-0 w-full overflow-hidden">
-        {/* Desktop sidebar - hidden on mobile */}
-        <div className="hidden md:flex h-full">
-          <Sidebar
-            isCollapsed={isCollapsed}
-            setIsCollapsed={setIsCollapsed}
-            unified={unifiedSidebar}
-          />
-          {!unifiedSidebar && <ProductSubSidebar />}
-        </div>
-
         <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#090909]">
           <WorkspaceTopbar
             onOpenNavigation={() => setMobileNavOpen(true)}
             isNavigationOpen={mobileNavOpen}
+            contextLabel={organizationSettings ? "Organization settings" : undefined}
           />
+          {organizationSettings && <OrganizationSettingsMobileNavigation orgSlug={orgSlug} />}
           <main className="flex min-h-0 flex-1 flex-col">
             <div
               data-scroll-restoration-id={`workspace-content-${orgSlug}`}
               className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-6 py-5 pb-[calc(80px+env(safe-area-inset-bottom))] md:px-12 md:py-8 md:pb-8"
             >
-              <Outlet />
+              {organizationSettings ? <div className="mx-auto w-full max-w-[1120px]"><Outlet /></div> : <Outlet />}
             </div>
           </main>
         </div>
