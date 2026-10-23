@@ -99,6 +99,7 @@ export async function authRouteController(mode: "login" | "signup", options: Aut
         } },
       } };
       if (specifier === "@/components/auth/auth-page") return { AuthPage: Page };
+      if (specifier === "@/components/auth/email-sign-in") return { EmailSignIn: () => null };
       if (specifier === "@/lib/login") return login;
       throw new Error(`Unexpected ${mode} dependency: ${specifier}`);
     },
