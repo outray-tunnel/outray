@@ -10,8 +10,10 @@ import { BETTER_AUTH_MEMBERSHIP_CEILING } from "./member-limit-policy";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { instanceConfig, instanceSignupAllowed } from "../../../../shared/instance-config";
 import { adminProfileFields } from "./auth-profile";
+import { outrayMcpAuthPlugins } from "./mcp/auth-plugins";
 
 export const auth = betterAuth({
+  baseURL: process.env.APP_URL || "http://localhost:6767",
   database: memberQuotaAdapter(),
   user: {
     additionalFields: adminProfileFields,
@@ -35,6 +37,7 @@ export const auth = betterAuth({
     } } },
   },
   plugins: [
+    ...outrayMcpAuthPlugins(),
     organization({
       ac,
       // Plan-aware capacity is enforced atomically by the database adapter.
