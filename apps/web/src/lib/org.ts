@@ -4,6 +4,7 @@ import { auth } from "./auth";
 import { db } from "../db";
 import { members, organizations } from "../db/auth-schema";
 import { createOrganizationAccessResolver } from "./org-access";
+import { getMcpRequestActor } from "./mcp/request-actor";
 
 export type AuthOrganization = Awaited<
   ReturnType<typeof auth.api.listOrganizations>
@@ -11,14 +12,14 @@ export type AuthOrganization = Awaited<
 
 export type OrgContextResult =
   | {
-      session: Awaited<ReturnType<typeof auth.api.getSession>>;
+      session: Pick<NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>, "user">;
       organization: AuthOrganization;
     }
   | { error: Response };
 
 export type OrgMembershipContextResult =
   | {
-      session: Awaited<ReturnType<typeof auth.api.getSession>>;
+      session: Pick<NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>, "user">;
       organization: AuthOrganization;
       membership: { role: string };
     }
@@ -58,6 +59,16 @@ export async function requireOrgMembershipFromSlug(
   request: Request,
   orgSlug: string,
 ): Promise<OrgMembershipContextResult> {
+  const actor = getMcpRequestActor(request);
+  if (actor) {
+    const [row] = await db.select({ organization: organizations, membership: { role: members.role } })
+      .from(members).innerJoin(organizations, eq(members.organizationId, organizations.id))
+      .where(and(eq(members.userId, actor.user.id), eq(organizations.slug, orgSlug))).limit(1);
+    if (!row || !actor.organizationIds.includes(row.organization.id)) {
+      return { error: json({ error: "Forbidden" }, { status: 403 }) };
+    }
+    return { session: { user: actor.user }, ...row };
+  }
   const result = await resolveOrganizationAccess(request, orgSlug);
   if ("status" in result) {
     return {
