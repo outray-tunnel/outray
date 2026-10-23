@@ -85,12 +85,15 @@ async function harness() {
     } } } },
     "../db": { db }, "../db/auth-schema": authSchema,
     "./org-access": { createOrganizationAccessResolver },
+    "./mcp/request-actor": { getMcpRequestActor: () => undefined },
   });
   const access = await loadModule<AccessFunctions>(new URL("../src/lib/secrets/access.ts", import.meta.url), {
     "drizzle-orm": orm, "../../db": { db }, "../../db/auth-schema": authSchema,
     "../../db/secrets-schema": secretsSchema, "../org": org,
     "../machine-tokens": { hashMachineToken: (value: string) => `hash:${value}` },
     "./access-policy": policy, "./types": secretsTypes,
+    "../mcp/request-actor": { getMcpRequestActor: () => undefined },
+    "../mcp/policy": { requireMcpScopes: () => {} },
   });
   return { org, access, memberships, queries, writes,
     sessionReads: () => sessionReads,
