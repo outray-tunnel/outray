@@ -12,7 +12,7 @@ test("switching organizations preserves each audited static page and canonicaliz
   const sections = [
     "/tunnel", "/tunnel/tunnels", "/tunnel/requests", "/tunnel/subdomains", "/tunnel/domains",
     "/members", "/tokens", "/billing",
-    "/settings", "/settings/profile", "/settings/organization", "/get-started", "/setup",
+    "/settings", "/settings/profile", "/settings/organization", "/settings/connected-apps", "/get-started", "/setup",
     "/observability", "/observability/alerts", "/observability/services", "/observability/requests",
     "/observability/logs", "/observability/metrics", "/observability/traces",
     "/secrets/vaults", "/secrets/shares", "/secrets/trash", "/secrets/audit",
