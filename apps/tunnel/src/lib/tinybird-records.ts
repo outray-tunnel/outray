@@ -32,6 +32,7 @@ export interface RequestCapture {
 }
 
 export interface ProtocolEvent {
+  direction?: "in" | "out";
   timestamp: number;
   tunnel_id: string;
   organization_id: string;
