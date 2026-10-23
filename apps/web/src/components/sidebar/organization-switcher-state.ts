@@ -7,7 +7,7 @@ export interface SwitcherOrganization {
 
 const staticSections = new Set([
   "/tunnel", "/tunnel/tunnels", "/tunnel/requests", "/tunnel/subdomains", "/tunnel/domains", "/members", "/tokens", "/billing",
-  "/settings", "/settings/profile", "/settings/organization", "/get-started", "/setup",
+  "/settings", "/settings/profile", "/settings/organization", "/settings/connected-apps", "/get-started", "/setup",
   "/observability", "/observability/alerts", "/observability/services", "/observability/requests",
   "/observability/logs", "/observability/metrics", "/observability/traces",
   "/secrets", "/secrets/vaults", "/secrets/shares", "/secrets/trash", "/secrets/audit",
