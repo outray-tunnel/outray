@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "outray",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Work with OutRay tunnels, observability, uptime, secrets metadata and organization resources from Codex and ChatGPT.",
   "homepage": "https://outray.co/plugins/codex",
   "license": "AGPL-3.0-only",
