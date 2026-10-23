@@ -13,6 +13,7 @@ import { PostHogProvider } from "posthog-js/react";
 import { authClient } from "@/lib/auth-client";
 import { getPublicInstanceConfig } from "@/lib/instance";
 import { InstanceContext } from "@/lib/instance-context";
+import { WorkspaceFrame } from "@/components/workspace/workspace-shell";
 import {
   bindQueryClientToSession,
   getQueryClientSnapshot,
@@ -128,7 +129,7 @@ function RootComponent() {
         }}
       >
         <QueryClientProvider key={queryClient.generation} client={queryClient.client}>
-          <Outlet />
+          <WorkspaceFrame><Outlet /></WorkspaceFrame>
         </QueryClientProvider>
       </PostHogProvider>
       </InstanceContext.Provider>
