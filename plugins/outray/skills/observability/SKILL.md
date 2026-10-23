@@ -5,6 +5,8 @@ description: Use when a user wants to instrument an application with an OutRay S
 
 # OutRay observability
 
+For hosted investigations, connect through the plugin's **Connect** control and complete browser sign-in and organization consent if needed. CLI login is separate; do not use it or request an API token as a substitute for the plugin connection.
+
 Inspect the project first and select its existing framework integration: `@outray/express`, `@outray/hono`, `@outray/nest`, `@outray/next`, `@outray/tanstack-start`, `@outray/vite`, or `@outray/observability` as appropriate. Read that integration's current OutRay documentation and installed types before editing configuration. Follow the project's package manager and existing startup lifecycle. Do not install several adapters for the same request path.
 
 Keep credentials in the user's existing environment or secret manager. Never ask them to paste an API key into chat, print environment contents, or commit credentials. Configure secret injection through the CLI when local execution is available. Preserve request metadata and metrics when disabling payload content; apply sensitive-route exclusions to bodies rather than removing all observability.
