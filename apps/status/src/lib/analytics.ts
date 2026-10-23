@@ -2,7 +2,9 @@ import { createHmac } from "node:crypto";
 import { isIP } from "node:net";
 import planPolicy from "../../../../shared/hosted-plan-limits";
 import instancePolicy from "../../../../shared/instance-config";
-import { query } from "./db";
+import { query, getPool } from "./db";
+import statusAnalyticsOutbox from "../../../../shared/status-analytics-outbox";
+const { admitStatusAnalytics, deliverStatusAnalyticsOutbox } = statusAnalyticsOutbox;
 import { getStatusConfig } from "./config";
 import { getStatusRuntime, isStatusProduction, statusEnvironment } from "./runtime";
 
@@ -85,11 +87,12 @@ export async function appendAnalyticsEvent(page: { id: string; organization_id: 
     country: /^[A-Z]{2}$/.test(country) && !["XX", "T1"].includes(country) ? country : "",
     retention_days: retentionDays,
   };
-  const response = await fetch(`${env.TINYBIRD_API_HOST.replace(/\/$/, "")}/v0/events?name=status_page_views&wait=true`, {
-    method: "POST", headers: { Authorization: `Bearer ${env.TINYBIRD_INGEST_TOKEN}`, "Content-Type": "application/x-ndjson" },
-    body: JSON.stringify(event) + "\n", signal: AbortSignal.timeout(3000),
-  });
-  if (!response.ok) { await response.body?.cancel(); throw new Error("Status analytics ingestion failed"); }
-  const result = await response.json() as { successful_rows?: number; quarantined_rows?: number };
-  if (result.successful_rows !== 1 || result.quarantined_rows) throw new Error("Status analytics event was rejected");
+  const pool = getPool();
+  const accepted = await admitStatusAnalytics(pool, event, now);
+  if (accepted) {
+    // Preserve the existing immediate export, but a transient delivery outage
+    // cannot lose an accepted visit or make its permanent count disappear.
+    try { await deliverStatusAnalyticsOutbox(pool, { environment: env, limit: 1, pageId: page.id, eventId: input.eventId }); }
+    catch { console.error("[Status analytics] Accepted view remains queued for delivery"); }
+  }
 }
