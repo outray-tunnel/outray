@@ -14,6 +14,7 @@ import {
   normalizeMachineTokenScopes,
 } from "../../../lib/machine-tokens";
 import { requireOrgFromSlug } from "../../../lib/org";
+import { getMcpRequestActor } from "../../../lib/mcp/request-actor";
 import { lockOrganization } from "../../../lib/secrets/database";
 import {
   readJsonBody,
@@ -235,7 +236,7 @@ export const Route = createFileRoute("/api/$orgSlug/auth-tokens")({
               projectId,
               environmentId,
               actorType: "user",
-              actorCredential: "session",
+              actorCredential: getMcpRequestActor(request) ? "mcp" : "session",
               actorId: orgResult.userId,
               action: "machine_token.created",
               result: "success",
@@ -292,7 +293,7 @@ export const Route = createFileRoute("/api/$orgSlug/auth-tokens")({
                 projectId: row.projectId,
                 environmentId: row.environmentId,
                 actorType: "user",
-                actorCredential: "session",
+                actorCredential: getMcpRequestActor(request) ? "mcp" : "session",
                 actorId: orgResult.userId,
                 action: "machine_token.revoked",
                 result: "success",
