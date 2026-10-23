@@ -10,6 +10,7 @@ import { FcGoogle } from "react-icons/fc";
 import type { LoginProvider } from "../../lib/login";
 import { Button } from "../arc/button/button";
 import { useInstance, type PublicInstanceConfig } from "@/lib/instance-context";
+import type { ReactNode } from "react";
 
 const products = [
   { name: "Tunnels", description: "Bring your local services online.", icon: Cone01Icon },
@@ -25,6 +26,7 @@ interface AuthPageProps {
   error: string | null;
   redirect?: string;
   onLogin: (provider: LoginProvider) => void;
+  emailSignIn?: ReactNode;
 }
 
 export function AuthPage(props: AuthPageProps) {
@@ -32,7 +34,7 @@ export function AuthPage(props: AuthPageProps) {
   return <AuthPageView {...props} instance={instance} />;
 }
 
-export function AuthPageView({ mode = "login", loading, sessionPending, error, redirect, onLogin, instance }: AuthPageProps & {
+export function AuthPageView({ mode = "login", loading, sessionPending, error, redirect, onLogin, instance, emailSignIn }: AuthPageProps & {
   instance: Pick<PublicInstanceConfig, "selfHosted" | "authProviders">;
 }) {
   const isSignup = mode === "signup";
@@ -64,8 +66,9 @@ export function AuthPageView({ mode = "login", loading, sessionPending, error, r
             disabled={sessionPending || loading === "github"} onClick={() => { if (!busy) onLogin("google"); }} aria-label="Continue with Google">
             <FcGoogle size={17} aria-hidden="true" />Continue with Google
           </Button>}
-          {!instance.authProviders.length && <p role="alert">Sign-in is not configured. Ask your administrator to configure GitHub or Google OAuth.</p>}
+          {!instance.authProviders.length && !emailSignIn && <p role="alert">Sign-in is not configured. Ask your administrator to configure GitHub or Google OAuth.</p>}
         </div>
+        {emailSignIn}
         <p className="mt-3 mb-0 min-h-5 text-xs leading-5 text-zinc-400" role="status" aria-live="polite" aria-atomic="true">{status}</p>
         {error && <div className="mt-2.5 flex items-start gap-2.25 rounded-[10px] border border-rose-400/16 bg-rose-400/[.04] px-3 py-2.5 text-xs leading-[1.65] text-rose-300 [&>svg]:mt-0.5 [&>svg]:shrink-0 [&>p]:m-0 [&>p]:[overflow-wrap:anywhere]" role="alert"><CircleAlert size={15} aria-hidden="true" /><p>{error}</p></div>}
 
