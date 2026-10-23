@@ -3,7 +3,7 @@ export type McpCatalog = "direct" | "openai";
 
 export const MCP_SCOPES = ["openid", "profile", "email", "offline_access", "outray:read", "outray:write", "outray:secrets:values"] as const;
 export const MCP_AUDIT_RETENTION_DAYS = 90;
-export const MCP_VERSION = "0.1.0";
+export const MCP_VERSION = "0.0.1";
 
 export class McpAccessError extends Error {
   readonly code: string;
