@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 
 type Session = { user: { id: string } };
-type SessionLoader = (request: Request) => Promise<Session | null>;
 
 type Entry<T> = {
   expiresAt: number;
@@ -49,10 +48,10 @@ function prune(now: number, maxEntries: number): void {
  * Coalesces the session lookup for the same authenticated request identity.
  * Membership/organization authorization is intentionally not cached here.
  */
-export function getCachedAuthSession(
+export function getCachedAuthSession<T extends Session>(
   request: Request,
-  load: SessionLoader,
-): Promise<Session | null> {
+  load: (request: Request) => Promise<T | null>,
+): Promise<T | null> {
   return getCachedAuthValue(request, "session", () => load(request), {
     environmentVariable: "AUTH_SESSION_CACHE_TTL_MS",
     shouldCache: (session) => session !== null,
