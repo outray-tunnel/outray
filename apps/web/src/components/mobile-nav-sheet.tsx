@@ -1,6 +1,6 @@
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Bug, Check, CreditCard, KeyRound, LogOut, Plus, Settings2, Users, X } from "lucide-react";
+import { Bug, Check, LogOut, Plus, Settings2, UserRound, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { authClient, usePermission } from "@/lib/auth-client";
@@ -19,7 +19,6 @@ export function MobileNavSheet({ isOpen, onClose, orgSlug }: { isOpen: boolean; 
   const { data: session } = authClient.useSession();
   const { data: organizationData } = authClient.useListOrganizations();
   const organizations = organizationData ?? [];
-  const { data: canManageBilling } = usePermission({ billing: ["manage"] });
   const { data: canManageShares } = usePermission({ secretShare: ["create"] });
   const setSelectedOrganization = useAppStore((state) => state.setSelectedOrganization);
   const [reportBugOpen, setReportBugOpen] = useState(false);
@@ -85,9 +84,6 @@ export function MobileNavSheet({ isOpen, onClose, orgSlug }: { isOpen: boolean; 
             <h3 id="mobile-workspace-heading" className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">Workspace</h3>
             <nav aria-label="Workspace pages" className="divide-y divide-white/[0.06]">
               {[
-                { to: "/$orgSlug/members", label: "Members", icon: Users },
-                { to: "/$orgSlug/tokens", label: "API tokens", icon: KeyRound },
-                ...(canManageBilling && instance.billingEnabled ? [{ to: "/$orgSlug/billing", label: "Billing", icon: CreditCard }] : []),
                 { to: "/$orgSlug/settings", label: "Settings", icon: Settings2 },
               ].map((item) => {
                 const target = item.to.replace("/$orgSlug", `/${orgSlug}`);
@@ -113,6 +109,7 @@ export function MobileNavSheet({ isOpen, onClose, orgSlug }: { isOpen: boolean; 
         </div>
 
         <footer className="shrink-0 border-t border-white/[0.07] bg-[#0b0b0d] px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]">
+          <Link to="/account/settings" onClick={onClose} className="mb-3 flex min-h-11 items-center gap-3 rounded-lg px-2 text-[13px] text-zinc-400 hover:bg-white/[.035] hover:text-zinc-200 focus-visible:outline-2 focus-visible:outline-accent"><UserRound size={17} aria-hidden="true" />Personal settings</Link>
           <div className="flex items-center gap-3 pb-3"><span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-xs text-zinc-300">{user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "?"}</span><span className="min-w-0"><span className="block truncate text-[13px] text-zinc-200">{user?.name || "Account"}</span><span className="block truncate text-[11px] text-zinc-500">{user?.email}</span></span></div>
           <div className="flex gap-2"><button type="button" onClick={() => { onClose(); setReportBugOpen(true); }} className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-white/[0.09] text-xs text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200 focus-visible:outline-2 focus-visible:outline-violet-400"><Bug size={15} aria-hidden="true" />Report a bug</button><button type="button" onClick={() => void signOut()} className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-white/[0.09] text-xs text-zinc-400 hover:bg-white/[0.04] hover:text-rose-300 focus-visible:outline-2 focus-visible:outline-violet-400"><LogOut size={15} aria-hidden="true" />Sign out</button></div>
         </footer>
