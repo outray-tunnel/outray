@@ -1,6 +1,7 @@
 import { DurableQueue } from "../../../../shared/durable-queue";
 import { config } from "../config";
 import { BufferedAnalyticsLogger } from "./buffered-logger";
+import { trackTunnelTraffic, startPermanentTunnelUsage, shutdownPermanentTunnelUsage } from "./product-usage";
 import {
   TunnelTinybirdClient, tunnelEventRecord, requestCaptureRecord, protocolEventRecord,
   type TunnelEvent, type RequestCapture, type ProtocolEvent, type TinybirdTunnelRecord,
@@ -15,7 +16,7 @@ class AnalyticsLogger<T> {
   private readonly buffer: BufferedAnalyticsLogger<TinybirdTunnelRecord>;
 
   constructor(
-    datasource: string,
+    private readonly datasource: string,
     private readonly record: (event: T) => TinybirdTunnelRecord,
     batchSize: number,
     flushIntervalMs: number,
@@ -46,7 +47,11 @@ class AnalyticsLogger<T> {
       16 * 1024 * 1024, datasource === "tunnel_request_captures" ? 3 * 1024 * 1024 : 0);
   }
 
-  log(event: T): void { this.buffer.log(this.record(event)); }
+  log(event: T): void {
+    const record = this.record(event);
+    trackTunnelTraffic(this.datasource, record);
+    this.buffer.log(record);
+  }
   start(): void { this.buffer.start(client.configured); }
   shutdown(): Promise<void> { return this.buffer.shutdown(); }
 }
@@ -142,6 +147,7 @@ class ProtocolLogger extends AnalyticsLogger<ProtocolEvent> {
     bytesIn: number,
     bytesOut: number,
     retentionDays: number = 3,
+    direction?: "in" | "out",
   ) {
     this.log({
       timestamp: Date.now(),
@@ -149,6 +155,7 @@ class ProtocolLogger extends AnalyticsLogger<ProtocolEvent> {
       organization_id: organizationId,
       retention_days: retentionDays,
       protocol: "udp",
+      direction,
       event_type: "packet",
       connection_id: "",
       client_ip: clientIp,
@@ -164,6 +171,7 @@ class ProtocolLogger extends AnalyticsLogger<ProtocolEvent> {
 export const protocolLogger = new ProtocolLogger();
 
 export function startTinybirdLoggers(): void {
+  startPermanentTunnelUsage();
   logger.start();
   requestCaptureLogger.start();
   protocolLogger.start();
@@ -177,6 +185,7 @@ export function startTinybirdLoggers(): void {
 export async function shutdownLoggers(): Promise<void> {
   const results = await Promise.allSettled([
     logger.shutdown(), requestCaptureLogger.shutdown(), protocolLogger.shutdown(),
+    shutdownPermanentTunnelUsage(),
   ]);
   if (results.some((result) => result.status === "rejected")) {
     throw new Error("Tunnel analytics shutdown could not persist all buffered records");
