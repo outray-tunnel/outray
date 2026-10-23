@@ -64,7 +64,7 @@ function serializeProject(
 function requireContainerManager(access: SecretsAccess) {
   if (
     access.actor.type !== "user" ||
-    access.actor.credential !== "session" ||
+    !["session", "mcp"].includes(access.actor.credential) ||
     (access.actor.role !== "owner" && access.actor.role !== "admin")
   ) {
     throw new SecretsError(
