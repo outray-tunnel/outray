@@ -89,7 +89,7 @@ export async function validatePlugin(root = pluginRoot, { release = false } = {}
   for (const entry of [...cases.positive, ...cases.negative]) if (!entry.description?.trim() || !entry.prompt?.trim()) throw new Error("Incomplete review case");
   for (const entry of cases.positive) if (typeof entry.tools_triggered !== "string" || typeof entry.expected_behavior !== "string") throw new Error("Invalid positive review case fields");
   const releaseGaps = [];
-  if (!presentation.developerName?.trim()) releaseGaps.push("Select and verify the publisher identity, then set developerName.");
+  if (!presentation.developerName?.trim()) releaseGaps.push("Set developerName to the publisher's verified display name.");
   if (!metadata.review.demo_recording_url) releaseGaps.push("Record, host and verify the real demo, then set review.demo_recording_url.");
   else {
     const demo = new URL(metadata.review.demo_recording_url);
