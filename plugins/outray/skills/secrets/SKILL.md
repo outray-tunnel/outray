@@ -7,6 +7,8 @@ description: Use when a user wants to manage OutRay vault or environment metadat
 
 Use `list_organizations`, `list_vaults`, `get_vault` and `list_secrets` to discover authorized targets and stable identifiers. The public plugin handles metadata and permitted administration; it has no secret-value or credential-generation tools.
 
+If the plugin is disconnected, use its **Connect** control for browser sign-in and organization consent. CLI login is separate and is needed only for the local injection workflow below; never request a token to connect the plugin.
+
 Never request, reveal, print, export or copy secret values or authentication credentials into the conversation. If the user asks to reveal or edit a value, explain that this connection does not support that operation and direct them to the appropriate OutRay console workflow. Do not call another MCP endpoint or inspect local credential storage to bypass the public catalog.
 
 When the user's task requires local secret injection and local execution is available:
