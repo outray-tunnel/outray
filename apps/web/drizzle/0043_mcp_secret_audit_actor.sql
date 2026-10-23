@@ -1,0 +1,2 @@
+ALTER TABLE "secret_audit_events" DROP CONSTRAINT "secret_audit_events_actor_credential_check";--> statement-breakpoint
+ALTER TABLE "secret_audit_events" ADD CONSTRAINT "secret_audit_events_actor_credential_check" CHECK ("secret_audit_events"."actor_credential" IN ('session', 'cli', 'machine', 'system', 'mcp'));
