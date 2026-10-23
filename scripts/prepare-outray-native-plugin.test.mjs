@@ -3,6 +3,7 @@ import test from "node:test";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import semver from "semver";
 import { prepareNativePlugin, requiredOutrayBinding } from "./prepare-outray-native-plugin.mjs";
 import { pluginRoot, validatePlugin } from "./outray-plugin.mjs";
 
@@ -28,6 +29,9 @@ test("native test installation has one required account and keeps public upload 
   const json = async (path) => JSON.parse(await readFile(path, "utf8"));
   const manifest = await json(join(generated, "plugin.json"));
   const legacy = await json(join(generated, ".codex-plugin/plugin.json"));
+  const publicVersion = JSON.parse(original).version;
+  assert.equal(semver.clean(manifest.version), publicVersion, "local caching must preserve the public release version");
+  assert.match(manifest.version, /\+codex\.\d+$/);
   assert.equal(manifest.extensions["com.openai"].apps, "./.app.json");
   assert.equal(legacy.apps, "./.app.json");
   assert.equal(legacy.version, manifest.version);
