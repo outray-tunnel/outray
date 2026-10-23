@@ -3,11 +3,11 @@ import { isReservedSlug } from "./reserved-slugs";
 /** Actual root routes and static directories cannot be workspace URLs, even
  * on an independently hosted instance. Keep this list in sync with web routes. */
 export const WORKSPACE_ROUTE_SLUGS = [
-  "admin", "api", "changelog", "cli", "contact", "docs", "email-templates",
+  "account", "admin", "api", "changelog", "cli", "contact", "docs", "email-templates",
   "express", "internal", "invitations", "login", "nestjs", "nextjs",
   "onboarding", "plugins", "pricing", "privacy", "products", "report-bug",
   "select", "signup", "terms", "vite",
-  "assets", "brand", "fonts", "frameworks", "logos",
+  "assets", "brand", "fonts", "frameworks", "logos", "landing", "status-page-logos",
 ] as const;
 
 const routeSlugs: ReadonlySet<string> = new Set(WORKSPACE_ROUTE_SLUGS);
