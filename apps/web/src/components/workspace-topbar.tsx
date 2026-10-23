@@ -11,9 +11,11 @@ import { useAgentChat } from "./agent/agent-chat-context";
 export function WorkspaceTopbar({
   onOpenNavigation,
   isNavigationOpen,
+  contextLabel,
 }: {
   onOpenNavigation: () => void;
   isNavigationOpen: boolean;
+  contextLabel?: string;
 }) {
   const { data: session, isPending } = authClient.useSession();
   const navigate = useNavigate();
@@ -37,6 +39,7 @@ export function WorkspaceTopbar({
           onOpenNavigation={onOpenNavigation}
           isNavigationOpen={isNavigationOpen}
         />
+        {contextLabel && <p className="mr-auto hidden text-xs text-zinc-500 md:block">{contextLabel}</p>}
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <Button type="button" variant="ghost" size="sm" data-agent-trigger aria-haspopup="dialog" aria-expanded={agent.isOpen} aria-controls={agent.panelId} onClick={agent.openAgent} className={agent.isOpen ? "!bg-white/[0.05] !text-zinc-200" : "!text-zinc-400"}>
             <Sparkles size={14} strokeWidth={1.7} aria-hidden="true" />Agent
@@ -47,6 +50,7 @@ export function WorkspaceTopbar({
             isPending={isPending}
             onReportBug={() => setReportBugOpen(true)}
             onSignOut={signOut}
+            onAccountSettings={() => { void navigate({ to: "/account/settings" }); }}
           />
         </div>
       </header>
