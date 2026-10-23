@@ -39,7 +39,7 @@ export async function prepareNativePlugin({ appManifest, outputDirectory = defau
     const destination = join(staging, "plugins/outray");
     await cp(pluginRoot, destination, { recursive: true });
     const manifest = structuredClone(checked.manifest);
-    manifest.version = `${manifest.version}-native.${Date.now()}`;
+    manifest.version = `${manifest.version.split("+")[0]}+codex.${Date.now()}`;
     manifest.extensions["com.openai"].apps = "./.app.json";
     await writeFile(join(destination, "plugin.json"), `${JSON.stringify(manifest, null, 2)}\n`);
     await writeFile(join(destination, ".app.json"), `${JSON.stringify(binding, null, 2)}\n`);
