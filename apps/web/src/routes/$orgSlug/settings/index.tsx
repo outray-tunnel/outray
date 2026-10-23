@@ -9,7 +9,7 @@ function SettingsIndexRedirect() {
 
   return (
     <Navigate
-      to="/$orgSlug/settings/profile"
+      to="/$orgSlug/settings/organization"
       params={{
         orgSlug,
       }}
