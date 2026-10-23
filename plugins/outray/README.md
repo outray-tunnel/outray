@@ -10,4 +10,8 @@ The repository's `.agents/plugins/marketplace.json` tests the portable package a
 
 The generated test copy uses the same skills and backend. Its account binding stays outside the public-upload source and archive. Public submission converts the verified HTTPS MCP configuration into the directory's managed connection; retain that generated binding when updating the finalized release.
 
+For repeated local tests, update the existing local installation and reuse its verified app binding. Saving another private account package creates an additional plugin entry; it is not a refresh of the local installation. Plugin authentication uses **Connect** and browser consent. `outray login` authenticates local CLI commands separately.
+
+Package validation requires both listing and composer icons, verifies every referenced PNG, and rejects private app bindings in hidden compatibility manifests as well as the portable manifest. A compatibility manifest, when included, must preserve the same identity, branding and public MCP configuration. The public archive must not include a temporary tunnel address.
+
 See `docs/outray-mcp-release.md` in the repository for deployment, reviewer fixtures and submission steps. A valid development ZIP does not mean the endpoint has been deployed or the plugin has been submitted, reviewed or published.
