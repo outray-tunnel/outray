@@ -2,6 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
 import { useEffect, useRef, useState } from "react";
 import { AuthPage } from "@/components/auth/auth-page";
+import { EmailSignIn } from "@/components/auth/email-sign-in";
 import { loginCallbackErrorMessage, loginCallbacks, readLoginSearch, type LoginProvider } from "@/lib/login";
 
 export const Route = createFileRoute("/login")({
@@ -19,7 +20,7 @@ export function LoginRoute() {
   const [actionError, setActionError] = useState<string | null>(null);
   const inFlight = useRef(false);
   const mounted = useRef(true);
-  const { redirect, error } = Route.useSearch();
+  const { redirect, error, reauth } = Route.useSearch();
   const { data: session, isPending } = authClient.useSession();
   useEffect(() => {
     mounted.current = true;
@@ -37,7 +38,7 @@ export function LoginRoute() {
     };
   }, []);
 
-  if (session?.user) {
+  if (session?.user && !reauth) {
     // href retains the return URL's query; to supplies the typed default route.
     return <Navigate to="/select" href={redirect ?? "/select"} replace />;
   }
@@ -63,5 +64,5 @@ export function LoginRoute() {
     }
   };
 
-  return <AuthPage loading={loading} sessionPending={isPending} redirect={redirect} error={loading ? null : actionError ?? loginCallbackErrorMessage(error)} onLogin={(provider) => { void handleLogin(provider); }} />;
+  return <AuthPage loading={loading} sessionPending={isPending} redirect={redirect} error={loading ? null : actionError ?? loginCallbackErrorMessage(error)} onLogin={(provider) => { void handleLogin(provider); }} emailSignIn={<EmailSignIn redirect={redirect} disabled={isPending || loading !== null} />} />;
 }
