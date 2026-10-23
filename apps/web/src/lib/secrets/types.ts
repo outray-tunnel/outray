@@ -11,7 +11,7 @@ export type SecretsActorType = "user" | "machine" | "system";
 
 export type SecretsActor = {
   type: SecretsActorType;
-  credential: "session" | "cli" | "machine" | "system";
+  credential: "session" | "cli" | "machine" | "system" | "mcp";
   id: string | null;
   userId: string | null;
   role: string | null;
