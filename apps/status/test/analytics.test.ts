@@ -65,6 +65,7 @@ test("collection is paid-only, unknown plans fail closed, self-hosted needs no s
     "node:crypto": crypto, "node:net": net,
     "../../../../shared/hosted-plan-limits": { default: plans },
     "../../../../shared/instance-config": { default: instance },
+    "../../../../shared/status-analytics-outbox": { default: {} },
     "./db": { query: async (sql: string, values: unknown[]) => { queries++; assert.match(sql, /WHERE organization_id = \$1/); assert.deepEqual(Array.from(values), ["org-one"]); return plan ? [{ plan }] : []; } },
     "./config": {}, "./runtime": { statusEnvironment: () => selfHosted ? { OUTRAY_DEPLOYMENT_MODE: "self-hosted", OUTRAY_RETENTION_DAYS: "45" } : {} },
   });
@@ -82,7 +83,11 @@ test("ingestion writes only a privacy-safe event and trusts country only from Wo
   const api = load<typeof import("../src/lib/analytics")>("../src/lib/analytics.ts", {
     "node:crypto": crypto, "node:net": net,
     "../../../../shared/hosted-plan-limits": { default: plans }, "../../../../shared/instance-config": { default: instance },
-    "./db": {}, "./config": { getStatusConfig: () => ({ rateLimitSecret: "test-secret" }) },
+    "./db": { getPool: () => ({ fixture: true }) }, "./config": { getStatusConfig: () => ({ rateLimitSecret: "test-secret" }) },
+    "../../../../shared/status-analytics-outbox": { default: {
+      admitStatusAnalytics: async (_pool: unknown, event: Record<string, unknown>) => { payload = event; return true; },
+      deliverStatusAnalyticsOutbox: async () => 1,
+    } },
     "./runtime": { isStatusProduction: () => true, statusEnvironment: () => ({ TINYBIRD_API_HOST: "https://tinybird.example", TINYBIRD_INGEST_TOKEN: "synthetic-append" }),
       getStatusRuntime: () => worker ? { request: { cf: { country: "NG" } } } : undefined },
   }, { fetch: async (url: string, options: RequestInit) => {
