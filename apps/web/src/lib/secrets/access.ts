@@ -15,6 +15,8 @@ import {
 } from "./access-policy";
 import type { SecretsAccess, SecretsScope } from "./types";
 import { SecretsError } from "./types";
+import { getMcpRequestActor } from "../mcp/request-actor";
+import { requireMcpScopes } from "../mcp/policy";
 
 export {
   assertActorScope,
@@ -157,6 +159,15 @@ export async function requireSecretsAccess(
   orgSlug: string,
   requiredScope: SecretsPermission,
 ): Promise<SecretsAccess> {
+  const mcpActor = getMcpRequestActor(request);
+  if (mcpActor) {
+    const write = ["secrets:write", "secrets:delete"].includes(requiredScope) || (requiredScope === "secrets:admin" && request.method !== "GET");
+    const values = requiredScope === "secrets:reveal";
+    requireMcpScopes(mcpActor.scopes, write, values);
+    if (values && mcpActor.catalog === "openai") {
+      throw new SecretsError("Secret values are unavailable through this connection", { code: "FORBIDDEN", status: 403 });
+    }
+  }
   const token = bearerToken(request);
   if (token) {
     const machine = await machineAccess(request, orgSlug, token, requiredScope);
@@ -194,7 +205,7 @@ export async function requireSecretsAccess(
     },
     actor: {
       type: "user",
-      credential: "session",
+      credential: mcpActor ? "mcp" : "session",
       id: session.user.id,
       userId: session.user.id,
       role: orgResult.membership.role,
@@ -222,7 +233,7 @@ export async function requireSecretsAdmin(request: Request, orgSlug: string) {
   const access = await requireSecretsAccess(request, orgSlug, "secrets:admin");
   if (
     access.actor.type !== "user" ||
-    access.actor.credential !== "session" ||
+    !["session", "mcp"].includes(access.actor.credential) ||
     (access.actor.role !== "owner" && access.actor.role !== "admin")
   ) {
     throw new SecretsError(
