@@ -79,7 +79,7 @@ function ContactPage() {
               Get in touch
             </h1>
             <p className="text-lg text-white/60 max-w-xl mx-auto">
-              Have a question or need help? We'd love to hear from you.
+              Get help with OutRay, including the Codex and ChatGPT integration, account access, and connected apps.
             </p>
           </div>
 
