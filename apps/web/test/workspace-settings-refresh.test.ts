@@ -8,6 +8,8 @@ import { ProfileSettingsContent, OrganizationSettingsContent, SettingsLoading, S
 import { WorkspacePageHeader } from "../src/components/workspace-page-header";
 import { WorkspaceNotice } from "../src/components/workspace/workspace-ui";
 import { workspaceFocusTarget } from "../src/components/workspace/workspace-dialog-focus";
+import { SettingsNavigation } from "../src/components/workspace/settings-navigation";
+import { organizationSettingsItems, personalSettingsItems } from "../src/components/workspace/settings-navigation-state";
 
 Object.assign(globalThis, { React });
 const user = { id: "user-1", name: "Ada Lovelace", email: "ada@example.com", emailVerified: true };
@@ -88,28 +90,23 @@ test("opt-in compact headers keep untouched workspace headers unchanged", () => 
   assert.match(legacy, /text-\[15px\]/);
 });
 
-test("new settings use existing quiet Arc tabs, scoped routes and content-preserving background reads", async () => {
-  const layout = await readFile(new URL("../src/routes/$orgSlug/settings.tsx", import.meta.url), "utf8");
-  assert.match(layout, /components\/arc\/tabs\/tabs/);
-  assert.match(layout, /tunnelTabsClassName/);
-  assert.match(layout, /className=\{tunnelTabsClassName\}/);
-  assert.match(layout, /aria-label="Settings sections"/);
-  assert.match(layout, /params: \{ orgSlug \}/);
-  assert.match(layout, /TabsContent value=\{tab\} forceMount/);
-  const profile = await readFile(new URL("../src/routes/$orgSlug/settings/profile.tsx", import.meta.url), "utf8");
+test("settings navigation separates account destinations from current-organization destinations", async () => {
+  const personal = withRouter(React.createElement(SettingsNavigation, { items: personalSettingsItems, label: "Personal settings" }));
+  const scoped = withRouter(React.createElement(SettingsNavigation, { items: organizationSettingsItems("acme", true), label: "Organization settings" }));
+  assert.match(personal, /aria-label="Personal settings"/);
+  assert.match(personal, /href="\/account\/settings\/connected-apps"/);
+  assert.doesNotMatch(personal, /href="\/acme\//);
+  assert.match(scoped, /aria-label="Organization settings"/);
+  assert.match(scoped, /href="\/acme\/members"/);
+  assert.match(scoped, /href="\/acme\/tokens"/);
+  assert.match(scoped, /href="\/acme\/billing"/);
+  assert.doesNotMatch(scoped, /href="\/account\//);
+  const profile = await readFile(new URL("../src/routes/account/settings/index.tsx", import.meta.url), "utf8");
   const org = await readFile(new URL("../src/routes/$orgSlug/settings/organization.tsx", import.meta.url), "utf8");
   assert.match(profile, /!session\?\.user && isPending/);
   assert.match(org, /!organization && isPending/);
   assert.match(org, /org\.slug === orgSlug/);
   assert.doesNotMatch(profile + org, /return null/);
-});
-
-test("API token navigation uses the same key icon in outlined and solid variants", async () => {
-  const source = await readFile(new URL("../src/components/app-sidebar.tsx", import.meta.url), "utf8");
-  assert.match(source, /@outray\/icons\/stroke\/Key02Icon/);
-  assert.match(source, /@outray\/icons\/solid\/Key02Icon/);
-  assert.match(source, /label: "API tokens",\s+icon: Key02Icon,\s+activeIcon: Key02SolidIcon/);
-  assert.doesNotMatch(source, /LicenseIcon/);
 });
 
 test("workspace feedback uses error alerts and polite status updates", () => {
