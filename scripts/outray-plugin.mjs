@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { parse as parseYaml } from "yaml";
 import semver from "semver";
+import { isDeepStrictEqual } from "node:util";
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const pluginRoot = join(repository, "plugins", "outray");
@@ -30,6 +31,17 @@ export async function validatePlugin(root = pluginRoot, { release = false } = {}
   const metadata = manifest.extensions?.["com.openai"];
   const presentation = metadata?.interface;
   if (manifest.apps != null || metadata?.apps != null) throw new Error("Public packages cannot declare app bindings");
+  // Inspect legacy declarations even when the portable extension shadows them.
+  // Otherwise an upload can pass this check while retaining private wiring.
+  if (files.includes(".codex-plugin/plugin.json")) {
+    const compatibility = JSON.parse(await readFile(join(root, ".codex-plugin/plugin.json"), "utf8"));
+    if (compatibility.apps != null || compatibility.extensions?.["com.openai"]?.apps != null) throw new Error("Public compatibility manifests cannot declare app bindings");
+    if (compatibility.name !== manifest.name || compatibility.version !== manifest.version) throw new Error("Compatibility identity must match the portable manifest");
+    for (const candidate of [compatibility.interface, compatibility.extensions?.["com.openai"]?.interface]) {
+      if (candidate != null && !isDeepStrictEqual(candidate, presentation)) throw new Error("Compatibility presentation must match the portable manifest");
+    }
+    if (compatibility.mcpServers != null && compatibility.mcpServers !== "./mcp.json" && !isDeepStrictEqual(compatibility.mcpServers, mcp.mcpServers)) throw new Error("Compatibility MCP configuration must use the public portable configuration");
+  }
   if (presentation?.category !== "Developer Tools") throw new Error("Invalid category");
   for (const [key, max] of [["displayName", 30], ["shortDescription", 30], ["longDescription", 4000]]) {
     if (typeof presentation[key] !== "string" || !presentation[key].trim() || presentation[key].length > max) throw new Error(`Invalid ${key}`);
@@ -40,12 +52,17 @@ export async function validatePlugin(root = pluginRoot, { release = false } = {}
   }
   const prompts = Array.isArray(presentation.defaultPrompt) ? presentation.defaultPrompt : [presentation.defaultPrompt];
   if (!prompts.length || prompts.length > 3 || prompts.some((prompt) => typeof prompt !== "string" || !prompt.trim() || prompt.length > 128 || /[\r\n]/.test(prompt))) throw new Error("Invalid default prompts");
+  for (const key of ["logo", "composerIcon"]) {
+    if (typeof presentation[key] !== "string" || !presentation[key]) throw new Error(`Missing required ${key}`);
+  }
   for (const key of ["logo", "composerIcon", "logoDark", "composerIconDark"]) {
     if (!presentation[key]) continue;
-    const path = presentation[key].replace(/^\.\//, "");
-    if (!files.includes(path) || path.includes("..")) throw new Error(`Missing contained ${key}`);
+    const reference = presentation[key];
+    if (typeof reference !== "string" || !reference.startsWith("./") || reference.includes("\\")) throw new Error(`Invalid contained path for ${key}`);
+    const path = reference.slice(2);
+    if (!files.includes(path) || path.split("/").some((part) => !part || part === "." || part === "..")) throw new Error(`Missing contained ${key}`);
     const bytes = await readFile(join(root, path));
-    if (bytes.toString("hex", 0, 8) !== "89504e470d0a1a0a" || bytes.length > 5 * 1024 * 1024) throw new Error(`Invalid PNG ${key}`);
+    if (bytes.length < 33 || bytes.toString("hex", 0, 8) !== "89504e470d0a1a0a" || bytes.toString("ascii", 12, 16) !== "IHDR" || bytes.length > 5 * 1024 * 1024) throw new Error(`Invalid PNG ${key}`);
     const width = bytes.readUInt32BE(16), height = bytes.readUInt32BE(20);
     if (width !== height || width < (key.startsWith("logo") ? 256 : 48) || width > 4096) throw new Error(`Invalid image dimensions for ${key}`);
   }
@@ -62,7 +79,8 @@ export async function validatePlugin(root = pluginRoot, { release = false } = {}
   if (Object.keys(mcp.mcpServers ?? {}).length !== 1 || server?.type !== "streamable-http" || server.url !== "https://outray.co/api/mcp/openai") throw new Error("Plugin must connect only to the restricted public catalog");
   if (server.headers && Object.keys(server.headers).length) throw new Error("Public packages cannot embed server headers");
   const authentication = server.extensions?.["com.openai"]?.auth;
-  if (authentication?.type !== "oauth" || authentication.resource !== server.url || authentication.defaultScopes?.includes("outray:secrets:values")) throw new Error("Invalid public OAuth configuration");
+  const publicScopes = ["openid", "profile", "email", "offline_access", "outray:read", "outray:write"];
+  if (authentication?.type !== "oauth" || authentication.resource !== server.url || authentication.client?.mode !== "cimd" || !Array.isArray(authentication.defaultScopes) || !isDeepStrictEqual([...authentication.defaultScopes].sort(), publicScopes.sort())) throw new Error("Invalid public OAuth configuration");
   const cases = metadata.review?.test_cases;
   if (metadata.review?.commerce !== false || !metadata.review?.commerce_description?.trim()) throw new Error("Describe the plugin's neutral billing links and lack of purchases");
   if (!Array.isArray(metadata.publication?.countries) || metadata.publication.countries.length !== 0) throw new Error("This release requires unrestricted country targeting");
