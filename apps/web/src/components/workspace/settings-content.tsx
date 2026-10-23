@@ -50,9 +50,9 @@ function DetailRow({ label, children, copy, mono = false }: { label: string; chi
   </div>;
 }
 
-export function ProfileSettingsContent({ user }: { user: SettingsIdentity }) {
-  return <div className={settingsGridClassName}>
-    <div className={sectionIntroClassName}>
+export function ProfileSettingsContent({ user, appearance = "default" }: { user: SettingsIdentity; appearance?: "default" | "stacked" }) {
+  return <div className={appearance === "stacked" ? "space-y-4" : settingsGridClassName}>
+    <div className={`${sectionIntroClassName} ${appearance === "stacked" ? "[&_p]:max-w-none" : ""}`}>
       <h2>Personal profile</h2>
       <p>Your account identity across OutRay workspaces.</p>
     </div>
@@ -74,17 +74,18 @@ export function ProfileSettingsContent({ user }: { user: SettingsIdentity }) {
   </div>;
 }
 
-export function OrganizationSettingsContent({ organization, orgSlug, canUploadLogo = false, onLogoUpdated }: {
+export function OrganizationSettingsContent({ organization, orgSlug, canUploadLogo = false, onLogoUpdated, appearance = "default" }: {
   organization: SettingsOrganization;
   orgSlug: string;
   canUploadLogo?: boolean;
   onLogoUpdated?: (url: string) => void;
+  appearance?: "default" | "stacked";
 }) {
   const [uploadedLogo, setUploadedLogo] = useState<{ url: string; previous: typeof organization.logo } | null>(null);
   const [logoFeedback, setLogoFeedback] = useState<OrganizationLogoFeedback | null>(null);
   const logo = uploadedLogo && uploadedLogo.previous === organization.logo ? uploadedLogo.url : organization.logo;
-  return <div className={settingsGridClassName}>
-    <div className={sectionIntroClassName}>
+  return <div className={appearance === "stacked" ? "space-y-4" : settingsGridClassName}>
+    <div className={`${sectionIntroClassName} ${appearance === "stacked" ? "[&_p]:max-w-none" : ""}`}>
       <h2>Workspace identity</h2>
       <p>The organization your team and resources belong to.</p>
     </div>
