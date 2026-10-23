@@ -112,6 +112,7 @@ test("the actual authentication creation hook rejects before persisting user/acc
       if (specifier === "./member-quota-adapter.server") return { memberQuotaAdapter: () => ({}) };
       if (specifier === "better-auth/plugins") return { organization: (options: unknown) => options };
       if (specifier === "better-auth/api") return { APIError, createAuthMiddleware: (handler: unknown) => handler };
+      if (specifier === "./mcp/auth-plugins") return { outrayMcpAuthPlugins: () => [] };
       if (specifier === "./auth-profile") return { adminProfileFields: {} };
       if (specifier === "../db") return { db: new Proxy({}, { get() { sideEffects++; throw new Error("User hook must run before persistence"); } }) };
       if (specifier === "./send-email") return { sendViaZepto: () => { sideEffects++; } };
