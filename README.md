@@ -188,9 +188,68 @@ outray secrets run -- npm run dev
 For automation, provide a scoped machine credential through `OUTRAY_TOKEN`.
 Never commit tokens or exported `.env` files.
 
+### Permanent product usage (admin)
+
+Admin usage, product, and organization pages include **Recorded usage**: UTC
+daily counters and lifetime totals kept in PostgreSQL independently of raw
+Tinybird retention and resource deletion. Current inventory, billing allowances,
+and customer-facing analytics are separate and unchanged. The admin-only
+`GET /api/admin/usage/aggregates` endpoint accepts `product`, `organizationId`,
+and `range=7d|30d|90d|365d|all`; counters are exact decimal strings. All time
+charts use UTC months, including verifiable monthly-only baselines. Baselines
+without a known date affect lifetime totals only, never fabricated chart points.
+
+Deploy migrations `0039`–`0041` through the existing database migration workflow
+**before** deploying web, tunnel, ingest, cron, status, or probe writers/readers.
+No new credentials or dedicated Ops service are required. Hosted and ordinary
+self-hosted installations use the same implementation and their own database,
+Redis, and Tinybird configuration. Node and Cloudflare status runtimes share
+the PostgreSQL analytics outbox; cron retries its delivery every 15 seconds.
+Existing analytics entitlement, origin validation, and privacy rules still apply.
+
+Preview surviving development history before importing it:
+
+```bash
+npm run usage:backfill -- --target=development --organization=acme
+npm run usage:backfill -- --target=development --organization=acme --apply
+```
+
+Omit `--organization` to process every retained organization. The command uses
+the selected target's root environment file (`.env` or `.env.prod`) and the
+matching Tinybird branch, so run it from a checkout with the Tinybird CLI
+authenticated. Dry run is the default. Apply jobs save transactional checkpoints;
+rerunning resumes incomplete sources and skips completed ones. Source IDs and
+recorded cutovers prevent overlap with live counters. Production migration,
+backfill, and deployment require separate approval; production backfill also
+requires `--allow-production` alongside `--target=production --apply`.
+
+These are **recorded totals**, not complete totals since launch: expired history
+cannot be recovered, registrations never imply old tunnel openings, and sources
+without stable historical batch IDs exclude the partial cutover day. Agent
+backfill uses surviving run snapshots; later token deltas/terminal outcomes are
+recorded on their transition day. Permanent metrics contain only bounded metric
+dimensions and counters, never secret values, request content, visitor hashes,
+or other event payloads. Organization deletion cascades its attributed data and
+outbox; already-recorded anonymous platform totals remain.
+
+Tunnel traffic is sealed into payload-free, immutable Redis batches, rather than
+making PostgreSQL calls per request. Consumers deduplicate batch IDs atomically;
+120-day receipts are cleaned by cron and older batch replays are rejected. Queued
+batches for deleted organizations are discarded on consumption. Buffer/queue
+exhaustion and rejected deliveries log explicit failures; admin coverage shows
+pending batches, dead letters, oldest queued time, and outbox failures. Investigate
+these rather than assuming complete collection. As with other in-memory buffers,
+an abrupt process termination can lose traffic not yet sealed to Redis (up to
+the five-second flush window); graceful shutdown flushes pending counters.
+
 ## Documentation
 
 Visit [outray.dev/docs](https://outray.dev/docs) for full documentation.
+
+The hosted MCP implementation, public Codex/ChatGPT plugin package, verification
+commands and directory release procedure are documented in
+[OutRay MCP release](docs/outray-mcp-release.md). Plugin source is in
+`plugins/outray`; `npm run plugin:package` builds its portable ZIP.
 
 ## Contributing
 
