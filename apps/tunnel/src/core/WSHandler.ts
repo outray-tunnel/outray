@@ -17,6 +17,8 @@ import { WSProxy } from "./WSProxy";
 
 import { generateId, generateSubdomain } from "../../../../shared/utils";
 import { config } from "../config";
+import { randomUUID } from "node:crypto";
+import { recordTunnelOpening } from "../lib/product-usage";
 
 export class WSHandler {
   private wss: WebSocketServer;
@@ -229,6 +231,15 @@ export class WSHandler {
       });
 
       let tunnelId: string | null = null;
+      const usageSessionId = randomUUID();
+      let usageOpenedAt: string | undefined;
+      let usageRecorded = false;
+      const countOpening = async (organizationId: string | undefined, protocol: "http" | "tcp" | "udp") => {
+        if (usageRecorded) return;
+        usageOpenedAt ??= new Date().toISOString();
+        await recordTunnelOpening(organizationId, protocol, usageSessionId, usageOpenedAt);
+        usageRecorded = true;
+      };
 
       ws.on("message", async (data: WebSocket.Data) => {
         try {
@@ -364,6 +375,7 @@ export class WSHandler {
 
                 tunnelId = tunnelIdForProtocol;
                 extWs.tunnelId = tunnelIdForProtocol; // Track for heartbeat logging
+                await countOpening(organizationId, "tcp");
                 ws.send(
                   Protocol.encode({
                     type: "tunnel_opened",
@@ -442,6 +454,7 @@ export class WSHandler {
 
                 tunnelId = tunnelIdForProtocol;
                 extWs.tunnelId = tunnelIdForProtocol; // Track for heartbeat logging
+                await countOpening(organizationId, "udp");
                 ws.send(
                   Protocol.encode({
                     type: "tunnel_opened",
@@ -547,6 +560,7 @@ export class WSHandler {
                 return;
               }
 
+              await countOpening(organizationId, "http");
               ws.send(
                 Protocol.encode({
                   type: "tunnel_opened",
@@ -779,6 +793,7 @@ export class WSHandler {
               plan,
             });
 
+            await countOpening(organizationId, "http");
             ws.send(response);
             console.log(`Tunnel opened: ${fullHostname}`);
           } else if (message.type === "tcp_data" && tunnelId) {
